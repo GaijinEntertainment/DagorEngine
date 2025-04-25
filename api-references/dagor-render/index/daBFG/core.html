@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Functions &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=93b9aae3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Declaring a Node" href="declaringNodes.html" />
+    <link rel="prev" title="daBFG API" href="../daBFG.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper classes for D3D API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../daBFG.html">daBFG API</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Core Functions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv44rootv"><code class="docutils literal notranslate"><span class="pre">root()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424set_multiplexing_extentsN12multiplexing7ExtentsE"><code class="docutils literal notranslate"><span class="pre">set_multiplexing_extents()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv49run_nodesv"><code class="docutils literal notranslate"><span class="pre">run_nodes()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47startupv"><code class="docutils literal notranslate"><span class="pre">startup()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv48shutdownv"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418invalidate_historyv"><code class="docutils literal notranslate"><span class="pre">invalidate_history()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv421update_external_state13ExternalState"><code class="docutils literal notranslate"><span class="pre">update_external_state()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv437mark_external_resource_for_validationPK11D3dResource"><code class="docutils literal notranslate"><span class="pre">mark_external_resource_for_validation()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpaceE"><code class="docutils literal notranslate"><span class="pre">NameSpace</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK5dabfg9NameSpacedvEPKc"><code class="docutils literal notranslate"><span class="pre">NameSpace::operator/()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0ENK5dabfg9NameSpace12registerNodeE10NodeHandlePKcPKcRR1F"><code class="docutils literal notranslate"><span class="pre">NameSpace::registerNode()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0EN5dabfg9NameSpace13setResolutionEvPKc1T"><code class="docutils literal notranslate"><span class="pre">NameSpace::setResolution()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0EN5dabfg9NameSpace20setDynamicResolutionEvPKc1T"><code class="docutils literal notranslate"><span class="pre">NameSpace::setDynamicResolution()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpace8fillSlotE9NamedSlot9NameSpacePKc"><code class="docutils literal notranslate"><span class="pre">NameSpace::fillSlot()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetEN5eastl4spanIPCKcEE"><code class="docutils literal notranslate"><span class="pre">NameSpace::updateExternallyConsumedResourceSet()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetENSt16initializer_listIPKcEE"><code class="docutils literal notranslate"><span class="pre">NameSpace::updateExternallyConsumedResourceSet()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpace30markResourceExternallyConsumedEPKc"><code class="docutils literal notranslate"><span class="pre">NameSpace::markResourceExternallyConsumed()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg9NameSpace32unmarkResourceExternallyConsumedEPKc"><code class="docutils literal notranslate"><span class="pre">NameSpace::unmarkResourceExternallyConsumed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N5dabfg13ExternalStateE"><code class="docutils literal notranslate"><span class="pre">ExternalState</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg13ExternalState20wireframeModeEnabledE"><code class="docutils literal notranslate"><span class="pre">ExternalState::wireframeModeEnabled</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5dabfg13ExternalState10vrsEnabledE"><code class="docutils literal notranslate"><span class="pre">ExternalState::vrsEnabled</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4I0E13register_node10NodeHandlePKcPKcRR1F"><code class="docutils literal notranslate"><span class="pre">register_node()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4I0E14set_resolutionvPKc1T"><code class="docutils literal notranslate"><span class="pre">set_resolution()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4I0E22set_dynamic_resolutionvPKc1T"><code class="docutils literal notranslate"><span class="pre">set_dynamic_resolution()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv49fill_slot9NamedSlotPKc"><code class="docutils literal notranslate"><span class="pre">fill_slot()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv439update_externally_consumed_resource_setN5eastl4spanIPCKcEE"><code class="docutils literal notranslate"><span class="pre">update_externally_consumed_resource_set()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv439update_externally_consumed_resource_setNSt16initializer_listIPKcEE"><code class="docutils literal notranslate"><span class="pre">update_externally_consumed_resource_set()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv433mark_resource_externally_consumedPKc"><code class="docutils literal notranslate"><span class="pre">mark_resource_externally_consumed()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv435unmark_resource_externally_consumedPKc"><code class="docutils literal notranslate"><span class="pre">unmark_resource_externally_consumed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="declaringNodes.html">Declaring a Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="graphState.html">Controlling the Graph State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="das.html">Bfg in das</a></li>
+<li class="toctree-l4"><a class="reference internal" href="bfg_ecs.html">Bfg in das+ecs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daBfgCore.html">DaBfgCore das module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daBFG.html">daBFG API</a></li>
+      <li class="breadcrumb-item active">Core Functions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/daBFG/core.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="core-functions">
+<h1>Core Functions<a class="headerlink" href="#core-functions" title="Link to this heading"></a></h1>
+<p>The library exposes several global functions for controlling the global
+graph state encapsulated inside the library, listed below. The graph
+is always singular and global by design. This allows for the most
+effective optimization of memory and other resources due to all
+information being visible and available to the backend.</p>
+<p>However, for separating different logical parts of the global graph,
+e.g. for different viewports (editor and game preview) all daBfg entities
+(nodes, resources, automatic resolutions, etc) are namespaced. A node
+might have the name “/foo/bar/node”, but you never actually use this
+name to refer to a node, as we don’t want to be parsing strings.
+Instead, wrapper objects describing a particular namespace are used.</p>
+<p>Hence, the code that wants to register various objects inside the graph,
+like nodes and resolutions, must use the <a class="reference internal" href="#_CPPv4N5dabfg9NameSpaceE" title="dabfg::NameSpace"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">dabfg::NameSpace</span></code></a>
+class to do so, although aliases for calling methods of this class on
+the global namespace <code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">dabfg::root()</span></code> are available.</p>
+<dl>
+<dt class="sig sig-object cpp">
+<span class="target" id="group___dabfg_core"></span><em><span class="pre">group</span></em> <span class="sig-name descname"><span class="pre">DabfgCore</span></span></dt>
+<dd><p>Core dabfg functions that everything else is accessed through. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.DABFG_PP_NODE_SRC">
+<span class="target" id="group___dabfg_core_1ga364daeb9af9d0cd66d660bf7c0f612c6"></span><span class="sig-name descname"><span class="n"><span class="pre">DABFG_PP_NODE_SRC</span></span></span><a class="headerlink" href="#c.DABFG_PP_NODE_SRC" title="Link to this definition"></a><br /></dt>
+<dd><p>A macro that expands to the current source location. Should always be provided to <a class="reference internal" href="#group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a"><span class="std std-ref">dabfg::register_node</span></a> as the <code class="docutils literal notranslate"><span class="pre">source_location</span></code> parameter. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv44rootv">
+<span id="_CPPv34rootv"></span><span id="_CPPv24rootv"></span><span id="root"></span><span class="target" id="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"></span><span class="n"><span class="pre">NameSpace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">root</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv44rootv" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a namespace object for the root frame graph namespace. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The object representing the root namespace. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424set_multiplexing_extentsN12multiplexing7ExtentsE">
+<span id="_CPPv324set_multiplexing_extentsN12multiplexing7ExtentsE"></span><span id="_CPPv224set_multiplexing_extentsN12multiplexing7ExtentsE"></span><span id="set_multiplexing_extents__multiplexing::Extents"></span><span class="target" id="group___dabfg_core_1gac09324b07f826b0accb38c9e5126a229"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_multiplexing_extents</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">multiplexing</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Extents</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">extents</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424set_multiplexing_extentsN12multiplexing7ExtentsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the multiplexing extents for the following frames. </p>
+<p>May safely be called every frame, only triggers a recompilation when the values actually change </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv49run_nodesv">
+<span id="_CPPv39run_nodesv"></span><span id="_CPPv29run_nodesv"></span><span id="run_nodes"></span><span class="target" id="group___dabfg_core_1ga20a0102e98622bf951eb16d6f940a42f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run_nodes</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv49run_nodesv" title="Link to this definition"></a><br /></dt>
+<dd><p>Executes the frame graph, possibly recompiling it. </p>
+<p>Return false if run is not possible (d3d device was lost for example) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv47startupv">
+<span id="_CPPv37startupv"></span><span id="_CPPv27startupv"></span><span id="startup"></span><span class="target" id="group___dabfg_core_1ga649d48c3ba1690f0cb81553d0e18e7a5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">startup</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv47startupv" title="Link to this definition"></a><br /></dt>
+<dd><p>Initializes the daBfg backend. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv48shutdownv">
+<span id="_CPPv38shutdownv"></span><span id="_CPPv28shutdownv"></span><span id="shutdown"></span><span class="target" id="group___dabfg_core_1ga441273e564147def3a01e045558f69a2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shutdown</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv48shutdownv" title="Link to this definition"></a><br /></dt>
+<dd><p>Frees resources held by the daBfg backend. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418invalidate_historyv">
+<span id="_CPPv318invalidate_historyv"></span><span id="_CPPv218invalidate_historyv"></span><span id="invalidate_history"></span><span class="target" id="group___dabfg_core_1ga44825538e5bf15f13a4c9c91b9e7d481"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalidate_history</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418invalidate_historyv" title="Link to this definition"></a><br /></dt>
+<dd><p>Invalidates history. </p>
+<p>When making changes to the graph history is generally preserved calling this function makes this preservation invalid and the history resources will be recreated. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421update_external_state13ExternalState">
+<span id="_CPPv321update_external_state13ExternalState"></span><span id="_CPPv221update_external_state13ExternalState"></span><span id="update_external_state__ExternalState"></span><span class="target" id="group___dabfg_core_1ga8006e9745ff18cb20d38eb4ac5b815a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_external_state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ExternalState</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421update_external_state13ExternalState" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets various global state that is external to daBfg. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv437mark_external_resource_for_validationPK11D3dResource">
+<span id="_CPPv337mark_external_resource_for_validationPK11D3dResource"></span><span id="_CPPv237mark_external_resource_for_validationPK11D3dResource"></span><span id="mark_external_resource_for_validation__D3dResourceCP"></span><span class="target" id="group___dabfg_core_1gacfb39ee2361920d78e56a0a4941c04ec"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_external_resource_for_validation</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">D3dResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resource</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv437mark_external_resource_for_validationPK11D3dResource" title="Link to this definition"></a><br /></dt>
+<dd><p>Marks an external resource to be validated for illegal access within nodes. Note that daBfg-managed resources are always automatically validated for illegal access through sneaky global variables, but external are often used for gradual migration to FG, at which point they are indeed illegally accessed through global state and that is intended. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>resource</strong> – The name of the resource to be validated. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpaceE">
+<span id="_CPPv3N5dabfg9NameSpaceE"></span><span id="_CPPv2N5dabfg9NameSpaceE"></span><span id="dabfg::NameSpace"></span><span class="target" id="classdabfg_1_1_name_space"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NameSpace</span></span></span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpaceE" title="Link to this definition"></a><br /></dt>
+<dd><p>A type representing some namespace in the frame graph. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5dabfg9NameSpacedvEPKc">
+<span id="_CPPv3NK5dabfg9NameSpacedvEPKc"></span><span id="_CPPv2NK5dabfg9NameSpacedvEPKc"></span><span id="dabfg::NameSpace::div-operator__cCPC"></span><span class="target" id="classdabfg_1_1_name_space_1a5a1e48e12b87a9551e742150e95cc2ea"></span><a class="reference internal" href="#_CPPv4N5dabfg9NameSpaceE" title="dabfg::NameSpace"><span class="n"><span class="pre">NameSpace</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">child_name</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5dabfg9NameSpacedvEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a namespace object for a sub-namespace of this one. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>child_name</strong> – Name of the sub-namespace. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An object representing the child namespace. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK5dabfg9NameSpace12registerNodeE10NodeHandlePKcPKcRR1F">
+<span id="_CPPv3I0ENK5dabfg9NameSpace12registerNodeEPKcPKcRR1F"></span><span id="_CPPv2I0ENK5dabfg9NameSpace12registerNodeEPKcPKcRR1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="graphState.html#_CPPv4N5dabfg10NodeHandleE" title="dabfg::NodeHandle"><span class="n"><span class="pre">NodeHandle</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">registerNode</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">source_location</span></span>, <a class="reference internal" href="#_CPPv4I0ENK5dabfg9NameSpace12registerNodeE10NodeHandlePKcPKcRR1F" title="dabfg::NameSpace::registerNode::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">declaration_callback</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK5dabfg9NameSpace12registerNodeE10NodeHandlePKcPKcRR1F" title="Link to this definition"></a><br /></dt>
+<dd><p>Either registers a new node inside the frame graph, or re-registers an already existing one. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name that uniquely identifies the node in the current name space. If the function is called twice with the same node name and name space, the second call will overwrite the node resulting from the previous one. </p></li>
+<li><p><strong>source_location</strong> – Should always be the DABFG_PP_NODE_SRC macro </p></li>
+<li><p><strong>declaration_callback</strong> – Should be a callback taking a <a class="reference internal" href="declaringNodes.html#classdabfg_1_1_registry"><span class="std std-ref">Registry</span></a> instance by value and returning an execution callback, which in turn may accept a <a class="reference internal" href="declaringNodes.html#structdabfg_1_1multiplexing_1_1_index"><span class="std std-ref">dabfg::multiplexing::Index</span></a> object (or may accept nothing). Basically, a function with signature <a class="reference internal" href="declaringNodes.html#classdabfg_1_1_registry"><span class="std std-ref">Registry</span></a> -&gt; (Index -&gt; ()). Note: the declaration and execution callbacks might be called an arbitrary number of times, but only while the resulting node is registered. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A handle that represents the lifetime of the new node. The node will be unregistered when the handle is destroyed. Note that it is safe to call this function even without destroying all previous handles up to a couple hundred of times. The intended use case is doing <code class="docutils literal notranslate"><span class="pre">classField</span> <span class="pre">=</span> <span class="pre">register_node(...)</span></code> at arbitrary times, without passing these handles anywhere. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5dabfg9NameSpace13setResolutionEvPKc1T">
+<span id="_CPPv3I0EN5dabfg9NameSpace13setResolutionEPKc1T"></span><span id="_CPPv2I0EN5dabfg9NameSpace13setResolutionEPKc1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdabfg_1_1_name_space_1a30c2d1edbf639aca312324def0b92dc9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setResolution</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">type_name</span></span>, <a class="reference internal" href="#_CPPv4I0EN5dabfg9NameSpace13setResolutionEvPKc1T" title="dabfg::NameSpace::setResolution::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5dabfg9NameSpace13setResolutionEvPKc1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Updates an auto-resolution of a particular type. Note that this causes a complete resource rescheduling, invalidating all history. It also resets dynamic resolution. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – point type, either IPoint2 or IPoint3. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>type_name</strong> – The name of the auto-res type, looked up in this namespace. </p></li>
+<li><p><strong>value</strong> – The new resolution value. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5dabfg9NameSpace20setDynamicResolutionEvPKc1T">
+<span id="_CPPv3I0EN5dabfg9NameSpace20setDynamicResolutionEPKc1T"></span><span id="_CPPv2I0EN5dabfg9NameSpace20setDynamicResolutionEPKc1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classdabfg_1_1_name_space_1a9bef09e9a9c7e6cfe92a5bdf415b36d9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setDynamicResolution</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">type_name</span></span>, <a class="reference internal" href="#_CPPv4I0EN5dabfg9NameSpace20setDynamicResolutionEvPKc1T" title="dabfg::NameSpace::setDynamicResolution::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5dabfg9NameSpace20setDynamicResolutionEvPKc1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Updates an auto-resolution of a particular type without causing a resource rescheduling, hence preserving history. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available on platforms that support heaps.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>P</strong> – &amp;#8212; point type, either IPoint2 or IPoint3. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>type_name</strong> – The name of the auto-res type, looked up in this namespace. </p></li>
+<li><p><strong>value</strong> – The new dynamic resolution value. Must be smaller than the initial resolution for this type. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpace8fillSlotE9NamedSlot9NameSpacePKc">
+<span id="_CPPv3N5dabfg9NameSpace8fillSlotE9NamedSlot9NameSpacePKc"></span><span id="_CPPv2N5dabfg9NameSpace8fillSlotE9NamedSlot9NameSpacePKc"></span><span id="dabfg::NameSpace::fillSlot__NamedSlot.NameSpace.cCP"></span><span class="target" id="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fillSlot</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="declaringNodes.html#_CPPv4N5dabfg9NamedSlotE" title="dabfg::NamedSlot"><span class="n"><span class="pre">NamedSlot</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="#_CPPv4N5dabfg9NameSpaceE" title="dabfg::NameSpace"><span class="n"><span class="pre">NameSpace</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">res_name_space</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpace8fillSlotE9NamedSlot9NameSpacePKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a value to a named slot. Named slots are basically links that allow for an indirection when looking up a resource name. As an example, volumetric fog is an intrusive feature that requires a bunch of different rendering nodes to read some kind of a downsampled depth resource for tracing the fog, but this depth might be different depending on the current settings. In this situation, it makes sense to introduce a fog_depth slot and fill it in with different resources, allowing one to avoid settings-dependent ifs in node declarations. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slot</strong> – Name of the slot, looked up in this namespace. </p></li>
+<li><p><strong>res_name_space</strong> – Name space to look up res_name in. </p></li>
+<li><p><strong>res_name</strong> – Name of the resource to fill this slot with, looked up in <code class="docutils literal notranslate"><span class="pre">res_name_space</span></code>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetEN5eastl4spanIPCKcEE">
+<span id="_CPPv3N5dabfg9NameSpace35updateExternallyConsumedResourceSetEN5eastl4spanIPCKcEE"></span><span id="_CPPv2N5dabfg9NameSpace35updateExternallyConsumedResourceSetEN5eastl4spanIPCKcEE"></span><span id="dabfg::NameSpace::updateExternallyConsumedResourceSet__eastl::span:cCPC:"></span><span class="target" id="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">updateExternallyConsumedResourceSet</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">res_names</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetEN5eastl4spanIPCKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_names</strong> – A list of resource names to assign, looked up in this namespace. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetENSt16initializer_listIPKcEE">
+<span id="_CPPv3N5dabfg9NameSpace35updateExternallyConsumedResourceSetENSt16initializer_listIPKcEE"></span><span id="_CPPv2N5dabfg9NameSpace35updateExternallyConsumedResourceSetENSt16initializer_listIPKcEE"></span><span id="dabfg::NameSpace::updateExternallyConsumedResourceSet__std::initializer_list:cCP:"></span><span class="target" id="classdabfg_1_1_name_space_1a4bb81c8d326ae0a26c8520c672bfb6d0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">updateExternallyConsumedResourceSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">res_names</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpace35updateExternallyConsumedResourceSetENSt16initializer_listIPKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out.   </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_names</strong> – A list of resource names to assign, looked up in this namespace.   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpace30markResourceExternallyConsumedEPKc">
+<span id="_CPPv3N5dabfg9NameSpace30markResourceExternallyConsumedEPKc"></span><span id="_CPPv2N5dabfg9NameSpace30markResourceExternallyConsumedEPKc"></span><span id="dabfg::NameSpace::markResourceExternallyConsumed__cCP"></span><span class="target" id="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">markResourceExternallyConsumed</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpace30markResourceExternallyConsumedEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Marks a single resource as being externally consumed. See dabfg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_name</strong> – Name of the resource to mark, looked up in this namespace. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg9NameSpace32unmarkResourceExternallyConsumedEPKc">
+<span id="_CPPv3N5dabfg9NameSpace32unmarkResourceExternallyConsumedEPKc"></span><span id="_CPPv2N5dabfg9NameSpace32unmarkResourceExternallyConsumedEPKc"></span><span id="dabfg::NameSpace::unmarkResourceExternallyConsumed__cCP"></span><span class="target" id="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unmarkResourceExternallyConsumed</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5dabfg9NameSpace32unmarkResourceExternallyConsumedEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Unmarks a single resource as being externally consumed. See dabfg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_name</strong> – Name of the resource to unmark, looked up in this namespace. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg13ExternalStateE">
+<span id="_CPPv3N5dabfg13ExternalStateE"></span><span id="_CPPv2N5dabfg13ExternalStateE"></span><span id="dabfg::ExternalState"></span><span class="target" id="structdabfg_1_1_external_state"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExternalState</span></span></span><a class="headerlink" href="#_CPPv4N5dabfg13ExternalStateE" title="Link to this definition"></a><br /></dt>
+<dd><p>Describes various global state that can influence the execution of the frame graph but is not managed by daBfg. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg13ExternalState20wireframeModeEnabledE">
+<span id="_CPPv3N5dabfg13ExternalState20wireframeModeEnabledE"></span><span id="_CPPv2N5dabfg13ExternalState20wireframeModeEnabledE"></span><span id="dabfg::ExternalState::wireframeModeEnabled__b"></span><span class="target" id="structdabfg_1_1_external_state_1a514f403ddad73a64949237bcb12b7556"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wireframeModeEnabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5dabfg13ExternalState20wireframeModeEnabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables wireframe debug mode for nodes that allow it. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5dabfg13ExternalState10vrsEnabledE">
+<span id="_CPPv3N5dabfg13ExternalState10vrsEnabledE"></span><span id="_CPPv2N5dabfg13ExternalState10vrsEnabledE"></span><span id="dabfg::ExternalState::vrsEnabled__b"></span><span class="target" id="structdabfg_1_1_external_state_1ac957496d416c3c36d1bc473b8ae86b89"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vrsEnabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5dabfg13ExternalState10vrsEnabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables variable rate shading for all nodes that allow it using the per-node settings specified inside VrsRequirements. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl>
+<dt class="sig sig-object cpp">
+<span class="target" id="group___dabfg_core_aliases"></span><em><span class="pre">group</span></em> <span class="sig-name descname"><span class="pre">DabfgCoreAliases</span></span></dt>
+<dd><p>Compatibility aliases for access to the root name space. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0E13register_node10NodeHandlePKcPKcRR1F">
+<span id="_CPPv3I0E13register_nodePKcPKcRR1F"></span><span id="_CPPv2I0E13register_nodePKcPKcRR1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="group___dabfg_core_aliases_1gacbc7438b6ff4f6edb6dd8a078bbfd51a"></span><span class="n"><span class="pre">NodeHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_node</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">source_location</span></span>, <a class="reference internal" href="#_CPPv4I0E13register_node10NodeHandlePKcPKcRR1F" title="register_node::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">declaration_callback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0E13register_node10NodeHandlePKcPKcRR1F" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.registerNode, see <a class="reference internal" href="#classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1"><span class="std std-ref">NameSpace::registerNode</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0E14set_resolutionvPKc1T">
+<span id="_CPPv3I0E14set_resolutionPKc1T"></span><span id="_CPPv2I0E14set_resolutionPKc1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="group___dabfg_core_aliases_1ga7ef06996d2918b62d5e35f6e0d514759"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_resolution</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">typeName</span></span>, <a class="reference internal" href="#_CPPv4I0E14set_resolutionvPKc1T" title="set_resolution::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0E14set_resolutionvPKc1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.setResolution, see <a class="reference internal" href="#classdabfg_1_1_name_space_1a30c2d1edbf639aca312324def0b92dc9"><span class="std std-ref">NameSpace::setResolution</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0E22set_dynamic_resolutionvPKc1T">
+<span id="_CPPv3I0E22set_dynamic_resolutionPKc1T"></span><span id="_CPPv2I0E22set_dynamic_resolutionPKc1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="group___dabfg_core_aliases_1ga7a5f5eaca97b0e028ce2f80075be1708"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_dynamic_resolution</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">typeName</span></span>, <a class="reference internal" href="#_CPPv4I0E22set_dynamic_resolutionvPKc1T" title="set_dynamic_resolution::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0E22set_dynamic_resolutionvPKc1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.setDynamicResolution, see <a class="reference internal" href="#classdabfg_1_1_name_space_1a9bef09e9a9c7e6cfe92a5bdf415b36d9"><span class="std std-ref">NameSpace::setDynamicResolution</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv49fill_slot9NamedSlotPKc">
+<span id="_CPPv39fill_slot9NamedSlotPKc"></span><span id="_CPPv29fill_slot9NamedSlotPKc"></span><span id="fill_slot__NamedSlot.cCP"></span><span class="target" id="group___dabfg_core_aliases_1gacdd0e63d96b4cec01506daf9f8890026"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fill_slot</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NamedSlot</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv49fill_slot9NamedSlotPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.fillSlot(slot, dabfg::root(), res_name), see <a class="reference internal" href="#classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00"><span class="std std-ref">NameSpace::fillSlot</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv439update_externally_consumed_resource_setN5eastl4spanIPCKcEE">
+<span id="_CPPv339update_externally_consumed_resource_setN5eastl4spanIPCKcEE"></span><span id="_CPPv239update_externally_consumed_resource_setN5eastl4spanIPCKcEE"></span><span id="update_externally_consumed_resource_set__eastl::span:cCPC:"></span><span class="target" id="group___dabfg_core_aliases_1gaa6c4dc938bfd33044b4941b3fc7104d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_externally_consumed_resource_set</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">res_names</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv439update_externally_consumed_resource_setN5eastl4spanIPCKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.updateExternallyConsumedResourceSet, see <a class="reference internal" href="#classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037"><span class="std std-ref">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</span></a></p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv439update_externally_consumed_resource_setNSt16initializer_listIPKcEE">
+<span id="_CPPv339update_externally_consumed_resource_setNSt16initializer_listIPKcEE"></span><span id="_CPPv239update_externally_consumed_resource_setNSt16initializer_listIPKcEE"></span><span id="update_externally_consumed_resource_set__std::initializer_list:cCP:"></span><span class="target" id="group___dabfg_core_aliases_1gae7968199de001a848f947a88fa0740f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_externally_consumed_resource_set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">res_names</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv439update_externally_consumed_resource_setNSt16initializer_listIPKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.updateExternallyConsumedResourceSet, see <a class="reference internal" href="#classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037"><span class="std std-ref">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</span></a></p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv433mark_resource_externally_consumedPKc">
+<span id="_CPPv333mark_resource_externally_consumedPKc"></span><span id="_CPPv233mark_resource_externally_consumedPKc"></span><span id="mark_resource_externally_consumed__cCP"></span><span class="target" id="group___dabfg_core_aliases_1ga15bde25c74b84639be88c475aa31bb79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_resource_externally_consumed</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv433mark_resource_externally_consumedPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.markResourceExternallyConsumed, see <a class="reference internal" href="#classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94"><span class="std std-ref">NameSpace::markResourceExternallyConsumed</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435unmark_resource_externally_consumedPKc">
+<span id="_CPPv335unmark_resource_externally_consumedPKc"></span><span id="_CPPv235unmark_resource_externally_consumedPKc"></span><span id="unmark_resource_externally_consumed__cCP"></span><span class="target" id="group___dabfg_core_aliases_1ga9072c55d17effd2d0f7d5df12c291144"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unmark_resource_externally_consumed</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435unmark_resource_externally_consumedPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Alias for <a class="reference internal" href="#group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c"><span class="std std-ref">dabfg::root()</span></a>.unmarkResourceExternallyConsumed, see <a class="reference internal" href="#classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0"><span class="std std-ref">NameSpace::unmarkResourceExternallyConsumed</span></a>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../daBFG.html" class="btn btn-neutral float-left" title="daBFG API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="declaringNodes.html" class="btn btn-neutral float-right" title="Declaring a Node" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Apr 25, 2025.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

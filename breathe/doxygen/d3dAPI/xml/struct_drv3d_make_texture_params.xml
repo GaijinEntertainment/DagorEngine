@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="struct_drv3d_make_texture_params" kind="struct" language="C++" prot="public">
+    <compoundname>Drv3dMakeTextureParams</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1ae050d234eea067a4bf029ac4b065e8e8" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* Drv3dMakeTextureParams::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>Drv3dMakeTextureParams::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="517" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="517" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1a1587e865625f4a6a1202c7989b835975" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* Drv3dMakeTextureParams::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>Drv3dMakeTextureParams::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="518" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="518" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1a5a3ed1fbb5905d71e088d1a8b486fbec" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::flg</definition>
+        <argsstring></argsstring>
+        <name>flg</name>
+        <qualifiedname>Drv3dMakeTextureParams::flg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="519" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1a64f18861fdef92368e94e2a5acf4f4be" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>Drv3dMakeTextureParams::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="520" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1ad60a40de68f0a3a9146dc7bf89da4c83" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>Drv3dMakeTextureParams::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="520" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1afd8eb6c2bf50741d4684da291f6f99c6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::layers</definition>
+        <argsstring></argsstring>
+        <name>layers</name>
+        <qualifiedname>Drv3dMakeTextureParams::layers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="520" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1a21567e4c58edc9b60a8576c9d37b02eb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::mips</definition>
+        <argsstring></argsstring>
+        <name>mips</name>
+        <qualifiedname>Drv3dMakeTextureParams::mips</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="520" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_drv3d_make_texture_params_1ac5f145c5b311236ec4dba95bdae73593" prot="public" static="no" mutable="no">
+        <type>ResourceBarrier</type>
+        <definition>ResourceBarrier Drv3dMakeTextureParams::currentState</definition>
+        <argsstring></argsstring>
+        <name>currentState</name>
+        <qualifiedname>Drv3dMakeTextureParams::currentState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="521" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="521" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="515" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="516" bodyend="522"/>
+    <listofallmembers>
+      <member refid="struct_drv3d_make_texture_params_1ac5f145c5b311236ec4dba95bdae73593" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>currentState</name></member>
+      <member refid="struct_drv3d_make_texture_params_1a5a3ed1fbb5905d71e088d1a8b486fbec" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>flg</name></member>
+      <member refid="struct_drv3d_make_texture_params_1ad60a40de68f0a3a9146dc7bf89da4c83" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>h</name></member>
+      <member refid="struct_drv3d_make_texture_params_1afd8eb6c2bf50741d4684da291f6f99c6" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>layers</name></member>
+      <member refid="struct_drv3d_make_texture_params_1a21567e4c58edc9b60a8576c9d37b02eb" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>mips</name></member>
+      <member refid="struct_drv3d_make_texture_params_1a1587e865625f4a6a1202c7989b835975" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>name</name></member>
+      <member refid="struct_drv3d_make_texture_params_1ae050d234eea067a4bf029ac4b065e8e8" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>tex</name></member>
+      <member refid="struct_drv3d_make_texture_params_1a64f18861fdef92368e94e2a5acf4f4be" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>w</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

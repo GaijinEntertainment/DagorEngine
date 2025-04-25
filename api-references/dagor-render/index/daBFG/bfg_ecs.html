@@ -1,0 +1,361 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bfg in das+ecs &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=93b9aae3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="DaBfgCore das module" href="daBfgCore.html" />
+    <link rel="prev" title="Bfg in das" href="das.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper classes for D3D API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../daBFG.html">daBFG API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="declaringNodes.html">Declaring a Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="graphState.html">Controlling the Graph State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="das.html">Bfg in das</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Bfg in das+ecs</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#function-annotations">Function annotations</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="daBfgCore.html">DaBfgCore das module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource slots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daBFG.html">daBFG API</a></li>
+      <li class="breadcrumb-item active">Bfg in das+ecs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/daBFG/bfg_ecs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bfg-in-das-ecs">
+<span id="stdlib-bfg-ecs"></span><h1>Bfg in das+ecs<a class="headerlink" href="#bfg-in-das-ecs" title="Link to this heading"></a></h1>
+<p>Nodes can be stored in ecs <strong>singleton</strong> and in this case there is special function annotation <a class="reference internal" href="#handle-bfg-ecs-bfg-ecs-node"><span class="std std-ref">bfg_ecs_node</span></a> for hot reloading.</p>
+<p>Function should take <a class="reference internal" href="daBfgCore.html#handle-dabfgcore-nodehandle"><span class="std std-ref">NodeHandle</span></a> or <span class="xref std std-ref">NodeHandleVector</span> as first argument and set up it.</p>
+<p>Another arguments of function can be any other components of singleton entity and will be passed to es macro as is.</p>
+<p>Possible arguments for bfg_ecs_node annotation itself:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">on_appear</span></code> - call function on appear of entity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_event=EventName</span></code> - call function on event.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">track=component_name</span></code> - call function on change of component.</p></li>
+</ul>
+<p>Example:</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span>require daBfg.bfg_ecs
+
+[bfg_ecs_node(on_appear)]
+def register_some_node(var some_node : NodeHandle&amp;)
+  some_node &lt;- root() |&gt; registerNode(&quot;some_node&quot;) &lt;| @(var registry : Registry)
+
+    // Node requests, for example:
+    registry |&gt; requestRenderPass |&gt; color([[auto[] &quot;some_tex&quot;]])
+
+    return &lt;- @ &lt;|
+
+      // Render code, for example:
+      query() &lt;| $ [es] (some_shader : PostFxRenderer)
+        some_shader |&gt; render()
+</pre></div>
+</div>
+<section id="function-annotations">
+<h2>Function annotations<a class="headerlink" href="#function-annotations" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="handle-bfg-ecs-bfg-ecs-node">
+<dt class="sig sig-object das" id="bfg_ecs_node">
+<span class="sig-name descname"><span class="pre">bfg_ecs_node</span></span><a class="headerlink" href="#bfg_ecs_node" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id1"><span class="problematic" id="id2">|function_annotation-bfg_ecs-bfg_ecs_node|</span></a></p>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="struct-bfg-ecs-bfgecsnodeannotation">
+<dt class="sig sig-object das" id="BfgEcsNodeAnnotation : AstFunctionAnnotation">
+<span class="sig-name descname"><span class="pre">BfgEcsNodeAnnotation</span> <span class="pre">:</span> <span class="pre">AstFunctionAnnotation</span></span><a class="headerlink" href="#BfgEcsNodeAnnotation : AstFunctionAnnotation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id3"><span class="problematic" id="id4">|class-bfg_ecs-BfgEcsNodeAnnotation|</span></a></p>
+<dl class="das function">
+<dt class="sig sig-object das" id="BfgEcsNodeAnnotation.apply">
+<span class="sig-prename descclassname"><span class="pre">BfgEcsNodeAnnotation.</span></span><span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">AstFunctionAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">group:</span> <span class="pre">ModuleGroup;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const;</span> <span class="pre">errors:</span> <span class="pre">das_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#BfgEcsNodeAnnotation.apply" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>apply returns bool</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">ast::AstFunctionAnnotation</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">FunctionPtr</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>group</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">rtti::ModuleGroup</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">rtti::AnnotationArgumentList</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>errors</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::das_string</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id5"><span class="problematic" id="id6">|method-bfg_ecs-BfgEcsNodeAnnotation.apply|</span></a></p>
+<dl class="das function">
+<dt class="sig sig-object das" id="BfgEcsNodeAnnotation.declareReloadCallback">
+<span class="sig-prename descclassname"><span class="pre">BfgEcsNodeAnnotation.</span></span><span class="sig-name descname"><span class="pre">declareReloadCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">BfgEcsNodeAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">parsed:</span> <span class="pre">BfgEcsNodeAnnotationArgs</span> <span class="pre">const;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#BfgEcsNodeAnnotation.declareReloadCallback" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-bfg-ecs-bfgecsnodeannotation"><span class="std std-ref">bfg_ecs::BfgEcsNodeAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">FunctionPtr</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>parsed</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">bfg_ecs::BfgEcsNodeAnnotationArgs</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">rtti::AnnotationArgumentList</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id7"><span class="problematic" id="id8">|method-bfg_ecs-BfgEcsNodeAnnotation.declareReloadCallback|</span></a></p>
+<dl class="das function">
+<dt class="sig sig-object das" id="BfgEcsNodeAnnotation.declareES">
+<span class="sig-prename descclassname"><span class="pre">BfgEcsNodeAnnotation.</span></span><span class="sig-name descname"><span class="pre">declareES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">BfgEcsNodeAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">parsed:</span> <span class="pre">BfgEcsNodeAnnotationArgs</span> <span class="pre">const;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#BfgEcsNodeAnnotation.declareES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-bfg-ecs-bfgecsnodeannotation"><span class="std std-ref">bfg_ecs::BfgEcsNodeAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">FunctionPtr</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>parsed</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">bfg_ecs::BfgEcsNodeAnnotationArgs</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">rtti::AnnotationArgumentList</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id9"><span class="problematic" id="id10">|method-bfg_ecs-BfgEcsNodeAnnotation.declareES|</span></a></p>
+<dl class="das function">
+<dt class="sig sig-object das" id="BfgEcsNodeAnnotation.parseArgs">
+<span class="sig-prename descclassname"><span class="pre">BfgEcsNodeAnnotation.</span></span><span class="sig-name descname"><span class="pre">parseArgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">BfgEcsNodeAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const;</span> <span class="pre">errors:</span> <span class="pre">das_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#BfgEcsNodeAnnotation.parseArgs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>parseArgs returns  <span class="xref std std-ref">bfg_ecs::BfgEcsNodeAnnotationArgs</span></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-bfg-ecs-bfgecsnodeannotation"><span class="std std-ref">bfg_ecs::BfgEcsNodeAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">FunctionPtr</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">rtti::AnnotationArgumentList</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>errors</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::das_string</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id11"><span class="problematic" id="id12">|method-bfg_ecs-BfgEcsNodeAnnotation.parseArgs|</span></a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="das.html" class="btn btn-neutral float-left" title="Bfg in das" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daBfgCore.html" class="btn btn-neutral float-right" title="DaBfgCore das module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Apr 25, 2025.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

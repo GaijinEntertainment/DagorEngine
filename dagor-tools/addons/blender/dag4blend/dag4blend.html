@@ -1,0 +1,845 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dag4blend &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=93b9aae3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="dag4blend Composite Editor" href="../dag4blend-comp-editor/index.html" />
+    <link rel="prev" title="dag4blend" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">.blk File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../resource-building/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for Blender</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">dag4blend</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">dag4blend</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#configuring-projects">Configuring Projects</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#experimental-features">Experimental Features</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#log-and-text-editors">Log and Text Editors</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#material-setup">Material Setup</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#main">Main</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#textures">Textures</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#optional">Optional</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#tools">Tools</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#proxy">Proxy</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#object-properties">Object Properties</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#properties">Properties</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#presets">Presets</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#id1">Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#export">Export</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#batch-export">Batch Export</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#collection-properties">Collection Properties</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#override-name">Override Name</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#type">Type</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#geometry-nodes">Geometry Nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#smoothing-groups">Smoothing Groups</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#when-to-use">When to Use?</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#import">Import</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#import-and-textures">Import and Textures</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#file-import">File &gt; Import</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#batch-import">Batch Import</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#additional-features">Additional Features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#id2">Tools</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#texture-baker">Texture Baker</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#id3">Experimental Features</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#composite-editor">Composite Editor</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#general-limitations-of-the-add-on-tools-in-blender">General Limitations of the Add-on Tools in Blender</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend-comp-editor/index.html">dag4blend Composite Editor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend-texture-baker/index.html">dag4blend Texture Baker</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../3ds-max/index.html">Add-ons for 3ds Max</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for Blender</a></li>
+          <li class="breadcrumb-item"><a href="index.html">dag4blend</a></li>
+      <li class="breadcrumb-item active">dag4blend</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/blender/dag4blend/dag4blend.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dag4blend">
+<h1>dag4blend<a class="headerlink" href="#dag4blend" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Go to <strong>Edit &gt; Preferences &gt; Add-ons</strong> in Blender.</p></li>
+<li><p>Click small dropdown on the top right corner and choose <strong>Install from Disk…</strong></p></li>
+</ol>
+<img alt="Installation" class="align-center" src="../../../../_images/inst_location.png" />
+<ol class="arabic simple" start="3">
+<li><p>Navigate to the <code class="docutils literal notranslate"><span class="pre">.zip</span></code> file of the add-on.</p></li>
+<li><p>After installation, check the box next to the add-on in the list.</p></li>
+</ol>
+<p>To use add-on properly you need to perform some initial configuration, so do not close
+the <strong>Preferences</strong> window yet:</p>
+<img alt="Preferences" class="align-center" src="../../../../_images/preferences.png" />
+<p>The path for <strong>ObjProps presets:</strong> and shader list <strong>dagorShaders.cfg:</strong> can now
+be set manually. This feature ensures that updating the add-on does not
+overwrite any user-made changes. It is recommended to store presets outside the
+add-on directory.</p>
+<p>Until the path to an existing directory is specified, the preset menu will not
+be displayed. For each project you  work on, you need to specify the path to the
+<code class="docutils literal notranslate"><span class="pre">assets/</span></code> directory.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Many interface elements have tooltips that appear when you hover the cursor
+over them.</p>
+</div>
+<section id="configuring-projects">
+<h3>Configuring Projects<a class="headerlink" href="#configuring-projects" title="Link to this heading"></a></h3>
+<p>Some operators of dag4blend need additional info about current game to work properly.
+To create new set of properties press <strong>+ ADD Project</strong>.</p>
+<img alt="Projects" class="align-center" src="../../../../_images/inst_projects.png" />
+<p>Every non-configured parameter of new project is marked by <strong>ERROR</strong> icon.</p>
+<ul class="simple">
+<li><p><strong>name:</strong> how this project will be displayed in “Active Project” dropdown.</p></li>
+<li><p><strong>path:</strong> where all game assets stored. DAGs, textures, composites, proxymats, etc.</p></li>
+<li><p><strong>Shading mode:</strong> shaders behave slightly different between projects. The
+add-on is designed to adapt to two main shader groups: daNetGame-like and War
+Thunder-like shaders.</p></li>
+<li><p><strong>Palettes</strong>:</p>
+<ul>
+<li><p>global palette is used everywhere dy default, unless it’s overriden.</p></li>
+<li><p>local palette can be configured per-level and can be used instead of global
+on specific assets.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, the global and local palettes will be simple red and green fills,
+until you specify a path to existing texture.</p>
+</div>
+<p>Configured project should have no error icons. When parameters are set,
+use lock button to make it non-editable.
+It prevents changing properties or project removal by accident.</p>
+<img alt="Project Configured" class="align-center" src="../../../../_images/inst_projects_configured.png" />
+<p>You don’t have to always use <strong>Preferences</strong> window to change the active project
+or edit its parameters.
+Same exact project configurator can be found in the <strong>Scene Properties</strong>:</p>
+<img alt="Scene" class="align-center" src="../../../../_images/inst_scene.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Project parameters are stored in Add-on preferences,
+but sometimes they are not being saved on exit automatically.
+To ensure that new parameters won’t be lost, you can use <strong>Save Preferences</strong> button,
+available right in project configurator. Remember, that it’s a <strong>global</strong> operator,
+which saves all the preferences, not just dag4blend ones.</p>
+</div>
+</section>
+<section id="experimental-features">
+<h3>Experimental Features<a class="headerlink" href="#experimental-features" title="Link to this heading"></a></h3>
+<p>This block contains toggles for new tools that are functional but have some
+limitations. Currently, it includes only a <a class="reference internal" href="#composite-editor">Composite Editor</a>:</p>
+<img alt="Experimental Features" class="align-center" src="../../../../_images/inst_exp_features.png" />
+</section>
+</section>
+<section id="log-and-text-editors">
+<h2>Log and Text Editors<a class="headerlink" href="#log-and-text-editors" title="Link to this heading"></a></h2>
+<p>Text objects play an important role in this toolset, so it is recommended to add
+a text field to your layout or add a new window with just a text field if you
+are working with multiple monitors.</p>
+<img alt="Text field" class="align-center" src="../../../../_images/log_text_field.png" />
+<p>The import/export functions (and future ones) write execution information to a
+text <strong>log</strong> field.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <strong>log</strong> does not clear itself, so remember to clear it periodically after
+ensuring that there are no unchecked errors and warnings. To clear it, you can
+simply delete the text object. The next time you need it, the toolset will
+create a new one. This approach can be faster than selecting all the lines and
+deleting them with <code class="docutils literal notranslate"><span class="pre">Backspace</span></code>/<code class="docutils literal notranslate"><span class="pre">Delete</span></code>.</p>
+</div>
+<p>To edit object properties, dagormats, or proxymats as text, the toolset creates
+a special text object. The name of the object is provided in the tooltip.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../../../assets/materials/proxymats.html"><span class="std std-doc">Proxymats</span></a>.</p>
+</div>
+</section>
+<section id="material-setup">
+<h2>Material Setup<a class="headerlink" href="#material-setup" title="Link to this heading"></a></h2>
+<p>For setup material for Dagor Engine, there is separate <strong>dagormat</strong> tab. It
+contains several subtabs that can be collapsed when not needed:</p>
+<img alt="Dagormat" class="align-center" src="../../../../_images/mat_dagormat.png" />
+<section id="main">
+<h3>Main<a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Here you can choose whether the material is two-sided, and if so, how it
+behaves:</p>
+<img alt="Dagormat - Main" class="align-center" src="../../../../_images/mat_dagormat_main.png" />
+<ul class="simple">
+<li><p><strong>single_sided</strong>: enables backface culling for triangles with this material.</p></li>
+<li><p><strong>two_sided</strong>: each triangle is rendered from both sides. The shader is
+slightly heavier, but the geometry is lighter. Use this primarily for heavy
+geometry, such as tree crowns.</p></li>
+<li><p><strong>real_two_sided</strong>: in the engine, a single-sided material is uses, but each
+triangle with this material will be duplicated and flipped to be visible from
+the other side. This shader is lighter, but it doubles the mesh weight. It is
+better used on simpler meshes.</p></li>
+</ul>
+<p>Below is a list of <strong>legacy</strong> properties: <em>ambient</em>, <em>specular</em>, <em>diffuse</em>,
+<em>emissive</em> and <em>power</em>. Hover over them to see tooltips describing each
+property.</p>
+<p>This tab also allows you to select a shader from the available options or
+manually enter a value. It is useful if new shaders have been added to the game
+but the toolset has not been updated yet.</p>
+<img alt="Dagormat - Shader" class="align-center" src="../../../../_images/mat_dagormat_shader.png" />
+<p>The list of shaders and their possible parameters are taken from
+<code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>, which by default is located at:
+<code class="docutils literal notranslate"><span class="pre">C:\Users\&lt;username&gt;\AppData\Roaming\Blender</span> <span class="pre">Foundation\Blender\&lt;version</span> <span class="pre">number&gt;\scripts\addons\dag4blend</span></code>.</p>
+</section>
+<section id="textures">
+<h3>Textures<a class="headerlink" href="#textures" title="Link to this heading"></a></h3>
+<p>This section lists the textures in use. Indices (matching those stored in <code class="docutils literal notranslate"><span class="pre">.dag</span></code>
+files) are available in tooltips. You can copy and paste paths from <a class="reference internal" href="../../../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> or Explorer; quotes
+will be removed automatically.</p>
+<img alt="Dagormat - Textures" class="align-center" src="../../../../_images/mat_dagormat_textures.png" />
+</section>
+<section id="optional">
+<h3>Optional<a class="headerlink" href="#optional" title="Link to this heading"></a></h3>
+<p>Visual editing of shader parameters. You can manually enter values or select
+from a list, similar to how shader selection works.</p>
+<img alt="Dagormat - Optional" class="align-center" src="../../../../_images/mat_dagormat_optional.png" />
+</section>
+<section id="tools">
+<h3>Tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h3>
+<p>Here you can edit the active material in text format.</p>
+<img alt="Dagormat - Tools" class="align-center" src="../../../../_images/mat_dagormat_tools_1.png" />
+<img alt="Dagormat - Tools" class="align-center" src="../../../../_images/mat_dagormat_tools_2.png" />
+<p>If there is no text editing field, one will be added to the left of the
+viewport, otherwise, the text will be opened in the first available text field.</p>
+<p>Search is available in two modes: only for the active material or for all
+materials in the scene. Switch modes by clicking the text indicating the current
+mode.</p>
+<p>A correctly specified project is required for search to function properly – when
+working on a daNetGame asset, specify <strong>daNetGame</strong>.</p>
+<ul class="simple">
+<li><p><strong>Find missing…</strong>: finds all textures and all proxymats (if they exist in
+the project). The texture search only affects viewport display and does not
+alter the material path.</p></li>
+<li><p><strong>Rebuild materials</strong>: rebuilds the materials for the viewport.
+Re-uses existing shader nodegroups to save time and filesize.</p></li>
+<li><p><strong>FORCE REBUILD</strong>: same, but also removes all the shader nodegroups from blend file
+and loads new ones from library, to help with updating old scene to the newer add-on version.</p></li>
+<li><p><strong>Update texture paths</strong>: finds non-existent paths and replaces them with
+current ones. Should be used after texture search.</p></li>
+<li><p><strong>Clear texture paths</strong>: removes directory information, leaving only texture
+names.</p></li>
+</ul>
+</section>
+<section id="proxy">
+<h3>Proxy<a class="headerlink" href="#proxy" title="Link to this heading"></a></h3>
+<p>The add-on now supports proxymats.</p>
+<img alt="Dagormat - Proxy" class="align-center" src="../../../../_images/mat_dagormat_proxy.png" />
+<p>Proxymat parameter information is taken from the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, so all settings
+for them are hidden. Instead, a new tab allows you to specify the path to the
+proxymat directory. It can still be edited as text or temporarily unchecked as
+<strong>is proxymat</strong>.</p>
+<p>Changes can be reverted by reloading information from the file or saved to the
+proxymat. Any regular material can also be converted to a proxymat by toggling
+the checkbox and saving it to the desired directory.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Proxymats in Blender use the file name, not a user-defined one. Upon import,
+shaders are automatically renamed if the name differs.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../../../assets/materials/proxymats.html"><span class="std std-doc">Proxymats</span></a>.</p>
+</div>
+</section>
+</section>
+<section id="object-properties">
+<h2>Object Properties<a class="headerlink" href="#object-properties" title="Link to this heading"></a></h2>
+<p>Located in the N-panel under the <strong>Dagor</strong> tab, it shows parameters of the
+active object and is hidden if there is no active object.</p>
+<img alt="Object Properties" class="align-center" src="../../../../_images/obj_prop.png" />
+<section id="properties">
+<h3>Properties<a class="headerlink" href="#properties" title="Link to this heading"></a></h3>
+<p>Visual editing allows you to add or remove parameters individually and change
+their values.</p>
+<p>The UI format is determined by the <code class="docutils literal notranslate"><span class="pre">value</span></code> string. If the wrong UI option
+appears (e.g., <code class="docutils literal notranslate"><span class="pre">prop:r=0</span></code> gives an integer toggle, while the variable should be
+a float slider), enter the parameter name in the <strong>name</strong> field and the correct
+format value (e.g., <code class="docutils literal notranslate"><span class="pre">0.0</span></code> instead of <code class="docutils literal notranslate"><span class="pre">0</span></code> for a float slider). Specify the type
+in the name using <code class="docutils literal notranslate"><span class="pre">:</span></code>.</p>
+</section>
+<section id="presets">
+<h3>Presets<a class="headerlink" href="#presets" title="Link to this heading"></a></h3>
+<p>Once properties are configured, you can save them as a preset for quick
+application to other objects.</p>
+<p>To save the active object’s properties, enter a name for the preset and click
+<strong>Save preset as:</strong>. To apply an existing preset, select it from the dropdown
+and click <strong>Apply preset:</strong>.</p>
+<p>Since presets are simple text files, you might want to edit them in a text
+editor. The <strong>open presets folder</strong> button opens the directory containing all
+presets in <code class="docutils literal notranslate"><span class="pre">.txt</span></code> format, where you can add, delete, or edit them. Changes are
+applied immediately.</p>
+<p>If presets folder is not found, this block is replaced by path parameter.
+When existing path is entered, you still can return to editing it
+by pressing <strong>gears</strong> button near the <strong>open presets folder</strong>.</p>
+</section>
+<section id="id1">
+<h3>Tools<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>Editing in text format within Blender, similar to material editing, requires
+opening the to the file specified in the tooltip by clicking <strong>Open as text</strong>.</p>
+<p><strong>Apply…</strong>: applies changes from the text.</p>
+<p><strong>Write example</strong>: writes an example to the text (without applying it, since
+you will likely need to modify the example for your specific situation).</p>
+<p><strong>Transfer Attr</strong>: copies the properties from the active object to all selected
+objects, saving time on manual copying.</p>
+<p>Starting from <code class="docutils literal notranslate"><span class="pre">version</span> <span class="pre">2.1.0</span></code>, the text object <strong>props_temp</strong> opens
+automatically if the internal text editor is open.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Incorrect values in <strong>Object Properties</strong> are recorded in a new <strong>broken
+properties</strong> field; separated by <code class="docutils literal notranslate"><span class="pre">;</span></code>, allowing manual recovery. Similarly,
+incorrect values when using <strong>Apply from text</strong> are recorded.</p>
+</div>
+</section>
+</section>
+<section id="export">
+<h2>Export<a class="headerlink" href="#export" title="Link to this heading"></a></h2>
+<p>Like any other import-export add-on, the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> exporter is available through
+<strong>File &gt; Export</strong>. However, to save time during multiple re-exports in the
+workflow, the exporter is also available in the N-panel. The functionality is
+identical, so choose the option that is most convenient for you.</p>
+<section id="batch-export">
+<h3>Batch Export<a class="headerlink" href="#batch-export" title="Link to this heading"></a></h3>
+<p>General parameters:</p>
+<ul class="simple">
+<li><p><strong>vNormals</strong>: saves custom normals if they have been added to the object.
+Without custom normals, even with the checkbox active, the export will include
+smoothing groups.</p></li>
+<li><p><strong>applyMods</strong>: exports geometry with visible modifiers applied.</p></li>
+<li><p><strong>Optimize Materials</strong>: keeps only the materials used on at least one polygon
+for each object.</p></li>
+<li><p><strong>Path</strong>: the path where the file will be saved.</p></li>
+<li><p><strong>Cleanup Names</strong>: ignore indices (<code class="docutils literal notranslate"><span class="pre">.000+</span></code>) during export.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use <strong>Cleanup…</strong> only for exporting composite parts for 3ds Max. It can cause
+issues. In a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file for the game engine, there should not be multiple
+objects with the same name.</p>
+</div>
+<ul class="simple">
+<li><p><strong>Name</strong>: context-sensitive field, appearing only when exporting to a single
+<code class="docutils literal notranslate"><span class="pre">.dag</span></code> file. This field is hidden in other export modes.</p></li>
+<li><p><strong>Collection</strong>: also context-sensitive field. You do not need to select a
+collection from the dropdown; you can simply drag the desired collection from
+the <strong>Outliner</strong>.</p></li>
+<li><p><strong>Limit by</strong>: allows you to choose the export mode.</p></li>
+</ul>
+<section id="examples">
+<h4>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p><strong>Limit by:</strong> Visible</p>
+<p><strong>Export object:</strong> export all scene contents to <code class="docutils literal notranslate"><span class="pre">Path\&lt;Name&gt;.dag</span></code>.</p>
+<p><strong>Example input:</strong></p>
+<img alt="Limit by - Visible" class="align-center" src="../../../../_images/batch_exp_visible.png" />
+<p><strong>Example output:</strong> <code class="docutils literal notranslate"><span class="pre">C:\tmp\Filename.dag</span></code> contains all scene objects with
+custom normals.</p>
+</li>
+<li><p><strong>Limit by:</strong> Sel.Joined</p>
+<p><strong>Export object:</strong> export selected objects to <code class="docutils literal notranslate"><span class="pre">Path\&lt;Name&gt;.dag</span></code>.</p>
+<p><strong>Example input:</strong></p>
+<img alt="Limit by - Sel.Joined" class="align-center" src="../../../../_images/batch_exp_sel_joined.png" />
+<p><strong>Example output:</strong> <code class="docutils literal notranslate"><span class="pre">C:\tmp\Filename.dag</span></code> contains only selected scene objects.</p>
+</li>
+<li><p><strong>Limit by:</strong> Sel.Separated</p>
+<p><strong>Export object:</strong> export selected objects to separate <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files, where
+the names of selected objects are used as file names.</p>
+<p><strong>Example input:</strong></p>
+<img alt="Limit by - Sel.Separated" class="align-center" src="../../../../_images/batch_exp_sel_separated.png" />
+<p><strong>Example output:</strong> <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod00.dag</span></code>, <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod01.dag</span></code>.</p>
+</li>
+<li><p><strong>Limit by:</strong> Col.Separated</p>
+<p><strong>Export object:</strong> export collections from the hierarchy starting from the
+selected one, if there are no subcollections inside. The <strong>exportOrphans</strong>
+checkbox allows exporting objects that lie next to subcollections.</p>
+<p><strong>Example input:</strong></p>
+<img alt="Limit by - Col.Separated" class="align-center" src="../../../../_images/batch_exp_col_separated.png" />
+<p><strong>Example output:</strong> <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod00.dag</span></code> contains visible geometry and
+occluder inside, <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod01.dag</span></code> contains visible geometry and
+collider inside and <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod02.dag</span></code>. <code class="docutils literal notranslate"><span class="pre">C:\tmp\cube_temp.dag</span></code> will not
+be exported, because the <strong>exportOrphans</strong> checkbox is not enabled. If you
+don’t specify the collection at all, then in this case the result will be
+identical, because the check will start with <strong>SceneCollection</strong>, and it
+contains only the <strong>cube</strong> collection.</p>
+</li>
+<li><p><strong>Limit by:</strong> Col.Joined</p>
+<p><strong>Export object:</strong> export all contents of the selected collection to a file
+with the name of this collection. Created mainly for <a class="reference internal" href="../../../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> of assets
+created from several <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files.</p>
+<p><strong>Example input:</strong></p>
+<img alt="Limit by - Col.Joined" class="align-center" src="../../../../_images/batch_exp_col_joined.png" />
+<p><strong>Example output:</strong> <code class="docutils literal notranslate"><span class="pre">C:\tmp\soviet_town_building_5_floors_a_joined.lod00.dag</span></code>
+contains all null LODs (level of detail) related to this building. The
+collections have been linked (transfer with <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> in <strong>Outliner</strong>), i.e.
+they are not copies, but the same collections. The rest of the temporary LODs
+(Level of Detail) can be prepared in the same way. It’s much faster than
+selecting objects and typing the name manually.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Since they are the same collections and not copies, do not delete them with
+<code class="docutils literal notranslate"><span class="pre">Del</span></code>, but remove them with <code class="docutils literal notranslate"><span class="pre">RMB</span></code> <strong>&gt; Unlink</strong>, so that you don’t overwrite
+them.</p>
+</div>
+</li>
+</ol>
+</section>
+</section>
+</section>
+<section id="collection-properties">
+<h2>Collection Properties<a class="headerlink" href="#collection-properties" title="Link to this heading"></a></h2>
+<p>Located in the N-panel, similar to <strong>Object Properties</strong>. It shows properties of
+the active collection. Unlike <strong>Object Properties</strong>, these properties exist only
+within Blender and are used for internal purposes.</p>
+<img alt="Collection Properties" class="align-center" src="../../../../_images/coll_prop.png" />
+<section id="override-name">
+<h3>Override Name<a class="headerlink" href="#override-name" title="Link to this heading"></a></h3>
+<p>Allows you to override the name with which the collection will be exported to
+<strong>Col.Separated</strong> mode. By default, overriding is disabled.</p>
+<p>When importing <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files with names longer than 63 characters (the Blender
+limit), the name will be recorded in this field to preserve the “overflow”
+characters. You can also manually rename it – enable the checkbox and enter the
+new name:</p>
+<img alt="Override name" class="align-center" src="../../../../_images/coll_prop_override_ex_1.png" />
+<p>In the given example, the contents of the collection will be exported to
+<code class="docutils literal notranslate"><span class="pre">C:\tmp\cube.lod00.dag</span></code> instead of <code class="docutils literal notranslate"><span class="pre">C:\tmp\Collection.dag</span></code>. However, this is not
+the most useful application.</p>
+<p>A much more practical use is when you need to save multiple <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files in
+different subdirectories. Here, you can specify a subpath that will be appended
+to the main export path. If there is no need to rename the collection, simply
+end the subpath with <code class="docutils literal notranslate"><span class="pre">*</span></code>, which will be replaced by the collection name during
+export:</p>
+<img alt="Override name" class="align-center" src="../../../../_images/coll_prop_override_ex_2.png" />
+<p>In this example, the export path will be
+<code class="docutils literal notranslate"><span class="pre">C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag</span></code>, which is convenient for
+working with complex assets like buildings. For example, windows in
+<code class="docutils literal notranslate"><span class="pre">composit_parts\windows\*</span></code>, doors in <code class="docutils literal notranslate"><span class="pre">composit_parts\doors\*</span></code>, and so on.</p>
+<p>Additionally, you can completely override the path – start it with the drive
+letter:</p>
+<img alt="Override name" class="align-center" src="../../../../_images/coll_prop_override_ex_3.png" />
+<p>In this case, the <strong>Path</strong> field will be ignored for this collection, and the
+file will be exported to <code class="docutils literal notranslate"><span class="pre">D:\daNetGame\develop\assets\rendinst_1lod\</span></code>.</p>
+<section id="type">
+<h4>Type<a class="headerlink" href="#type" title="Link to this heading"></a></h4>
+<p>Used by the <a class="reference internal" href="../dag4blend-comp-editor/dag4blend_comp_editor.html"><span class="std std-doc">Composite
+Editor</span></a>. When importing, it
+records the node type, and during export, it ensures a unique type (to avoid
+double interpretation in the presence of asset namesakes, typically found among
+composites and rendinsts). For manually created item intended for composite
+export, set this manually.</p>
+<img alt="Type" class="align-center" src="../../../../_images/coll_prop_override_type.png" />
+<p>Since it is used for composites, DynModel is in the list but not actually
+applied – it can’t be arranged through composites. Therefore, the composite
+importer assumes all assets with <code class="docutils literal notranslate"><span class="pre">.lod**.dag</span></code> in their name are RendInsts, not
+DynModels.</p>
+</section>
+</section>
+<section id="geometry-nodes">
+<h3>Geometry Nodes<a class="headerlink" href="#geometry-nodes" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, geometry nodes cannot be combined with custom normals, as applying
+the modifier erases them. If you’re placing instances using geometry nodes,
+don’t forget to add the <strong>Realize instances</strong> node; otherwise, the geometry will
+be lost during export. Technically, before this node, they are similar to
+“empty” without their own geometry.</p>
+</div>
+</section>
+</section>
+<section id="smoothing-groups">
+<h2>Smoothing Groups<a class="headerlink" href="#smoothing-groups" title="Link to this heading"></a></h2>
+<p>A bug was discovered in Blender’s function for calculating smoothing groups for
+formats that use them. To solve this, a smoothing group editor has been added.
+It’s available in <em>Edit</em> Mode when Face selection mode is active.</p>
+<p>Upon import, objects retain smoothing groups from the original file. New
+objects, however, do not have smoothing groups, so you must create them with the
+<strong>Init</strong> button:</p>
+<img alt="Smoothing groups" class="align-center" src="../../../../_images/sm_groups_1.png" />
+<p>When smoothing exist, the interface works similarly to 3ds Max, but without
+real-time display. Partial preview is available via <strong>Convert to Sharp Edges</strong>,
+which shows only sharp edges from the smoothing groups.</p>
+<img alt="Smoothing groups" class="align-center" src="../../../../_images/sm_groups_2.png" />
+<p>Starting with <code class="docutils literal notranslate"><span class="pre">version</span> <span class="pre">2.1.0</span></code>, the <strong>Live Update</strong> function recalculates hard
+edges during smoothing group editing. This can slow down performance on heavy
+geometry, so it is off by default.</p>
+<p>From the same version, you can also select polygons by smoothing group. Click
+the corresponding group button in the <strong>Select by SG</strong> subpanel.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Selecting by smoothing group adds to the existing selection, rather than
+replacing it. So, if you need to select only group 3, for example, clear the
+selection first.</p>
+</div>
+<section id="when-to-use">
+<h3>When to Use?<a class="headerlink" href="#when-to-use" title="Link to this heading"></a></h3>
+<p>If a model has areas where sharp edges do not fully divide the surface into
+closed regions, the smoothing group calculation will be incorrect and needs
+manual adjustment. You may also need to adjust smoothing groups after modifying
+existing <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file post-import if the groups were saved as an attribute.</p>
+<img alt="Smoothing groups" class="align-center" src="../../../../_images/sm_groups_3.png" />
+</section>
+</section>
+<section id="import">
+<h2>Import<a class="headerlink" href="#import" title="Link to this heading"></a></h2>
+<p>Similar to export, there are two methods for import – the standard method via
+<strong>File &gt; Import</strong> and the batch import via N-panel.</p>
+<section id="import-and-textures">
+<h3>Import and Textures<a class="headerlink" href="#import-and-textures" title="Link to this heading"></a></h3>
+<p>A <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file contains not only the texture name but also its path. However,
+these paths are often become invalid when files are transferred. If the texture
+path os invalid or only the texture name is provided, it will be replaced with a
+UV checker texture. If a texture is used in multiple materials, updating the
+path in one will update it across all materials.</p>
+<p>Most common used shaders have a dedicated nodegroups, that roughly mimic the in-game look.
+All of this nodegroups are stored in <code class="docutils literal notranslate"><span class="pre">dag4blend\extras\library.blend</span></code> and being linked automatically.
+Shaders without their own nodegroup are displayed as <a class="reference internal" href="../../../../assets/shaders/dng-shaders/rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a> without parameters.
+Textures can be previewed from node-based <em>Shader Editor</em>, if <strong>Node Wrangler</strong> enabled.
+Clicking <code class="docutils literal notranslate"><span class="pre">Shift</span></code>+<code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">LMB</span></code> on texture shows it as simple unlit shader.</p>
+</section>
+<section id="file-import">
+<h3>File &gt; Import<a class="headerlink" href="#file-import" title="Link to this heading"></a></h3>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><p><strong>Optimize material slots</strong>: removes unused slots and merges slots with the
+same material.</p></li>
+<li><p><strong>Import LODs</strong>: imports all LODs, not just the selected <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file.</p></li>
+<li><p><strong>Import dps</strong>: imports all damage_parts (<code class="docutils literal notranslate"><span class="pre">_dp</span></code>).</p></li>
+<li><p><strong>Import dmgs</strong>: imports all damage versions.</p></li>
+<li><p><strong>Replace existing</strong>: if a collection with the asset name exists in the scene,
+it will replace its contents with those from the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file instead of
+creating a duplicate with a <code class="docutils literal notranslate"><span class="pre">.001+</span></code> suffix. Useful for quickly reverting
+multiple changes.</p>
+<img alt="File Import" class="align-center" src="../../../../_images/file_import.png" />
+</li>
+</ul>
+</section>
+<section id="batch-import">
+<h3>Batch Import<a class="headerlink" href="#batch-import" title="Link to this heading"></a></h3>
+<p>For importing several assets at once it’s better to use <strong>Batch Import</strong> panel.
+This panel allows importing <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files from a specified directory.</p>
+<img alt="Batch Import" class="align-center" src="../../../../_images/batch_imp.png" />
+<p><strong>Options:</strong></p>
+<ul>
+<li><p><strong>Search in subfolders</strong>: checks all subdirectories for files. Use cautiously,
+as it can freeze Blender if too many matches are found.</p></li>
+<li><p><strong>Optimize material slots</strong>: same as in regular import.</p></li>
+<li><p><strong>Preserve Smoothing Groups</strong>: saves smoothing groups as an attribute to
+ensure they don’t change during export. Not recommended if you plan to modify
+the geometry after import.</p></li>
+<li><p><strong>Reimport existing</strong>: when checked, if corresponding collection for .dag found,
+importer replaces its content by newly imported data. When unchecked,
+it will import to the new collection with first unused index <code class="docutils literal notranslate"><span class="pre">.001+</span></code> available.</p></li>
+<li><p><strong>Preserve paths</strong>: saves the full path to the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file (including the file
+name) in <strong>Collection Property</strong>. Useful when importing file from multiple
+directories and needing to export them back to original locations.</p></li>
+<li><p><strong>Masks</strong>: <a class="reference external" href="https://en.wikipedia.org/wiki/Regular_expression">regex-based</a> masks for files.
+But for any symbols <code class="docutils literal notranslate"><span class="pre">*</span></code> is used instead of <code class="docutils literal notranslate"><span class="pre">.*</span></code>, and <code class="docutils literal notranslate"><span class="pre">;</span></code> is used to separate masks.
+Spaces are ignored.</p></li>
+<li><p><strong>Excludes</strong>: same syntax as masks, but for excluding files from import.</p>
+<p><strong>Example:</strong></p>
+<p>Masks: <code class="docutils literal notranslate"><span class="pre">“asset_a.lod0[0,2]*;</span> <span class="pre">asset_b_dp*”;</span> <span class="pre">Excludes=“*_dmg*”</span></code> imports
+<code class="docutils literal notranslate"><span class="pre">asset_a.lod00.dag</span></code>, <code class="docutils literal notranslate"><span class="pre">asset_a.lod02.dag</span></code>, and all LODs of all <code class="docutils literal notranslate"><span class="pre">asset_b_dp</span></code>,
+except their <code class="docutils literal notranslate"><span class="pre">_dmg</span></code> versions.</p>
+</li>
+<li><p><strong>Path</strong>: the directory to search.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Blender will be unresponsive until the import is complete. To monitor the
+import process, open the console (<strong>Window &gt; Toggle system console</strong>).</p>
+</div>
+<section id="additional-features">
+<h4>Additional Features<a class="headerlink" href="#additional-features" title="Link to this heading"></a></h4>
+<p>Often, you may need to import a single asset that is already open in <a class="reference internal" href="../../../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> or Explorer. Instead
+of searching for it through <strong>File &gt; Import</strong>, you can copy the path from <a class="reference internal" href="../../../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> or Explorer (<code class="docutils literal notranslate"><span class="pre">RMB</span></code>
+<strong>&gt; Copy as path</strong>) and paste it into <strong>Path</strong> field of the batch import panel.
+This action will automatically transfer the file name to <strong>Masks</strong>, and clicking
+<strong>IMPORT</strong> will load only the desired asset.</p>
+<p>If you only have the asset’s name, you can enter it in <strong>Masks</strong> and then use
+the <strong>Apply as search path</strong> button to set the entire project directory with
+subdirectories as the search path.</p>
+<p>If the path is unknown, the import will be slower by a few seconds (due to
+search file), but this is often faster than searching the full path manually.</p>
+<img alt="Batch Import Additional Features" class="align-center" src="../../../../_images/batch_imp_add_feat.png" />
+</section>
+</section>
+</section>
+<section id="id2">
+<h2>Tools<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>The panel is continuously being improved. Tools are grouped into blocks that can
+be collapsed when not in use to avoid cluttering the interface.</p>
+<img alt="Tools" class="align-left" src="../../../../_images/tools.png" />
+<ul class="simple">
+<li><p><strong>Optimize material slots</strong>: merges identical material slots and removes
+unused ones.</p></li>
+<li><p><strong>Merge Duplicates</strong>: merges identical materials with different indices (e.g.,
+<code class="docutils literal notranslate"><span class="pre">Material</span></code> and <code class="docutils literal notranslate"><span class="pre">Material.001</span></code>). These duplicate materials often arise when
+copying objects using <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">C</span></code> / <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">V</span></code>, as this operation saves the
+selection to an external <code class="docutils literal notranslate"><span class="pre">.blend</span></code> file and then appends it to the active scene
+along with all its materials.</p></li>
+<li><p><strong>Find missing textures</strong>: searches the textures without valid paths in the
+selected project’s directory.</p></li>
+<li><p><strong>Find missing proxymats</strong>: similar functionality for proxymats.</p></li>
+<li><p><strong>Save textures</strong>: collects all textures with valid paths from selected
+objects and saves them in the <code class="docutils literal notranslate"><span class="pre">/textures/</span></code> subdirectory of the export
+directory.</p></li>
+<li><p><strong>Preserve Sharp Edges</strong>: marks sharp edges based on Autosmooth Angle, and
+sets the angle to 180° to ensure consistency between the model in the
+scene and in the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file. This function is not mandatory before exporting,
+as it will automatically apply to the exported geometry (keeping the original
+scene geometry unchanged).</p></li>
+<li><p><strong>Apply Modifiers</strong>: applies modifiers to the geometry. Not mandatory before
+export as the exporter can preserve modifiers in the original scene.</p></li>
+<li><p><strong>Clear normals</strong>: removes custom normals from selected objects.</p></li>
+<li><p><strong>sort collections</strong>: recursively groups scene collections by the longest
+matching name prefix. You can see the example on the screenshot for the
+<a class="reference internal" href="#batch-export">“Col.Joined” export</a>.</p></li>
+<li><p><strong>pack orphans</strong>: searches for objects not at the hierarchy’s bottom and
+creates individual collections for them.</p></li>
+<li><p><strong>Setup Destruction</strong>: assigns a list of typical object properties for
+destruction to all selected objects:</p></li>
+</ul>
+<br clear="left">
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>  animated_node:b=yes
+  physObj:b=yes
+  collidable:b=no
+  massType:t=none
+</pre></div>
+</div>
+<p>Creates <em>bounding boxes</em> (BBoxes) objects with <code class="docutils literal notranslate"><span class="pre">gi_black</span></code> material, sets them as
+children, and assigns collider parameters:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>  materialName:t=[value from the material field]
+  density:r=[value from the density field]
+  massType:t=box
+  collType:t=box
+</pre></div>
+</div>
+<p>The BBoxes may still need to be adjusted and scaled to better fit the
+silhouette. In some cases, they may also need to be duplicated. However, this
+process still saves time in the overall setup.</p>
+</section>
+<section id="texture-baker">
+<h2>Texture Baker<a class="headerlink" href="#texture-baker" title="Link to this heading"></a></h2>
+<p>Allows baking textures from complex shaders to
+<a class="reference internal" href="../../../../assets/shaders/dng-shaders/rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a>.
+Commonly used for final LODs or porting assets to mobile projects.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../dag4blend-texture-baker/dag4blend_texture_baker.html"><span class="std std-doc">Texture Baker</span></a> tool.</p>
+</div>
+<img alt="Bake" class="align-center" src="../../../../_images/bake.png" />
+</section>
+<section id="id3">
+<h2>Experimental Features<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="composite-editor">
+<h3>Composite Editor<a class="headerlink" href="#composite-editor" title="Link to this heading"></a></h3>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../dag4blend-comp-editor/dag4blend_comp_editor.html"><span class="std std-doc">Composite Editor</span></a>.</p>
+</div>
+<img alt="Composites Editor" class="align-center" src="../../../../_images/comp_editor.png" />
+<section id="general-limitations-of-the-add-on-tools-in-blender">
+<h4>General Limitations of the Add-on Tools in Blender<a class="headerlink" href="#general-limitations-of-the-add-on-tools-in-blender" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Limitation on the number of characters in the name – names longer than 63
+characters will be truncated, and when importing objects with the same name,
+an index <code class="docutils literal notranslate"><span class="pre">.001</span></code> is appended, reducing the maximum name length by 4 more
+characters. Starting from version <code class="docutils literal notranslate"><span class="pre">1.2.6</span></code>, overly long names are saved in
+<strong>Collection Property</strong>.</p></li>
+<li><p>Animations are not supported yet.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="dag4blend" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dag4blend-comp-editor/index.html" class="btn btn-neutral float-right" title="dag4blend Composite Editor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Apr 25, 2025.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

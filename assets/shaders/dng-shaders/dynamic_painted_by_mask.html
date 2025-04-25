@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shader: dynamic_painted_by_mask &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=93b9aae3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/gaijin.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Shader: land_mesh_height_decal" href="land_mesh_height_decal.html" />
+    <link rel="prev" title="daNetGame-Based Shaders" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All about .blk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_interior_mapping.html">Shader: rendinst_interior_mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered.html">Shader: rendinst_layered</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_lightmap.html">Shader: rendinst_layered_lightmap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_parallax_ice.html">Shader: rendinst_parallax_ice</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_perlin_layered.html">Shader: rendinst_perlin_layered</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_simple_emissive.html">Shader: rendinst_simple_emissive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_aces_detailed.html">Shader: simple_aces_detailed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_family.html">Shader Family: rendinst_layered</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../land_mesh_combined_decal_family.html">Shader Family: land_mesh_combined_decal</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daNetGame-Based Shaders</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Shader: dynamic_painted_by_mask</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#textures">Textures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#functionality">Functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="land_mesh_height_decal.html">Shader: land_mesh_height_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_diffuse_decal.html">Shader: rendinst_blend_diffuse_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_normal_decal.html">Shader: rendinst_blend_normal_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_decal.html">Shader: rendinst_deferred_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_modulate2x_decal.html">Shader: rendinst_deferred_modulate2x_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_emissive.html">Shader: rendinst_emissive</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_colored.html">Shader: rendinst_flag_colored</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_layered.html">Shader: rendinst_flag_layered</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_mask_layered.html">Shader: rendinst_mask_layered</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_modulate2x_diffuse_decal.html">Shader: rendinst_modulate2x_diffuse_decal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_refraction.html">Shader: rendinst_refraction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple.html">Shader: rendinst_simple / simple_aces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_emissive_anim.html">Shader: rendinst_simple_emissive_anim / dynamic_illum_anim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_glass.html">Shader: rendinst_simple_glass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_painted.html">Shader: rendinst_simple_painted</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_colored.html">Shader: rendinst_tree_colored</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_perlin_layered.html">Shader: rendinst_tree_perlin_layered</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_vcolor_layered.html">Shader: rendinst_vcolor_layered</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Shaders</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-Based Shaders</a></li>
+      <li class="breadcrumb-item active">Shader: dynamic_painted_by_mask</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/shaders/dng-shaders/dynamic_painted_by_mask.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="shader-dynamic-painted-by-mask">
+<h1>Shader: dynamic_painted_by_mask<a class="headerlink" href="#shader-dynamic-painted-by-mask" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>A dynamic shader designed for vehicles in <em>daNetGame</em>-based projects.</p>
+</section>
+<section id="textures">
+<h2>Textures<a class="headerlink" href="#textures" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>tex0</strong>: Diffuse albedo</p></li>
+<li><p><strong>tex2</strong>: Normals + metalness + smoothness</p></li>
+<li><p><strong>tex4</strong>: Grayscale paint mask (white = 100% paint coverage, black = no paint)</p></li>
+<li><p><strong>tex5</strong>: Optional grayscale camouflage mask (white = painted with the second
+color, black = no paint)</p></li>
+</ul>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;primary_color=0,0,0,0&quot;</span></code> – Defines the primary paint color based on
+the mask from <strong>tex4</strong>. The first three values represent the RGB color; the
+fourth value is unused.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;secondary_color=0,0,0,0&quot;</span></code> – Defines the secondary paint color based
+on the mask from <strong>tex5</strong>. The first three values represent the RGB color; the
+fourth value is unused.</p></li>
+</ul>
+</section>
+<section id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Link to this heading"></a></h2>
+<p>If only one mask and one color are specified, the shader will apply the paint
+based on that mask. For example:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/dynamic_painted_by_mask_01.jpg"><img alt="../../../_images/dynamic_painted_by_mask_01.jpg" class="bg-primary align-center" src="../../../_images/dynamic_painted_by_mask_01.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>When both masks and two colors are provided, the shader can generate camouflage
+patterns in any color combination. For example:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/dynamic_painted_by_mask_02.jpg"><img alt="../../../_images/dynamic_painted_by_mask_02.jpg" class="bg-primary align-center" src="../../../_images/dynamic_painted_by_mask_02.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>The color defined in the asset will be applied to all vehicles of this type
+unless it is overridden in the templates.</p>
+<p>Predefined color sets and random color generation in-game are configured in
+<code class="docutils literal notranslate"><span class="pre">.blk</span></code> files located in:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/gameBase/content/&lt;project_name&gt;/gamedata/templates/</span></code>.</p>
+<p>For example, predefined color sets:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">vehicle_color_smoking_red</span> <span class="n">value</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.105</span><span class="p">,</span> <span class="mf">0.117</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="n">vehicle_color_vampire_red</span> <span class="n">value</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span><span class="mf">0.419</span><span class="p">,</span> <span class="mf">0.039</span><span class="p">,</span> <span class="mf">0.074</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="n">vehicle_color_canyon_copper</span> <span class="n">value</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span><span class="mf">0.807</span><span class="p">,</span> <span class="mf">0.341</span><span class="p">,</span> <span class="mf">0.184</span><span class="p">,</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>The following block indicates that there is a 90% chance the vehicle will be
+painted in one of the four specified colors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ar_painting</span><span class="o">.</span><span class="n">chance</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mf">0.9</span>
+<span class="s2">&quot;car_painting.possibleColors:array&quot;</span><span class="p">{</span>
+  <span class="s2">&quot;item:object&quot;</span><span class="p">{</span> <span class="n">color</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;vehicle_color_battleship_gray&quot;</span><span class="p">;</span> <span class="p">}</span>
+  <span class="s2">&quot;item:object&quot;</span><span class="p">{</span> <span class="n">color</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;vehicle_color_dark_gray&quot;</span><span class="p">;</span> <span class="p">}</span>
+  <span class="s2">&quot;item:object&quot;</span><span class="p">{</span> <span class="n">color</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;vehicle_color_thundercloud&quot;</span><span class="p">;</span> <span class="p">}</span>
+  <span class="s2">&quot;item:object&quot;</span><span class="p">{</span> <span class="n">color</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;vehicle_color_military_green&quot;</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daNetGame-Based Shaders" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="land_mesh_height_decal.html" class="btn btn-neutral float-right" title="Shader: land_mesh_height_decal" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Apr 25, 2025.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>
