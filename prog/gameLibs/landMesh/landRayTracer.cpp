@@ -302,6 +302,7 @@ static inline bool optimize_4cache(unsigned char *verts, int vertSize, int numv,
   return true;
 }
 
+
 #if _TARGET_PC
 template <class VertIndex, class FaceIndex>
 bool BaseLandRayTracer<VertIndex, FaceIndex>::build(uint32_t cellsX, uint32_t cellsY, float cellSz, const Point3 &ofs,
