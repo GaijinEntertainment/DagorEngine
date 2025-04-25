@@ -451,6 +451,7 @@ const char *dx11_error(HRESULT hr)
     case D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD: return "D3D11_ERROR_DEFERRED_CONTEXT_MAP_WITHOUT_INITIAL_DISCARD";
     case D3DERR_INVALIDCALL: return "D3DERR_INVALIDCALL";
     case D3DERR_WASSTILLDRAWING: return "D3DERR_WASSTILLDRAWING";
+    case E_ACCESSDENIED: return "E_ACCESSDENIED";
     case E_FAIL: return "E_FAIL";
     case E_INVALIDARG: return "E_INVALIDARG";
     case E_OUTOFMEMORY: return "E_OUTOFMEMORY";
@@ -1922,6 +1923,8 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   nvlowlatency::init();
 
   init_memory_report();
+  recreate_render_states();
+  g_render_state.reset();
 
   _in_win_started = inWin;
 
