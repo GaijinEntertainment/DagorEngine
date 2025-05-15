@@ -1,0 +1,15 @@
+
+Dagor Engine Libraries
+======================
+
+Picture Manager documentation
+
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   *
+

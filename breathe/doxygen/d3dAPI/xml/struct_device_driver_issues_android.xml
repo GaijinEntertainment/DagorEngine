@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="struct_device_driver_issues_android" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesAndroid</compoundname>
+    <basecompoundref refid="struct_device_driver_issues_base" prot="public" virt="non-virtual">DeviceDriverIssuesBase</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_issues_android_1af6f16b1a4bdad0514a3507a7268777fb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesAndroid::hasClearColorBug</definition>
+        <argsstring></argsstring>
+        <name>hasClearColorBug</name>
+        <qualifiedname>DeviceDriverIssuesAndroid::hasClearColorBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Android. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a25023af43de6a5d31e6b1e06f2189922" kindref="member">DeviceDriverIssuesBase::hasClearColorBug</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2004" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2004" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Issues structure specific for Android. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverIssuesAndroid</label>
+        <link refid="struct_device_driver_issues_android"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverIssuesAndroid</label>
+        <link refid="struct_device_driver_issues_android"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="1998" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="1999" bodyend="2005"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_issues_base_1aed100b8cc04c55fb5a645a31b4f6f1bd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="struct_device_driver_issues_base_1aec7355cec1007e0b36dab07785577444" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="struct_device_driver_issues_base_1a129f7e70988f836c45d6fc9b89b18f91" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenMTRecreateImage</name></member>
+      <member refid="struct_device_driver_issues_base_1a3928aca35169986ebd34a4e811c54f62" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="struct_device_driver_issues_base_1ae4a622bc9d156d0dd2afe06b06287387" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="struct_device_driver_issues_base_1a5eb9f931ffee8c8cba46d2cdbb97a6ee" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="struct_device_driver_issues_android_1af6f16b1a4bdad0514a3507a7268777fb" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasClearColorBug</name></member>
+      <member refid="struct_device_driver_issues_base_1a47992c604a6c9348ed72906e2faa9c9e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="struct_device_driver_issues_base_1a4155a0570f12968d78e323e26304929f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="struct_device_driver_issues_base_1a73a3b06020df31b84570b6e073204237" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="struct_device_driver_issues_base_1ad502c03e9b8bc5f466439ede61f20a9c" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="struct_device_driver_issues_base_1ad14daea5fce019300ab5227acdf12886" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasPollDeviceFences</name></member>
+      <member refid="struct_device_driver_issues_base_1a0c0e9635e0bd509ed6febe7bf41b1037" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="struct_device_driver_issues_base_1af41da6d79519916b216c91c8c0b16c26" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="struct_device_driver_issues_base_1a0cadf2df929f3c2ea141d7f7a338bfd9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

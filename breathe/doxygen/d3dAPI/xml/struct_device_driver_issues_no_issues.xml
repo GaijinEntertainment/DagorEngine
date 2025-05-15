@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="struct_device_driver_issues_no_issues" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesNoIssues</compoundname>
+    <basecompoundref refid="struct_device_driver_issues_windows" prot="public" virt="non-virtual">DeviceDriverIssuesWindows</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_issues_no_issues_1ae21c8e87db19278f3b2495e77ea2c5cf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesNoIssues::hasClearColorBug</definition>
+        <argsstring></argsstring>
+        <name>hasClearColorBug</name>
+        <qualifiedname>DeviceDriverIssuesNoIssues::hasClearColorBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Android. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="struct_device_driver_issues_base_1a25023af43de6a5d31e6b1e06f2189922" kindref="member">DeviceDriverIssuesBase::hasClearColorBug</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2093" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2093" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized issues structure for all platforms that are known to suffer from none of those. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="struct_device_driver_issues_no_issues"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="struct_device_driver_issues_windows"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="struct_device_driver_issues_no_issues"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="struct_device_driver_issues_windows"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2087" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2088" bodyend="2094"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_issues_windows_1adbb38d638939b34369011531f90db4cd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="struct_device_driver_issues_windows_1a82744eb54cb5d8c9091b6ac9f307525e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="struct_device_driver_issues_windows_1af3fad9f2f5188bf0358de502551d0abb" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenMTRecreateImage</name></member>
+      <member refid="struct_device_driver_issues_windows_1a45d5da1195b56bef856caa956cdb57bf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="struct_device_driver_issues_windows_1a2adac45a7a9bdc89a35c0b530ce57394" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="struct_device_driver_issues_windows_1a4ca55d40f72067cbb2ce131392668734" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="struct_device_driver_issues_no_issues_1ae21c8e87db19278f3b2495e77ea2c5cf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasClearColorBug</name></member>
+      <member refid="struct_device_driver_issues_windows_1ab5aa96f7f5d277f6fa56b1725ad8462f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="struct_device_driver_issues_windows_1a77b5663e41d0ed65bf6a9e376ee2887b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="struct_device_driver_issues_windows_1a5fd58c496f3e3ab14bee81f6706c8e6e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="struct_device_driver_issues_windows_1a0f840fd3bb556a80255bd93d40eb6ca8" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="struct_device_driver_issues_windows_1aa4653a5626968b0f7a5bdc2c2af4308b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasPollDeviceFences</name></member>
+      <member refid="struct_device_driver_issues_windows_1a96154bd3a47a7d8215b1d5243bf7b4a9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="struct_device_driver_issues_windows_1a7c29cc363de311f175457b7caa82214b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="struct_device_driver_issues_windows_1adc7226aacd4fa977e70a39eb0813f698" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesNoIssues</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="todo" kind="page">
+    <compoundname>todo</compoundname>
+    <title>Todo List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="dag__buffers_8h_1ac3d4e3aafd9a7884be161183f8292ede" kindref="member">d3d::buffers::create_ua_byte_address</ref>  (uint32_t size_in_dwords, const char *name)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000014"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="dag__buffers_8h_1a9192bf3c86f843993ae9f6d89b010975" kindref="member">d3d::buffers::create_ua_byte_address_readback</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000015"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="dag__buffers_8h_1af0a2c321a3d7e53d01537438f4921710" kindref="member">d3d::buffers::create_ua_sr_byte_address</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000013"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000001"/>Candidate for removal if situation for PS4/5 is clarified, there it seems to be not implemented.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000002"/>May need to split into multiple caps as some drivers do not support buffers. </para>
+<para></para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_p_s4_1ac5bd05642d65e301dc4e34cfa3d0fede" kindref="member">DeviceDriverCapabilitiesPS4::hasGather4</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000003"/>Clarify why no support is advertised.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="class_driver3d_init_callback_1a91d3767e5a09998a39df239c2a1c10a7" kindref="member">Driver3dInitCallback::compareDesc</ref>  (<ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;A, <ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;B) const =0</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000010"/>This fucntion is not used anywhere. Remove it?  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="class_driver3d_init_callback_1a1b92d98c1d83a6256a52b0111626f9cd" kindref="member">Driver3dInitCallback::validateDesc</ref>  (<ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;desc) const =0</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000009"/>This fucntion is not used anywhere. Remove it?  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="class_sbuffer_1aa8d2a4883a2061c777f301b46664a24f" kindref="member">Sbuffer::restype</ref>  () const override final</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000012"/>make RES3D_ a enum class. </para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="todo"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,15 @@
+
+daRg framework
+==============
+
+Docs for DaRG - Dagor Reactive GUI framework, based on Quirrel language and FRP.
+
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   *
+

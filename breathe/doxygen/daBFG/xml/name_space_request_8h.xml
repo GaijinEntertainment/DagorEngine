@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="name_space_request_8h" kind="file" language="C++">
+    <compoundname>nameSpaceRequest.h</compoundname>
+    <includes local="no">render/daBfg/detail/nameSpaceNameId.h</includes>
+    <includes refid="history_8h" local="no">render/daBfg/history.h</includes>
+    <includes refid="external_resources_8h" local="no">render/daBfg/externalResources.h</includes>
+    <includes refid="virtual_resource_semi_request_8h" local="no">render/daBfg/virtualResourceSemiRequest.h</includes>
+    <includedby refid="registry_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>render/daBfg/externalResources.h</label>
+        <link refid="external_resources_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>render/daBfg/history.h</label>
+        <link refid="history_8h_source"/>
+      </node>
+      <node id="7">
+        <label>render/daBfg/multiplexing.h</label>
+        <link refid="multiplexing_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h</label>
+        <link refid="name_space_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>render/daBfg/virtualResourceSemiRequest.h</label>
+        <link refid="virtual_resource_semi_request_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="9">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="2">
+        <label>render/daBfg/detail/nameSpaceNameId.h</label>
+      </node>
+      <node id="20">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="18">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+      <node id="19">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="15">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h</label>
+        <link refid="name_space_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdabfg_1_1_name_space_request" prot="public">dabfg::NameSpaceRequest</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/detail/nameSpaceNameId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/history.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/externalResources.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/virtualResourceSemiRequest.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classdabfg_1_1_name_space_request" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref>(NameSpaceNameId<sp/>ns,<sp/>NodeNameId<sp/>node,<sp/>InternalRegistry<sp/>*reg)<sp/>:<sp/>nameSpaceId{ns},<sp/>nodeId{node},<sp/>registry{reg}<sp/>{}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>RRP<sp/>NewRwRequestPolicy<sp/>=<sp/>RRP::None;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>RRP<sp/>NewRoRequestPolicy<sp/>=<sp/>RRP::Readonly;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>RRP<sp/>NewHistRequestPolicy<sp/>=<sp/>RRP::Readonly<sp/>|<sp/>RRP::History;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;RRP<sp/>policy&gt;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref><sp/>=<sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;BaseTexture, policy&gt;</ref>;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;RRP<sp/>policy&gt;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBufferRequest</ref><sp/>=<sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;Sbuffer, policy&gt;</ref>;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T,<sp/>RRP<sp/>policy&gt;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest</ref><sp/>=<sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;T, policy&gt;</ref>;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="53" refid="classdabfg_1_1_name_space_request_1aacd653c65171aed36a53ff86504640b2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1aacd653c65171aed36a53ff86504640b2" kindref="member">operator/</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*child_name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>D&gt;</highlight></codeline>
+<codeline lineno="68" refid="classdabfg_1_1_name_space_request_1ac0a5e738fb64087d76216960448d4158" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest&lt;D&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1ac0a5e738fb64087d76216960448d4158" kindref="member">getResolution</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*type_name,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>multiplier<sp/>=<sp/>1.f)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="classdabfg_1_1_name_space_request_1a75cd64dc39b8e9cb9661883e25afc322" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewRoRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a75cd64dc39b8e9cb9661883e25afc322" kindref="member">read</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classdabfg_1_1_name_space_request_1a3f8ff42be38f11feabbedd0eddc6e2f6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewRoRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a3f8ff42be38f11feabbedd0eddc6e2f6" kindref="member">read</ref>(<ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref><sp/>slot_name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="classdabfg_1_1_name_space_request_1a4895b2aeb34cd5cfa9ee08c73800cefc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewHistRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a4895b2aeb34cd5cfa9ee08c73800cefc" kindref="member">historyFor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classdabfg_1_1_name_space_request_1a629aeb2d133c57d85d67425beeab1f62" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a629aeb2d133c57d85d67425beeab1f62" kindref="member">modify</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classdabfg_1_1_name_space_request_1aec0d3a544f7356bffd8aab4ec86d7fb6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1aec0d3a544f7356bffd8aab4ec86d7fb6" kindref="member">modify</ref>(<ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref><sp/>slot_name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="classdabfg_1_1_name_space_request_1afb58ae89cfff0e3adcdc36e1d326780e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1afb58ae89cfff0e3adcdc36e1d326780e" kindref="member">rename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*from,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*to,<sp/>History<sp/>history)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"></codeline>
+<codeline lineno="142"></codeline>
+<codeline lineno="144" refid="classdabfg_1_1_name_space_request_1ac9baebee2654c86c2489d4fdf16447b2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewRoRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1ac9baebee2654c86c2489d4fdf16447b2" kindref="member">readTexture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a75cd64dc39b8e9cb9661883e25afc322" kindref="member">read</ref>(name).texture();<sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147" refid="classdabfg_1_1_name_space_request_1aa55b02e3790acc6755f91379cb245a2a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewRoRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1aa55b02e3790acc6755f91379cb245a2a" kindref="member">readTexture</ref>(<ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref><sp/>slot_name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a75cd64dc39b8e9cb9661883e25afc322" kindref="member">read</ref>(slot_name).texture();<sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="classdabfg_1_1_name_space_request_1a4b84b0c06669318f776a0510c2e223d1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewHistRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a4b84b0c06669318f776a0510c2e223d1" kindref="member">readTextureHistory</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a4895b2aeb34cd5cfa9ee08c73800cefc" kindref="member">historyFor</ref>(name).texture();<sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="classdabfg_1_1_name_space_request_1a2cc7218fc1371e2ab2fa986d11ee7c8d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a2cc7218fc1371e2ab2fa986d11ee7c8d" kindref="member">modifyTexture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a629aeb2d133c57d85d67425beeab1f62" kindref="member">modify</ref>(name).texture();<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156" refid="classdabfg_1_1_name_space_request_1a6a920ff133d75a484637e3b3cf4c230b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a6a920ff133d75a484637e3b3cf4c230b" kindref="member">modifyTexture</ref>(<ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref><sp/>slot_name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a629aeb2d133c57d85d67425beeab1f62" kindref="member">modify</ref>(slot_name).texture();<sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159" refid="classdabfg_1_1_name_space_request_1ac186807b8b034314b09ce8d4caa0a826" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest&lt;NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1ac186807b8b034314b09ce8d4caa0a826" kindref="member">renameTexture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*from,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*to,<sp/>History<sp/>history)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="160"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1afb58ae89cfff0e3adcdc36e1d326780e" kindref="member">rename</ref>(from,<sp/>to,<sp/>history).texture();</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="166" refid="classdabfg_1_1_name_space_request_1a4f4251261415f7127983250c323d45cf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest&lt;T, NewRoRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a4f4251261415f7127983250c323d45cf" kindref="member">readBlob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="167"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a75cd64dc39b8e9cb9661883e25afc322" kindref="member">read</ref>(name).blob&lt;T&gt;();</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="173" refid="classdabfg_1_1_name_space_request_1a7f87140295cb2f3692cfbd0c1bc19398" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest&lt;T, NewHistRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a7f87140295cb2f3692cfbd0c1bc19398" kindref="member">readBlobHistory</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="174"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a4895b2aeb34cd5cfa9ee08c73800cefc" kindref="member">historyFor</ref>(name).blob&lt;T&gt;();</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="180" refid="classdabfg_1_1_name_space_request_1a36a175310b65f6fc264adc0ad48e0e5e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest&lt;T, NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1a36a175310b65f6fc264adc0ad48e0e5e" kindref="member">modifyBlob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="181"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1a629aeb2d133c57d85d67425beeab1f62" kindref="member">modify</ref>(name).blob&lt;T&gt;();</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="187" refid="classdabfg_1_1_name_space_request_1ac384117aa6935c42fcd721d1c8754650" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest&lt;T, NewRwRequestPolicy&gt;</ref><sp/><ref refid="classdabfg_1_1_name_space_request_1ac384117aa6935c42fcd721d1c8754650" kindref="member">renameBlob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*from,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*to,<sp/>History<sp/>history)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="188"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1_name_space_request_1afb58ae89cfff0e3adcdc36e1d326780e" kindref="member">rename</ref>(from,<sp/>to,<sp/>history).blob&lt;T&gt;();</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>NameSpaceNameId<sp/>nameSpaceId;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>NodeNameId<sp/>nodeId;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>InternalRegistry<sp/>*registry;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h"/>
+  </compounddef>
+</doxygen>
