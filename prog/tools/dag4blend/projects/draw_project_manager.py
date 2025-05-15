@@ -46,7 +46,7 @@ def draw_project_settings(layout, project, index):
         icon = 'ERROR' if not configured else 'BLANK1')
     del_button = header.column()
     del_button.operator('dt.remove_project', icon = 'TRASH', text = "").index = index
-    del_button.active = del_button_enabled = project.unlock
+    del_button.active = del_button.enabled = project.unlock
     if not project.maximized:
         return
     main_props = box.split(factor = 0.2)

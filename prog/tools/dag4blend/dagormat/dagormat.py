@@ -667,7 +667,7 @@ class dagormat(PropertyGroup):
     use_prop_enum:  BoolProperty(default=False, description = 'show as dropdown list',  update = upd_prop_selector)
 #proxymat related properties
     is_proxy:   BoolProperty   (default=False,description='is it proxymat?')
-    proxy_path: StringProperty (default='', subtype = 'FILE_PATH', description='\\<Material.name>.proxymat.blk',
+    proxy_path: StringProperty (default='', subtype = 'FILE_PATH', description='/<Material.name>.proxymat.blk',
                                 update=update_proxy_path)
 classes.append(dagormat)
 

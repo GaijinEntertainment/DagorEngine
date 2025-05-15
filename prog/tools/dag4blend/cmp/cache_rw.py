@@ -61,7 +61,7 @@ def build_cache():
             elif is_gameobj(filename):
                 entities[assetname].append(['gameobj', os.path.join(subdir,filename)])
     project_name = pref.projects[index]['name']
-    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'\\addons\\{addon_name}\\{project_name}.bin')
+    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'/addons/{addon_name}/{project_name}.bin')
     try:
         cache = open(cache_path,'wb')
         pickle.dump(entities,cache)
@@ -79,7 +79,7 @@ def read_cache():
     pref = get_preferences()
     index = int(pref.project_active)
     project_name = pref.projects[index]['name']
-    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'\\addons\\{addon_name}\\{project_name}.bin')
+    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'/addons/{addon_name}/{project_name}.bin')
     try:
         cache = open(cache_path,'rb')
         entities = pickle.load(cache)

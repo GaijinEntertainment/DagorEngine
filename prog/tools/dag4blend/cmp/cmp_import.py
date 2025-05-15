@@ -1,6 +1,6 @@
 import bpy,os
 
-from os.path            import exists
+from os.path            import exists, join
 from bpy.utils          import register_class, unregister_class
 from bpy.types          import Operator
 
@@ -282,12 +282,13 @@ def read_cmp(path_import,with_sub_cmp,with_dags,with_lods,assets):
         show_popup(message=msg,title='ERROR!',icon='ERROR')
         log(msg, type = 'ERROR', show = True)
         return{"CANCELLED"}
-    if path_import.find('\\')==-1:# if no folders, that might be name of composit
+    path_import = path_import.replace('/', os.sep)
+    if path_import.find(os.sep)==-1:# if no folders, that might be name of composit
         found=False
         for subdir,dirs,files in os.walk(search_path):
             for file in files:
                 if file in [path_import, path_import+'.composit.blk']:
-                    path_import=subdir + os.sep + file
+                    path_import = join(subdir, file)
                     found=True
                     break
             if found:
@@ -364,7 +365,20 @@ def read_cmp(path_import,with_sub_cmp,with_dags,with_lods,assets):
         log(msg)
         dags_to_import.clear()#we don't need it to be modified dynamically
         for dag in dags:
-            bpy.ops.import_scene.dag(filepath = dag, with_lods = with_lods)
+            bpy.ops.import_scene.dag(
+                filepath = dag,
+                with_lods = with_lods,
+#making sure no parameters were overridden by previous call
+                dirpath = "",
+                includes = "",
+                excludes = "",
+                includes_re = "",
+                excludes_re = "",
+                check_subdirs = False,
+                with_dps= False,
+                with_dmgs= False,
+                with_destr = False,
+                )
     log(f'IMPORTED {os.path.basename(path_import)}\n')
     return
 

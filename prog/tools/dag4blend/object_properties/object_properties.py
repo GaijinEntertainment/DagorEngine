@@ -111,7 +111,7 @@ class DAGOR_OT_apply_op_preset(Operator):
         addon_name = basename(__package__)
         pref = get_preferences()
         preset = pref.prop_preset
-        path = pref.props_presets_path + f"\\{preset}.txt"
+        path = pref.props_presets_path + f"/{preset}.txt"
         if os.path.exists(path):
             with open(path,'r') as t:
                 temp.write(t.read())
@@ -141,7 +141,7 @@ class DAGOR_OT_save_op_preset(Operator):
         dirpath = pref.props_presets_path
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
-        path = f"{dirpath}\\{name}.txt"
+        path = f"{dirpath}/{name}.txt"
         with open (path,'w') as preset:
             for line in bpy.data.texts["props_temp"].lines:
                 if line.body!='':
@@ -164,7 +164,7 @@ class DAGOR_OT_remove_op_preset(Operator):
         addon_name = basename(__package__)
         pref = get_preferences()
         name = pref.prop_preset
-        path = pref.props_presets_path + f"\\{name}.txt"
+        path = pref.props_presets_path + f"/{name}.txt"
         os.remove(path)
         list = get_presets_list()
         if list.__len__()>0:

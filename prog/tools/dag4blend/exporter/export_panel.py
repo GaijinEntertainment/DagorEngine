@@ -1,5 +1,4 @@
 import bpy, os
-from bpy.props          import StringProperty, BoolProperty, PointerProperty, EnumProperty
 from ..helpers.popup    import show_popup
 from ..helpers.texts    import *
 from time               import time

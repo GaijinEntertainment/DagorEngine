@@ -115,8 +115,8 @@ def node_add_entity(node):
 def get_converter_ng():
     group_name = "GN_col_to_mesh"
     addon_name = basename(__package__)
-    lib_path = user_resource('SCRIPTS') + f'\\addons\\{addon_name}\\extras\\library.blend\\NodeTree'
-    file = lib_path+f"\\{group_name}"
+    lib_path = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/library.blend/NodeTree'
+    file = lib_path+f"/{group_name}"
     bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
     node_group = bpy.data.node_groups.get(group_name)
     return node_group
