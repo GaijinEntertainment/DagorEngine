@@ -777,9 +777,9 @@ class DagExporter(Operator, ExportHelper):
         #collection(s) without children, but with objects
         elif col.objects.__len__()>0:
             if "name" in col.keys():
-                col["name"] = col["name"].replace('/','\\')
-                #"\" in the beginning makes blender save file one directory above export path, we don't need that
-                while col["name"].startswith('\\'):
+                col["name"] = col["name"].replace('\\','/')
+                #separator in the beginning makes blender save file one directory above export path, we don't need that
+                while col["name"].startswith('/'):
                     col["name"] = col["name"][1:]
                 subpath = col["name"].replace('*',col.name)
                 if subpath[1]==':':#drive

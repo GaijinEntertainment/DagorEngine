@@ -128,10 +128,22 @@ several approaches:
    In the **Outliner**, you can drag the collection containing the desired asset
    into the 3D view.
 
-   :::{grid} 2
-   <img src="_images/dag4blend_comp_ed_07.jpg" alt="Creating nodes" align="right" width="33em">
-   <img src="_images/dag4blend_comp_ed_08.jpg" alt="Creating nodes" align="left" width="33em">
-   :::
+   ```{eval-rst}
+   .. grid:: 1
+      :class-container: center-grid
+
+      .. grid-item::
+         :class: center-cell
+         :child-direction: row
+         :child-align: center
+
+         .. image:: _images/dag4blend_comp_ed_07.jpg
+            :height: 25em
+            :class: image-gap
+
+         .. image:: _images/dag4blend_comp_ed_08.jpg
+            :height: 25em
+   ```
 
    In this case, there is no need to enable instancing.
 

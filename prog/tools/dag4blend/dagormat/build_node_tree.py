@@ -9,7 +9,7 @@ from ..helpers.version  import get_blender_version
 
 def check_remap(name):
     addon_name = basename(__package__)
-    remap_file = user_resource('SCRIPTS') + f'\\addons\\{addon_name}\\extras\\remap.txt'
+    remap_file = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/remap.txt'
     with open(remap_file,'r') as t:
         lines=t.readlines()
         t.close()
@@ -65,8 +65,8 @@ def get_node_group(group_name):
         bpy.ops.object.editmode_toggle()
     group_name = check_remap(group_name)
     addon_name = basename(__package__)
-    lib_path = user_resource('SCRIPTS') + f'\\addons\\{addon_name}\\extras\\library.blend\\NodeTree'
-    file = lib_path+f"\\{group_name}"
+    lib_path = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/library.blend/NodeTree'
+    file = lib_path+f"/{group_name}"
     bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
     #if nodegroup not found in library it still be a None
     node_group = bpy.data.node_groups.get(group_name)
@@ -74,12 +74,12 @@ def get_node_group(group_name):
         if group_name.endswith('_uv'):
             node_group = bpy.data.node_groups.get('default_uv')
             if node_group is None:
-                bpy.ops.wm.append(filepath = lib_path+"\\default_uv", directory = lib_path,filename = 'default_uv', do_reuse_local_id = True)
+                bpy.ops.wm.append(filepath = lib_path+"/default_uv", directory = lib_path,filename = 'default_uv', do_reuse_local_id = True)
                 node_group = bpy.data.node_groups.get('default_uv')
         else:
             node_group = bpy.data.node_groups.get('default')
             if node_group is None:
-                bpy.ops.wm.append(filepath = lib_path+"\\default", directory = lib_path,filename = 'default', do_reuse_local_id = True)
+                bpy.ops.wm.append(filepath = lib_path+"/default", directory = lib_path,filename = 'default', do_reuse_local_id = True)
                 node_group = bpy.data.node_groups.get('default')
     if start_mode == 'EDIT_MESH':
         bpy.ops.object.editmode_toggle()

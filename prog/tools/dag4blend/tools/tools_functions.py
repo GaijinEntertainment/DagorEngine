@@ -247,8 +247,8 @@ def get_preview_node():
     node_group = bpy.data.node_groups.get(group_name)
     if node_group is not None:
         return node_group
-    lib_path = user_resource('SCRIPTS') + f'\\addons\\dag4blend\\extras\\library.blend\\NodeTree'
-    file = lib_path+f"\\{group_name}"
+    lib_path = user_resource('SCRIPTS') + f'/addons/dag4blend/extras/library.blend/NodeTree'
+    file = lib_path+f"/{group_name}"
     bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
     #if nodegroup not found in library it still be a None
     node_group = bpy.data.node_groups.get(group_name)
