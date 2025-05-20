@@ -154,7 +154,10 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
   if ! $(jam) { Exit AotJamfile not defined for NeedDasAotCompile\=yes ; }
 
   if $(Platform) in ps4 ps5 xboxOne scarlett android nswitch ||
-     $(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 { host_platform = windows ; host_arch = x86_64 ; }
+     #modify setting for building on native arm64 environment
+     #$(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 { host_platform = windows ; host_arch = x86_64 ; }
+	 $(Platform)-$(PlatformArch) in windows-x86_64 { host_platform = windows ; host_arch = x86_64 ; }
+  else if $(Platform)-$(PlatformArch) in windows-arm64 { host_platform = windows ; host_arch = arm64 ; }
   else if $(Platform)-$(PlatformArch) = windows-x86 { host_platform = windows ; }
   else if $(Platform) in linux { host_platform = linux ; }
   else if $(Platform) in macOS iOS tvOS { host_platform = macOS ; }
