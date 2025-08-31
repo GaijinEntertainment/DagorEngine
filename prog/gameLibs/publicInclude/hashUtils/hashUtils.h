@@ -9,10 +9,7 @@
 #include <EASTL/array.h>
 #include <util/dag_strUtil.h>
 
-#define OPENSSL_SUPPRESS_DEPRECATED
-#include <openssl/sha.h>
-#undef OPENSSL_SUPPRESS_DEPRECATED
-
+#include <hash/sha1.h>
 #include <hash/BLAKE3/blake3.h>
 
 template <typename Hasher>
@@ -94,18 +91,18 @@ struct GenericHasher
   using Value = eastl::array<uint8_t, Length>;
 };
 
-struct SHA1Hasher : GenericHasher<SHA_DIGEST_LENGTH>
+struct SHA1Hasher : GenericHasher<SHA1_DIGEST_LENGTH>
 {
-  SHA_CTX ctx;
+  sha1_context ctx;
 
-  SHA1Hasher() { SHA1_Init(&ctx); }
+  SHA1Hasher() { sha1_starts(&ctx); }
 
-  void update(const uint8_t *data, size_t size) { SHA1_Update(&ctx, data, size); }
+  void update(const uint8_t *data, size_t size) { sha1_update(&ctx, data, size); }
 
   Value finalize()
   {
     Value value;
-    SHA1_Final(value.data(), &ctx);
+    sha1_finish(&ctx, value.data());
     return value;
   }
 };
@@ -131,4 +128,4 @@ struct Blake3Hasher : GenericHasher<N>
 
 using SHA1Hash = GenericHash<SHA1Hasher>;
 using Blake3Hash = GenericHash<Blake3Hasher<BLAKE3_OUT_LEN>>;
-using Blake3ShortHash = GenericHash<Blake3Hasher<SHA_DIGEST_LENGTH>>;
+using Blake3ShortHash = GenericHash<Blake3Hasher<SHA1_DIGEST_LENGTH>>;

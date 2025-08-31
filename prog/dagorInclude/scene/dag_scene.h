@@ -10,6 +10,7 @@
 #include <scene/dag_occlusion.h>
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <supp/dag_prefetch.h>
 
 class IGenSave;
 class IGenLoad;
@@ -27,6 +28,7 @@ __forceinline uint32_t check_node_flags(mat44f_cref node, const uint32_t flag); 
 __forceinline float get_node_bsphere_rad(mat44f_cref node);
 __forceinline vec4f get_node_bsphere_vrad(mat44f_cref node);
 __forceinline vec4f get_node_bsphere(mat44f_cref node);
+__forceinline bbox3f calc_node_box_from_sphere(mat44f_cref m);
 __forceinline uint32_t &get_node_pool_flags_ref(mat44f &node);
 __forceinline uint32_t get_node_pool_flags(mat44f_cref node);
 __forceinline void set_node_flags(mat44f &node, uint16_t flags); // Adds flags to existing ones, doesn't replace all flag bits.
@@ -57,6 +59,7 @@ public:
   void term();
 
   const mat44f &getNode(node_index node) const { return nodes[getNodeIndex(node)]; }
+  const mat44f &getAliveNode(node_index node) const { return getNodeInternal(node); }
   vec4f getNodeBSphere(node_index node) const; // outer (world) space apprixmate sphere
   inline pool_index getNodePool(node_index node) const;
   inline uint32_t getNodeFlags(node_index node) const;
@@ -65,7 +68,8 @@ public:
   inline uint32_t getPoolsCount() const { return (uint32_t)poolBox.size(); }
   inline uint32_t getNodesAliveCount() const { return uint32_t(nodes.size() - firstAlive - freeIndices.size()); }
   inline uint32_t getNodeIndex(node_index node) const;
-  inline bool isAliveNode(node_index node) const; // only for debug
+  inline bool isAliveNode(node_index node) const;     // only for debug
+  inline bool isAliveNodeFast(node_index node) const; // only for debug
 
   void setTransformNoScaleChange(node_index node, mat44f_cref transform); // not updating bounding sphere, i.e. assume transform is and
                                                                           // was without scale, or same uniform scale
@@ -82,6 +86,8 @@ public:
   inline bbox3f_cref getPoolBbox(pool_index pool) const { return poolBox[pool]; }
   inline float getPoolSphereVerticalCenter(pool_index pool) const { return poolSphereVerticalCenter[pool]; }
   inline bbox3f calcNodeBox(node_index node) const;
+  inline bbox3f calcNodeBox(mat44f_cref m) const;
+  static inline bbox3f calcNodeBoxFromSphere(mat44f_cref m);
 
   void clearNodes();
 
@@ -136,6 +142,15 @@ public:
   iterator begin() const { return iterator(*this, firstAlive); }
   iterator end() const { return iterator(*this, getNodesCount()); }
 
+  __forceinline void prefetchNode(node_index node) const
+  {
+    G_UNUSED(node);
+    // mat44f is 16 byte aligned, so it is possible that it is on 2 cache lines.
+    // Make sure the whole thing is fetched.
+    PREFETCH_DATA(0, &getNodeInternal(node).col0);
+    PREFETCH_DATA(0, &getNodeInternal(node).col3);
+  };
+
 protected:
   friend class iterator;
 
@@ -146,8 +161,6 @@ protected:
   inline uint32_t getIndexFlags(uint32_t index) const { return getIndexPoolFlags(index) >> 16; }
   inline bool isInvalidIndex(uint32_t index) const { return ((uint32_t *)(char *)&nodes.data()[index].col0)[3] == 0xFFFFFFFF; }
   inline bool isFreeIndex(uint32_t index) const { return index < firstAlive || index >= nodes.size() || isInvalidIndex(index); }
-  inline bbox3f calcNodeBox(mat44f_cref m) const;
-  inline bbox3f calcNodeBoxFromSphere(mat44f_cref m) const;
   inline bbox3f_cref getPoolBboxInternal(pool_index pool) const { return poolBox.data()[pool]; }
 
   node_index allocateOne();
@@ -212,6 +225,7 @@ inline bool scene::SimpleScene::isAliveNode(node_index node) const
   return !isFreeIndex(getNodeIndexInternal(node));
 }
 
+inline bool scene::SimpleScene::isAliveNodeFast(node_index node) const { return !isFreeIndex(getNodeIndexInternal(node)); }
 
 inline uint32_t &scene::get_node_pool_flags_ref(mat44f &node) { return (((uint32_t *)(char *)&node.col2)[3]); }
 
@@ -298,7 +312,7 @@ inline bbox3f scene::SimpleScene::calcNodeBox(mat44f_cref m) const
   return box;
 }
 
-inline bbox3f scene::SimpleScene::calcNodeBoxFromSphere(mat44f_cref m) const
+__forceinline bbox3f scene::calc_node_box_from_sphere(mat44f_cref m)
 {
   bbox3f box;
   vec4f sphere = get_node_bsphere(m);
@@ -306,6 +320,8 @@ inline bbox3f scene::SimpleScene::calcNodeBoxFromSphere(mat44f_cref m) const
   box.bmax = v_add(sphere, v_splat_w(sphere));
   return box;
 }
+
+inline bbox3f scene::SimpleScene::calcNodeBoxFromSphere(mat44f_cref m) { return scene::calc_node_box_from_sphere(m); }
 
 inline bbox3f scene::SimpleScene::calcNodeBox(node_index node) const
 {

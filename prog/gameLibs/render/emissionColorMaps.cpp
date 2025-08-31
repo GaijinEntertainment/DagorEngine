@@ -13,9 +13,12 @@ static const uint32_t EMISSION_COLOR_MAP_POINTS = 256;
 static const uint32_t EMISSION_COLOR_HUE_BITS = 6;
 static const uint32_t EMISSION_COLOR_REPLACE_ENC = (1 << EMISSION_COLOR_HUE_BITS) - 1;
 
-EmissionColorMaps::EmissionColorMaps()
+EmissionColorMaps::EmissionColorMaps(bool use_sbuffer)
 {
-  decodeMap = dag::buffers::create_persistent_sr_structured(sizeof(Point4), EMISSION_COLOR_MAP_POINTS, "emission_decode_color_map");
+  if (use_sbuffer)
+    decodeMap = dag::buffers::create_persistent_sr_structured(sizeof(Point4), EMISSION_COLOR_MAP_POINTS, "emission_decode_color_map");
+  else
+    decodeMap = dag::buffers::create_persistent_sr_tbuf(EMISSION_COLOR_MAP_POINTS, TEXFMT_A32B32G32R32F, "emission_decode_color_map");
   decodeMap.setVar();
   upload();
 }

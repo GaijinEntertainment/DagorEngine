@@ -10,12 +10,13 @@
 #include "pipeline/manager.h"
 #include "pipeline_cache.h"
 #include "backend.h"
-#include "execution_pod_state.h"
+#include "execution_async_compile_state.h"
 #include "execution_context.h"
 #include "vk_to_string.h"
 #include "frontend.h"
 #include "device_context.h"
 #include "wrapped_command_buffer.h"
+#include "swapchain.h"
 
 namespace drv3d_vulkan
 {
@@ -153,7 +154,7 @@ void StateFieldGraphicsConditionalRenderingScopeOpener::applyTo(BackGraphicsStat
 
   if (data != ConditionalRenderingState{})
   {
-    G_ASSERTF(state.inPass.data == InPassStateFieldType::NORMAL_PASS,
+    D3D_CONTRACT_ASSERTF(state.inPass.data == InPassStateFieldType::NORMAL_PASS,
       "vulkan: conditional rendering must be inside render pass, state %u caller %s", (int)state.inPass.data,
       target.getCurrentCmdCaller());
 
@@ -326,7 +327,7 @@ template <>
 void StateFieldGraphicsRenderPassScopeOpener::applyTo(BackGraphicsStateStorage &state, ExecutionContext &target) const
 {
   TIME_PROFILE(vulkan_render_pass_scope_opener);
-  G_ASSERTF(data, "vulkan: can't use graphics stage without render pass");
+  D3D_CONTRACT_ASSERTF(data, "vulkan: can't use graphics stage without render pass");
 
   if (state.nativeRenderPass.ptr)
   {
@@ -343,8 +344,6 @@ void StateFieldGraphicsRenderPassScopeOpener::applyTo(BackGraphicsStateStorage &
   if (Globals::cfg.bits.fatalOnNRPSplit && state.inPass.data != InPassStateFieldType::NONE)
     DAG_FATAL("vulkan: can't start new pass without closing old");
 
-  VulkanDevice &vkDev = Globals::VK::dev;
-
   RenderPassClass *nextRenderPassClass = state.rpClass.ptr;
   FramebufferState &fbState = target.getFramebufferState();
   RenderPassClass::Identifier passClassIdent = fbState.renderPassClass;
@@ -359,7 +358,7 @@ void StateFieldGraphicsRenderPassScopeOpener::applyTo(BackGraphicsStateStorage &
   }
 
   fbState.frameBufferInfo.extent = fbState.frameBufferInfo.makeDrawArea(state.viewport.data.rect2D.extent);
-  VulkanFramebufferHandle nextFramebuffer = nextRenderPassClass->getFrameBuffer(vkDev, fbState.frameBufferInfo);
+  VulkanFramebufferHandle nextFramebuffer = nextRenderPassClass->getFrameBuffer(fbState.frameBufferInfo);
 
   target.beginPassInternal(nextRenderPassClass, nextFramebuffer, state.viewport.data.rect2D);
 }
@@ -373,7 +372,7 @@ void StateFieldGraphicsRenderPassEarlyScopeOpener::dumpLog(const BackGraphicsSta
 template <>
 void StateFieldGraphicsRenderPassEarlyScopeOpener::applyTo(BackGraphicsStateStorage &, ExecutionContext &target) const
 {
-  G_ASSERTF(data, "vulkan: can't use graphics stage without render pass");
+  D3D_CONTRACT_ASSERTF(data, "vulkan: can't use graphics stage without render pass");
 
   // keep splitting buffers on some targets as sync there is broken on driver level
   if (Globals::desc.issues.hasRenderPassClearDataRace)
@@ -408,7 +407,7 @@ void StateFieldGraphicsBasePipeline::applyTo(BackGraphicsStateStorage &state, Ex
   auto &regs = ptr->getLayout()->registers;
   if (regs.fs().header.inputAttachmentCount)
   {
-    G_ASSERTF(state.nativeRenderPass.ptr,
+    D3D_CONTRACT_ASSERTF(state.nativeRenderPass.ptr,
       "vulkan: trying to use pipeline with input attachment while render pass is not bound. Additional info %s",
       ptr->printDebugInfoBuffered());
     const auto &header = regs.fs().header;
@@ -454,8 +453,6 @@ void StateFieldGraphicsPipeline::applyTo(BackGraphicsStateStorage &state, Execut
     return;
   }
 
-  VulkanDevice &vkDev = Globals::VK::dev;
-
   // can be rebinded if non nullptr
   if (!ptr)
   {
@@ -464,8 +461,9 @@ void StateFieldGraphicsPipeline::applyTo(BackGraphicsStateStorage &state, Execut
       state.nativeRenderPass.ptr ? state.nativeRenderPass.ptr->getHash() : 0,
       state.nativeRenderPass.ptr ? state.nativeRenderPass.ptr->getCurrentSubpass() : 0, state.primTopo.data};
 
-    VariatedGraphicsPipeline::CompilationContext compCtx = {vkDev, Backend::renderStateSystem, Globals::pipeCache.getHandle(),
-      state.nativeRenderPass.ptr, Backend::State::pod.asyncPipelineCompileFeedbackPtr, Backend::State::pod.nonDrawCompile};
+    VariatedGraphicsPipeline::CompilationContext compCtx = {Backend::renderStateSystem, Globals::pipeCache.getHandle(),
+      state.nativeRenderPass.ptr, &Backend::State::asyncCompileState.currentSkippedCount,
+      Backend::State::asyncCompileState.nonDrawCompile};
 
     ptr = state.basePipeline.ptr->getVariant(compCtx, varDsc);
   }
@@ -699,8 +697,8 @@ void StateFieldGraphicsStencilRefOverride::dumpLog(const FrontGraphicsStateStora
 template <>
 void StateFieldGraphicsStencilMask::applyTo(BackDynamicGraphicsStateStorage &, ExecutionContext &) const
 {
-  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilWriteMask(VK_STENCIL_FACE_BOTH_BIT, data));
-  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilCompareMask(VK_STENCIL_FACE_BOTH_BIT, data));
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilWriteMask(VK_STENCIL_FACE_BOTH_BIT, data & 0xFF));
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilCompareMask(VK_STENCIL_FACE_BOTH_BIT, (data >> 8) & 0xFF));
 }
 
 template <>
@@ -848,8 +846,7 @@ void StateFieldGraphicsViewport::set(const RestoreFromFramebuffer &)
 
   data.rect2D.offset.x = 0;
   data.rect2D.offset.y = 0;
-
-  data.rect2D.extent = Globals::swapchain.getMode().extent;
+  data.rect2D.extent = Frontend::swapchain.getMode().extent;
 
   if (!rt.isBackBufferColor())
   {
@@ -859,7 +856,7 @@ void StateFieldGraphicsViewport::set(const RestoreFromFramebuffer &)
       {
         if (rt.isColorUsed(i))
         {
-          const VkExtent3D &size = cast_to_texture_base(*rt.color[i].tex).getMipmapExtent(rt.color[i].level);
+          const VkExtent3D &size = cast_to_texture_base(*rt.color[i].tex).pars.getMipExtent(rt.color[i].level);
           data.rect2D.extent.width = size.width;
           data.rect2D.extent.height = size.height;
           break;
@@ -868,7 +865,7 @@ void StateFieldGraphicsViewport::set(const RestoreFromFramebuffer &)
     }
     else if (rt.isDepthUsed() && rt.depth.tex)
     {
-      const VkExtent3D &size = cast_to_texture_base(*rt.depth.tex).getMipmapExtent(rt.depth.level);
+      const VkExtent3D &size = cast_to_texture_base(*rt.depth.tex).pars.getMipExtent(rt.depth.level);
       data.rect2D.extent.width = size.width;
       data.rect2D.extent.height = size.height;
     }
@@ -887,7 +884,6 @@ void StateFieldGraphicsViewport::applyTo(FrontGraphicsStateStorage &state, Execu
 {
   ViewportState vp = data;
   FramebufferState &fbs = target.get<BackGraphicsState, BackGraphicsState>().framebufferState;
-  ExecutionContext &ctx = target.getExecutionContext();
   RenderPassResource *rpRes = state.renderpass.getRO<StateFieldRenderPassResource, RenderPassResource *>();
 
   // need to check viewport for selected clear targets, as sometimes clear for depth
@@ -896,17 +892,6 @@ void StateFieldGraphicsViewport::applyTo(FrontGraphicsStateStorage &state, Execu
   VkExtent2D maxExt = rpRes ? rpRes->getMaxActiveAreaExtent() : fbs.frameBufferInfo.makeDrawArea(vp.rect2D.extent);
   vp.rect2D.extent.width = min(vp.rect2D.extent.width, maxExt.width - vp.rect2D.offset.x);
   vp.rect2D.extent.height = min(vp.rect2D.extent.height, maxExt.height - vp.rect2D.offset.y);
-
-  // force viewport to full internal bb extent
-  // if we are about to write in pre rotate pass
-  if (ctx.swapchain.inPreRotate())
-  {
-    vp.rect2D.offset = {0, 0};
-    maxExt = ctx.swapchain.getColorImage()->getMipExtents2D(0);
-    vp.rect2D.extent = maxExt;
-    vp.maxZ = 1.0f;
-    vp.minZ = 0.0f;
-  }
 
   if (!rpRes)
   {
@@ -1079,19 +1064,32 @@ void StateFieldGraphicsFlush::syncTLayoutsToRenderPass(BackGraphicsStateStorage 
     target.ensureStateForNativeRPDepthAttachment();
 }
 
-void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, ExecutionContext &target) const
+void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, ExecutionContext &) const
 {
+  if (Backend::State::asyncCompileState.nonDrawCompile)
+    return;
   VariatedGraphicsPipeline *ptr = state.basePipeline.ptr;
   GraphicsPipelineLayout &layout = *ptr->getLayout();
   VulkanPipelineLayoutHandle layoutHandle = layout.handle;
   auto &regs = layout.registers;
 
-  VulkanDevice &vkDev = target.vkDev;
   const ResourceDummySet &dummyResTbl = Globals::dummyResources.getTable();
   size_t frameIndex = Backend::gpuJob->index;
   PipelineStageStateBase &vsResBinds = Backend::State::exec.getResBinds(STAGE_VS);
 
-  vsResBinds.apply(vkDev, dummyResTbl, frameIndex, regs.vs(), ExtendedShaderStage::VS,
+  VkShaderStageFlags vsPushConstStages = VK_SHADER_STAGE_VERTEX_BIT;
+  if (layout.hasGS())
+    vsPushConstStages |= VK_SHADER_STAGE_GEOMETRY_BIT * (regs.gs().header.pushConstantsCount > 0);
+  if (layout.hasTC())
+    vsPushConstStages |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT * (regs.tc().header.pushConstantsCount > 0);
+  if (layout.hasTE())
+    vsPushConstStages |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT * (regs.te().header.pushConstantsCount > 0);
+
+  vsResBinds.applyPushConstants(regs.vs(), layoutHandle, vsPushConstStages, ExtendedShaderStage::VS);
+  Backend::State::exec.getResBinds(STAGE_PS).applyPushConstants(regs.fs(), layoutHandle, VK_SHADER_STAGE_FRAGMENT_BIT,
+    ExtendedShaderStage::PS);
+
+  vsResBinds.apply(dummyResTbl, frameIndex, regs.vs(), ExtendedShaderStage::VS,
     [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1099,7 +1097,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
         offset_count, offsets));
     });
 
-  Backend::State::exec.getResBinds(STAGE_PS).apply(vkDev, dummyResTbl, frameIndex, regs.fs(), ExtendedShaderStage::PS,
+  Backend::State::exec.getResBinds(STAGE_PS).apply(dummyResTbl, frameIndex, regs.fs(), ExtendedShaderStage::PS,
     [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1109,7 +1107,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (layout.hasGS())
   {
-    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.gs(), ExtendedShaderStage::GS,
+    vsResBinds.applyNoDiff(dummyResTbl, frameIndex, regs.gs(), ExtendedShaderStage::GS,
       [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1120,7 +1118,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (layout.hasTC())
   {
-    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.tc(), ExtendedShaderStage::TC,
+    vsResBinds.applyNoDiff(dummyResTbl, frameIndex, regs.tc(), ExtendedShaderStage::TC,
       [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1131,7 +1129,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (layout.hasTE())
   {
-    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.te(), ExtendedShaderStage::TE,
+    vsResBinds.applyNoDiff(dummyResTbl, frameIndex, regs.te(), ExtendedShaderStage::TE,
       [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,

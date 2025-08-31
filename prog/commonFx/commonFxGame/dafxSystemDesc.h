@@ -2,6 +2,7 @@
 #pragma once
 
 #include <EASTL/vector_map.h>
+#include <math/dag_curveParams.h>
 
 namespace dafx_ex
 {
@@ -12,18 +13,20 @@ enum
   RTAG_DISTORTION = 2,
   RTAG_TRANSMITTANCE = 3,
   RTAG_THERMAL = 4,
-  RTAG_WATER_PROJ = 5,
-  RTAG_VOL_THICKNESS = 6,
-  RTAG_VOL_DEPTH = 7,
-  RTAG_VOL_WBOIT = 8,
-  RTAG_FOM = 9,
-  RTAG_UNDERWATER = 10,
-  RTAG_VOLFOG_INJECTION = 11,
-  RTAG_BVH = 12,
+  RTAG_WATER_PROJ_ADVANCED = 5,
+  RTAG_WATER_PROJ = 6,
+  RTAG_VOL_THICKNESS = 7,
+  RTAG_VOL_DEPTH = 8,
+  RTAG_VOL_WBOIT = 9,
+  RTAG_FOM = 10,
+  RTAG_UNDERWATER = 11,
+  RTAG_VOLFOG_INJECTION = 12,
+  RTAG_BVH = 13,
+  RTAG_XRAY = 14,
 };
 
-static const char *renderTags[] = {"lowres", "highres", "distortion", "transmittance", "thermal", "water_proj", "vol_thickness",
-  "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection", "bvh"};
+static const char *renderTags[] = {"lowres", "highres", "distortion", "transmittance", "thermal", "water_proj_advanced", "water_proj",
+  "vol_thickness", "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection", "bvh", "xray"};
 
 enum TransformType
 {
@@ -38,10 +41,19 @@ struct SystemInfo
   int sflags = 0;
   int maxInstances = 0;
   int playerReserved = 0;
-  float spawnRangeLimit = 0;
   float onePointNumber = 0;
   float onePointRadius = 0;
   TransformType transformType = TRANSFORM_DEFAULT;
+
+  struct DistanceScale
+  {
+    bool enabled = false;
+    float begin_distance = 0;
+    float end_distance = 100;
+    CubicCurveSampler curve = {};
+
+    void apply(TMatrix &tm, float distance);
+  } distanceScale;
 
   enum ValueType
   {
@@ -72,6 +84,7 @@ struct SystemInfo
     VAL_LIGHT_POS,
     VAL_LIGHT_COLOR,
     VAL_LIGHT_RADIUS,
+    VAL_FAKE_BRIGHTNESS_BACKGROUND_POS,
   };
   eastl::vector_map<int, int> valueOffsets;
 };

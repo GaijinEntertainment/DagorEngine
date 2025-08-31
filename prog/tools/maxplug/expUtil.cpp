@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <max.h>
-#include <max.h>
 #include <plugapi.h>
 #include <ilayermanager.h>
 #include <ilayerproperties.h>
@@ -66,6 +65,8 @@ M_STD_STRING strToWide(const char *sz);
 bool is_default_layer(const ILayer &layer);
 
 #include "cfg.h"
+#include "layout.h"
+#include "common.h"
 
 #define ERRMSG_DELAY 3000
 
@@ -91,17 +92,6 @@ static void debug_tm(Matrix3 &tm) {
 }
 */
 
-
-static void spaces_to_underscores(char *string)
-{
-#if 0
-  for (char *cur = string; *cur; cur++)
-    if (*cur == ' ')
-      *cur = '_';
-#endif
-}
-
-
 void scale_matrix(Matrix3 &tm)
 {
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
@@ -111,7 +101,6 @@ void scale_matrix(Matrix3 &tm)
 #endif
   tm.SetTrans(tm.GetTrans() * masterScale);
 }
-
 
 class ExpUtil : public UtilityObj
 {
@@ -130,15 +119,17 @@ public:
 
   IUtil *iu;
   Interface *ip;
-  HWND hPanel, hLog;
+  HWND hExpDag, hExpAnim, hExpOther, hLog;
   ICustEdit *eastart, *eaend;
   ICustEdit *epose, *erote, *escle, *eorte;
   ICustEdit *epose2, *erote2;
-  TCHAR exp_fname[256];
-  TCHAR exp_anim2_fname[256];
-  TCHAR exp_camera_fname[256];
-  TCHAR exp_phys_fname[256];
-  TCHAR exp_instances_fname[256];
+
+  TSTR exp_fname;
+  TSTR exp_anim2_fname;
+  TSTR exp_camera_fname;
+  TSTR exp_phys_fname;
+  TSTR exp_instances_fname;
+
   int expflg;
   ExportMode exportMode;
   float poseps, roteps, scleps, orteps;
@@ -147,14 +138,24 @@ public:
   bool suppressPrompts;
 
   ExpUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
-  void update_ui(HWND);
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
+
+  void update_ui_dag(HWND hw);
+  void update_ui_anim(HWND hw);
+  void update_ui_other(HWND hw);
+  void update_ui();
+  void update_tooltips();
+
   void set_expflg(int flg, int);
 
-  void Init(HWND hWnd);
-  void Destroy(HWND hWnd);
+  void Init(HWND hw);
+  void Destroy(HWND hw);
+
+  void InitAnim(HWND hw);
+  void DestroyAnim(HWND hw);
+
   int input_exp_fname();
   int input_exp_anim2_fname();
   int input_exp_camera_fname();
@@ -169,10 +170,12 @@ public:
   void exportPhysics();
   void export_instances();
   void calcMomj();
-  BOOL dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL export_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL export_other_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   void checkDupesAndSpaces(Tab<INode *> &node_list);
-  void errorMessage(TCHAR *msg);
-  void warningMessage(TCHAR *msg, TCHAR *title = NULL);
+  void errorMessage(const TCHAR *msg);
+  void warningMessage(const TCHAR *msg, const TCHAR *title = NULL);
 
 private:
   void exportObjectsAsDagsInternal(const TCHAR *folder, INode &node);
@@ -187,21 +190,21 @@ static ExpUtil util;
 
 class DagExport : public SceneExport
 {
-  virtual int ExtCount() { return 1; }
-  virtual const MCHAR *Ext(int) { return _T("dag"); }
-  virtual const MCHAR *LongDesc() { return GetString(IDS_DAGIMP_LONG); }
-  virtual const MCHAR *ShortDesc() { return GetString(IDS_DAGIMP_SHORT); }
-  virtual const MCHAR *AuthorName() { return GetString(IDS_AUTHOR); }
-  virtual const MCHAR *CopyrightMessage() { return GetString(IDS_COPYRIGHT); }
-  virtual const MCHAR *OtherMessage1() { return _T(""); }
-  virtual const MCHAR *OtherMessage2() { return _T(""); }
-  virtual unsigned int Version() { return 1; }
+  int ExtCount() override { return 1; }
+  const MCHAR *Ext(int) override { return _T("dag"); }
+  const MCHAR *LongDesc() override { return GetString(IDS_DAGIMP_LONG); }
+  const MCHAR *ShortDesc() override { return GetString(IDS_DAGIMP_SHORT); }
+  const MCHAR *AuthorName() override { return GetString(IDS_AUTHOR); }
+  const MCHAR *CopyrightMessage() override { return GetString(IDS_COPYRIGHT); }
+  const MCHAR *OtherMessage1() override { return _T(""); }
+  const MCHAR *OtherMessage2() override { return _T(""); }
+  unsigned int Version() override { return 1; }
 
-  virtual void ShowAbout(HWND hWnd) {}
+  void ShowAbout(HWND hWnd) override {}
 
-  virtual int DoExport(const MCHAR *name, ExpInterface *ei, Interface *i, BOOL suppressPrompts = FALSE, DWORD options = 0)
+  int DoExport(const MCHAR *name, ExpInterface *ei, Interface *i, BOOL suppressPrompts = FALSE, DWORD options = 0) override
   {
-    _tcscpy(util.exp_fname, name);
+    util.exp_fname = name;
     util.ip = i;
 
     // Not sure what is the correct solution here.
@@ -216,17 +219,20 @@ class DagExport : public SceneExport
 class DagExpCD : public ClassDesc
 {
 public:
-  int IsPublic() { return TRUE; }
-  void *Create(BOOL loading) { return new DagExport; }
-  const TCHAR *ClassName() { return GetString(IDS_DAGEXP); }
+  int IsPublic() override { return TRUE; }
+  void *Create(BOOL loading) override { return new DagExport; }
+  const TCHAR *ClassName() override { return GetString(IDS_DAGEXP); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
+#endif
+  SClass_ID SuperClassID() override { return SCENE_EXPORT_CLASS_ID; }
+  Class_ID ClassID() override { return DAGEXP_CID; }
+  const TCHAR *Category() override { return _T(""); }
 
-  SClass_ID SuperClassID() { return SCENE_EXPORT_CLASS_ID; }
-  Class_ID ClassID() { return DAGEXP_CID; }
-  const TCHAR *Category() { return _T(""); }
-
-  const TCHAR *InternalName() { return _T("DagExporter"); }
-  HINSTANCE HInstance() { return hInstance; }
+  const TCHAR *InternalName() override { return _T("DagExporter"); }
+  HINSTANCE HInstance() override { return hInstance; }
 };
 static DagExpCD dagexpcd;
 
@@ -236,7 +242,7 @@ bool force_export_to_dag(const TCHAR *fname, Interface *ip, TCHAR **textures, in
 {
   util.ip = ip;
   util.expflg = EXP_MESH | EXP_MAT;
-  _tcscpy(util.exp_fname, fname);
+  util.exp_fname = fname;
 #if MAX_RELEASE >= 3000
   SetSaveRequiredFlag();
 #else
@@ -251,7 +257,7 @@ bool force_export_to_dag(const TCHAR *fname, Interface *ip, TCHAR **textures, in
   return true;
 }
 
-void explog(TCHAR *s, ...)
+void explog(const TCHAR *s, ...)
 {
   va_list ap;
   va_start(ap, s);
@@ -259,7 +265,7 @@ void explog(TCHAR *s, ...)
   va_end(ap);
 }
 
-void explogWarning(TCHAR *s, ...)
+void explogWarning(const TCHAR *s, ...)
 {
   va_list ap;
   va_start(ap, s);
@@ -267,7 +273,7 @@ void explogWarning(TCHAR *s, ...)
   va_end(ap);
 }
 
-void explogError(TCHAR *s, ...)
+void explogError(const TCHAR *s, ...)
 {
   va_list ap;
   va_start(ap, s);
@@ -278,16 +284,20 @@ void explogError(TCHAR *s, ...)
 class ExpUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &util; }
-  const TCHAR *ClassName() { return GetString(IDS_EXPUTIL_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &util; }
+  const TCHAR *ClassName() override { return GetString(IDS_EXPUTIL_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return ExpUtil_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return ExpUtil_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
 };
 
 enum
@@ -307,7 +317,7 @@ enum
 IOResult ExpUtilDesc::Save(ISave *io)
 {
   ULONG nw;
-  if (util.exp_fname[0])
+  if (util.exp_fname.Length())
   {
     io->BeginChunk(CH_EXP_FNAME);
 
@@ -343,21 +353,21 @@ IOResult ExpUtilDesc::Save(ISave *io)
     return IO_ERROR;
   io->EndChunk();
 
-  if (util.exp_anim2_fname[0])
+  if (util.exp_anim2_fname.Length())
   {
     io->BeginChunk(CH_EXP_ANIM2_FNAME);
     if (io->WriteCString(util.exp_anim2_fname) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
-  if (util.exp_camera_fname[0])
+  if (util.exp_camera_fname.Length())
   {
     io->BeginChunk(CH_EXP_CAMERA_FNAME);
     if (io->WriteCString(util.exp_camera_fname) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
-  if (util.exp_phys_fname[0])
+  if (util.exp_phys_fname.Length())
   {
     io->BeginChunk(CH_EXP_PHYS_FNAME);
     if (io->WriteCString(util.exp_phys_fname) != IO_OK)
@@ -387,21 +397,22 @@ IOResult ExpUtilDesc::Load(ILoad *io)
       case CH_EXP_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcscpy(util.exp_fname, str);
+        util.exp_fname = str;
+        break;
       case CH_EXP_ANIM2_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcscpy(util.exp_anim2_fname, str);
+        util.exp_anim2_fname = str;
         break;
       case CH_EXP_CAMERA_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcscpy(util.exp_camera_fname, str);
+        util.exp_camera_fname = str;
         break;
       case CH_EXP_PHYS_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcscpy(util.exp_phys_fname, str);
+        util.exp_phys_fname = str;
         break;
       case CH_EXPHIDDEN: util.expflg |= EXP_HID; break;
       case CH_EXPFLG:
@@ -439,7 +450,7 @@ IOResult ExpUtilDesc::Load(ILoad *io)
     }
     io->CloseChunk();
   }
-  util.update_ui(util.hPanel);
+  util.update_ui();
   return IO_OK;
 }
 
@@ -453,7 +464,7 @@ void ExpUtil::set_expflg(int f, int v)
     expflg |= f;
 }
 
-BOOL ExpUtil::dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
+BOOL ExpUtil::export_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
 {
   switch (msg)
   {
@@ -469,53 +480,62 @@ BOOL ExpUtil::dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         case IDC_EXPORT:
           if (exportMode == ExportMode::Standard)
           {
-            if (!input_exp_fname())
-              break;
-            export_dag();
+            if (input_exp_fname())
+              export_dag();
           }
           else if (exportMode == ExportMode::LayersAsDags)
             exportLayersAsDags();
           else if (exportMode == ExportMode::ObjectsAsDags)
             exportObjectsAsDags();
           break;
-        case IDC_EXPORT_ANIM2:
-          if (!input_exp_anim2_fname())
-            break;
-          export_anim_v2();
-          break;
-        case IDC_EXPORT_CAMERA2:
-          if (!input_exp_camera_fname())
-            break;
-          export_camera_v1();
-          break;
-        case IDC_EXPORT_PHYS:
-          if (!input_exp_phys_fname())
-            break;
-          exportPhysics();
-          break;
-        case IDC_CALC_MOMJ: calcMomj(); break;
-        case IDC_CALC_MOMJ_ON_EXPORT: set_expflg(EXP_DONT_CALC_MOMJ, !IsDlgButtonChecked(hw, id)); break;
+
         case IDC_EXPHIDDEN: set_expflg(EXP_HID, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPSEL: set_expflg(EXP_SEL, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPMESH: set_expflg(EXP_MESH, IsDlgButtonChecked(hw, id)); break;
-        case IDC_EXP_NO_VNORM: set_expflg(EXP_NO_VNORM, IsDlgButtonChecked(hw, id)); break;
+        case IDC_EXP_VNORM: set_expflg(EXP_NO_VNORM, !IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPLIGHT: set_expflg(EXP_LT, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPCAM: set_expflg(EXP_CAM, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPHELPER: set_expflg(EXP_HLP, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPSPLINE: set_expflg(EXP_SPLINE, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPMATER: set_expflg(EXP_MAT, IsDlgButtonChecked(hw, id)); break;
         case IDC_EXPMATEROPT: set_expflg(EXP_MATOPT, IsDlgButtonChecked(hw, id)); break;
-        case IDC_EXPANIM: set_expflg(EXP_ANI, IsDlgButtonChecked(hw, id)); break;
+
+        case IDC_EXPORT_MODE:
+          if (HIWORD(wpar) == CBN_SELENDOK)
+          {
+            exportMode = (ExportMode)ComboBoxHelper::GetSelectedItemData((HWND)lpar, (LPARAM)ExportMode::Standard);
+            update_tooltips();
+          }
+          break;
+      }
+    }
+    break;
+    default: return FALSE;
+  }
+  return TRUE;
+}
+
+BOOL ExpUtil::export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG: InitAnim(hw); break;
+
+    case WM_DESTROY: DestroyAnim(hw); break;
+
+    case WM_COMMAND:
+    {
+      WORD id = LOWORD(wpar);
+      switch (id)
+      {
         case IDC_ARANGE: set_expflg(EXP_ARNG, IsDlgButtonChecked(hw, id)); break;
-        case IDC_EXPLTARG: set_expflg(EXP_LTARG, IsDlgButtonChecked(hw, id)); break;
-        case IDC_EXPCTARG: set_expflg(EXP_CTARG, IsDlgButtonChecked(hw, id)); break;
         case IDC_USEKEYS: set_expflg(EXP_UKEYS, IsDlgButtonChecked(hw, id)); break;
         case IDC_USENTKEYS: set_expflg(EXP_UNTKEYS, IsDlgButtonChecked(hw, id)); break;
         case IDC_DONTCHKKEYS: set_expflg(EXP_DONTCHKKEYS, IsDlgButtonChecked(hw, id)); break;
-        case IDC_DONT_REDUCE_POS: set_expflg(EXP_DONT_REDUCE_POS, IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_POS: set_expflg(EXP_DONT_REDUCE_POS, !IsDlgButtonChecked(hw, id)); break;
         case IDC_LOOP_ANIM: set_expflg(EXP_LOOPED_ANIM, IsDlgButtonChecked(hw, id)); break;
-        case IDC_DONT_REDUCE_ROT: set_expflg(EXP_DONT_REDUCE_ROT, IsDlgButtonChecked(hw, id)); break;
-        case IDC_DONT_REDUCE_SCL: set_expflg(EXP_DONT_REDUCE_SCL, IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_ROT: set_expflg(EXP_DONT_REDUCE_ROT, !IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_SCL: set_expflg(EXP_DONT_REDUCE_SCL, !IsDlgButtonChecked(hw, id)); break;
         case IDC_ASTART:
         {
           TSTR s;
@@ -538,31 +558,13 @@ BOOL ExpUtil::dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         case IDC_ORTEPS: orteps = DegToRad(eorte->GetFloat()); break;
         case IDC_ORIGIN_LINVEL_EPS: poseps2 = epose2->GetFloat(); break;
         case IDC_ORIGIN_ANGVEL_EPS: roteps2 = DegToRad(erote2->GetFloat()); break;
-        case IDC_SET_DAGORPATH:
-        {
-          TCHAR dir[256];
 
-          _tcscpy(dir, strToWide(dagor_path).c_str());
-
-          ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
-          if (dir[0])
-          {
-            set_dagor_path(wideToStr(dir).c_str());
-            SetDlgItemText(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
-          }
-        }
-        break;
-
-        case IDC_EXPORT_INSTANCES:
-          if (!input_exp_instances_fname())
-            break;
-          export_instances();
+        case IDC_EXPORT_ANIM2:
+          if (input_exp_anim2_fname())
+            export_anim_v2();
           break;
 
-        case IDC_EXPORT_MODE:
-          if (HIWORD(wpar) == CBN_SELENDOK)
-            exportMode = (ExportMode)ComboBoxHelper::GetSelectedItemData((HWND)lpar, (LPARAM)ExportMode::Standard);
-          break;
+        default: break;
       }
     }
     break;
@@ -571,9 +573,106 @@ BOOL ExpUtil::dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
   return TRUE;
 }
 
-static INT_PTR CALLBACK ExpUtilDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+
+BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
 {
-  return util.dlg_proc(hw, msg, wParam, lParam);
+  static TCHAR path[MAX_PATH];
+  static bool prevent_enchange = false;
+
+  switch (msg)
+  {
+    case WM_INITDIALOG: update_ui_other(hw); break;
+
+    case WM_COMMAND:
+    {
+      WORD id = LOWORD(wpar);
+      switch (id)
+      {
+        case IDC_CALC_MOMJ: calcMomj(); break;
+        case IDC_CALC_MOMJ_ON_EXPORT: set_expflg(EXP_DONT_CALC_MOMJ, !IsDlgButtonChecked(hw, id)); break;
+
+        case IDC_EXPLTARG: set_expflg(EXP_LTARG, IsDlgButtonChecked(hw, id)); break;
+        case IDC_EXPCTARG: set_expflg(EXP_CTARG, IsDlgButtonChecked(hw, id)); break;
+
+        case IDC_SET_DAGORPATH:
+        {
+          static TCHAR dir[MAX_PATH];
+
+          _tcscpy(dir, strToWide(dagor_path).c_str());
+
+          ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
+          if (dir[0])
+          {
+            set_dagor_path(wideToStr(dir).data());
+            update_path_edit_control(hw, IDC_DAGORPATH, strToWide(dagor_path).data());
+          }
+        }
+        break;
+
+        case IDC_DAGORPATH:
+          switch (HIWORD(wpar))
+          {
+            case EN_SETFOCUS: DisableAccelerators(); break;
+            case EN_KILLFOCUS:
+              EnableAccelerators();
+              GetDlgItemText(hw, IDC_DAGORPATH, path, MAX_PATH);
+              set_dagor_path(wideToStr(path).data());
+              break;
+
+            case EN_CHANGE:
+              if (!prevent_enchange)
+              {
+                GetDlgItemText(hw, IDC_DAGORPATH, path, MAX_PATH);
+
+                TSTR new_path = drop_quotation_marks(path);
+                if (path != new_path)
+                {
+                  Autotoggle eguard(prevent_enchange);
+                  update_path_edit_control(hw, IDC_DAGORPATH, new_path);
+                }
+              }
+              break;
+          }
+          break;
+
+        case IDC_EXPORT_CAMERA2:
+          if (input_exp_camera_fname())
+            export_camera_v1();
+          break;
+
+        case IDC_EXPORT_PHYS:
+          if (input_exp_phys_fname())
+            exportPhysics();
+          break;
+
+        case IDC_EXPORT_INSTANCES:
+          if (input_exp_instances_fname())
+            export_instances();
+          break;
+
+        default: break;
+      }
+    }
+    break;
+
+    default: return FALSE;
+  }
+  return TRUE;
+}
+
+static INT_PTR CALLBACK ExpDagDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  return util.export_dlg_proc(hw, msg, wParam, lParam);
+}
+
+static INT_PTR CALLBACK ExportAnimDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  return util.export_anim_dlg_proc(hw, msg, wParam, lParam);
+}
+
+static INT_PTR CALLBACK ExportOtherDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  return util.export_other_dlg_proc(hw, msg, wParam, lParam);
 }
 
 static INT_PTR CALLBACK LogDlgProc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
@@ -597,11 +696,8 @@ ExpUtil::ExpUtil()
 {
   iu = NULL;
   ip = NULL;
-  hPanel = hLog = NULL;
-  exp_fname[0] = 0;
-  exp_anim2_fname[0] = 0;
-  exp_camera_fname[0] = 0;
-  exp_phys_fname[0] = 0;
+  hExpDag = hExpAnim = hExpOther = hLog = NULL;
+
   expflg = EXP_DEFAULT;
   exportMode = ExportMode::Standard;
   astart = GetAnimStart();
@@ -623,55 +719,77 @@ void ExpUtil::BeginEditParams(Interface *ip, IUtil *iu)
 {
   this->iu = iu;
   this->ip = ip;
-  hPanel = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_EXPUTIL), ExpUtilDlgProc, GetString(IDS_EXPUTIL_ROLL), 0);
-  hLog = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_LOGROLL), LogDlgProc, GetString(IDS_EXPLOG_ROLL), 0); //,APPENDROLL_CLOSED);
+
+  hExpDag = add_rollup_page(ip, IDD_EXPUTIL, ExpDagDlgProc, _T("DAG"), 0);
+  hExpAnim = add_rollup_page(ip, IDD_EXPANIM, ExportAnimDlgProc, _T("Animation"), 0);
+  hExpOther = add_rollup_page(ip, IDD_EXPOTHER, ExportOtherDlgProc, _T("Other"), 0, APPENDROLL_CLOSED);
+  hLog = add_rollup_page(ip, IDD_LOGROLL, LogDlgProc, GetString(IDS_EXPLOG_ROLL), 0, APPENDROLL_CLOSED);
 }
 
 void ExpUtil::EndEditParams(Interface *ip, IUtil *iu)
 {
   this->iu = NULL;
   this->ip = NULL;
-  if (hPanel)
-  {
-    ip->DeleteRollupPage(hPanel);
-    hPanel = NULL;
-  }
-  if (hLog)
-  {
-    ip->DeleteRollupPage(hLog);
-    hLog = NULL;
-  }
+
+  delete_rollup_page(ip, &hExpDag);
+  delete_rollup_page(ip, &hExpAnim);
+  delete_rollup_page(ip, &hExpOther);
+  delete_rollup_page(ip, &hLog);
 }
 
-void ExpUtil::update_ui(HWND hw)
+void ExpUtil::update_tooltips()
+{
+  HWND expmode = GetDlgItem(hExpDag, IDC_EXPORT_MODE);
+  HWND exphidden = GetDlgItem(hExpDag, IDC_EXPHIDDEN);
+  HWND expsel = GetDlgItem(hExpDag, IDC_EXPSEL);
+
+  if (exportMode == ExportMode::LayersAsDags)
+  {
+    tooltipExtender.SetToolTip(expmode, _T("Layers are exported as separate dag files."));
+    tooltipExtender.SetToolTip(exphidden,
+      _T("Export hidden layers inside layers\n(if those layers should be exported based on other parameters)."));
+    tooltipExtender.SetToolTip(expsel, _T("Process only current layer and children of it\n(The default layer is only exported if ")
+                                       _T("it's the current layer and \"sel\" is active.)"));
+    return;
+  }
+
+  if (exportMode == ExportMode::ObjectsAsDags)
+  {
+    tooltipExtender.SetToolTip(expmode, _T("Objects are exported as separate dag files."));
+    tooltipExtender.SetToolTip(exphidden, _T("Export hidden objects"));
+    tooltipExtender.SetToolTip(expsel, _T("Export only selected objects"));
+    return;
+  }
+
+  tooltipExtender.SetToolTip(expmode, _T("Export one file."));
+  tooltipExtender.SetToolTip(exphidden, _T("Export hidden objects"));
+  tooltipExtender.SetToolTip(expsel, _T("Export only selected objects"));
+}
+
+void ExpUtil::update_ui_dag(HWND hw)
 {
   if (!hw)
     return;
-  CheckDlgButton(hw, IDC_CALC_MOMJ_ON_EXPORT, !(expflg & EXP_DONT_CALC_MOMJ));
+
+  HWND exportModeComboBox = GetDlgItem(hw, IDC_EXPORT_MODE);
+  ComboBox_SetCurSel(exportModeComboBox, ComboBoxHelper::GetItemIndexByData(exportModeComboBox, (LPARAM)exportMode));
+
   CheckDlgButton(hw, IDC_EXPHIDDEN, expflg & EXP_HID);
   CheckDlgButton(hw, IDC_EXPSEL, expflg & EXP_SEL);
   CheckDlgButton(hw, IDC_EXPMESH, expflg & EXP_MESH);
-  CheckDlgButton(hw, IDC_EXP_NO_VNORM, expflg & EXP_NO_VNORM);
+  CheckDlgButton(hw, IDC_EXP_VNORM, !(expflg & EXP_NO_VNORM));
   CheckDlgButton(hw, IDC_EXPLIGHT, expflg & EXP_LT);
   CheckDlgButton(hw, IDC_EXPCAM, expflg & EXP_CAM);
   CheckDlgButton(hw, IDC_EXPHELPER, expflg & EXP_HLP);
   CheckDlgButton(hw, IDC_EXPSPLINE, expflg & EXP_SPLINE);
   CheckDlgButton(hw, IDC_EXPMATER, expflg & EXP_MAT);
   CheckDlgButton(hw, IDC_EXPMATEROPT, expflg & EXP_MATOPT);
-  CheckDlgButton(hw, IDC_EXPANIM, expflg & EXP_ANI);
-  CheckDlgButton(hw, IDC_ARANGE, expflg & EXP_ARNG);
-  CheckDlgButton(hw, IDC_EXPLTARG, expflg & EXP_LTARG);
-  CheckDlgButton(hw, IDC_EXPCTARG, expflg & EXP_CTARG);
-  CheckDlgButton(hw, IDC_USEKEYS, expflg & EXP_UKEYS);
-  CheckDlgButton(hw, IDC_USENTKEYS, expflg & EXP_UNTKEYS);
-  CheckDlgButton(hw, IDC_DONTCHKKEYS, expflg & EXP_DONTCHKKEYS);
-  CheckDlgButton(hw, IDC_DONT_REDUCE_POS, expflg & EXP_DONT_REDUCE_POS);
-  CheckDlgButton(hw, IDC_DONT_REDUCE_ROT, expflg & EXP_DONT_REDUCE_ROT);
-  CheckDlgButton(hw, IDC_DONT_REDUCE_SCL, expflg & EXP_DONT_REDUCE_SCL);
-  CheckDlgButton(hw, IDC_LOOP_ANIM, expflg & EXP_LOOPED_ANIM);
+}
 
-  HWND exportModeComboBox = GetDlgItem(hw, IDC_EXPORT_MODE);
-  ComboBox_SetCurSel(exportModeComboBox, ComboBoxHelper::GetItemIndexByData(exportModeComboBox, (LPARAM)exportMode));
+void ExpUtil::update_ui_anim(HWND hw)
+{
+  if (!hw)
+    return;
 
   TSTR s;
   TimeToString(astart, s);
@@ -684,7 +802,33 @@ void ExpUtil::update_ui(HWND hw)
   eorte->SetText(RadToDeg(orteps), 2);
   epose2->SetText(poseps2, 3);
   erote2->SetText(RadToDeg(roteps2), 2);
-  SetDlgItemText(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
+
+  CheckDlgButton(hw, IDC_ARANGE, expflg & EXP_ARNG);
+  CheckDlgButton(hw, IDC_USEKEYS, expflg & EXP_UKEYS);
+  CheckDlgButton(hw, IDC_USENTKEYS, expflg & EXP_UNTKEYS);
+  CheckDlgButton(hw, IDC_DONTCHKKEYS, expflg & EXP_DONTCHKKEYS);
+  CheckDlgButton(hw, IDC_REDUCE_POS, !(expflg & EXP_DONT_REDUCE_POS));
+  CheckDlgButton(hw, IDC_REDUCE_ROT, !(expflg & EXP_DONT_REDUCE_ROT));
+  CheckDlgButton(hw, IDC_REDUCE_SCL, !(expflg & EXP_DONT_REDUCE_SCL));
+  CheckDlgButton(hw, IDC_LOOP_ANIM, expflg & EXP_LOOPED_ANIM);
+}
+
+void ExpUtil::update_ui_other(HWND hw)
+{
+  if (!hw)
+    return;
+
+  CheckDlgButton(hw, IDC_CALC_MOMJ_ON_EXPORT, !(expflg & EXP_DONT_CALC_MOMJ));
+  CheckDlgButton(hw, IDC_EXPLTARG, expflg & EXP_LTARG);
+  CheckDlgButton(hw, IDC_EXPCTARG, expflg & EXP_CTARG);
+  update_path_edit_control(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
+}
+
+void ExpUtil::update_ui()
+{
+  update_ui_dag(hExpDag);
+  update_ui_anim(hExpAnim);
+  update_ui_other(hExpOther);
 }
 
 /*
@@ -696,281 +840,92 @@ void ExpUtil::update_vars() {
 
 void ExpUtil::Init(HWND hw)
 {
-#define geted(e, idc)                    \
-  e = GetICustEdit(GetDlgItem(hw, idc)); \
-  assert(e)
-  geted(eastart, IDC_ASTART);
-  geted(eaend, IDC_AEND);
-  geted(epose, IDC_POSEPS);
-  geted(erote, IDC_ROTEPS);
-  geted(escle, IDC_SCLEPS);
-  geted(eorte, IDC_ORTEPS);
-  geted(epose2, IDC_ORIGIN_LINVEL_EPS);
-  geted(erote2, IDC_ORIGIN_ANGVEL_EPS);
-#undef geted
+  hExpDag = hw;
 
   HWND exportModeComboBox = GetDlgItem(hw, IDC_EXPORT_MODE);
   ComboBoxHelper::AddItemWithData(exportModeComboBox, _T("Standard"), (LPARAM)ExportMode::Standard);
   ComboBoxHelper::AddItemWithData(exportModeComboBox, _T("Objects as dags"), (LPARAM)ExportMode::ObjectsAsDags);
   ComboBoxHelper::AddItemWithData(exportModeComboBox, _T("Layers as dags"), (LPARAM)ExportMode::LayersAsDags);
+  update_ui_dag(hw);
 
-  update_ui(hw);
-
-  tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPORT_MODE),
-    TSTR(_T("In \"Objects as dags\" export mode objects are exported as separate dag files, in \"Layers as dags\" mode layers are ")
-         _T("exported separately.")));
-  tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPHIDDEN),
-    TSTR(_T("When active, export hidden objects as well, otherwise export only visible ones.\n\nIN LAYERS AS DAGS EXPORT MODE:\nWhen ")
-         _T("active, export hidden layers and hidden objects inside layers (if those layers/objects should be exported based on ")
-         _T("other parameters). Otherwise, exclude hidden layers and objects from the export.")));
-  tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPSEL),
-    TSTR(_T("When active, export only selected objects. Otherwise export all.\n\nIN LAYERS AS DAGS EXPORT MODE:\nWhen active, ")
-         _T("process only current layer and children of it. Otherwise process each layer. (The default layer is only exported if ")
-         _T("it's the current layer and \"sel\" is active.)")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPMESH), TSTR(_T("Export mesh")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPLIGHT), TSTR(_T("Export light")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPCAM), TSTR(_T("Export camera")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPHELPER), TSTR(_T("Export helper")));
-  tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXP_NO_VNORM), TSTR(_T("Do not export vertex normals")));
+  tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXP_VNORM), TSTR(_T("Export vertex normals")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPMATER), TSTR(_T("Export materials")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPMATEROPT), TSTR(_T("Enable material optimization")));
   tooltipExtender.SetToolTip(GetDlgItem(hw, IDC_EXPSPLINE), TSTR(_T("Export splines")));
+  update_tooltips();
+
   SendMessage(tooltipExtender.GetToolTipHWND(), TTM_SETDELAYTIME, TTDT_AUTOPOP, 32000);
 }
 
-void ExpUtil::Destroy(HWND hw)
+void ExpUtil::Destroy(HWND hw) {}
+
+void ExpUtil::InitAnim(HWND hw)
 {
-#define reled(e) ReleaseICustEdit(e)
-  reled(eastart);
-  reled(eaend);
-  reled(epose);
-  reled(erote);
-  reled(escle);
-  reled(eorte);
-  reled(epose2);
-  reled(erote2);
-#undef reled
+  eastart = GetICustEdit(GetDlgItem(hw, IDC_ASTART));
+  eaend = GetICustEdit(GetDlgItem(hw, IDC_AEND));
+  epose = GetICustEdit(GetDlgItem(hw, IDC_POSEPS));
+  erote = GetICustEdit(GetDlgItem(hw, IDC_ROTEPS));
+  escle = GetICustEdit(GetDlgItem(hw, IDC_SCLEPS));
+  eorte = GetICustEdit(GetDlgItem(hw, IDC_ORTEPS));
+  epose2 = GetICustEdit(GetDlgItem(hw, IDC_ORIGIN_LINVEL_EPS));
+  erote2 = GetICustEdit(GetDlgItem(hw, IDC_ORIGIN_ANGVEL_EPS));
+  update_ui_anim(hw);
 }
 
+void ExpUtil::DestroyAnim(HWND hw)
+{
+  ReleaseICustEdit(eastart);
+  ReleaseICustEdit(eaend);
+  ReleaseICustEdit(epose);
+  ReleaseICustEdit(erote);
+  ReleaseICustEdit(escle);
+  ReleaseICustEdit(eorte);
+  ReleaseICustEdit(epose2);
+  ReleaseICustEdit(erote2);
+}
 
 int ExpUtil::input_exp_fname()
 {
-  static TCHAR fname[256];
-  _tcscpy(fname, exp_fname);
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(GetString(IDS_SCENE_FILES));
-  fl.Append(_T ("*.dag"));
-  TSTR title = GetString(IDS_SAVE_SCENE_TITLE);
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T ("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T ("dag");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(exp_fname, fname) != 0)
-    {
-      _tcscpy(exp_fname, fname);
-#if MAX_RELEASE >= 3000
-      SetSaveRequiredFlag();
-#else
-      SetSaveRequired();
-#endif
-    }
-    return 1;
-  }
-  return 0;
+  fl.Append(_T("*.dag"));
+  return get_save_filename(hExpDag, GetString(IDS_SAVE_SCENE_TITLE), fl, _T("dag"), exp_fname);
 }
+
 int ExpUtil::input_exp_anim2_fname()
 {
-  static TCHAR fname[256];
-  _tcscpy(fname, exp_anim2_fname);
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(GetString(IDS_ANIM2_FILES));
   fl.Append(_T ("*.a2d"));
-  TSTR title = GetString(IDS_SAVE_ANIM2_TITLE2);
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T ("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T ("a2d");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(exp_anim2_fname, fname) != 0)
-    {
-      _tcscpy(exp_anim2_fname, fname);
-      SetSaveRequiredFlag();
-    }
-    return 1;
-  }
-  return 0;
+  return get_save_filename(hExpAnim, GetString(IDS_SAVE_ANIM2_TITLE2), fl, _T("a2d"), exp_anim2_fname);
 }
-
 
 int ExpUtil::input_exp_camera_fname()
 {
-  static TCHAR fname[260];
-
-  _tcsncpy(fname, exp_camera_fname, 259);
-  fname[259] = 0;
-
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(GetString(IDS_CAMERA_FILES));
   fl.Append(_T ("*.cam"));
-  TSTR title = GetString(IDS_SAVE_CAMERA_TITLE);
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T ("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T ("cam");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(exp_camera_fname, fname) != 0)
-    {
-      _tcscpy(exp_camera_fname, fname);
-      SetSaveRequiredFlag();
-    }
-    return 1;
-  }
-  return 0;
+  return get_save_filename(hExpOther, GetString(IDS_SAVE_CAMERA_TITLE), fl, _T("cam"), exp_camera_fname);
 }
-
 
 int ExpUtil::input_exp_phys_fname()
 {
-  static TCHAR fname[260];
-
-  _tcsncpy(fname, exp_phys_fname, 259);
-  fname[259] = 0;
-
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(GetString(IDS_PHYS_FILES));
   fl.Append(_T ("*.dphys"));
-  TSTR title = GetString(IDS_SAVE_PHYS_TITLE);
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T ("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T ("cam");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(exp_phys_fname, fname) != 0)
-    {
-      _tcscpy(exp_phys_fname, fname);
-      SetSaveRequiredFlag();
-    }
-    return 1;
-  }
-  return 0;
+  return get_save_filename(hExpOther, GetString(IDS_SAVE_PHYS_TITLE), fl, _T("dphys"), exp_phys_fname);
 }
-
 
 int ExpUtil::input_exp_instances_fname()
 {
-  static TCHAR fname[260];
-
-  _tcsncpy(fname, exp_instances_fname, 259);
-  fname[259] = 0;
-
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(_T("Instances placement (*.blk)"));
   fl.Append(_T("*.blk"));
-  TSTR title = _T("Save instances placement...");
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T ("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T ("cam");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(exp_instances_fname, fname) != 0)
-    {
-      _tcscpy(exp_instances_fname, fname);
-      SetSaveRequiredFlag();
-    }
-    return 1;
-  }
-  return 0;
+  return get_save_filename(hExpOther, _T("Save instances placement..."), fl, _T("blk"), exp_instances_fname);
 }
 
 
@@ -1056,13 +1011,13 @@ public:
     origin = orig;
     nonort = 0;
   }
-  const TCHAR *get_name()
+  const TCHAR *get_name() override
   {
     if (!node)
       return _T("<NULL>");
     return node->GetName();
   }
-  void interp_tm(TimeValue t, Matrix3 &m)
+  void interp_tm(TimeValue t, Matrix3 &m) override
   {
     Matrix3 ntm = get_scaled_stretch_node_tm(node, t);
     adjwtm(ntm);
@@ -1084,7 +1039,7 @@ public:
     else
       m = ntm;
   }
-  void non_orthog_tm(TimeValue t) { nonort = 1; }
+  void non_orthog_tm(TimeValue t) override { nonort = 1; }
 };
 
 static int save_pos_anim(FILE *h, Tab<PosKey> &k)
@@ -1273,7 +1228,7 @@ public:
     }
   }
 
-  ~ExportENCB()
+  ~ExportENCB() override
   {
     delete cfg;
     int i;
@@ -1551,7 +1506,7 @@ public:
       ExpMat e;
       e.m.flags = DAG_MF_16TEX;
       e.mtl = mtl;
-      if (m->get_2sided())
+      if (m->get_2sided() == IDagorMat::Sides::DoubleSided)
         e.m.flags |= DAG_MF_2SIDED;
       e.m.amb = m->get_amb();
       e.m.diff = m->get_diff();
@@ -1647,7 +1602,7 @@ public:
     return NULL;
   }
 
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -1754,10 +1709,6 @@ public:
             return ECB_CONT;
       }
 
-      /*      if ( util.expflg & EXP_ANI ) {
-              Tab<TimeValue> gk;
-              get_notetrack (n, gk);
-            }*/
       if (n->Renderable() && !n->GetMtl() && !n->IsGroupHead())
       {
         explogWarning(_T( "'%s' has no material\r\n"), n->GetName());
@@ -1918,17 +1869,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       if (nm)
       {
         char *nameCopy = strdup(wideToStr(nm).c_str());
-
-        if (_tcschr(nm, ' '))
-        {
-          spaces_to_underscores(nameCopy);
-          wr(nameCopy, strlen(nameCopy));
-        }
-        else
-        {
-          wr(nameCopy, strlen(nameCopy));
-        }
-
+        wr(nameCopy, strlen(nameCopy));
         free(nameCopy);
       }
       eblk;
@@ -2041,24 +1982,10 @@ bool wr_hlp( const void * p, int l, FILE * h )
       Tab<PosKey> pos, scl;
       Tab<RotKey> rot;
       ushort ntid = 0xFFFF;
-      if (/*util.expflg & EXP_ANI*/ false)
-      {
-        Tab<TimeValue> gkeys;
-        ntid = get_notetrack(n, gkeys);
-        Control *ctrl = n->GetTMController();
-        // DebugPrint("getting anim for %s\n",(char*)n->GetName());
-        if (!get_tm_anim(pos, rot, scl, gkeys, util.expflg & EXP_ARNG ? Interval(util.astart, util.aend) : FOREVER, ctrl, cb,
-              GetTicksPerFrame() / 2, util.poseps, cosf(util.roteps), util.scleps, cosf(HALFPI - util.orteps),
-              util.expflg & EXP_UKEYS ? 1 : 0, util.expflg & EXP_UNTKEYS ? 1 : 0, util.expflg & EXP_DONTCHKKEYS ? 1 : 0))
-          return 0;
-      }
-      else
-      {
-        pos.SetCount(1);
-        rot.SetCount(1);
-        scl.SetCount(1);
-        pos[0].t = rot[0].t = scl[0].t = time;
-      }
+      pos.SetCount(1);
+      rot.SetCount(1);
+      scl.SetCount(1);
+      pos[0].t = rot[0].t = scl[0].t = time;
       if (pos.Count() > max_pkeys)
       {
         max_pkeys = pos.Count();
@@ -2322,11 +2249,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
           if (tri != os.obj)
             delete tri;
           Matrix3 otm;
-          int i, notSmoothed = 0;
+          int notSmoothed = 0;
           ;
           mesh_face_sel(m).ClearAll();
 
-          for (i = 0; i < m.numFaces; ++i)
+          for (int i = 0; i < m.numFaces; ++i)
           {
             if (!m.faces[i].smGroup)
             {
@@ -2355,7 +2282,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
           otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
           //          if(!otm.Parity()) {int a=v1;v1=v2;v2=a;}
           numvert = m.numVerts;
-          for (i = 0; i < m.numVerts; ++i)
+          for (int i = 0; i < m.numVerts; ++i)
             m.verts[i] = (m.verts[i] * masterScale) * otm;
 
           if (m.numFaces == 0 && n->Renderable())
@@ -2366,7 +2293,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
 #if MAX_RELEASE >= 3000
           int maxntv = 0;
-          for (i = 0; i < MAX_MESHMAPS; ++i)
+          for (int i = 0; i < MAX_MESHMAPS; ++i)
             if (m.mapSupport(i))
               if (m.mapFaces(i))
               {
@@ -2397,11 +2324,10 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
             bblk(DAG_OBJ_BIGMESH);
             wr(&m.numVerts, 4);
-            int i;
-            for (i = 0; i < m.numVerts; ++i)
+            for (int i = 0; i < m.numVerts; ++i)
               wr(&m.verts[i], 12);
             wr(&m.numFaces, 4);
-            for (i = 0; i < m.numFaces; ++i)
+            for (int i = 0; i < m.numFaces; ++i)
             {
               DagBigFace f;
               f.v[0] = m.faces[i].v[0];
@@ -2456,9 +2382,9 @@ bool wr_hlp( const void * p, int l, FILE * h )
               wr(ch == 0 ? "\3" : "\2", 1);
               wr(&ch, 1);
               Point3 *tv = m.mapVerts(ch);
-              for (i = 0; i < ntv; ++i)
+              for (int i = 0; i < ntv; ++i)
                 wr(&tv[i], ch == 0 ? 12 : 8);
-              for (i = 0; i < m.numFaces; ++i)
+              for (int i = 0; i < m.numFaces; ++i)
               {
                 DagBigTFace f;
                 f.t[0] = tf[i].t[0];
@@ -2632,7 +2558,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
           }
 
           bblk(DAG_OBJ_FACEFLG);
-          for (i = 0; i < m.numFaces; ++i)
+          for (int i = 0; i < m.numFaces; ++i)
           {
             Face &f = m.faces[i];
             char ef = 0;
@@ -2929,8 +2855,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
               {
                 bblk(DAG_OBJ_BONES);
                 wr(&numb, 2);
-                int i;
-                for (i = 0; i < numb; ++i)
+                for (int i = 0; i < numb; ++i)
                 {
                   DagBone b;
                   INode *bn = skin->GetBone(i);
@@ -2968,11 +2893,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 Tab<float> wt;
                 wt.SetCount(numvert * numb);
                 memset(&wt[0], 0, wt.Count() * sizeof(float));
-                for (i = 0; i < numvert; ++i)
+                for (int i = 0; i < numvert; ++i)
                 {
-                  int nb = ctx->GetNumAssignedBones(i), j;
+                  int nb = ctx->GetNumAssignedBones(i);
                   float sum = 0;
-                  for (j = 0; j < nb; ++j)
+                  for (int j = 0; j < nb; ++j)
                   {
                     int b = ctx->GetAssignedBone(i, j);
                     assert(b >= 0 && b < numb);
@@ -3161,7 +3086,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       wr(&num, 2);
       for (int i = 0; i < num; ++i)
       {
-        char name[256];
+        static char name[256];
         _snprintf(name, 255, wideToStr(tex[i]).c_str());
         size_t l = strlen(name);
 
@@ -3209,8 +3134,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
     }
 
     // save materials
-    int i;
-    for (i = 0; i < mat.Count(); ++i)
+    for (int i = 0; i < mat.Count(); ++i)
     {
       if (matIDtoMatIdx[i] < 0)
         continue;
@@ -3273,7 +3197,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
     }
 
     // save note tracks
-    for (i = 0; i < ntrack.Count(); ++i)
+    for (int i = 0; i < ntrack.Count(); ++i)
     {
       bblk(DAG_NOTETRACK);
       int num = ntrack[i]->kl.Count();
@@ -3291,14 +3215,14 @@ bool wr_hlp( const void * p, int l, FILE * h )
     {
       Tab<ExpNode *> en;
       en.SetCount(node.Count());
-      for (i = 0; i < en.Count(); ++i)
+      for (int i = 0; i < en.Count(); ++i)
       {
         en[i] = new ExpNode(i);
         assert(en[i]);
       }
       ExpNode *root = new ExpNode(-1);
       assert(root);
-      for (i = 0; i < node.Count(); ++i)
+      for (int i = 0; i < node.Count(); ++i)
       {
         uint pid = getnodeid(node[i]->GetParentNode());
         if (pid < node.Count())
@@ -3322,7 +3246,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       if (root->child.Count())
       {
         bblk(DAG_NODE_CHILDREN);
-        for (i = 0; i < root->child.Count(); ++i)
+        for (int i = 0; i < root->child.Count(); ++i)
           if (!save_node(root->child[i], h))
             return 0;
         eblk;
@@ -3703,7 +3627,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       make_postrack(point3AnimKey, scl[i]->key.Addr(0), scl[i]->key.Count());
       fwrite(point3AnimKey, sizeof(AnimKeyPoint3), scl[i]->key.Count(), fp);
     }
-    delete point3AnimKey;
+    delete[] point3AnimKey;
 
     //  write rot keys
     AnimKeyQuat *quatAnimKey = new AnimKeyQuat[maxSizeQuatAnimKey];
@@ -3715,7 +3639,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       make_rottrack(quatAnimKey, rot[i]->key.Addr(0), rot[i]->key.Count());
       fwrite(quatAnimKey, sizeof(AnimKeyQuat), rot[i]->key.Count(), fp);
     }
-    delete quatAnimKey;
+    delete[] quatAnimKey;
 
     // write note track pool
     if (noteTrackKeys.Count())
@@ -3812,6 +3736,8 @@ void ExportENCB::getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &
       for (int k = 0; k < noteTrack->keys.Count(); ++k)
       {
         NoteKey *key = noteTrack->keys[k];
+        if ((util.expflg & EXP_ARNG) && (key->time < util.astart || key->time > util.aend))
+          continue;
         AnimKeyLabel label;
         label.name = strdup(wideToStr(key->note).c_str());
         label.time = key->time;
@@ -3855,7 +3781,6 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
       nameIdx[i] = namePoolSize;
       char *poolName = namesPool + namePoolSize;
       strcpy(poolName, name.c_str());
-      spaces_to_underscores(poolName);
       namePoolSize += len + 1;
     }
   }
@@ -3869,7 +3794,6 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
       noteTrackKeys[i].idx = namePoolSize;
       char *poolName = namesPool + namePoolSize;
       strcpy(poolName, name);
-      spaces_to_underscores(poolName);
       namePoolSize += len + 1;
     }
     free(name);
@@ -3884,7 +3808,6 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
       additionalIds[i] = namePoolSize;
       char *poolName = namesPool + namePoolSize;
       strcpy(poolName, name);
-      spaces_to_underscores(poolName);
       namePoolSize += len + 1;
     }
   }
@@ -3906,8 +3829,7 @@ bool ExportENCB::getAnimations(Tab<INode *> &node, Tab<bool> &nodeExp, Tab<INode
 
   ExpNode *root = new ExpNode(-1);
   assert(root);
-  int i;
-  for (i = 0; i < node.Count(); ++i)
+  for (int i = 0; i < node.Count(); ++i)
   {
     uint pid = getnodeid(node[i]->GetParentNode());
     if (pid < node.Count())
@@ -3928,7 +3850,7 @@ bool ExportENCB::getAnimations(Tab<INode *> &node, Tab<bool> &nodeExp, Tab<INode
 
   // get animations
   Tab<ExpTMAnimCB *> acb;
-  for (i = 0; i < node.Count(); ++i)
+  for (int i = 0; i < node.Count(); ++i)
   {
     if (!nodeExp[i])
       continue;
@@ -3996,7 +3918,7 @@ void ExportENCB::writeChannel(const ChannelParams &params, FILE *fp)
 }
 
 
-void ExpUtil::errorMessage(TCHAR *msg)
+void ExpUtil::errorMessage(const TCHAR *msg)
 {
   ip->DisplayTempPrompt(msg, ERRMSG_DELAY);
 
@@ -4006,7 +3928,7 @@ void ExpUtil::errorMessage(TCHAR *msg)
   explogError(_T("ERROR! %s\r\n"), msg);
 }
 
-void ExpUtil::warningMessage(TCHAR *msg, TCHAR *title)
+void ExpUtil::warningMessage(const TCHAR *msg, const TCHAR *title)
 {
   if (title == NULL)
     title = _T("Warning");
@@ -4024,7 +3946,7 @@ static bool trail_stricmp(const TCHAR *str, const TCHAR *str2)
   return (l >= l2) ? _tcsncicmp(str + l - l2, str2, l2) == 0 : false;
 }
 
-static bool find_co_layers(const TCHAR *fname, Tab<TCHAR *> &fnames)
+static bool find_co_layers(const TCHAR *fname, Tab<const TCHAR *> &fnames)
 {
   if (!trail_stricmp(fname, _T(".lod00.dag")))
     return false;
@@ -4033,7 +3955,7 @@ static bool find_co_layers(const TCHAR *fname, Tab<TCHAR *> &fnames)
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
   ILayer *l = NULL;
 
-  TCHAR *p[2];
+  const TCHAR *p[2];
   TCHAR str_buf[512];
   for (int i = 0; i < 16; i++)
   {
@@ -4173,7 +4095,7 @@ static bool find_co_layers(const TCHAR *fname, Tab<TCHAR *> &fnames)
     return true;
 
   for (int i = 0; i < fnames.Count(); i++)
-    free(fnames[i]);
+    free((void *)fnames[i]);
   fnames.ZeroCount();
   return false;
 }
@@ -4184,13 +4106,13 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
 #if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
-  Tab<TCHAR *> fnames;
+  Tab<const TCHAR *> fnames;
   Tab<bool> isHidden;
 
   if (!find_co_layers(exp_fname, fnames))
     return export_one_dag(exp_fname, textures, max_textures, default_material);
 
-  TCHAR buf[8192];
+  static TCHAR buf[8192];
   _stprintf(buf, _T("Export layers to %d separate files?\n"), fnames.Count() / 2);
   for (int i = 0; i < fnames.Count(); i += 2)
     if (_tcslen(buf) < (7 << 10))
@@ -4203,7 +4125,7 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
   if (MessageBox(GetFocus(), buf, _T("Export layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES)
   {
     for (int i = 0; i < fnames.Count(); i++)
-      free(fnames[i]);
+      free((void *)fnames[i]);
     return export_one_dag(exp_fname, textures, max_textures, default_material);
   }
 
@@ -4229,8 +4151,8 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
   {
     if (!isHidden[i / 2])
       manager->GetLayer(TSTR(fnames[i]))->Hide(false);
-    free(fnames[i]);
-    free(fnames[i + 1]);
+    free((void *)fnames[i]);
+    free((void *)fnames[i + 1]);
   }
   manager->SetCurrentLayer();
 
@@ -4288,14 +4210,15 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn, TCHAR **tex
   explog(_T ("%d textures\r\n"), cb.tex.Count());
   explog(_T ("%d key labels\r\n"), cb.klabel.Count());
   explog(_T ("%d note tracks\r\n"), cb.ntrack.Count());
+  MSTR nonortn = TSTR(GetString(IDS_NONORT_SELSET));
   if (cb.nonort)
   {
     warningMessage(GetString(IDS_NONORT_ANIM));
-    IPNSS->AddNewNamedSelSet(cb.nonort_nodes, TSTR(GetString(IDS_NONORT_SELSET)));
+    IPNSS->AddNewNamedSelSet(cb.nonort_nodes, nonortn);
     explogWarning(_T ("%d nodes with bad animation\r\n"), cb.nonort_nodes.Count());
   }
   else
-    IPNSS->RemoveNamedSelSet(TSTR(GetString(IDS_NONORT_SELSET)));
+    IPNSS->RemoveNamedSelSet(nonortn);
   if (cb.nofaces)
   {
     warningMessage(GetString(IDS_NOFACES_NODES));
@@ -4342,25 +4265,37 @@ void ExpUtil::export_anim_v2()
 
   checkDupesAndSpaces(cb.node);
 
-  FILE *h = _tfopen(exp_anim2_fname, _T ("wb"));
-  if (!h)
+  // save_anim2 function is not fast but writes the file directly as it goes.
+  // If we are saving an a2d opened in AssetViewer we are highly likely to crash because AV will
+  // trigger on first file flush, try to read not yet fully written file and fail. To avoid this we
+  // export to a temp file and then copy it to the final destination.
+  // Copying does not produce partial file and avoids the crash.
+  wchar_t path[MAX_PATH];
+  GetTempFileName(L".", L"a2d", 0, path);
+  FILE *tmpFile = _tfopen(path, _T ("wb"));
+
+  if (!tmpFile)
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
     return;
   }
   t0 = timeGetTime();
-  if (!cb.save_anim2(h, ip))
+  if (!cb.save_anim2(tmpFile, ip))
   {
     errorMessage(GetString(IDS_FILE_WRITE_ERR));
-    fclose(h);
+    fclose(tmpFile);
     return;
   }
+
+  fclose(tmpFile);
+  CopyFile(path, exp_anim2_fname, false);
+  DeleteFile(path);
+
   t0 = timeGetTime() - t0;
   explog(_T (" save anim2: %d ms\r\n"), t0);
 
   explog(_T (" %d nodes\r\n"), cb.node.Count());
   explog(_T ("Success!\r\n"));
-  fclose(h);
 }
 #if defined(MAX_RELEASE_R19_PREVIEW) && MAX_RELEASE >= MAX_RELEASE_R19_PREVIEW
 static bool FolderOpenDialog(TCHAR *path, HWND)
@@ -4391,7 +4326,7 @@ static bool FolderOpenDialog(TCHAR *path, HWND)
     return false;
   }
 
-  IShellItem *psiResult;
+  IShellItem *psiResult = 0;
   hr = pfd->GetResult(&psiResult);
   if (!SUCCEEDED(hr))
   {
@@ -4401,8 +4336,11 @@ static bool FolderOpenDialog(TCHAR *path, HWND)
 
   PWSTR pszFilePath = NULL;
   hr = psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-  _tcscpy(path, pszFilePath);
-  CoTaskMemFree(pszFilePath);
+  if (pszFilePath)
+  {
+    _tcscpy(path, pszFilePath);
+    CoTaskMemFree(pszFilePath);
+  }
   psiResult->Release();
   pfd->Release();
   return SUCCEEDED(hr);
@@ -4476,7 +4414,7 @@ void ExpUtil::exportObjectsAsDags()
 
   const int PATH_MAX = 512;
   TCHAR folder[PATH_MAX];
-  if (!FolderOpenDialog(folder, hPanel))
+  if (!FolderOpenDialog(folder, hExpDag))
     return;
 
   INode *rootNode = GetCOREInterface13()->GetRootNode();
@@ -4562,7 +4500,7 @@ void ExpUtil::exportLayersAsDags()
 
   const int PATH_MAX = 512;
   TCHAR folder[PATH_MAX];
-  if (!FolderOpenDialog(folder, hPanel))
+  if (!FolderOpenDialog(folder, hExpDag))
     return;
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
@@ -4633,9 +4571,9 @@ public:
   int keyNum;
 
   CameraNodeEnumerator(Interface *_ip) : ip(_ip), keyNum(0) {}
-  ~CameraNodeEnumerator() {}
+  ~CameraNodeEnumerator() override {}
 
-  int proc(INode *node)
+  int proc(INode *node) override
   {
     if (node->IsHidden())
       return ECB_CONT;
@@ -4825,9 +4763,9 @@ public:
     fwrite(data, hdr.cameraNum, sizeof(AdvCameraDataRec), fp);
 
     if (data)
-      delete data;
+      delete[] data;
     if (key)
-      delete key;
+      delete[] key;
   }
 
   void getPos(INode *node, INode *parent, Point3 &pos, TimeValue t)
@@ -4992,19 +4930,11 @@ void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
       if ((expflg & EXP_SEL) && !node_list[j]->Selected())
         continue;
 
-      char *leftName = strdup(wideToStr(node_list[i]->GetName()).c_str());
-      spaces_to_underscores(leftName);
-      char *rightName = strdup(wideToStr(node_list[j]->GetName()).c_str());
-      spaces_to_underscores(rightName);
-
-      if (strcmp(leftName, rightName) == 0)
+      if (node_list[i]->GetName() == node_list[j]->GetName())
       {
         explogWarning(_T ("duplicate node name \"%s\"\r\n"), node_list[i]->GetName());
         hasDupes = true;
       }
-
-      free(leftName);
-      free(rightName);
     }
   }
 
@@ -5149,7 +5079,7 @@ void ExpUtil::export_instances()
     fprintf(h,
       "object{\r\n"
       "  name:t=\"%s\"\r\n"
-      "  numericName:t=\"%s %d\"\r\n"
+      "  numericName:t=\"%s %u\"\r\n"
       "  matrix:m=[[%f, %f, %f] [%f, %f, %f] [%f, %f, %f] [%f, %f, %f]]\r\n"
       "}\r\n",
       name.c_str(), name.c_str(), planeNo * 100000 + numExportedNodes, m[0][0], m[0][2], m[0][1], m[2][0], m[2][2], m[2][1], m[1][0],
@@ -5243,6 +5173,11 @@ bool ExportENCB::checkDegenerateTriangle(INode *node, Matrix3 &applied_transform
   return degenerateAt != NULL;
 }
 
+void update_export_mode(bool use_legacy_import)
+{
+  util.exportMode = use_legacy_import ? ExpUtil::ExportMode::Standard : ExpUtil::ExportMode::LayersAsDags;
+  util.update_ui_dag(util.hExpDag);
+}
 
 const TCHAR *ExportENCB::makeCheckedRelPath(INode *node, Mtl *mtl, const TCHAR *absolute_path)
 {
@@ -5294,8 +5229,8 @@ public:
 
     util.suppressPrompts = suppressPrompts;
 
-    _tcscpy(util.exp_fname, fn);
-    util.update_ui(util.hPanel);
+    util.exp_fname = fn;
+    util.update_ui();
     BOOL result = util.export_dag();
 
     util.suppressPrompts = false;

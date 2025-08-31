@@ -57,7 +57,6 @@ static dafx::ContextId g_dafx_ctx;
 extern void dafx_sparksfx_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_set_context(dafx::ContextId ctx);
 extern void dafx_compound_set_context(dafx::ContextId ctx);
-extern void dafx_flowps2_set_context(dafx::ContextId ctx);
 static void term_dafx()
 {
   if (!g_dafx_ctx)
@@ -70,7 +69,6 @@ static void term_dafx()
   dafx_sparksfx_set_context(g_dafx_ctx);
   dafx_modfx_set_context(g_dafx_ctx);
   dafx_compound_set_context(g_dafx_ctx);
-  // dafx_flowps2_set_context(g_dafx_ctx);
 }
 
 namespace texmgr_internal
@@ -222,11 +220,11 @@ struct CachedTexData
         desc.h = ti.h;
         desc.depth = max<int>(ti.d, ti.a);
         desc.levels = ti.mipLevels;
-        if (ti.resType == RES3D_CUBETEX)
+        if (ti.type == D3DResourceType::CUBETEX)
           desc.flags |= desc.FLG_CUBTEX;
-        else if (ti.resType == RES3D_VOLTEX)
+        else if (ti.type == D3DResourceType::VOLTEX)
           desc.flags |= desc.FLG_VOLTEX;
-        tex_sz = t->ressize();
+        tex_sz = t->getSize();
       }
       release_managed_tex(tid);
     }
@@ -258,6 +256,9 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   d3d::init_video(NULL, NULL, NULL, 0, n, NULL, NULL, NULL, NULL);
   set_missing_texture_name("", false);
   set_gameres_sys_ver(env.getInt("gameResSysVer", 2));
+
+  int maxTexCount = ::dgs_get_settings()->getBlockByNameEx("video")->getInt("maxTexCount", 128 << 10);
+  enable_tex_mgr_mt(true, maxTexCount);
 
   gamereshooks::on_get_game_resource = &on_get_game_resource;
   gamereshooks::on_load_game_resource_pack = &on_load_game_resource_pack;
@@ -322,7 +323,6 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   dafx_sparksfx_set_context(g_dafx_ctx);
   dafx_modfx_set_context(g_dafx_ctx);
   dafx_compound_set_context(g_dafx_ctx);
-  // dafx_flowps2_set_context( g_dafx_ctx );
 
   if (const DataBlock *addons = env.getBlockByName("addons"))
     for (int i = 0, nid = addons->getNameId("folder"); i < addons->paramCount(); i++)

@@ -37,15 +37,31 @@ struct CullJobRing
   void finishWork()
   {
     jobs.back().doJob();
-    if (jobs.size() < 2)
+    bool haveAnyNonDoneJobs = false;
+    for (int i = 0, n = (int)jobs.size() - 1; i < n && !haveAnyNonDoneJobs; ++i)
+      haveAnyNonDoneJobs |= !interlocked_acquire_load(jobs[i].done);
+    if (!haveAnyNonDoneJobs)
       return;
 
-    // Warning: scenes are read locked at this point, so any job that want to grab write lock for it will deadlock
-    barrier_active_wait_for_job(&jobs[jobs.size() - 2], prio, queue_pos);
-
     DA_PROFILE_WAIT("wait_ri_cull_jobs");
-    for (int i = 0; i < (int)jobs.size() - 1; ++i)
-      threadpool::wait(&jobs[i]);
+
+    // Warning: scenes are read locked at this point, so any job that want to grab write lock for it will deadlock,
+    // therefore try to avoid active wait if we can; can't do that if there are no enough threadpool workers available
+    // since there are might be logical dependencies between jobs (e.g. vis. prepare job wait for occlusion/reproj jobs)
+    intptr_t spins = SPINS_BEFORE_SLEEP * (threadpool::get_num_workers() / 3u);
+    while (spins-- > 0)
+      if (interlocked_acquire_load(jobs[jobs.size() - 2].done))
+      {
+        for (int i = 0, n = (int)jobs.size() - 2; i < n; ++i)
+          threadpool::wait(&jobs[i]);
+        return;
+      }
+      else
+        cpu_yield();
+
+    // Spins are exhausted -> do active wait starting from last added job
+    for (int i = (int)jobs.size() - 2; i >= 0; --i)
+      threadpool::barrier_active_wait_for_job(&jobs[i], prio, queue_pos);
   }
 };
 

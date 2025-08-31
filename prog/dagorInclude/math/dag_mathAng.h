@@ -142,4 +142,7 @@ bool is_direction_clockwise_deg(float angle_1_deg, float angle_2_deg);
 bool is_angle_in_sector_deg(float test_angle_deg, const Point2 &sector_deg);
 bool is_sector_intersects_sector_deg(const Point2 &sector_1_deg, const Point2 &sector_2_deg);
 
+inline Point2 dir_to_angles_pitch_yaw(Point3 dir) { return Point2(-atan2f(dir.z, Point2::xy(dir).length()), atan2f(dir.y, dir.x)); }
+inline Point2 dir_to_angles_yaw_pitch(Point3 dir) { return dir_to_angles(dir); }
+
 #undef INLINE

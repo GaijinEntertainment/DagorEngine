@@ -1,4 +1,5 @@
 require DagorFindFiles
+options indenting = 2
 
 [generic]
 def find_files_in_folder(dir_path, file_suffix_to_match : string; result : block<(list : array<string> const#) : void>) : int

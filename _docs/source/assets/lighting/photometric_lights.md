@@ -2,7 +2,7 @@
 
 ## Overview
 
-In *daNetGame*-based projects, along with traditional light sources like spot or
+In daNetGame-based projects, along with traditional light sources like spot or
 omni, you can also add photometric light sources using the [IES
 format](https://blog.ansi.org/2020/02/standard-file-photometric-data-ies-lm-63-19/).
 
@@ -21,9 +21,9 @@ used this [IES
 generator](https://lightonline.ru/documents/Other/IES_Generator.html), which is
 simple to use: you draw the light profile in the vertical plane with the mouse.
 The resulting profile is then "rotated" around the vertical axis (similar to the
-*Lathe* modifier in *3ds Max*, which creates a 3D object from a spline).
-However, this tool cannot create non-symmetrical IES profiles along both axes,
-meaning the light distribution cannot vary simultaneously on walls and floors.
+*Lathe* modifier in 3ds Max, which creates a 3D object from a spline). However,
+this tool cannot create non-symmetrical IES profiles along both axes, meaning
+the light distribution cannot vary simultaneously on walls and floors.
 
 ![Photometric Light Sources](./_images/photometric_lights_01.jpg)
 
@@ -36,14 +36,14 @@ suffices. Examples are provided at the end of this article.
 Once you've downloaded or created an IES file, place it in the following
 directory:
 
-```
+```text
 /<project_name>/develop/assets/manmade_common/textures/ies
 ```
 
-The following block in the global `foled.blk` file handles the processing of IES
-files:
+The following block in the global `.folder.blk` file handles the processing of
+IES files:
 
-```
+```text
 virtual_res_blk{
   find:t="^(.*)\.ies$"
   className:t="tex"
@@ -68,15 +68,15 @@ Details of the engine's implementation are discussed in the
 To use a specific IES file as a light source, simply specify its name in the
 template under the `light.texture_name` variable and compile the vroms.
 
-The light template for *daNetGame*-based projects is located at:
+The light template for daNetGame-based projects is located at:
 
-```
+```text
 /<project_name>/prog/gameBase/content/common/gamedata/templates/_lights.blk
 ```
 
 For example, a wall sconce with two lamps would look like this:
 
-```
+```text
 light_sconce_medium{
   _extends:t="omni_light"
   light.max_radius:r=3.5
@@ -98,7 +98,7 @@ similar sources. Instead, they should be reserved for artistic lighting effects.
 
 Below are some example IES profiles (from left to right: view in the [*Asset
 Viewer*](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md), view in
-the *IESGen 4* generator, and view in-game):
+the IESGen 4 generator, and view in-game):
 
 - `ies_doublelamp_sconce_a`
 
@@ -146,7 +146,7 @@ than placing there a spotlight with harsh shadows.
 
 ## Limitations of IES
 
-It’s important to understand that a single IES profile cannot perfectly recreate
+It's important to understand that a single IES profile cannot perfectly recreate
 the complex light pattern of multi-source or surface-based lights. The light
 always radiates from a single point, not from multiple sources or an area. For
 instance, representing a wall sconce with many small bulbs using a single IES
@@ -158,22 +158,22 @@ still visually acceptable.
 
 ## Photometry
 
-*daNetGame*-based projects support photometry files to describe the light
+daNetGame-based projects support photometry files to describe the light
 distribution of omni lights. This article explains how to use them.
 
-#### Supported File Types
+### Supported File Types
 
 - **IES**
   - Format: [ANSI/IES LM-63-19](https://blog.ansi.org/2020/02/standard-file-photometric-data-ies-lm-63-19/)
   - File details: [Lifewire article on .ies files](https://www.lifewire.com/ies-file-2621816)
 
-#### File Placement
+### File Placement
 
 Photometry files should be placed in the `develop/assets/` directory under an
 appropriate folder. To export these assets, add the following block to the
 `.folder.blk`:
 
-```
+```text
 virtual_res_blk{
   find:t="^(.*)\.ies$"
   className:t="tex"
@@ -208,7 +208,7 @@ texture quality. The IES exporter supports limiting light intensity to a
 specific angle around the view direction (e.g., 180 degrees to restrict light to
 the forward direction).
 
-#### How to Use
+#### Usage
 
 This option must be applied individually to lights:
 
@@ -229,10 +229,11 @@ This option must be applied individually to lights:
 ![How to Use](./_images/photometry_01.jpg)
 
 The rotation value also implicitly adjusts the scaling. These specified values
-should be close to the optimal values displayed in the *Asset Viewer*. If the
-values are too low, leading to a loss in texture quality, *daBuild* will display
-a warning and suggest the optimal values. If the scaling cannot store the
-texture properly, *daBuild* will produce an error.
+should be close to the optimal values displayed in the [Asset
+Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md). If the
+values are too low, leading to a loss in texture quality, daBuild will display a
+warning and suggest the optimal values. If the scaling cannot store the texture
+properly, daBuild will produce an error.
 
 ### Blurring
 
@@ -250,7 +251,7 @@ Define the `blurRadius:r` parameter in the `.folder.blk` or the virtual asset
 The light source's content can be restricted to specific angular ranges on both
 axes. The relevant options are:
 
-```
+```text
 phiMin:r=0
 phiMax:r=360
 thetaMin:r=0
@@ -279,14 +280,14 @@ these parameters in the `.folder.blk` (e.g.,
 <img src="_images/photometry_02.jpg" width="49%" class="bg-primary">
 <img src="_images/photometry_03.jpg" width="49%" class="bg-primary">
 
-### Setting Photometry for an Omni Light
+### Setting Photometry for Omni Light
 
 To set the photometry for an omni light:
 
 1. Add the `.ies` files to an asset folder.
 2. Define the photometry of the omni light in the map's `.blk` file:
 
-```
+```text
 entity{
   _template:t="omni_light"
   light.direction:p3=0, 1, 0
@@ -350,24 +351,24 @@ These are converted into textures using one of two mapping methods:
   worse performance and uneven sample distribution (dense at the poles, sparse
   on the sides).
 
-#### Changing the Mapping Algorithm
+#### Changing Mapping Algorithm
 
 To enable spherical mapping:
 
 1. In `<engine_root>/prog/gameLibs/publicInclude/render/renderLights.hlsl`,
    comment or uncomment the line:
 
-```
-#define USE_OCTAHEDRAL_MAPPING
-```
+   ```text
+   #define USE_OCTAHEDRAL_MAPPING
+   ```
 
 2. In `prog/tools/sceneTools/assetExp/exporters/texExp.cpp`, modify the
    following:
 
-```
-IesReader::ImageData img = ies.generateOctahedral(width, height);
-// IesReader::ImageData img = ies.generateSpherical(width, height)
-```
+   ```text
+   IesReader::ImageData img = ies.generateOctahedral(width, height);
+   // IesReader::ImageData img = ies.generateSpherical(width, height)
+   ```
 
 #### Technical Details of Generated Textures
 

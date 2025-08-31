@@ -20,7 +20,7 @@
 #include <assets/assetMgr.h>
 #include <assets/assetChangeNotify.h>
 #include <oldEditor/de_common_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -32,7 +32,6 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <math/poly2tri/poly2tri.h>
 #include <math/dag_math2d.h>
-#include <math/random/dag_random.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
@@ -41,6 +40,8 @@
 #include <debug/dag_debug.h>
 #include "csgApi.h"
 #include "prefabCache.h"
+
+using namespace objgenerator; // prng
 
 template <class T>
 struct DeletePtrOnScopeLeave
@@ -64,22 +65,22 @@ class VirtualCsgEntity : public IObjEntity, public IObjEntityUserDataHolder
 {
 public:
   VirtualCsgEntity(int cls) : IObjEntity(cls), pool(NULL), userDataBlk(NULL), aMgr(NULL), assetNameId(-1) {}
-  virtual ~VirtualCsgEntity() { clear(); }
+  ~VirtualCsgEntity() { clear(); }
 
   void clear() { del_it(userDataBlk); }
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() { delete this; }
-  virtual void *queryInterfacePtr(unsigned huid)
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override { delete this; }
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityUserDataHolder);
     return NULL;
   }
 
-  virtual BSphere3 getBsph() const { return BSphere3(Point3(0, 0, 0), 1.0); }
-  virtual BBox3 getBbox() const { return BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
+  BSphere3 getBsph() const override { return BSphere3(Point3(0, 0, 0), 1.0); }
+  BBox3 getBbox() const override { return BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
 
-  virtual const char *getObjAssetName() const
+  const char *getObjAssetName() const override
   {
     static String buf;
     buf.printf(0, "%s:fx", assetName());
@@ -96,13 +97,13 @@ public:
   bool isNonVirtual() const { return pool; }
 
   // IObjEntityUserDataHolder
-  virtual DataBlock *getUserDataBlock(bool create_if_not_exist)
+  DataBlock *getUserDataBlock(bool create_if_not_exist) override
   {
     if (!userDataBlk && create_if_not_exist)
       userDataBlk = new DataBlock;
     return userDataBlk;
   }
-  virtual void resetUserDataBlock() { del_it(userDataBlk); }
+  void resetUserDataBlock() override { del_it(userDataBlk); }
 
 public:
   CsgEntityPool *pool;
@@ -128,54 +129,54 @@ public:
   }
 
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     tm = _tm;
     // if (geom)
     //   geom->setTm(tm);
   }
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy()
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override
   {
     pool->delEntity(this);
     clear();
     clearEntites();
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IEntityCollisionState);
     RETURN_INTERFACE(huid, ICsgEntity);
     RETURN_INTERFACE(huid, IRandomSeedHolder);
     return VirtualCsgEntity::queryInterfacePtr(huid);
   }
-  virtual BSphere3 getBsph() const { return bsph; }
-  virtual BBox3 getBbox() const { return bbox; }
+  BSphere3 getBsph() const override { return bsph; }
+  BBox3 getBbox() const override { return bbox; }
 
   // IEntityCollisionState
-  virtual void setCollisionFlag(bool f)
+  void setCollisionFlag(bool f) override
   {
     if (f)
       flags |= FLG_CLIP_EDITOR | FLG_CLIP_GAME;
     else
       flags &= ~(FLG_CLIP_EDITOR | FLG_CLIP_GAME);
   }
-  virtual bool hasCollision() { return flags & FLG_CLIP_GAME; }
-  virtual int getAssetNameId() { return assetNameId; }
-  virtual DagorAsset *getAsset() { return aMgr->findAsset(assetName(), csgEntityClassId); }
+  bool hasCollision() override { return flags & FLG_CLIP_GAME; }
+  int getAssetNameId() override { return assetNameId; }
+  DagorAsset *getAsset() override { return aMgr->findAsset(assetName(), csgEntityClassId); }
 
   // IRandomSeedHolder interface
-  virtual void setSeed(int new_seed)
+  void setSeed(int new_seed) override
   {
     rndSeed = new_seed;
     setFoundationPath(make_span(foundationPath), foundationPathClosed);
   }
-  virtual int getSeed() { return rndSeed; }
-  virtual void setPerInstanceSeed(int seed) {}
-  virtual int getPerInstanceSeed() { return 0; }
+  int getSeed() override { return rndSeed; }
+  void setPerInstanceSeed(int seed) override {}
+  int getPerInstanceSeed() override { return 0; }
 
   // ICsgEntity
-  virtual void setFoundationPath(dag::Span<Point3> p, bool closed)
+  void setFoundationPath(dag::Span<Point3> p, bool closed) override
   {
     DagorAsset *a = aMgr->findAsset(assetName(), csgEntityClassId);
     DeletePtrOnScopeLeave<GeomObject> del_it_geom(geom);
@@ -976,7 +977,7 @@ public:
       int p = pattern[ord % pattern.size()];
       if (p == 0xFF)
         return NULL;
-      return desc[p * floorCnt + f].selectEntity(_frnd(seed), out_ofs, o_ord, max_w, out_pt_ofs, out_w);
+      return desc[p * floorCnt + f].selectEntity(frnd(seed), out_ofs, o_ord, max_w, out_pt_ofs, out_w);
     }
     bool onNewSeg(float ang)
     {
@@ -1142,7 +1143,7 @@ public:
         {
           if (j >= go_desc.maxCnt[k])
           {
-            _rnd(seed);
+            rnd(seed);
             continue;
           }
           Point3 ofs;
@@ -1761,7 +1762,6 @@ public:
 public:
   enum
   {
-    STEP = 512,
     MAX_ENTITIES = 0x7FFFFFFF
   };
   enum
@@ -1807,19 +1807,19 @@ public:
   }
 
 
-  ~CsgEntityManagementService() { PrefabGeomCacheRec::clear(); }
+  ~CsgEntityManagementService() override { PrefabGeomCacheRec::clear(); }
 
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_csgEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) CSG entities"; }
+  const char *getServiceName() const override { return "_csgEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) CSG entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     if (!(IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER) & collisionSubtypeMask))
       return;
@@ -1836,10 +1836,10 @@ public:
         collisionpreview::drawCollisionPreview(ent[i]->collision, TMatrix::IDENT, color);
     end_draw_cached_debug_lines();
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
     {
@@ -1848,7 +1848,7 @@ public:
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -1857,7 +1857,7 @@ public:
   }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
@@ -1880,13 +1880,15 @@ public:
           if (ent[i] && ent[i]->geom && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
             ent[i]->geom->renderTrans();
         break;
+
+      default: break;
     }
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const { return csgEntityClassId >= 0 && csgEntityClassId == entity_class; }
+  bool canSupportEntityClass(int entity_class) const override { return csgEntityClassId >= 0 && csgEntityClassId == entity_class; }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     if (!registeredNotifier)
     {
@@ -1912,7 +1914,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     CsgEntity *o = reinterpret_cast<CsgEntity *>(origin);
     CsgEntity *ent = entPool.allocEntity();
@@ -1926,7 +1928,7 @@ public:
   }
 
   // IGatherStaticGeometry interface
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &cont)
+  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<CsgEntity *> ent = entPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
@@ -1934,8 +1936,8 @@ public:
       if (ent[i] && ent[i]->geom && ent[i]->isNonVirtual() && ent[i]->checkSubtypeMask(st_mask))
         addGeometry(ent[i], i, cont, StaticGeometryNode::FLG_RENDERABLE);
   }
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer &cont) {}
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont)
+  void gatherStaticEnviGeometry(StaticGeometryContainer &cont) override {}
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<CsgEntity *> ent = entPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
@@ -1944,7 +1946,7 @@ public:
           (ent[i]->getFlags() & ent[i]->FLG_CLIP_GAME) == ent[i]->FLG_CLIP_GAME)
         addGeometry(ent[i], i, cont, StaticGeometryNode::FLG_COLLIDABLE);
   }
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont)
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<CsgEntity *> ent = entPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
@@ -1981,7 +1983,7 @@ public:
   }
 
   // IDagorEdCustomCollider interface
-  virtual bool traceRay(const Point3 &p0, const Point3 &dir, real &maxt, Point3 *norm)
+  bool traceRay(const Point3 &p0, const Point3 &dir, real &maxt, Point3 *norm) override
   {
     if (maxt <= 0)
       return false;
@@ -1996,7 +1998,7 @@ public:
           ret = true;
     return ret;
   }
-  virtual bool shadowRayHitTest(const Point3 &p0, const Point3 &dir, real maxt)
+  bool shadowRayHitTest(const Point3 &p0, const Point3 &dir, real maxt) override
   {
     if (maxt <= 0)
       return false;
@@ -2012,11 +2014,11 @@ public:
 
     return false;
   }
-  virtual const char *getColliderName() const { return getServiceFriendlyName(); }
-  virtual bool isColliderVisible() const { return visible; }
+  const char *getColliderName() const override { return getServiceFriendlyName(); }
+  bool isColliderVisible() const override { return visible; }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     if (asset_type == prefabClassId)
       PrefabGeomCacheRec::evictCache(asset_name_id);
@@ -2027,7 +2029,7 @@ public:
       if (ent[i] && ent[i]->geom && ent[i]->assetNameId == asset_name_id)
         del_it(ent[i]->geom);
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     if (asset_type == prefabClassId)
       PrefabGeomCacheRec::evictCache(asset_name_id);

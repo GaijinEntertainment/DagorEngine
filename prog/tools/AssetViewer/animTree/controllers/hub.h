@@ -20,3 +20,5 @@ void hub_init_block_settings(PropPanel::ContainerPropertyControl *panel, const D
 void hub_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
 void hub_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
 const char *hub_get_child_name_by_idx(const DataBlock &settings, int idx);
+bool hub_get_child_is_optional_by_idx(const DataBlock &settings, int idx);
+void hub_update_child_name(DataBlock &settings, const char *name, const String &old_name);

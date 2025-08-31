@@ -21,7 +21,8 @@ local _DEF_COM_CMDLINE =
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
   -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3
-  -D_TARGET_64BIT=1
+  -D_TARGET_64BIT
+  -D_TARGET_ARCH_X86_64
   -D__LINUX__=64
   -D_TARGET_SIMD_SSE=$(SSEVersion)
   -Di_strlen=(int)strlen
@@ -32,8 +33,8 @@ if $(ClangThreadSafety) = yes {
   _DEF_COM_CMDLINE += -Wthread-safety ;
 }
 
-if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
-if $(PlatformArch) = e2k { _DEF_COM_CMDLINE += -D_XM_NO_INTRINSICS_ ; }
+if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB ; }
+if $(PlatformArch) = e2k { _DEF_COM_CMDLINE += -D_XM_NO_INTRINSICS_ -D__vectorcall= -Wno-deprecated-declarations ; }
 
 local STDLIB_COMP = -stdlib=libstdc++ ;
 local STDLIB_LINK = -stdlib=libstdc++ -lstdc++ ;
@@ -49,7 +50,7 @@ local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -Wno-invalid-offsetof $(STDLIB_COMP) 
 if $(Exceptions) != yes {
   _DEF_CPP_CMDLINE += -fno-exceptions ;
 } else {
-  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED ;
 }
 
 if $(Rtti) != yes {
@@ -71,6 +72,12 @@ if $(UseMOLDLink) = yes {
   _LINK_DLL += -fuse-ld=mold ;
 }
 
+if $(Fuzzer) != no {
+  _LINK = $(_LINK) -fsanitize=fuzzer ;
+  _LINK_DLL  = $(_LINK_DLL) -fsanitize=fuzzer ;
+  _DEF_COM_CMDLINE = $(_DEF_COM_CMDLINE) -fsanitize=fuzzer ;
+}
+
 if $(Sanitize) != disabled {
   _LINK = $(_LINK) -fsanitize=$(Sanitize) ;
   _LINK_DLL  = $(_LINK_DLL) -fsanitize=$(Sanitize) ;
@@ -85,7 +92,6 @@ _GAS_COMPILER = $(DISTCC) $(_CLANG_BIN) -g -c ;
 
 
 _INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
-if $(PlatformArch) = e2k { _INCLUDE += $(Root)/prog/dagorInclude/supp/elbrus_e2k ; }
 
 # make compiler cmd-line ###
 _CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -I /usr/include "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;

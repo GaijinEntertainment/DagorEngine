@@ -1,13 +1,16 @@
+options gen2
 require qfn
 
 [qfn]
-struct FooBar
+struct FooBar {
     a : int
+}
 
 [export]
-def main
+def main {
     var buf = CommandBuffer()
-    var foo = [[FooBar a = 1]]
+    var foo = FooBar(a = 1)
     send(buf, foo)
+}
 
 

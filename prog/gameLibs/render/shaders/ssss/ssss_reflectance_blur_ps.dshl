@@ -1,0 +1,44 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "ssss/ssss_reflectance_blur.dshl"
+
+texture ssss_reflectance_blur_color_source_tex;
+
+shader ssss_reflectance_blur_ps
+{
+  supports global_frame;
+  supports global_const_block;
+  cull_mode  = none;
+  z_test = true;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(1, uv)
+  INIT_ZNZFAR()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  INIT_SSSS_REFLECTANCE_BLUR(ps)
+
+  hlsl(ps)
+  {
+    #define SSSS_LINEARIZE_DEPTH(raw_depth) linearize_z(raw_depth, zn_zfar.zw)
+  }
+  USE_SSSS_REFLECTANCE_BLUR(ps)
+
+  (ps) { color_source_tex@smp2d = ssss_reflectance_blur_color_source_tex; }
+
+  hlsl(ps)
+  {
+    float4 ssss_reflectance_blur_ps(VsOutput i) : SV_Target
+    {
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(i.uv);
+      float4 result = ssss_reflectance_blur(i.uv, gbuffer.translucency,
+                                            color_source_tex, color_source_tex_samplerstate,
+                                            depth_gbuf_read, depth_gbuf_read_samplerstate);
+      return result;
+    }
+  }
+
+  compile("target_ps", "ssss_reflectance_blur_ps");
+}

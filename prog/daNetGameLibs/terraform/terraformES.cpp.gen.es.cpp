@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "terraformES.cpp.inl"
 ECS_DEF_PULL_VAR(terraform);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc terraform_init_es_event_handler_comps[] =
 {

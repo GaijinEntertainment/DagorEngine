@@ -1,7 +1,7 @@
-let { logerr } = require("dagor.debug")
-let {startsWith, toIntegerSafe} = require("string.nut")
+from "dagor.debug" import logerr
+from "string.nut" import startsWith, toIntegerSafe
 
-let maskAny = { x = true, X = true, ["*"] = true }
+let maskAny = static { x = true, X = true, ["*"] = true }
 
 let arrToInt = @(list) list.reduce(@(res, val)
   (res << 16) + toIntegerSafe(val), 0)
@@ -38,7 +38,7 @@ function checkVersion(verWildcard, verCurrent, compFn) {
 }
 
 function stripVerCondition(str) {
-  let allowed = "0123456789Xx"
+  const allowed = "0123456789Xx"
   for (local i = 0; i < str.len(); ++i) {
     let char = str.slice(i, i + 1)
     if (allowed.contains(char))
@@ -62,9 +62,9 @@ function check_version_impl(vermask, game_version) {
 
 function check_version(version1, version2) {
   if (version1 != ""
-      && ("><=!".indexof(version1.slice(0, 1)) != null
-        || version1.indexof("X") != null
-        || version1.indexof("x") != null))
+      && ("><=!".contains(version1.slice(0, 1))
+        || version1.contains("X")
+        || version1.contains("x")))
     return check_version_impl(version1, version2)
   return check_version_impl(version2, version1)
 }
@@ -106,9 +106,11 @@ function test() {
     assert(check_version(cfg[0], cfg[1]) == res)
     assert(check_version(cfg[1], cfg[0]) == res)
   }
+  println("test passed")
 }
+if (__name__ == "__main__")
+  test()
 
-return {
+return freeze({
   check_version
-  test
-}
+})

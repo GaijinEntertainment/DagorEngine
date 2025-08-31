@@ -29,6 +29,7 @@
 #include <anim/dag_simpleNodeAnim.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_capsule.h>
+#include <util/dag_delayedAction.h>
 
 #include <debug/dag_debug3d.h>
 
@@ -45,9 +46,11 @@ enum // gui pids
   PID_PLAY_DUR,
   PID_PLAY_CUR_TIME,
   PID_PLAY_MUL,
+  PID_PLAY_PARAMS_RESET,
   PID_PLAY_LOOP,
   PID_SHOW_SKEL,
   PID_SHOW_INVIS,
+  PID_DISABLE_ADDITIVITY,
   PID_SELECTED_NODE_NAME,
   PID_ANIM_NODES_GROUP,
   PID_ANIM_NODES_GROUP_LAST = PID_ANIM_NODES_GROUP + 1024
@@ -216,7 +219,8 @@ A2dPlugin::A2dPlugin() :
   animTimeMax{0},
   loopedPlay{false},
   drawSkeleton{false},
-  drawA2dnodes{false}
+  drawA2dnodes{false},
+  disableAdditivity{false}
 {
   initScriptPanelEditor("a2d.scheme.nut", "a2d by scheme");
 }
@@ -229,6 +233,7 @@ A2dPlugin::~A2dPlugin()
 
 bool A2dPlugin::begin(DagorAsset *srcAsset)
 {
+  disableAdditivity = false;
   if (spEditor && srcAsset)
     spEditor->load(srcAsset);
   if (ref.modelName.empty())
@@ -479,7 +484,9 @@ void A2dPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
     SelectAssetDlg dlg(0, &asset->getMgr(), selectMsg, selectMsg, resetMsg, make_span_const(&ref.refTypeId, 1));
     dlg.selectObj(ref.modelName);
     dlg.setManualModalSizingEnabled();
-    dlg.positionLeftToWindow("Properties", true);
+    if (!dlg.hasEverBeenShown())
+      dlg.positionLeftToWindow("Properties", true);
+
     int result = dlg.showDialog();
     if (result == PropPanel::DIALOG_ID_CLOSE)
       return;
@@ -492,6 +499,14 @@ void A2dPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 
     if (!a2d->dumpData.noteTrack.empty())
       setPoseFromTrackLabel(0);
+  }
+  else if (pcb_id == PID_PLAY_PARAMS_RESET && ref.ready())
+  {
+    animTimeMul = safediv(1.0f, animTimeMax / (float)AnimV20::TIME_TicksPerSec);
+
+    panel->setFloat(PID_PLAY_MUL, animTimeMul);
+    panel->setFloat(PID_PLAY_DUR, safediv(1.f, animTimeMul));
+    panel->setFloat(PID_PLAY_CUR_TIME, panel->getFloat(PID_PLAY_PROGR) * panel->getFloat(PID_PLAY_DUR));
   }
   else if (pcb_id == PID_PLAY_ANIM && ref.ready())
   {
@@ -527,6 +542,20 @@ void A2dPlugin::actObjects(float dt)
   }
 }
 
+static void asset_notify_changed(DagorAsset *asset)
+{
+  get_app().getAssetMgr().callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *>((DagorAsset *const *)&asset, 1),
+    dag::ConstSpan<DagorAsset *>(), dag::ConstSpan<DagorAsset *>());
+  get_app().getAssetMgr().callAssetChangeNotifications(*asset, asset->getNameId(), asset->getType());
+}
+
+static void asset_temp_disable_additivity_and_notify_changed(DagorAsset *asset)
+{
+  asset->props.setBool("makeAdditive", false);
+  asset_notify_changed(asset);
+  asset->props.setBool("makeAdditive", true);
+}
+
 void A2dPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pid)
@@ -542,6 +571,7 @@ void A2dPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
           const float progress =
             safediv(float(a2d->dumpData.noteTrack[noteTrackNum].time - animTimeMin), float(animTimeMax - animTimeMin));
           panel->setFloat(PID_PLAY_PROGR, progress);
+          panel->setFloat(PID_PLAY_CUR_TIME, panel->getFloat(PID_PLAY_PROGR) * panel->getFloat(PID_PLAY_DUR));
         }
         setPoseFromTrackLabel(noteTrackNum);
       }
@@ -568,6 +598,16 @@ void A2dPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
       break;
     case PID_SHOW_SKEL: drawSkeleton = panel->getBool(PID_SHOW_SKEL); break;
     case PID_SHOW_INVIS: drawA2dnodes = panel->getBool(PID_SHOW_INVIS); break;
+    case PID_DISABLE_ADDITIVITY:
+      disableAdditivity = panel->getBool(PID_DISABLE_ADDITIVITY);
+      if (disableAdditivity)
+      {
+        if (a2d->isAdditive())
+          add_delayed_callback((delayed_callback)&asset_temp_disable_additivity_and_notify_changed, asset);
+      }
+      else
+        add_delayed_callback((delayed_callback)&asset_notify_changed, asset);
+      break;
     default: break;
   }
 }
@@ -589,6 +629,7 @@ void A2dPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   PropPanel::ContainerPropertyControl &nodesGrp = *panel.createGroup(PID_ANIM_NODES_GROUP, "Anim nodes");
 
   propGrp.createStatic(-1, String(64, "Is additive: %s", a2d->isAdditive() ? "yes" : "no"));
+  propGrp.createCheckBox(PID_DISABLE_ADDITIVITY, "Disable additivity", disableAdditivity);
   propGrp.createStatic(-1, String(64, "Note tracks: %d", a2d->dumpData.noteTrack.size()));
   playGrp.createSeparator();
   constexpr float maxAnimMult = 3.f;
@@ -603,6 +644,7 @@ void A2dPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   }
   playGrp.createTrackFloat(PID_PLAY_PROGR, "Anim progress: ", 0.f, 0.f, 1.f, 0.01, 1);
   playGrp.createEditFloat(PID_PLAY_CUR_TIME, "Seconds: ", 0.0f, 2, false);
+  playGrp.createButton(PID_PLAY_PARAMS_RESET, "Reset play params");
   playGrp.createCheckBox(PID_SHOW_SKEL, "Show skeleton nodes", drawSkeleton);
   playGrp.createCheckBox(PID_SHOW_INVIS, "Show exported nodes", drawA2dnodes);
   playGrp.createSeparator();

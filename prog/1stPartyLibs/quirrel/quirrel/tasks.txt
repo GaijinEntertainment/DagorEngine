@@ -1,0 +1,9 @@
+* Parsing imports to AST
+* Modify shutdown sequence to allow sq_relase() calls during VM shutdown.
+  This would fix crashes when trying to do late release of native objects holding
+  references to script objects.
+* Non-intrusive VarTrace
+* Extended constants of arbitrary types
+* Constant expressions (local anonymous constant initializers)
+* Exception-based compilation erros handling
+* Remove arena allocator

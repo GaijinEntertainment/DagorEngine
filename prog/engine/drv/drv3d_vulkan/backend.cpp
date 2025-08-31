@@ -11,7 +11,7 @@
 #include "state_field_resource_binds.h"
 #include "predicted_latency_waiter.h"
 #include "driver.h"
-#include "execution_pod_state.h"
+#include "execution_async_compile_state.h"
 #include "execution_state.h"
 #include "pipeline_state.h"
 #include "pipeline_state_pending_references.h"
@@ -39,7 +39,7 @@ BackendInterop Backend::interop;
 AliasedMemoryStorage Backend::aliasedMemory;
 WrappedCommandBuffer Backend::cb;
 
-ExecutionPODState Backend::State::pod;
+ExecutionAsyncCompileState Backend::State::asyncCompileState;
 ExecutionState Backend::State::exec;
 PipelineState Backend::State::pipe;
 PipelineStatePendingReferenceList Backend::State::pendingCleanups;

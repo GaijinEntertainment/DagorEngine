@@ -98,7 +98,13 @@ inline IPoint2 transform_point_to_viewport(const IPoint2 &p, const ToroidalHelpe
 {
   return transform_point_to_viewport(p, helper.mainOrigin, helper.curOrigin, helper.texSize);
 }
-
+inline IPoint2 transform_viewport_point_to_world(const IPoint2 &p, const ToroidalHelper &helper)
+{
+  G_ASSERT(p.x >= 0 && p.x < helper.texSize && p.y >= 0 && p.y < helper.texSize);
+  IPoint2 curOriginTextureSpace = wrap_texture(p - (helper.curOrigin - helper.mainOrigin), helper.texSize);
+  IPoint2 worldCoords = curOriginTextureSpace - IPoint2(helper.texSize >> 1, helper.texSize >> 1) + helper.curOrigin;
+  return worldCoords;
+}
 
 template <class Callback>
 inline int render_toroidal_quad(const IPoint2 &lt, const IPoint2 &wd_, const IPoint2 &new_center, const IPoint2 &main_center,

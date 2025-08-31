@@ -1,3 +1,6 @@
+removed on 2025/02/27
+  dagor4/prog/3rdPartyLibs/ssr
+
 removed on 2024/12/26:
   dagor4/prog/3rdPartyLibs/fmod4
 

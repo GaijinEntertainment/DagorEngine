@@ -8,8 +8,8 @@ int shore_waves_on = 0;
 interval shore_waves_on: off<1, on;
 
 float4 world_to_heightmap = (1/32,1/32,0.5,0.5);
-float4 water_heightmap_min_max = (0, 0, 0, 0);
-float4 shore_damp = (2, 5, 0, 0);
+float4 shore_heightmap_min_max = (0, 0, 0, 0);
+float4 shore_damp = (0, 6, 0, 0);
 
 float foam_time = 0;
 float max_wave_height = 1;
@@ -22,6 +22,7 @@ float shore_amplitude_to_length = 30;        // Physically correct is 14, was 25
 float shore_parallelism_to_wind = 0.1;       // Was 0.2, to much of parallelism.
 float shore_width_k = 3;
 float shore_gerstner_speed = 1.0;
+float shore_rivers_wave_multiplier = 0.3;
 
 // We have 2 filters for shore waves:
 float4 shore__waves_dist = (0, 200, 0, 50); // Distance to shoreline in meters
@@ -84,8 +85,9 @@ INIT_WATER_HEIGHTMAP(stage)
   shore_damp@f4 = (1.0 / (shore_damp.y - shore_damp.x), -shore_damp.x / (shore_damp.y - shore_damp.x), 0.5 * distance_field_texture_size, 2 / distance_field_texture_size);
   shore_waves_on@i1 = shore_waves_on;
   gspeed__hmap_size@f2 = (shore_gerstner_speed, 1.0 / world_to_heightmap.x);
+  shore_rivers_wave_multiplier@f1 = shore_rivers_wave_multiplier;
 
-  ftime_cscale_hmap@f4 = (foam_time, 0, water_heightmap_min_max.z, water_heightmap_min_max.w);
+  ftime_cscale_hmap@f4 = (foam_time, 0, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
   shore_distance_field_tex@smp2d = shore_distance_field_tex;
   world_to_heightmap@f4 = world_to_heightmap;
   water_level_max_wave_height@f2 = (water_level, max_wave_height, 0, 0);
@@ -115,6 +117,7 @@ hlsl(stage) {
     float gerstnerFoamFactor;
     float riverMultiplier;
     float landHeight;
+    float waterHeight;
   };
 }
 endmacro
@@ -190,7 +193,7 @@ void GetShoreSurfaceAttributes(float wave_height, float time, float sdf_size, fl
   sdf.yz = decode_sdf(sdfIn, riverFactor, oceanShadowFactor);
 
   // initializing the outputs so we can exit early
-  oceanWavesMultiplierOut = 0.3 + 0.7*riverFactor;
+  oceanWavesMultiplierOut = lerp(riverFactor, 1, shore_rivers_wave_multiplier);
   oceanWavesMultiplierOut *= 0.5 + 0.5*oceanShadowFactor;
   float inLandMul = pow4(saturate(4-6*sdf.w));
   //oceanWavesMultiplierOut *= inLandMul;
@@ -286,6 +289,7 @@ void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
   shoreData.riverMultiplier = 1;
   shoreData.shoreWavesDisplacement = float3(0, 0, 0);
   shoreData.landHeight = 0;
+  shoreData.waterHeight = water_level_max_wave_height.x;
   shoreData.oceanWavesMultiplier = 1;
   shoreData.oceanDetailsMultiplier = 1;
 
@@ -302,6 +306,7 @@ void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
   get_water_height(worldPos.xz, waterHeight);
   float2 decode_hmap = float2(ftime_cscale_hmap.z, ftime_cscale_hmap.w - waterHeight);
   shoreData.landHeight = sdf.x * decode_hmap.x + decode_hmap.y;
+  shoreData.waterHeight = waterHeight;
   shoreData.oceanWavesMultiplier = saturate(max(-shoreData.landHeight, 0) * shore_damp.x + shore_damp.y);
 
 // Only means that a surf is an expensive option and if we want to save some fps then
@@ -331,7 +336,7 @@ void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
 #endif
 
   // Ignore wind shadowing because it is exaggerated a bit, need more tuning
-  float shoresMultiplier = 0.3 + 0.7 * shoreData.riverMultiplier;
+  float shoresMultiplier = lerp(shoreData.riverMultiplier, 1, shore_rivers_wave_multiplier);
   // Apply shores
   shoreData.oceanWavesMultiplier *= shoresMultiplier;
   shoreData.oceanDetailsMultiplier = shoresMultiplier;

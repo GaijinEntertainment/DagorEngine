@@ -12,8 +12,8 @@ public:
   bool showCompass;
 
   DagorEdAppEventHandler(GenericEditorAppWindow &m);
-  ~DagorEdAppEventHandler();
+  ~DagorEdAppEventHandler() override;
 
-  virtual void handleViewportPaint(IGenViewportWnd *wnd);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 };

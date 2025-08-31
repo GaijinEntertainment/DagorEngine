@@ -143,8 +143,8 @@ public:
 
   void makeSingleLightmap();
 
-  virtual int getTextureIndex(StaticGeometryTexture *texture);
-  virtual StaticGeometryTexture *getTexture(int index);
+  int getTextureIndex(StaticGeometryTexture *texture) override;
+  StaticGeometryTexture *getTexture(int index) override;
 
   void save(IGenSave &cb, IGenericProgressIndicator &pbar);
   bool save(const char *filename, IGenericProgressIndicator &pbar);

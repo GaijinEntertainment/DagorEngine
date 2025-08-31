@@ -12,6 +12,8 @@
 namespace PropPanel
 {
 
+enum class IconId : int;
+
 class ImguiHelper
 {
 public:
@@ -108,6 +110,7 @@ public:
   // allow_blocked_hover: must be true if using image buttons (real ImGui widgets), but not needed for simple state icons.
   //   False is the default behavior of ImGui::TreeNodeBehavior.
   // show_arrow: show the open/close arrow. Set it to false if you want to draw your own open/close icon.
+  //   Hierarchy lines and the opcen/close icon can be drawn with TreeHierarchyLineDrawer.
   static bool treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNodeFlags flags, const char *label, const char *label_end,
     TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true, bool show_arrow = true);
   static bool treeNodeWithSpecialHoverBehaviorStart(const char *label, ImGuiTreeNodeFlags flags,
@@ -136,24 +139,33 @@ public:
   // hovered.
   static bool imageButtonFrameless(ImGuiID id, ImTextureID texture_id, const ImVec2 &image_size, const ImVec2 &uv0 = ImVec2(0, 0),
     const ImVec2 &uv1 = ImVec2(1, 1), const ImVec4 &tint_col = ImVec4(1, 1, 1, 1));
+  static bool imageButtonFrameless(ImGuiID id, IconId icon_id, const ImVec2 &image_size, const ImVec2 &uv0 = ImVec2(0, 0),
+    const ImVec2 &uv1 = ImVec2(1, 1), const ImVec4 &tint_col = ImVec4(1, 1, 1, 1));
 
   // This is just a convenience overload with an option to set the tooltip.
   static bool imageButtonFrameless(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, const char *tooltip);
+  static bool imageButtonFrameless(const char *str_id, IconId icon_id, const ImVec2 &image_size, const char *tooltip);
 
   // Helper function to either place an imageButtonFrameless control or just reserve the space for it.
   static bool imageButtonFramelessOrPlaceholder(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size,
     const char *tooltip, bool use_button);
+  static bool imageButtonFramelessOrPlaceholder(const char *str_id, IconId icon_id, const ImVec2 &image_size, const char *tooltip,
+    bool use_button);
 
   static ImVec2 getImageButtonFramelessFullSize(const ImVec2 &image_size) { return image_size; }
 
   // A toggle image button.
   static bool imageCheckButtonWithBackground(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, bool checked,
     const char *tooltip);
+  static bool imageCheckButtonWithBackground(const char *str_id, IconId icon_id, const ImVec2 &image_size, bool checked,
+    const char *tooltip);
 
   static ImVec2 getImageButtonWithDownArrowSize(const ImVec2 &image_size);
 
   // A toggle image button with a down arrow displayed on the right side of the image.
   static bool imageButtonWithArrow(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, bool checked = false,
+    ImGuiButtonFlags flags = ImGuiButtonFlags_None);
+  static bool imageButtonWithArrow(const char *str_id, IconId icon_id, const ImVec2 &image_size, bool checked = false,
     ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 
   // Get the size of ImGui::Button.
@@ -163,6 +175,8 @@ public:
   // only displayed when text_to_search is not empty. Clicking on it clears text_to_search.
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, ImTextureID search_icon,
     ImTextureID clear_icon, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
+  static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, IconId search_icon_id,
+    IconId clear_icon_id, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
 
   // Same as ImGui::BeginMenuEx but meant to be used along with menuItemExWithLeftSideCheckmark. It aligns sub-menu
   // items the same way as menuItemExWithLeftSideCheckmark.

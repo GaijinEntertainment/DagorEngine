@@ -14,7 +14,7 @@ def gather_files_to_check(path, relative="", cwd=None):
   return files2check
 
 def check(file_info):
-  cmd_darg = 'dargbox-64-dev.exe -quiet -silent -config:script:t={file} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -fatals_to_stderr -logerr_to_stderr -config:workcycle/act_rate:i=0 -config:debug/useVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'.format(file=file_info["rel"])
+  cmd_darg = 'dargbox-64-dev.exe -quiet -silent -config:script:t={file} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -fatals_to_stderr -logerr_to_stderr -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'.format(file=file_info["rel"])
   cmd_sq = '..\\dagor_cdk\\windows-x86_64\\csq-dev.exe {file}'.format(file=file_info["rel"])
   failedBy = ""
   failText = ""
@@ -33,9 +33,9 @@ def check(file_info):
 
 
 def rerun_dargbox(dargboxFailedScript):
-  cmd_darg = f'dargbox-64-dev.exe -quiet -silent -config:script:t={dargboxFailedScript} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -config:workcycle/act_rate:i=0 -config:debug/useVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'
+  cmd_darg = f'dargbox-64-dev.exe -quiet -silent -config:script:t={dargboxFailedScript} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'
   subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-  with open(".logs/last_debug", "r") as f:
+  with open(".log/last_debug", "r") as f:
     debugDir = f.read().strip()
   if os.path.exists(debugDir + "/fatalerr"):
     print("\ndargbox fatalerr:\n")

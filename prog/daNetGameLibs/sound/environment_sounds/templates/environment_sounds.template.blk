@@ -1,16 +1,22 @@
+attach_reverb_sound_to_watchable{
+  _group{
+    _tags:t="sound"
+    attach_reverb_sound_to_watchable__nodeName:t="Bip01 Pelvis"
+    attach_reverb_sound_to_watchable__nodeId:i=-1
+  }
+}
+
 base_reverb_sound{
-  _use:t="sound_banks_state"
+  _use:t="sound_preset"
   _use:t="replicating"
   _singleton:b=yes
 
   _group{
     _tags:t="sound"
     reverb_sound__rayId:i=0
-    reverb_sound__intensityValue:r=0
-    reverb_sound__roomSizeValue:r=0
-    reverb_sound__absorptionValue:r=0
-    reverb_sound__absorptionRays:i=0
+    reverb_sound__offsetId:i=0
     reverb_sound__intensity_roomSize_absorption_weight:p4=0,0,0,0
+    reverb_sound__intensity_roomSize_absorption_blend:p4=0,0,0,0
     "reverb_sound__PMIDToAbsorption:list<r>"{}
     "reverb_sound__event:SoundEvent"{}
 
@@ -19,31 +25,57 @@ base_reverb_sound{
     reverb_sound__intensityVar:t="reverbIndoor"
     reverb_sound__roomSizeVar:t="roomSize"
     reverb_sound__absorptionVar:t="absorption"
-    reverb_sound__absorptionNormalize:b=true
-    reverb_sound__intensityMax:r=0.625
-    reverb_sound__roomSizeMax:r=9.375
+    reverb_sound__intensityMax:r=0.75
+    reverb_sound__roomSizeMax:r=16
     reverb_sound__fadeOutPower:r=10
-    reverb_sound__rayLength:r=10
-
-    "reverb_sound__rays:list<p3>"{
-      ray:p3=0.9034, 0.0544, -0.4252
-      ray:p3=-0.1907, 0.5076, -0.8402
-      ray:p3=-0.3827, 0.8812, -0.2774
-      ray:p3=-0.8941, 0.0904, 0.4387
-      ray:p3=0.1873, 0.4467, 0.8749
-      ray:p3=0.4949, 0.7792, 0.3847
-      ray:p3=-0.7434, 0.0884, -0.6629
-      ray:p3=-0.4784, 0.4339, 0.7634
-      ray:p3=0.3234, 0.8234, -0.4663
-      ray:p3=0.8209, 0.5661, -0.0749
-      ray:p3=0.4167, 0.1168, -0.9015
-      ray:p3=-0.1942, 0.9248, 0.3273
-      ray:p3=-0.8791, 0.4686, -0.0867
-    }
+    reverb_sound__rayLength:r=16
+    reverb_sound__numTraces:i=2
+    reverb_sound__decay:r=0.75
 
     reverb_sound__defAbsorption:r=0.5
     "reverb_sound__physmatAbsorption:array"{}
 
+    "reverb_sound__offsets:list<p3>"{
+      offset:p3=1,1,1
+      offset:p3=-1,1,1
+      offset:p3=1,-1,1
+      offset:p3=1,1,-1
+    }
+
+    "reverb_sound__rays:list<p3>"{
+      ray:p3=0.196,0.866,-0.460
+      ray:p3=0.861,-0.445,0.245
+      ray:p3=-0.629,-0.437,0.643
+      ray:p3=-0.748,-0.662,0.055
+      ray:p3=-0.958,-0.021,0.285
+      ray:p3=0.395,-0.677,0.621
+      ray:p3=0.629,0.433,-0.645
+      ray:p3=0.082,0.268,0.960
+      ray:p3=-0.173,0.756,0.631
+      ray:p3=-0.730,0.574,0.371
+      ray:p3=0.923,0.186,0.337
+      ray:p3=0.379,-0.925,0.033
+      ray:p3=0.533,-0.169,-0.829
+      ray:p3=-0.591,0.096,-0.801
+      ray:p3=0.517,0.591,0.619
+      ray:p3=-0.227,-0.958,-0.178
+      ray:p3=-0.064,-0.355,0.933
+      ray:p3=-0.523,-0.591,-0.614
+      ray:p3=0.959,0.018,-0.282
+      ray:p3=0.587,-0.096,0.804
+      ray:p3=-0.369,0.929,-0.028
+      ray:p3=0.236,0.956,0.174
+      ray:p3=0.174,-0.755,-0.632
+      ray:p3=-0.858,0.453,-0.241
+      ray:p3=-0.395,0.679,-0.619
+      ray:p3=-0.195,-0.869,0.455
+      ray:p3=0.750,0.658,-0.060
+      ray:p3=-0.926,-0.180,-0.332
+      ray:p3=-0.088,-0.271,-0.959
+      ray:p3=0.060,0.353,-0.934
+      ray:p3=0.730,-0.574,-0.371
+      ray:p3=-0.537,0.170,0.826
+    }
   }
 }
 
@@ -57,7 +89,6 @@ underwater_sound{
 }
 
 shore_sound{
-  _use:t="sound_banks_state"
   _use:t="replicating"
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 
@@ -71,7 +102,6 @@ shore_sound{
 }
 
 spline_sound{
-  _use:t="sound_banks_state"
   _use:t="replicating"
 
   _group{
@@ -126,7 +156,7 @@ game_object_spline_sound_generator{
 }
 
 ocean_sound{
-  _use:t="sound_banks_state"
+  _use:t="sound_preset"
   _use:t="replicating"
   _group{
     _tags:t="sound"
@@ -175,11 +205,11 @@ game_object_ocean_sound_generator{
 
 ambient_sound{
   _use:t="replicating"
-  _use:t="sound_banks_state"
 
   _group{
     _tags:t="sound"
     "ambient_sound__event:SoundEvent"{}
+    ambient_sound__shouldPlay:b=no
     // setup
     ambient_sound__path:t=""
     ambient_sound__abandonOnReset:b=no
@@ -188,7 +218,6 @@ ambient_sound{
 
 volume_ambient_sound{
   _use:t="game_object_sound"
-  _use:t="sound_banks_state"
 
   _group{
     _tags:t="sound"
@@ -201,7 +230,7 @@ volume_ambient_sound{
     volume_ambient_sound__range:r=0
     volume_ambient_sound__autoRange:b=true
     volume_ambient_sound__fadeInOutSpeed:p2=1,1
-    volume_ambient_sound__reverb_intensity_roomSize_absorption_weight:p4=0,0,0,0
+    volume_ambient_sound__reverb_intensity_roomSize_absorption_blend:p4=0,0,0,0
   }
   _group{
     _tags:t="sound"
@@ -222,7 +251,6 @@ compound_ambient_sound_controller{
 
 compound_ambient_sound_type{
   _use:t="replicating"
-  _use:t="sound_banks_state"
 
   _group{
     _tags:t="sound"
@@ -302,13 +330,13 @@ water_sound_field{
     water_sound_field__offset:p2=0,0
     water_sound_field__eventPos:p3=0,0,0
     water_sound_field__numCells:ip2=0,0
+    water_sound_field__eventRadius:r=0
     "water_sound_field__event:SoundEvent"{}
-    water_sound_field__worldAABB:p4=-1000,-1000,1000,1000
   }
   // setup
   water_sound_field__cellSize:r=5
-  water_sound_field__extent:r=5
   water_sound_field__depthThreshold:r=0.15
+  water_sound_field__worldAABB:p4=-1000,-1000,1000,1000
   water_sound_field__path:t="ambient/positioned/lake_mid"
 }
 
@@ -339,7 +367,6 @@ biome_sound_query{
 
 global_sound_var_base{
   _use:t="replicating"
-  _use:t="sound_banks_state"
   _singleton:b=yes
 }
 
@@ -414,7 +441,6 @@ global_sound_vars{
 }
 
 base_menu_music{
-  _use:t="sound_banks_state"
   _tracked:t="menu_music__theme"
   _use:t="replicating"
   _singleton:b=yes
@@ -468,5 +494,23 @@ sound_occlusion{
     sound_occlusion__sourceIndoorMul:r=1 // source is INSIDE, listener is OUTSIDE
     sound_occlusion__sourceOutdoorMul:r=0.8 // source is OUTSIDE, listener is INSIDE
     sound_occlusion__undergroundDepthDist:r=3 // suppress when underground
+  }
+  _group{
+    _tags:t="sound"
+    _tags:t="dev"
+    sound_occlusion__debug:b=no
+    sound_occlusion__debugDist:r=1000
+    sel_ri_name:t=""
+  }
+  "sound_occlusion__occluderTypes:object"{
+    _tags:t="sound"
+    heavy:r=1
+    medium:r=0.7
+    light:r=0.4
+    door:r=0.4
+    vehicle:r=0.3
+  }
+  "sound_occlusion__ri_name_to_occluder_type:object"{
+    _tags:t="sound"
   }
 }

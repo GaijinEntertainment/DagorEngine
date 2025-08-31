@@ -1,0 +1,346 @@
+include "moa_sdf_generation_inc.dshl"
+
+int dcm_render_mode = 0;
+interval dcm_render_mode: disabled < 1, render_lens;
+
+float4 dcm_lens_up;
+float4 dcm_lens_right;
+float4 dcm_lens_forward;
+float4 dcm_eye_to_lens_aligned_origin;
+float4 dcm_eye_to_plane_origin;
+
+float4 dcm_color = float4(1, 0, 0, 1);
+float dcm_border_min = 1.0;
+float dcm_border_scale = 1.0;
+
+float dcm_use_noise = 0.0;
+float dcm_noise_min_intensity = 0.01;
+
+float dcm_light_noise_thinness = 0.001;
+float dcm_light_noise_intensity_scale = 15.0;
+
+float dcm_static_noise_uv_scale = 2.0;
+float dcm_static_noise_add = 0.1;
+float dcm_static_noise_scale = 0.6;
+
+float dcm_dynamic_noise_uv_scale = 8.0;
+float dcm_dynamic_noise_sub_scale = 0.56;
+float dcm_dynamic_noise_scale = 40.0;
+float dcm_dynamic_noise_add = -0.112;
+float dcm_dynamic_noise_intensity_scale = 0.0;
+float4 dcm_dynamic_noise_speed = (0.1, 0.27, 0, 0);
+
+texture noise_128_tex_hash;
+
+float4 dcm_inv_screen_size = (1, 1, 0, 0);
+
+macro COLLIMATOR_MOA_BASE()
+  ENABLE_ASSERT(ps)
+
+  if (in_editor_assume == yes)
+  {
+    assume dcm_render_mode = render_lens;
+  }
+
+  if (dcm_render_mode == disabled)
+  {
+    dont_render;
+  }
+
+  render_trans;
+  z_write = false;
+
+  blend_src = 1; blend_dst=isa;
+
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+  USE_FLOAT_POS_PACKING()
+
+  (vs) {
+    globtm@f44 = globtm;
+
+    world_local_x@f3 = world_local_x;
+    world_local_y@f3 = world_local_y;
+    world_local_z@f3 = world_local_z;
+    world_local_pos@f3 = world_local_pos;
+  }
+endmacro
+
+macro COLLIMATOR_MOA_EDITOR()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 e2p : TEXCOORD0;
+      nointerpolation float3 lensForward : TEXCOORD1;
+      nointerpolation float3 lensRight : TEXCOORD2;
+      nointerpolation float3 lensUp : TEXCOORD3;
+      nointerpolation float3 lensCenter: TEXCOORD4;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos : POSITION;   // W defaults to 1.
+      float4 normal : NORMAL; //.w componet is used in dynmodel rendering
+    };
+  }
+
+  NO_SKINNING_VS()
+
+  hlsl(vs) {
+    VsOutput dynamic_collimator_moa_vs(VsInput input)
+    {
+      VsOutput output;
+
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      float3 stub;
+      float4 stub4;
+      instance_skinning(input, input.pos, stub, stub, stub, output.e2p, output.pos, stub, stub, stub);
+      instance_skinning(input, float3(-1,0,0), stub, stub, stub, output.lensRight, stub4, stub, stub, stub);
+      instance_skinning(input, float3(0,0,1), stub, stub, stub, output.lensUp, stub4, stub, stub, stub);
+      instance_skinning(input, float3(0,0,0), stub, stub, stub, output.lensCenter, stub4, stub, stub, stub);
+
+      output.lensRight = normalize(output.lensRight - output.lensCenter);
+      output.lensUp = normalize(output.lensUp - output.lensCenter);
+      output.lensForward = normalize(cross(output.lensRight, output.lensUp));
+
+      return output;
+    }
+  }
+
+  (ps) {
+    world_local_x@f3 = world_local_x;
+    world_local_y@f3 = world_local_y;
+    world_local_z@f3 = world_local_z;
+    world_local_pos@f3 = world_local_pos;
+  }
+
+  hlsl(ps) {
+    #include "unpacked_moa_shapes.hlsli"
+    #include "moa_math.hlsli"
+
+    float4 dynamic_collimator_moa_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float3 lensPoint = input.e2p - input.lensCenter;
+      float x = dot(lensPoint, input.lensRight);
+      float y = dot(lensPoint, input.lensUp);
+
+      float width = 0.0001;
+      if (y >= 0 && abs(x) <= width)
+        return float4(0,0,1,1);
+
+      if (x >= 0 && abs(y) <= width)
+        return float4(1,0,0,1);
+
+      float3 eyeToLensAlignedOrigin = input.lensCenter - input.lensForward * 0.14;
+      float3 eyeToPlaneOrigin =  input.lensCenter + input.lensForward * 0.2;
+      float2 MOA = calc_parallax_moa(input.e2p, eyeToLensAlignedOrigin, eyeToPlaneOrigin,
+                                     input.lensForward, input.lensRight, input.lensUp);
+
+      UnpackedCircle circle;
+      circle.center = float2(0,0);
+      circle.radius = 6.0;
+      UnpackedRing ring;
+      ring.center = float2(0,0);
+      ring.radiusNear = 30.0;
+      ring.radiusFar = 30.0 + 3.0;
+
+      float sdf = 1000;
+      sdf = min(sdf, dist_circle(MOA, circle));
+      sdf = min(sdf, dist_ring(MOA, ring));
+      sdf = saturate(sdf);
+
+      return float4(1,0,0,1) * (1.0 - sdf);
+    }
+  }
+endmacro
+
+macro SDF_POLICY_RUNTIME_GENERATION()
+  INIT_AND_USE_MOA_SDF_GENERATION(ps)
+  hlsl(ps) {
+    float moa_to_sdf(float2 moa)
+    {
+      return calc_sdf_from_shapes(moa);
+    }
+  }
+  bool moa_lens_has_sdf_policy = true;
+endmacro
+
+macro SDF_POLICY_STUB()
+  hlsl(ps) {
+    #include "unpacked_moa_shapes.hlsli"
+    #include "moa_math.hlsli"
+
+    float moa_to_sdf(float2 moa)
+    {
+      UnpackedCircle circle;
+      circle.center = float2(0,0);
+      circle.radius = 6.0;
+      UnpackedRing ring;
+      ring.center = float2(0,0);
+      ring.radiusNear = 30.0;
+      ring.radiusFar = 30.0 + 3.0;
+
+      float sdf = 1000;
+      sdf = min(sdf, dist_circle(moa, circle));
+      sdf = min(sdf, dist_ring(moa, ring));
+
+      return sdf;
+    }
+  }
+  bool moa_lens_has_sdf_policy = true;
+endmacro
+
+macro COLLIMATOR_MOA_LENS()
+  if (!maybe(moa_lens_has_sdf_policy)) {
+    error("MOA_LENS() requires sdf policy to be defined before the invocation. Look for `moa_lens_has_sdf_policy`. Policy macro must declare `float moa_to_sdf(float2 moa)`");
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 e2p : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos : POSITION;   // W defaults to 1.
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput dynamic_collimator_moa_vs(VsInput input)
+    {
+      VsOutput output;
+
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      output.pos = mulPointTm(input.pos, globtm);
+      output.e2p = input.pos.x * world_local_x
+                 + input.pos.y * world_local_y
+                 + input.pos.z * world_local_z
+                 + world_local_pos;
+
+      return output;
+    }
+  }
+
+  (ps) {
+    dcm_inv_screen_size@f2 = dcm_inv_screen_size.xy;
+    depth_gbuf@smp2d = depth_gbuf;
+
+    lens_right@f3 = dcm_lens_right;
+    lens_up@f3 = dcm_lens_up;
+    lens_forward@f3 = dcm_lens_forward;
+    eye_to_lens_aligned_origin@f3 = dcm_eye_to_lens_aligned_origin;
+    eye_to_plane_origin@f3 = dcm_eye_to_plane_origin;
+
+    shape_color@f4 = dcm_color;
+    shape_border_scale@f1 = dcm_border_scale;
+    shape_border_min@f1 = dcm_border_min;
+
+    noise_128_tex_hash@smp2d = noise_128_tex_hash;
+    use_noise@f1 = dcm_use_noise;
+    noise_min_intensity@f1 = dcm_noise_min_intensity;
+    noise_time@f1 = time_phase(0,0);
+
+    light_noise_thinness@f1 = dcm_light_noise_thinness;
+    light_noise_intensity_scale@f1 = dcm_light_noise_intensity_scale;
+
+    static_noise_uv_scale@f1 = dcm_static_noise_uv_scale;
+    static_noise_add@f1 = dcm_static_noise_add;
+    static_noise_scale@f1 = dcm_static_noise_scale;
+
+    dynamic_noise_uv_scale@f1 = dcm_dynamic_noise_uv_scale;
+    dynamic_noise_sub_scale@f1 = dcm_dynamic_noise_sub_scale;
+    dynamic_noise_add@f1 = dcm_dynamic_noise_add;
+    dynamic_noise_scale@f1 = dcm_dynamic_noise_scale;
+    dynamic_noise_intensity_scale@f1 = dcm_dynamic_noise_intensity_scale;
+    dynamic_noise_speed@f2 = dcm_dynamic_noise_speed.xy;
+  }
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl(ps){
+    float4 calc_noisy_color(float4 color, float2 MOA, float alpha)
+    {
+      const float MOABorder = 150;
+      float2 unscaledNoiseUV = abs(MOA / MOABorder * 0.5 + 0.5);
+
+      float2 dynamicNoiseUVDynamicOffset = float2(
+        frac(noise_time * dynamic_noise_speed.x),
+        frac(noise_time * dynamic_noise_speed.y));
+
+      float2 dynamicNoiseUV = unscaledNoiseUV*dynamic_noise_uv_scale + dynamicNoiseUVDynamicOffset;
+      float dynamicNoise = tex2Dlod(noise_128_tex_hash, float4(dynamicNoiseUV,0,2)).r;
+      dynamicNoise = pow2(dynamicNoise) * dynamic_noise_sub_scale;
+      dynamicNoise = saturate(dynamicNoise + dynamic_noise_add) * dynamic_noise_scale;
+
+      float2 staticNoiseUV = unscaledNoiseUV * static_noise_uv_scale;
+      float staticNoise = tex2Dlod(noise_128_tex_hash, float4(staticNoiseUV,0,0)).r
+                        - tex2Dlod(noise_128_tex_hash, float4(staticNoiseUV,0,1)).r;
+
+      staticNoise = saturate((staticNoise + static_noise_add) * static_noise_scale);
+      staticNoise = staticNoise * staticNoise;
+
+      float noiseT = saturate(max(staticNoise, dynamicNoise * alpha));
+
+      float noiseIntensityBase =  max(noiseT, noise_min_intensity);
+      float3 noiseColor = color.rgb / luminance(color.rgb) * noiseIntensityBase;
+
+      float lightNoise = (staticNoise > dynamicNoise * light_noise_thinness) && (alpha > shape_border_min)
+                       ? light_noise_intensity_scale * noiseT : 1.0;
+      float3 laserColor = color.rgb * lightNoise;
+
+      float3 resColor = lerp(noiseColor, laserColor, noiseT);
+
+      return float4(resColor, color.a * noiseT) * alpha;
+    }
+
+    float4 dynamic_collimator_moa_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float3 tc = GET_SCREEN_POS(input.pos).xyz;
+      float2 uv = tc.xy * dcm_inv_screen_size;
+      float sceneDepth = tex2D(depth_gbuf, uv).r;
+      if (sceneDepth >= tc.z)
+        discard;
+
+      float3 e2p = input.e2p;
+      float2 MOA = calc_parallax_moa(e2p, eye_to_lens_aligned_origin, eye_to_plane_origin,
+                                     lens_forward, lens_right, lens_up);
+
+      float sdf = moa_to_sdf(MOA);
+      float innerSideDistance = saturate(-1.0 * sdf * shape_border_scale);
+
+      if (innerSideDistance <= 0.0)
+        discard;
+
+      float alpha = max(shape_border_min, pow2(innerSideDistance));
+      float4 color;
+
+      BRANCH
+      if (use_noise)
+        color = calc_noisy_color(shape_color, MOA, alpha);
+      else
+        color = shape_color;
+
+      return float4(pack_hdr(color.rgb), color.a);
+    }
+  }
+endmacro

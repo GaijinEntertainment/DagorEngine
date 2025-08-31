@@ -1,0 +1,7 @@
+WARNING: w214 (operator-returns-same-val) Both branches of operator '<> ? <> : <>' are equivalent.
+testData/static_analyzer/w214_static_memo_expr.nut:12:14
+
+::x <- static(test ? REPLAY.SKIRMISH : REPLAY.SKIRMISH) //-w316
+              ^---------------------------------------
+
+

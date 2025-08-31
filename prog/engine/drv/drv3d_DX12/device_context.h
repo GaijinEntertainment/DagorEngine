@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "3d/dag_latencyTypes.h"
 #include "bindless.h"
 #include "buffer.h"
 #include "command_list.h"
@@ -30,6 +31,7 @@
 #include "variant_vector.h"
 #include "viewport_state.h"
 #include "xess_wrapper.h"
+#include "synced_command_store.h"
 
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_commands.h>
@@ -51,6 +53,9 @@ class Device;
 struct RaytraceAccelerationStructure;
 #endif
 
+#if _TARGET_XBOX
+#include "device_context_xbox.h"
+#endif
 
 constexpr uint32_t timing_history_length = 32;
 
@@ -68,13 +73,385 @@ BufferImageCopy calculate_texture_subresource_copy_info(const Image &texture, ui
 TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels, uint32_t array_slice = 0,
   uint32_t array_size = 1, uint64_t initial_offset = 0);
 
+class ReadBackManager
+{
+  struct BufferReadBackRecord
+  {
+    BufferResourceReferenceAndRange source;
+    HostDeviceSharedMemoryRegion destiantion;
+    uint64_t offset;
+  };
+  struct TextureReadBackRecord
+  {
+    Image *image;
+    HostDeviceSharedMemoryRegion targetMemory;
+    BufferImageCopy copyInfo;
+  };
+  struct BufferFrameRef
+  {
+    uint32_t bufferID;
+    ValueRange<uint64_t> subRange;
+    uint64_t frameIndex;
+  };
+  struct ImageFrameRef
+  {
+    Image *image;
+    uint64_t frameIndex;
+  };
+  struct TextureMoveRecord
+  {
+    Image *from;
+    Image *to;
+  };
+  struct BufferMoveRecord
+  {
+    BufferResourceReferenceAndOffset from;
+    BufferResourceReferenceAndRange to;
+  };
+  dag::Vector<TextureReadBackRecord> textureReadBackRecords;
+  dag::Vector<BufferReadBackRecord> bufferReadBackRecords;
+  dag::Vector<ImageFrameRef> imageReadBackFrames;
+  dag::Vector<BufferFrameRef> bufferReadBackFrames;
+  dag::Vector<TextureMoveRecord> textureMoveRecords;
+  dag::Vector<BufferMoveRecord> bufferMoveRecords;
+  uint64_t nextSync = 0;
+
+  void updateProgressFor(Image *image, uint64_t frame_progress)
+  {
+    auto at =
+      eastl::find_if(imageReadBackFrames.begin(), imageReadBackFrames.end(), [image](auto &info) { return image == info.image; });
+    if (at != imageReadBackFrames.end())
+    {
+      nextSync = max(at->frameIndex, nextSync);
+      at->frameIndex = frame_progress;
+    }
+    else
+    {
+      ImageFrameRef info;
+      info.image = image;
+      info.frameIndex = frame_progress;
+      imageReadBackFrames.push_back(info);
+    }
+  }
+  void updateProgressFor(BufferResourceReferenceAndRange buffer, uint64_t frame_progress)
+  {
+    auto at = eastl::find_if(bufferReadBackFrames.begin(), bufferReadBackFrames.end(),
+      [bufferID = buffer.resourceId.index(), subRange = make_value_range(buffer.offset, buffer.size)](auto &info) {
+        return bufferID == info.bufferID && subRange == info.subRange;
+      });
+    if (at != bufferReadBackFrames.end())
+    {
+      nextSync = max(at->frameIndex, nextSync);
+      at->frameIndex = frame_progress;
+    }
+    else
+    {
+      BufferFrameRef info;
+      info.bufferID = buffer.resourceId.index();
+      info.subRange = make_value_range(buffer.offset, buffer.size);
+      info.frameIndex = frame_progress;
+      bufferReadBackFrames.push_back(info);
+    }
+  }
+
+public:
+  void addReadBack(BufferResourceReferenceAndRange buffer, HostDeviceSharedMemoryRegion cpu_memory, uint64_t offset)
+  {
+    BufferReadBackRecord record;
+    record.source = buffer;
+    record.destiantion = cpu_memory;
+    record.offset = offset;
+    bufferReadBackRecords.push_back(record);
+  }
+  void addReadBack(Image *image, HostDeviceSharedMemoryRegion cpu_memory, BufferImageCopyListRef::RangeType regions)
+  {
+    for (auto &&region : regions)
+    {
+      TextureReadBackRecord record;
+      record.image = image;
+      record.targetMemory = cpu_memory;
+      record.copyInfo = region;
+      textureReadBackRecords.push_back(record);
+    }
+  }
+  // NOTE: this is only needed when we allow <write> -> <read back> -> <write> to resources
+  // right now this is a possible use case with the DX11 implementation but was not observed yet
+  void onTextureWriteAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+    SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, Image *image)
+  {
+    // are any read backs pending for the texture?
+    auto firstEntry = eastl::find_if(textureReadBackRecords.begin(), textureReadBackRecords.end(),
+      [image](auto &info) { return image == info.image; });
+    if (textureReadBackRecords.end() == firstEntry)
+    {
+      return;
+    }
+
+    // we need to generate all barriers first
+    auto at = firstEntry;
+    do
+    {
+      resource_state.useTextureAsCopySource(barrier_batcher, split_transition_tracker, image,
+        SubresourceIndex::make(at->copyInfo.subresourceIndex));
+
+      at = eastl::find_if(at + 1, textureReadBackRecords.end(), [image](auto &info) { return image == info.image; });
+    } while (at != textureReadBackRecords.end());
+
+    barrier_batcher.execute(command_list);
+
+    // now we generate all read back copy commands and remove the entries
+    D3D12_TEXTURE_COPY_LOCATION src;
+    D3D12_TEXTURE_COPY_LOCATION dst;
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+    at = firstEntry;
+    do
+    {
+      src.pResource = at->image->getHandle();
+      src.SubresourceIndex = at->copyInfo.subresourceIndex;
+
+      dst.pResource = at->targetMemory.buffer;
+      dst.PlacedFootprint = at->copyInfo.layout;
+      dst.PlacedFootprint.Offset += at->targetMemory.range.front();
+
+      // TODO: remove offset
+      G_ASSERT(at->copyInfo.imageOffset.x == 0 && at->copyInfo.imageOffset.y == 0 && at->copyInfo.imageOffset.z == 0);
+      command_list.copyTexture(&dst, 0, 0, 0, &src, nullptr);
+
+      // swap with back and pop back -> fast remove
+      eastl::swap(*at, textureReadBackRecords.back());
+      textureReadBackRecords.pop_back();
+
+      at = eastl::find_if(at, textureReadBackRecords.end(), [image](auto &info) { return image == info.image; });
+    } while (at != textureReadBackRecords.end());
+  }
+  // NOTE: this is only needed when we allow <write> -> <read back> -> <write> to resources
+  // right now this is a possible use case with the DX11 implementation but was not observed yet
+  void onBufferWriteAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+    StatefulCommandBuffer &command_list, BufferResourceReference buffer)
+  {
+    auto at = eastl::find_if(bufferReadBackRecords.begin(), bufferReadBackRecords.end(),
+      [&buffer](auto &info) { return buffer == info.source; });
+
+    if (bufferReadBackRecords.end() == at)
+    {
+      return;
+    }
+
+    // no need to walk the read back list as we only can have one barrier per unique buffer
+    resource_state.useBufferAsCopySource(barrier_batcher, buffer);
+    barrier_batcher.execute(command_list);
+
+    do
+    {
+      auto dstOffset = at->destiantion.range.front() + at->offset;
+      auto srcOffset = at->source.offset;
+
+      command_list.copyBuffer(at->destiantion.buffer, dstOffset, at->source.buffer, srcOffset, at->source.size);
+
+      eastl::swap(*at, bufferReadBackRecords.back());
+      bufferReadBackRecords.pop_back();
+
+      at = eastl::find_if(bufferReadBackRecords.begin(), bufferReadBackRecords.end(),
+        [&buffer](auto &info) { return buffer == info.source; });
+    } while (at != bufferReadBackRecords.end());
+  }
+  // frame_progress is the current frame progress, this is used to limit on how many frames of the past we wait
+  // this has to be called before 'flushToReadBackQueue' of this frame, as 'flushToReadBackQueue' generates the
+  // sync data for the next frame.
+  uint64_t syncFrameBeginWith(uint64_t frame_progress)
+  {
+    // limit how may frames without sync can pass to keep dependency chains short
+    constexpr uint64_t max_sync_delta = 4;
+    const uint64_t delta = min(frame_progress - nextSync, max_sync_delta);
+    // on move sync we need to sync with prev frame to guarantee that the moved resources are ready
+    const uint64_t syncPoint = frame_progress - delta;
+
+    auto bufferReadBackFrameNewEnd = eastl::remove_if(bufferReadBackFrames.begin(), bufferReadBackFrames.end(),
+      [syncPoint](auto &info) { return info.frameIndex <= syncPoint; });
+    bufferReadBackFrames.erase(bufferReadBackFrameNewEnd, bufferReadBackFrames.end());
+
+    auto imageReadBackFramesNewEnd = eastl::remove_if(imageReadBackFrames.begin(), imageReadBackFrames.end(),
+      [syncPoint](auto &info) { return info.frameIndex <= syncPoint; });
+    imageReadBackFrames.erase(imageReadBackFramesNewEnd, imageReadBackFrames.end());
+
+    // need to update nextSync otherwise it may stay forever at 0
+    nextSync = syncPoint;
+
+    return syncPoint;
+  }
+  bool hasAnyReadBacksQueued() const
+  {
+    return !(
+      textureReadBackRecords.empty() && bufferReadBackRecords.empty() && textureMoveRecords.empty() && bufferMoveRecords.empty());
+  }
+  // this generates the barriers for the current frame, to make the read back resources read to be read back.
+  // records the read back commands into a read back command buffer and primes the data structures for syncing
+  // for the next frame.
+  void flushToReadBackQueue(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+    SplitTransitionTracker &split_transition_tracker, CopyCommandList<VersionedPtr<D3DCopyCommandList>> &copy_command_list,
+    uint64_t frame_progress, bool has_whole_copy_hang_bug)
+  {
+    D3D12_TEXTURE_COPY_LOCATION src;
+    D3D12_TEXTURE_COPY_LOCATION dst;
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+    for (auto &textureReadBack : textureReadBackRecords)
+    {
+      updateProgressFor(textureReadBack.image, frame_progress);
+
+      resource_state.useTextureAsReadBack(barrier_batcher, split_transition_tracker, textureReadBack.image,
+        SubresourceIndex::make(textureReadBack.copyInfo.subresourceIndex));
+
+      src.pResource = textureReadBack.image->getHandle();
+      src.SubresourceIndex = textureReadBack.copyInfo.subresourceIndex;
+
+      dst.pResource = textureReadBack.targetMemory.buffer;
+      dst.PlacedFootprint = textureReadBack.copyInfo.layout;
+      dst.PlacedFootprint.Offset += textureReadBack.targetMemory.range.front();
+
+      // TODO: remove offset
+      G_ASSERT(textureReadBack.copyInfo.imageOffset.x == 0 && textureReadBack.copyInfo.imageOffset.y == 0 &&
+               textureReadBack.copyInfo.imageOffset.z == 0);
+      copy_command_list.copyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+    }
+    textureReadBackRecords.clear();
+
+    for (auto &textureMoveRecord : textureMoveRecords)
+    {
+      resource_state.useTextureAsCopySourceForWholeCopyOnReadbackQueue(barrier_batcher, split_transition_tracker,
+        textureMoveRecord.from);
+      resource_state.useTextureAsCopyDestinationForWholeCopyOnReadbackQueue(barrier_batcher, split_transition_tracker,
+        textureMoveRecord.to);
+    }
+    if (has_whole_copy_hang_bug)
+    {
+      dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      for (auto &textureMoveRecord : textureMoveRecords)
+      {
+        for (const auto subres : textureMoveRecord.from->getSubresourceRange())
+        {
+          src.pResource = textureMoveRecord.from->getHandle();
+          src.SubresourceIndex = subres.index();
+
+          dst.pResource = textureMoveRecord.to->getHandle();
+          dst.SubresourceIndex = subres.index();
+
+          copy_command_list.copyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+        }
+      }
+    }
+    else
+    {
+      for (auto &textureMoveRecord : textureMoveRecords)
+      {
+        copy_command_list.copyResource(textureMoveRecord.to->getHandle(), textureMoveRecord.from->getHandle());
+      }
+    }
+
+    for (auto &bufferReadBack : bufferReadBackRecords)
+    {
+      updateProgressFor(bufferReadBack.destiantion, frame_progress);
+
+      auto dstOffset = bufferReadBack.destiantion.range.front() + bufferReadBack.offset;
+      auto srcOffset = bufferReadBack.source.offset;
+      // only need to do read backs on read back command buffer as buffers decay to common state
+      copy_command_list.copyBufferRegion(bufferReadBack.destiantion.buffer, dstOffset, bufferReadBack.source.buffer, srcOffset,
+        bufferReadBack.source.size);
+    }
+    bufferReadBackRecords.clear();
+
+    for (auto &bufferMoveRecord : bufferMoveRecords)
+    {
+      copy_command_list.copyBufferRegion(bufferMoveRecord.to.buffer, bufferMoveRecord.to.offset, bufferMoveRecord.from.buffer,
+        bufferMoveRecord.from.offset, bufferMoveRecord.to.size);
+    }
+    if (!textureMoveRecords.empty() || !bufferMoveRecords.empty())
+    {
+      nextSync = frame_progress;
+    }
+    textureMoveRecords.clear();
+    bufferMoveRecords.clear();
+  }
+  // swapchain read backs are special, we have to do it on the graphics queue before present
+  void doSwapchainReadBack(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+    SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list);
+  // currently we execute moves on the read back queue because it was convenient to do this way (lot of pluming was ready for it and
+  // the scheduling ideal for it) so the manager will handle this, if we are recording moves we can no longer overlap read backs with
+  // future frames, as they need to move to be completed this may be changed in the future
+  void moveTexture(Image *from, Image *to)
+  {
+    // to can not be a source for read backs as its still owned by the resource manager and its not publicly accessible yet
+    // from could be a source for a read back, but in this case the state would be the same so nothing to handle here
+    TextureMoveRecord record;
+    record.from = from;
+    record.to = to;
+    textureMoveRecords.push_back(record);
+  }
+  void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+  {
+    BufferMoveRecord record;
+    record.from = from;
+    record.to = to;
+    bufferMoveRecords.push_back(record);
+  }
+#if _TARGET_SCARLETT
+  // Workaround for an Xbox issue with non-zero texture array layers readbacks.
+  void flushArrayLayersReadbacksToGraphicsQueue(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+    SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list)
+  {
+    if (!command_list.isReadyForRecording())
+    {
+      return;
+    }
+
+    auto partitionPoint = eastl::partition(textureReadBackRecords.begin(), textureReadBackRecords.end(), [](const auto &readback) {
+      uint32_t arrayLayer = calculate_array_slice_from_index(readback.copyInfo.subresourceIndex,
+        readback.image->getMipLevelRange().count(), readback.image->getArrayLayerRange().count());
+      return arrayLayer == 0;
+    });
+
+    if (partitionPoint == textureReadBackRecords.end())
+      return;
+
+    D3D12_TEXTURE_COPY_LOCATION src;
+    D3D12_TEXTURE_COPY_LOCATION dst;
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+    for (auto it = partitionPoint; it != textureReadBackRecords.end(); ++it)
+    {
+      resource_state.useTextureAsCopySource(barrier_batcher, split_transition_tracker, it->image,
+        SubresourceIndex::make(it->copyInfo.subresourceIndex));
+
+      barrier_batcher.execute(command_list);
+
+      src.pResource = it->image->getHandle();
+      src.SubresourceIndex = it->copyInfo.subresourceIndex;
+
+      dst.pResource = it->targetMemory.buffer;
+      dst.PlacedFootprint = it->copyInfo.layout;
+      dst.PlacedFootprint.Offset += it->targetMemory.range.front();
+
+      // TODO: remove offset
+      G_ASSERT(it->copyInfo.imageOffset.x == 0 && it->copyInfo.imageOffset.y == 0 && it->copyInfo.imageOffset.z == 0);
+      command_list.copyTexture(&dst, 0, 0, 0, &src, nullptr);
+    }
+
+    textureReadBackRecords.erase(partitionPoint, textureReadBackRecords.end());
+  }
+#endif
+};
+
 struct FrameInfo
 {
   CommandStreamSet<AnyCommandListPtr, D3D12_COMMAND_LIST_TYPE_DIRECT> genericCommands;
   CommandStreamSet<AnyCommandListPtr, D3D12_COMMAND_LIST_TYPE_COMPUTE> computeCommands;
-  CommandStreamSet<VersionedPtr<D3DCopyCommandList>, D3D12_COMMAND_LIST_TYPE_COPY> earlyUploadCommands;
-  CommandStreamSet<VersionedPtr<D3DCopyCommandList>, D3D12_COMMAND_LIST_TYPE_COPY> lateUploadCommands;
   CommandStreamSet<VersionedPtr<D3DCopyCommandList>, D3D12_COMMAND_LIST_TYPE_COPY> readBackCommands;
+  CommandStreamSet<AnyCommandListPtr, D3D12_COMMAND_LIST_TYPE_DIRECT> preFrameCommands;
+  CommandStreamSet<VersionedPtr<D3DCopyCommandList>, D3D12_COMMAND_LIST_TYPE_COPY> frameConcurrentCommands;
   uint64_t progress = 0;
   EventPointer progressEvent{};
   dag::Vector<ProgramID> deletedPrograms;
@@ -121,6 +498,29 @@ struct SignatureStore
   }
 };
 
+// NOTE: default should be values that represent ContinueCurrentFrame
+struct FrameCompletionInfo
+{
+  enum class Mode
+  {
+    ContinueCurrentFrame,
+    FinishCurrentFrame
+  };
+  Mode mode = Mode::ContinueCurrentFrame;
+  uint32_t id = 0;
+};
+// NOTE: default should be values that represent DoNotPresent
+struct PresentInfo
+{
+  enum class Mode
+  {
+    DoNotPresent,
+    PresentSwapchain,
+  };
+  Mode mode = Mode::DoNotPresent;
+  ImageViewInfo clearView = {};
+  eastl::optional<uint32_t> swapchainIndex = {};
+};
 
 // need to shorten this - some Cmd structs can be combined, but this needs some refactoring in other places
 class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
@@ -130,14 +530,13 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   template <typename T, typename... Args>
   T make_command(Args &&...args)
   {
-    const bool isPrimary = T::is_primary();
-    if constexpr (isPrimary)
+    if constexpr (T::is_primary)
     {
-      return T{this->generateCommandData(), eastl::forward<Args>(args)...};
+      return T{CmdBase{}, this->generateCommandData(), eastl::forward<Args>(args)...};
     }
     else
     {
-      return T{{}, eastl::forward<Args>(args)...};
+      return T{CmdBase{}, {}, eastl::forward<Args>(args)...};
     }
   }
 
@@ -154,38 +553,37 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     DeviceContext &ctx;
     bool terminateIncoming = false;
   };
-#if !FIXED_EXECUTION_MODE
-  enum class ExecutionMode{
-    CONCURRENT = 0,
-    IMMEDIATE,
-    IMMEDIATE_FLUSH,
-  };
-#endif
-
 
   // ContextState
   struct ContextState : public debug::DeviceContextState
   {
+    struct TextureUploadRecord
+    {
+      Image *target = nullptr;
+      BufferImageCopy region = {};
+      HostDeviceSharedMemoryRegion source;
+    };
+
     ForwardRing<FrameInfo, FRAME_FRAME_BACKLOG_LENGTH> frames;
     SignatureStore drawIndirectSignatures;
     SignatureStore drawIndexedIndirectSignatures;
     SignatureStore dispatchRaySignatures;
     ComPtr<ID3D12CommandSignature> dispatchIndirectSignature;
     BarrierBatcher uploadBarrierBatch;
-    BarrierBatcher postUploadBarrierBatch;
-    BarrierBatcher readbackBarrierBatch;
     BarrierBatcher graphicsCommandListBarrierBatch;
     SplitTransitionTracker graphicsCommandListSplitBarrierTracker;
     InititalResourceStateSet initialResourceStateSet;
     ResourceUsageManagerWithHistory resourceStates;
     ResourceActivationTracker resourceActivationTracker;
     BufferAccessTracker bufferAccessTracker;
+    ReadBackManager readBackManager;
     ID3D12Resource *lastAliasBegin = nullptr;
     FramebufferLayoutManager framebufferLayouts;
-    dag::Vector<eastl::pair<Image *, SubresourceIndex>> textureReadBackSplitBarrierEnds;
     CopyCommandList<VersionedPtr<D3DCopyCommandList>> activeReadBackCommandList;
-    CopyCommandList<VersionedPtr<D3DCopyCommandList>> activeEarlyUploadCommandList;
-    CopyCommandList<VersionedPtr<D3DCopyCommandList>> activeLateUploadCommandList;
+    CopyCommandList<AnyCommandListPtr> activePreFrameCommands;
+    dag::Vector<D3D12_RESOURCE_BARRIER> pendingPreFrameBarriers;
+    CopyCommandList<VersionedPtr<D3DCopyCommandList>> activeFrameConcurrentCommands;
+    dag::Vector<TextureUploadRecord> activeTextureUploads;
 
     backend::BindlessSetManager bindlessSetManager;
 
@@ -266,6 +664,89 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       renderTargetSplitStarts.clear();
     }
 
+    void executeTextureUpload(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+      SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, const TextureUploadRecord &record)
+    {
+      if (record.target->getGlobalSubResourceIdBase().isValid())
+      {
+        resource_state.useTextureAsCopyDestination(barrier_batcher, split_transition_tracker, record.target,
+          SubresourceIndex::make(record.region.subresourceIndex));
+      }
+
+      barrier_batcher.execute(command_list);
+
+      D3D12_TEXTURE_COPY_LOCATION dst = {
+        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      };
+
+      D3D12_TEXTURE_COPY_LOCATION src = {
+        .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+      };
+
+      dst.pResource = record.target->getHandle();
+      dst.SubresourceIndex = record.region.subresourceIndex;
+
+      src.pResource = record.source.buffer;
+      src.PlacedFootprint = record.region.layout;
+      src.PlacedFootprint.Offset += record.source.range.front();
+
+      command_list.copyTexture(&dst, record.region.imageOffset.x, record.region.imageOffset.y, record.region.imageOffset.z, &src,
+        nullptr);
+
+      // on untracked we simply go back to common state
+      if (!record.target->getGlobalSubResourceIdBase().isValid())
+      {
+        barrier_batcher.transition(dst.pResource, SubresourceIndex::make(dst.SubresourceIndex), D3D12_RESOURCE_STATE_COPY_DEST,
+          D3D12_RESOURCE_STATE_COMMON);
+      }
+    }
+
+    template <typename Cmp>
+    void onTextureAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+      SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, Image *target, Cmp &&cmp)
+    {
+      // textures with global id are never queued to upload
+      if (target->getGlobalSubResourceIdBase().isValid())
+      {
+        return;
+      }
+      auto at = eastl::find_if(activeTextureUploads.begin(), activeTextureUploads.end(), cmp);
+      while (at != activeTextureUploads.end())
+      {
+        executeTextureUpload(resource_state, barrier_batcher, split_transition_tracker, command_list, *at);
+        // get the offset and use it for next search so we are not searching again over the same span we know it has no matching
+        // entries
+        auto ofs = at - activeTextureUploads.begin();
+        // have to keep ordering to be safe so that repeated uploads are applied correctly
+        activeTextureUploads.erase(at);
+        at = eastl::find_if(activeTextureUploads.begin() + ofs, activeTextureUploads.end(), cmp);
+      }
+    }
+
+    void onTextureAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+      SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, Image *target)
+    {
+      onTextureAccess(resource_state, barrier_batcher, split_transition_tracker, command_list, target,
+        [target](auto &record) { return target == record.target; });
+    }
+
+    void onTextureAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+      SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, Image *target, SubresourceIndex sub_res)
+    {
+      onTextureAccess(resource_state, barrier_batcher, split_transition_tracker, command_list, target,
+        [target, sub_res](auto &record) { return target == record.target && sub_res.index() == record.region.subresourceIndex; });
+    }
+
+    void onTextureAccess(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+      SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list, Image *target,
+      SubresourceRange sub_res_range)
+    {
+      onTextureAccess(resource_state, barrier_batcher, split_transition_tracker, command_list, target,
+        [target, sub_res_range](auto &record) {
+          return target == record.target && sub_res_range.isInside(SubresourceIndex::make(record.region.subresourceIndex));
+        });
+    }
+
     FrameInfo &getFrameData() { return frames.get(); }
   };
 
@@ -275,15 +756,11 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     Device &device;
     // link to owner, needed to access device and other objects
     DeviceContext &self;
-    size_t cmd = 0;
-    uint32_t cmdIndex = 0;
-
     ContextState &contextState;
 
 #if _TARGET_SCARLETT
     ExecutionContextDataScarlett ctxScarlett;
 #endif
-
 
     struct ExtendedCallStackCaptureData
     {
@@ -330,8 +807,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     }
 
     bool readyReadBackCommandList();
-    bool readyEarlyUploadCommandList();
-    bool readyLateUploadCommandList();
+    bool readyBufferUploadCommandList();
+    bool readyTextureUploadCommandList();
 
 #if _TARGET_PC_WIN
     bool readyCommandList() const { return contextState.cmdBuffer.isReadyForRecording(); }
@@ -340,7 +817,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 #endif
 
     AnyCommandListPtr allocAndBeginCommandBuffer();
-    void readBackImagePrePhase();
     bool checkDrawCallHasOutput(eastl::span<const char> info);
     template <size_t N>
     bool checkDrawCallHasOutput(const char (&sl)[N])
@@ -350,11 +826,11 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
     void checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name, const debug::CommandListLogger &logger) const;
 
+    void makeSureCmdBufferHasCommands();
+    void recordReadbackCommands(uint64_t progress);
+
   public:
     ExecutionContext(DeviceContext &ctx, ContextState &css);
-    void beginWork();
-    void beginCmd(size_t icmd);
-    void endCmd();
     FramebufferState &getFramebufferState();
     void setUniformBuffer(uint32_t stage, uint32_t unit, const ConstBufferSetupInformationStream &info,
       StringIndexRef::RangeType name);
@@ -377,6 +853,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void setScissorRects(ScissorRectListRef::RangeType rects);
     void setIndexBuffer(BufferResourceReferenceAndAddressRange buffer, DXGI_FORMAT type);
     void setVertexBuffer(uint32_t stream, BufferResourceReferenceAndAddressRange buffer, uint32_t stride);
+    void setStreamOutputBuffer(uint32_t slot, BufferResourceReferenceAndAddressRange buffer,
+      BufferResourceReferenceAndAddress counter);
     bool isPartOfFramebuffer(Image *image);
     bool isPartOfFramebuffer(Image *image, MipMapRange mip_range, ArrayLayerRange array_range);
     // returns true if the current pass encapsulates the draw area of the viewport
@@ -385,10 +863,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void setStaticRenderState(StaticRenderStateID ident);
     void setInputLayout(InputLayoutID ident);
     void setWireFrame(bool wf);
-    void prepareCommandExecution();
+    bool prepareCommandExecution(CommandRequirement command_requirement);
     void setConstRegisterBuffer(uint32_t stage, HostDeviceSharedMemoryRegion update);
     void writeToDebug(StringIndexRef::RangeType index);
-    int64_t flush(uint64_t progress, bool frame_end = false, bool present_on_swapchain = false);
+    int64_t flush(uint64_t progress, const FrameCompletionInfo &frame_info, const PresentInfo &present_info);
     void pushEvent(StringIndexRef::RangeType name);
     void popEvent();
     void writeTimestamp(Query *query);
@@ -413,8 +891,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact);
 #endif
     void continuePipelineSetCompilation() const;
-    void finishFrame(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp, uint32_t latency_frame, uint32_t front_frame,
-      bool present_on_swapchain);
+    void finishFrame(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp, uint32_t front_frame, uint32_t frame_id,
+      const PresentInfo &present_info);
     void dispatch(uint32_t x, uint32_t y, uint32_t z);
     void dispatchIndirect(BufferResourceReferenceAndOffset buffer);
     void copyBuffer(BufferResourceReferenceAndOffset src, BufferResourceReferenceAndOffset dst, uint32_t size);
@@ -438,6 +916,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushRenderTargets();
     void flushRenderTargetStates();
     void dirtyTextureStateForFramebufferAttachmentUse(Image *texture);
+    void checkFramebufferIntegrity(Image *deleted_image);
     void setGraphicsPipeline(GraphicsProgramID program);
     void setComputePipeline(ProgramID program);
     void bindVertexUserData(HostDeviceSharedMemoryRegion bsa, uint32_t stride);
@@ -452,6 +931,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushGraphicsState(D3D12_PRIMITIVE_TOPOLOGY top);
     void flushIndexBuffer();
     void flushVertexBuffers();
+    void flushStreamOutputBuffer();
+    void resetStreamOutputBufferOnFlush();
     void flushGraphicsStateResourceBindings();
     // handled by flush, could be moved into this though
     void ensureActivePass();
@@ -464,9 +945,11 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
     void beginVisibilityQuery(Query *q);
     void endVisibilityQuery(Query *q);
+#if _TARGET_PC_WIN
+    void changePresentWindow(uint32_t index) { self.back.swapchain.setPresentWindow(index); }
+#endif
     void flushComputeState();
-    void textureReadBack(Image *image, HostDeviceSharedMemoryRegion cpu_memory, BufferImageCopyListRef::RangeType regions,
-      DeviceQueueType queue);
+    void textureReadBack(Image *image, HostDeviceSharedMemoryRegion cpu_memory, BufferImageCopyListRef::RangeType regions);
     void bufferReadBack(BufferResourceReferenceAndRange buffer, HostDeviceSharedMemoryRegion cpu_memory, size_t offset);
 #if !_TARGET_XBOXONE
     void setVariableRateShading(D3D12_SHADING_RATE rate, D3D12_SHADING_RATE_COMBINER vs_combiner,
@@ -476,18 +959,21 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void registerInputLayout(InputLayoutID ident, const InputLayout &layout);
     void createDlssFeature(bool stereo_render, int output_width, int output_height);
     void releaseDlssFeature(bool stereo_render);
-    void executeDlss(const nv::DlssParams<Image> &dlss_params, int view_index, uint32_t frame_id);
+    void executeDlss(const nv::DlssParams<Image> &dlss_params, int view_index);
     void executeDlssG(const nv::DlssGParams<Image> &dlss_g_params, int view_index);
     void prepareExecuteAA(std::initializer_list<Image *> inputs, std::initializer_list<Image *> outputs);
     void executeXess(const XessParamsDx12 &params);
+    void executeXeFg(const XessFgParamsDx12 &params);
     void executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params);
     void executeFSR2(const Fsr2ParamsDx12 &params);
+    void executeFSRFG(amd::FSR *fsr, const FSRFrameGenArgs &params);
     void removeVertexShader(ShaderID shader);
     void removePixelShader(ShaderID shader);
     void deleteProgram(ProgramID program);
     void deleteGraphicsProgram(GraphicsProgramID program);
     void deleteQueries(QueryPointerListRef::RangeType queries);
     void hostToDeviceMemoryCopy(BufferResourceReferenceAndRange target, HostDeviceSharedMemoryRegion source, size_t source_offset);
+    void hostToDeviceTextureCopy(ContextState::TextureUploadRecord upload);
     void initializeTextureState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> id_range);
     void uploadTexture(Image *target, BufferImageCopyListRef::RangeType regions, HostDeviceSharedMemoryRegion source,
       DeviceQueueType queue, bool is_discard);
@@ -501,6 +987,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
     void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
       bool force_barrier);
+    void discardTexture(Image *tex, uint32_t tex_flags);
 #if D3D_HAS_RAY_TRACING
     void asBarrier(RaytraceAccelerationStructure *as, GpuPipeline queue);
 #endif
@@ -529,10 +1016,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void disablePredication();
     void tranistionPredicationBuffer();
     void applyPredicationBuffer();
+    void setLatencyMarker(uint32_t frame_id, lowlatency::LatencyMarkerType type);
 
 #if _TARGET_PC_WIN
     void onDeviceError(HRESULT remove_reason);
-    void onSwapchainSwapCompleted();
     void commandFence(std::atomic_bool &signal);
 #endif
 
@@ -544,11 +1031,12 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void addTileMappings(const TileMapping *mapping, size_t mapping_count);
     void endTileMapping();
 
-    void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemory &memory,
-      ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline gpu_pipeline);
+    void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemoryLocation &memory_location,
+      ResourceActivationAction action, GpuPipeline gpu_pipeline);
     void activateTexture(Image *tex, ResourceActivationAction action, const ResourceClearValue &value, ImageViewState view_state,
       D3D12_CPU_DESCRIPTOR_HANDLE view, GpuPipeline gpu_pipeline);
-    void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemory &memory, GpuPipeline gpu_pipeline);
+    void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemoryLocation &memory_location,
+      GpuPipeline gpu_pipeline);
     void deactivateTexture(Image *tex, GpuPipeline gpu_pipeline);
     void aliasFlush(GpuPipeline gpu_pipeline);
     void twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint64_t destination_offset, ScratchBuffer scratch_memory,
@@ -594,7 +1082,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       UInt32ListRef::RangeType root_constants, const RayDispatchParameters &rdp);
     void dispatchRaysIndirect(const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt,
       UInt32ListRef::RangeType root_constants, const RayDispatchIndirectParameters &rdip);
+    void accelerationStructurePoolBarrier(::raytrace::AccelerationStructurePool pool);
 #endif
+    void executeFaultyTextureRead(D3D12_CPU_DESCRIPTOR_HANDLE src_descriptor, Image *dst_image, ImageViewState dst_view,
+      D3D12_CPU_DESCRIPTOR_HANDLE dst_descriptor);
   };
 
 
@@ -650,7 +1141,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     int64_t workWaitDuration = 0;
 #endif
     int64_t previousPresentEndTicks = 0;
-    ConstBufferStreamDescriptorHeap constBufferStreamDescriptors;
     backend::Swapchain swapchain{};
     // The backend has its own frame progress counter, as its simpler than syncing
     // it with the front end one.
@@ -661,13 +1151,12 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   friend class backend::Swapchain;
   Device &device;
 
-  AnyCommandStore commandStream;
+  SyncedCommandStore commandStream;
   eastl::unique_ptr<WorkerThread> worker;
-#if !FIXED_EXECUTION_MODE
-  ExecutionMode executionMode = ExecutionMode::IMMEDIATE;
+#if !DX12_FIXED_EXECUTION_MODE
+  CommandExecutionMode executionMode = CommandExecutionMode::IMMEDIATE;
   bool isImmediateFlushSuppressed = false;
 #endif
-  WIN_MEMBER bool isPresentSynchronous = false;
   WIN_MEMBER bool isWaitForASyncPresent = false;
 #if ENABLE_GENERIC_RENDER_PASS_VALIDATION
   eastl::optional<RenderPassArea> activeRenderPassArea;
@@ -683,23 +1172,28 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   EventsPool eventsPool;
 
   XessWrapper xessWrapper;
+#if !_TARGET_XBOX
   eastl::optional<StreamlineAdapter> streamlineAdapter;
+#endif
   Fsr2Wrapper fsr2Wrapper;
 
-#if FIXED_EXECUTION_MODE
+#if DX12_FIXED_EXECUTION_MODE
   constexpr bool isImmediateMode() const { return false; }
   constexpr bool isImmediateFlushMode() const { return false; }
   constexpr void immediateModeExecute(bool = false) const {}
   constexpr void suppressImmediateFlush() {}
   constexpr void restoreImmediateFlush() {}
 #else
-  bool isImmediateMode() const { return ExecutionMode::CONCURRENT != executionMode; }
-  bool isImmediateFlushMode() const { return ExecutionMode::IMMEDIATE_FLUSH == executionMode; }
+  bool isImmediateMode() const
+  {
+    return CommandExecutionMode::CONCURRENT != executionMode && CommandExecutionMode::CONCURRENT_SYNCED != executionMode;
+  }
+  bool isImmediateFlushMode() const { return CommandExecutionMode::IMMEDIATE_FLUSH == executionMode; }
   void suppressImmediateFlush()
   {
-    if (executionMode == ExecutionMode::IMMEDIATE_FLUSH)
+    if (executionMode == CommandExecutionMode::IMMEDIATE_FLUSH)
     {
-      executionMode = ExecutionMode::IMMEDIATE;
+      setExecutionMode(CommandExecutionMode::IMMEDIATE);
       isImmediateFlushSuppressed = true;
     }
   }
@@ -708,7 +1202,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     if (isImmediateFlushSuppressed)
     {
       isImmediateFlushSuppressed = false;
-      executionMode = ExecutionMode::IMMEDIATE_FLUSH;
+      setExecutionMode(CommandExecutionMode::IMMEDIATE_FLUSH);
     }
   }
 
@@ -716,9 +1210,16 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   // if immediate flush mode is enabled and the flush parameter is true then current thread will wait
   // for the GPU to finish the commands clears the stream after the execution
   void immediateModeExecute(bool flush = false);
+
+  void setExecutionMode(CommandExecutionMode execution_mode)
+  {
+    executionMode = execution_mode;
+    commandStream.setExecutionMode(executionMode);
+  }
 #endif
 
-  void replayCommands();
+  void replayCommandsWithProfiler(ExecutionContext &execution_context);
+  bool replayCommands(ExecutionContext &execution_context);
   void replayCommandsConcurrently(volatile int &terminate);
 
   enum class TidyFrameMode
@@ -727,22 +1228,22 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     SyncPoint,
   };
   void frontFlush(TidyFrameMode tidy_mode);
-  void waitForLatchedFrame();
+  bool waitForLatchedFrame();
   void manageLatchedState(TidyFrameMode tidy_mode);
 
   void makeReadyForFrame(uint32_t frame_index, bool update_swapchain = true);
   void initFrameStates();
   void shutdownFrameStates();
   WinCritSec &getFrontGuard();
-#if FIXED_EXECUTION_MODE
+#if DX12_FIXED_EXECUTION_MODE
   void initMode();
 #else
-  void initMode(ExecutionMode mode);
+  void initMode(CommandExecutionMode mode);
 #endif
   void shutdownWorkerThread();
 
   // assumes frontend and backend are synced and locked so that access to front and back is safe
-  void resizeSwapchain(Extent2D size);
+  void resizeSwapchain(Extent2D size, uint32_t swapchain_index);
   void waitInternal();
   void finishInternal();
   void blitImageInternal(Image *src, Image *dst, const ImageBlit &region, bool disable_predication);
@@ -789,11 +1290,17 @@ public:
   void setScissorEnable(bool enabled);
   void setScissorRects(dag::ConstSpan<D3D12_RECT> rects);
 
+#if _TARGET_PC_WIN
+  void flushAndPresentToWindow(HWND hwnd);
+#endif
+
   void bindVertexDecl(InputLayoutID ident);
 
   void setIndexBuffer(BufferResourceReferenceAndAddressRange buffer, DXGI_FORMAT type);
 
   void bindVertexBuffer(uint32_t stream, BufferResourceReferenceAndAddressRange buffer, uint32_t stride);
+
+  void setStreamOutputBuffer(uint32_t slot, BufferResourceReferenceAndAddressRange buffer, BufferResourceReferenceAndAddress counter);
 
   void dispatch(uint32_t x, uint32_t y, uint32_t z);
   void dispatchIndirect(BufferResourceReferenceAndOffset buffer);
@@ -833,17 +1340,20 @@ public:
   void destroyBuffer(BufferState buffer);
   BufferState discardBuffer(BufferState to_discared, DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size,
     bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
-  void destroyImage(Image *img);
+  void checkFramebufferIntegityNoLock(Image *img);
+  void destroyImage(Image *img, bool is_rt);
   // blocks the main thread until the previously started swapchain present on the backend thread finishes
   void waitForAsyncPresent();
   // blocks the input sampling until the GPU finished the running frame
   void gpuLatencyWait();
-  void finishFrame(bool present_on_swapchain = true);
+  void beginFrame(uint32_t frame_id, bool allow_wait);
+  void setLatencyMarker(uint32_t frame_id, lowlatency::LatencyMarkerType type);
+  void finishFrame(uint32_t frame_id, bool present_on_swapchain = true);
   void changePresentMode(PresentationMode mode);
-  void changeSwapchainExtents(Extent2D size);
+  void changeCurrentSwapchainExtents(Extent2D size);
 #if _TARGET_PC_WIN
-  void changeFullscreenExclusiveMode(bool is_exclusive);
-  void changeFullscreenExclusiveMode(bool is_exclusive, ComPtr<IDXGIOutput> output);
+  void changePresentWindowNoLock(uint32_t index);
+  void changeSwapchainExtents(Extent2D size, uint32_t swapchian_index);
   HRESULT getSwapchainDesc(DXGI_SWAP_CHAIN_DESC *out_desc) const;
   IDXGIOutput *getSwapchainOutput() const;
 #endif
@@ -893,6 +1403,8 @@ public:
   void deleteTexture(BaseTex *tex);
   void resetBindlessReferences(BaseTex *tex);
   void resetBindlessReferences(BufferState &buffer);
+  void removeBindlessReferences(BaseTex *tex);
+  void removeBindlessReferences(BufferState &buffer);
   void updateBindlessReferences(D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor, D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
   void freeMemory(HostDeviceSharedMemoryRegion allocation);
   void freeMemoryOfUploadBuffer(HostDeviceSharedMemoryRegion allocation);
@@ -901,8 +1413,8 @@ public:
   void uploadToImage(const BaseTex &dst_tex, const BufferImageCopy *regions, uint32_t region_count,
     HostDeviceSharedMemoryRegion memory, DeviceQueueType queue, bool is_discard);
   // Return value is the progress the caller can wait on to ensure completion of this operation
-  uint64_t readBackFromImage(HostDeviceSharedMemoryRegion memory, const BufferImageCopy *regions, uint32_t region_count, Image *source,
-    DeviceQueueType queue);
+  uint64_t readBackFromImage(HostDeviceSharedMemoryRegion memory, const BufferImageCopy *regions, uint32_t region_count,
+    Image *source);
   void removeGraphicsProgram(GraphicsProgramID program);
   void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
   void setStaticRenderState(StaticRenderStateID ident);
@@ -923,7 +1435,7 @@ public:
   void resumeExecution();
 
   void updateFrameInterval(int32_t freq_level = -1);
-  void resummarizeHtile(ID3D12Resource *depth);
+  void resummarizeHtile(BaseTex *bt);
 #endif
   // Returns the progress we are recording now for future push to the GPU
   uint64_t getRecordingFenceProgress() const { return front.recordingWorkItemProgress; }
@@ -950,14 +1462,22 @@ public:
   XessState getXessState() const { return xessWrapper.getXessState(); }
   Fsr2State getFsr2State() const { return fsr2Wrapper.getFsr2State(); }
 
+  bool isXeFGSupported() const { return xessWrapper.isFrameGenerationSupported(); }
+  bool isXeFGEnabled() const { return xessWrapper.isFrameGenerationEnabled(); }
+  void enableXeFG(bool enable) { xessWrapper.enableFrameGeneration(enable); }
+  void suppressXeFG(bool suppress) { xessWrapper.suppressFrameGeneration(suppress); }
+  void scheduleXeFG(const XessFgParams &params);
+  int getXeFgPresentedFrameCount() { return xessWrapper.getPresentedFrameCount(); }
+
+  void shutdownInternalSwapchain();
+  bool adoptUserSwapchain(DXGISwapChain *swapchain, SwapchainCreateInfo &&sci);
+  bool createDefaultSwapchain(DXGIFactory *factory, SwapchainCreateInfo &&sci);
+
   void preRecoverStreamline();
   void recoverStreamline(DXGIAdapter *adapter);
-
-  template <typename T>
-  T *getStreamlineFeature()
-  {
-    return streamlineAdapter ? &streamlineAdapter.value() : nullptr;
-  }
+#if !_TARGET_XBOX
+  nv::Streamline *getStreamline() { return streamlineAdapter ? &streamlineAdapter.value() : nullptr; }
+#endif
   bool isXessQualityAvailableAtResolution(uint32_t target_width, uint32_t target_height, int xess_quality) const
   {
     return xessWrapper.isXessQualityAvailableAtResolution(target_width, target_height, xess_quality);
@@ -973,11 +1493,13 @@ public:
   void executeXess(const XessParams &params);
   void executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params);
   void executeFSR2(const Fsr2Params &params);
+  void executeFSRFG(amd::FSR *fsr, const amd::FSR::FrameGenArgs &params);
   void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
   void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
     bool force_barrier);
+  void discardTexture(BaseTex *tex);
 #if D3D_HAS_RAY_TRACING
-  void blasBarrier(RaytraceBottomAccelerationStructure *blas, GpuPipeline queue);
+  void blasBarrier(RaytraceAccelerationStructure *as, GpuPipeline queue);
 #endif
   void beginCapture(UINT flags, LPCWSTR name);
   void endCapture();
@@ -997,8 +1519,11 @@ public:
   void bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void bindlessCopyResourceDescriptorsNoLock(uint32_t src, uint32_t dst, uint32_t count);
 
-  BaseTex *getSwapchainColorTexture();
-  BaseTex *getSwapchainSecondaryColorTexture();
+  uint32_t getCurrentSwapchainIndex() const;
+  BaseTex *getSwapchainColorTexture(uint32_t swapchain_index);
+  BaseTex *getSwapchainSecondaryColorTexture(uint32_t swapchain_index);
+  BaseTex *getCurrentSwapchainColorTexture();
+  BaseTex *getCurrentSwapchainSecondaryColorTexture();
   Extent2D getSwapchainExtent() const;
   bool isVrrSupported() const;
   bool isVsyncOn() const;
@@ -1006,6 +1531,8 @@ public:
   bool isHfrEnabled() const;
   FormatStore getSwapchainColorFormat() const;
   FormatStore getSwapchainSecondaryColorFormat() const;
+  DXGISwapChain *getDxgiSwapchain() const;
+
   // flushes all outstanding work, waits for the backend and GPU to complete it and finish up all
   // outstanding tasks that depend on frame completions
   void finish();
@@ -1028,24 +1555,12 @@ public:
 
   void updateFenceProgress();
 
-  WIN_FUNC bool isPresentAsync() const { return !isPresentSynchronous; }
-  WIN_FUNC bool wasCurrentFramePresentSubmitted() const
-  {
-    return hasWorkerThread() ? back.swapchain.wasCurrentFramePresentSubmitted() : false;
-  }
-  WIN_FUNC bool swapchainPresentFromMainThread()
-  {
-    return hasWorkerThread() ? back.swapchain.swapchainPresentFromMainThread(*this) : true;
-  }
-  void onSwapchainSwapCompleted();
-
   void mapTileToResource(BaseTex *tex, ResourceHeap *heap, const TileMapping *mapping, size_t mapping_count);
 
   void freeUserHeap(::ResourceHeap *ptr);
-  void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemory &memory,
-    ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline gpu_pipeline);
+  void activateBuffer(const BufferReference &buffer, ResourceActivationAction action, GpuPipeline gpu_pipeline);
   void activateTexture(BaseTex *texture, ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline gpu_pipeline);
-  void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemory &memory, GpuPipeline gpu_pipeline);
+  void deactivateBuffer(const BufferReference &buffer, GpuPipeline gpu_pipeline);
   void deactivateTexture(Image *tex, GpuPipeline gpu_pipeline);
   void aliasFlush(GpuPipeline gpu_pipeline);
   HostDeviceSharedMemoryRegion allocatePushMemory(uint32_t size, uint32_t alignment);
@@ -1053,12 +1568,15 @@ public:
   void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
   void moveTextureNoLock(Image *from, Image *to);
 
-#if FIXED_EXECUTION_MODE
+#if DX12_FIXED_EXECUTION_MODE
   constexpr bool hasWorkerThread() const { return true; }
   constexpr bool enableImmediateFlush() { return false; }
   constexpr void disableImmediateFlush() {}
 #else
-  bool hasWorkerThread() const { return executionMode == ExecutionMode::CONCURRENT; }
+  bool hasWorkerThread() const
+  {
+    return executionMode == CommandExecutionMode::CONCURRENT || CommandExecutionMode::CONCURRENT_SYNCED == executionMode;
+  }
   bool enableImmediateFlush();
   void disableImmediateFlush();
 #endif
@@ -1100,7 +1618,14 @@ public:
 private:
   drv3d_dx12::ResourceBindingTable resolveResourceBindingTable(const ::raytrace::ResourceBindingTable &rbt,
     RayTracePipeline *pipeline);
+
+public:
+  void deleteRaytraceAccelerationStructurePool(::raytrace::AccelerationStructurePool pool);
+  void deleteRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool, ::raytrace::AnyAccelerationStructure structure);
+  void accelerationStructurePoolBarrier(::raytrace::AccelerationStructurePool pool);
 #endif
+
+  void executeFaultyTextureRead(D3D12_CPU_DESCRIPTOR_HANDLE texture_descriptor);
 };
 
 class ScopedCommitLock

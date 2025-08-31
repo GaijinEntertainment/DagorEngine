@@ -23,6 +23,7 @@ struct TileMapping
                          ///< - Map to subresource TextureTilingInfo::numUnpackedMips at 0, 0, 0.
   ///< - Use a span of TextureTilingInfo::numTilesNeededForPackedMips so the whole mip tail can be mapped at once.
   ///< - From TileMapping::heapTileIndex the given number of tiles will be mapped to the packed mip tail.
+  bool isPacked; ///< Whether this mapping is for packed mips or not. If true, the mapping is for packed mips.
 };
 
 

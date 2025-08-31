@@ -1,0 +1,16 @@
+include "project_trace.dshl"
+
+define_macro_if_not_defined PROJECT_TRACE(code)
+  hlsl (code) {
+    #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
+    #define DAGI_PROJECT_TRACE_HAS_ALBEDO 0
+    #define DAGI_HAS_PROJECT_TRACE 0
+    struct DaGiProjectHitRes
+    {
+      float3 hitCamPos, hitNormal;
+      float3 hitAlbedo, hitRadiance;
+      float hitAt; bool hasRadiance;
+    };
+    bool dagi_project_trace_surface(float3 rel_from, float3 origin, float3 world_dir, float maxT, DaGiProjectHitRes hit){return false;}
+  }
+endmacro

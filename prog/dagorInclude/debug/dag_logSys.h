@@ -17,7 +17,7 @@ KRNLIMP const char *get_log_directory();
 KRNLIMP const char *get_log_filename();
 KRNLIMP void close_debug_files();
 KRNLIMP void flush_debug_file();
-KRNLIMP void start_debug_system(const char *exe_fname, const char *prefix = ".log/", bool datetime_name = true);
+KRNLIMP void start_debug_system(const char *exe_fname, const char *prefix = ".logs/", bool datetime_name = true);
 KRNLIMP void start_classic_debug_system(const char *debug_fname, bool en_time = true, bool hhmmss_fmt = false, int hhmmss_subsec = 0,
   bool append_file = false);
 KRNLIMP void debug_enable_timestamps(bool en_time, bool hhmmss_fmt = false, int hhmmss_subsec = 0);

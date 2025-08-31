@@ -4,9 +4,12 @@
 
 [Install the script](installation.md) following the provided instructions.
 
-```{important}
-This script requires 3ds Max 2010 or newer version to run.
+```{admonition} 3ds Max Version Requirement
+:class: warning
+
+This script requires **3ds Max 2010 or later**.
 ```
+
 ## Overview
 
 This tool facilitates the transfer and baking of vertex position changes from
@@ -17,26 +20,46 @@ vertex color channels.
 
 Below is an example of the tool's output:
 
-<img src="_images/transfer_vertex_01.gif" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+```{eval-rst}
 
-## Accessing the Transfer Vertex Position to Vertex Color Tool
+.. only:: html
 
-1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Dagor Vertex Pos to
-   VColor...**. This will open the main window of the Dagor Vertex Position to
-   VColor Tool.
+   .. image:: _images/transfer_vertex_01.gif
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 70em
+      :align: center
 
-2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin
-   Tools** {bdg-dark-line}`1` **> About** {bdg-dark-line}`2`. The **About**
-   window will display the current version. It's important to check this
-   regularly to ensure your script is up to date.
 
-   <img src="_images/transfer_vertex_02.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+.. only:: latex
 
-```{note}
-Make sure that the plugin version is at least `1.6`.
+   `Download video (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/_images/transfer_vertex_01.gif>`_
+
 ```
 
-## Using the Transfer Vertex Position to Vertex Color Tool
+## Accessing Transfer Vertex Position to Vertex Color Tool
+
+1. Navigate to **Gaijin Tools** {cnum}`1` **> Dagor Vertex Pos to VColor...**.
+   This will open the main window of the Dagor Vertex Position to VColor Tool.
+
+2. To verify the version {cnum}`3` of the script, go to **Gaijin Tools**
+   {cnum}`1` **> About** {cnum}`2`. The **About** window will display the
+   current version. It's important to check this regularly to ensure your script
+   is up to date.
+
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_02.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 50em
+      :align: center
+   ```
+
+   ```{admonition} Plugin Version Requirement
+   :class: warning
+
+   Requires plugin version **1.6 or higher**.
+   ```
+
+## Using Transfer Vertex Position to Vertex Color Tool
 
 To begin, open the tool panel by navigating to **Gaijin Tools > Dagor Vertex Pos
 to VColor**.
@@ -44,8 +67,10 @@ to VColor**.
 Download the following test scene:
 {download}`VColorMorphDemo.max <_examples/VColorMorphDemo.zip>`.
 
-```{important}
-This scene requires 3ds Max 2024 or later version.
+```{admonition} 3ds Max Version Requirement
+:class: warning
+
+This scene requires **3ds Max 2024 or later**.
 ```
 
 ### Use Case: Bent Metal Effect
@@ -89,18 +114,29 @@ both the original and deformed models are identical.
      automatically calculated after the script processes the models, as shown in
      the following example:
 
-     <img src="_images/transfer_vertex_03.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_03.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 15em
+      :align: center
+   ```
 
 ### Script Interface Overview
 
 The script interface is divided into three main sections:
 
+```{eval-rst}
+.. image:: _images/transfer_vertex_04.png
+   :alt: Transfer Vertex Position to Vertex Color Tool
+   :width: 50em
+   :align: center
+```
+
 1. **Base Object Selection (Block 1)**
 
-   - Select the base object, which remains unchanged and serves as the reference
-     for positional comparison.
-   - Choose the target object where the vertex color (vColor) data will be
-     written.
+   Select the base object, which remains unchanged and serves as the reference
+   for positional comparison. Choose the target object where the vertex color
+   (vColor) data will be written.
 
 2. **Calculation and Output (Block 2)**
 
@@ -112,8 +148,6 @@ The script interface is divided into three main sections:
    transformation, converting the vertex color data back into vertex positions
    to check for consistency.
 
-   <img src="_images/transfer_vertex_04.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
-
 ### Example Workflow
 
 To illustrate, let's transfer the vertex position differences from an object
@@ -122,30 +156,32 @@ along the X-axis, the Red channel will reflect this shift – positive values on
 one side and negative values on the other. A gray color `(127, 127, 127)`
 indicates no positional change.
 
+```{eval-rst}
+.. image:: _images/transfer_vertex_05.png
+   :alt: Transfer Vertex Position to Vertex Color Tool
+   :width: 50em
+   :align: center
+```
+
 1. **Select the Source Object**
 
-   Choose `StartMorph` using the **Source Object** {bdg-dark-line}`1` button.
+   Choose `StartMorph` using the **Source Object** {cnum}`1` button.
 
 2. **Select the Target Object**
 
-   Select `EndMorph` {bdg-dark-line}`3`, the object to which vColor data will be
-   applied.
+   Select `EndMorph` {cnum}`3`, the object to which vColor data will be applied.
 
 3. **Display the Result**
 
-   Check the **Show VColor Result** {bdg-dark-line}`4` option to display the
-   vColor in the **Viewport**. If needed, specify a different channel
-   {bdg-dark-line}`5` for the output, such as channel 8 (used for Ambient
-   Occlusion in Dagor Engine).
+   Check the **Show VColor Result** {cnum}`4` option to display the vColor in
+   the Viewport. If needed, specify a different channel {cnum}`5` for the
+   output, such as channel 8 (used for Ambient Occlusion in Dagor Engine).
 
 4. **Start the Process**
 
-   Click the **Transfer Vertex Position to VColor** {bdg-dark-line}`6` button to
-   begin the transfer. The resulting vColor will illustrate the deformation, as
-   shown by the color changes in the sphere, examples {bdg-dark-line}`9` and
-   {bdg-dark-line}`10`.
-
-   <img src="_images/transfer_vertex_05.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+   Click the **Transfer Vertex Position to VColor!** {cnum}`6` button to begin
+   the transfer. The resulting vColor will illustrate the deformation, as shown
+   by the color changes in the sphere, examples {cnum}`9` and {cnum}`10`.
 
 This is an illustrative example when deformation of an object where the vColor
 has changed. In a real task, we need to transfer the position the other way
@@ -158,11 +194,13 @@ To verify the accuracy of the transformation:
 
 **Inverse Transformation:**
 
-1. Set the **Global Distance Multiplier** {bdg-dark-line}`11` to the value
-   calculated during the initial process.
+1. Set the **Global Distance Multiplier** {cnum}`11` to the value calculated
+   during the initial process.
+
 2. Select the model with the generated vColor.
-3. Click **Restore VertexPos to Start Pos** {bdg-dark-line}`12` button to revert
-   the vColor back into vertex positions.
+
+3. Click **Restore VertexPos to Start Pos!** {cnum}`12` button to revert the
+   vColor back into vertex positions.
 
 The process may introduce minor distortions due to the limited precision
 available within the 128-step brightness range.
@@ -173,8 +211,16 @@ This section demonstrates a practical application of the script for simulating
 car damage in Unreal Engine:
 
 ```{eval-rst}
-.. video:: _images/transfer_vertex_05.webm
-   :width: 90%
+
+.. only:: html
+
+   .. video:: _images/transfer_vertex_05.webm
+      :width: 90%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/_images/transfer_vertex_05.webm>`_
+
 ```
 
 ### Nissan Car Damage Example
@@ -182,50 +228,70 @@ car damage in Unreal Engine:
 For a hands-on example, you can download the scene files for a damaged Nissan
 car: {download}`nissan_sunny.zip <_examples/nissan_sunny.zip>`.
 
-```{note}
-The minimum supported version for this scene is 3ds Max 2024.
+```{admonition} 3ds Max Version Requirement
+:class: warning
+
+This scene requires **3ds Max 2024 or later**.
 ```
 
 #### Step-by-Step Instructions
 
 1. **Open the Scene in 3ds Max**
 
-   The scene contains two versions of the car: a dented version
-   {bdg-dark-line}`2` and an undamaged version {bdg-dark-line}`1`.
+   The scene contains two versions of the car: a dented version {cnum}`2` and an
+   undamaged version {cnum}`1`.
 
-   <img src="_images/transfer_vertex_06.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_06.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 50em
+      :align: center
+   ```
 
 2. **Select the Undamaged Car**
 
-   Begin by selecting the undamaged car model {bdg-dark-line}`1`.
+   Begin by selecting the undamaged car model {cnum}`1`.
 
 3. **Specify the Dented Car as the Target**
 
-   With the undamaged car still selected, press the selection button
-   {bdg-dark-line}`3` to specify the dented car as the target for the
-   transformation.
+   With the undamaged car still selected, press the selection button {cnum}`3`
+   to specify the dented car as the target for the transformation.
 
 4. **Run the Script**
 
-   Press the execute button {bdg-dark-line}`4` and wait for the script to
-   complete its process.
+   Press the execute button {cnum}`4` and wait for the script to complete its
+   process.
 
    The car should now display a vertex color indicative of the deformation
    process, similar to the example shown below:
 
-   <img src="_images/transfer_vertex_07.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_07.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 50em
+      :align: center
+   ```
 
 5. **Verify the Results**
 
-   To verify the process, make a copy of the undamaged car {bdg-dark-line}`1`
-   and press the button {bdg-dark-line}`2` to apply the vertex color
-   transformation.
+   To verify the process, make a copy of the undamaged car {cnum}`1` and press
+   the button {cnum}`2` to apply the vertex color transformation.
 
-   <img src="_images/transfer_vertex_08.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_08.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 50em
+      :align: center
+   ```
 
    The result should closely resemble the dented car model, as illustrated here:
 
-   <img src="_images/transfer_vertex_09.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_09.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 50em
+      :align: center
+   ```
 
 6. **Inspect for Artifacts**
 
@@ -233,7 +299,12 @@ The minimum supported version for this scene is 3ds Max 2024.
    notice minor artifacts. These artifacts are a result of compressing vertex
    positions into the vertex color space, as shown below:
 
-   <img src="_images/transfer_vertex_10.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="33em">
+   ```{eval-rst}
+   .. image:: _images/transfer_vertex_10.png
+      :alt: Transfer Vertex Position to Vertex Color Tool
+      :width: 33em
+      :align: center
+   ```
 
    Unfortunately, these artifacts are inherent to the technology used for
    encoding vertex positions in the vertex color channels. However, they are
@@ -242,6 +313,8 @@ The minimum supported version for this scene is 3ds Max 2024.
 
 ### Additional Resources
 
-- **Open Local Documentation** {bdg-dark-line}`7`: links to this documentation.
-- **Contact with Developer** {bdg-dark-line}`8`: provides contact information
-  for the developer if assistance is needed.
+- **Open Local Documentation** {cnum}`7`: links to this documentation.
+- **Contact with Developer** {cnum}`8`: provides contact information for the
+  developer if assistance is needed.
+
+

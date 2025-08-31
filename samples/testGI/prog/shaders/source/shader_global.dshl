@@ -317,3 +317,5 @@ int support_texture_array = 0;//should be assumed
 interval support_texture_array : off<1, on;
 block(frame) global_frame
 {}
+
+bool use_hw_raytracing = hardware.dx12 && hardware.pc;

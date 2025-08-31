@@ -651,7 +651,6 @@ void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nsp
 {
   DagorAssetFolder *f;
   DataBlock folders_blk;
-  alefind_t ff;
   DagorAssetPrivate *ca = NULL;
 
   // create folder
@@ -678,40 +677,36 @@ void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nsp
   {
     // scan for assets (*.res.bljk, *.blk, *.*)
     tmpPath.printf(260, "%s/*", folder_path);
-    if (::dd_find_first(tmpPath, 0, &ff))
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
     {
+      if (ff.name[0] == '.')
+        continue;
+
+      DagorAssetFolder *va_f = f;
+
+    check_virtual_asset_rules:
+      int s_rule_idx = 0;
       do
-      {
-        if (ff.name[0] == '.')
-          continue;
-
-        DagorAssetFolder *va_f = f;
-
-      check_virtual_asset_rules:
-        int s_rule_idx = 0;
-        do
-          while (addAsset(folder_path, ff.name, nspace_id, ca, va_f, fidx, s_rule_idx, true))
-          {
-            assets.push_back(ca);
-            ca = NULL;
-            if (s_rule_idx == -1)
-              goto end_check_rules;
-          }
-        while (s_rule_idx > 0);
-
-        if (s_rule_idx == -2)
-          goto end_check_rules;
-
-        while ((va_f->flags & va_f->FLG_INHERIT_RULES) && va_f->parentIdx != -1)
+        while (addAsset(folder_path, ff.name, nspace_id, ca, va_f, fidx, s_rule_idx, true))
         {
-          va_f = folders[va_f->parentIdx];
-          if (va_f->vaRuleCount)
-            goto check_virtual_asset_rules;
+          assets.push_back(ca);
+          ca = NULL;
+          if (s_rule_idx == -1)
+            goto end_check_rules;
         }
+      while (s_rule_idx > 0);
 
-      end_check_rules:;
-      } while (dd_find_next(&ff));
-      dd_find_close(&ff);
+      if (s_rule_idx == -2)
+        goto end_check_rules;
+
+      while ((va_f->flags & va_f->FLG_INHERIT_RULES) && va_f->parentIdx != -1)
+      {
+        va_f = folders[va_f->parentIdx];
+        if (va_f->vaRuleCount)
+          goto check_virtual_asset_rules;
+      }
+
+    end_check_rules:;
     }
     if (ca)
       delete ca;
@@ -723,18 +718,15 @@ void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nsp
   {
     // scan for sub-folders
     tmpPath.printf(260, "%s/*", folder_path);
-    if (::dd_find_first(tmpPath, DA_SUBDIR, &ff))
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
     {
-      do
-        if (ff.attr & DA_SUBDIR)
-        {
-          if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
-            continue;
+      if (ff.attr & DA_SUBDIR)
+      {
+        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
+          continue;
 
-          loadAssets(fidx, String(260, "%s/%s", folder_path, ff.name), nspace_id);
-        }
-      while (dd_find_next(&ff));
-      dd_find_close(&ff);
+        loadAssets(fidx, String(260, "%s/%s", folder_path, ff.name), nspace_id);
+      }
     }
   }
   else

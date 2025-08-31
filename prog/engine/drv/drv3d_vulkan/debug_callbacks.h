@@ -32,7 +32,7 @@ class DebugCallbacks
 public:
   DebugCallbacks() = default;
   DebugCallbacks(const DebugCallbacks &) = delete;
-  ~DebugCallbacks(){};
+  ~DebugCallbacks() {}
 
   void init();
   void shutdown();

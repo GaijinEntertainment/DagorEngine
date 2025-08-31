@@ -55,7 +55,7 @@ public:
   RenderableEditableObject(const RenderableEditableObject *fo) : EditableObject(*fo), objFlags(fo->objFlags), objEditor(NULL) {}
 
   /// Destructor.
-  virtual ~RenderableEditableObject();
+  ~RenderableEditableObject() override;
 
   /// Remove object from #ObjectEditor.
   void removeFromEditor();
@@ -150,7 +150,7 @@ public:
   /// Set object name.
   /// @param[in] nm - pointer to name string
   /// @return @b true if operation successful, @b false in other case
-  virtual bool setName(const char *nm)
+  bool setName(const char *nm) override
   {
     name = nm;
     return true;
@@ -159,7 +159,7 @@ public:
   /// Set object position.
   /// @param[in] p - object position
   /// @return @b true if operation successful, @b false in other case
-  virtual bool setPos(const Point3 &p);
+  bool setPos(const Point3 &p) override;
 
   /// Set object scaling in local X,Y,Z-directions.
   /// @param[in] p - object scalings
@@ -252,7 +252,9 @@ public:
   /// @param[in] obj - pointer to object to be renamed
   /// @param[in] old_name - pointer to old name string
   /// @param[in] new_name - pointer to new name string
-  virtual void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) {}
+  virtual void onObjectNameChange([[maybe_unused]] RenderableEditableObject *obj, [[maybe_unused]] const char *old_name,
+    [[maybe_unused]] const char *new_name)
+  {}
 
   /// Get ObjectEditor.
   /// @return pointer to ObjectEditor instance whose functions the object uses
@@ -296,23 +298,28 @@ public:
   /// Called when button 'Close' on Property Panel is pressed.
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPClose(PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+  virtual void onPPClose([[maybe_unused]] PropPanel::ContainerPropertyControl &panel,
+    [[maybe_unused]] dag::ConstSpan<RenderableEditableObject *> objects)
+  {}
 
   /// Called before Property Panel will be cleared.
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPClear(PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
+  virtual void onPPClear([[maybe_unused]] PropPanel::ContainerPropertyControl &panel,
+    [[maybe_unused]] dag::ConstSpan<RenderableEditableObject *> objects)
+  {}
 
   /// Called when button on Property Panel is pressed.
   /// @param[in] pid - button ID
   /// @param[in] panel - Property Panel
   /// @param[in] objects - array of pointers to objects
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects)
+  virtual void onPPBtnPressed([[maybe_unused]] int pid, [[maybe_unused]] PropPanel::ContainerPropertyControl &panel,
+    [[maybe_unused]] dag::ConstSpan<RenderableEditableObject *> objects)
   {}
   //@}
 
-  virtual void onRemove(ObjectEditor *objEditor) {}
-  virtual void onAdd(ObjectEditor *objEditor) {}
+  virtual void onRemove([[maybe_unused]] ObjectEditor *obj_ed) {}
+  virtual void onAdd([[maybe_unused]] ObjectEditor *obj_ed) {}
 
   virtual void rememberSurfaceDist();
   virtual void zeroSurfaceDist() { surfaceDist = 0.0; }
@@ -342,18 +349,18 @@ protected:
 
     UndoObjFlags(RenderableEditableObject *o) : obj(o), prevFlags(o->getFlags()) { redoFlags = prevFlags; }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoFlags = obj->getFlags();
       obj->setFlags(prevFlags, ~0);
     }
 
-    virtual void redo() { obj->setFlags(redoFlags, ~0); }
+    void redo() override { obj->setFlags(redoFlags, ~0); }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoObjFlags"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoObjFlags"; }
   };
 
 
@@ -366,18 +373,18 @@ protected:
 
     UndoMove(RenderableEditableObject *o) : obj(o) { oldPos = redoPos = obj->getPos(); }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoPos = obj->getPos();
       obj->setPos(oldPos);
     }
 
-    virtual void redo() { obj->setPos(redoPos); }
+    void redo() override { obj->setPos(redoPos); }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoMove"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoMove"; }
   };
 
 
@@ -390,18 +397,18 @@ protected:
 
     UndoMatrix(RenderableEditableObject *o) : obj(o) { oldMatrix = redoMatrix = obj->getMatrix(); }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoMatrix = obj->getMatrix();
       obj->setMatrix(oldMatrix);
     }
 
-    virtual void redo() { obj->setMatrix(redoMatrix); }
+    void redo() override { obj->setMatrix(redoMatrix); }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoMatrix"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoMatrix"; }
   };
 };
 

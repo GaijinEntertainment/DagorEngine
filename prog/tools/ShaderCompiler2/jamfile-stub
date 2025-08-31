@@ -3,10 +3,10 @@ Location = prog/tools/ShaderCompiler2 ;
 
 include $(Root)/$(Location)/jamfile-common ;
 
-Target = tools/dsc2-stub.exe ;
+Target = tools/dsc2-stub ;
 
-Sources += ;
+CPPopt += -D_CROSS_TARGET_EMPTY -DBINDUMP_TARGET_BE=0 ;
 
-CPPopt += -D_CROSS_TARGET_DX11=1 -D_CROSS_TARGET_EMPTY=1 -DBINDUMP_TARGET_BE=0 ;
+if $(Platform) = macOS { CPPopt += -Wno-switch ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

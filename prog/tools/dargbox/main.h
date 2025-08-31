@@ -16,3 +16,4 @@ void dargbox_app_shutdown();
 
 darg::IGuiScene *get_ui_scene();
 ioevents::IOEventsDispatcher *get_io_events_poll();
+int dargbox_get_exit_code();

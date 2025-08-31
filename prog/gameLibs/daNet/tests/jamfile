@@ -4,7 +4,7 @@ ConsoleExe      = yes ;
 TargetType      = exe ;
 Target          = danet-tests ;
 AddIncludes     =
-  $(Root)/prog/3rdPartyLibs/unittest-cpp
+  $(Root)/prog/3rdPartyLibs/catch2/src
   $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
@@ -27,7 +27,7 @@ UseProgLibs +=
   engine/perfMon/daProfilerStub
 
   3rdPartyLibs/eastl
-  3rdPartyLibs/unittest-cpp
+  3rdPartyLibs/catch2
   gameLibs/daNet
 ;
 

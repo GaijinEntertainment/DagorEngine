@@ -37,7 +37,7 @@ bool ContextMenu::updateImgui()
       G_ASSERT(!waitingForDelayedCallback);
       waitingForDelayedCallback = true;
 
-      message_queue.requestDelayedCallback(*this, (void *)clickedItem->id);
+      message_queue.requestDelayedCallback(*this, (void *)((uintptr_t)clickedItem->id));
     }
 
     ImGui::EndPopup();

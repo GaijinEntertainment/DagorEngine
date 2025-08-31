@@ -40,7 +40,7 @@ public:
 
 ITimeManager &get_time_mgr();
 // 'sync' here imlpies that time is synced between client & server
-inline float get_sync_time() { return get_time_mgr().getSeconds(); }
+float get_sync_time();
 
 ITimeManager *create_server_time();
 ITimeManager *create_client_time();

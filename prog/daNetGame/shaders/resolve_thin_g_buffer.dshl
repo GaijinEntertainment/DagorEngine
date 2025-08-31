@@ -31,7 +31,6 @@ macro COMMON_RESOLVE()
 endmacro
 
 macro INIT_LOAD_THIN_GBUFFER()
-  ENABLE_ASSERT(ps)
   INIT_LOAD_DEPTH_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
   (ps) {
@@ -84,6 +83,7 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
   z_test = false;
   color_write = rgb;
 
+  ENABLE_ASSERT(ps)
   COMMON_RESOLVE()//should be BEFORE READ_GBUFFER!
   if (shader == thin_g_resolve)
   {
@@ -174,10 +174,10 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
   USE_BLURRED_DEPTH_ABOVE(ps)
 
   hlsl(ps) {
-    float getWorldBlurredAO(float3 worldPos)
+    float get_depth_above_ao(float3 worldPos)
     {
       float vignetteEffect;
-      float depthHt = getWorldBlurredDepth(worldPos, vignetteEffect);
+      float depthHt = get_depth_above_fast(worldPos, vignetteEffect);
       const float height_bias = 0.0;
       const float height_scale = 0.75f;
       float occlusion = rcp((max(0.01, (depthHt - worldPos.y)*height_scale + (1 - height_bias*height_scale))));
@@ -224,7 +224,7 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
       float4 lightPosRadius = sl.lightPosRadius;
       float4 lightColor = sl.lightColorAngleScale;
       float4 lightDirection = sl.lightDirectionAngleOffset;
-      float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+      float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
 
       half3 distanceVec = worldPos.xyz - lightPosRadius.xyz;
       half distance = length(distanceVec);
@@ -329,8 +329,8 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
         //to remove this assume from common_assumes.blk.
         SSAO_TYPE ssao = getSSAOSimple(w, screenpos.xy);
       ##endif
-      //ssao.x *= getWorldBlurredAO(worldPos.xyz) * lerp(0.1, 1, pow(ssao.WSAO_ATTR, 0.6));
-      //ssao.x *= getWorldBlurredAO(worldPos.xyz) * lerp(0.04, 1, ssao.WSAO_ATTR);
+      //ssao.x *= get_depth_above_ao(worldPos.xyz) * lerp(0.1, 1, pow(ssao.WSAO_ATTR, 0.6));
+      //ssao.x *= get_depth_above_ao(worldPos.xyz) * lerp(0.04, 1, ssao.WSAO_ATTR);
       ssao.x *= lerp(darkest_wsao_influence, 1, ssao.WSAO_ATTR);
       shadow *= ssao.CONTACT_SHADOWS_ATTR;
 

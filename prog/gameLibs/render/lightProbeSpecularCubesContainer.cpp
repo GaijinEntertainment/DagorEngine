@@ -67,6 +67,8 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
 
     compressor =
       eastl::make_unique<BcCompressor>(BcCompressor::COMPRESSION_BC6H, compressedMips, cubeSize, cubeSize, 1, "bc6h_compressor");
+    sampler = d3d::request_sampler({});
+
     if (!compressor->isValid())
     {
       logwarn("Can't create a compressor for light probes specular");
@@ -291,7 +293,7 @@ void LightProbeSpecularCubesContainer::compressMips(int cube_index, int face_sta
       const int destCubeFace = mip + specularMips * (faceNumber + cube_index * 6);
       if (mip <= 2)
       {
-        compressor->updateFromFaceMip(light_probe::getManagedTex(rtCube.get())->getTexId(), faceNumber, mip,
+        compressor->updateFromFaceMip(light_probe::getManagedTex(rtCube.get())->getTexId(), sampler, faceNumber, mip,
           min(mip, compressedMips - 1));
         compressor->copyToMip(arrayTex, destCubeFace, 0, 0, min(mip, compressedMips - 1));
       }

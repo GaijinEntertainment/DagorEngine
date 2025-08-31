@@ -23,32 +23,37 @@ struct LocalAccessor
 {
   PipelineState &pipeState;
   VulkanDevice &dev;
-  Swapchain &swapchain;
   DeviceContext &ctx;
 
-  LocalAccessor() : pipeState(Frontend::State::pipe), dev(Globals::VK::dev), swapchain(Globals::swapchain), ctx(Globals::ctx)
-  {
-    VERIFY_GLOBAL_LOCK_ACQUIRED();
-  }
+  LocalAccessor() : pipeState(Frontend::State::pipe), dev(Globals::VK::dev), ctx(Globals::ctx) { VERIFY_GLOBAL_LOCK_ACQUIRED(); }
 };
+
+StateFieldFramebufferAttachment::RawFrontData make_back_buffer_attachment()
+{
+  StateFieldFramebufferAttachment::RawFrontData bb;
+  bb.tex = Frontend::swapchain.getCurrentTargetTex();
+  bb.layer = 0;
+  bb.mip = 0;
+  return bb;
+}
+
 } // namespace
 
 bool d3d::set_srgb_backbuffer_write(bool on)
 {
   LocalAccessor la;
-  // df proprogated to 0 attachment on apply as attachments is nested field
-  bool changed = la.pipeState.set<StateFieldFramebufferSwapchainSrgbWrite, bool, FrontGraphicsState, FrontFramebufferState>(on);
-
   // srgb toggle happens multiple times
   // and should not bother swapchain if it is was enabled for it
-  const SwapchainMode &currentMode = la.swapchain.getMode();
+  const SwapchainMode &currentMode = Frontend::swapchain.getMode();
   if (!currentMode.enableSrgb && on)
   {
     SwapchainMode newMode(currentMode);
     newMode.enableSrgb = on;
-    la.swapchain.setMode(newMode);
+    Frontend::swapchain.setMode(newMode);
   }
 
+  // df proprogated to 0 attachment on apply as attachments is nested field
+  bool changed = la.pipeState.set<StateFieldFramebufferSwapchainSrgbWrite, bool, FrontGraphicsState, FrontFramebufferState>(on);
   return changed ? !on : on;
 }
 
@@ -56,15 +61,15 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 {
   LocalAccessor la;
 
-  G_ASSERTF(to_tex, "vulkan: can't copy to null texture");
+  D3D_CONTRACT_ASSERTF(to_tex, "vulkan: can't copy to null texture");
   TextureInterfaceBase *dstTex = cast_to_texture_base(to_tex);
-  Image *dstImg = dstTex->getDeviceImage();
+  Image *dstImg = dstTex->image;
 
   StateFieldFramebufferAttachment &fbAttachment =
     la.pipeState.get<StateFieldFramebufferAttachments, StateFieldFramebufferAttachment, FrontGraphicsState, FrontFramebufferState>();
   Image *srcImg = fbAttachment.image;
 
-  G_ASSERTF(srcImg != dstImg, "vulkan: can't copy render target to itself");
+  D3D_CONTRACT_ASSERTF(srcImg != dstImg, "vulkan: can't copy render target to itself");
 
   VkImageBlit blit;
   blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -82,28 +87,9 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
   blit.dstOffsets[0].y = 0;
   blit.dstOffsets[0].z = 0;
 
-  if (!fbAttachment.useSwapchain)
-  {
-    G_ASSERTF(srcImg, "vulkan: can't copy from unset render target");
-    blit.srcOffsets[1] = toOffset(srcImg->getBaseExtent());
-  }
-  else
-  {
-    VkExtent2D size = la.swapchain.getMode().extent;
-    blit.srcOffsets[1].x = size.width;
-    blit.srcOffsets[1].y = size.height;
-  }
-
-  if (dstTex)
-    blit.dstOffsets[1] = toOffset(dstTex->getMipmapExtent(0));
-  else
-  {
-    G_ASSERTF(!fbAttachment.useSwapchain, "vulkan: can't copy from backbuffer to backbuffer");
-    VkExtent2D size = la.swapchain.getMode().extent;
-    blit.dstOffsets[1].x = size.width;
-    blit.dstOffsets[1].y = size.height;
-  }
-
+  D3D_CONTRACT_ASSERTF(srcImg, "vulkan: can't copy from unset render target");
+  blit.srcOffsets[1] = toOffset(srcImg->getBaseExtent());
+  blit.dstOffsets[1] = toOffset(dstTex->pars.getMipExtent(0));
   blit.srcOffsets[1].z = 1;
   blit.dstOffsets[1].z = 1;
 
@@ -116,7 +102,8 @@ bool d3d::set_render_target()
   LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
-  la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>({0, Bind::back_buffer});
+  la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
+    {0, make_back_buffer_attachment()});
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
     {MRT_INDEX_DEPTH_STENCIL, Bind::empty});
   la.pipeState.set<StateFieldFramebufferReadOnlyDepth, bool, FrontGraphicsState, FrontFramebufferState>(false);
@@ -155,7 +142,7 @@ bool d3d::set_render_target(int ri, Texture *tex, uint8_t level) { return d3d::s
 
 bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
 {
-  G_ASSERTF(ri >= 0, "vulkan: no meaning of negative render target index is present");
+  D3D_CONTRACT_ASSERTF(ri >= 0, "vulkan: no meaning of negative render target index is present");
 
   LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
@@ -179,8 +166,8 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
   using Bind = StateFieldFramebufferAttachment;
 
   if (rt.isBackBufferColor())
-    la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
-      {0, Bind::back_buffer});
+    la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
+      {0, make_back_buffer_attachment()});
   else
   {
     if (rt.isColorUsed(0))
@@ -246,13 +233,13 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
 {
   if (!rt_tex)
   {
-    VkExtent2D size = drv3d_vulkan::Globals::swapchain.getMode().extent;
+    VkExtent2D size = Frontend::swapchain.getMode().extent;
     w = size.width;
     h = size.height;
   }
   else
   {
-    const VkExtent3D &size = cast_to_texture_base(*rt_tex).getMipmapExtent(level);
+    const VkExtent3D &size = cast_to_texture_base(*rt_tex).pars.getMipExtent(level);
     w = size.width;
     h = size.height;
   }

@@ -38,6 +38,7 @@ bool add_input_callback(OnInputCallback callback);
 bool del_input_callback(OnInputCallback callback);
 
 const char *app_command_to_string(int32_t cmd);
+jint attach_current_thread(JavaVM *vm, JNIEnv **env, void *args);
 
 namespace input
 {

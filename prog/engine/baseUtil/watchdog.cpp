@@ -11,7 +11,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_stackHlp.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <startup/dag_globalSettings.h>
@@ -56,22 +56,30 @@ static inline unsigned get_cur_time_ms()
 #pragma comment(lib, "psapi.lib")
 #endif
 
-class WatchDogThread : public DaThread // freezes detector
+void on_freeze_detected_default(unsigned e_time, int64_t)
+{
+  // Note: intentionally not logerr to avoid trigerring various error hooks (as it might have various time-sensitive side effects)
+  logwarn("Watchdog: freeze detected, timeout %u msec", e_time);
+
+#if _TARGET_APPLE && DAGOR_DBGLEVEL > 0
+  __builtin_trap();
+#else
+  DAG_FATAL("Freeze detected");
+#endif
+}
+
+class WatchDogThread final : public DaThread, public IWatchDog // freezes detector
 {
 public:
   WatchdogConfig cfg;
-  std::atomic_uint lastUpdateTimeMs;
+  dag::AtomicInteger<unsigned int> lastUpdateTimeMs;
   os_event_t sleepEvent;
-  uint32_t lastPageFaultCount = 0;
-  uint32_t pageFaultCountResetAt = 0;
-  uint32_t activeSwapHandicapMs = 0;
   eastl::fixed_vector<intptr_t, 4> dumpThreadIds;
   OSSpinlock dumpThreadIdMutex;
 
   WatchDogThread(WatchdogConfig *cfg_) : DaThread("WatchDogThread", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK), lastUpdateTimeMs(0u)
   {
     os_event_create(&sleepEvent);
-    memset(&cfg, 0, sizeof(cfg));
     if (cfg_)
       cfg = *cfg_;
 
@@ -86,9 +94,64 @@ public:
 
     kick();
   }
-  ~WatchDogThread() { os_event_destroy(&sleepEvent); }
 
-  void kick() { lastUpdateTimeMs.store(get_cur_time_ms(), std::memory_order_relaxed); }
+  ~WatchDogThread() override
+  {
+    terminate(true, -1, &sleepEvent);
+    os_event_destroy(&sleepEvent); // -V779
+  }
+
+  intptr_t setOption(int option, intptr_t p0, intptr_t p1) override
+  {
+    switch (option)
+    {
+      case WATCHDOG_OPTION_TRIG_THRESHOLD:
+      {
+        int ott = interlocked_exchange(cfg.triggering_threshold_ms, (p0 >= 0) ? p0 : WATCHDOG_FREEZE_THRESHOLD);
+        if (!p1)
+          debug("set watchdog threshold %lld ms", (int64_t)p0);
+        kick();
+        return ott;
+      }
+      case WATCHDOG_OPTION_CALLSTACKS_THRESHOLD:
+      {
+        int old = interlocked_exchange(cfg.dump_threads_threshold_ms, p0);
+        if (!p1)
+          debug("set watchdog callstacks threshold %lld ms", (int64_t)p0);
+        kick();
+        return old;
+      }
+      case WATCHDOG_OPTION_SLEEP:
+      {
+        int old = interlocked_exchange(cfg.sleep_time_ms, p0);
+        if (!p1)
+          debug("set watchdog sleep time %lld ms", (int64_t)p0);
+        kick();
+        return old;
+      }
+      case WATCHDOG_OPTION_DUMP_THREADS:
+      {
+        if (p1)
+        {
+          debug("add thread id %lld to watchdog dump list", (int64_t)p0);
+          OSSpinlockScopedLock lock{dumpThreadIdMutex};
+          dumpThreadIds.emplace_back(p0);
+        }
+        else
+        {
+          debug("remove thread id %lld from watchdog dump list", (int64_t)p0);
+          OSSpinlockScopedLock lock{dumpThreadIdMutex};
+          dumpThreadIds.erase(eastl::remove(dumpThreadIds.begin(), dumpThreadIds.end(), p0), dumpThreadIds.end());
+        }
+        kick();
+
+        return 0;
+      }
+    }
+    return -1;
+  }
+
+  void kick() override { lastUpdateTimeMs.store(get_cur_time_ms(), dag::memory_order_relaxed); }
 
   void execute()
   {
@@ -121,17 +184,13 @@ public:
       if (!(cfg.flags & WATCHDOG_IGNORE_BACKGROUND) && !dgs_app_active)
         goto keep_sleeping;
 #endif
-      unsigned curTime = get_cur_time_ms(), lastTime = lastUpdateTimeMs.load(std::memory_order_relaxed);
+      unsigned curTime = get_cur_time_ms(), lastTime = lastUpdateTimeMs.load(dag::memory_order_relaxed);
       unsigned e_time = curTime - lastTime;
       if (curTime < lastTime || // timeGetTime wraps around happens each ~49.71 days since system start
           e_time > WATCHDOG_OS_RESUMED_THRESHOLD)
         goto keep_sleeping;
 
-      // In some cases (such as autotests on a busy server) we may experience a lot of pageFaults during a real freeze,
-      // which will delay freeze=true to an uknown point in time.
-      // Therefore, after no kicks for a time, equal to several freeze timeouts, we give up and consider this a freeze
-      const bool freeze = (e_time >= triggering_threshold_ms + (cfg.flags & WATCHDOG_SWAP_HANDICAP ? activeSwapHandicapMs : 0)) ||
-                          (e_time >= triggering_threshold_ms * 4);
+      const bool freeze = e_time >= triggering_threshold_ms;
       if (e_time > interlocked_acquire_load(cfg.dump_threads_threshold_ms))
       {
         if (dgs_last_suspend_at != 0 && dgs_last_resume_at != 0 &&
@@ -142,70 +201,49 @@ public:
           goto keep_sleeping;
         }
 
+        // Intentionally don't dump in release as it could take quite a bit of time skewing
+        // crashserver's hang signature. To consider: add cfg flag that forces this?
+#if DAGOR_DBGLEVEL > 0
         if (freeze)
           dump_all_thread_callstacks();
         else
         {
           logwarn("WatchDog: no kick in %d ms", e_time);
-
+#else
+        if (!freeze) // To consider: add flag to force dump even in release
+        {
+#endif
+          // we can't dump random thread callstacks so its pointless
+          // also it seems it takes forever on intel macs which is weird
+#if !_TARGET_APPLE
           for (intptr_t thread_id : [&, this] {
                  OSSpinlockScopedLock lock{dumpThreadIdMutex};
                  return dumpThreadIds;
                }())
             dump_thread_callstack(thread_id);
-        }
-
-#if _TARGET_PC_WIN
-        // Note: we actually want report only hard page faults here, but there is no easy way to do it on Windows
-        // (standard API return both soft & hard altogether)
-        // For a really adventurous - you probably need to use either ETW or undocumented SYSTEM_PERFORMANCE_INFORMATION
-        // See
-        // http://blogs.msdn.com/b/greggm/archive/2004/01/21/61237.aspx
-        // http://stackoverflow.com/questions/6416005/programatically-read-programs-page-fault-count-on-windows
-        PROCESS_MEMORY_COUNTERS memc = {sizeof(PROCESS_MEMORY_COUNTERS)};
-        memc.PageFaultCount = 0;
-        GetProcessMemoryInfo(GetCurrentProcess(), &memc, sizeof(memc));
-        debug("%s PageFaultCount=%d", __FUNCTION__, (int)memc.PageFaultCount);
-        if (lastPageFaultCount == 0)
-        {
-          lastPageFaultCount = memc.PageFaultCount;
-          pageFaultCountResetAt = curTime;
-        }
-        else if (memc.PageFaultCount - lastPageFaultCount > WATCHDOG_ACTIVE_SWAP_THRESHOLD * (curTime - pageFaultCountResetAt) / 1000)
-          activeSwapHandicapMs += cfg.dump_threads_threshold_ms * 2 / 3;
 #endif
+        }
       }
-      else
-        lastPageFaultCount = pageFaultCountResetAt = activeSwapHandicapMs = 0;
 
       if (!freeze)
         continue;
 
-      kick();
-
-      logerr("Watchdog: freeze detected, timeout %d >= %d msec, quant = %d msec, swap = %d msec", e_time, triggering_threshold_ms,
-        cfg.sleep_time_ms, activeSwapHandicapMs);
-
-      debug_flush(false);
-
       if (cfg.on_freeze_cb)
-        cfg.on_freeze_cb();
+        cfg.on_freeze_cb(e_time, cfg.user_data);
 
-      sleep_msec(100);
-
-      if (!(cfg.flags & WATCHDOG_NO_FATAL))
-      {
-#if _TARGET_APPLE && DAGOR_DBGLEVEL > 0
-        __builtin_trap();
-#else
-        DAG_FATAL("Freeze detected");
-#endif
-      }
+      kick();
     }
   }
 };
 
 static WatchDogThread *watchdog_thread = NULL;
+
+IWatchDog *watchdog_init_instance(WatchdogConfig *cfg)
+{
+  WatchDogThread *thread = new WatchDogThread(cfg);
+  thread->start();
+  return thread;
+}
 
 void watchdog_init(WatchdogConfig *cfg)
 {
@@ -219,7 +257,6 @@ void watchdog_shutdown()
 {
   if (auto *thread = interlocked_exchange_ptr(watchdog_thread, (WatchDogThread *)nullptr))
   {
-    thread->terminate(true, -1, &thread->sleepEvent);
     del_it(thread);
   }
 }
@@ -235,54 +272,7 @@ intptr_t watchdog_set_option(int option, intptr_t p0, intptr_t p1)
   auto *thread = interlocked_acquire_load_ptr(watchdog_thread);
   if (!thread)
     return -1;
-  WatchdogConfig *cfg = &thread->cfg;
-  switch (option)
-  {
-    case WATCHDOG_OPTION_TRIG_THRESHOLD:
-    {
-      int ott = interlocked_exchange(cfg->triggering_threshold_ms, (p0 >= 0) ? p0 : WATCHDOG_FREEZE_THRESHOLD);
-      if (!p1)
-        debug("set watchdog threshold %lld ms", (int64_t)p0);
-      thread->kick();
-      return ott;
-    }
-    case WATCHDOG_OPTION_CALLSTACKS_THRESHOLD:
-    {
-      int old = interlocked_exchange(cfg->dump_threads_threshold_ms, p0);
-      if (!p1)
-        debug("set watchdog callstacks threshold %lld ms", (int64_t)p0);
-      thread->kick();
-      return old;
-    }
-    case WATCHDOG_OPTION_SLEEP:
-    {
-      int old = interlocked_exchange(cfg->sleep_time_ms, p0);
-      if (!p1)
-        debug("set watchdog sleep time %lld ms", (int64_t)p0);
-      thread->kick();
-      return old;
-    }
-    case WATCHDOG_OPTION_DUMP_THREADS:
-    {
-      if (p1)
-      {
-        debug("add thread id %lld to watchdog dump list", (int64_t)p0);
-        OSSpinlockScopedLock lock{thread->dumpThreadIdMutex};
-        thread->dumpThreadIds.emplace_back(p0);
-      }
-      else
-      {
-        debug("remove thread id %lld from watchdog dump list", (int64_t)p0);
-        OSSpinlockScopedLock lock{thread->dumpThreadIdMutex};
-        thread->dumpThreadIds.erase(eastl::remove(thread->dumpThreadIds.begin(), thread->dumpThreadIds.end(), p0),
-          thread->dumpThreadIds.end());
-      }
-      thread->kick();
-
-      return 0;
-    }
-  }
-  return -1;
+  return thread->setOption(option, p0, p1);
 }
 
 #if _TARGET_PC_WIN

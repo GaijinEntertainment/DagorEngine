@@ -133,7 +133,8 @@ FFX_RaymarchResult FFX_SSSR_HierarchicalRaymarch(FfxFloat32x3 origin, FfxFloat32
     FFX_SSSR_InitialAdvanceRay(origin, direction, inv_direction, current_mip_resolution, current_mip_resolution_inv, floor_offset, uv_offset, position, current_t);
 
     {
-        float surface_z = FFX_SSSR_LoadDepth(int2(screen_size * position.xy), 0).r;
+        FfxInt32x2 samplePos = FfxInt32x2(clamp(screen_size * position.xy, 0.0, screen_size - 1.0f));
+        float surface_z = FFX_SSSR_LoadDepth(samplePos, 0).r;
         // Check if we was above surface on origin and then go under, then we intersect surface and we could not trace at all.
         // This is could be case in ssr water tracing, since origin point always located on water surface and not downsampled depth tex.
         if (!FFX_BiasedComparisonOfRawDepth(origin.z, surface_z) &&

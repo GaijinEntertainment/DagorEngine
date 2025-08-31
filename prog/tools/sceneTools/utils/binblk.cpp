@@ -25,7 +25,7 @@ void save_to_bbf3(const DataBlock &blk, IGenSave &cwr);
 static ConsoleLogWriter conlog;
 static bool copy_shown = false;
 
-static void init_dagor(const char *base_path);
+static void init_dagor(int argc, char **argv, bool hideDebug);
 static void shutdown_dagor();
 
 static void show_usage();
@@ -117,6 +117,8 @@ int __cdecl main(int argc, char **argv)
         return 13;
       }
     }
+    else if (strnicmp("-addpath:", argv[i], 9) == 0)
+      continue;
     else if (argv[i][0] == '-')
     {
       switch (argv[i][1])
@@ -207,7 +209,7 @@ int __cdecl main(int argc, char **argv)
     return 2;
   }
 
-  ::init_dagor(argv[0]);
+  ::init_dagor(argc, argv, hideDebug);
 
   if (verify_public_key && !sign_private_key)
   {
@@ -227,12 +229,12 @@ int __cdecl main(int argc, char **argv)
   }
 
   DataBlock blk;
-  FILE *fp = strcmp(argv[1], "-") == 0 ? stdin : fopen(argv[1], "rb");
+  file_ptr_t fp = strcmp(argv[1], "-") == 0 ? (file_ptr_t)stdin : df_open(argv[1], DF_READ | DF_IGNORE_MISSING);
 #if _TARGET_PC_WIN
-  if (fp == stdin)
-    _setmode(fileno(fp), _O_BINARY);
+  if (fp == (file_ptr_t)stdin)
+    _setmode(fileno(stdin), _O_BINARY);
 #endif
-  if (textToBin == -1 && fp == stdin)
+  if (textToBin == -1 && fp == (file_ptr_t)stdin)
     textToBin = 1;
   if (!fp)
   {
@@ -285,8 +287,8 @@ int __cdecl main(int argc, char **argv)
       textToBin = 1;
   }
 
-  if (fp != stdin)
-    fclose(fp);
+  if (fp != (file_ptr_t)stdin)
+    df_close(fp);
 
   String outPath;
 
@@ -325,10 +327,10 @@ int __cdecl main(int argc, char **argv)
   {
     bool result = false;
 
-    fp = strcmp(outPath, "-") == 0 ? stdout : fopen(outPath, "wb");
+    fp = strcmp(outPath, "-") == 0 ? (file_ptr_t)stdout : df_open(outPath, DF_CREATE | DF_WRITE);
 #if _TARGET_PC_WIN
-    if (fp == stdout)
-      _setmode(fileno(fp), _O_BINARY);
+    if (fp == (file_ptr_t)stdout)
+      _setmode(fileno(stdout), _O_BINARY);
 #endif
     LFileGeneralSaveCB cwr(fp);
 
@@ -347,8 +349,8 @@ int __cdecl main(int argc, char **argv)
     else
       result = textCompact ? blk.saveToTextStreamCompact(cwr) : blk.saveToTextStream(cwr);
 
-    if (fp != stdout)
-      fclose(fp);
+    if (fp != (file_ptr_t)stdout)
+      df_close(fp);
 
     if (!result)
     {
@@ -386,10 +388,21 @@ int __cdecl main(int argc, char **argv)
 
 
 //==============================================================================
-static void init_dagor(const char *base_path)
+static void init_dagor(int argc, char **argv, bool hideDebug)
 {
   ::dd_init_local_conv();
   ::dd_add_base_path("");
+  for (int i = 2; i < argc; ++i)
+    if (strnicmp("-addpath:", argv[i], 9) == 0)
+    {
+      char buf[DAGOR_MAX_PATH] = {0};
+      strncpy(buf, argv[i] + 9, DAGOR_MAX_PATH);
+      dd_append_slash_c(buf);
+      dd_simplify_fname_c(buf);
+      dd_add_base_path(buf);
+      if (!hideDebug)
+        printf("NOTE: using basepath: %s\n", buf);
+    }
 }
 
 
@@ -422,6 +435,7 @@ static void show_usage()
   printf("\t\t-bbf3        save binary using legacy BBF\\3 binary format\n");
   printf("\t\t-root:<dir>  set root dir for includes\n");
   printf("\t\t-mount:mnt=dir  add named mount (will be used to resolve includes with named mounts)\n");
+  printf("\t\t-addpath:<dir>  add base path (will be used to search files)\n");
 }
 
 

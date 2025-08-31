@@ -1,7 +1,6 @@
+from "%sqstd/qrCode.nut" import generateQrArray
 from "%darg/ui_imports.nut" import *
-
 let cursors = require("samples_prog/_cursors.nut")
-let {generateQrArray} = require("%sqstd/qrCode.nut")
 
 
 let qrCanvas = {
@@ -9,7 +8,7 @@ let qrCanvas = {
   flow = FLOW_HORIZONTAL
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  size = [hdpx(300), hdpx(300)]
+  size = hdpx(300)
   lineWidth = hdpx(1.0)
   color = Color(0, 0, 0)
   fillColor = Color(0, 0, 0)

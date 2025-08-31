@@ -1,15 +1,13 @@
+from "string" import format
 from "%darg/ui_imports.nut" import *
 from "math" import clamp
-
-let { format } = require("string")
-
 let bgColor = Watched(null)
 let fgColor = Watched(null)
 
 let calcPart = @(bg, fg, a, getPart) clamp((getPart(fg) + (1.0 - a) * getPart(bg) + 0.5).tointeger(), 0, 255)
 let resColor = Computed(function() {
-  let bg = bgColor.value
-  let fg = fgColor.value
+  let bg = bgColor.get()
+  let fg = fgColor.get()
   if (bg == null || fg == null)
     return null
   let a = ((fg >> 24) & 0xff).tofloat() / 255
@@ -27,12 +25,12 @@ function mkColorBox(color, hoverWatch, override = {}) {
     size = flex()
     behavior = Behaviors.Button
     function onElemState(sf) {
-      stateFlags(sf)
-      hoverWatch(sf & S_HOVER ? color : null)
+      stateFlags.set(sf)
+      hoverWatch.set(sf & S_HOVER ? color : null)
     }
     rendObj = ROBJ_SOLID
     color
-    children = stateFlags.value & S_HOVER
+    children = stateFlags.get() & S_HOVER
       ? {
           size = flex()
           rendObj = ROBJ_BOX
@@ -44,7 +42,7 @@ function mkColorBox(color, hoverWatch, override = {}) {
 }
 
 let mkColorTest = @(color) {
-  size = [hdpx(600), hdpx(120)]
+  size = static [hdpx(600), hdpx(120)]
   children = [
     {
       size = flex()
@@ -52,7 +50,7 @@ let mkColorTest = @(color) {
       children = [0, 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFF800000, 0xFF008000, 0xFF000080]
         .map(@(c) mkColorBox(c, bgColor))
     }
-    mkColorBox(color, fgColor, { margin = [hdpx(60), hdpx(30), 0, 0] })
+    mkColorBox(color, fgColor, { margin = static [hdpx(60), hdpx(30), 0, 0] })
   ]
 }
 
@@ -70,10 +68,10 @@ let colorToText = @(c) ", ".concat(format("0x%08X", c),
 let colorInfo = @(colorW, text) @() {
   watch = colorW
   flow = FLOW_HORIZONTAL
-  children = colorW.value == null ? null
+  children = colorW.get() == null ? null
     : [
-        { rendObj = ROBJ_TEXT, text = $"{text}: ", size = [hdpx(150), SIZE_TO_CONTENT] }
-        { rendObj = ROBJ_TEXT, text = colorToText(colorW.value) }
+        { rendObj = ROBJ_TEXT, text = $"{text}: ", size = static [hdpx(150), SIZE_TO_CONTENT] }
+        { rendObj = ROBJ_TEXT, text = colorToText(colorW.get()) }
       ]
 }
 

@@ -66,7 +66,7 @@ public:
 
   //! optional interface to provide export-time filled parameters
   virtual bool useExportParameters() const { return false; }
-  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params) {}
+  virtual void fillExportPanel([[maybe_unused]] PropPanel::ContainerPropertyControl &params) {}
 };
 
 
@@ -90,13 +90,13 @@ public:
   //! called to get static environment scene visual geometry
   virtual void gatherStaticEnviGeometry(StaticGeometryContainer &container) = 0;
 
-  //! called to get static scene collsion geometry (for game)
+  //! called to get static scene collision geometry (for game)
   virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &container) = 0;
   //! called to get static scene collsion geometry (for editor)
   virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container) = 0;
 
   //! called to get static scene visual geometry
-  virtual void gatherStaticVisualGeometryForStage(StaticGeometryContainer &container, int stage_idx) {}
+  virtual void gatherStaticVisualGeometryForStage([[maybe_unused]] StaticGeometryContainer &cont, [[maybe_unused]] int stage_idx) {}
 };
 
 
@@ -154,6 +154,7 @@ public:
   virtual DagorAsset *getAsset() = 0;
   virtual int getAssetNameId() = 0;
   virtual const char *getResourceName() = 0;
+  virtual int getRIIndex() const = 0;
   virtual int getPoolIndex() = 0;
 
   // Gets the transformation matrix that corresponds to the aligned/compressed/quantized
@@ -222,6 +223,14 @@ public:
   static constexpr unsigned HUID = 0xA41DA302u; // IGatherRiNavmeshBlockers
 
   virtual void gatherRiNavmeshBlockers(Tab<BBox3> &blockers) = 0;
+};
+
+class IGatherNavmeshHoleCutters
+{
+public:
+  static constexpr unsigned HUID = 0xFA746AF9u; // IGatherNavmeshHoleCutters
+
+  virtual void gatherNavmeshHoleCutters(Tab<TMatrix> &cutters) = 0;
 };
 
 class IGatherGameLadders

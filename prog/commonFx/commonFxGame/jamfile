@@ -20,6 +20,7 @@ Sources =
   paramScriptsPool.cpp
   dafxSparksCpu.cpp
   dafxModFxSystem.cpp
+  dafxSystemDesc.cpp
   modfx/modfx_cpu.cpp
 
   $(fxList).cpp
@@ -35,7 +36,7 @@ UseProgLibs =
 
 if $(DafxGravityZone) = yes {
   Target  = $(Target:S=~gz.lib) ;
-  CPPopt += -DDAFX_USE_GRAVITY_ZONE=1 ;
+  CPPopt += -DDAFX_USE_GRAVITY_ZONE ;
 }
 
 if $(SSEVersion) = 0 { CPPopt += /arch:SSE2 ; } # this workarounds FPEs within hlsl-compat scalar code

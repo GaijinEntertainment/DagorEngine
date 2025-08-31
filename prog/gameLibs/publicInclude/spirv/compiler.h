@@ -10,6 +10,8 @@
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 #include <vector>
+#include <dag/dag_vector.h>
+#include "compiler_dxc.h"
 
 namespace spirv
 {
@@ -47,6 +49,7 @@ struct CompileToSpirVResult
   // reflection info to remap resoure bindings
   eastl::vector<ReflectionInfo> reflection;
 };
+
 enum class CompileFlags : uint32_t
 {
   NONE = 0,
@@ -63,8 +66,13 @@ enum class CompileFlags : uint32_t
   // force relaxed precision be converted to float16
   ENABLE_HALFS = 1 << 5,
   // enable wave intrisics which require vulkan 1.1
-  ENABLE_WAVE_INTRINSICS = 1 << 6
+  ENABLE_WAVE_INTRINSICS = 1 << 6,
+  // enable hlsl2021 features
+  ENABLE_HLSL21 = 1 << 7,
+  // enable mesh shader extension
+  ENABLE_MESH_SHADER = 1 << 8
 };
+
 inline CompileFlags &operator|=(CompileFlags &self, CompileFlags o)
 {
   reinterpret_cast<uint32_t &>(self) |= static_cast<uint32_t>(o);
@@ -92,8 +100,9 @@ inline CompileFlags operator&(CompileFlags l, CompileFlags r)
 {
   return static_cast<CompileFlags>(static_cast<uint32_t>(l) & static_cast<uint32_t>(r));
 }
+
 CompileToSpirVResult compileGLSL(dag::ConstSpan<const char *> sources, EShLanguage target, CompileFlags flags);
 CompileToSpirVResult compileHLSL(dag::ConstSpan<const char *> sources, const char *entry, EShLanguage target, CompileFlags flags);
-CompileToSpirVResult compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags,
-  const eastl::vector<eastl::string_view> &disabledSpirvOptims);
+CompileToSpirVResult compileHLSL_DXC(const DXCContext *dxc_ctx, dag::ConstSpan<char> source, const char *entry, const char *profile,
+  CompileFlags flags, const eastl::vector<eastl::string_view> &disabledSpirvOptims);
 } // namespace spirv

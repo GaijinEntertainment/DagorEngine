@@ -17,6 +17,7 @@ IEditorCoreEngine *IEditorCoreEngine::__global_instance = nullptr;
 IDagorRender *editorcore_extapi::dagRender = nullptr;
 IDagorGeom *editorcore_extapi::dagGeom = nullptr;
 IDagorConsole *editorcore_extapi::dagConsole = nullptr;
+IDagorInput *editorcore_extapi::dagInput = nullptr;
 IDagorTools *editorcore_extapi::dagTools = nullptr;
 IDagorScene *editorcore_extapi::dagScene = nullptr;
 
@@ -38,6 +39,8 @@ void daeditor3_init_globals(IDagorEd2Engine &editor)
   G_ASSERT(editorcore_extapi::dagConsole);
   editorcore_extapi::dagTools = editor_core.getTools();
   G_ASSERT(editorcore_extapi::dagTools);
+  editorcore_extapi::dagInput = editor_core.getInput();
+  G_ASSERT(editorcore_extapi::dagInput);
   editorcore_extapi::dagScene = editor_core.getScene();
   G_ASSERT(editorcore_extapi::dagScene);
   exePath = editor_core.getExePath();

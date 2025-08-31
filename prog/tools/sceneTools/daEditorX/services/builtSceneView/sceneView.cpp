@@ -36,7 +36,7 @@ public:
   {
     fakeLtGvId = get_shader_glob_var_id("fake_lighting_computations", true);
   }
-  ~BuiltSceneViewService()
+  ~BuiltSceneViewService() override
   {
     waterobjects::del(scene);
     del_it(scene);
@@ -44,36 +44,36 @@ public:
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_builtSceneView"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Built scene view"; }
+  const char *getServiceName() const override { return "_builtSceneView"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Built scene view"; }
 
-  virtual void setServiceVisible(bool vis)
+  void setServiceVisible(bool vis) override
   {
     visible = vis;
     if (visible)
       loadScene();
   }
-  virtual bool getServiceVisible() const { return visible; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override
   {
     if (scene && lengthSq(oldViewPos - ::grs_cur_view.pos) > 200)
     {
       scene->sort_objects(::grs_cur_view.pos);
     }
   }
-  virtual void renderService() {}
-  virtual void renderTransService() {}
-  virtual void onBeforeReset3dDevice() {}
-  virtual void clearServiceData()
+  void renderService() override {}
+  void renderTransService() override {}
+  void onBeforeReset3dDevice() override {}
+  void clearServiceData() override
   {
     waterobjects::del(scene);
     del_it(scene);
     wasLoaded = false;
   }
 
-  virtual bool catchEvent(unsigned ev_huid, void *userData)
+  bool catchEvent(unsigned ev_huid, void *userData) override
   {
     switch (ev_huid)
     {
@@ -89,7 +89,7 @@ public:
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IRenderingService);
     RETURN_INTERFACE(huid, IRenderOnCubeTex);
@@ -98,7 +98,7 @@ public:
   }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     static int inEditorGvId = ::get_shader_glob_var_id("in_editor");
     int prev = inEditorGvId >= 0 ? ShaderGlobal::get_int_fast(inEditorGvId) : 0;
@@ -119,7 +119,7 @@ public:
   }
 
   // IRenderOnCubeTex interface
-  void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit)
+  void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit) override
   {
     if (!renderLit)
       return;
@@ -128,7 +128,7 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params)
+  bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) override
   {
     String sceneDir;
     makeScenePath(sceneDir, "");
@@ -145,7 +145,7 @@ public:
 
     return true;
   }
-  virtual bool addUsedTextures(ITextureNumerator &tn)
+  bool addUsedTextures(ITextureNumerator &tn) override
   {
     String sceneDir;
     makeScenePath(sceneDir, "");
@@ -154,7 +154,7 @@ public:
 
     return true;
   }
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp)
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) override
   {
     String sceneDir;
     makeScenePath(sceneDir, "");
@@ -171,7 +171,7 @@ public:
 
     return true;
   }
-  virtual bool checkMetrics(const DataBlock &metrics_blk)
+  bool checkMetrics(const DataBlock &metrics_blk) override
   {
     String scenePath;
     makeScenePath(scenePath, "/scene-PC.scn");

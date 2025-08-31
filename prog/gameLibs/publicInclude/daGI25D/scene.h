@@ -51,7 +51,7 @@ public:
   void init(bool scalar_ao, float xz_size = 2.0, float y_size = 2.0);
   void close();
   void debugRayCast(SceneDebugType debug_scene);
-  UpdateResult updateOrigin(const Point3 &baseOrigin, const voxelize_scene_fun_cb &voxelize_cb);
+  UpdateResult updateOrigin(const Point3 &baseOrigin, const voxelize_scene_fun_cb &voxelize_cb, bool &update_pending);
   void setVars();
 };
 } // namespace dagi25d

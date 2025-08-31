@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpuVendor.h"
+#include "gpuVendorAmd.h"
+#include "gpuVendorNvidia.h"
 #include <util/dag_globDef.h>
+#include <drv/3d/dag_decl.h>
 
 #if _TARGET_PC_WIN
 
@@ -307,3 +310,197 @@ void gpu::get_video_ati_str(String &out_str)
 }
 
 #endif
+
+namespace
+{
+#if _TARGET_PC
+// source https://github.com/intel/vpl-gpu-rt/blob/main/_studio/shared/include/mfxstructures-int.h
+uint32_t get_intel_gpu_family(uint32_t device_id)
+{
+  using enum DeviceAttributes::IntelFamily;
+
+  const uint32_t idhi = device_id & 0xFF00;
+  const uint32_t idlo = device_id & 0x00FF;
+
+  switch (idhi)
+  {
+    case 0x0100:
+    {
+      if ((idlo & 0xFFF0) == 0x0050 || (idlo & 0xFFF0) == 0x0060)
+      {
+        return IVYBRIDGE;
+      }
+      return SANDYBRIDGE;
+    }
+    case 0x0400:
+    case 0x0A00:
+    case 0x0C00:
+    case 0x0D00: return HASWELL;
+    case 0x1600: return BROADWELL;
+    case 0x0900:
+    case 0x1900: return SKYLAKE;
+    case 0x5900: return KABYLAKE;
+    case 0x3100: return GEMINILAKE;
+    case 0x3E00:
+    {
+      switch (idlo)
+      {
+        case 0x00A0:
+        case 0x00A1:
+        case 0x00A2:
+        case 0x00A3:
+        case 0x00A4: return WHISKEYLAKE;
+        default: return COFFEELAKE;
+      }
+    }
+    case 0x5A00: return CANNONLAKE;
+    case 0x9B00: return COMETLAKE;
+    case 0x8A00: return ICELAKE_LP;
+    case 0x2600: return LAKEFIELD;
+    case 0x4500: return ELKHARTLAKE;
+    case 0x4E00: return JASPERLAKE;
+    case 0x9A00: return TIGERLAKE_LP;
+    case 0x4C00: return ROCKETLAKE;
+    case 0x4600:
+    {
+      switch (idlo)
+      {
+        case 0x0080:
+        case 0x0081:
+        case 0x0082:
+        case 0x0083:
+        case 0x0088:
+        case 0x008A:
+        case 0x008B:
+        case 0x0090:
+        case 0x0091:
+        case 0x0092:
+        case 0x0093:
+        case 0x0098:
+        case 0x0099: return ALDERLAKE_S;
+        case 0x00A0:
+        case 0x00A1:
+        case 0x00A2:
+        case 0x00A3:
+        case 0x00A6:
+        case 0x0026:
+        case 0x00B0:
+        case 0x00B1:
+        case 0x00B2:
+        case 0x00B3:
+        case 0x00A8:
+        case 0x0028:
+        case 0x00C0:
+        case 0x00C1:
+        case 0x00C2:
+        case 0x00C3:
+        case 0x00AA:
+        case 0x002A: return ALDERLAKE_P;
+        case 0x00D0:
+        case 0x00D1:
+        case 0x00D2: return ALDERLAKE_N;
+        case 0x00D3:
+        case 0x00D4:
+        default: return TWINLAKE;
+      }
+    } // -V796
+
+    case 0xA700:
+    {
+      switch (idlo)
+      {
+        case 0x0080:
+        case 0x0081:
+        case 0x0082:
+        case 0x0083:
+        case 0x0084:
+        case 0x0085:
+        case 0x0086:
+        case 0x0087:
+        case 0x0088:
+        case 0x0089:
+        case 0x008A:
+        case 0x008B:
+        case 0x008C:
+        case 0x008D:
+        case 0x008E: return RAPTORLAKE_S;
+        case 0x00A0:
+        case 0x0020:
+        case 0x00A8:
+        case 0x00A1:
+        case 0x0021:
+        case 0x00A9: return RAPTORLAKE_P;
+        case 0x00AA:
+        case 0x00AB:
+        case 0x00AC:
+        case 0x00AD:
+        default: return RAPTORLAKE;
+      }
+    }
+    case 0x4900: return DG1;
+    case 0x4F00:
+    case 0x5600: return ALCHEMIST;
+    case 0x0B00: return PONTEVECCHIO;
+    case 0x7D00:
+    {
+      switch (idlo)
+      {
+        case 0x0067: return ARROWLAKE_S;
+        case 0x0051:
+        case 0x00D1:
+        case 0x0041: return ARROWLAKE_H;
+        case 0x0040:
+        case 0x0050:
+        case 0x0055:
+        case 0x0057:
+        case 0x0060:
+        case 0x0070:
+        case 0x0075:
+        case 0x0079:
+        case 0x0076:
+        case 0x0066:
+        case 0x00D5:
+        case 0x00D7:
+        case 0x0045:
+        case 0x00E0:
+        default: return METEORLAKE;
+        case 0x00A0:
+        case 0x00A1:
+        case 0x00A2:
+        case 0x00A3:
+        case 0x00A4: return WHISKEYLAKE;
+      }
+    }
+    case 0xE200: return BATTLEMAGE;
+    case 0x6400: return LUNARLAKE;
+    case 0xB000: return PANTHERLAKE;
+    default: return DeviceAttributes::UNKNOWN;
+  }
+}
+#else
+constexpr uint32_t get_intel_gpu_family(uint32_t) { return DeviceAttributes::UNKNOWN; }
+#endif
+} // namespace
+
+void gpu::update_device_attributes(uint32_t vendor_id, uint32_t device_id, DeviceAttributesBase &device_attributes)
+{
+  device_attributes.vendor = d3d_get_vendor(vendor_id, nullptr);
+  device_attributes.vendorId = vendor_id;
+
+  switch (device_attributes.vendor)
+  {
+    case GpuVendor::UNKNOWN: break;
+    case GpuVendor::MESA: break;
+    case GpuVendor::IMGTEC: break;
+    case GpuVendor::AMD: break;
+    case GpuVendor::NVIDIA: break;
+    case GpuVendor::INTEL: device_attributes.family = get_intel_gpu_family(device_id); break;
+    case GpuVendor::APPLE: break;
+    case GpuVendor::SHIM_DRIVER: break;
+    case GpuVendor::ARM: break;
+    case GpuVendor::QUALCOMM: break;
+    case GpuVendor::SAMSUNG: break;
+    case GpuVendor::HUAWEI: break;
+    default: break;
+  }
+}

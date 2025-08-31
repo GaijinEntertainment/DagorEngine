@@ -20,11 +20,11 @@ struct EntityData
 
 // common code must be sync with same code in ecs_scene_debug
 def private daeditor_draw_entity_table(all_entities : array<EntityData>; var edit_item : EntityId&; var selected_item : EntityId&)
-  if !BeginTable("split", 2, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
+  if !BeginTable("split", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
     return false
 
-  TableSetupColumn("eid", ImGuiTableColumnFlags WidthFixed)
-  TableSetupColumn("template", ImGuiTableColumnFlags WidthStretch)
+  TableSetupColumn("eid", ImGuiTableColumnFlags.WidthFixed)
+  TableSetupColumn("template", ImGuiTableColumnFlags.WidthStretch)
 
   var selected : bool
   var selectedAddr = safe_addr(selected)
@@ -43,9 +43,9 @@ def private daeditor_draw_entity_table(all_entities : array<EntityData>; var edi
 
         imgui::PushID(eidStr)
         selected = selected_item == eid || has(eid, "daeditor__selected")
-        if imgui::Selectable(templateStr, selectedAddr, ImGuiSelectableFlags AllowDoubleClick)
+        if imgui::Selectable(templateStr, selectedAddr, ImGuiSelectableFlags.AllowDoubleClick)
           selected_item = eid
-          if imgui::IsMouseDoubleClicked(ImGuiMouseButton Left)
+          if imgui::IsMouseDoubleClicked(ImGuiMouseButton.Left)
             if GetIO().KeyCtrl
               edit_item = eid
               entity_object_editor_selectEntity(eid, !has(eid, "daeditor__selected"))
@@ -67,7 +67,7 @@ def private daeditor_draw_entity_table(all_entities : array<EntityData>; var edi
 
 def private component_name_input(var comps : array<string>&; index : int; var changed : bool&)
   let buf <- ImGuiInputTextBuffer(comps[index], length(comps[index]) + 256)
-  if InputText("##edit-{index}", buf, ImGuiInputTextFlags AutoSelectAll)
+  if InputText("##edit-{index}", buf, ImGuiInputTextFlags.AutoSelectAll)
     comps[index] = to_string(buf)
     changed = true
 
@@ -85,7 +85,7 @@ def private components_list(name : string; var comps : array<string>&; var chang
   imgui::PushID(name)
   imgui::TableNextRow()
   imgui::TableNextColumn()
-  let open = TreeNodeEx(name, ImGuiTreeNodeFlags None)
+  let open = TreeNodeEx(name, ImGuiTreeNodeFlags.None)
   imgui::TableNextColumn()
 
   if imgui::Button("+")
@@ -133,9 +133,9 @@ def dynamic_query_daeditor()
     data |> reserve(1024)
 
     ecs_dynamic_query(compsRQ, compsNO) <| $(eid : EntityId)
-      data |> emplace <| [[EntityData eidStr="{eid}", templateStr=getEntityTemplateName(eid), eid = eid]]
+      data |> emplace <| EntityData(eidStr = "{eid}", templateStr = getEntityTemplateName(eid), eid = eid)
 
-  if BeginTable("split", 2, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
+  if BeginTable("split", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
     components_list("Comps RQ", compsRQ, compsChanged)
     components_list("Comps NO", compsNO, compsChanged)
     imgui::EndTable()

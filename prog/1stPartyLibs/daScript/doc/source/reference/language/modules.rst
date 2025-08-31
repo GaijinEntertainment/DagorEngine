@@ -79,12 +79,14 @@ Its particularly important for generic functions, which are always instanced as 
     module b
 
     [generic]
-    def from_b_get_fun_4()
+    def from_b_get_fun_4() {
         return  _::fun_4()      //  call `fun_4', as if it was implicitly called from b
+    }
 
     [generic]
-    def from_b_get_fun_5()
+    def from_b_get_fun_5() {
         return  __::fun_5()     // always b::fun_5
+    }
 
 Specifying an empty prefix is the same as specifying no prefix.
 

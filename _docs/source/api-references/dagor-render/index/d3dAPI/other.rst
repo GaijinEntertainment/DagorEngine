@@ -1,5 +1,5 @@
-All other methods
+All Other Methods
 =================================================
 
-.. autodoxygenfile:: dag_driver.h
+.. doxygenfile:: dag_driver.h
   :project: d3dAPI

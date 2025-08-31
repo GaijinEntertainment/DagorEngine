@@ -25,6 +25,8 @@ public:
   int defaultFont = 0;
   float defaultFontSize = 0;
   bool gamepadCursorControl = true;
+  bool gamepadStickAsDirpad = false;
+  bool ignorePointerVisibilityForHovers = false;
   bool kbCursorControl = false;
   float gamepadCursorSpeed = 1.0f;
   float gamepadCursorDeadZone = 0.15f;

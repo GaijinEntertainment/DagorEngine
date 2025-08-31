@@ -9,6 +9,15 @@
 
 namespace drv3d_metal
 {
+enum
+{
+  BindlessTypeSampler = 1 << 0,
+  BindlessTypeBuffer = 1 << 1,
+  BindlessTypeTexture2D = 1 << 2,
+  BindlessTypeTextureCube = 1 << 3,
+  BindlessTypeTexture2DArray = 1 << 4,
+};
+
 class Shader
 {
 public:
@@ -30,12 +39,17 @@ public:
   NSString *src;
   char entry[96];
 
-  int bufRemap[BUFFER_POINT_COUNT];
+  EncodedBufferRemap bufRemap[BUFFER_POINT_COUNT];
 
   Buffers buffers[BUFFER_POINT_COUNT];
   int num_buffers = 0;
   int immediate_slot = -1;
   uint64_t buffer_mask = 0;
+
+  EncodedBufferRemap bindless_buffers[BUFFER_POINT_COUNT];
+  int num_bindless_buffers = 0;
+  uint64_t bindless_mask = 0;
+  uint32_t bindless_type_mask = 0;
 
   int num_reg;
   int shd_type;
@@ -66,8 +80,17 @@ public:
   uint32_t output_mask = ~0u;
   uint64_t shader_hash = 0;
 
+  // because of how everything is done those are embedded in vs
+  Shader *mesh_shader = nullptr;
+  Shader *amplification_shader = nullptr;
+
   Shader();
   bool compileShader(const char *source, bool async);
   void release();
+
+private:
+  bool setup(const char *data, int data_size, bool async);
+  bool loadFromBinary(const char *source, bool async);
+  bool loadFromSource(const char *source, bool async);
 };
 } // namespace drv3d_metal

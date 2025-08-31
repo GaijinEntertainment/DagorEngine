@@ -1,4 +1,4 @@
-# Shader: rendinst_blend_diffuse_decal
+# `rendinst_blend_diffuse_decal`
 
 ## Overview
 
@@ -107,6 +107,7 @@ allows us to apply them in a wider variety of scenarios.
 ```
 
 - **Microdetail Parameters**
+
 
 This shader supports
 [microdetails](../../about-assets/microdetails/microdetails.md) with the

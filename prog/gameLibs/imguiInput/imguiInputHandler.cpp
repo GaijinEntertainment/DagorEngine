@@ -26,10 +26,18 @@ DearImGuiInputHandler::DearImGuiInputHandler()
 
 bool DearImGuiInputHandler::ehIsActive() const { return imgui_get_state() == ImGuiState::ACTIVE; }
 
+static ImVec2 get_imgui_view_pos()
+{
+  if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
+    return ImVec2(0, 0);
+  return ImGui::GetMainViewport()->Pos;
+}
+
 bool DearImGuiInputHandler::gmehMove(const Context &ctx, float dx, float dy)
 {
   enableMouseMode();
-  ImGui::GetIO().MousePos = ImVec2(ctx.msX + viewPortOffsetX, ctx.msY + viewPortOffsetY);
+  ImVec2 viewPos = get_imgui_view_pos();
+  ImGui::GetIO().MousePos = ImVec2(ctx.msX + viewPos.x, ctx.msY + viewPos.y);
   return !hybridInput || ImGui::GetIO().WantCaptureMouse;
 }
 
@@ -134,7 +142,8 @@ bool DearImGuiInputHandler::gtehTouchBegan(const Context &, HumanInput::IGenPoin
   if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
     enableTouchMode();
   activeTouchIdx = touch_idx;
-  ImGui::GetIO().MousePos = ImVec2(touch.x0 + viewPortOffsetX, touch.y0 + viewPortOffsetY);
+  ImVec2 viewPos = get_imgui_view_pos();
+  ImGui::GetIO().MousePos = ImVec2(touch.x0 + viewPos.x, touch.y0 + viewPos.y);
   ImGui::GetIO().MouseDown[ImGuiMouseButton_Left] = true;
   return true;
 }
@@ -146,7 +155,8 @@ bool DearImGuiInputHandler::gtehTouchMoved(const Context &, HumanInput::IGenPoin
     return false;
   if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
     enableTouchMode();
-  ImGui::GetIO().MousePos = ImVec2(touch.x + viewPortOffsetX, touch.y + viewPortOffsetY);
+  ImVec2 viewPos = get_imgui_view_pos();
+  ImGui::GetIO().MousePos = ImVec2(touch.x + viewPos.x, touch.y + viewPos.y);
   return true;
 }
 
@@ -157,7 +167,8 @@ bool DearImGuiInputHandler::gtehTouchEnded(const Context &, HumanInput::IGenPoin
     return false;
   if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_emuTouchScreen)
     enableTouchMode();
-  ImGui::GetIO().MousePos = ImVec2(touch.x + viewPortOffsetX, touch.y + viewPortOffsetY);
+  ImVec2 viewPos = get_imgui_view_pos();
+  ImGui::GetIO().MousePos = ImVec2(touch.x + viewPos.x, touch.y + viewPos.y);
   ImGui::GetIO().MouseDown[ImGuiMouseButton_Left] = false;
   activeTouchIdx = -1;
   return true;

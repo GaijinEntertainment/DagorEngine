@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "screenEffectRendererES.cpp.inl"
 ECS_DEF_PULL_VAR(screenEffectRenderer);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc screen_effect_renderer_init_es_event_handler_comps[] ={};
 static void screen_effect_renderer_init_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

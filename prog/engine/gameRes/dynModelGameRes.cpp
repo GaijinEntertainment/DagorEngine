@@ -6,6 +6,7 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <memory/dag_framemem.h>
 #include <3d/fileTexFactory.h>
 #include <3d/dag_texMgrTags.h>
 #include <drv/3d/dag_resetDevice.h>
@@ -228,6 +229,7 @@ void DynModelGameResFactory::reset()
       String name;
       get_game_resource_name(gameRes[resNo].resId, name);
       logerr("    '%s', refCount=%d", name.str(), gameRes[resNo].sceneRes->getRefCount());
+      gameRes[resNo].sceneRes->releaseTexRefs();
     }
   }
 
@@ -357,7 +359,7 @@ static void batch_reload_res(void *)
     COPY_STAT(reloadDataSizeKb);
     COPY_STAT(reloadDataCount);
 #undef COPY_STAT
-    String status_str;
+    String status_str(framemem_ptr());
     dmUnitedVdata.buildStatusStr(status_str, false);
     debug("unitedVdata<%s>: reloaded %u models (%uK for %u msec) during last %u msec [total reloaded %uK of %u models]\n\n%s\n",
       DynamicRenderableSceneLodsResource::getStaticClassName(), diff_mls.reloadDataCount, diff_mls.reloadDataSizeKb,

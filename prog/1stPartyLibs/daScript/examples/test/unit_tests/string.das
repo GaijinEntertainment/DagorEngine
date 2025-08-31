@@ -1,43 +1,49 @@
+options gen2
 // options log=true,optimize=true,log_optimization_passes=false
 
 // options logCpp=true
 
 require strings
 
-def failUint(val: string)
-    try
+def failUint(val : string) {
+    try {
         debug(uint(val), "=")
         assert(false, "can't convert non uint string without exception")
-    recover {}
+    } recover {}
+}
 
-def failInt(val: string)
-    try
+def failInt(val : string) {
+    try {
         debug(int(val), "=")
         assert(false, "can't convert non int string without exception")
-    recover {}
+    } recover {}
+}
 
 
-def failFloat(val: string)
-    try
+def failFloat(val : string) {
+    try {
         debug(float(val), "=")
         assert(false, "can't convert non float string without exception")
-    recover {}
+    } recover {}
+}
 
-def failDouble(val: string)
-    try
+def failDouble(val : string) {
+    try {
         debug(double(val), "=")
         assert(false, "can't convert non double string without exception")
-    recover {}
+    } recover {}
+}
 
-def failAll(val: string)
+def failAll(val : string) {
     failUint(val)
     failInt(val)
     failFloat(val)
     failDouble(val)
+}
 
 [export]
-def test:bool
-    let s:string = "hello, world!"
+def test : bool {
+    let s : string = "hello, world!"
     assert(to_upper(s) == "HELLO, WORLD!")
     assert(to_lower(to_upper(s)) == s)
     assert(reverse(s) == "!dlrow ,olleh")
@@ -54,7 +60,7 @@ def test:bool
     assert(ends_with(s, ""))
     assert(starts_with(s, "a") == false)
     assert(ends_with(s, "b") == false)
-    let s2:string = "   hello, world!   "
+    let s2 : string = "   hello, world!   "
     assert(strip(s2) == s)
     assert(strip_right(strip_left(s2)) == s)
     assert(strip_left(s2) == "hello, world!   ")
@@ -91,45 +97,53 @@ def test:bool
     assert(to_int("11abc") == 11)
     assert(to_float("11.1abc") == 11.1)
     let a_slash_slash = "ab\\xy"
-    assert(length(a_slash_slash)==5)
+    assert(length(a_slash_slash) == 5)
     let mls = "this is
 multi line string"
-    assert(mls=="this is\nmulti line string")
-    assert(fmt(":02x",26)=="1a")
-    assert(fmt(":02x",27u)=="1b")
-    assert(fmt(":02x",28l)=="1c")
-    assert(fmt(":02x",29ul)=="1d")
-    assert(fmt(":.1f",1.23)=="1.2")
-    assert(fmt(":.2f",1.234)=="1.23")
+    assert(mls == "this is\nmulti line string")
+    assert(fmt(":02x", 26) == "1a")
+    assert(fmt(":02x", 27u) == "1b")
+    assert(fmt(":02x", 28l) == "1c")
+    assert(fmt(":02x", 29ul) == "1d")
+    assert(fmt(":.1f", 1.23) == "1.2")
+    assert(fmt(":.2f", 1.234) == "1.23")
 // this string is not a valid format string
     var failed = false
-    try
+    try {
         var t : string
         t = "blah"
-        var x = fmt(t,13)
-        assert(x=="13")
-    recover
+        var x = fmt(t, 13)
+        assert(x == "13")
+    } recover {
         failed = true
+    }
     assert(failed)
     // string builder
-    let st = build_string() <| $ (var writer : StringBuilderWriter)
-        write(writer,"255 hex is ")
-        format(writer,"%2x",255)
-    assert(st=="255 hex is ff")
+    let st = build_string() <| $(var writer : StringBuilderWriter) {
+        write(writer, "255 hex is ")
+        format(writer, "%2x", 255)
+    }
+    assert(st == "255 hex is ff")
     // string iterator
     var count = 0
     var index = 0
-    for ch in st
-        if ch=='5'
+    for (ch in st) {
+        if (ch == '5') {
             count ++
-        let chAt = character_at(st,index)
-        assert(ch==chAt)
+        }
+        let chAt = character_at(st, index)
+        assert(ch == chAt)
         index ++
-    assert(count==2)
+    }
+    assert(count == 2)
     // check if builder does its jo, and deletes
-    var zzs = build_string() <| $ ( writer )
-        for zzx in range(100500)
-            write(writer,zzx)
-    unsafe
+    var zzs = build_string() <| $(writer) {
+        for (zzx in range(100500)) {
+            write(writer, zzx)
+        }
+    }
+    unsafe {
         delete_string(zzs)
+    }
     return true
+}

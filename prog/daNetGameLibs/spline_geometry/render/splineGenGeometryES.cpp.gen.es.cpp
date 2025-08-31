@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "splineGenGeometryES.cpp.inl"
 ECS_DEF_PULL_VAR(splineGenGeometry);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc spline_gen_geometry_select_lod_es_comps[] =
 {
@@ -10,7 +12,7 @@ static constexpr ecs::ComponentDesc spline_gen_geometry_select_lod_es_comps[] =
   {ECS_HASH("spline_gen_geometry__is_rendered"), ecs::ComponentTypeInfo<bool>()},
 //start of 3 ro components at [3]
   {ECS_HASH("spline_gen_geometry__lods_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("spline_gen_geometry__radius"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("spline_gen_geometry__radii"), ecs::ComponentTypeInfo<ecs::List<Point2>>()},
   {ECS_HASH("spline_gen_geometry__points"), ecs::ComponentTypeInfo<ecs::List<Point3>>()}
 };
 static void spline_gen_geometry_select_lod_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -22,7 +24,7 @@ static void spline_gen_geometry_select_lod_es_all_events(const ecs::Event &__res
     , ECS_RO_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__lods_eid", ecs::EntityId)
     , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__lod", int)
     , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__is_rendered", bool)
-    , ECS_RO_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__radius", Point3)
+    , ECS_RO_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__radii", ecs::List<Point2>)
     , ECS_RO_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__points", ecs::List<Point3>)
     );
   while (++comp != compE);
@@ -102,10 +104,12 @@ static ecs::EntitySystemDesc spline_gen_geometry_request_active_state_es_es_desc
 ,"render",nullptr,nullptr,"spline_gen_geometry_select_lod_es");
 static constexpr ecs::ComponentDesc spline_gen_geometry_update_instancing_data_es_comps[] =
 {
-//start of 2 rw components at [0]
+//start of 1 rw components at [0]
   {ECS_HASH("spline_gen_geometry_renderer"), ecs::ComponentTypeInfo<SplineGenGeometry>()},
-  {ECS_HASH("spline_gen_geometry__radius"), ecs::ComponentTypeInfo<Point3>()},
-//start of 8 ro components at [2]
+//start of 11 ro components at [1]
+  {ECS_HASH("spline_gen_geometry__radii"), ecs::ComponentTypeInfo<ecs::List<Point2>>()},
+  {ECS_HASH("spline_gen_geometry__emissive_points"), ecs::ComponentTypeInfo<ecs::List<Point3>>()},
+  {ECS_HASH("spline_gen_geometry__emissive_color"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("spline_gen_geometry__displacement_strength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("spline_gen_geometry__tiles_around"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("spline_gen_geometry__tile_size_meters"), ecs::ComponentTypeInfo<float>()},
@@ -124,7 +128,9 @@ static void spline_gen_geometry_update_instancing_data_es_all_events(const ecs::
       continue;
     spline_gen_geometry_update_instancing_data_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
           , ECS_RW_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
-      , ECS_RW_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__radius", Point3)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__radii", ecs::List<Point2>)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__emissive_points", ecs::List<Point3>)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__emissive_color", Point4)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__displacement_strength", float)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__tiles_around", int)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__tile_size_meters", float)
@@ -139,40 +145,39 @@ static ecs::EntitySystemDesc spline_gen_geometry_update_instancing_data_es_es_de
   "spline_gen_geometry_update_instancing_data_es",
   "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
   ecs::EntitySystemOps(nullptr, spline_gen_geometry_update_instancing_data_es_all_events),
-  make_span(spline_gen_geometry_update_instancing_data_es_comps+0, 2)/*rw*/,
-  make_span(spline_gen_geometry_update_instancing_data_es_comps+2, 8)/*ro*/,
+  make_span(spline_gen_geometry_update_instancing_data_es_comps+0, 1)/*rw*/,
+  make_span(spline_gen_geometry_update_instancing_data_es_comps+1, 11)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,nullptr,"spline_gen_geometry_request_active_state_es");
-static constexpr ecs::ComponentDesc spline_gen_geometry_update_inactive_es_comps[] =
+static constexpr ecs::ComponentDesc spline_gen_geometry_update_attachment_batchids_es_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("spline_gen_geometry_renderer"), ecs::ComponentTypeInfo<SplineGenGeometry>()},
-//start of 2 ro components at [1]
-  {ECS_HASH("spline_gen_geometry__renderer_active"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 ro components at [1]
   {ECS_HASH("spline_gen_geometry__is_rendered"), ecs::ComponentTypeInfo<bool>()}
 };
-static void spline_gen_geometry_update_inactive_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void spline_gen_geometry_update_attachment_batchids_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
   {
-    if ( !(!ECS_RO_COMP(spline_gen_geometry_update_inactive_es_comps, "spline_gen_geometry__renderer_active", bool) && ECS_RO_COMP(spline_gen_geometry_update_inactive_es_comps, "spline_gen_geometry__is_rendered", bool)) )
+    if ( !(ECS_RO_COMP(spline_gen_geometry_update_attachment_batchids_es_comps, "spline_gen_geometry__is_rendered", bool)) )
       continue;
-    spline_gen_geometry_update_inactive_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-          , ECS_RW_COMP(spline_gen_geometry_update_inactive_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
+    spline_gen_geometry_update_attachment_batchids_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+          , ECS_RW_COMP(spline_gen_geometry_update_attachment_batchids_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
       );
   } while (++comp != compE);
 }
-static ecs::EntitySystemDesc spline_gen_geometry_update_inactive_es_es_desc
+static ecs::EntitySystemDesc spline_gen_geometry_update_attachment_batchids_es_es_desc
 (
-  "spline_gen_geometry_update_inactive_es",
+  "spline_gen_geometry_update_attachment_batchids_es",
   "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, spline_gen_geometry_update_inactive_es_all_events),
-  make_span(spline_gen_geometry_update_inactive_es_comps+0, 1)/*rw*/,
-  make_span(spline_gen_geometry_update_inactive_es_comps+1, 2)/*ro*/,
+  ecs::EntitySystemOps(nullptr, spline_gen_geometry_update_attachment_batchids_es_all_events),
+  make_span(spline_gen_geometry_update_attachment_batchids_es_comps+0, 1)/*rw*/,
+  make_span(spline_gen_geometry_update_attachment_batchids_es_comps+1, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
@@ -203,7 +208,7 @@ static ecs::EntitySystemDesc spline_gen_geometry_manager_generate_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,nullptr,"spline_gen_geometry_update_inactive_es");
+,"render",nullptr,nullptr,"spline_gen_geometry_update_attachment_batchids_es");
 static constexpr ecs::ComponentDesc spline_gen_geometry_render_opaque_es_comps[] =
 {
 //start of 1 rw components at [0]

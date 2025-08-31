@@ -7,7 +7,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_geomTree.h>
 
-VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P, vec3f Z)
+VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P, vec3f D)
 {
   // Consider two circles:
   //  - The 1st of radius A in the center of coordinates
@@ -30,20 +30,22 @@ VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P
   auto x = (C + (A * A - B * B) / C) * 0.5f;
 
   // Find distance of the intersection from Ox axis
-  auto h = sqrtf(fabsf(A * A - x * x));
+  auto y = sqrtf(fabsf(A * A - x * x));
 
   // Compute parallel to P part of the joint vector.
-  auto D = v_mul(v_splats(x), v_norm3(P));
+  auto norm_P = v_norm3(P);
+  auto X = v_mul(v_splats(x), norm_P);
 
-  // Use Z of the first node to determine which way the joint
-  // should bend. Then compute orthogonal to P part of the joint vector.
-  auto H = v_mul(v_splats(h), v_norm3(v_cross3(P, Z)));
+  // Use flex direction to compute what direction the knee should bend.
+  // Because actually those two solutions, they lie on the circle in 3D,
+  // so we need this to determine what point on this circle we need.
+  auto Y = v_mul(v_splats(y), v_norm3(v_sub(D, v_mul(v_dot3(D, norm_P), norm_P))));
 
-  return v_add(D, H);
+  return v_add(X, Y);
 }
 
 static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, const mat44f &target_tm, float length01, float length12,
-  float max_reach_scale = 1.0f)
+  vec3f flex_direction, float max_reach_scale = 1.0f)
 {
   // Set target tm to hand.
   n2_wtm = target_tm;
@@ -59,7 +61,7 @@ static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, cons
     ikNode2 = v_sub(n2_wtm.col3, n0_wtm.col3);
   }
 
-  vec3f ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, n0_wtm.col2);
+  vec3f ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, flex_direction);
 
   // Set forearm matrix.
   mat44f m0, m1;

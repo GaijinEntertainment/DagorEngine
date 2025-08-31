@@ -109,7 +109,7 @@ void BhvTextArea::update_formatted_text(textlayout::FormattedText *fmt_text, Ele
   Sqrat::Table colorTable = elem->props.scriptDesc.RawGetSlot(elem->csk->colorTable);
   Sqrat::Table tagsTable = elem->props.scriptDesc.RawGetSlot(elem->csk->tagsTable);
   TextAreaTextParams tp(colorTable, tagsTable);
-  fmt_text->updateText(elem->props.text, elem->props.text.length(), &tp);
+  fmt_text->updateText(elem->props.text.c_str(), elem->props.text.length(), &tp);
 }
 
 

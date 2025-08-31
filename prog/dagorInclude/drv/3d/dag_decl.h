@@ -11,6 +11,7 @@
 #include <math/dag_lsbVisitor.h>
 
 class BaseTexture;
+class Sbuffer;
 struct Driver3dRenderTarget;
 struct ViewProjMatrixContainer;
 class String;
@@ -41,6 +42,25 @@ struct Viewport : public ScissorRect
   float minz, maxz;
 
   static constexpr uint32_t MAX_VIEWPORT_COUNT = 16;
+};
+
+// Stream output buffer setup structure.
+struct StreamOutputBufferSetup
+{
+  /// The buffer to use for stream output.
+  Sbuffer *buffer = nullptr;
+  /// The byte offset in the buffer to start writing to.
+  uint32_t byteOffset = 0;
+  /// The buffer to use for stream output counter. The initial counter value must be zero.
+  Sbuffer *counterBuffer = nullptr;
+  /// The byte counter location in the counter buffer.
+  uint32_t byteOffsetCounter = 0;
+
+  bool operator==(const StreamOutputBufferSetup &rhs) const
+  {
+    return buffer == rhs.buffer && byteOffset == rhs.byteOffset && counterBuffer == rhs.counterBuffer &&
+           byteOffsetCounter == rhs.byteOffsetCounter;
+  }
 };
 
 struct Driver3dPerspective
@@ -264,26 +284,10 @@ struct ShaderWarmUpInfo
   uint32_t separateBlendEnable : 1;
 };
 
-enum
-{
-  D3D_VENDOR_NONE,
-  D3D_VENDOR_MESA,
-  D3D_VENDOR_IMGTEC,
-  D3D_VENDOR_AMD,
-  D3D_VENDOR_NVIDIA,
-  D3D_VENDOR_INTEL,
-  D3D_VENDOR_APPLE,
-  D3D_VENDOR_SHIM_DRIVER,
-  D3D_VENDOR_ARM,
-  D3D_VENDOR_QUALCOMM,
-  D3D_VENDOR_SAMSUNG,
-  D3D_VENDOR_HUAWEI,
-  D3D_VENDOR_COUNT,
-  D3D_VENDOR_ATI = D3D_VENDOR_AMD,
-};
+enum class GpuVendor : uint8_t;
 
-int d3d_get_vendor(uint32_t vendor_id, const char *description = nullptr);
-const char *d3d_get_vendor_name(int vendor);
+GpuVendor d3d_get_vendor(uint32_t vendor_id, const char *description = nullptr);
+const char *d3d_get_vendor_name(GpuVendor vendor);
 
 struct XessParams
 {
@@ -298,6 +302,22 @@ struct XessParams
   int inColorDepthOffsetY;
 
   BaseTexture *outColor;
+};
+
+struct XessFgParams
+{
+  TMatrix viewTm;
+  TMatrix4 projTm;
+  BaseTexture *inColorHudless;
+  BaseTexture *inUi;
+  BaseTexture *inDepth;
+  BaseTexture *inMotionVectors;
+  float inMotionVectorScaleX;
+  float inMotionVectorScaleY;
+  float inJitterOffsetX;
+  float inJitterOffsetY;
+  uint32_t inFrameIndex;
+  bool inReset;
 };
 
 struct Fsr2Params
@@ -343,10 +363,7 @@ struct MtlFxUpscaleParams
     {                                                                                                                     \
       func(VALUE);                                                                                                        \
     }                                                                                                                     \
-    ~ClassName()                                                                                                          \
-    {                                                                                                                     \
-      func(def_value);                                                                                                    \
-    }                                                                                                                     \
+    ~ClassName() { func(def_value); }                                                                                     \
   } obj_name(val, default_value, func_call);
 
 #define STATE_GUARD(func_call, val, default_value)                                   \

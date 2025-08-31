@@ -12,8 +12,10 @@
 #include <shaders/dag_linkedListOfShadervars.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_statDrv.h>
+#include <shaders/dag_bindumpReloadListener.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <drv/3d/dag_commands.h>
+#include <hash/sha256.h>
 
 namespace shaderbindump
 {
@@ -101,12 +103,7 @@ template class DynVariantsCache<EASTLAllocatorType>;
 template <typename F>
 static bool read_shdump_file(IGenLoad &crd, int size, bool full_file_load, F cb)
 {
-#if _TARGET_C1 | _TARGET_C2
-
-
-#else
   if (full_file_load) // mmaped code path
-#endif
   {
     G_ASSERT(crd.tell() == 0);
     int flen = -1;
@@ -145,7 +142,9 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
 
   initVarIndexMaps(maxBindumpShadervars);
   shadervars::resolve_shadervars();
-  ShaderVariableInfo::resolveAll();
+  IShaderBindumpReloadListener::resolveAll();
+  extern void reset_shaders_logerr_info();
+  reset_shaders_logerr_info();
   if (mShaderDump == &shBinDump())
     d3d::driver_command(Drv3dCommand::REGISTER_SHADER_DUMP, this, (void *)crd.getTargetName());
 
@@ -153,18 +152,58 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
   return true;
 }
 
+static auto make_hash_log_string(const uint8_t (&hash)[SHA256_DIGEST_LENGTH])
+{
+  eastl::string res{};
+  for (uint8_t byte : hash)
+    res.append_sprintf("%02x", byte);
+  return res;
+}
+
 bool ScriptedShadersBinDumpOwner::loadData(const uint8_t *dump, int size)
 {
   clear();
 
-  auto header = bindump::map<shader_layout::ScriptedShadersBinDumpCompressed>(dump);
-  if (!header)
+  auto mappedDump = bindump::map<shader_layout::ScriptedShadersBinDumpCompressed>(dump);
+  if (!mappedDump)
     return false;
 
-  if (header->signPart1 != _MAKE4C('VSPS') || header->signPart2 != _MAKE4C('dump') || header->version != SHADER_BINDUMP_VER)
-    return false;
+  const auto &header = mappedDump->header;
 
-  mShaderDump = header->scriptedShadersBindumpCompressed.decompress(mSelfData, bindump::BehaviorOnUncompressed::Copy);
+  if (header.magicPart1 != _MAKE4C('VSPS') || header.magicPart2 != _MAKE4C('dump') || header.version != SHADER_BINDUMP_VER)
+  {
+    // @TODO: should this be a fatal too? seems like sign maybe should cause a fatal, but version -- allow to look for other dumps.
+    return false;
+  }
+
+  uint8_t dataHash[SHA256_DIGEST_LENGTH] = {};
+  static_assert(sizeof(dataHash) == sizeof(header.checksumHash));
+
+  static_assert(offsetof(eastl::remove_pointer_t<decltype(mappedDump)>, scriptedShadersBindumpCompressed) == sizeof(header));
+  auto data = dag::ConstSpan<uint8_t>{dump, size}.subspan(sizeof(header));
+  sha256_csum(data.data(), data.size(), dataHash);
+
+  if (memcmp(header.checksumHash, dataHash, sizeof(dataHash)) != 0)
+  {
+    DAG_FATAL("Corrupt file: shaders bindump checksum validation failed\n"
+              "  checksum from header : %s\n"
+              "  checksum computed from content : %s",
+      make_hash_log_string(header.checksumHash).c_str(), make_hash_log_string(dataHash).c_str());
+    return false;
+  }
+
+  debug("[SH] Shaders bindump is intact with checksum : %s", make_hash_log_string(header.checksumHash).c_str());
+
+  // @TODO: this should never be true if checksum matched, remove if this does not occur for some time
+  if (DAGOR_UNLIKELY(size <= mappedDump->scriptedShadersBindumpCompressed.getCompressedSize()))
+  {
+    G_ASSERT_LOG(size > mappedDump->scriptedShadersBindumpCompressed.getCompressedSize(), // Repeating for better assert message
+      "Invalid shader dump file: total file size is %d bytes, while header specifies a mappedDump size of %u bytes", size,
+      mappedDump->scriptedShadersBindumpCompressed.getCompressedSize());
+    return false;
+  }
+
+  mShaderDump = mappedDump->scriptedShadersBindumpCompressed.decompress(mSelfData, bindump::BehaviorOnUncompressed::Copy);
   if (!mShaderDump)
     return false;
 
@@ -293,6 +332,13 @@ void ScriptedShadersBinDumpOwner::initAfterLoad()
   eastl::fill(vprId.begin(), vprId.end(), BAD_VPROG);
   clear_and_resize(fshId, mShaderDump->fshCount);
   eastl::fill(fshId.begin(), fshId.end(), BAD_FSHADER);
+  // TODO: fsh and csh should have different sizes, but this is on shader compiler people to do
+  clear_and_resize(cshId, mShaderDump->fshCount);
+  eastl::fill(cshId.begin(), cshId.end(), BAD_PROGRAM);
+
+  globVarsState.load(*mShaderDump);
+
+  shBinDumpOwner().violatedAssumedIntervals.clear();
 }
 
 void ScriptedShadersBinDumpOwner::clear()
@@ -309,4 +355,6 @@ void ScriptedShadersBinDumpOwner::clear()
   mDictionary = nullptr;
   vprId.clear();
   fshId.clear();
+  cshId.clear();
+  globVarsState.clear();
 }

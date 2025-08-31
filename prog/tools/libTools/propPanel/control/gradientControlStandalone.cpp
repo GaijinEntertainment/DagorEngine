@@ -159,7 +159,7 @@ bool TrackGradientButton::updateImgui(const Point2 &view_offset, const Point2 &m
   drawList->AddLine(point3 + view_offset, point1 + view_offset, borderColor);
 
   if (hovered && !moving && !tooltipText.empty())
-    ImGui::SetTooltip(tooltipText);
+    ImGui::SetTooltip("%s", tooltipText.c_str());
 
   return hovered;
 }

@@ -12,10 +12,9 @@
 #include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
 #include <propPanel/propPanel.h>
-#include <sepGui/wndMenuInterface.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-class FavoritesTree : public IMenuEventHandler, public PropPanel::ITreeViewEventHandler
+class FavoritesTree : public PropPanel::IMenuEventHandler, public PropPanel::ITreeViewEventHandler
 {
 public:
   explicit FavoritesTree(IAssetSelectorFavoritesRecentlyUsedHost &tab_host, const DagorAssetMgr &asset_mgr) :
@@ -29,10 +28,9 @@ public:
     shownTypes.resize(asset_mgr.getAssetTypesCount(), false);
   }
 
-  void fillTree()
+  void fillTree(const DagorAsset *asset_to_select)
   {
     const dag::ConstSpan<int> allowedTypeIndexes = tabHost.getAllowedTypes();
-    const DagorAsset *selectedAsset = getSelectedAsset();
     int assetsMatchingAllowedTypes = 0;
 
     closedFolders.clear();
@@ -79,9 +77,9 @@ public:
     else
       tree->setMessage("");
 
-    if (selectedAsset)
+    if (asset_to_select)
     {
-      PropPanel::TLeafHandle treeItem = getTreeItemByItemData(makeItemDataFromAsset(*selectedAsset));
+      PropPanel::TLeafHandle treeItem = getTreeItemByItemData(makeItemDataFromAsset(*asset_to_select));
       if (treeItem)
         tree->setSelectedItem(treeItem);
     }
@@ -91,6 +89,12 @@ public:
   {
     const PropPanel::TLeafHandle selectedNode = tree->getSelectedItem();
     return selectedNode ? getAssetFromItemData(selectedNode) : nullptr;
+  }
+
+  void setSelectedAsset(const DagorAsset *asset)
+  {
+    PropPanel::TLeafHandle treeItem = getTreeItemByItemData(makeItemDataFromAsset(*asset));
+    tree->setSelectedItem(treeItem);
   }
 
   void expandAll(bool expand) { tree->expandRecursive(tree->getRoot(), expand); }
@@ -103,7 +107,7 @@ public:
       return;
 
     showHierarchy = show;
-    fillTree();
+    fillTree(getSelectedAsset());
     AssetSelectorGlobalState::setShowHierarchyInFavorites(showHierarchy);
   }
 
@@ -212,7 +216,7 @@ private:
     dag::Vector<const DagorAsset *> assets;
   };
 
-  virtual int onMenuItemClick(unsigned id) override
+  int onMenuItemClick(unsigned id) override
   {
     switch (id)
     {
@@ -227,7 +231,7 @@ private:
           if (!AssetSelectorGlobalState::removeFavorite(asset->getNameTypified()))
             AssetSelectorGlobalState::removeFavorite(String(asset->getName()));
 
-          fillTree();
+          fillTree(asset);
         }
         return 1;
 
@@ -282,18 +286,19 @@ private:
     return 0;
   }
 
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::TLeafHandle new_sel) override
+  void onTvSelectionChange(PropPanel::TreeBaseWindow &, PropPanel::TLeafHandle) override
   {
     tabHost.onSelectionChanged(getSelectedAsset());
   }
 
-  virtual void onTvDClick(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::TLeafHandle node) override
+  void onTvDClick(PropPanel::TreeBaseWindow &, PropPanel::TLeafHandle) override
   {
     tabHost.onSelectionDoubleClicked(getSelectedAsset());
   }
 
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &in_tree) override
+  bool onTvContextMenu(PropPanel::TreeBaseWindow &, PropPanel::ITreeInterface &in_tree) override
   {
+    using PropPanel::ROOT_MENU_ITEM;
     if (getSelectedAsset())
     {
       PropPanel::IMenu &menu = in_tree.createContextMenu();
@@ -312,9 +317,17 @@ private:
       menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CollapseChildrenMenuItem, "Collapse children");
       menu.addSeparator(ROOT_MENU_ITEM);
 
-      menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
-      menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
-      menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+      if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
+      {
+        menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+      }
+      else
+      {
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+      }
 
       menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
       return true;
@@ -364,7 +377,7 @@ private:
     String imageName;
     for (const DagorAsset *asset : tree_folder.assets)
     {
-      const TEXTUREID icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
+      const PropPanel::IconId icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
       favorites_tree.addItem(asset->getName(), icon, parent, makeItemDataFromAsset(*asset));
     }
   }
@@ -454,6 +467,6 @@ private:
   FavoriteTreeFolder rootFavoriteTreeFolder;
   dag::Vector<bool> shownTypes;
   AssetsGuiTextFilter textFilter;
-  TEXTUREID folderIcon;
+  PropPanel::IconId folderIcon;
   bool showHierarchy = true;
 };

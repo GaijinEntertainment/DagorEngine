@@ -103,6 +103,8 @@ UseProgLibs =
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/udp
   gameLibs/quirrel/sqDataCache
+  gameLibs/quirrel/lastInputMonitor
+  gameLibs/ecs/input
   engine/perfMon
   engine/consoleProc
   tools/libTools/util
@@ -165,28 +167,6 @@ else if $(Platform) = android {
     platform/android.bundle/src/DagorBaseActivity.java      src/com/gaijinent/common/DagorBaseActivity.java
   ;
 
-  if $(Config) != rel {
-    local vulkan_libs = ;
-    if $(AndroidNdkVer) in r23b {
-      vulkan_libs = libVkLayer_khronos_validation.so ;
-    } else if $(AndroidNdkVer) in r25c {
-      # no more vulkan layers in ndk
-    } else {
-      vulkan_libs =
-        libVkLayer_core_validation.so
-        libVkLayer_object_tracker.so
-        libVkLayer_parameter_validation.so
-        libVkLayer_threading.so
-        libVkLayer_unique_objects.so
-      ;
-    }
-    for l in $(vulkan_libs) {
-      BundleCopy +=
-        @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(PlatformArch)/$(l)
-          libs/$(PlatformArch)/$(l)
-      ;
-    }
-  }
 }
 else if $(Platform) = iOS {
   Sources +=

@@ -15,14 +15,14 @@ class GrassViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventH
 {
 public:
   GrassViewPlugin() : grass(NULL) { initScriptPanelEditor("grass.scheme.nut", "grass by scheme"); }
-  ~GrassViewPlugin() { destroy_it(grass); }
+  ~GrassViewPlugin() override { destroy_it(grass); }
 
-  virtual const char *getInternalName() const { return "grassViewer"; }
+  const char *getInternalName() const override { return "grassViewer"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     grass = asset ? DAEDITOR3.createEntity(*asset) : NULL;
     G_ASSERT(grass);
@@ -49,35 +49,35 @@ public:
     return true;
   }
 
-  virtual bool end()
+  bool end() override
   {
     if (spEditor)
       spEditor->destroyPanel();
     destroy_it(grass);
     return true;
   }
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     box.lim[0] = Point3(-10, 0, -10);
     box.lim[1] = Point3(10, 4, 10);
     return true;
   }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "grass") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "grass") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) {}
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override {}
+  void postFillPropPanel() override {}
 
 private:
   IObjEntity *grass;

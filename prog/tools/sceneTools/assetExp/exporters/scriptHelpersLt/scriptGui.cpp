@@ -77,41 +77,36 @@ namespace ScriptHelpers
     }
 
 
-    virtual TunedElement* cloneElem()
+    TunedElement* cloneElem() override
     {
       return new TunedPosHelper(*this);
     }
 
-    virtual int subElemCount() const { return 0; }
-    virtual TunedElement* getSubElem(int index) const { return NULL; }
+    int subElemCount() const override { return 0; }
+    TunedElement* getSubElem(int index) const override { return NULL; }
 
-    virtual void fillPropPanel(ObjectParameters &op, int &pid, IPropPanelCB &ppcb)
-    {
-    }
+    void fillPropPanel(ObjectParameters &op, int &pid, IPropPanelCB &ppcb) override {}
 
-    virtual void getValues(ObjectParameters &op, int &pid)
-    {
-    }
+    void getValues(ObjectParameters &op, int &pid) override {}
 
-    virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+    void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
     {
       Point3 pos=obj->getPos();
       cwr.write32ex(&pos, sizeof(pos));
     }
 
-    virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+    void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
     {
       Point3 pos=obj->getPos();
       blk.setPoint3("pos", pos);
     }
 
-    virtual void loadValues(const DataBlock &blk)
+    void loadValues(const DataBlock &blk) override
     {
       Point3 pos=obj->getPos();
       pos=blk.getPoint3("pos", pos);
       obj->setPos(pos);
     }
-
   };
 
 

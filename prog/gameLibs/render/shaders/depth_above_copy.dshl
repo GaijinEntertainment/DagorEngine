@@ -22,10 +22,10 @@ shader depth_above_copy_regions
   ENABLE_ASSERT(ps)
 
   hlsl(ps) {
-    float main_ps(VsOutput input) : SV_Depth
+    float depth_above_copy_regions_ps(VsOutput input) : SV_Depth
     {
       return texelFetch(depth_above, int3(input.pos.xy, copy_layer), 0).x;
     }
   }
-  compile("target_ps", "main_ps");
+  compile("target_ps", "depth_above_copy_regions_ps");
 }

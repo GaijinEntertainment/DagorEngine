@@ -18,7 +18,7 @@ let offsets = sh(1) // change it to view overflow difference
 
 let mkPanel = @(text, content = null) {
   rendObj = ROBJ_FRAME
-  size = [sw(12), flex()]
+  size = static [sw(12), flex()]
   minHeight = SIZE_TO_CONTENT
   flow = FLOW_VERTICAL
   gap = offsets
@@ -39,13 +39,13 @@ let mkPanel = @(text, content = null) {
       children = [
         {
           rendObj = ROBJ_TEXT
-          size = [flex(), SIZE_TO_CONTENT]
+          size = FLEX_H
           halign = ALIGN_CENTER
           text
         }
         content == null ? null : {
           rendObj = ROBJ_FRAME
-          size = [flex(), SIZE_TO_CONTENT]
+          size = FLEX_H
           borderWidth = 1
           color = 0xFFFF6600
           children = content
@@ -54,7 +54,7 @@ let mkPanel = @(text, content = null) {
     }
     {
       rendObj = ROBJ_TEXT
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       halign = ALIGN_CENTER
       text = "BUTTONS"
     }
@@ -63,7 +63,7 @@ let mkPanel = @(text, content = null) {
 
 let mkContent = @(text) {
   rendObj = ROBJ_TEXTAREA
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   behavior = Behaviors.TextArea
   halign = ALIGN_CENTER
   text

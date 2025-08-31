@@ -13,6 +13,7 @@
 #include <supp/dag_cpuControl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ioSys/dag_dataBlock.h>
 #if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_C1 | _TARGET_C2 | _TARGET_C3
 #include <pthread.h>
 #include <sched.h>
@@ -36,8 +37,8 @@ inline void strerror_r(int e, char *b, size_t bsz) { strerror_s(b, bsz, e); }
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <unistd.h>
-#elif _TARGET_PC_WIN
-#include <malloc.h>
+#elif _TARGET_PC_WIN | _TARGET_XBOX
+#include <malloc.h> // alloca
 #endif
 
 #include <util/engineInternals.h>
@@ -48,12 +49,9 @@ inline void strerror_r(int e, char *b, size_t bsz) { strerror_s(b, bsz, e); }
 static DaThread *threads_list_head = NULL, *threads_list_tail = NULL;
 static OSSpinlock threads_sl;
 
-#if _TARGET_XBOX
+#if DAGOR_DBGLEVEL > 0 || (_TARGET_XBOX | _TARGET_C1 | _TARGET_C2)
 #define HAVE_THREAD_NAMES 1
-#else
-#define HAVE_THREAD_NAMES (DAGOR_DBGLEVEL != 0)
 #endif
-
 
 #if (_TARGET_PC_WIN | _TARGET_XBOX) && HAVE_THREAD_NAMES
 static void win_set_cur_thread_description(const char *tname)
@@ -152,10 +150,13 @@ extern void update_float_exceptions();
 
 void DaThread::doThread()
 {
-#if !(_TARGET_PC_WIN | _TARGET_XBOX)
-  id = pthread_self();
-#endif
   applyThreadPriority();
+#if _TARGET_PC_WIN // Stack copy to be visible in micro-dumps (as stack is usually included)
+  char threadName[sizeof(name)];
+  memcpy(threadName, name, sizeof(threadName));
+#pragma warning(disable : 4458)  // Member aliasing is intentional
+  const char *name = threadName; //-V688 Ditto
+#endif
   setCurrentThreadName(name);
   uint64_t setAffinity = affinityMask;
 #if _TARGET_C3 | _TARGET_TVOS | _TARGET_IOS
@@ -264,6 +265,8 @@ void DaThread::setCurrentThreadName(const char *tname)
 
 #elif _TARGET_PC_LINUX | _TARGET_ANDROID
   prctl(PR_SET_NAME, tname);
+#elif _TARGET_PC_MACOSX | _TARGET_IOS
+  pthread_setname_np(tname);
 #elif _TARGET_C3
 
 #endif
@@ -278,7 +281,7 @@ void DaThread::applyThisThreadAffinity(uint64_t affinity)
 #if HAVE_THREAD_NAMES
   const char *tname = thread_name_tls;
 #else
-  const char *tname = "thread";
+  const char *tname = nullptr;
 #endif
   G_UNREFERENCED(tname);
 #if _TARGET_PC_WIN || _TARGET_XBOX
@@ -311,6 +314,9 @@ void DaThread::applyThisThreadAffinity(uint64_t affinity)
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_ANDROID
+  static bool disableThreadsAffinity = ::dgs_get_settings()->getBlockByNameEx("android")->getBool("disableThreadsAffinity", false);
+  if (disableThreadsAffinity)
+    return;
   const int android_online_cores = sysconf(_SC_NPROCESSORS_ONLN);
   affinity &= (1ull << android_online_cores) - 1;
   if (!affinity)
@@ -416,15 +422,16 @@ bool DaThread::start()
 
 #endif
 
-  int err = pthread_create(&id, &attr, threadEntry, this);
+  int err = pthread_create(&this->id, &attr, threadEntry, this);
 
   pthread_attr_destroy(&attr);
 
 #elif _TARGET_PC_WIN | _TARGET_XBOX
 
   unsigned thrIdent;
+  const unsigned initf = STACK_SIZE_PARAM_IS_A_RESERVATION;
 #if _TARGET_XBOX // Microsoft extensions for threading are obsolete and have been removed.
-  id = (uintptr_t)CreateThread(NULL, stackSize, (LPTHREAD_START_ROUTINE)threadEntry, (void *)this, 0, (LPDWORD)&thrIdent);
+  id = (uintptr_t)CreateThread(NULL, stackSize, (LPTHREAD_START_ROUTINE)threadEntry, (void *)this, initf, (LPDWORD)&thrIdent);
   int err = id ? 0 : GetLastError();
   strErr = +[](int e, char *b, size_t bsz) {
     auto langid = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
@@ -432,7 +439,7 @@ bool DaThread::start()
     return b;
   };
 #else
-  id = _beginthreadex(NULL, (int)stackSize, threadEntry, (void *)this, STACK_SIZE_PARAM_IS_A_RESERVATION, &thrIdent);
+  id = _beginthreadex(NULL, (int)stackSize, threadEntry, (void *)this, initf, &thrIdent);
   int err = id ? 0 : errno;
 #endif
 
@@ -445,8 +452,8 @@ bool DaThread::start()
     interlocked_release_store(threadState, DEAD);
     remove_thread_from_list(this);
     char errMsgBuf[128];
-    logerr("Failed to start thread <%s> stackSize/flexa=%d/%d KB with error %d: %s", name, stackSize >> 10, GET_FLEXA_KB(), err,
-      strErr(err, errMsgBuf, sizeof(errMsgBuf)));
+    G_ASSERT_LOG(0, "Failed to start thread <%s> stackSize/flexa=%d/%d KB with error %d: %s", name, stackSize >> 10, GET_FLEXA_KB(),
+      err, strErr(err, errMsgBuf, sizeof(errMsgBuf)));
   }
 
   return err == 0;

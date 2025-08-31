@@ -48,7 +48,7 @@ struct AnimationDataBase
   int featuresSize = 0;
   TagPresetVector tagsPresets;
   dag::Vector<vec4f> featuresAvg, featuresStd;
-  int normalizationGroupsCount = 0;
+  NameMap featuresNormalizationGroups;
 
   dag::Index16 rootNode;
   // Prefer this node if it exists in a2d, otherwise fallback to root motion calculation based on skeleton nodes
@@ -67,6 +67,7 @@ struct AnimationDataBase
   int animGraphTagsParamId = -1;
   int footLockerParamId = -1;
 
+  eastl::unique_ptr<GameResource, GameResDeleter> animGraphGameRes;
   eastl::unique_ptr<GameResource, GameResDeleter> referenceSkeleton;
   void setReferenceSkeleton(const GeomNodeTree *skeleton)
   {
@@ -78,12 +79,25 @@ struct AnimationDataBase
   // store here only pow index
   OAHashNameMap<false> tags;
   int playOnlyFromStartTag = -1;
+
+#if DAGOR_DBGLEVEL > 0
+  float validateNextClipPosThreshold = 0.f;
+  float validateNextClipRotThreshold = 0.f;
+  float validateNextClipSclThreshold = 0.f;
+#endif
+
   int getTagsCount() const { return tags.nameCount(); }
   int getTagIdx(const char *tag_name) const { return tags.getNameId(tag_name); }
   const char *getTagName(int tag_idx) const { return tags.getName(tag_idx); }
   bool hasAnimGraphTags() const { return !animGraphNodeTagsRemap.empty(); }
   bool hasAvailableAnimations(const AnimationFilterTags &tags) const;
   void changePBCWeightOverride(int pbc_id, float weight);
+
+  Point3 getNodePositionFeature(int clip_idx, int frame_idx, int node_idx) const;
+  Point3 getNodeVelocityFeature(int clip_idx, int frame_idx, int node_idx) const;
+  Point2 getTrajectoryPositionFeature(int clip_idx, int frame_idx, int trajectory_sample_idx) const;
+  Point2 getTrajectoryDirectionFeature(int clip_idx, int frame_idx, int trajectory_sample_idx) const;
+
   static void requestResources(const char *, const ecs::resource_request_cb_t &res_cb);
 };
 ECS_DECLARE_BOXED_TYPE(AnimationDataBase);
@@ -92,7 +106,14 @@ ECS_DECLARE_BOXED_TYPE(AnimationDataBase);
 const float TICKS_PER_SECOND = 30.f;
 const vec4f V_TICKS_PER_SECOND = v_splats(TICKS_PER_SECOND);
 
+inline int a2d_ticks_to_mm_frame(int a2d_ticks)
+{
+  const int FRAMES_PER_SECOND = TICKS_PER_SECOND;
+  return a2d_ticks / (AnimV20::TIME_TicksPerSec / FRAMES_PER_SECOND);
+}
+
 ECS_DECLARE_RELOCATABLE_TYPE(FrameFeatures);
 ECS_DECLARE_RELOCATABLE_TYPE(AnimationFilterTags);
 
 void calculate_acceleration_struct(dag::Vector<AnimationClip> &clips, int features);
+String get_mm_data_base_loading_error_context();

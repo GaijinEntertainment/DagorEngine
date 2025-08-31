@@ -29,20 +29,11 @@ struct RIExRenderRecord
   int si, sv, numv, numf, bv;
   uint16_t texLevel;
   uint8_t isTree : 1, isTessellated : 1, isSWVertexFetch : 1, disableOptimization : 1;
-#if DAGOR_DBGLEVEL > 0
   uint8_t lod;
-#else
-  static constexpr uint8_t lod = 0;
-#endif
   RIExRenderRecord(const ShaderElement *curShader, int cv, uint32_t prog, ShaderStateBlockId state_, shaders::RenderStateId rstate,
     shaders::TexStateIdx tstate, shaders::ConstStateIdx cstate, uint16_t poolOrder, uint16_t vstride, uint8_t vbIdx,
     PackedDrawOrder drawOrder_stage, uint8_t elem_order, uint8_t primitive, IPoint2 ofsAndCnt, int si, int sv, int numv, int numf,
-    int bv, int texLevel, int isTree, int isTessellated, bool disable_optimization
-#if DAGOR_DBGLEVEL > 0
-    ,
-    uint8_t lod
-#endif
-    ) :
+    int bv, int texLevel, int isTree, int isTessellated, bool disable_optimization, uint8_t lod) :
     curShader(curShader),
     cv(cv < 0 ? ~0 : cv),
     prog(prog),
@@ -66,10 +57,7 @@ struct RIExRenderRecord
     isTessellated(isTessellated),
     isSWVertexFetch(false),
     disableOptimization(disable_optimization),
-    elemOrder(elem_order)
-#if DAGOR_DBGLEVEL > 0
-    ,
+    elemOrder(elem_order),
     lod(lod)
-#endif
   {}
 };

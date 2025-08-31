@@ -52,7 +52,7 @@ public:
 
 private:
   typedef eastl::bitset<HistorySize + TailSize,
-    typename eastl::type_select<TailSize <= 32, EASTL_BITSET_WORD_TYPE_DEFAULT, uint64_t>::type>
+    typename eastl::conditional<TailSize <= 32, EASTL_BITSET_WORD_TYPE_DEFAULT, uint64_t>::type>
     BitsetType;
   mutable BitsetType history;
   T lastSeq = 0;

@@ -54,9 +54,9 @@ bool modfx_ground_collision_sample( float3 wpos, GlobalData_cref gdata, uint fla
   if (flags & MODFX_COLLIDE_WITH_DEPTH_ABOVE)
   {
     float vignette;
-    float h = getWorldBlurredDepth(wpos, vignette);
+    float h = get_depth_above_fast(wpos, vignette);
     o_ground_level = lerp(gdata.water_level, h, 1.f - vignette);
-    o_tex_size = get_depth_above_size();
+    o_tex_size = depth_above_tex_size;
 
     if ( vignette < 1 )
       return true;
@@ -204,14 +204,14 @@ bool modfx_collide_with_ground( float3 wpos, GlobalData_cref gdata, uint flags,
   return true;
 }
 
-float modfx_scene_collision_sim( BufferData_ref buf, uint ofs, float4x4_cref etm, bool etm_enabled,
+float modfx_scene_collision_sim( BufferData_ref buf, uint ofs, float3_cref etm_pos, bool etm_enabled,
   float radius, float3_ref o_pos, float3_ref o_vel, float dt, GlobalData_cref gdata, out bool o_stop_rotation )
 {
   ModfxDeclCollision par = ModfxDeclCollision_load( buf, ofs );
 
   o_stop_rotation = (par.collide_flags & MODFX_STOP_ROTATION_ON_COLLISION) != 0;
 
-  float3 emitter_pos = etm_enabled ? float3( etm[3][0], etm[3][1], etm[3][2] ) : float3( 0, 0, 0 );
+  float3 emitter_pos = etm_enabled ? etm_pos : float3( 0, 0, 0 );
   float3 emitter_vec = emitter_pos - o_pos;
   if ( dot( emitter_vec, emitter_vec ) <  par.emitter_deadzone )
     return 1;
@@ -298,13 +298,6 @@ ModfxDeclCameraVelocity ModfxDeclCameraVelocity_load( BufferData_cref buf, uint 
 }
 
 DAFX_INLINE
-void modfx_velocity_camera_velocity_sim( BufferData_cref buf, uint ofs, float3_cref gdata_vel, float3_ref o_velocity)
-{
-  ModfxDeclCameraVelocity pp = ModfxDeclCameraVelocity_load( buf, ofs );
-  o_velocity += gdata_vel * pp.velocity_weight;
-}
-
-DAFX_INLINE
 ModfxDeclDragInit ModfxDeclDragInit_load( BufferData_cref buf, uint ofs )
 {
 #ifdef __cplusplus
@@ -354,7 +347,7 @@ void modfx_velocity_init(
   {
     float3 offset = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_INIT_POINT] );
     if ( etm_enabled )
-      offset = mul_get_f3( float_xyz1( offset ), etm );
+      offset = mul_tm_pos(offset, etm);
 
     o_velocity = normalize( pos - offset );
   }
@@ -403,7 +396,7 @@ void modfx_velocity_add(
   {
     float3 offset = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_ADD_POINT] );
     if ( etm_enabled )
-      offset = mul_get_f3( float_xyz1( offset ), etm );
+      offset = mul_tm_pos(offset, etm);
 
     res = normalize( pos - offset );
   }
@@ -411,7 +404,7 @@ void modfx_velocity_add(
   {
     res = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_ADD_VEC] );
     if ( etm_enabled )
-      res = mul_get_f3( float_xyz0( res ), etm );
+      res = mul_tm_dir(res, etm);
   }
   else if ( parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_ADD_CONE] )
   {
@@ -422,8 +415,8 @@ void modfx_velocity_add(
     float3 origin = pp.origin;
     if ( etm_enabled )
     {
-      yaxis = mul_get_f3( float_xyz0( yaxis ), etm );
-      origin = mul_get_f3( float_xyz1( origin ), etm );
+      yaxis = mul_tm_dir(yaxis, etm);
+      origin = mul_tm_pos(origin, etm);
     }
 
     float3 cur_vec = normalize( pos - origin );
@@ -474,8 +467,8 @@ void modfx_velocity_force_field_vortex(
 
   if (etm_enabled)
   {
-    axis_position = mul_get_f3( float_xyz1( axis_position ), etm );
-    axis_direction = mul_get_f3( float_xyz0( axis_direction ), etm );
+    axis_position = mul_tm_pos(axis_position, etm);
+    axis_direction = mul_tm_dir(axis_direction, etm);
   }
 
   if (parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_FORCE_FIELD_VORTEX_ROTATION_SPEED])
@@ -644,9 +637,11 @@ float3x3 modfx_gravity_zone_tm(ModfxParentSimData_cref parent_sdata, BufferData_
 DAFX_INLINE
 void modfx_velocity_sim(
   ModfxParentSimData_cref parent_sdata, BufferData_cref buf, GlobalData_cref gdata,
-  rnd_seed_ref rnd_seed, float life_k, float dt, float4x4_cref etm, bool etm_enabled,
+  rnd_seed_ref rnd_seed, float life_k, float dt, float4x4_cref etm, float3_ref etm_pos, bool etm_enabled,
   float radius, float3_ref o_pos, float3_ref o_ofs_pos, uint_ref o_sim_flags, float3_ref o_velocity, float_ref collision_time_norm, float life_limit )
 {
+  G_UNREFERENCED(etm_pos);
+
   // Some velocity simulations should take place even for dt = 0.
   if ( dt < 0 )
     return;
@@ -676,7 +671,7 @@ void modfx_velocity_sim(
 
     grav_vec = float3( 0, g, 0 );
     if ( etm_enabled && grav_tr )
-      grav_vec = float3( etm[1][0], etm[1][1], etm[1][2] ) * g;
+      grav_vec = float_xyz(float4x4_row(etm, 1)) * g;
     else if ( !etm_enabled && grav_tr )
       grav_vec = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_LOCAL_GRAVITY] ) * g;
 
@@ -731,7 +726,7 @@ void modfx_velocity_sim(
   {
     bool stop_rotation;
     friction_k = modfx_scene_collision_sim(
-      buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_SCENE_COLLISION], etm, etm_enabled, radius, o_pos, o_velocity, dt, gdata, stop_rotation );
+      buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_SCENE_COLLISION], etm_pos, etm_enabled, radius, o_pos, o_velocity, dt, gdata, stop_rotation );
     if (friction_k < 1)
     {
       if ( !(o_sim_flags & MODFX_SIM_FLAGS_COLLIDED) && MODFX_SDECL_COLLISION_TIME_ENABLED( parent_sdata.decls ) )
@@ -742,11 +737,6 @@ void modfx_velocity_sim(
     }
   }
 #endif
-
-  if ( parent_sdata.mods_offsets[MODFX_SMOD_CAMERA_VELOCITY] )
-  {
-    modfx_velocity_camera_velocity_sim(buf, parent_sdata.mods_offsets[MODFX_SMOD_CAMERA_VELOCITY], gdata.camera_velocity, o_velocity);
-  }
 
   if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_VELOCITY_USE_FORCE_RESOLVER ) )
   {
@@ -777,9 +767,33 @@ ModfxDeclShapeVelocityMotion ModfxDeclShapeVelocityMotion_load( BufferData_cref 
 }
 
 DAFX_INLINE
-void modfx_velocity_to_render( ModfxParentSimData_cref parent_sdata, BufferData_cref buf,
-  float3_cref vel, float3_ref o_up_vec, float_ref o_vel_length )
+float3 modfx_get_perceived_velocity_for_render( ModfxParentSimData_cref parent_sdata, BufferData_cref buf, GlobalData_cref gdata,
+  float3_cref pos, float3_cref vel )
 {
+  G_UNREFERENCED(pos);
+  float3 perceivedVelocity = vel;
+  if ( parent_sdata.mods_offsets[MODFX_SMOD_CAMERA_VELOCITY] )
+  {
+    ModfxDeclCameraVelocity pp = ModfxDeclCameraVelocity_load( buf, parent_sdata.mods_offsets[MODFX_SMOD_CAMERA_VELOCITY] );
+
+    float3 relativeCameraVelocity = float3(gdata.camera_velocity.x, 0, gdata.camera_velocity.z);
+#if DAFX_USE_GRAVITY_ZONE
+    float3x3 gravityTm = modfx_gravity_zone_tm(parent_sdata, buf, gdata, pos);
+    float3 upVec = mul(float3(0,1,0), gravityTm);
+    relativeCameraVelocity = gdata.camera_velocity - dot(gdata.camera_velocity, upVec) * upVec;
+#endif
+    const float weightMul = 10; // for backward compatibility // TODO: remove it after porting camera bound effects to a new FX system
+    perceivedVelocity += relativeCameraVelocity * pp.velocity_weight * weightMul;
+  }
+  return perceivedVelocity;
+}
+
+DAFX_INLINE
+void modfx_velocity_to_render( ModfxParentSimData_cref parent_sdata, BufferData_cref buf, GlobalData_cref gdata,
+  float3_cref pos, float3 vel, float3_ref o_up_vec, float_ref o_vel_length )
+{
+  vel = modfx_get_perceived_velocity_for_render( parent_sdata, buf, gdata, pos, vel );
+
   // Calculating length is fairly cheap
   // and this o_vel_length is needed
   // even when these flags might not enabled

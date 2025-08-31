@@ -21,31 +21,31 @@ public:
 
   void updateNodeTm();
 
-  virtual void render();
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  void render() override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects){};
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override {};
 
-  virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) {}
+  void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override {}
 
-  virtual void putScaleUndo() {}
+  void putScaleUndo() override {}
 
 
-  virtual bool setPos(const Point3 &p);
-  virtual void setMatrix(const Matrix3 &tm);
-  virtual void setWtm(const TMatrix &wtm);
+  bool setPos(const Point3 &p) override;
+  void setMatrix(const Matrix3 &tm) override;
+  void setWtm(const TMatrix &wtm) override;
 
   EO_IMPLEMENT_RTTI(HUID)
 
   // default implementation for some inherited methods
-  virtual bool mayDelete() { return false; }
+  bool mayDelete() override { return false; }
 
-  virtual void update(real dt);
-  virtual void beforeRender() {}
-  virtual void renderTrans() {}
+  void update(real dt) override;
+  void beforeRender() override {}
+  void renderTrans() override {}
 
   void renderGeometry(int stage);
 

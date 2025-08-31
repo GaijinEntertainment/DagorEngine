@@ -117,6 +117,19 @@ void create_sphere_mesh(dag::Span<uint8_t> pVertex, dag::Span<uint8_t> pwFace, f
 #undef SET_IND
 }
 
+float calc_sphere_max_radius_error(float radius, uint32_t slices, uint32_t stacks)
+{
+  // A good approximation of "error" by minimizing 'r' variable at is_camera_outside_sphere_mesh function.
+  // Using camAngleH = Pi/2, camAngleHTrunc = halfStackAngle, camAngleTrunc = halfSliceAngle.
+  float stackAngle = PI / stacks;
+  float halfStackAngle = stackAngle * 0.5f;
+  float sliceAngle = 2.0f * PI / slices;
+  float halfSliceAngle = sliceAngle * 0.5f;
+  float r = radius * cos(halfSliceAngle) * cos(halfStackAngle);
+
+  return radius - r;
+}
+
 void calc_cylinder_vertex_face_count(uint32_t slices, uint32_t stacks, uint32_t &out_vertex_count, uint32_t &out_face_count)
 {
   out_face_count = 2 * stacks * (slices - 1);

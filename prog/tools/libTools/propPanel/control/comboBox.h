@@ -21,16 +21,16 @@ public:
     selectedDisplayIndex = getDisplayIndexFromIndex(index);
   }
 
-  virtual unsigned getTypeMaskForSet() const override
+  unsigned getTypeMaskForSet() const override
   {
     return CONTROL_DATA_TYPE_INT | CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING | CONTROL_DATA_STRINGS;
   }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_TYPE_STRING; }
 
-  virtual int getIntValue() const override { return selectedDisplayIndex >= 0 ? displayIndexToIndex[selectedDisplayIndex] : -1; }
+  int getIntValue() const override { return selectedDisplayIndex >= 0 ? displayIndexToIndex[selectedDisplayIndex] : -1; }
 
-  virtual int getTextValue(char *buffer, int buflen) const override
+  int getTextValue(char *buffer, int buflen) const override
   {
     if (selectedDisplayIndex < 0)
       return 0;
@@ -39,36 +39,36 @@ public:
     return ImguiHelper::getTextValueForString(selectedText, buffer, buflen);
   }
 
-  virtual void setTextValue(const char value[]) override
+  void setTextValue(const char value[]) override
   {
     const int index = ImguiHelper::getStringIndexInTab(values, value);
     selectedDisplayIndex = getDisplayIndexFromIndex(index);
   }
 
-  virtual void setIntValue(int index) override
+  void setIntValue(int index) override
   {
     if (index >= -1 && index < values.size())
       selectedDisplayIndex = getDisplayIndexFromIndex(index);
   }
 
-  virtual void setStringsValue(const Tab<String> &vals)
+  void setStringsValue(const Tab<String> &vals) override
   {
     selectedDisplayIndex = -1;
     setValues(vals);
   }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void reset() override
+  void reset() override
   {
     setIntValue(-1);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

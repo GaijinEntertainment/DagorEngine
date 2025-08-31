@@ -1,5 +1,5 @@
+from "math" import abs
 from "%darg/ui_imports.nut" import *
-let { abs } = require("math")
 let { mkInclineGradient, gradSize } = require("incline_gradient.nut")
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 
@@ -13,7 +13,7 @@ let x2 = mkWatched(persist, "x2", 0.75)
 let y2 = mkWatched(persist, "y2", 0.75)
 
 let mkInclineColored = @(x1v, y1v, x2v, y2v) mkInclineGradient(color1, color2, x1v, y1v, x2v, y2v)
-let curImage = Computed(@() mkInclineColored(x1.value, y1.value, x2.value, y2.value))
+let curImage = Computed(@() mkInclineColored(x1.get(), y1.get(), x2.get(), y2.get()))
 
 let optionsCfg = [
   { watch = x1, text = "x1" }
@@ -60,7 +60,7 @@ let curImagePixelPerfect = @() {
   size = [gradSize, gradSize]
   rendObj = ROBJ_IMAGE
   color = 0xFFFFFFFF
-  image = curImage.value
+  image = curImage.get()
 }
 
 let curImageBig = @() {
@@ -68,14 +68,14 @@ let curImageBig = @() {
   size = flex()
   rendObj = ROBJ_IMAGE
   color = 0xFFFFFFFF
-  image = curImage.value
+  image = curImage.get()
   keepAspect = true
   imageHalign = ALIGN_CENTER
   imageValign = ALIGN_CENTER
 }
 
 let mkPoint = @(x, y) {
-  size = [6, 6]
+  size = 6
   pos = [pw(100.0 * (x - 0.5)), ph(100.0 * (y - 0.5))]
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
@@ -90,11 +90,11 @@ let curImageWithPoints = @() {
   maxHeight = pw(100)
   rendObj = ROBJ_IMAGE
   color = 0xFFFFFFFF
-  image = curImage.value
+  image = curImage.get()
 
   children = [
-    mkPoint(x1.value, y1.value)
-    mkPoint(x2.value, y2.value)
+    mkPoint(x1.get(), y1.get())
+    mkPoint(x2.get(), y2.get())
   ]
 }
 
@@ -102,13 +102,13 @@ function sqBtn(text, onClick) {
   let stateFlags = Watched(0)
   return @() {
     watch = stateFlags
-    size = [ph(100), ph(100)]
+    size = ph(100)
     rendObj = ROBJ_BOX
-    fillColor = stateFlags.value & S_HOVER ? 0xFF404060 : 0xFF404040
-    borderColor = stateFlags.value & S_ACTIVE ? 0xFFFFFFFF : 0xFFA0A0A0
+    fillColor = stateFlags.get() & S_HOVER ? 0xFF404060 : 0xFF404040
+    borderColor = stateFlags.get() & S_ACTIVE ? 0xFFFFFFFF : 0xFFA0A0A0
     borderWidth = hdpx(1)
     behavior = Behaviors.Button
-    onElemState = @(sf) stateFlags(sf)
+    onElemState = @(sf) stateFlags.set(sf)
     onClick
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
@@ -117,7 +117,7 @@ function sqBtn(text, onClick) {
 }
 
 let mkControl = @(watch) {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   flow = FLOW_HORIZONTAL
   gap = hdpx(5)
   children = [
@@ -126,19 +126,19 @@ let mkControl = @(watch) {
       charMask = "-.0123456789"
       setValue = @(v) v == "" ? null : watch(v.tofloat())
     })
-    sqBtn("-", @() watch(watch.value - 0.01))
-    sqBtn("+", @() watch(watch.value + 0.01))
+    sqBtn("-", @() watch(watch.get() - 0.01))
+    sqBtn("+", @() watch(watch.get() + 0.01))
   ]
 }
 
 let textStyle = { hplace = ALIGN_LEFT, color = 0xFFA0A0A0 }
 let options = {
-  size = [hdpx(250), flex()]
+  size = static [hdpx(250), flex()]
   flow = FLOW_VERTICAL
   gap = hdpx(20)
   children = optionsCfg.map(function(o) {
     let { watch, text } = o
-    return withText(text, mkControl(watch), [flex(), SIZE_TO_CONTENT], textStyle)
+    return withText(text, mkControl(watch), FLEX_H, textStyle)
   })
 }
 

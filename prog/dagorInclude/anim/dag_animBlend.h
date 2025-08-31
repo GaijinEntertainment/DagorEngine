@@ -14,15 +14,13 @@
 #include <math/dag_Point3.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_oaHashNameMap.h>
-#include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastStrMap.h>
-#include <EASTL/hash_map.h>
 #include <util/dag_string.h>
 
 // forward declarations for external classes and structures
 class DataBlock;
 class GeomNodeTree;
-
+class framemem_allocator;
 namespace eastl
 {
 class allocator;
@@ -30,6 +28,10 @@ template <typename T, typename A>
 class vector;
 template <typename A, typename T, typename C>
 class bitvector;
+template <typename T>
+struct less;
+template <typename K, typename C, typename A, typename R>
+class vector_set;
 } // namespace eastl
 
 namespace AnimResManagerV20
@@ -110,7 +112,9 @@ public:
   virtual bool validateNodeNotUsed(AnimationGraph & /*g*/, IAnimBlendNode * /*test_n*/) { return true; }
 
   // collect blend nodes referenced by this node
-  virtual void collectUsedBlendNodes(AnimationGraph & /*g*/, eastl::hash_map<IAnimBlendNode *, bool> & /*node_map*/) {}
+  using used_blend_nodes_t = eastl::vector_set<IAnimBlendNode *, eastl::less<IAnimBlendNode *>, framemem_allocator,
+    eastl::vector<IAnimBlendNode *, framemem_allocator>>;
+  virtual void collectUsedBlendNodes(AnimationGraph & /*g*/, used_blend_nodes_t & /*node_set*/) {}
 
   // RTTI interface implementation
   virtual const char *class_name() const { return "IAnimBlendNode"; }
@@ -553,6 +557,7 @@ public:
   {
     return addInlinePtrParamId(name, sizeof(IAnimStateHolder::EffectorVar), IAnimStateHolder::PT_Effector);
   }
+  int getInlinePtrParamMaxSize(int param_id);
   inline int addParamIdEx(const char *name, int type) { return (name && *name) ? addParamId(name, type) : -1; }
   int addPbcWtParamId(const char *name);
 
@@ -607,7 +612,7 @@ public:
     int idx = stateNames.getStrId(state_name);
     return (idx < 0) ? idx : (idx & ~(STATE_ALIAS_FLG | STATE_TAG_MASK));
   }
-  inline dag::ConstSpan<StateRec> getState(int state_idx)
+  inline dag::ConstSpan<StateRec> getState(int state_idx) const
   {
     return state_idx >= 0 ? make_span_const(stRec).subspan(state_idx * stDest.size(), stDest.size()) : make_span_const(stRec).first(0);
   }
@@ -631,6 +636,8 @@ public:
         nodePtr[i]->debugSetIrqPos(irq_name, rel_pos);
     }
   }
+
+  inline AnimBlender &getBlender() { return blender; }
 
   AnimBlender::TlsContext &selectBlenderCtx(intptr_t (*irq)(int, intptr_t, intptr_t, intptr_t, void *) = nullptr,
     void *irq_arg = nullptr)
@@ -714,7 +721,7 @@ public:
   const DataBlock *getDebugBlenderState(AnimDbgCtx *ctx, IPureAnimStateHolder &st, bool dump_tm);
   const DataBlock *getDebugNodemasks(AnimDbgCtx *ctx);
 
-  void getUsedBlendNodes(eastl::hash_map<IAnimBlendNode *, bool> &usedNodes);
+  void getUsedBlendNodes(IAnimBlendNode::used_blend_nodes_t &usedNodes);
 
   // RTTI
   virtual const char *class_name() const { return "AnimationGraph"; }
@@ -725,6 +732,12 @@ public:
 
 protected:
   virtual ~AnimationGraph();
+
+  inline void resetStateNodeId(int state_idx, int ord_i)
+  {
+    if (state_idx >= 0)
+      stRec[state_idx * stDest.size() + ord_i].nodeId = StateRec::NODEID_NULL;
+  }
 };
 
 extern int getEnumValueByName(const char *name);
@@ -733,6 +746,8 @@ extern const char *getEnumName(int name_id);
 
 extern int addIrqId(const char *irq_name);
 extern const char *getIrqName(int irq_id);
+
+extern int getAnimMaxTime(const AnimV20::AnimData::Anim &anim);
 
 extern void setDebugAnimParam(bool enable);
 extern bool getDebugAnimParam();

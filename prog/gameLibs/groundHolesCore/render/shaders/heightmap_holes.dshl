@@ -1,0 +1,244 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+
+texture temp_heightmap_holes_tex;
+buffer hmap_holes_matrices;
+float4 hmap_hole_ofs_size;
+
+macro INIT_HMAP_HOLES_MATRICES(code)
+  (code) {
+    hmap_holes_matrices@cbuf = hmap_holes_matrices hlsl {
+      #include <groundHolesCore/render/ground_holes.hlsli>
+      cbuffer hmap_holes_matrices@cbuf
+      {
+        float4x4 holes[MAX_GROUND_HOLES];
+        float4x4 holes_inverse[MAX_GROUND_HOLES];
+      }
+    }
+  }
+endmacro
+
+shader heightmap_holes_prepare
+{
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  INIT_WORLD_HEIGHTMAP_PS()
+  USE_HEIGHTMAP_COMMON_PS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc_worldXY : TEXCOORD0;           // used as union according to `if (shapeIntersection)`
+      uint3 instanceId_properties : TEXCOORD1; // .x = instanceId, .y = isSpherical, .z = shapeIntersection
+    };
+  }
+
+  INIT_HMAP_HOLES_MATRICES(vs)
+  INIT_HMAP_HOLES_MATRICES(ps)
+
+  (vs) {
+    hmap_hole_ofs_size@f4 = hmap_hole_ofs_size;
+    hmap_holes_scale_offset@f4 = (hmap_holes_scale_step_offset.x, hmap_holes_scale_step_offset.x,
+                                  hmap_holes_scale_step_offset.z, hmap_holes_scale_step_offset.w);
+  }
+
+  hlsl(vs) {
+    VsOutput heightmap_holes_vs(uint instanceId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float4x4 transform = holes[instanceId];
+      bool isSpherical = transform[3][3] < 0;
+      bool shapeIntersection = abs(transform[3][3]) > 1.5;
+      transform[3][3] = 1;
+      output.instanceId_properties = uint3(instanceId, isSpherical, shapeIntersection);
+
+      float2 texCoords = float2(vertexId & 1, vertexId / 2) * 2.0 - 1.0;
+      float2 worldPos = float2(0.f, 0.f);
+      if (shapeIntersection)
+      {
+        // Plain solution, creates an AABB.
+        float2 ofsAbs = float2(abs(transform[0][0]) + abs(transform[0][1]) + abs(transform[0][2]),
+                               abs(transform[2][0]) + abs(transform[2][1]) + abs(transform[2][2]));
+        float2 center = float2(transform[0][3], transform[2][3]);
+        worldPos = center + texCoords * ofsAbs;
+        output.tc_worldXY = worldPos;
+      } else {
+        worldPos = mul(transform, float4(texCoords.x, 0, texCoords.y, 1)).xz;
+        output.tc_worldXY = texCoords;
+      }
+
+      float2 pos = worldPos * hmap_holes_scale_offset.xy + hmap_holes_scale_offset.zw;
+      pos = pos * hmap_hole_ofs_size.z - hmap_hole_ofs_size.xy;
+      pos = pos * 2.0 - 1.0;
+      output.pos = float4(pos.x, -pos.y, 0, 1);
+      return output;
+    }
+  }
+
+  hlsl (ps)
+  {
+    float heightmap_holes_ps(VsOutput input) : SV_Target
+    {
+      if (!input.instanceId_properties.z)  // if (!shapeIntersection)
+      {
+        float weight = dot(input.tc_worldXY.xy, input.tc_worldXY.xy);
+        if (input.instanceId_properties.y > 0 && weight > 1.0)  // if (isSpherical && ...)
+          discard;
+        return 1;
+      } else {
+        float4x4 inverse = holes_inverse[input.instanceId_properties.x]; // holes_inverse[instanceId]
+        float3 pos = float3(input.tc_worldXY.x, getWorldHeight(input.tc_worldXY.xy), input.tc_worldXY.y);
+        float3 relative_pos = mul(inverse, float4(pos, 1)).xyz;
+        if (input.instanceId_properties.y) // if (isSpherical)
+        {
+          float dist = dot(relative_pos, relative_pos);
+          if (dist > 1)
+            discard;
+          return 1;
+        } else {
+          if (any(abs(relative_pos) > 1))
+            discard;
+          return 1;
+        }
+      }
+    }
+  }
+
+  compile("target_vs", "heightmap_holes_vs");
+  compile("target_ps", "heightmap_holes_ps");
+}
+
+macro INIT_AND_USE_HOLES_PROCESS(stage)
+  (stage) {
+    hmap_hole_ofs_size@f4 = hmap_hole_ofs_size;
+    temp_heightmap_holes_tex@smp2d = temp_heightmap_holes_tex;
+  }
+  hlsl(stage) {
+    float get_packed_ground_hole(uint2 pos)
+    {
+      uint value = 0;
+      int2 offset = pos % int(hmap_hole_ofs_size.w);
+      for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+          if (temp_heightmap_holes_tex[offset * 4 + uint2(i, j)].r > 0)
+            value |= 1u << (i + j * 4);
+      return float(value) / 0xFFFF;
+    }
+  }
+endmacro
+
+shader heightmap_holes_process
+{
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  POSTFX_VS(1)
+
+  INIT_AND_USE_HOLES_PROCESS(ps)
+
+  hlsl(ps) {
+    float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float2 pos = GET_SCREEN_POS(input.pos).xy;
+      return get_packed_ground_hole(uint2(pos));
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+}
+
+float4 heightmap_holes_tmp_write_offset_size = (0,0,0,0);
+
+shader heightmap_holes_process_cs
+{
+  INIT_AND_USE_HOLES_PROCESS(cs)
+
+  (cs)
+  {
+    heightmap_holes_tmp_write_offset_size@f4 = heightmap_holes_tmp_write_offset_size;
+    heightmap_holes_tex_dim@f2 = get_dimensions(heightmap_holes_tex, 0);
+  }
+
+  hlsl(cs) {
+    RWTexture2D<float> outputTex : register(u7);
+
+    [numthreads( 8, 8, 1)]
+    void process_cs( uint2 dtId : SV_DispatchThreadID )
+    {
+      if (any(dtId >= (uint2)heightmap_holes_tmp_write_offset_size.zw))
+        return;
+
+      outputTex[(uint2)heightmap_holes_tmp_write_offset_size.xy + dtId] = get_packed_ground_hole(dtId);
+    }
+  }
+
+  compile("target_cs", "process_cs");
+}
+
+
+shader heightmap_holes_mipmap
+{
+  supports global_frame;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  POSTFX_VS(1)
+
+  (ps) {
+    heightmap_holes_tex@smp2d = heightmap_holes_tex;
+  }
+
+  hlsl(ps) {
+    uint getPrevTexel(int2 pos)
+    {
+      uint2 dim;
+      heightmap_holes_tex.GetDimensions(dim.x, dim.y);
+      uint2 posBounded = clamp(pos, int2(0, 0), int2(dim - 1));
+      if (any(pos != posBounded))
+        return 0;
+      return uint(heightmap_holes_tex[pos].r * 0xFFFF + 0.5);
+    }
+
+    bool testMooreNeighborhood(uint3 prevValuesRows[3], int2 pos)
+    {
+      pos += int2(4, 4); // Move to the center of Moore neighborhood
+      // Check Moore neighborhood and itself
+      for (int y = -1; y < 2; y++) {
+        for (int x = -1; x < 2; x++) {
+          int2 valuePos = pos + int2(x, y);
+          int2 prevValuePos = valuePos / 4;
+          int2 insidePos = valuePos % 4;
+          uint value = prevValuesRows[prevValuePos.y][prevValuePos.x];
+          if (!bool(value & (1u << (insidePos.x + insidePos.y * 4))))
+            return false;
+        }
+      }
+      return true;
+    }
+
+    float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float2 pos = GET_SCREEN_POS(input.pos).xy;
+      uint value = 0;
+      uint3 prevValuesRows[3];
+      for (int y = -1; y < 2; y++)
+        for (int x = -1; x < 2; x++)
+          prevValuesRows[y + 1][x + 1] = getPrevTexel(int2(pos) * 2 + int2(x, y));
+      for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+          if (testMooreNeighborhood(prevValuesRows, 2 * int2(i, j)))
+            value |= 1u << (i + j * 4);
+      return float(value) / 0xFFFF;
+    }
+}
+
+  compile("target_ps", "postfx_ps");
+}

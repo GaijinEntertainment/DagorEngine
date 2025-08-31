@@ -57,7 +57,6 @@
 #include <string.h>
 
 #ifdef _MSC_VER
-#include <intsafe.h>
 #include <stdarg.h>
 #endif
 
@@ -75,7 +74,8 @@
 
 
 #ifdef _EMSCRIPTEN_VER
-    typedef struct _IO_FILE { char __x; } FILE;
+    // bbatkin: as of 8/14/2025 this seem to no longer be needed, but leaving it here for now
+    // typedef struct _IO_FILE { char __x; } FILE;
 #endif
 
 #include <math.h>
@@ -83,6 +83,8 @@
 #include <stdint.h>
 #include <float.h>
 #include <daScript/das_config.h>
+#include <daScript/misc/hash.h>
+#include <daScript/misc/macro.h>
 
 #if _TARGET_PC_MACOSX && __SSE__
    #define DAS_EVAL_ABI [[clang::vectorcall]]
@@ -207,6 +209,14 @@ __forceinline uint32_t rotr_c(uint32_t a, uint32_t b) {
     return _rotr(a, b);
 }
 
+__forceinline uint64_t rotl64_c(uint64_t a, uint64_t b) {
+    return _rotl64(a, int(b));
+}
+
+__forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
+    return _rotr64(a, int(b));
+}
+
 #else
 
 __forceinline uint32_t rotl_c(uint32_t a, uint32_t b) {
@@ -214,7 +224,15 @@ __forceinline uint32_t rotl_c(uint32_t a, uint32_t b) {
 }
 
 __forceinline uint32_t rotr_c(uint32_t a, uint32_t b) {
-    return (a >> (b &31)) | (a << ((32 - b) & 31));
+    return (a >> (b & 31)) | (a << ((32 - b) & 31));
+}
+
+__forceinline uint64_t rotl64_c(uint64_t a, uint64_t b) {
+    return (a << (b & 63)) | (a >> ((64 - b) & 63));
+}
+
+__forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
+    return (a >> (b & 63)) | (a << ((64 - b) & 63));
 }
 
 #endif
@@ -365,12 +383,36 @@ inline size_t das_aligned_memsize(void * ptr){
 #define _msc_inline_bug __forceinline
 #endif
 
+template<typename T, unsigned long long TAG>
+class DasThreadLocal final {
+public:
+    using SelfType = DasThreadLocal<T, TAG>;
+
+    inline DasThreadLocal() {
+        if ( initCounter++ ) {
+            DAS_ASSERTF(false, "Type with tag is already used, pls change tag!");
+        }
+    }
+
+    DasThreadLocal(const SelfType & other) = delete;
+    DasThreadLocal(SelfType&& other) = delete;
+    DasThreadLocal & operator=(const SelfType & other) = delete;
+    DasThreadLocal & operator=(SelfType && other) = delete;
+
+    inline T & operator *() { return value_; }
+    inline T * operator->() { return &value_; }
+
+private:
+    inline static thread_local T value_{};
+    inline static int initCounter = 0;
+};
+
 #ifndef DAS_THREAD_LOCAL
-#define DAS_THREAD_LOCAL  thread_local
+#define DAS_THREAD_LOCAL(X) DasThreadLocal<X, das::hash_tag_file_name(DAS_FILE_LINE)>
 #endif
 
 #ifndef DAS_AOT_INLINE_LAMBDA
-    #ifdef _MSC_VER
+    #if defined(_MSC_VER) && !defined(__clang__)
         #if __cplusplus >= 202002L
             #define DAS_AOT_INLINE_LAMBDA [[msvc::forceinline]]
         #else
@@ -381,9 +423,10 @@ inline size_t das_aligned_memsize(void * ptr){
     #endif
 #endif
 
-#ifdef DAS_SMART_PTR_DEBUG
+#if DAS_SMART_PTR_DEBUG==1
     #define DAS_SMART_PTR_TRACKER   1
     #define DAS_SMART_PTR_MAGIC     1
+    #define DAS_SMART_PTR_ID        1
 #endif
 
 #ifndef DAS_SMART_PTR_TRACKER

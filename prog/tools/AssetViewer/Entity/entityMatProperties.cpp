@@ -21,6 +21,7 @@ static String make_mat_var_str(const MatVarDesc &var)
     case MAT_VAR_TYPE_REAL: return String(0, "%s=%f", var.name, var.value.r);
     case MAT_VAR_TYPE_COLOR4:
       return String(0, "%s=%f,%f,%f,%f", var.name, var.value.c[0], var.value.c[1], var.value.c[2], var.value.c[3]);
+    case MAT_VAR_TYPE_NONE: break; // to prevent the unhandled switch case error
   }
   return String{};
 }
@@ -61,6 +62,7 @@ void override_mat_vars_with_script(dag::Vector<MatVarDesc> &vars, const char *ma
       case MAT_VAR_TYPE_INT: var.value.i = matScriptReader.getint(var.name.c_str(), -1); break;
       case MAT_VAR_TYPE_REAL: var.value.r = matScriptReader.getreal(var.name.c_str(), 0.0f); break;
       case MAT_VAR_TYPE_COLOR4: var.value.c4() = matScriptReader.getcolor4(var.name.c_str(), E3DCOLOR(0)); break;
+      default: break;
     }
     var.usedInMaterial = true;
   }

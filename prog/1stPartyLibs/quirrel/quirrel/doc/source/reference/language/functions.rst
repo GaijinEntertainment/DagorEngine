@@ -96,6 +96,30 @@ called ``vargv``, that is passed as implicit parameter.
 
     test("goes in a","goes in b",0,1,2,3,4,5,6,7,8)
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index::
+    single: Function attributes
+
+A function can have attributes that can be used to provide additional information about the function.
+Currenyly the only supported attribute is ``pure``.
+A pure function is a function that does not have side effects and does not modify any
+external state. This can be used to optimize the evaluation of constant expressions.
+
+A pure function is declared as follows: ::
+
+    function [pure] test(a, b) {
+        return a + b
+    }
+
+or, in lambda form ::
+
+    @[pure](a, b) {
+        return a + b
+    }
+
 ---------------
 Function calls
 ---------------

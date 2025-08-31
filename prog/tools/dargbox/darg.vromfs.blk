@@ -34,5 +34,4 @@ folder {
 }
 
 exclude {
-//  exclude:t="(gameData.*|config.*|gui.*|levels.*)[/\\]_[\w\.]*\.blk$"
 }

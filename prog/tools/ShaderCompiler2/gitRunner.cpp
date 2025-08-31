@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gitRunner.h"
+#include "shLog.h"
 #include <util/dag_simpleString.h>
 #include <debug/dag_log.h>
 #include <EASTL/fixed_string.h>
@@ -192,10 +193,16 @@ bool check_modified_files(dag::ConstSpan<SimpleString> file_paths)
   eastl::fixed_string<char, OUTPUT_SIZE> output{};
   const auto ret = execute_cmd(gitDiffCmd.c_str(), output);
   if (ret != 0)
+  {
+    sh_debug(SHLOG_INFO, "There are local changes in shaders. Timestamps for compiled shaders is forced to 0");
     return true;
+  }
   output.clear();
-  execute_cmd("git rev-list --count @{u}..HEAD", output);
-  return output.empty() || output[0] != '0';
+  execute_cmd("git rev-list --count HEAD --not origin/master", output);
+  const bool hasLocalCommits = output.empty() || output[0] != '0';
+  if (hasLocalCommits)
+    sh_debug(SHLOG_INFO, "There are local commits that are not in master. Timestamps for compiled shaders is forced to 0");
+  return hasLocalCommits;
 }
 
 int64_t get_git_timestamp(dag::ConstSpan<SimpleString> file_paths)
@@ -217,6 +224,7 @@ int64_t get_git_timestamp(dag::ConstSpan<SimpleString> file_paths)
 #endif
     return timestamp;
   }
+  sh_debug(SHLOG_INFO, "There is a local change in shaders. Timestamps for compiled shaders is forced to 0");
   return 0;
 }
 

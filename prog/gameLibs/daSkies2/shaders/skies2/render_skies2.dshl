@@ -7,8 +7,8 @@ include "panorama.dshl"
 include "skies_special_vision.dshl"
 include "skies_shadows.dshl"
 include "skies_rainmap.dshl"
-include "use_custom_fog_sky.dshl"
 include "nuke_scattering_inc.dshl"
+include "camera_in_camera.dshl"
 
 
 float4 prepare_resolution = (1, 1, 1, 1);
@@ -70,7 +70,6 @@ endmacro
 float4 skies_sun_moon_effect;
 
 macro SKIES_VIEW_LUT_TEX_PREPARE(code)
-  SKIES_RAINMAP(code)
   (code) {
     prev_skies_view_lut_tex@smp2d = prev_skies_view_lut_tex;
     prev_skies_view_lut_mie_tex@smp2d = prev_skies_view_lut_mie_tex;
@@ -288,7 +287,7 @@ macro RENDER_SKIES()
       // Compute the radiance reflected by the ground.
       //float distToGround = distance_to_intersection;
       float distToGround = dist_to_plane(mu, 10000000);
-      float3 ground = get_ground_lit_color(pos, sun_direction, view_direction, 0, data);
+      float3 ground = get_ground_lit_color(pos, sun_direction, view_direction, data);
       distToEarth = dist_to_earth_plane(distance_to_intersection, distToGround);
       return ground;
     }
@@ -299,6 +298,7 @@ shader skies_render_screen
 {
   cull_mode=none;
   z_write=false;
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
   INIT_SKIES_LUT(ps)
   USE_SKIES_LUT(ps)
   local float rad = (max(0.01, (skies_world_view_pos.y-min_ground_offset)/1000) + skies_planet_radius);
@@ -349,7 +349,6 @@ shader skies_render_screen
   INIT_HDR(ps)
   USE_HDR(ps)
   INIT_ZNZFAR_STAGE(ps)
-  USE_CUSTOM_FOG_SKY(ps)
 
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
@@ -386,7 +385,7 @@ shader skies_render_screen
         if (skyLerp < 1 && use_tc)//
         {
            IrradianceSpectrum groundInscatter = skyInscatter.rgb;
-           get_scattering_tc_fog(scattering_lut_tc, viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
+           get_scattering_tc_fog(scattering_lut_tc, -viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
            if (skyLerp > 0)
             groundTransmittance = lerp(groundTransmittance, GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true), skyLerp);
           radiance.rgb = lerp(groundInscatter.rgb, skyInscatter.rgb, skyLerp);
@@ -433,6 +432,9 @@ shader skies_render_screen
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float2 screenTC = input.texcoord;
+
+      DISCARD_IF_INVALID_VIEW_AREA_PS(screenTC);
+
       float3 view = normalize(input.viewVect);
       Length r = getR();
 
@@ -521,9 +523,9 @@ shader skyPanorama
   z_write=false;
   USE_SPECIAL_VISION()
   USE_POSTFX_VERTEX_POSITIONS()
-  SKIES_RAINMAP(ps)
   TRACE_SKY(ps, prepare_origin, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)
   RENDER_SKIES()
+  INIT_AND_USE_PANORAMA_VIEW_VECT(ps)
   (ps) {
     skies_world_view_pos@f3 = prepare_origin;
     //skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
@@ -539,7 +541,7 @@ shader skyPanorama
       float2 tc : TEXCOORD0;
     };
   }
-  (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
+  (ps) { tc_pos_ofs@f4 = panoramaTC; }
   (vs) { tc_pos_ofs@f4 = panoramaTC; }
   hlsl(vs) {
     VsOutput daskies_sky_vs(uint vertexId : SV_VertexID)
@@ -557,8 +559,8 @@ shader skyPanorama
     float3 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float2 texcoord = input.tc.xy;
-      GENERATE_PANORAMA_VIEWVECT(texcoord)
-      GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)
+      float3 viewVect = get_panorama_viewvect(texcoord);
+      float3 patchView = get_panorama_patch_viewvect(texcoord);
 
       if (tc_pos_ofs.z == 0)
         viewVect = patchView;
@@ -575,11 +577,11 @@ shader skyPanorama
         skyInscatter += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, 0, float2(12,24), transmittance2,noMie, mie, addLight)*skies_secondary_sun_color.rgb;
       }
       float3 res = skyInscatter;
-      float distToEarth;
+      float distToEarthKm;
       PreparedGroundData data;
       prepare_ground_data(view.xzy, max(0, dist_to_plane(view.y, -1)), data);
-      float3 ground = getLitGroundAndDist(data, getR(), viewVect, distToEarth);
-      if (distToEarth>=0)
+      float3 ground = getLitGroundAndDist(data, getR(), viewVect, distToEarthKm);
+      if (distToEarthKm>=0)
         res += ground * transmittance;//use integrated transmittance, and now other scattering
       return res;
     }

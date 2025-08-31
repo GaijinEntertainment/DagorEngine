@@ -8,8 +8,8 @@ void set_dof_blend_depth_tex(TEXTUREID tex);
 
 void setFadeMul(float mul);
 
-void postfx_bind_additional_textures_from_registry(dabfg::Registry &registry);
-void postfx_bind_additional_textures_from_namespace(dabfg::NameSpaceRequest &ns);
-void postfx_read_additional_textures_from_registry(dabfg::Registry &registry);
+void postfx_bind_additional_textures_from_registry(dafg::Registry &registry);
+void postfx_bind_additional_textures_from_namespace(dafg::NameSpaceRequest &ns);
+void postfx_read_additional_textures_from_registry(dafg::Registry &registry);
 
 ECS_DECLARE_RELOCATABLE_TYPE(DepthOfFieldPS)

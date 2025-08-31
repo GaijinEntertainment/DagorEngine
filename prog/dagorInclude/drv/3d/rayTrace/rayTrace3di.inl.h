@@ -22,6 +22,16 @@ void (*copy_raytrace_acceleration_structure)(RaytraceAnyAccelerationStructure ds
 struct
 {
   bool (*check_vertex_format_support_for_acceleration_structure_build)(uint32_t format);
+  raytrace::AccelerationStructurePool (*create_acceleration_structure_pool)(const raytrace::AccelerationStructurePoolCreateInfo &info);
+  void (*destroy_acceleration_structure_pool)(raytrace::AccelerationStructurePool pool);
+  RaytraceAccelerationStructureGpuHandle (*get_pool_base_address)(raytrace::AccelerationStructurePool pool);
+  raytrace::AccelerationStructureSizes (*calculate_acceleration_structure_sizes)(
+    const raytrace::AccelerationStructureSizeCalculcationInfo &info);
+  raytrace::AnyAccelerationStructure (*create_acceleration_structure)(raytrace::AccelerationStructurePool pool,
+    const raytrace::AccelerationStructurePlacementInfo &placement_info);
+  void (*destroy_acceleration_structure)(raytrace::AccelerationStructurePool pool, raytrace::AnyAccelerationStructure structure);
+  void (*build_acceleration_structure)(raytrace::AccelerationStructureBuildParameters build_params,
+    raytrace::AccelerationStructureBuildMode build_mode);
   raytrace::Pipeline (*create_pipeline)(const raytrace::PipelineCreateInfo &pci);
   raytrace::Pipeline (*expand_pipeline)(const raytrace::Pipeline &pipeline, const raytrace::PipelineExpandInfo &pei);
   void (*destroy_pipeline)(raytrace::Pipeline &p);

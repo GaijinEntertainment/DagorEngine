@@ -36,7 +36,7 @@ class ConcurrentElementPool
   static constexpr uint32_t INITIAL_CAPACITY = 1u << INITIAL_CAPACITY_LOG2;
   static constexpr uint32_t OFFSET_BITS_FOR_FIRST_BUCKET = INITIAL_CAPACITY_LOG2;
   static constexpr uint32_t BUCKET_AND_OFFSET_BITS = sizeof(eastl::underlying_type_t<I>) * CHAR_BIT;
-  static constexpr uint32_t MAX_BUCKET_COUNT = BUCKET_AND_OFFSET_BITS - OFFSET_BITS_FOR_FIRST_BUCKET - 1;
+  static constexpr uint32_t MAX_BUCKET_COUNT = BUCKET_AND_OFFSET_BITS - OFFSET_BITS_FOR_FIRST_BUCKET;
   static_assert(BUCKET_COUNT > 0, "BUCKET_COUNT must be non-zero!");
   static_assert(BUCKET_COUNT <= MAX_BUCKET_COUNT, "BUCKET_COUNT must be less than MAX_BUCKET_COUNT");
   static_assert(MAX_BUCKET_COUNT <= 255, "MAX_BUCKET_COUNT must fit into a byte!");
@@ -127,7 +127,7 @@ public:
   const T &operator[](Id id) const
   {
     const auto [bucket, offset] = break_index(id);
-    return buckets[bucket][offset];
+    return buckets.data()[bucket][offset];
   }
 
   /// @brief accesses an element.
@@ -136,7 +136,7 @@ public:
   T &operator[](Id id)
   {
     const auto [bucket, offset] = break_index(id);
-    return buckets[bucket][offset];
+    return buckets.data()[bucket][offset];
   }
 
   /// @brief returns a sequential index corresponding to the given Id
@@ -239,7 +239,7 @@ private:
     G_FAST_ASSERT(id != Id::Invalid);
     const uint32_t raw = eastl::to_underlying(id);
     const uint32_t zeroBitsCount = __clz_unsafe(raw) - CHAR_BIT * (sizeof(uint32_t) - sizeof(Id));
-    const uint8_t bucket = static_cast<uint8_t>(MAX_BUCKET_COUNT - zeroBitsCount);
+    const uint8_t bucket = static_cast<uint8_t>(MAX_BUCKET_COUNT - 1 - zeroBitsCount);
     const uint32_t offsetBitsCount = BUCKET_AND_OFFSET_BITS - zeroBitsCount - 1;
     const uint16_t offset = static_cast<uint16_t>(raw & ((1 << offsetBitsCount) - 1));
     // sanity checks against memory corruption

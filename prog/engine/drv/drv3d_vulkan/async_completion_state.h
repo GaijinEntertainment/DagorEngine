@@ -2,6 +2,7 @@
 #pragma once
 
 #include <util/dag_stdint.h>
+#include <debug/dag_assert.h>
 #include <atomic>
 #include "backend.h"
 #include "backend_interop.h"
@@ -36,6 +37,8 @@ public:
     G_ASSERTF(requested, "vulkan: AsyncCompletionState %p queried without request!", this);
     return pendingForReplayId <= Backend::interop.lastGPUCompletedReplayWorkId.load(std::memory_order_acquire);
   }
+
+  bool isRequestedThisFrame(size_t cur_replay_id) { return pendingForReplayId == cur_replay_id; }
 
   void reset() { requested = false; }
   void request(size_t cur_replay_id)

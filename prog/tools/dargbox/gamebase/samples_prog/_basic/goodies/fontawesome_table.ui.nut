@@ -1,9 +1,8 @@
+from "math" import ceil, sqrt
+from "dagor.clipboard" import set_clipboard_text
 from "%darg/ui_imports.nut" import *
-
 let fa = require("fontawesome.map.nut")
-let { ceil, sqrt } = require("math")
-let { set_clipboard_text } = require("dagor.clipboard")
-let {makeVertScroll} = require("samples_prog/_basic/components/scrollbar.nut")
+let { makeVertScroll } = require("samples_prog/_basic/components/scrollbar.nut")
 
 let availHeight = sh(200)
 let availWidth = sw(80)
@@ -19,12 +18,11 @@ let mkCell = @(key, cellSize) {
   behavior = Behaviors.Button
   onClick = @() set_clipboard_text(key)
   children = {
-    rendObj = ROBJ_INSCRIPTION
+    rendObj = ROBJ_TEXT
     text = fa[key]
     font = Fonts?.fontawesome
     color = Color(200, 200, 200)
     fontSize = hdpx(cellSize[0] * 0.45)
-    validateStaticText = false
   }
 }
 
@@ -45,7 +43,7 @@ function mkTable() {
       col = 0
       line = []
       children.append({
-        size = [flex(), SIZE_TO_CONTENT]
+        size = FLEX_H
         minWidth = SIZE_TO_CONTENT
         flow = FLOW_HORIZONTAL
         gap = hdpx(1)

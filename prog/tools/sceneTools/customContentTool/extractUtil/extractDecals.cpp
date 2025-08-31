@@ -28,7 +28,7 @@ static ConsoleLogWriter conlog;
 class ConsoleMsgPipe : public NullMsgPipe
 {
 public:
-  virtual void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath)
+  void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath) override
   {
     updateErrCount(msg_t);
     if (msg_t == REMARK)

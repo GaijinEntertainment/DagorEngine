@@ -1,43 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daNet/daNetEchoManager.h>
+#include "daNetEchoManagerInternal.h"
 
 #include <daNet/getTime.h>
 #include <debug/dag_assert.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_critSec.h>
+#include "ucr.h"
 
 #include <enet/enet.h>
 #include <zlib.h> // crc32
 
-eastl::optional<ENetAddress> get_enet_address(const char *new_host);
+extern ENetAddress get_enet_address(const char *new_host);
 
-// Supposedly the enet doesn't send the first 2 bytes with all bits set
-using EchoPacketMarkerType = uint16_t;
-static constexpr EchoPacketMarkerType ECHO_PACKET_MARKER = 0xFFFF;
 // Read from the network thread, written from DaNetPeerInterface ctor before thread started and in dtor after thread stopped
 static danet::EchoManager *echo_manager; // We only create one peer interface, which uses only one echo manager
-
-#pragma pack(push, 1)
-struct EchoNetPacketBeforeChecksum
-{
-  EchoNetPacketBeforeChecksum(EchoPacketMarkerType marker, danet::EchoSequenceNumber sequenceNumber, bool response) :
-    marker{marker}, sequenceNumber{sequenceNumber}, response{uint32_t{response}}
-  {}
-
-  EchoPacketMarkerType marker;
-  danet::EchoSequenceNumber sequenceNumber : 31;
-  uint32_t response : 1; // MSB
-};
-
-struct EchoNetPacket : EchoNetPacketBeforeChecksum
-{
-  using EchoNetPacketBeforeChecksum::EchoNetPacketBeforeChecksum;
-  uint16_t checksum{};
-};
-#pragma pack(pop)
-
-static_assert(sizeof(EchoNetPacket) == 8, "size of EchoNetPacket is expected to be independent of platform/compiler/anything");
 
 static uint16_t calc_checksum(const EchoNetPacketBeforeChecksum &packet)
 {
@@ -57,7 +35,7 @@ static void send_echo_impl(ENetSocket socket, ENetAddress *address, bool respons
   enet_socket_send(socket, address, &enetBuffer, /*bufferCount*/ 1);
 }
 
-static void receive_echo_impl(ENetSocket socket, ENetAddress *receivedFrom, const EchoNetPacket &echoNetPacket)
+void handle_echo_packet(ENetSocket socket, ENetAddress *receivedFrom, const EchoNetPacket &echoNetPacket)
 {
   G_ASSERTF(echo_manager != nullptr, "A packet from enet, but there is no EchoManager");
 
@@ -75,33 +53,6 @@ static void receive_echo_impl(ENetSocket socket, ENetAddress *receivedFrom, cons
     // sending pong immediately to ensure smaller RTT, it's not very important, but it's a tad better for correct estimations
     send_echo_impl(socket, receivedFrom, /*response*/ true, echoNetPacket.sequenceNumber);
 }
-
-extern "C"
-{
-  int enet_socket_receive_impl(ENetSocket socket, ENetAddress *address, ENetBuffer *buffers, size_t bufferCount);
-
-  int enet_socket_receive(ENetSocket socket, ENetAddress *address, ENetBuffer *buffers, size_t bufferCount)
-  {
-    auto receive = [&]() { return enet_socket_receive_impl(socket, address, buffers, bufferCount); };
-    int ret = receive();
-
-    G_ASSERT(bufferCount == 1); // enet_socket_receive can put received data in several buffers, but it's never used this way
-    G_ASSERT(buffers && buffers->data);
-
-    for (; ret > 0; ret = receive())
-    {
-      const int receiveLength = ret; // positive result of receive is the length of received data
-
-      const EchoNetPacket *echoNetPacket = static_cast<const EchoNetPacket *>(buffers->data); // the host is expected to always be LE
-      if (DAGOR_LIKELY(receiveLength != sizeof(EchoNetPacket)) || echoNetPacket->marker != ECHO_PACKET_MARKER)
-        break; // not an echo, will be processed by enet
-
-      receive_echo_impl(socket, address, *echoNetPacket);
-    }
-
-    return ret;
-  }
-};
 
 namespace danet
 {
@@ -136,11 +87,11 @@ void EchoManager::clear()
 // called from the main thread, simultaneous with the net thread
 void EchoManager::sendEcho(const char *route, uint32_t route_id)
 {
-  eastl::optional<ENetAddress> addr = get_enet_address(route);
+  auto addr = get_enet_address(route);
   WinAutoLock l(crit); // access to "toSend" and "received"
 
-  if (addr)
-    toSend.push_back(RequestToSend{/*routeId*/ route_id, /*addr*/ {addr->host, addr->port}});
+  if (addr.host)
+    toSend.push_back(RequestToSend{/*routeId*/ route_id, /*addr*/ {addr.host, addr.port}});
   else
   {
     received.push_back(EchoResponse{/*routeId*/ route_id,

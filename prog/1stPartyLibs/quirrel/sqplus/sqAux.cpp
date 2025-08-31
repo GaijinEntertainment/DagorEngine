@@ -162,7 +162,7 @@ if (CAN_IMPRINT) \
 } \
 while (0)
 
-SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *buf, SQInteger max_size, bool is_short_form)
+SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *buf, SQInteger max_size, bool is_short_form, bool *is_empty_stack)
 {
   G_ASSERT(buf);
   SQStackInfos si;
@@ -177,6 +177,9 @@ SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *buf, SQInteger max_size
   SQInteger total = 0;
   SQChar *pos = buf;
 
+  if (is_empty_stack)
+    *is_empty_stack = true;
+
   IMPRINT_BUF(_SC("CALLSTACK:\n"));
 
   while (CAN_IMPRINT && SQ_SUCCEEDED(sq_stackinfos(v,level,&si)))
@@ -186,6 +189,9 @@ SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *buf, SQInteger max_size
       ++level;
       continue;
     }
+
+    if (is_empty_stack)
+      *is_empty_stack = false;
 
     const SQChar *fn=_SC("unknown");
     const SQChar *src=_SC("unknown");

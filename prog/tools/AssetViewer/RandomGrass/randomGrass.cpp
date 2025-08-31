@@ -41,14 +41,14 @@ public:
     b->setE3dcolor("color_mask_g_from", E3DCOLOR(2, 24, 54, 255));
     b->setE3dcolor("color_mask_g_to", E3DCOLOR(247, 242, 186, 255));
   }
-  ~RandomGrassViewPlugin() { del_it(rndGrass); }
+  ~RandomGrassViewPlugin() override { del_it(rndGrass); }
 
-  virtual const char *getInternalName() const { return "RandomGrassViewer"; }
+  const char *getInternalName() const override { return "RandomGrassViewer"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     levelGrassBlk.getBlockByName("layer")->setStr("res", asset->getName());
     rndGrass = new EditorGrass(levelGrassBlk, *::dgs_get_game_params()->getBlockByNameEx("GrassSettingsPlanes"));
@@ -60,7 +60,7 @@ public:
 
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     del_it(rndGrass);
     rbuf.addFaces(BAD_TEXTUREID);
@@ -68,39 +68,39 @@ public:
     return true;
   }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     box[0].set(-20.f, -0.5f, -20.f);
     box[1].set(+20.f, 2.0f, +20.f);
     return true;
   }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
-  virtual void renderGeometry(Stage stage)
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
+  void renderGeometry(Stage stage) override
   {
     if (stage == STG_BEFORE_RENDER)
     {
       struct Helper : IRandomGrassRenderHelper
       {
-        virtual bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) { return true; }
-        virtual void endRender() {}
-        virtual void renderHeight(float min_h, float max_h) { d3d::clearview(CLEAR_ZBUFFER, 0, (0 - min_h) / (max_h - min_h), 0); }
-        virtual void renderColor() {}
-        virtual void renderMask() { d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 0, 0); }
-        virtual void renderExplosions() {}
-        virtual bool getHeightmapAtPoint(float x, float y, float &out)
+        bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) override { return true; }
+        void endRender() override {}
+        void renderHeight(float min_h, float max_h) override { d3d::clearview(CLEAR_ZBUFFER, 0, (0 - min_h) / (max_h - min_h), 0); }
+        void renderColor() override {}
+        void renderMask() override { d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 0, 0); }
+        void renderExplosions() override {}
+        bool getHeightmapAtPoint(float x, float y, float &out) override
         {
           out = 0;
           return true;
         }
-        virtual bool isValid() const { return true; }
+        bool isValid() const override { return true; }
       } hlp;
       Point3 viewDir = ::grs_cur_view.itm.getcol(2);
       TMatrix viewTm;
@@ -125,14 +125,14 @@ public:
       rndGrass->renderTrans();
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "rndGrass") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "rndGrass") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) { panel.setEventHandler(this); }
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override { panel.setEventHandler(this); }
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override {}
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override {}
 
 private:
   DataBlock levelGrassBlk;

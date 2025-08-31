@@ -1,6 +1,6 @@
 options no_aot
 
-require app
+require app // get_sync_time, set_timespeed, get_timespeed
 require DagorImgui
 require imgui/imgui_boost
 require daslib/strings_boost
@@ -10,11 +10,9 @@ require daslib/strings_boost
 def time_window()
   if IsWindowCollapsed()
     return
-  let timeScales <- [[auto 0.0; 0.01; 0.1; 0.25; 0.5; 1.0; 2.0; 4.0; 10.0; 20.0]]
-  let timeScalesCaptions <- [[auto "0"; ".01"; ".1"; ".25"; ".5"; "1"; "2"; "4"; "10"; "20"]]
-  let timeF = format("%.2f", get_sync_time())
-  let scaleF = format("%.2f", get_timespeed())
-  imgui::TextUnformatted("sync time: {timeF} (x{scaleF})")
+  let timeScales <- fixed_array(0.0, 0.01, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 10.0, 20.0)
+  let timeScalesCaptions <- fixed_array("0", ".01", ".1", ".25", ".5", "1", "2", "4", "10", "20")
+  imgui::TextUnformatted("sync time: {get_sync_time():.2f} (x{get_timespeed():.2f})")
   imgui::Text("x:")
   for scale, caption in timeScales, timeScalesCaptions
     SameLine()

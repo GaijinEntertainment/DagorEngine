@@ -45,17 +45,17 @@ public:
   ScriptObjInteractor(const Point3 &pos, ScriptEditor *editor, const IPoint2 &text_range);
   ScriptObjInteractor(const BSphere3 &sph, ScriptEditor *editor, const IPoint2 &text_range);
 
-  virtual TMatrix getTm() const { return tm; }
-  virtual void setTm(const TMatrix &new_tm);
-  virtual void onStartChange();
+  TMatrix getTm() const override { return tm; }
+  void setTm(const TMatrix &new_tm) override;
+  void onStartChange() override;
 
-  virtual const char *getUndoName() const
+  const char *getUndoName() const override
   {
     // return objType==TYPE_POINT3?"Script Point3":"Script TMatrix";
     return "Script object";
   }
 
-  virtual int getAvailableAxis() const { return GizmoEventFilter::AXIS_X | GizmoEventFilter::AXIS_Y | GizmoEventFilter::AXIS_Z; }
+  int getAvailableAxis() const override { return GizmoEventFilter::AXIS_X | GizmoEventFilter::AXIS_Y | GizmoEventFilter::AXIS_Z; }
 
   enum
   {

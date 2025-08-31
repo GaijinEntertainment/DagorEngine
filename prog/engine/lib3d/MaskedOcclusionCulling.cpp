@@ -46,6 +46,8 @@ inline void cpuid(int info[4], int InfoType) { __cpuid_count(InfoType, 0, info[0
 #endif
 
 #ifdef _WIN32
+extern "C" void __cpuidex(int[4], int, int);
+#pragma intrinsic(__cpuidex)
 static void cpuid(int *info, int x) { __cpuidex(info, x, 0); }
 #endif
 

@@ -57,7 +57,7 @@ void reject_sound(SoundEventGroup &group, event_id_t id, bool stop)
   for (SoundEventGroup::Sound &snd : group.sounds)
     if (snd.id == id)
     {
-      if (stop || !is_one_shot(snd.handle))
+      if (stop || !is_oneshot(snd.handle))
         ::stop(snd.handle, true, true);
       snd.id = g_empty_id;
     }
@@ -238,8 +238,8 @@ void add_sound(SoundEventGroup &group, event_id_t id, const Point3 &local_pos, E
       if (isEmpty != betterIsEmpty)
         return betterIsEmpty;
 
-      const bool isOneshot = is_one_shot(best.handle);
-      const bool betterIsOneshot = is_one_shot(better.handle);
+      const bool isOneshot = is_oneshot(best.handle);
+      const bool betterIsOneshot = is_oneshot(better.handle);
       if (isOneshot != betterIsOneshot)
         return betterIsOneshot;
 

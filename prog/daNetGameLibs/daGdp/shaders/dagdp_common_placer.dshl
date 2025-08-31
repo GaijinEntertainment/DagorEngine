@@ -1,10 +1,13 @@
 include "dagdp_common.dshl"
+include "world_sdf.dshl"
 
 hlsl {
   #include "dagdp_common_placer.hlsli"
 }
 
 macro USE_DAGDP_COMMON_PLACER()
+  READ_WORLD_SDF(cs)
+
   hlsl(cs) {
     #define NO_GRADIENTS_IN_SHADER 1
 
@@ -13,9 +16,13 @@ macro USE_DAGDP_COMMON_PLACER()
       return viewportIndex * numRenderables + renderableIndex;
     }
 
-    bool checkSlope(float slopeFactor, uint flags, float3 surfaceNormal, float r)
+    bool checkSlope(float slopeSinMin, float slopeSinMax, uint flags, float dotProduct, float r)
     {
-      float w = saturate(1.0 + slopeFactor * (surfaceNormal.y - 1.0));
+      FLATTEN
+      if (flags & VOLUME_AXIS_ABS_BIT)
+        dotProduct = abs(dotProduct);
+
+      float w = smoothstep(slopeSinMin, slopeSinMax, dotProduct);
 
       FLATTEN
       if (flags & SLOPE_PLACEMENT_IS_INVERTED_BIT)
@@ -24,7 +31,19 @@ macro USE_DAGDP_COMMON_PLACER()
       return r <= w;
     }
 
-    void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, int2 stablePos, float randScale, uint instanceElementOffset)
+    bool checkOcclusion(float occlusionRange, float occlusionMin, float occlusionMax, float3 worldPos, float3 worldNorm, float r)
+    {
+      BRANCH
+      if (occlusionRange < 0.001)
+        return true;
+
+      float occ = compute_simple_sdf_occlusion(worldPos, worldNorm, occlusionRange);
+      float w = smoothstep(occlusionMin, occlusionMax, occ);
+      return r <= w;
+    }
+
+    void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, int2 stablePos,
+      float randScale, uint instanceElementOffset, float3 extra = float3(0, 0, 0))
     {
       float3 yawAxis;
       float2 xzVector;
@@ -118,7 +137,7 @@ macro USE_DAGDP_COMMON_PLACER()
       bufferAt(instance_data, instanceElementOffset)     = float4(randScale * basisT[0], instancePos.x);
       bufferAt(instance_data, instanceElementOffset + 1) = float4(randScale * basisT[1], instancePos.y);
       bufferAt(instance_data, instanceElementOffset + 2) = float4(randScale * basisT[2], instancePos.z);
-      bufferAt(instance_data, instanceElementOffset + 3) = float4(asfloat(placeable.riPoolOffset), 0, 0, 0);
+      bufferAt(instance_data, instanceElementOffset + 3) = float4(asfloat(placeable.riPoolOffset), extra);
     }
 
     uint getPlaceableIndex(VariantGpuData variant, float r)
@@ -171,7 +190,7 @@ endmacro
 
 // g_storage: must be `groupshared uint[N]`, N >= 2 * threadgroup_size.
 // g_cond: must be `groupshared uint`.
-macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond, useTileLimits)
+macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
   hlsl(cs) {
     bool threadGroupAnyTrue(bool cond, uint tId)
     {
@@ -257,11 +276,6 @@ macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond, u
           uint2 mBitCounts = countbits(mBits);
           result.count = pBitCounts.x + pBitCounts.y;
           result.offset = mBitCounts.x + mBitCounts.y;
-
-          ##if useTileLimits
-          uint tileLimit = structuredBufferAt(placeable_tile_limits, placeableIndex);
-          result.count = min(result.count, tileLimit);
-          ##endif
         }
 
         GroupMemoryBarrierWithGroupSync();

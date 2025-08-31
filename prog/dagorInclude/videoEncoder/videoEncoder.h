@@ -50,8 +50,8 @@ class VideoEncoder
   uint32_t cbBuffer = 0;
   AudioBuffer externalAudioBuffersPerSample;
   uint32_t currentAudioSample = 0;
-  bool setAudioSample(const eastl::vector<uint8_t> &audioBuf);
   uint32_t w = 1, h = 1;
+  UniqueTex stretchedTex;
 
 public:
   AudioRecorder audioRecorder;
@@ -59,9 +59,11 @@ public:
   bool init(void *pUnkDevice);
   bool start(const VideoSettings &settings);
   bool process(BaseTexture *tex);
+  bool process();
   bool stop();
   void shutdown();
   void setExternalAudioBuffer(AudioBuffer &&audioBuffersPerSample);
+  bool setAudioSample(const eastl::vector<uint8_t> &audioBuf);
 
   bool isRecording() const { return recording; }
 };

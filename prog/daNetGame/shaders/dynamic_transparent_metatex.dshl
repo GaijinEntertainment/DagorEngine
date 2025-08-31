@@ -1,16 +1,12 @@
 include "dynamic_trans_inc.dshl"
 include "normaldetail.dshl"
 include "glass.dshl"
+include "glass_icon_render_inc.dshl"
 
 include "indoor_light_probes.dshl"
 include "metatex_inc.dshl"
 
 include "dynamic_metatex_inc.dshl"
-
-int render_to_icon = 0;
-interval render_to_icon : no < 1, yes;
-float background_alpha = 0;
-float4 icon_silhouette_color = (0,0,0,2);
 
 shader dynamic_refraction_metatex
 {
@@ -56,21 +52,13 @@ shader dynamic_refraction_metatex
     };
   }
   OPTIONAL_SKINNING_SHADER()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
+  if (render_to_icon == yes && glass_normal_pass != no) {
+    dont_render;
+  }
+  INIT_AND_USE_GLASS_ICON_RENDER(ps)
 
-  (ps)
-  {
-    background_alpha@f1 = (background_alpha);
-    icon_silhouette_color@f4 = icon_silhouette_color;
-  }
-  if (render_to_icon == yes)
-  {
-    hlsl { #define ICON_RENDER 1 }
-  }
-  else
-  {
-    hlsl { #define ICON_RENDER 0 }
-  }
   hlsl(vs) {
     VsOutput glass_vs(VsInput input )
     {
@@ -83,7 +71,7 @@ shader dynamic_refraction_metatex
       float3 worldDu;
       float3 worldDv;
       float3 worldNormal;
-      float3 localNormal = input.normal.xyz;
+      float3 localNormal = unpack_unit_vector(input.normal.xyz);
 
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       instance_skinning(
@@ -140,7 +128,7 @@ shader dynamic_refraction_metatex
   SET_DYNMAT_METATEX_PARAM_GETTERS()
 
   INIT_GLASS_TRANSP()
-  USE_GLASS()
+  USE_GLASS(false)
   APPLY_METATEX()
 
   hlsl(ps) {
@@ -159,7 +147,7 @@ shader dynamic_refraction_metatex
       float4 diffuseColor = float4(color, opacity * get_transparency_mul());
 
       float4 screenpos = GET_SCREEN_POS(input.pos);
-      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness);
+      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness).color;
       return float4(pack_hdr(result.rgb), result.a);
     }
   }

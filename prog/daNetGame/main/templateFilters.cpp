@@ -29,7 +29,7 @@ void read_component_filters(const DataBlock &blk, ComponentToFilterAndPath &to)
   }
 }
 
-void apply_component_filters(const ComponentToFilterAndPath &flist)
+void apply_component_filters(const ecs::EntityManager &mgr, const ComponentToFilterAndPath &flist)
 {
   for (auto &f : flist)
   {
@@ -38,10 +38,10 @@ void apply_component_filters(const ComponentToFilterAndPath &flist)
     ecs::component_t component = ECS_HASH_SLOW(componentName).hash;
 #if DAGOR_DBGLEVEL > 0
     const char *path = f.second.second.c_str();
-    ecs::component_index_t cidx = g_entity_mgr->getDataComponents().findComponentId(component);
+    ecs::component_index_t cidx = mgr.getDataComponents().findComponentId(component);
     if (cidx == ecs::INVALID_COMPONENT_INDEX)
     {
-      if (g_entity_mgr->getTemplateDB().getComponentType(component) == 0)
+      if (mgr.getTemplateDB().getComponentType(component) == 0)
         logerr("component <%s|0x%X> does not exist in templateDB %s and so won't be filtered with %s", componentName, component, path,
           filterName);
     }
@@ -51,14 +51,14 @@ void apply_component_filters(const ComponentToFilterAndPath &flist)
       logerr("can not set replication filter <%s> for component <%s> - no such filter", filterName, componentName);
     else
     {
-      net::replicate_component_filter_index_t cfit = net::find_component_filter_for_component(component);
+      net::replicate_component_filter_index_t cfit = net::find_component_filter_for_component(mgr, component);
       if (cfit == fit)
         continue;
       if (cfit != net::replicate_everywhere_filter_id)
         logerr("replication filter <%s> for component <%s> - is already set to different filter %d", filterName, componentName,
           net::get_component_filter_name(cfit));
       debug("set replication filter <%s> for component <%s>", filterName, componentName);
-      net::set_component_filter(component, fit);
+      net::set_component_filter(mgr, component, fit);
     }
   }
 }
@@ -74,15 +74,16 @@ void read_replicated_component_client_modify_blacklist(const DataBlock &blk, Com
   }
 }
 
-void apply_replicated_component_client_modify_blacklist(const ComponentToFilterAndPath &flist)
+void apply_replicated_component_client_modify_blacklist(const ecs::EntityManager &mgr, const ComponentToFilterAndPath &flist)
 {
+  G_UNUSED(mgr);
   for (auto &f : flist)
   {
     const char *componentName = f.first.c_str();
     ecs::component_t component = ECS_HASH_SLOW(componentName).hash;
 #if DAGOR_DBGLEVEL > 0
-    ecs::component_index_t cidx = g_entity_mgr->getDataComponents().findComponentId(component);
-    if ((cidx == ecs::INVALID_COMPONENT_INDEX) && (g_entity_mgr->getTemplateDB().getComponentType(component) == 0))
+    ecs::component_index_t cidx = mgr.getDataComponents().findComponentId(component);
+    if ((cidx == ecs::INVALID_COMPONENT_INDEX) && (mgr.getTemplateDB().getComponentType(component) == 0))
       logerr("component <%s|0x%X> does not exist in templateDB %s and so won't "
              "be added to replicated component client modify blacklist",
         componentName, component, f.second.second.c_str());

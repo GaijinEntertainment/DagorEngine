@@ -1,0 +1,292 @@
+include "shader_global.dshl"
+include "prev_screen_tc.dshl"
+include "bvh.dshl"
+include "rt/rt_lighting.dshl"
+include "rtsm_sun_dir.dshl"
+include "globtm_no_ofs.dshl"
+include "reprojected_motion_vectors.dshl"
+include "viewVecVS.dshl"
+include "water_3d_overrides.dshl"
+
+float4 rtr_water_hit_dist_params;
+int water_rt_frame_index;
+
+texture water_reflection_tex_uav;
+texture water_reflection_tex;
+texture water_reflection_strength_tex_uav;
+texture water_reflection_strength_tex;
+texture water_normal_dir;
+texture downsampled_depth;
+
+texture clouds_panorama_mip;
+
+shader raytraced_water_reflections
+{
+  supports global_const_block;
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  ENABLE_ASSERT(cs)
+
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_REPROJECTED_MOTION_VECTORS(cs)
+  USE_REPROJECTED_MOTION_VECTORS(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_PREV_TC(cs)
+  INIT_BVH(cs, 0, true)
+  USE_BVH_FOR_REFLECTION(cs)
+  USE_BVH_FX_RENDER(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  PACK_UNPACK_GBUFFER_BASE(cs)
+  INIT_RT_LIGHTING(cs, true, false, true, rtr_shadow == on, rtr_use_csm == yes, false)
+  USE_RT_LIGHTING(cs, 1, false)
+  INIT_BVH_ATMOSPHERE(cs)
+  USE_BVH_ATMOPHERE(cs)
+  RTSM_SUN_DIR()
+  INIT_UNDERWATER_FOG(cs)
+  GET_UNDERWATER_FOG_PERLIN(cs)
+  local float4 output_resolution = get_dimensions(water_reflection_tex_uav, 0);
+  (cs)
+  {
+    world_view_pos@f3 = world_view_pos;
+    hit_dist_params@f4 = rtr_water_hit_dist_params;
+    water_reflection_tex@smp2d = water_reflection_tex;
+    water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
+    water_normal_dir@tex2d = water_normal_dir;
+    water_reflection_tex_uav@uav = water_reflection_tex_uav hlsl{RWTexture2D<float3> water_reflection_tex_uav@uav;};
+    water_reflection_strength_tex_uav@uav = water_reflection_strength_tex_uav hlsl{RWTexture2D<float4> water_reflection_strength_tex_uav@uav;};
+    downsampled_depth@tex2d = downsampled_depth;
+    output_resolution@f4 = (output_resolution.xy, 1.0 / output_resolution.xy);
+    frame_index@i1 = water_rt_frame_index;
+    prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
+    water_reflection_roughness_mip_scale@f1 = water_reflection_roughness_mip_scale;
+  }
+  if (clouds_panorama_mip == NULL)
+  {
+    (cs) { water_planar_reflection_clouds@smp2d = water_planar_reflection_clouds; }
+    DECL_POSTFX_TC_VS_SCR()
+    WATER_PLANAR_INIT(cs)
+    WATER_PLANAR_USE(cs)
+    INIT_HDR(cs)
+    USE_HDR(cs)
+  }
+  else
+  {
+    (cs) {
+      clouds_panorama_mip@smp2d = clouds_panorama_mip;
+    }
+    INIT_CLOUDS_PANORAMA_UV_BASE(cs)
+    USE_CLOUDS_PANORAMA_UV_BASE(cs)
+  }
+  hlsl(cs)
+  {
+    struct ViewData
+    {
+      float3 worldPos;
+      float3 reflectSampleDir;
+      float enviMip;
+      float3 pointToEyeNormalized;
+      float3 reflectDirNormalized;
+    };
+    half3 getEnvReflections(const ViewData viewData)
+    {
+      ##if clouds_panorama_mip == NULL
+        float2 reflectionTC = reflectionToPlanarTC(viewData.worldPos, viewData.reflectSampleDir);
+        half4 enviReflectionA = tex2Dlod(water_planar_reflection_clouds, float4(reflectionTC, 0, viewData.enviMip * water_reflection_roughness_mip_scale));
+        float3 reflectWaterPlaneDirNormalized = reflect(-viewData.pointToEyeNormalized, float3(0,1,0));
+        float enviMask = saturate(dot(viewData.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+        enviReflectionA.rgb = unpack_hdr(enviReflectionA.rgb) * enviMask;
+        half3 enviReflection = enviReflectionA.rgb;
+      ##else
+        float2 sky_uv = get_panorama_uv(viewData.worldPos, viewData.reflectSampleDir);
+        half3 enviReflection = tex2Dlod(clouds_panorama_mip, float4(sky_uv, 0, viewData.enviMip * water_reflection_roughness_mip_scale)).rgb;
+      ##endif
+      return enviReflection;
+    }
+
+    void calc_underwater_fog(inout float3 reflectionColor, float dist)
+    {
+      float3 waterWorldPos = 0; // Dummy
+      float3 underWaterWorldPos = 0; // Dummy
+      float3 view = 0; // Dummy
+      float water_view_depth = dist;
+      float water_down_deep = 0; // Dummy
+      float ocean_part = 0;
+      half perlin_noise_water_color = 0.5;
+      half3 underwater_loss;
+      half3 underwater_inscatter;
+      get_underwater_fog_perlin(waterWorldPos, underWaterWorldPos, view, water_view_depth, water_down_deep, ocean_part, perlin_noise_water_color, underwater_loss, underwater_inscatter);
+      reflectionColor = reflectionColor * underwater_loss + underwater_inscatter;
+    }
+
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+    // We collide with SH1 otherwise
+    namespace ml
+    {
+      #include <ml.hlsli>
+    }
+
+    #define water_reflection_strength_tex_samplerstate water_reflection_tex_samplerstate
+
+    #define PT_SPEC_LOBE_ENERGY 0.95
+
+    float4 water_rt(float3 cameraToPoint, float3 reflectionVec, bool above_water, out float hitDistance)
+    {
+      float maxReflectionDistance = hit_dist_params.x;
+
+      [branch]
+      if (!bvhMainValid)
+      {
+        hitDistance = maxReflectionDistance;
+        return 0;
+      }
+
+      float worldDist = length(cameraToPoint);
+
+      HitInfo hitInfo;
+      bool isHit = trace_ray(bvhMain, cameraToPoint, reflectionVec, 0, maxReflectionDistance, worldDist, bvhGroupRender, hitInfo);
+
+      if (!isHit && bvhTerrainValid)
+        isHit = trace_ray(bvhTerrain, cameraToPoint, reflectionVec, maxReflectionDistance, 100000, worldDist, bvhGroupRender, hitInfo);
+
+      float3 reflectionColor;
+      if (isHit)
+      {
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -reflectionVec, worldDist);
+        reflectionColor = light_hit_surface(hitSurface, -reflectionVec, worldDist + hitInfo.t, hit_dist_params.x);
+        if (above_water)
+          calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
+        else
+          calc_underwater_fog(reflectionColor, hitInfo.t);
+      }
+      else
+      {
+        ViewData viewData;
+        viewData.worldPos = world_view_pos + cameraToPoint;
+        viewData.reflectSampleDir = reflectionVec;
+        viewData.enviMip = 1;
+        viewData.pointToEyeNormalized = -normalize(cameraToPoint);
+        viewData.reflectDirNormalized = normalize(reflectionVec);
+        reflectionColor = getEnvReflections(viewData);
+      }
+
+      hitDistance = isHit ? hitInfo.t : maxReflectionDistance;
+
+      float fxt = -1;
+      trace_ray_fx_translucent(cameraToPoint, reflectionVec, 0, hitDistance, worldDist, reflectionColor, fxt, 1.0);
+      isHit = isHit || fxt > 0;
+
+      return float4(reflectionColor, isHit ? 1 : 0);
+    }
+
+    float2 decode_variance(float2 packed_variance)
+    {
+      return exp2(-16.0 * packed_variance);
+    }
+
+    float2 encode_variance(float2 variance)
+    {
+      return -log2(variance) * (1.0/16.0);
+    }
+
+    struct ReflectionAndShadowSample
+    {
+      float4 reflection;
+      float shadow;
+      float2 errorVariance;
+    };
+
+    ReflectionAndShadowSample sample_reflection_and_shadow(float2 reflection_uv, float2 shadow_uv, float target_alpha)
+    {
+      ReflectionAndShadowSample result;
+
+      float2 samplingReflectionUv = (floor(reflection_uv * output_resolution.xy - 0.5) + 0.5) * output_resolution.zw;
+      float2 samplingShadowUv = (floor(shadow_uv * output_resolution.xy - 0.5) + 0.5) * output_resolution.zw;
+      float4 alphas = water_reflection_strength_tex.GatherRed(water_reflection_strength_tex_samplerstate, samplingReflectionUv).wzxy;
+      float2 pixelCoords = reflection_uv * output_resolution.xy - 0.5;
+      float4 bil = float4(frac(pixelCoords), 1 - frac(pixelCoords));
+      float4 weights = float4(bil.zx * bil.w, bil.zx * bil.y) * saturate(1 - abs(alphas - target_alpha)) + 1e-4;
+      weights /= dot(weights, 1);
+
+      half4 reflectionWeightSample = tex2Dlod(water_reflection_strength_tex, float4(samplingReflectionUv, 0, 0));
+      half4 shadowWeightSample = tex2Dlod(water_reflection_strength_tex, float4(samplingShadowUv, 0, 0));
+      result.shadow = shadowWeightSample.b;
+      result.errorVariance = decode_variance(half2(reflectionWeightSample.g, shadowWeightSample.a));
+      result.reflection = float4(dot(water_reflection_tex.GatherRed(water_reflection_tex_samplerstate, samplingReflectionUv).wzxy, weights),
+                                 dot(water_reflection_tex.GatherGreen(water_reflection_tex_samplerstate, samplingReflectionUv).wzxy, weights),
+                                 dot(water_reflection_tex.GatherBlue(water_reflection_tex_samplerstate, samplingReflectionUv).wzxy, weights),
+                                 dot(alphas, weights));
+
+      return result;
+    }
+
+    [numthreads(8, 8, 1 )]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      [branch]
+      if (any(dtId >= uint2(output_resolution.xy)))
+        return;
+
+      [branch]
+      if (!bvhMainValid)
+      {
+        texture2DAt(water_reflection_tex_uav, dtId) = 0;
+        texture2DAt(water_reflection_strength_tex_uav, dtId) = 0;
+        return;
+      }
+
+      float rawDepth = texelFetch(downsampled_depth, dtId, 0).r;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float2 uv = (dtId.xy + 0.5) * output_resolution.zw;
+      float3 viewVec = getViewVecOptimized(uv);
+      float3 cameraToPoint = w * viewVec;
+
+      float isWater = 0;
+      float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(water_normal_dir, dtId), isWater);
+      float3 normal = surfaceNormal_roughness.xyz;
+      float roughness = surfaceNormal_roughness.w;
+
+      BRANCH
+      if (isWater > 0)
+      {
+        ml::Rng::Hash::Initialize(dtId, frame_index);
+        float3 V = -normalize(cameraToPoint);
+        float3 N = normalize(surfaceNormal_roughness.xyz);
+        float3x3 localBasis = ml::Geometry::GetBasis(N);
+        float3 localVector = ml::Geometry::RotateVector(localBasis, V);
+        float2 rnd = ml::Rng::Hash::GetFloat2();
+        float3 localRay = ml::ImportanceSampling::VNDF::GetRay(rnd, roughness, localVector, PT_SPEC_LOBE_ENERGY);
+        localRay = reflect(-localVector, localRay);
+        float3 sampleDir = ml::Geometry::RotateVectorInverse(localBasis, localRay);
+        bool isAboveWater = isWater < 1.5;
+        float hitDistance = 0;
+        half4 currentReflection = water_rt(cameraToPoint, sampleDir, isAboveWater, hitDistance);
+
+        float3 noRoughnesslocalRay = ml::ImportanceSampling::VNDF::GetRay(rnd, 0, localVector, PT_SPEC_LOBE_ENERGY);
+        noRoughnesslocalRay = reflect(-localVector, noRoughnesslocalRay);
+        float3 noRoughnessSampleDir = ml::Geometry::RotateVectorInverse(localBasis, noRoughnesslocalRay);
+
+        float2 prevUV = get_reprojected_history_uvz1(cameraToPoint, prev_globtm_no_ofs_psf).xy;
+        float2 virtualPrevUV = get_reprojected_history_uvz1(cameraToPoint + reflect(noRoughnessSampleDir, N) * hitDistance, prev_globtm_no_ofs_psf).xy;
+
+        ReflectionAndShadowSample historySample = sample_reflection_and_shadow(virtualPrevUV, prevUV, currentReflection.a);
+
+        rnd = ml::Rng::Hash::GetFloat2();
+        float3 direction = get_sun_direction(rnd);
+        half currentShadow = is_obstructed(bvhMain, cameraToPoint, direction, 0, 100000, w, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
+
+        const float2 Q = float2(1e-4, 1e-5  );
+        const float2 R = 0.001 + float2(roughness * roughness, 0);
+
+        float2 historyErrorVarianceEstimate = historySample.errorVariance + Q;
+        float2 K = historyErrorVarianceEstimate / (historyErrorVarianceEstimate + R);
+        half4 nextReflection = lerp(historySample.reflection, currentReflection, K.x);
+        half nextShadow = lerp(historySample.shadow, currentShadow, K.y);
+        half2 packedNextHistoryErrorVariance = encode_variance((1.0 - K) * historyErrorVarianceEstimate);
+
+        texture2DAt(water_reflection_tex_uav, dtId) = h3nanofilter(nextReflection.rgb);
+        texture2DAt(water_reflection_strength_tex_uav, dtId) = half4(nextReflection.a, packedNextHistoryErrorVariance.x, nextShadow, packedNextHistoryErrorVariance.y);
+      }
+    }
+  }
+  compile("cs_6_5", "main");
+}

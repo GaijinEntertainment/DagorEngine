@@ -79,9 +79,10 @@ void ChainIKSolver::loadPoints(const DataBlock *blk, const GeomNodeTree *tree)
   }
 }
 
-void ChainIKSolver::loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree)
+void ChainIKSolver::loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree, const char *class_name)
 {
   G_ASSERT_RETURN(blk, );
+  G_UNUSED(class_name);
 
   chains.clear();
   const bool needSelectInverseSolution = blk->getBool("inverseSolution", false);
@@ -119,6 +120,8 @@ void ChainIKSolver::loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree)
     }
     chain.upperJoint = upperJoint;
     chain.bottomJoint = bottomJoint;
+    const int num = chain.points.size();
+    G_ASSERT_LOG(num >= 2 && num <= 4, "check 'chainIK' block, the wrong number of points (%d): %s", num, class_name);
   }
 }
 
@@ -209,12 +212,14 @@ void Chain::solve()
       rotate_at_point(dirTm, pFinal);
 
       const Point3 offset = dirTm.getcol(1) * shoulder;
-      rotate_at_point(points.front().tm, pFinal + offset);
+      if (needRotateFirst)
+        rotate_at_point(points.front().tm, pFinal + offset);
       rotate_at_point(points.back().tm, pStart - offset);
     }
     else
     {
-      rotate_at_point(points.front().tm, pFinal);
+      if (needRotateFirst)
+        rotate_at_point(points.front().tm, pFinal);
       rotate_at_point(points.back().tm, pStart);
     }
     return;

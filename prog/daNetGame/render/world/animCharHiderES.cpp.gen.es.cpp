@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animCharHiderES.cpp.inl"
 ECS_DEF_PULL_VAR(animCharHider);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc animchar_hider_at_node_created_es_event_handler_comps[] =
 {
@@ -38,7 +40,7 @@ static ecs::EntitySystemDesc animchar_hider_at_node_created_es_event_handler_es_
 static constexpr ecs::ComponentDesc animchar_hider_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
 //start of 2 ro components at [1]
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
   {ECS_HASH("animchar_hider__camThreshold"), ecs::ComponentTypeInfo<float>()},
@@ -50,7 +52,7 @@ static void animchar_hider_es_event_handler_all_events(const ecs::Event &__restr
   G_FAST_ASSERT(evt.is<HideNodesEvent>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_hider_es_event_handler(static_cast<const HideNodesEvent&>(evt)
-        , ECS_RW_COMP(animchar_hider_es_event_handler_comps, "animchar_visbits", uint8_t)
+        , ECS_RW_COMP(animchar_hider_es_event_handler_comps, "animchar_visbits", animchar_visbits_t)
     , ECS_RO_COMP(animchar_hider_es_event_handler_comps, "animchar_bsph", vec4f)
     , ECS_RO_COMP(animchar_hider_es_event_handler_comps, "animchar_hider__camThreshold", float)
     );
@@ -71,7 +73,7 @@ static ecs::EntitySystemDesc animchar_hider_es_event_handler_es_desc
 static constexpr ecs::ComponentDesc animchar_hider_at_node_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
 //start of 3 ro components at [1]
   {ECS_HASH("animchar_hider__nodeIdx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("animchar_hider__camThreshold"), ecs::ComponentTypeInfo<float>()},
@@ -82,7 +84,7 @@ static void animchar_hider_at_node_es_event_handler_all_events(const ecs::Event 
   G_FAST_ASSERT(evt.is<HideNodesEvent>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_hider_at_node_es_event_handler(static_cast<const HideNodesEvent&>(evt)
-        , ECS_RW_COMP(animchar_hider_at_node_es_event_handler_comps, "animchar_visbits", uint8_t)
+        , ECS_RW_COMP(animchar_hider_at_node_es_event_handler_comps, "animchar_visbits", animchar_visbits_t)
     , ECS_RO_COMP(animchar_hider_at_node_es_event_handler_comps, "animchar_hider__nodeIdx", int)
     , ECS_RO_COMP(animchar_hider_at_node_es_event_handler_comps, "animchar_hider__camThreshold", float)
     , ECS_RO_COMP(animchar_hider_at_node_es_event_handler_comps, "animchar", AnimCharV20::AnimcharBaseComponent)

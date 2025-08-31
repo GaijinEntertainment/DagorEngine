@@ -5,16 +5,18 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include <EASTL/bitset.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 #include <drv_log_defs.h>
+#include <drv_assert_defs.h>
 
+#include "globals.h"
 #include "driver.h"
 #include "vulkan_instance.h"
 #include "vulkan_loader.h"
 #include "vk_entry_points.h"
+#include "vulkan_allocation_callbacks.h"
 
 // No need to have raytracing extension if we can not use it.
-#if !D3D_HAS_RAY_TRACING
+#if !VULKAN_HAS_RAYTRACING
 #undef VK_KHR_ray_tracing_pipeline
 #undef VK_KHR_ray_query
 #endif
@@ -382,11 +384,9 @@ VULKAN_DECLARE_EXTENSION(PipelineCreationFeedbackReportEXT, EXT_PIPELINE_CREATIO
 
 #if VK_EXT_calibrated_timestamps
 VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetCalibratedTimestampsEXT)
-VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPhysicalDeviceCalibrateableTimeDomainsEXT)
 
 VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
 VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetCalibratedTimestampsEXT)
-VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPhysicalDeviceCalibrateableTimeDomainsEXT)
 VULKAN_END_EXTENSION_FUCTION_PACK(CalibratedTimestampsEXT);
 
 VULKAN_DECLARE_EXTENSION(CalibratedTimestampsEXT, EXT_CALIBRATED_TIMESTAMPS);
@@ -495,12 +495,76 @@ VULKAN_END_EXTENSION_FUCTION_PACK(FullScreenExclusiveEXT);
 VULKAN_DECLARE_EXTENSION(FullScreenExclusiveEXT, EXT_FULL_SCREEN_EXCLUSIVE);
 #endif
 
+#if VK_KHR_timeline_semaphore
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetSemaphoreCounterValueKHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkSignalSemaphoreKHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkWaitSemaphoresKHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetSemaphoreCounterValueKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkSignalSemaphoreKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkWaitSemaphoresKHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(TimelineSemaphoreKHR);
+VULKAN_DECLARE_EXTENSION(TimelineSemaphoreKHR, KHR_TIMELINE_SEMAPHORE);
+#endif
+
+#if VK_KHR_pipeline_executable_properties
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPipelineExecutableInternalRepresentationsKHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPipelineExecutablePropertiesKHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPipelineExecutableStatisticsKHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPipelineExecutableInternalRepresentationsKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPipelineExecutablePropertiesKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPipelineExecutableStatisticsKHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(PipelineExecutablePropertiesKHR);
+VULKAN_DECLARE_EXTENSION(PipelineExecutablePropertiesKHR, KHR_PIPELINE_EXECUTABLE_PROPERTIES);
+#endif
+
+#if VK_KHR_swapchain_mutable_format
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainMutableFormatKHR);
+VULKAN_DECLARE_EXTENSION(SwapchainMutableFormatKHR, KHR_SWAPCHAIN_MUTABLE_FORMAT);
+#endif
+
+#if VK_QCOM_tile_properties
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetDynamicRenderingTilePropertiesQCOM)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetFramebufferTilePropertiesQCOM)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetDynamicRenderingTilePropertiesQCOM)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetFramebufferTilePropertiesQCOM)
+VULKAN_END_EXTENSION_FUCTION_PACK(TilePropertiesQCOM);
+VULKAN_DECLARE_EXTENSION(TilePropertiesQCOM, QCOM_TILE_PROPERTIES);
+#endif
+
+#if VK_QCOM_tile_shading
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdBeginPerTileExecutionQCOM)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdDispatchTileQCOM)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdEndPerTileExecutionQCOM)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdBeginPerTileExecutionQCOM)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdDispatchTileQCOM)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdEndPerTileExecutionQCOM)
+VULKAN_END_EXTENSION_FUCTION_PACK(TileShadingQCOM);
+VULKAN_DECLARE_EXTENSION(TileShadingQCOM, QCOM_TILE_SHADING);
+#endif
+
+#if VK_QCOM_tile_memory_heap
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdBindTileMemoryQCOM)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdBindTileMemoryQCOM)
+VULKAN_END_EXTENSION_FUCTION_PACK(TileMemoryHeapQCOM);
+VULKAN_DECLARE_EXTENSION(TileMemoryHeapQCOM, QCOM_TILE_MEMORY_HEAP);
+#endif
+
 template <typename... Extensions>
 class VulkanDeviceCore : public Extensions...
 {
   typedef TypePack<Extensions...> ExtensionTypePack;
   typedef eastl::bitset<sizeof...(Extensions)> ExtensionBitSetType;
-  VulkanInstance *instance = nullptr;
   VulkanDeviceHandle device;
   ExtensionBitSetType extensionEnabled;
 
@@ -515,7 +579,6 @@ public:
       VULKAN_LOG_CALL(vkDestroyDevice(device, nullptr));
   }
 
-  inline VulkanInstance &getInstance() const { return *instance; }
   inline VulkanDeviceHandle get() const { return device; }
   inline bool isValid() const { return !is_null(device); }
 #define VK_DEFINE_ENTRY_POINT(name) PFN_##name name = nullptr;
@@ -541,11 +604,11 @@ private:
     {
       loaded = true;
       this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function) {
-        function = VULKAN_LOG_CALL_R(instance->getLoader().vkGetDeviceProcAddr(device, f_name));
+        function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetDeviceProcAddr(device, f_name));
 
         // try to find function in instance, if it is not device tied
         if (!function)
-          function = VULKAN_LOG_CALL_R(instance->getLoader().vkGetInstanceProcAddr(instance->get(), f_name));
+          function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetInstanceProcAddr(Globals::VK::inst.get(), f_name));
 
         if (!function)
         {
@@ -587,24 +650,22 @@ private:
   }
 
 public:
-  bool init(VulkanInstance *vk_instance, VulkanPhysicalDeviceHandle pd, const VkDeviceCreateInfo &dci)
+  bool init(VulkanPhysicalDeviceHandle pd, const VkDeviceCreateInfo &dci)
   {
-    instance = vk_instance;
-
-    VkResult rc = vk_instance->vkCreateDevice(pd, &dci, nullptr, ptr(device));
+    VkResult rc = Globals::VK::inst.vkCreateDevice(pd, &dci, VKALLOC(device), ptr(device));
     if (VULKAN_CHECK_FAIL(rc))
     {
       logwarn("vulkan: device create failed with error %08lX:%s", rc, vulkan_error_string(rc));
       return false;
     }
 
-#define VK_DEFINE_ENTRY_POINT(name)                                                                                                \
-  *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(vk_instance->getLoader().vkGetDeviceProcAddr(device, #name)); \
-  if (!name)                                                                                                                       \
-  {                                                                                                                                \
-    logwarn("vulkan: no device entrypoint for %s", #name);                                                                         \
-    shutdown();                                                                                                                    \
-    return false;                                                                                                                  \
+#define VK_DEFINE_ENTRY_POINT(name)                                                                                           \
+  *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetDeviceProcAddr(device, #name)); \
+  if (!name)                                                                                                                  \
+  {                                                                                                                           \
+    logwarn("vulkan: no device entrypoint for %s", #name);                                                                    \
+    shutdown();                                                                                                               \
+    return false;                                                                                                             \
   }
     VK_DEVICE_ENTRY_POINT_LIST
 #undef VK_DEFINE_ENTRY_POINT
@@ -619,7 +680,7 @@ public:
 
     if (!is_null(device))
     {
-      vkDestroyDevice(device, nullptr);
+      vkDestroyDevice(device, VKALLOC(device));
       device = VulkanNullHandle();
     }
 #define VK_DEFINE_ENTRY_POINT(name) *reinterpret_cast<PFN_vkVoidFunction *>(&name) = nullptr;
@@ -839,6 +900,30 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
                        ,
                        FullScreenExclusiveEXT
 #endif
+#if VK_KHR_timeline_semaphore
+                       ,
+                       TimelineSemaphoreKHR
+#endif
+#if VK_KHR_pipeline_executable_properties
+                       ,
+                       PipelineExecutablePropertiesKHR
+#endif
+#if VK_KHR_swapchain_mutable_format
+                       ,
+                       SwapchainMutableFormatKHR
+#endif
+#if VK_QCOM_tile_properties
+                       ,
+                       TilePropertiesQCOM
+#endif
+#if VK_QCOM_tile_shading
+                       ,
+                       TileShadingQCOM
+#endif
+#if VK_QCOM_tile_memory_heap
+                       ,
+                       TileMemoryHeapQCOM
+#endif
                        >
 {
 public:
@@ -856,7 +941,7 @@ bool has_all_required_extension(dag::ConstSpan<const char *> ext_list);
 int remove_mutual_exclusive_extensions(dag::Span<const char *> ext_list);
 bool device_has_all_required_extensions(VulkanDevice &device, void (*clb)(const char *name));
 uint32_t fill_device_extension_list(Tab<const char *> &result, const StaticTab<const char *, VulkanDevice::ExtensionCount> &white_list,
-  const eastl::vector<VkExtensionProperties> &device_extensions);
+  const dag::Vector<VkExtensionProperties> &device_extensions);
 
 struct MemoryRequirementInfo
 {
@@ -867,7 +952,7 @@ struct MemoryRequirementInfo
   bool needDedicated() const { return prefersDedicatedAllocation || requiresDedicatedAllocation; }
 };
 
-MemoryRequirementInfo get_memory_requirements(VulkanDevice &device, VulkanBufferHandle buffer);
-MemoryRequirementInfo get_memory_requirements(VulkanDevice &device, VulkanImageHandle image);
+MemoryRequirementInfo get_memory_requirements(VulkanBufferHandle buffer);
+MemoryRequirementInfo get_memory_requirements(VulkanImageHandle image);
 
 } // namespace drv3d_vulkan

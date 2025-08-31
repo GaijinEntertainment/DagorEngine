@@ -1,6 +1,14 @@
 #include <squirrel.h>
 #include <sqstddebug.h>
 #include <string.h>
+#include <assert.h>
+#include <squirrel/sqvm.h>
+#include <squirrel/sqstate.h>
+#include <squirrel/sqobject.h>
+#include <squirrel/sqfuncproto.h>
+#include <squirrel/sqclosure.h>
+#include <squirrel/sqtable.h>
+#include <squirrel/sqclass.h>
 
 
 static SQInteger debug_seterrorhandler(HSQUIRRELVM v)
@@ -55,6 +63,12 @@ static SQInteger debug_getlocals(HSQUIRRELVM v)
 }
 
 
+static SQInteger debug_get_stack_top(HSQUIRRELVM v)
+{
+    sq_pushinteger(v, sq_gettop(v));
+    return 1;
+}
+
 #ifndef NO_GARBAGE_COLLECTOR
 static SQInteger debug_collectgarbage(HSQUIRRELVM v)
 {
@@ -93,12 +107,47 @@ static SQInteger debug_getbuildinfo(HSQUIRRELVM v)
   return 1;
 }
 
+static SQInteger debug_doc(HSQUIRRELVM v)
+{
+    HSQOBJECT subject;
+    sq_getstackobj(v, 2, &subject);
+
+    SQObjectPtr value;
+    SQObjectPtr key;
+    key._type = OT_USERPOINTER;
+    switch(sq_type(subject))
+    {
+        case OT_CLOSURE:
+            key._unVal.pUserPointer = (void *)_closure(subject)->_function;
+            break;
+        case OT_NATIVECLOSURE:
+            key._unVal.pUserPointer = (void *)_nativeclosure(subject)->_function;
+            break;
+        case OT_INSTANCE:
+            key._unVal.pUserPointer = (void *)_instance(subject)->_class;
+            break;
+        default:
+            key._unVal.pUserPointer = subject._unVal.pUserPointer;
+            break;
+    }
+
+    if (!_table(_ss(v)->doc_objects)->Get(key, value))
+    {
+        sq_pushnull(v);
+        return 1;
+    }
+
+    sq_pushobject(v, value);
+    return 1;
+}
 
 static const SQRegFunction debuglib_funcs[] = {
     {_SC("seterrorhandler"),debug_seterrorhandler,2, NULL},
     {_SC("setdebughook"),debug_setdebughook,2, NULL},
     {_SC("getstackinfos"),debug_getstackinfos,2, _SC(".n")},
     {_SC("getlocals"),debug_getlocals,-1, _SC(".nb")},
+    {_SC("get_stack_top"),debug_get_stack_top,0, NULL},
+    {_SC("doc"),debug_doc,2, _SC(".t|c|x|y"), _SC("Returns a documentation string for a function, class, or table")},
 #ifndef NO_GARBAGE_COLLECTOR
     {_SC("collectgarbage"),debug_collectgarbage,0, NULL},
     {_SC("resurrectunreachable"),debug_resurrectunreachable,0, NULL},
@@ -117,6 +166,8 @@ SQRESULT sqstd_register_debuglib(HSQUIRRELVM v)
     sq_newclosure(v, debuglib_funcs[i].f, 0);
     sq_setparamscheck(v, debuglib_funcs[i].nparamscheck, debuglib_funcs[i].typemask);
     sq_setnativeclosurename(v, -1, debuglib_funcs[i].name);
+    if (debuglib_funcs[i].docstring)
+      sq_setnativeclosuredocstring(v, -1, debuglib_funcs[i].docstring);
     sq_newslot(v, -3, SQFalse);
     i++;
   }

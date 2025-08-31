@@ -6,7 +6,7 @@
 #include <render/resourceSlot/actions.h>
 #include <detail/expectedLimits.h>
 
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include <generic/dag_fixedVectorMap.h>
 
 
@@ -34,7 +34,7 @@ struct NodeDeclaration
   bool createsSlot = false;
   ActionList actionList;
   resource_slot::detail::AccessCallback declaration_callback;
-  dabfg::NodeHandle nodeHandle;
+  dafg::NodeHandle nodeHandle;
   dag::FixedVectorMap<SlotId, ResourceId, EXPECTED_MAX_DECLARATIONS> resourcesBeforeNode;
   const das::Context *context = nullptr;
 

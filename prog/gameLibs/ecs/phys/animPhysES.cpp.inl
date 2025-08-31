@@ -6,7 +6,6 @@
 
 #include <ecs/phys/physVars.h>
 #include <ecs/anim/anim.h>
-#include <ecs/anim/animchar_visbits.h>
 
 ECS_REGISTER_RELOCATABLE_TYPE(AnimatedPhys, nullptr);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimatedPhys, "anim_phys", nullptr, 0, "phys_vars", "animchar");

@@ -9,6 +9,7 @@
 #include <render/dxtcompress.h>
 #include <math/dag_imageFunctions.h>
 #include <3d/dag_lockTexture.h>
+#include <dag/dag_vector.h>
 
 #ifdef _MSC_VER
 #pragma optimize("gt", on)
@@ -50,7 +51,7 @@ Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char 
   else if (mode == MODE_BC4)
     fmt = TEXFMT_ATI1N;
   else if (mode == MODE_R8)
-    fmt = TEXFMT_L8;
+    fmt = TEXFMT_R8;
 
   Texture *tex = d3d::create_tex(NULL, w, h, flags | fmt, numMips, stat_name ? stat_name : "dxt_texture");
   if (!tex)
@@ -66,8 +67,8 @@ Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char 
       memcpy(allocated_buffer.data() + i * w * 4, linearData + i * row_stride, w * 4);
   }
   for (unsigned int mipNo = 0; mipNo < numMips; mipNo++)
-    if (auto lockedTex = lock_texture(tex, mipNo,
-          TEXLOCK_WRITE | ((mipNo != numMips - 1) ? TEXLOCK_DONOTUPDATEON9EXBYDEFAULT : TEXLOCK_DELSYSMEMCOPY)))
+    if (auto lockedTex =
+          lock_texture(tex, mipNo, TEXLOCK_WRITE | ((mipNo != numMips - 1) ? TEXLOCK_DONOTUPDATE : TEXLOCK_DELSYSMEMCOPY)))
     {
       uint8_t *dxtData = lockedTex.get();
       int dxtPitch = lockedTex.getByteStride();

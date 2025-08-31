@@ -41,6 +41,6 @@ shader dynamic_emissive_anim
       #define IS_DYNAMIC 1
       #define get_special_anim_params get_emissive_anim
     }
-    EMISSIVE_PS()
+    EMISSIVE_PS(true)
   }
 }

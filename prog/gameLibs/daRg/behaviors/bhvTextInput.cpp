@@ -99,9 +99,9 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
 
     bool changed = false;
 
-    const String &text = elem->props.text;
+    const auto &text = elem->props.text;
     Tab<wchar_t> wtext(framemem_ptr());
-    int wlen = utf_to_wchar(text.str(), text.length(), wtext);
+    int wlen = utf_to_wchar(text.c_str(), text.length(), wtext);
 
     int cursorPos = elem->props.storage.RawGetSlotValue(elem->csk->cursorPos, wlen);
     int prevCursorPos = cursorPos;
@@ -167,7 +167,7 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
           if (key_idx == DKEY_C)
           {
             if (!isPassword)
-              clipboard::set_clipboard_utf8_text(text);
+              clipboard::set_clipboard_utf8_text(text.c_str());
 
             break;
           }
@@ -366,8 +366,8 @@ void BhvTextInput::position_cursor_on_click(Element *elem, const Point2 &click_p
 
 int BhvTextInput::get_displayed_text_u(Element *elem, Tab<wchar_t> &wtext)
 {
-  const String &text = elem->props.text;
-  int wlen = utf_to_wchar(text.str(), text.length(), wtext);
+  const auto &text = elem->props.text;
+  int wlen = utf_to_wchar(text.c_str(), text.length(), wtext);
   RobjParamsText *params = (RobjParamsText *)elem->robjParams;
   if (params->passChar)
     for (int i = 0; i < wlen; i++)
@@ -545,7 +545,7 @@ void BhvTextInput::open_ime(Element *elem)
     if (hint.GetType() == OT_STRING)
       params.setStr("hint", hint.GetVar<const SQChar *>().value);
 
-    params.setStr("str", elem->props.text);
+    params.setStr("str", elem->props.text.c_str());
     params.setInt("maxChars", elem->props.getInt(elem->csk->maxChars, 512));
 
     if (elem->props.getBool(elem->csk->imeNoAutoCap, false))

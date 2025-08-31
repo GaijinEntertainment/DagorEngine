@@ -34,9 +34,10 @@ namespace das {
         return result;
     }
 
-    string debug_value ( void * pX, TypeInfo * info, PrintFlags flags ) {
+    string debug_value ( const void * pX, TypeInfo * info, PrintFlags flags ) {
         TextWriter ss;
         DebugDataWalker<TextWriter> walker(ss,flags);
+        // walker do not modify pX!
         walker.walk((char*)pX,info);
         if ( int(flags) & int(PrintFlags::namesAndDimensions) ) {
             return human_readable_formatting(ss.str());

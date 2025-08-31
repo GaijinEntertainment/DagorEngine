@@ -4,11 +4,12 @@
 //
 #pragma once
 
+#include "dag_driverCode.h"
+
 #include <EASTL/initializer_list.h>
 
 #include <util/dag_globDef.h>
 
-#include <drv/3d/dag_driverCode.h>
 
 struct DagorDateTime;
 struct Driver3dDesc;
@@ -121,12 +122,15 @@ public:
  */
 enum class APISupport
 {
-  FULL_SUPPORT,       ///< Full support for the API
-  OUTDATED_OS,        ///< The Windows version is outdated
-  OUTDATED_DRIVER,    ///< The driver is outdated
-  BLACKLISTED_DRIVER, ///< The driver is blacklisted (we know about bugs in the driver)
-  NO_DEVICE_FOUND     ///< No compatible device found
+  FULL_SUPPORT,        ///< Full support for the API
+  OUTDATED_OS,         ///< The Windows version is outdated
+  OUTDATED_DRIVER,     ///< The driver is outdated
+  BLACKLISTED_DRIVER,  ///< The driver is blacklisted (we know about bugs in the driver)
+  INSUFFICIENT_DEVICE, ///< The GPU doesn't support all required features
+  NO_DEVICE_FOUND      ///< No compatible device found
 };
+
+enum class GpuVendor : uint8_t;
 
 namespace d3d
 {
@@ -137,9 +141,9 @@ namespace d3d
  * @param out_drv_ver Pointer to store the driver version
  * @param out_drv_date Pointer to store the driver date
  * @param device_id Pointer to store the device ID
- * @return The GPU vendor ID for enum D3D_VENDOR_...
+ * @return The GPU vendor ID enum
  */
-int guess_gpu_vendor(String *out_gpu_desc = NULL, uint32_t *out_drv_ver = NULL, DagorDateTime *out_drv_date = NULL,
+GpuVendor guess_gpu_vendor(String *out_gpu_desc = NULL, uint32_t *out_drv_ver = NULL, DagorDateTime *out_drv_date = NULL,
   uint32_t *device_id = nullptr);
 
 /**
@@ -147,7 +151,7 @@ int guess_gpu_vendor(String *out_gpu_desc = NULL, uint32_t *out_drv_ver = NULL, 
  * @param vendor The GPU vendor ID
  * @return The driver date for the GPU vendor
  */
-DagorDateTime get_gpu_driver_date(int vendor);
+DagorDateTime get_gpu_driver_date(GpuVendor vendor);
 
 /**
  * @brief Determines and returns the size of the dedicated GPU memory in KB.

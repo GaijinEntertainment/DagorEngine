@@ -21,6 +21,18 @@ bool move_files(const char *src_folder, const char *dst_folder, const char *mask
 bool move_tree(const char *src_folder, const char *dst_folder);
 bool remove_tree(const char *folder);
 
+enum SyncTreeFlags : uint8_t
+{
+  RECURSIVE = 1 << 0,
+  PREFER_DST_FILE = 1 << 1,
+  REMOVE_SRC_FILE = 1 << 2,
+  REMOVE_SRC_DIR = 1 << 3,
+  VERBOSE = 1 << 4,
+
+  DEFAULT = RECURSIVE | REMOVE_SRC_FILE | REMOVE_SRC_DIR
+};
+bool sync_tree(const char *src_folder, const char *dst_folder, const char *mask, uint8_t flags = SyncTreeFlags::DEFAULT);
+
 eastl::string read_file_content(const char *path);
 bool write_file_with_content(const char *path, const char *content);
 

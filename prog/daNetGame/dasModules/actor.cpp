@@ -25,8 +25,6 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addEnumeration(das::make_smart<EnumerationRoleFlags>());
-    das::addEnumFlagOps<IPhysActor::RoleFlags>(*this, lib, "IPhysActor::RoleFlags");
     addEnumeration(das::make_smart<EnumerationNetRole>());
     das::addEnumFlagOps<IPhysActor::NetRole>(*this, lib, "IPhysActor::NetRole");
     addEnumeration(das::make_smart<EnumerationPhysTickRateType>());

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "capsulesAOES.cpp.inl"
 ECS_DEF_PULL_VAR(capsulesAO);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc capsules_ao_es_comps[] =
 {
@@ -36,7 +38,9 @@ static constexpr ecs::ComponentDesc get_capsules_ecs_query_comps[] =
 //start of 3 ro components at [0]
   {ECS_HASH("capsule_approximation"), ecs::ComponentTypeInfo<ecs::SharedComponent<CapsuleApproximation>>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()}
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 1 no components at [3]
+  {ECS_HASH("disable_capsule_ao"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc get_capsules_ecs_query_desc
 (
@@ -44,7 +48,7 @@ static ecs::CompileTimeQueryDesc get_capsules_ecs_query_desc
   empty_span(),
   make_span(get_capsules_ecs_query_comps+0, 3)/*ro*/,
   empty_span(),
-  empty_span());
+  make_span(get_capsules_ecs_query_comps+3, 1)/*no*/);
 template<typename Callable>
 inline void get_capsules_ecs_query(Callable function)
 {

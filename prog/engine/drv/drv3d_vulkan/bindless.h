@@ -5,10 +5,10 @@
 
 #include <drv/3d/dag_d3dResource.h>
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
-#include <EASTL/vector.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/array.h>
 #include <value_range.h>
+#include <osApiWrappers/dag_critSec.h>
 #include "bindless_common.h"
 #include "image_view_state.h"
 #include "buffer_ref.h"
@@ -25,17 +25,19 @@ class BindlessManager
 {
 public:
   void init();
+  void afterBackendFlush();
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  uint32_t allocateBindlessResourceRange(uint32_t resourceType, uint32_t count);
-  uint32_t resizeBindlessResourceRange(uint32_t resourceType, uint32_t index, uint32_t currentCount, uint32_t newCount);
-  void freeBindlessResourceRange(uint32_t resourceType, uint32_t index, uint32_t count);
-  uint32_t registerBindlessSampler(BaseTex *texture);
-  uint32_t registerBindlessSampler(SamplerResource *sampler);
+  uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count);
+  uint32_t resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t currentCount, uint32_t newCount);
+  void queueFreeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
+  uint32_t registerBindlessSampler(const SamplerResource *sampler);
 
 private:
-  uint32_t registerBindlessSampler(SamplerState sampler);
-  uint32_t resTypeToSlotIdx(uint32_t resourceType) { return RES3D_SBUF != resourceType ? SLOTS_TEX : SLOTS_BUF; }
-
+  // unsafe to call out of front lock
+  void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
+  uint32_t resTypeToSlotIdx(D3DResourceType type) { return D3DResourceType::SBUF != type ? SLOTS_TEX : SLOTS_BUF; }
 
   enum
   {
@@ -44,9 +46,21 @@ private:
     SLOTS_COUNT = 2
   };
 
+  // d3d:: calls that allocate/free bindless ranges don't have external sync requirement, so do sync internally
   uint32_t size[SLOTS_COUNT] = {0, 0};
-  eastl::vector<ValueRange<uint32_t>> freeSlotRanges[SLOTS_COUNT];
-  eastl::vector<SamplerState> samplerTable;
+  WinCritSec rangeMutexes[SLOTS_COUNT];
+  dag::Vector<ValueRange<uint32_t>> freeSlotRanges[SLOTS_COUNT];
+  dag::Vector<ValueRange<uint32_t>> pendingCleanups[SLOTS_COUNT];
+
+  WinCritSec samplerTableMutex;
+  dag::Vector<const SamplerResource *> samplerTable;
+};
+
+struct BindlessImageSlot
+{
+  Image *img;
+  ImageViewState viewState;
+  bool stub;
 };
 
 class BindlessManagerBackend // -V730
@@ -55,17 +69,24 @@ private:
   static constexpr uint32_t BUFFERED_SET_COUNT = GPU_TIMELINE_HISTORY_SIZE;
 
 public:
-  void init(const VulkanDevice &vulkanDevice, BindlessSetLimits &limits);
-  void shutdown(const VulkanDevice &vulkanDevice);
+  void init(BindlessSetLimits &limits);
+  void shutdown();
+  void destroyVkObjects();
 
+  void restoreBindlessTexture(uint32_t index, Image *image);
+  void evictBindlessTexture(uint32_t index, Image *image);
   void cleanupBindlessTexture(uint32_t index, Image *image);
-  void updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view);
+  // true - slot was updated
+  bool updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub, bool stub_swap);
+  void setBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub);
 
+  void restoreBindlessBuffer(uint32_t index, Buffer *buf);
+  void evictBindlessBuffer(uint32_t index, Buffer *buf);
   void cleanupBindlessBuffer(uint32_t index, Buffer *buf);
   void updateBindlessBuffer(uint32_t index, const BufferRef &buf);
 
-  void updateBindlessSampler(uint32_t index, SamplerInfo *samplerInfo);
-  void copyBindlessDescriptors(uint32_t resource_type, uint32_t src, uint32_t dst, uint32_t count);
+  void updateBindlessSampler(uint32_t index, const SamplerInfo *samplerInfo);
+  void copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
 
   void fillSetLayouts(BindlessSetLayouts &tgt) const { tgt = layouts; }
 
@@ -73,21 +94,21 @@ public:
 
   void advance();
   void bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout);
+  void resetSets();
 
 private:
-  void createBindlessLayout(const VulkanDevice &device, VkDescriptorType descriptorType, uint32_t descriptorCount,
+  void createBindlessLayout(VkDescriptorType descriptorType, uint32_t descriptorCount,
     VulkanDescriptorSetLayoutHandle &descriptorLayout);
-  void allocateBindlessSet(const VulkanDevice &device, uint32_t descriptorCount, VulkanDescriptorSetLayoutHandle descriptorLayout,
+  void allocateBindlessSet(uint32_t descriptorCount, VulkanDescriptorSetLayoutHandle descriptorLayout,
     VulkanDescriptorSetHandle &descriptorSet);
   void copyDescriptors(uint32_t set_idx, uint32_t ring_src, uint32_t ring_dst, uint32_t src, uint32_t dst, uint32_t count);
-  uint32_t resTypeToSetIdx(uint32_t res_type)
+  uint32_t resTypeToSetIdx(D3DResourceType res_type)
   {
-    return RES3D_SBUF != res_type ? spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX
-                                  : spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX;
+    return D3DResourceType::SBUF != res_type ? spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX
+                                             : spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX;
   }
 
   VkWriteDescriptorSet initSetWrite(uint32_t set_idx, uint32_t index);
-  void resetSets();
   void updateFlatSets();
 
   void markDirtyRange(uint32_t set_idx, uint32_t start, uint32_t size = 1)
@@ -111,7 +132,7 @@ private:
 
   uint32_t actualSetId = 0;
 
-  eastl::hash_map<uint32_t, Image *> imageSlots;
+  eastl::hash_map<uint32_t, BindlessImageSlot> imageSlots;
   eastl::hash_map<uint32_t, Buffer *> bufferSlots;
   bool enabled = false;
 };

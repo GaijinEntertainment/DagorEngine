@@ -37,8 +37,8 @@ shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx
     #include "dafx_loaders.hlsli"
     #include "dafx_packers.hlsli"
     #include "dafx_random.hlsli"
-    #include "modfx/modfx_decl.hlsl"
-    #include "modfx/modfx.hlsl"
+    #include "modfx/modfx_decl.hlsli"
+    #include "modfx/modfx.hlsli"
   }
 
   if ( shader == dafx_modfx_emission || shader == dafx_modfx_emission_adv )

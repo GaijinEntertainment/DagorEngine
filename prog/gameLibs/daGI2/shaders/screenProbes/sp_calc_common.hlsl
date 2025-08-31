@@ -11,6 +11,8 @@
 
 #define SP_MATCH_PROBES_OFFSETED 0 // we don't use probes ofsetting when marking, due to lower stability (probe Normal). However, it could increase quality
 
+#define SP_BACK_COLOR_WARP 64
+
 // about 'bright points'
 // if DEPTH_ONLY_WEIGHTENING 0, we use plane weightening. I.e. we measure not probes rel depth from point, but probes distance to plane at point + worldNormal.
 // now consider a point (.) on a wall corner with camera (*) looking from glazing angle and two probes (x).
@@ -58,22 +60,6 @@ float sp_get_additional_rel_depth_sample(float linear_depth1, float linear_depth
 float sp_get_additional_rel_depth_placement(float linear_depth1, float linear_depth2, float depth_exp_base)
 {
   return sp_get_additional_rel_depth(linear_depth1, linear_depth2, (ADDITIONAL_DEPTH_WEIGHTENING_PLACEMENT_EXP/depth_exp_base));
-}
-
-#include <pixelPacking/PixelPacking_R11G11B10.hlsl>
-
-float3 sp_decode_texture_radiance(float3 encoded)
-{
-  return encoded;//we increase precision with per-probe average (pre-exposure)
-  //we store data in r11g11b10f, it has awful precision. So, we increase quality by introducing gamma 2
-  //https://bartwronski.com/2017/04/02/small-float-formats-r11g11b10f-precision/
-  //return sqrt(encoded);
-}
-
-float3 sp_encode_texture_radiance(float3 decoded)
-{
-  return decoded;//we increase precision with per-probe averagedecoded;
-  //return decoded*decoded;
 }
 
 #endif

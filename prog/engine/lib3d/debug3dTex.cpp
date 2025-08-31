@@ -61,7 +61,7 @@ void save_rt_image_as_tga(Texture *tex, int level, const char *filename)
     debug("filename=%s , average = %g", filename, average / (tinfo.w * tinfo.h));
     save_tga8a(filename, pixels.data(), tinfo.w, tinfo.h, tinfo.w * 2);
   }
-  else if ((tinfo.cflg & TEXFMT_MASK) == TEXFMT_L8)
+  else if ((tinfo.cflg & TEXFMT_MASK) == TEXFMT_R8)
   {
     SmallTab<TexPixel32, TmpmemAlloc> pixels;
     clear_and_resize(pixels, tinfo.w * tinfo.h);
@@ -239,7 +239,7 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
       hdr.bitsPerPixel = 8;
       hdr.d3dFormat = D3DFMT_A8;
       break;
-    case TEXFMT_L8:
+    case TEXFMT_R8:
       hdr.bitsPerPixel = 8;
       hdr.d3dFormat = D3DFMT_L8;
       break;

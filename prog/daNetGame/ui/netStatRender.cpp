@@ -57,7 +57,7 @@ void render()
     draw_str(r, g, b, tmp, slen);                    \
   } while (0)
 
-#define KBIT(x) ((x)*8) / 1024.f
+#define KBIT(x) ((x) * 8) / 1024.f
 #define F(x)    float(x)
   static const char fmt[] = "%-15s %6s %6.1f %6.1f %6.1f";
   // Colors are from https://en.wikipedia.org/wiki/ANSI_escape_code#Colors (Terminal.app)

@@ -44,7 +44,7 @@ function defTextArea(params, _formatAstFunc, style={}){
     text = params?.v
     behavior = Behaviors.TextArea
     color = style?.defTextColor
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
   }.__update(params)
 }
 
@@ -91,7 +91,7 @@ let mkFormatAst = kwarg(function mkFormatAstImpl(formatters = defFormatters, fil
     }
     return {
       children = ret
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_VERTICAL
       gap = style?.lineGaps
     }.__update(params ?? {})

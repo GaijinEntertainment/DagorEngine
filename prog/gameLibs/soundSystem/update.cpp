@@ -12,11 +12,12 @@
 #include "internal/fmodCompatibility.h"
 #include "internal/banks.h"
 #include "internal/delayed.h"
+#include "internal/releasing.h"
 #include "internal/events.h"
 #include "internal/streams.h"
 #include "internal/occlusion.h"
 #include "internal/debug.h"
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 static WinCritSec g_listener_cs;
 #define SNDSYS_LISTENER_BLOCK WinAutoLock listenerLock(g_listener_cs);
@@ -38,6 +39,12 @@ Point3 get_3d_listener_pos()
 {
   SNDSYS_LISTENER_BLOCK;
   return g_listener_tm.getcol(3);
+}
+
+Point3 get_3d_listener_up()
+{
+  SNDSYS_LISTENER_BLOCK;
+  return g_listener_tm.getcol(1);
 }
 
 TMatrix get_3d_listener()
@@ -108,8 +115,9 @@ static WinCritSec g_update_cs;
 
 static constexpr int g_lazy_step_ms = 500;
 static constexpr int g_invalid_lazy_value = -1;
-static std::atomic_int g_next_lazy_at = ATOMIC_VAR_INIT(g_invalid_lazy_value);
+static dag::AtomicInteger<int> g_next_lazy_at = g_invalid_lazy_value;
 static bool g_update_begin = false;
+static float g_cur_time = 0.f;
 
 void begin_update(float dt)
 {
@@ -125,7 +133,7 @@ void end_update(float dt)
   G_ASSERT_RETURN(g_update_begin, );
   g_update_begin = false;
 
-  g_next_lazy_at = get_time_msec() + g_lazy_step_ms;
+  g_next_lazy_at.store(get_time_msec() + g_lazy_step_ms);
 
   UPDATE_BLOCK;
   SNDSYS_IF_NOT_INITED_RETURN;
@@ -134,20 +142,24 @@ void end_update(float dt)
 
   delayed::update(dt);
 
+  releasing::update(g_cur_time);
+
   streams::update(dt);
 
-  occlusion::update(get_3d_listener_pos());
+  occlusion::update(g_cur_time, get_3d_listener_pos());
 
   SOUND_VERIFY(get_studio_system()->update());
 
   banks::update();
+
+  g_cur_time += dt;
 }
 
 void lazy_update()
 {
-  if (g_next_lazy_at == g_invalid_lazy_value || get_time_msec() >= g_next_lazy_at)
+  if (g_next_lazy_at.load() == g_invalid_lazy_value || get_time_msec() >= g_next_lazy_at.load())
   {
-    const float dt = (g_lazy_step_ms + get_time_msec() - g_next_lazy_at) * 0.001f;
+    const float dt = (g_lazy_step_ms + get_time_msec() - g_next_lazy_at.load()) * 0.001f;
     begin_update(dt);
     end_update(dt);
   }

@@ -811,12 +811,12 @@ public:
   }
 
 protected:
-  inline static void fillStack(void **stack, int skip = 1)
+  __forceinline void fillStack(void **stack, int skip = 1)
   {
     if (STACK_UNWIND_LEN)
     {
       if (allow_fill_stack)
-        stackhlp_fill_stack(stack, STACK_UNWIND_LEN, skip + 1);
+        stackhlp_fill_stack(stack, STACK_UNWIND_LEN, skip);
       else
         stack[0] = (void *)(~uintptr_t(0));
     }

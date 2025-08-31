@@ -56,8 +56,7 @@ void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
   Globals::window.updateRefreshRateFromCurrentDisplayMode();
 }
 
-eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle,
-  const eastl::vector<VkExtensionProperties> &)
+eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle, const dag::Vector<VkExtensionProperties> &)
 {
   return "";
 }

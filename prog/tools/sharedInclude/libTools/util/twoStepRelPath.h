@@ -8,12 +8,13 @@
 
 struct TwoStepRelPath
 {
+  typedef char storage_t[512];
+
   void setSdkRoot(const char *root_dir, const char *subdir = nullptr);
 
-  const char *mkRelPath(const char *fpath);
+  const char *mkRelPath(const char *fpath, storage_t &stor);
 
 protected:
   SimpleString sdkRoot;
   int sdkRootLen = 0, sdkRootLen1 = -1;
-  char buf[512] = {0};
 };

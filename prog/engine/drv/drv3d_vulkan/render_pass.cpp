@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "render_pass.h"
 #include <EASTL/algorithm.h>
+#include <util/dag_hash.h>
+
+#include "render_pass.h"
 #include "image_resource.h"
 #include "globals.h"
 #include "driver_config.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -13,6 +16,24 @@ using namespace drv3d_vulkan;
 #else
 #define PASS_BUILD_INFO(...)
 #endif
+
+uint64_t RenderPassClass::Identifier::getHash() const
+{
+  static_assert(VERSION == 7, "update hash calculation when structure is changed");
+
+  uint64_t ret = FNV1Params<64>::offset_basis;
+  for (const FormatStore &i : colorFormats)
+    ret = fnv1a_step<64>(i, ret);
+  ret = fnv1a_step<64>(depthSamples, ret);
+  ret = fnv1a_step<64>(depthStencilFormat, ret);
+
+  for (const uint8_t &i : colorSamples)
+    ret = fnv1a_step<64>(i, ret);
+
+  ret = fnv1a_step<64>(colorTargetMask, ret);
+  ret = fnv1a_step<64>(depthState, ret);
+  return ret;
+}
 
 VkExtent2D RenderPassClass::FramebufferDescription::makeDrawArea(VkExtent2D def /*= {}*/)
 {
@@ -32,15 +53,15 @@ VkExtent2D RenderPassClass::FramebufferDescription::makeDrawArea(VkExtent2D def 
   return def;
 }
 
-VulkanRenderPassHandle RenderPassClass::getPass(VulkanDevice &device, int clear_mask)
+VulkanRenderPassHandle RenderPassClass::getPass(int clear_mask)
 {
   uint32_t index = encode_variant(clear_mask);
   G_ASSERT(index < NUM_PASS_VARIANTS);
   if (is_null(variants[index]))
-    return compileVariant(device, clear_mask);
+    return compileVariant(clear_mask);
   return variants[index];
 }
-VulkanFramebufferHandle RenderPassClass::getFrameBuffer(VulkanDevice &device, const FramebufferDescription &info)
+VulkanFramebufferHandle RenderPassClass::getFrameBuffer(const FramebufferDescription &info)
 {
   bool imageless = Globals::cfg.has.imagelessFramebuffer;
   auto ref = eastl::find_if(begin(frameBuffers), end(frameBuffers), [&info, &imageless](const FrameBuffer &fb) {
@@ -49,39 +70,39 @@ VulkanFramebufferHandle RenderPassClass::getFrameBuffer(VulkanDevice &device, co
   if (ref != end(frameBuffers))
     return ref->frameBuffer;
 
-  return compileFrameBuffer(device, info);
+  return compileFrameBuffer(info);
 }
 
 RenderPassClass::RenderPassClass(const Identifier &id) : identifier(id) {}
 
-void RenderPassClass::unloadAll(VulkanDevice &device)
+void RenderPassClass::unloadAll()
 {
   for (auto &&variant : variants)
   {
     if (!is_null(variant))
     {
-      VULKAN_LOG_CALL(device.vkDestroyRenderPass(device.get(), variant, nullptr));
+      VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyRenderPass(Globals::VK::dev.get(), variant, VKALLOC(render_pass)));
       variant = VulkanRenderPassHandle{};
     }
   }
 
   for (auto &&fb : frameBuffers)
-    VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), fb.frameBuffer, nullptr));
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyFramebuffer(Globals::VK::dev.get(), fb.frameBuffer, VKALLOC(framebuffer)));
   frameBuffers.clear();
 }
 
-void RenderPassClass::unloadWith(VulkanDevice &device, VulkanImageViewHandle view)
+void RenderPassClass::unloadWith(VulkanImageViewHandle view)
 {
 #if VK_KHR_imageless_framebuffer
   if (Globals::cfg.has.imagelessFramebuffer)
     return; // With this extension the framebuffer is not bound to the view
 #endif
   auto newEnd = eastl::remove_if(begin(frameBuffers), end(frameBuffers),
-    [&device, view](const FrameBuffer &fb) //
+    [view](const FrameBuffer &fb) //
     {
       if (fb.desc.contains(view))
       {
-        VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), fb.frameBuffer, nullptr));
+        VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyFramebuffer(Globals::VK::dev.get(), fb.frameBuffer, VKALLOC(framebuffer)));
         return true;
       }
       return false;
@@ -116,7 +137,7 @@ uint32_t RenderPassClass::getAttachmentsLoadMask(int clear_mask) const
   return loadMask;
 }
 
-VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int clear_mask)
+VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
 {
   auto isClear = [](const VkAttachmentLoadOp load_op) { return load_op == VK_ATTACHMENT_LOAD_OP_CLEAR; };
 
@@ -184,7 +205,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int
         //           "For every MSAA target, a resolution target need to be specified at the next "
         //           "attachment index");
 
-        G_ASSERTF(!isMultiSampledAttachment || (identifier.colorSamples[0] == identifier.colorSamples[i]),
+        D3D_CONTRACT_ASSERTF(!isMultiSampledAttachment || (identifier.colorSamples[0] == identifier.colorSamples[i]),
           "All multisampled attachment must have the same sample count");
 
         ref.attachment = attachmentDefs.size();
@@ -313,15 +334,15 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(VulkanDevice &device, int
 
   uint32_t index = encode_variant(clear_mask);
 
-  VULKAN_EXIT_ON_FAIL(device.vkCreateRenderPass(device.get(), &rpci, nullptr, ptr(variants[index])));
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateRenderPass(Globals::VK::dev.get(), &rpci, VKALLOC(render_pass), ptr(variants[index])));
   PASS_BUILD_INFO("pass handle is %X", generalize(variants[index]));
   return variants[index];
 }
 
-VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(VulkanDevice &device, const FramebufferDescription &info)
+VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(const FramebufferDescription &info)
 {
   VkFramebufferCreateInfo fbci = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr};
-  fbci.renderPass = getPass(device, 0);
+  fbci.renderPass = getPass(0);
   fbci.width = info.extent.width;
   fbci.height = info.extent.height;
   fbci.layers = 1;
@@ -348,7 +369,7 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(VulkanDevice &device
 
         VkFramebufferAttachmentImageInfoKHR fbaii = {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR, nullptr};
         fbaii.flags = attachment.flags;
-        fbaii.usage = attachment.usage;
+        fbaii.usage = attachment.usage & ~VK_IMAGE_USAGE_STORAGE_BIT;
         fbaii.width = attachment.imageInfo.width;
         fbaii.height = attachment.imageInfo.height;
         fbaii.layerCount = attachment.imageInfo.layers;
@@ -387,7 +408,7 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(VulkanDevice &device
     fbci.layers = minLayers;
 
   VulkanFramebufferHandle fbh;
-  VULKAN_EXIT_ON_FAIL(device.vkCreateFramebuffer(device.get(), &fbci, nullptr, ptr(fbh)));
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateFramebuffer(Globals::VK::dev.get(), &fbci, VKALLOC(framebuffer), ptr(fbh)));
 
   frameBuffers.push_back(FrameBuffer{info, fbh});
 
@@ -405,16 +426,16 @@ RenderPassClass *RenderPassManager::getPassClass(const RenderPassClass::Identifi
   return passClasses.back().get();
 }
 
-void RenderPassManager::unloadWith(VulkanDevice &device, VulkanImageViewHandle view)
+void RenderPassManager::unloadWith(VulkanImageViewHandle view)
 {
   for (auto &&pc : passClasses)
-    pc->unloadWith(device, view);
+    pc->unloadWith(view);
 }
 
-void RenderPassManager::unloadAll(VulkanDevice &device)
+void RenderPassManager::unloadAll()
 {
   for (auto &&pc : passClasses)
-    pc->unloadAll(device);
+    pc->unloadAll();
   passClasses.clear();
 }
 

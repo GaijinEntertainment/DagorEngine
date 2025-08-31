@@ -3,6 +3,7 @@
 #include <ioSys/dag_genIo.h>
 
 #include "tunedParams.h"
+#include <math/dag_curveParams.h>
 #include <math/dag_Point2.h>
 #include "../../../../libTools/propPanel/commonWindow/w_curve_math.cpp"
 
@@ -18,12 +19,10 @@ namespace ScriptHelpers
 class TunedCubicCurveParam : public TunedElement
 {
 public:
-  static const int MAX_POINTS = 6;
-
-  Point2 position[MAX_POINTS];
-  Point2 lastPosition[MAX_POINTS];
-  bool selection[MAX_POINTS];
-  real coeficient[MAX_POINTS];
+  Point2 position[CubicCurveSampler::MAX_POINTS];
+  Point2 lastPosition[CubicCurveSampler::MAX_POINTS];
+  bool selection[CubicCurveSampler::MAX_POINTS];
+  real coeficient[CubicCurveSampler::MAX_POINTS];
   int curveType;
   int ptCnt;
 
@@ -78,14 +77,14 @@ public:
     initPoints();
   }
 
-  ~TunedCubicCurveParam() {}
+  ~TunedCubicCurveParam() override {}
 
-  virtual TunedElement *cloneElem() { return new TunedCubicCurveParam(*this); }
+  TunedElement *cloneElem() override { return new TunedCubicCurveParam(*this); }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     Tab<Point2> segc(tmpmem);
     PropPanel::ICurveControlCallback *curve = NULL;
@@ -104,7 +103,7 @@ public:
         curve->addNewControlPoint(position[i]);
     bool trans_x = curve ? curve->getCoefs(segc) : false;
 
-    if (trans_x || segc.size() < 4 || segc.size() > 5 * 4 || (segc.size() & 3))
+    if (trans_x || segc.size() < 4 || segc.size() > (CubicCurveSampler::MAX_POINTS - 1) * 4 || (segc.size() & 3))
     {
       logerr("incorrect spline: trans_x=%d cc.count=%d", trans_x, segc.size());
       cwr.writeZeroes(4 * 4);
@@ -134,21 +133,21 @@ public:
       cwr.writeReal(segc[i].y);
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     if (curveType)
       blk.setInt("curveType", curveType);
     for (int i = 0; i < ptCnt; ++i)
       blk.setPoint2(String(32, "pos%d", i), position[i]);
-    for (int i = ptCnt; i < MAX_POINTS; ++i)
+    for (int i = ptCnt; i < CubicCurveSampler::MAX_POINTS; ++i)
       blk.removeParam(String(32, "pos%d", i));
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     curveType = blk.getInt("curveType", 0);
     ptCnt = 0;
-    for (int i = 0; i < MAX_POINTS; ++i)
+    for (int i = 0; i < CubicCurveSampler::MAX_POINTS; ++i)
       if (blk.paramExists(String(32, "pos%d", i)))
       {
         position[i] = blk.getPoint2(String(32, "pos%d", i), position[i]);

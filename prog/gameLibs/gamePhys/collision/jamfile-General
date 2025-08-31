@@ -27,12 +27,21 @@ UseProgLibs +=
 ;
 
 if $(UseApex) = yes {
-  CPPopt += -DENABLE_APEX=1 ;
+  CPPopt += -DENABLE_APEX ;
   UseProgLibs += gameLibs/apex ;
   UseProgLibs += 3rdPartyLibs/physx ;
   UseProgLibs += 3rdPartyLibs/apex/common ;
   UseProgLibs += 3rdPartyLibs/apex/module/destructible ;
   Sources += apexCollisionInstances.cpp ;
+}
+
+if $(PlatformSpec) in gcc clang {
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 }
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

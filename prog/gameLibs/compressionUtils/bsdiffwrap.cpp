@@ -204,16 +204,29 @@ static inline BsdiffStatus write_one_file_diff(struct bsdiff_stream &stream, dag
   return BSDIFF_OK;
 }
 
+
+#if defined(MIMIC_WRONG_SIGNATURE_OFFSET_DIFF_CREATION)
+
+static int get_vromfs_dump_full_body_size(dag::ConstSpan<char> dump)
+{
+  const VirtualRomFsDataHdr *hdr = reinterpret_cast<const VirtualRomFsDataHdr *>(dump.data());
+  return hdr->fullSz;
+}
+
+#endif
+
+
 BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<char> new_dump, IGenSave &cwr_diff)
 {
   if (old_dump.size() > REASONABLE_FILE_SIZE || new_dump.size() > REASONABLE_FILE_SIZE || !old_dump.data() || !new_dump.data())
     return BSDIFF_INTERNAL_ERROR;
 
   unsigned hdr_sz_old = 0, hdr_sz_new = 0;
+  int md5_hash_ofs_new = -1;
   int signature_ofs_new = -1;
   eastl::unique_ptr<VirtualRomFsData, tmpmemDeleter> fs_old, fs_new;
   fs_old.reset(make_non_intrusive_vromfs(old_dump, tmpmem, &hdr_sz_old));
-  fs_new.reset(make_non_intrusive_vromfs(new_dump, tmpmem, &hdr_sz_new, &signature_ofs_new));
+  fs_new.reset(make_non_intrusive_vromfs(new_dump, tmpmem, &hdr_sz_new, &md5_hash_ofs_new, &signature_ofs_new));
 
   bool blk2_vrom_diff = (fs_new && fs_old && fs_new->files.getNameId(dblk::SHARED_NAMEMAP_FNAME) >= 0 &&
                          fs_old->files.getNameId(dblk::SHARED_NAMEMAP_FNAME) >= 0);
@@ -261,7 +274,14 @@ BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<
       }
     dblk::release_vromfs_blk_ddict(ddict_old);
     dblk::release_vromfs_blk_ddict(ddict_new);
-    if (signature_ofs_new > 0)
+#if defined(MIMIC_WRONG_SIGNATURE_OFFSET_DIFF_CREATION)
+    // it's known to be off by the size of headers but we need that for compatibility with old clients
+    md5_hash_ofs_new = get_vromfs_dump_full_body_size(new_dump);
+    signature_ofs_new = 0;
+#endif
+    if (md5_hash_ofs_new > 0)
+      zcwr.write(new_dump.data() + md5_hash_ofs_new, data_size(new_dump) - md5_hash_ofs_new);
+    else if (signature_ofs_new > 0)
       zcwr.write(new_dump.data() + signature_ofs_new, data_size(new_dump) - signature_ofs_new);
   }
   else
@@ -545,8 +565,7 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
 
     BS_PATCH(old_dump.data(), hdr_sz_old, out_new_dump.data(), hdr_sz_new, &stream, return BSDIFF_CORRUPT_PATCH);
 
-    int signature_ofs = -1;
-    fs_new.reset(make_non_intrusive_vromfs(out_new_dump, tmpmem, nullptr, &signature_ofs));
+    fs_new.reset(make_non_intrusive_vromfs(out_new_dump, tmpmem, nullptr));
     if (!fs_new)
       return BSDIFF_CORRUPT_PATCH;
 
@@ -581,8 +600,23 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
     }
     zstd_destroy_cdict(cdict_new);
     dblk::release_vromfs_blk_ddict(ddict_old);
-    if (signature_ofs > 0)
-      zcrd.read(out_new_dump.data() + signature_ofs, data_size(out_new_dump) - signature_ofs);
+
+    cwr_new.setsize(0);
+    char buf[512];
+    constexpr int MAX_TAIL_SIZE = 65536;
+    for (int readSz = zcrd.tryRead(buf, sizeof(buf)); readSz > 0; readSz = zcrd.tryRead(buf, sizeof(buf)))
+    {
+      if (cwr_new.size() + readSz > MAX_TAIL_SIZE)
+        return cleanup(BSDIFF_CORRUPT_PATCH);
+      if (cwr_new.tryWrite(buf, readSz) != readSz)
+        return cleanup(BSDIFF_NOMEM);
+    }
+
+    const int tailSize = cwr_new.size();
+    if (tailSize > data_size(out_new_dump))
+      return cleanup(BSDIFF_CORRUPT_PATCH);
+    char *const tailPtr = out_new_dump.data() + data_size(out_new_dump) - tailSize;
+    memcpy(tailPtr, cwr_new.data(), cwr_new.size());
   }
   else
   {

@@ -22,3 +22,50 @@ while (a > b)
            ^
 
 
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 5.
+testData/static_analyzer/w192.nut:5:9
+
+if (test == 3)
+  a = 6; a = 10
+         ^-----
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 5 and 8.
+testData/static_analyzer/w192.nut:8:0
+
+if (test == 5)
+^---------
+  a = 7
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 8 and 11.
+testData/static_analyzer/w192.nut:11:9
+
+else
+  a = 6; a = 10
+         ^-----
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 11 and 14.
+testData/static_analyzer/w192.nut:14:0
+
+while (a > b)
+^-----------
+    a = 0; b = 20;
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 14 and 15.
+testData/static_analyzer/w192.nut:15:11
+
+while (a > b)
+    a = 0; b = 20;
+           ^-----
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 15 and 19.
+testData/static_analyzer/w192.nut:19:0
+
+::print(a + b);
+^-------------
+
+

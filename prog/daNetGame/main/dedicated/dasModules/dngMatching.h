@@ -35,4 +35,21 @@ inline void das_get_mode_info_extra_params(
   vec4f arg = das::cast<const rapidjson::Document *>::from(&doc);
   context->invoke(block, &arg, nullptr, at);
 }
+
+inline void das_get_session_players(
+  const das::TBlock<void, const rapidjson::Document> &block, das::Context *context, das::LineInfoArg *at)
+{
+  rapidjson::Document jval(rapidjson::Type::kArrayType);
+  rapidjson::Value::Array jarr = jval.GetArray();
+  for (const auto &[_, info] : dedicated_matching::get_session_players())
+  {
+    rapidjson::Document doc(&jval.GetAllocator());
+    eastl::string infoStr = info.toStyledString();
+    doc.Parse(infoStr.c_str(), infoStr.size());
+    jarr.PushBack(eastl::move(doc), jval.GetAllocator());
+  }
+  vec4f arg = das::cast<const rapidjson::Value *>::from(&jval);
+  context->invoke(block, &arg, nullptr, at);
+}
+
 } // namespace bind_dascript

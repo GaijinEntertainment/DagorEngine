@@ -2,6 +2,7 @@
 #pragma once
 
 #include "shsem.h"
+#include "shTargetContext.h"
 #include <generic/dag_tab.h>
 #include <util/dag_globDef.h>
 #include "nameMap.h"
@@ -93,7 +94,8 @@ public:
   }
 
   //! parse source text into code fragments
-  bool parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments);
+  bool parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments,
+    shc::TargetContext &a_ctx);
 
   //! returns code unique identifier for specific variant [returns reference to highly temporary storage]
   dag::ConstSpan<Unconditional *> getPreprocessedCode(ShaderParser::ShaderBoolEvalCB &cb);

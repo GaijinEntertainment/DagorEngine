@@ -4,7 +4,7 @@
 #include <assetsGui/av_client.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <EditorCore/ec_ObjectEditor.h>
 #include <oldEditor/de_cm.h>
 #include <de3_assetService.h>
@@ -36,65 +36,61 @@ class HmapLandObjectEditor : public ObjectEditor, public IAssetBaseViewClient, p
 {
 public:
   HmapLandObjectEditor();
-  virtual ~HmapLandObjectEditor();
+  ~HmapLandObjectEditor() override;
 
   // ObjectEditor interface implementation
-  virtual void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
-  virtual void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint,
-    bool check = false) override;
-  virtual void updateToolbarButtons();
-  virtual bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs) override;
+  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
+  void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false) override;
+  void updateToolbarButtons() override;
+  bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs) override;
 
-  // virtual void handleCommand(int cmd);
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif);
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual void gizmoStarted();
-  virtual void gizmoEnded(bool apply);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void gizmoStarted() override;
+  void gizmoEnded(bool apply) override;
 
-  virtual void beforeRender();
-  virtual void render();
-  virtual void renderTrans();
+  void beforeRender() override;
+  void render() override;
+  void renderTrans() override;
 
-  virtual void update(real dt);
+  void update(real dt) override;
 
-  virtual void setEditMode(int cm);
-  virtual bool canSelectObj(RenderableEditableObject *o) override;
-  virtual void createObjectBySample(RenderableEditableObject *sample);
-  virtual void registerViewportAccelerators(IWndManager &wndManager) override;
+  void setEditMode(int cm) override;
+  bool canSelectObj(RenderableEditableObject *o) override;
+  void createObjectBySample(RenderableEditableObject *sample) override;
+  void registerViewportAccelerators(IWndManager &wndManager) override;
 
   // IMenuEventHandler
-  virtual int onMenuItemClick(unsigned id) override;
+  int onMenuItemClick(unsigned id) override;
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void autoAttachSplines();
   void makeBottomSplines();
 
   // IAssetBaseViewClient
-  virtual void onAvClose() override;
-  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override {}
-  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
-  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override {}
+  void onAvClose() override;
+  void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override {}
+  void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
+  void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override {}
 
 
   // IAssetUpdateNotify interface
-  virtual void onLandClassAssetChanged(landclass::AssetData *data);
-  virtual void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
-  virtual void onSplineClassAssetChanged(splineclass::AssetData *data);
+  void onLandClassAssetChanged(landclass::AssetData *data) override;
+  void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
+  void onSplineClassAssetChanged(splineclass::AssetData *data) override;
 
   // IDagorEdCustomCollider
-  virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
-  virtual bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt);
-  virtual const char *getColliderName() const { return "RoadGeom"; }
-  virtual bool isColliderVisible() const;
-  virtual void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types);
-  virtual void getTypeNames(Tab<String> &names);
-  virtual void onSelectedNames(const Tab<String> &names);
+  bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override;
+  bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) override;
+  const char *getColliderName() const override { return "RoadGeom"; }
+  bool isColliderVisible() const override;
+  void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types) override;
+  void getTypeNames(Tab<String> &names) override;
+  void onSelectedNames(const Tab<String> &names) override;
 
-  virtual void getLayerNames(int type, Tab<String> &names);
+  void getLayerNames(int type, Tab<String> &names) override;
 
   void setSelectMode(int cm);
   int getSelectMode() { return selectMode; }
@@ -140,7 +136,7 @@ public:
 
   void onBrushPaintEnd();
 
-  virtual void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis) override;
+  void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis) override;
 
   //! marks cross roads where p belongs as changed
   void markCrossRoadChanged(SplinePointObject *p);
@@ -159,6 +155,8 @@ public:
 
   //! updates all splines/segments marked changed
   void updateSplinesGeom();
+
+  bool supportsRealtimeUpdate() const;
 
   static void unloadRoadBuilderDll();
 
@@ -195,18 +193,19 @@ public:
 
   void loadOutlinerSettings(const DataBlock &settings);
   void saveOutlinerSettings(DataBlock &settings);
+  void saveOutlinerState();
 
-  virtual void updateImgui() override;
+  void updateImgui() override;
 
 public:
   class LoftAndGeomCollider : public IDagorEdCustomCollider
   {
   public:
     LoftAndGeomCollider(bool _loft, HmapLandObjectEditor &oe) : loft(_loft), objEd(oe), loftLayerOrder(-1) {}
-    virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
-    virtual bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt);
-    virtual const char *getColliderName() const { return loft ? "LoftGeom" : "PolyGeom"; }
-    virtual bool isColliderVisible() const;
+    bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override;
+    bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) override;
+    const char *getColliderName() const override { return loft ? "LoftGeom" : "PolyGeom"; }
+    bool isColliderVisible() const override;
 
     void setLoftLayer(int layer) { loftLayerOrder = layer; }
 
@@ -233,13 +232,13 @@ public:
 
 protected:
   PlacementRotation buttonIdToPlacementRotation(int id);
-  virtual void onRemoveObject(RenderableEditableObject &obj) override;
-  virtual void _removeObjects(RenderableEditableObject **obj, int num, bool use_undo);
-  virtual void onAddObject(RenderableEditableObject &obj) override;
-  virtual void _addObjects(RenderableEditableObject **obj, int num, bool use_undo);
-  virtual void onObjectFlagsChange(RenderableEditableObject *obj, int changed_flags) override;
-  virtual void updateSelection() override;
-  virtual void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) override;
+  void onRemoveObject(RenderableEditableObject &obj) override;
+  void _removeObjects(RenderableEditableObject **obj, int num, bool use_undo) override;
+  void onAddObject(RenderableEditableObject &obj) override;
+  void _addObjects(RenderableEditableObject **obj, int num, bool use_undo) override;
+  void onObjectFlagsChange(RenderableEditableObject *obj, int changed_flags) override;
+  void updateSelection() override;
+  void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) override;
 
   bool findTargetPos(IGenViewportWnd *wnd, int x, int y, Point3 &out, bool place_on_ri_collision = false);
   void selectNewObjEntity(const char *name);
@@ -252,7 +251,10 @@ protected:
   void getPixelPerfectHits(IPixelPerfectSelectionService &selection_service, IGenViewportWnd &wnd, int x, int y,
     Tab<RenderableEditableObject *> &hits);
 
-  bool isOutlinerWindowOpen() const { return outlinerWindow.get() != nullptr; }
+  // Returns true if it was in progress and got canceled.
+  bool stopSplineCreation();
+
+  bool isOutlinerWindowOpen() const { return outlinerWindowOpen; }
   void showOutlinerWindow(bool show);
 
   static RenderableEditableObject &getMainObjectForOutliner(RenderableEditableObject &object);
@@ -299,4 +301,5 @@ protected:
   eastl::unique_ptr<Outliner::OutlinerWindow> outlinerWindow;
   eastl::unique_ptr<HeightmapLandOutlinerInterface> outlinerInterface;
   DataBlock outlinerSettings;
+  bool outlinerWindowOpen = false;
 };

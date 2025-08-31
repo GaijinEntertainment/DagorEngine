@@ -21,7 +21,7 @@ def on_das_cpp_event_handler_es(evt : EventCPPSimpleTestEvent)
 [es(on_event=EventStart)]
 def on_das_cpp_event_start_handler_es(evt : Event)
   for i in range(0, 20)
-    broadcastEvent([[EventCPPSimpleTestEvent f = float(i), i = i]])
+    broadcastEvent(EventCPPSimpleTestEvent(f = float(i), i = i))
 
 [es(on_event=EventEnd)]
 def on_das_cpp_event_ent_handler_es(evt : Event)
@@ -43,8 +43,8 @@ def on_empty_event_handler(evt : EventEmpty)
 
 [es(on_event=EventStart)]
 def das_send_complex_cpp_event(evt : Event)
-  broadcastEvent([[EventCPPTestStringEvent s="test_copied_string"]])
-  broadcastEvent([[EventEmpty]])
+  broadcastEvent(EventCPPTestStringEvent(s = "test_copied_string"))
+  broadcastEvent(EventEmpty())
 
 [es(on_event=EventEnd)]
 def on_string_cpp_event_handler_verifier(evt : Event)

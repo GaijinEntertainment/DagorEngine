@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/daBfg/registry.h>
+#include <render/daFrameGraph/registry.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_variableRateShading.h>
 
@@ -20,14 +20,14 @@ enum class VRSRATE : int
 
 inline constexpr auto VRS_RATE_TEXTURE_NAME = "vrs_mask_tex";
 
-inline void use_default_vrs(dabfg::VirtualPassRequest &pass, dabfg::StateRequest &state)
+inline bool can_use_motion_vrs()
 {
-  if (!d3d::get_driver_desc().caps.hasVariableRateShadingTexture)
-    return;
-
-  pass = eastl::move(pass).vrsRate(VRS_RATE_TEXTURE_NAME);
-  state = eastl::move(state).vrs({/* rateX */ 1,
-    /* rateY */ 1,
-    /* vertexCombiner */ VariableRateShadingCombiner::VRS_PASSTHROUGH,
-    /* pixelCombiner */ VariableRateShadingCombiner::VRS_OVERRIDE});
-};
+  // NOTE: we can also use it on other platforms, but need to verify that
+  // everything works and looks as expected.
+  const Driver3dDesc &drv = d3d::get_driver_desc();
+  return d3d::get_driver_code().is(d3d::dx12 && d3d::windows) && drv.caps.hasVariableRateShadingTexture &&
+         // NOTE: the following is guaranteed by dx12 spec but lets have it checked
+         // here explicitly for when we decide to use it on other platforms too.
+         drv.variableRateTextureTileSizeX == drv.variableRateTextureTileSizeY &&
+         (drv.variableRateTextureTileSizeX == 8 || drv.variableRateTextureTileSizeX == 16 || drv.variableRateTextureTileSizeX == 32);
+}

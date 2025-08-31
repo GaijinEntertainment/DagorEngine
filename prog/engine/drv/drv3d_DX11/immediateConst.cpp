@@ -35,8 +35,8 @@ IMMEDIATE_CB_NAMESPACE
 
 bool d3d::set_immediate_const(unsigned stage, const uint32_t *data, unsigned num_words)
 {
-  G_ASSERT(num_words <= 4);
-  G_ASSERT(data || !num_words);
+  D3D_CONTRACT_ASSERT(num_words <= 4);
+  D3D_CONTRACT_ASSERT(data || !num_words);
   if (num_words)
   {
     // d3d::set_const_buffer(stage, IMMEDAITE_CB_REGISTER, immediate_cb[stage]);//we assume shadow state is managed by driver, and API

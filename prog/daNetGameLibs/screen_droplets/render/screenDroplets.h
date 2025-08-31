@@ -5,9 +5,9 @@
 
 ECS_BROADCAST_EVENT_TYPE(ScreenDropletsReset)
 
-namespace dabfg
+namespace dafg
 {
 class NodeHandle;
 }
 
-dabfg::NodeHandle makeWaterDropletsNode();
+dafg::NodeHandle makeWaterDropletsNode();

@@ -28,9 +28,11 @@ DaGIFrameInfo get_frame_info(const DPoint3 &world_pos, const TMatrix &viewItm, c
   fi.viewVecRB = v.viewVecRB;
 
   // fixme: pass jitter
+  // fi.ox, fi.oy
   fi.projTmUnjittered = fi.projTm;
   fi.globTmUnjittered = fi.globTm;
   fi.globTmNoOfsUnjittered = fi.globTmNoOfs;
+  // however, shader should also account for jitter for sampling prev depth (disocclusion)
 
   return fi;
 }

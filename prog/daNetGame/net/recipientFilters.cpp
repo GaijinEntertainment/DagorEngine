@@ -4,7 +4,7 @@
 #include <daECS/net/msgSink.h>
 #include <daECS/net/object.h>
 #include "game/player.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include <memory/dag_framemem.h>
 #include "net/net.h"
 

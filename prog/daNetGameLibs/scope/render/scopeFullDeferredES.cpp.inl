@@ -1,114 +1,69 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeFullDeferredNodes.h"
 
-#include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
-#include <render/rendererFeatures.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
+
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
+#include <render/rendererFeatures.h>
 #include <render/world/frameGraphNodes/frameGraphNodes.h>
+#include <render/world/wrDispatcher.h>
 
-static void make_full_deferred_scope_nodes(dabfg::NodeHandle &scopeFullDeferredOpaqueNode,
-  dabfg::NodeHandle &scopeFullDeferredPrepassNode,
-  dabfg::NodeHandle &scopeFullDeferredLensMaskNode,
-  dabfg::NodeHandle &scopeFullDeferredVrsMaskNode,
-  dabfg::NodeHandle &scopeFullDeferredCutDepthNode,
-  dabfg::NodeHandle &scopeFullDeferredRenderLensOpticsPrepass,
-  dabfg::NodeHandle &scopeFullDeferredRenderLensFrameNode,
-  dabfg::NodeHandle &scopeFullDeferredRenderLensOpticsNode,
-  dabfg::NodeHandle &scopeFullDeferredRenderCrossharNode,
-  dabfg::NodeHandle &aimDofPrepareNode,
-  dabfg::NodeHandle &aimDofRestoreNode,
-  dabfg::NodeHandle &setupScopeAimRenderingDataNode,
-  dabfg::NodeHandle &setupAimRenderingDataNode)
+static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
 {
-  scopeFullDeferredOpaqueNode = makeScopeOpaqueNode();
-  scopeFullDeferredPrepassNode = makeScopePrepassNode();
-  scopeFullDeferredLensMaskNode = makeScopeLensMaskNode();
-  scopeFullDeferredVrsMaskNode = makeScopeVrsMaskNode();
-  scopeFullDeferredCutDepthNode = makeScopeCutDepthNode();
-  scopeFullDeferredRenderLensOpticsPrepass = makeRenderOpticsPrepassNode();
-  scopeFullDeferredRenderLensFrameNode = makeRenderLensFrameNode();
-  scopeFullDeferredRenderLensOpticsNode = makeRenderLensOpticsNode();
-  scopeFullDeferredRenderCrossharNode = makeRenderCrosshairNode();
-  aimDofPrepareNode = makeAimDofPrepareNode();
-  aimDofRestoreNode = makeAimDofRestoreNode();
-  setupScopeAimRenderingDataNode = makeSetupScopeAimRenderingDataNode();
-  setupAimRenderingDataNode = makeGenAimRenderingDataNode();
-}
+  nodes.push_back(makeScopeOpaqueNode());
+  nodes.push_back(makeScopeTransNode());
+  nodes.push_back(makeScopePrepassNode());
+  nodes.push_back(makeScopeLensMaskNode());
+  nodes.push_back(makeScopeVrsMaskNode());
+  nodes.push_back(makeScopeCutDepthNode());
+  nodes.push_back(makeRenderOpticsPrepassNode());
+  nodes.push_back(makeRenderLensFrameNode());
+  nodes.push_back(makeRenderLensOpticsNode());
+  nodes.push_back(makeRenderCrosshairNode());
 
-ECS_TAG(render)
-ECS_ON_EVENT(OnRenderSettingsReady)
-static void init_full_deferred_scope_rendering_es_event_handler(const ecs::Event &,
-  dabfg::NodeHandle &scope__full_deferred__opaque_node,
-  dabfg::NodeHandle &scope__full_deferred__prepass_node,
-  dabfg::NodeHandle &scope__full_deferred__lens_mask_node,
-  dabfg::NodeHandle &scope__full_deferred__vrs_mask_node,
-  dabfg::NodeHandle &scope__full_deferred__cut_depth_node,
-  dabfg::NodeHandle &scope__full_deferred__crosshair_node,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_prepass,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_frame_node,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_node,
-  dabfg::NodeHandle &aim_dof_prepare_node,
-  dabfg::NodeHandle &aim_dof_restore_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node,
-  dabfg::NodeHandle &setup_aim_rendering_data_node)
-{
-  if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING) && renderer_has_feature(FeatureRenderFlags::MOBILE_DEFERRED))
-    return;
-
-  make_full_deferred_scope_nodes(scope__full_deferred__opaque_node, scope__full_deferred__prepass_node,
-    scope__full_deferred__lens_mask_node, scope__full_deferred__vrs_mask_node, scope__full_deferred__cut_depth_node,
-    scope__full_deferred__crosshair_node, scope__full_deferred__render_lens_optics_prepass,
-    scope__full_deferred__render_lens_frame_node, scope__full_deferred__render_lens_optics_node, aim_dof_prepare_node,
-    aim_dof_restore_node, setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
-}
-
-ECS_TAG(render)
-ECS_ON_EVENT(ChangeRenderFeatures)
-static void full_deferred_scope_render_features_changed_es_event_handler(const ecs::Event &evt,
-  dabfg::NodeHandle &scope__full_deferred__opaque_node,
-  dabfg::NodeHandle &scope__full_deferred__prepass_node,
-  dabfg::NodeHandle &scope__full_deferred__lens_mask_node,
-  dabfg::NodeHandle &scope__full_deferred__vrs_mask_node,
-  dabfg::NodeHandle &scope__full_deferred__cut_depth_node,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_prepass,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_frame_node,
-  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_node,
-  dabfg::NodeHandle &scope__full_deferred__crosshair_node,
-  dabfg::NodeHandle &aim_dof_prepare_node,
-  dabfg::NodeHandle &aim_dof_restore_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node,
-  dabfg::NodeHandle &setup_aim_rendering_data_node)
-{
-  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
-    if (!(changedFeatures->isFeatureChanged(FeatureRenderFlags::FULL_DEFERRED)))
-      return;
-
-  if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING) && renderer_has_feature(FeatureRenderFlags::MOBILE_DEFERRED))
+  if (renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA))
   {
-    scope__full_deferred__opaque_node = {};
-    scope__full_deferred__prepass_node = {};
-    scope__full_deferred__lens_mask_node = {};
-    scope__full_deferred__vrs_mask_node = {};
-    scope__full_deferred__cut_depth_node = {};
-    scope__full_deferred__render_lens_optics_prepass = {};
-    scope__full_deferred__render_lens_frame_node = {};
-    scope__full_deferred__render_lens_optics_node = {};
-    scope__full_deferred__crosshair_node = {};
-    aim_dof_prepare_node = {};
-    aim_dof_restore_node = {};
-    setup_scope_aim_rendering_data_node = {};
-    setup_aim_rendering_data_node = {};
-    return;
+    if (WRDispatcher::isReadyToUse() && !WRDispatcher::hasHighResFx())
+    {
+      const bool hasCheckerboardDepth = renderer_has_feature(FeatureRenderFlags::UPSCALE_SAMPLING_TEX);
+      const char *downsampledDepthName =
+        hasCheckerboardDepth ? "checkerboard_depth_with_water_no_stencil" : "far_downsampled_depth_with_water_no_stencil";
+      const char *downsampledDepthRenameTo =
+        hasCheckerboardDepth ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water";
+
+      nodes.push_back(
+        makeScopeDownsampleStencilNode("scope_downsample_stencil_for_fx", downsampledDepthName, downsampledDepthRenameTo));
+    }
+
+    nodes.push_back(makeScopeDownsampleStencilNode("scope_downsample_stencil", "downsampled_depth_no_stencil", "downsampled_depth"));
+
+    nodes.push_back(makeScopeHZBMask());
   }
 
-  make_full_deferred_scope_nodes(scope__full_deferred__opaque_node, scope__full_deferred__prepass_node,
-    scope__full_deferred__lens_mask_node, scope__full_deferred__vrs_mask_node, scope__full_deferred__cut_depth_node,
-    scope__full_deferred__render_lens_optics_prepass, scope__full_deferred__render_lens_frame_node,
-    scope__full_deferred__render_lens_optics_node, scope__full_deferred__crosshair_node, aim_dof_prepare_node, aim_dof_restore_node,
-    setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
+  nodes.push_back(makeAimDofPrepareNode());
+  nodes.push_back(makeAimDofRestoreNode());
+  nodes.push_back(makeSetupScopeAimRenderingDataNode());
+  nodes.push_back(makeGenAimRenderingDataNode());
+}
+
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures, SetFxQuality)
+static void full_deferred_scope_render_features_changed_es_event_handler(const ecs::Event &evt,
+  dag::Vector<dafg::NodeHandle> &scope__full_deferred_fg_nodes)
+{
+  if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
+    return;
+
+  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
+  {
+    if (!(changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA) || changedFeatures->isFeatureChanged(UPSCALE_SAMPLING_TEX)))
+      return;
+  }
+  scope__full_deferred_fg_nodes.clear();
+  fill_scope_nodes(scope__full_deferred_fg_nodes);
 }

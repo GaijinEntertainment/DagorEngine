@@ -12,8 +12,8 @@ let
 [es(on_event=EventStart, REQUIRE=eid)]
 def default_global_args_es(evt : Event)
   var triggered = false
-  query() <| $ [es, unused_argument(pos)] (pos : float3; global_int_int = int(GLOBAL_INT); global_int = GLOBAL_INT;
-                                           global_yes = GLOBAL_YES_BOOL; global_no = GLOBAL_NO_BOOL; global_eid = INVALID_ENTITY_ID)
+  query() <| $ [es(REQUIRE=pos)] (global_int_int = int(GLOBAL_INT); global_int = GLOBAL_INT;
+                                  global_yes = GLOBAL_YES_BOOL; global_no = GLOBAL_NO_BOOL; global_eid = INVALID_ENTITY_ID)
     triggered = true
     verify(global_int_int == 42)
     verify(global_int == 42)

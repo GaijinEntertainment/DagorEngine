@@ -79,7 +79,7 @@ StringVector *CfgReader::GetSectionDatas(M_STD_STRING sec)
 StringVector *CfgReader::GetSectionNames()
 {
   static const int MAX_BUF_FOR_SEC_NAMES = 8192;
-  TCHAR buff[MAX_BUF_FOR_SEC_NAMES];
+  static TCHAR buff[MAX_BUF_FOR_SEC_NAMES];
   section_names.clear();
 
   int size = NSP::GetPrivateProfileSectionNames(buff, MAX_BUF_FOR_SEC_NAMES, filename.c_str());
@@ -106,7 +106,7 @@ StringVector *CfgReader::GetSectionNames()
 
 BOOL CfgReader::FindSection(M_STD_STRING sec)
 {
-  TCHAR buff[MAX_CFG_DATA];
+  static TCHAR buff[MAX_CFG_DATA];
   M_STD_STRING csAux;
   // get the info from the .ini file
   // return if we could retrieve any info from that section
@@ -115,7 +115,7 @@ BOOL CfgReader::FindSection(M_STD_STRING sec)
 
 M_STD_STRING CfgReader::GetKeyValue(M_STD_STRING key, M_STD_STRING sec)
 {
-  TCHAR buff[MAX_CFG_DATA];
+  static TCHAR buff[MAX_CFG_DATA];
   // get the info from the .ini file
   NSP::GetPrivateProfileString(sec.c_str(), key.c_str(), _T(""), buff, 255, filename.c_str());
 
@@ -274,11 +274,19 @@ M_STD_STRING CfgShader::GetParamValue(M_STD_STRING owner, M_STD_STRING param) { 
 int CfgShader::GetParamType(M_STD_STRING owner, M_STD_STRING param)
 {
   M_STD_STRING value = GetKeyValue(param, owner);
-  int type = 0;
+  int type = CFG_UNKNOWN;
 
   if (value.find(CFG_PARAM_TEXT) != M_STD_STRING::npos)
   {
     type = CFG_TEXT;
+  }
+  else if (value.find(CFG_PARAM_BOOL) == 0)
+  {
+    type = CFG_BOOL;
+  }
+  else if (value.find(CFG_PARAM_INT) == 0)
+  {
+    type = CFG_INT;
   }
   else if (value.find(CFG_PARAM_REAL) == 0)
   {
@@ -287,10 +295,6 @@ int CfgShader::GetParamType(M_STD_STRING owner, M_STD_STRING param)
   else if (value.find(CFG_PARAM_COLOR) == 0)
   {
     type = CFG_COLOR;
-  }
-  else if (value.find(CFG_PARAM_RANGE) == 0)
-  {
-    type = CFG_RANGE;
   }
   else if (value.find(CFG_PARAM_ENUM) == 0)
   {

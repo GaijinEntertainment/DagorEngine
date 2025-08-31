@@ -125,7 +125,7 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
   {
     DAS_PTR_NODE;
     SimNodeAtArray(const das::LineInfo &at, das::SimNode *rv, das::SimNode *idx, uint32_t ofs)
-        : SimNode_At(at, rv, idx, 0, ofs, 0) {}
+        : SimNode_At(at, rv, idx, 0, ofs, 0, "") {}
     __forceinline char * compute(das::Context &context)
     {
       Array *pValue = (Array *) value->evalPtr(context);

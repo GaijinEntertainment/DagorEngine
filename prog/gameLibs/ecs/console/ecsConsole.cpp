@@ -858,7 +858,7 @@ struct ParentStats
   uint32_t templId;
 
   ParentStats(int _depth, int _originIdx, uint32_t _templId) :
-    totalParents(0), parents(0), totalComps(0), comps(0), depth(_depth), originIdx(_originIdx), templId(_templId){};
+    totalParents(0), parents(0), totalComps(0), comps(0), depth(_depth), originIdx(_originIdx), templId(_templId) {};
 };
 
 static void explore_template_routine(uint32_t templ_id, eastl::vector<ParentStats> &all_stats, int origin_idx, int depth = 0)

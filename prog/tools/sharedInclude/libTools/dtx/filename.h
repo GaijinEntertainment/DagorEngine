@@ -32,6 +32,6 @@ public:
     return *this;
   }
 
-  virtual DDSPathName findExisting(const char *base_path = NULL) const;
-  virtual DDSPathName &simplify();
+  DDSPathName findExisting(const char *base_path = NULL) const;
+  DDSPathName &simplify();
 };

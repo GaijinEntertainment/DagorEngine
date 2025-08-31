@@ -19,6 +19,8 @@ enum ShaderVarType
   SHVT_FLOAT4X4,
   SHVT_SAMPLER,
   SHVT_TLAS,
+  SHVT_COUNT_,
+  SHVT_UNKNOWN = SHVT_COUNT_
 };
 
 enum ShaderVarTextureType : int

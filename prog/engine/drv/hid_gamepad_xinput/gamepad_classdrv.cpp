@@ -44,7 +44,6 @@ HumanInput::Xbox360GamepadClassDriver::Xbox360GamepadClassDriver(bool emulate_si
   nextUpdatePresenseTime = 0;
   secDrv = NULL;
   rescanCount = RESCAN_ATTEMPTS;
-  updaterIsRunning = 0;
   emulateSingleDevice = emulate_single_gamepad;
   virtualDevice = NULL;
 
@@ -168,6 +167,7 @@ void HumanInput::Xbox360GamepadClassDriver::enable(bool en)
 }
 void HumanInput::Xbox360GamepadClassDriver::destroy()
 {
+  terminateInputUpdaterThread();
   destroyDevices();
   stg_joy.present = false;
 
@@ -228,7 +228,7 @@ public:
 };
 
 
-class HumanInput::XInputUpdater : public DaThread
+class HumanInput::XInputUpdater final : public DaThread
 {
   HumanInput::Xbox360GamepadClassDriver &driver;
 
@@ -237,14 +237,18 @@ public:
     DaThread("XInputUpdater", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), driver(drv)
   {}
 
-  virtual void execute()
+  void execute() override
   {
     unsigned int deviceStateMask = get_device_state_mask();
     ::add_delayed_action(new DelayedDeviceMaskSetter(driver, deviceStateMask));
-    interlocked_release_store(driver.updaterIsRunning, 0);
   }
 };
 
+void HumanInput::Xbox360GamepadClassDriver::terminateInputUpdaterThread()
+{
+  if (inputUpdater)
+    inputUpdater->terminate(true);
+}
 
 void HumanInput::Xbox360GamepadClassDriver::setDeviceMask(const unsigned int new_mask)
 {
@@ -304,14 +308,13 @@ void HumanInput::Xbox360GamepadClassDriver::updateDevices()
   rescanCount = 1; // Always rescan on xbox instead of relying on WM_DEVICECHANGE.
 #endif
 
-  if (prevUpdateRefTime >= nextUpdatePresenseTime && rescanCount > 0 && !interlocked_acquire_load(updaterIsRunning))
+  if (prevUpdateRefTime >= nextUpdatePresenseTime && rescanCount > 0 && (!inputUpdater || !inputUpdater->isThreadRunnning()))
   {
     nextUpdatePresenseTime = prevUpdateRefTime + MS_IN_SEC;
 
 #if _TARGET_XBOX
     setDeviceMask(get_device_state_mask());
 #else
-    interlocked_release_store(updaterIsRunning, 1);
     inputUpdater.reset(new XInputUpdater(*this));
     inputUpdater->start();
 #endif //_TARGET_XBOX

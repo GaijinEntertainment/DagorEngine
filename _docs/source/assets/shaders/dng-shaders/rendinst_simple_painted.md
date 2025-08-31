@@ -1,4 +1,4 @@
-# Shader: rendinst_simple_painted
+# `rendinst_simple_painted`
 
 ## Overview
 

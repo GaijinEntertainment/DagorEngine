@@ -14,7 +14,8 @@ public:
   void setCloudsOffsetVars(float current_clouds_offset, float world_size);
   void setCloudsOffsetVars(CloudsRendererData &data, float world_size) { setCloudsOffsetVars(data.currentCloudsOffset, world_size); }
   void render(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth, const Point2 &wind_change_ofs,
-    float worldSize, const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos = nullptr);
+    float worldSize, const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos = nullptr,
+    const bool acquare_new_resource = true, const bool set_camera_vars = true);
 
   void renderFull(CloudsRendererData &data, const TextureIDPair &downsampled_depth, TEXTUREID target_depth,
     const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm);

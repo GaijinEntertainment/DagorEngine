@@ -3,10 +3,12 @@ from "dagor.math" import Color3
 
 from "params.gen.nut" import *
 
-include_decl_h("StaticVisSphere");
+include_decl_h("LightfxShadow");
+declare_extern_struct("LightfxShadowParams");
+
 begin_declare_params("LightFx");
 
-declare_struct("LightFxColor", 2,
+declare_struct("LightFxColor", 3,
 [
   { name="allow_game_override", type="bool", defVal=0 },
   { name="color", type="E3DCOLOR" },
@@ -18,7 +20,7 @@ declare_struct("LightFxColor", 2,
 ]);
 
 
-declare_struct("LightFxSize", 1,
+declare_struct("LightFxSize", 2,
 [
   { name="radius", type="real", defVal=10 },
   { name="sizeFunc", type="cubic_curve" },
@@ -32,11 +34,11 @@ declare_struct("LightFxParams", 3,
   { name="cloudLight", type="bool", defVal=false },
   { name="color", type="LightFxColor" },
   { name="size", type="LightFxSize" },
+  { name="shadow", type="LightfxShadowParams" },
 ]);
 
 
 
-end_declare_params("light", 1, [
+end_declare_params("light", 2, [
   {struct="LightFxParams"},
-  {struct="StaticVisSphereParams"},
 ]);

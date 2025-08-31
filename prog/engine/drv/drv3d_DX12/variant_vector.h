@@ -56,8 +56,6 @@ struct ExtendedVariant
 {
   T &cmd;
   eastl::span<P0> p0;
-
-  ExtendedVariant() = delete;
 };
 
 template <typename T, typename P0, typename P1>
@@ -66,8 +64,6 @@ struct ExtendedVariant2
   T &cmd;
   eastl::span<P0> p0;
   eastl::span<P1> p1;
-
-  ExtendedVariant2() = delete;
 };
 
 template <typename T>
@@ -530,8 +526,7 @@ protected:
       auto p1 = d.rawReserveArray<P1>(p0_count);
       for (size_t i = 0; i < p0_count; ++i)
       {
-        g(
-          i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
+        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
       }
     }
     static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
@@ -568,8 +563,7 @@ protected:
       auto p1 = d.rawReserveArray<P1>(p0_count);
       for (size_t i = 0; i < p0_count; ++i)
       {
-        g(
-          i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
+        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
       }
     }
 
@@ -706,8 +700,7 @@ protected:
       auto p1 = d.rawReserveArray<P1>(p0_count);
       for (size_t i = 0; i < p0_count; ++i)
       {
-        g(
-          i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
+        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
       }
     }
 
@@ -745,8 +738,7 @@ protected:
       auto p1 = d.rawReserveArray<P1>(p0_count);
       for (size_t i = 0; i < p0_count; ++i)
       {
-        g(
-          i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
+        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
       }
     }
 
@@ -797,7 +789,7 @@ protected:
       TypeHandlerMoveConstructor<ExtendedVariant<T, P0>,
         eastl::is_trivially_move_constructible<T>::value && eastl::is_trivially_move_constructible<P0>::value>
   {
-    static size_t callOp(MemoryInterpreterConst m)
+    static size_t sizeOp(MemoryInterpreterConst m)
     {
       auto p0Count = m.as<size_t>();
       return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count);
@@ -935,6 +927,20 @@ protected:
     return TypeHandler<T, true>::callOpAndIndex(m, index, eastl::forward<U>(u));
   }
 
+  template <typename U, typename T>
+  static size_t callOpAndDestroy(MemoryInterpreter m, U &&u)
+  {
+    TypeHandler<T, true>::callOp(m, eastl::forward<U>(u));
+    return TypeHandler<T, true>::destructOp(m);
+  }
+
+  template <typename U, typename T>
+  static size_t callOpIndexAndDestroy(MemoryInterpreter m, size_t index, U &&u)
+  {
+    TypeHandler<T, true>::callOpAndIndex(m, index, eastl::forward<U>(u));
+    return TypeHandler<T, true>::destructOp(m);
+  }
+
   template <typename T>
   static size_t sizeOp(MemoryInterpreterConst m)
   {
@@ -981,15 +987,16 @@ protected:
     static const CallType callList[] = {&callOp<U, Types>...};
     return TypeMemoryRequirement<IndexType>::value + callList[typeIndex](m, eastl::forward<U>(u));
   }
+
   template <typename U>
-  size_t callAtAndIndex(DataStoreType *pos, size_t index, U &&u)
+  size_t callAtAndDestroy(DataStoreType *pos, U &&u)
   {
     MemoryInterpreter m{pos};
     auto typeIndex = m.as<IndexType>();
     MetricsCollectorType::recordVisitOf(typeIndex);
-    using CallType = size_t (*)(MemoryInterpreter, size_t, U &&);
-    static const CallType callList[] = {&callOpAndIndex<U, Types>...};
-    return TypeMemoryRequirement<IndexType>::value + callList[typeIndex](m, index, eastl::forward<U>(u));
+    using CallType = size_t (*)(MemoryInterpreter, U &&);
+    static const CallType callList[] = {&callOpAndDestroy<U, Types>...};
+    return TypeMemoryRequirement<IndexType>::value + callList[typeIndex](m, eastl::forward<U>(u));
   }
 
   template <typename T>
@@ -1040,6 +1047,36 @@ protected:
     MemoryWriter m{pos};
     m.write<IndexType>(TypeIndexOf<ExtendedVariant<DT, DP0>, ThisTypesPack>::value);
     UsedTypeHandler::moveContruct(m, eastl::forward<DT>(value), p0, p0_count);
+  }
+
+  template <typename T, typename P0, typename P1>
+  static void copyConstructAt(DataStoreType *pos, const T &value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using EXT = ExtendedVariant2<DT, DP0, DP1>;
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::copyConstruct(m, value, p0, p0_count, p1, p1_count);
+  }
+
+  template <typename T, typename P0, typename P1>
+  static void moveConstructAt(DataStoreType *pos, T &&value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using EXT = ExtendedVariant2<DT, DP0, DP1>;
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::moveContruct(m, eastl::forward<DT>(value), p0, p0_count, p1, p1_count);
   }
 
   template <typename T, typename P0, typename G0>
@@ -1201,39 +1238,31 @@ inline void notify_all(std::atomic<T> &adr)
   }
 }
 
-inline void incremental_wait(uint32_t iteration, uint32_t max_ms = 2)
-{
-  if (iteration < 16)
-  {
-    return;
-  }
-  if (iteration < 64)
-  {
-    SwitchToThread();
-    return;
-  }
-  Sleep(max_ms);
-}
-
 template <typename, typename>
-class VariantVectorRingBufferT;
+class ConcurrentVariantRingBufferT;
 
-// Container that can be operated in two modes, like a VariantVector or like a VariantRingBuffer
 template <typename... Types, typename IType>
-class VariantVectorRingBufferT<TypePack<Types...>, IType> : public VariantContainerBase<TypePack<Types...>, IType>
+class ConcurrentVariantRingBufferT<TypePack<Types...>, IType> : public VariantContainerBase<TypePack<Types...>, IType>
 {
 public:
-  enum class OperationMode
+  /// Controls how consumers may be notified about changes to this buffer
+  enum class ConsumerNotificationPolicy
   {
-    // NOTE: currently not thread safe!
-    VECTOR,
-    RING,
+    /// Never notify, immediate consumption by the consumers is not required
+    Never,
+    /// Notify when the producer knows that consumers are waiting
+    /// NOTE: This may result in no notification even when it might seem it should, as a consumer just entered wait state after the
+    /// producer checked if any consumer is waiting
+    WhenWaiting,
+    /// Always notify, this ensures that a consumer will start consuming right away
+    /// NOTE: This may be expensive and should only be used when really needed
+    Always,
   };
 
 private:
   using BaseType = VariantContainerBase<TypePack<Types...>, IType>;
   using ThisTypesPack = typename BaseType::ThisTypesPack;
-  using ThisType = VariantVectorRingBufferT<ThisTypesPack, IType>;
+  using ThisType = ConcurrentVariantRingBufferT<ThisTypesPack, IType>;
   using DataStoreType = typename BaseType::DataStoreType;
   using IndexType = typename BaseType::IndexType;
   using DestructorType = typename BaseType::DestructorType;
@@ -1244,504 +1273,7 @@ private:
   using TypeHandler = typename BaseType::template TypeHandler<A, B>;
 
   using BaseType::callAt;
-  using BaseType::copyConstructAt;
-  using BaseType::copyConstructInto;
-  using BaseType::destroyAt;
-  using BaseType::moveConstructAt;
-  using BaseType::moveConstructInto;
-  using BaseType::num_types;
-  using BaseType::sizeAt;
-
-  // with c++ 17 std lib would have standard defined values
-  static constexpr size_t cache_line_size = 64;
-  // Keep wrong value for now, 64 is sufficient - according to every thing about this topic, not 2x...
-  static constexpr size_t false_sharing_avoidance_alignment = cache_line_size * 2;
-
-  // align to cache line size to avoid false sharing
-  alignas(false_sharing_avoidance_alignment) size_t size{0};
-  // Memory allocation/reservation counter, memory allocated but not committed is in flight and
-  // still be written to by someone
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> allocationCount{0};
-  // Memory committed counter, this is how much memory is ready for consumption
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> committedCount{0};
-  // Free memory counter, consumer adds memory that it consumed to this
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> freeCount{0};
-  alignas(false_sharing_avoidance_alignment) eastl::unique_ptr<DataStoreType[]> store;
-  OperationMode mode = OperationMode::VECTOR;
-
-  void vectorGrow(size_t new_size)
-  {
-    if (size >= new_size)
-    {
-      return;
-    }
-
-    size_t newSize = max(new_size, size * 2);
-    eastl::unique_ptr<DataStoreType[]> newStore;
-    newStore.reset(new DataStoreType[newSize]);
-
-    size_t pos = 0;
-    auto fillSize = committedCount.load(std::memory_order_relaxed);
-    while (pos < fillSize)
-    {
-      pos += moveConstructInto(&store[pos], &newStore[pos]);
-    }
-    clear();
-    store.reset(newStore.release());
-    committedCount.store(pos, std::memory_order_relaxed);
-    size = newSize;
-  }
-
-  __forceinline size_t calculateFreeSize(size_t alloc_pos, size_t free_pos) const
-  {
-    size_t use = 0;
-    if (free_pos <= alloc_pos)
-    {
-      use = alloc_pos - free_pos;
-    }
-    else
-    {
-      // distance from pre wrap to wrap point plus regular (frePos is implicit 0 so just alloc_pos)
-      use = (~size_t(0) - free_pos) + alloc_pos;
-    }
-    return size - use;
-  }
-
-  DAGOR_NOINLINE
-  size_t allocateSpaceVector(size_t sz)
-  {
-    auto allocPos = committedCount.load(std::memory_order_relaxed);
-    vectorGrow(allocPos + sz);
-    return allocPos;
-  }
-  DAGOR_NOINLINE
-  void waitForFree(size_t freePos)
-  {
-    notify_one(committedCount); // wake up thread just in case we are in batch mode
-    // wait until free changes
-    TIME_PROFILE_WAIT_DEV("DX12_waitForFree");
-    wait(freeCount, freePos);
-    // could read allocationCount again, but if we are lucky and it didn't change during wait we save one atomic read
-  }
-  // On ring mode this will wait on freeCount until there is enough free space to provide "sz" bytes
-  __forceinline size_t allocateSpace(size_t sz)
-  {
-    if (DAGOR_LIKELY(OperationMode::VECTOR != mode))
-    {
-      G_FAST_ASSERT(sz < size);
-
-      auto currentAllocationCount = allocationCount.load(std::memory_order_acquire);
-      // start with relaxed load. as freePos won't decrease, thus we can only get false-negative
-      // which will be fixed with next loop iteration
-      // optimizes happy path
-      auto freePos = freeCount.load(std::memory_order_relaxed);
-      for (;;)
-      {
-        if (DAGOR_LIKELY(calculateFreeSize(currentAllocationCount, freePos) >= sz))
-        {
-          auto nextAllocationCount = currentAllocationCount + sz;
-
-          if (allocationCount.compare_exchange_strong(currentAllocationCount, nextAllocationCount))
-          {
-            break;
-          }
-        }
-        else
-        {
-          waitForFree(freePos);
-        }
-        freePos = freeCount.load(std::memory_order_acquire);
-      }
-      return currentAllocationCount;
-    }
-    return allocateSpaceVector(sz);
-  }
-  __forceinline void commitSpace(size_t at, size_t sz, bool wake_executor = true)
-  {
-    if (DAGOR_LIKELY(OperationMode::VECTOR != mode))
-    {
-      auto committedIndex = at;
-      auto nextCommited = committedIndex + sz;
-      while (!committedCount.compare_exchange_strong(committedIndex, nextCommited))
-      {
-        committedIndex = at;
-      }
-      if (wake_executor)
-        notify_one(committedCount);
-    }
-    else
-    {
-      committedCount.fetch_add(sz, std::memory_order_relaxed);
-    }
-  }
-
-public:
-  class Iterator
-  {
-    VariantVectorRingBufferT *parent = nullptr;
-    size_t index = 0;
-
-  public:
-    Iterator(VariantVectorRingBufferT &p, size_t i) : parent{&p}, index{i} {}
-    Iterator() = default;
-    ~Iterator() = default;
-
-    Iterator(const Iterator &) = default;
-    Iterator &operator=(const Iterator &) = default;
-
-    Iterator(Iterator &&) = default;
-    Iterator &operator=(Iterator &&) = default;
-
-    Iterator &operator++()
-    {
-      index += parent->sizeAt(index);
-      return *this;
-    }
-
-    Iterator operator++(int)
-    {
-      Iterator copy;
-      copy.parent = parent;
-      copy.index = index + parent->sizeAt(index);
-      return copy;
-    }
-
-    template <typename U>
-    void visit(U &&u)
-    {
-      parent->callAt(&parent->store[index], eastl::forward<U>(u));
-    }
-
-    template <typename U>
-    bool isType() const
-    {
-      typedef typename eastl::decay<U>::type DecayedU;
-      return parent->store[index] == TypeIndexOf<DecayedU, ThisTypesPack>::value;
-    }
-
-    size_t getIndex() const { return index; }
-
-    friend bool operator==(const Iterator &l, const Iterator &r) { return l.parent == r.parent && l.index == r.index; }
-    friend bool operator!=(const Iterator &l, const Iterator &r) { return !(l == r); }
-    friend bool operator<=(const Iterator &l, const Iterator &r) { return (l < r) || (l == r); }
-    friend bool operator>=(const Iterator &l, const Iterator &r) { return (l > r) || (l == r); }
-    friend bool operator<(const Iterator &l, const Iterator &r) { return l.parent == r.parent && l.index < r.index; }
-    friend bool operator>(const Iterator &l, const Iterator &r) { return r < l; }
-  };
-
-  VariantVectorRingBufferT() = default;
-  VariantVectorRingBufferT(const VariantVectorRingBufferT &) = delete;
-  // could be implemented, but no need right now
-  VariantVectorRingBufferT(VariantVectorRingBufferT &&) = delete;
-
-  VariantVectorRingBufferT &operator=(const VariantVectorRingBufferT &) = delete;
-  VariantVectorRingBufferT &operator=(VariantVectorRingBufferT &&) = delete;
-
-  ~VariantVectorRingBufferT() = default;
-
-  // Mode can only be switch when the container is empty
-  // This is not thread safe!
-  void switchMode(OperationMode md) { mode = md; }
-
-  // Works on any mode but is not thread safe, it will destroy all active objects when this function
-  // is called. Afterwards it will reset all internal counters to 0, concurrent additions during
-  // clear will be lost!
-  void clear()
-  {
-    size_t pos = freeCount.load(std::memory_order_relaxed);
-    auto fillSize = committedCount.load(std::memory_order_relaxed);
-    while (pos < fillSize)
-    {
-      pos += destroyAt(&store[pos % size]);
-    }
-    committedCount.store(0, std::memory_order_relaxed);
-    allocationCount.store(0, std::memory_order_relaxed);
-    freeCount.store(0, std::memory_order_relaxed);
-  }
-
-  // If operation mode is vector then its a normal vector growing operation, with object migration
-  // to new store If operation mode is ring then this requires the ring, this requires that the ring
-  // is empty otherwise the resize will be ignored Both appendix_numerator and appendix_denominator
-  // have no effect in vector operation mode.
-  void resize(size_t ring_size, size_t appendix_numerator = 1, size_t appendix_denominator = 1)
-  {
-    if (OperationMode::VECTOR == mode)
-    {
-      vectorGrow(ring_size);
-    }
-    else
-    {
-      G_ASSERTF(appendix_numerator > 0, "A memory appendix has to be allocated to handle wrapping "
-                                        "correctly!");
-      G_ASSERTF(appendix_denominator > 0, "Denominator has to be greater than zero or division by "
-                                          "zero!");
-      G_ASSERTF(allocationCount == freeCount && committedCount == freeCount, "You can not resize a "
-                                                                             "ring buffer with "
-                                                                             "active objects in "
-                                                                             "it");
-      if (allocationCount != freeCount || committedCount != freeCount)
-      {
-        return;
-      }
-
-      // We add extra appendix memory, which is used when an object needs to be stored that is
-      // bigger as the rest of available memory before we need to wrap around. With this we can
-      // store the whole object as normal and the wrapping logic still works without problems as we
-      // only index into the front of each element.
-      store = eastl::make_unique<DataStoreType[]>(ring_size + (ring_size * appendix_numerator) / appendix_denominator);
-      size = ring_size;
-    }
-  }
-
-  template <typename T>
-  Iterator pushBack(const T &v, bool wake_executor = true)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructAt<T>(&store[allocResult % size], v);
-
-    commitSpace(allocResult, sizeNeeded, wake_executor);
-    return {Iterator{*this, *allocResult}};
-  }
-
-  template <typename T>
-  Iterator pushBack(T &&v, bool wake_executor = true)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template moveConstructAt<T>(&store[allocResult % size], eastl::forward<T>(v));
-
-    commitSpace(allocResult, sizeNeeded, wake_executor);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename U>
-  void visitAll(U &&visitor)
-  {
-    size_t at = freeCount.load(std::memory_order_relaxed);
-    auto lim = committedCount.load(std::memory_order_relaxed);
-    while (at != lim)
-    {
-      at += callAt(&store[at], visitor);
-    }
-  }
-
-  template <typename U>
-  void visitAllAndIndex(U &&visitor)
-  {
-    size_t at = freeCount.load(std::memory_order_relaxed);
-    auto lim = committedCount.load(std::memory_order_relaxed);
-    while (at != lim)
-    {
-      at += callAtAndIndex(&store[at], at, visitor);
-    }
-  }
-
-  // Visits as many entries as possible, returns true if at least one entry was visited
-  template <typename U>
-  void tryVisitAllAndDestroy(U &&visitor)
-  {
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos == readyPos)
-      return;
-    while (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = callAt(&store[exeIndex], visitor);
-      destroyAt(&store[exeIndex]);
-      exePos += len;
-    }
-    freeCount.store(exePos, std::memory_order_release);
-    notify_all(freeCount);
-  }
-
-  // Visits as many entries as possible, returns true if at least one entry was visited
-  template <typename U>
-  bool tryVisitAllIndexAndDestroy(U &&visitor)
-  {
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos == readyPos)
-    {
-      return false;
-    }
-    while (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = callAtAndIndex(&store[exeIndex], exeIndex, visitor);
-      destroyAt(&store[exeIndex]);
-      exePos += len;
-    }
-    freeCount.store(exePos, std::memory_order_release);
-    notify_all(freeCount);
-    return true;
-  }
-
-  // Tries to visit next object.
-  // If it can't find anything to visit it returns false.
-  // It will skip extra data.
-  // After visitor finishes the object and all seen extra data is destroyed and the memory is
-  // available again for ring use.
-  template <typename U>
-  bool tryVisitAndDestroy(U &&visitor)
-  {
-    // we are the one that modifies freeCount so relaxed is best choice here
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = callAt(&store[exeIndex], eastl::forward<U>(visitor));
-      destroyAt(&store[exeIndex]);
-      freeCount.store(exePos + len, std::memory_order_release);
-      notify_all(freeCount);
-      return true;
-    }
-    return false;
-  }
-
-  template <typename U>
-  bool tryVisitIndexAndDestroy(U &&visitor)
-  {
-    // we are the one that modifies freeCount so relaxed is best choice here
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = callAtAndIndex(&store[exeIndex], exeIndex, eastl::forward<U>(visitor));
-      destroyAt(&store[exeIndex]);
-      freeCount.store(exePos + len, std::memory_order_release);
-      notify_all(freeCount);
-      return true;
-    }
-    return false;
-  }
-
-  void waitToVisit() { wait(committedCount, freeCount.load(std::memory_order_relaxed)); }
-
-  const void *indexToAddress(size_t index) const { return store.get() + index + 1; }
-
-  size_t addressToIndex(const void *ptr) const
-  {
-    auto p = reinterpret_cast<const DataStoreType *>(ptr);
-    G_ASSERT(p >= store.get() && p < store.get() + size);
-    return p - store.get() - 1;
-  }
-
-  template <typename T, typename P0>
-  Iterator pushBack(const T &v, const P0 *p0, size_t p0_count)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructAt<T, P0>(&store[allocResult % size], v, p0, p0_count);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename P0>
-  Iterator pushBack(T &&v, P0 *p0, size_t p0_count)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template moveConstructAt<T, P0>(&store[allocResult % size], eastl::forward<T>(v), p0, p0_count);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename G0>
-  Iterator pushBack(const T &v, size_t p0_count, G0 g0)
-  {
-    using P0 = decltype(g0(0));
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::move(v), p0_count, g0);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename G0>
-  Iterator pushBack(T &&v, size_t p0_count, G0 g0)
-  {
-    using P0 = decltype(g0(0));
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template moveConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::forward<T>(v), p0_count, g0);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename P0, typename P1>
-  Iterator pushBack(const T &v, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p1_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructAt<T, P0, P1>(&store[allocResult % size], v, p0, p0_count, p1, p1_count);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  // special variant, creates two extra data segments with equal size and g generates entry "i" of
-  // both ranges at the same time
-  template <typename T, typename P0, typename P1, typename G>
-  Iterator pushBack(const T &v, size_t p0_count, G g)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, g);
-
-    commitSpace(allocResult, sizeNeeded);
-
-    return {Iterator{*this, allocResult}};
-  }
-};
-
-template <typename T>
-using VariantVectorRingBuffer = VariantVectorRingBufferT<T, typename SelectIndexType<T>::Type>;
-
-
-template <typename, typename>
-class VariantRingBufferT;
-
-template <typename... Types, typename IType>
-class VariantRingBufferT<TypePack<Types...>, IType> : public VariantContainerBase<TypePack<Types...>, IType>
-{
-private:
-  using BaseType = VariantContainerBase<TypePack<Types...>, IType>;
-  using ThisTypesPack = typename BaseType::ThisTypesPack;
-  using ThisType = VariantRingBufferT<ThisTypesPack, IType>;
-  using DataStoreType = typename BaseType::DataStoreType;
-  using IndexType = typename BaseType::IndexType;
-  using DestructorType = typename BaseType::DestructorType;
-  using CopyType = typename BaseType::CopyType;
-  using MoveType = typename BaseType::MoveType;
-  using QuerySizeType = typename BaseType::QuerySizeType;
-  template <typename A, bool B>
-  using TypeHandler = typename BaseType::template TypeHandler<A, B>;
-
-  using BaseType::callAt;
+  using BaseType::callAtAndDestroy;
   using BaseType::copyConstructAt;
   using BaseType::copyConstructInto;
   using BaseType::destroyAt;
@@ -1823,7 +1355,7 @@ private:
     return currentAllocationCount;
   }
 
-  __forceinline void commitSpace(size_t at, size_t sz, bool wake_executor = true)
+  __forceinline void commitSpace(size_t at, size_t sz, ConsumerNotificationPolicy notification_policy)
   {
     auto committedIndex = at;
     auto nextCommited = committedIndex + sz;
@@ -1831,88 +1363,65 @@ private:
     {
       committedIndex = at;
     }
-    // can use relaxed here as if we miss a increment the next time we probably see it and notify it
-    // should we run out of space, the alloc try will notify it in any case
-    if (wake_executor && consumerWaiting.load(std::memory_order_relaxed) > 0)
+    if (ConsumerNotificationPolicy::Never == notification_policy)
     {
-      notify_one(committedCount);
+      return;
     }
+    if (ConsumerNotificationPolicy::WhenWaiting == notification_policy)
+    {
+      if (0 == consumerWaiting.load(std::memory_order_relaxed))
+      {
+        return;
+      }
+    }
+    notify_one(committedCount);
+  }
+
+  struct VisitableRange
+  {
+    size_t from;
+    size_t to;
+
+    VisitableRange &operator+=(size_t adv)
+    {
+      from += adv;
+      return *this;
+    }
+    explicit operator bool() const { return from != to; }
+    size_t index(size_t sz) const { return from % sz; }
+  };
+
+  __forceinline VisitableRange getVisitableRange() const
+  {
+    return {freeCount.load(std::memory_order_relaxed), committedCount.load(std::memory_order_acquire)};
+  }
+
+  __forceinline void updateFree(const VisitableRange &at)
+  {
+    freeCount.store(at.from, std::memory_order_release);
+    notify_all(freeCount);
   }
 
 public:
-  class Iterator
-  {
-    VariantRingBufferT *parent = nullptr;
-    size_t index = 0;
-
-  public:
-    Iterator(VariantRingBufferT &p, size_t i) : parent{&p}, index{i} {}
-    Iterator() = default;
-    ~Iterator() = default;
-
-    Iterator(const Iterator &) = default;
-    Iterator &operator=(const Iterator &) = default;
-
-    Iterator(Iterator &&) = default;
-    Iterator &operator=(Iterator &&) = default;
-
-    Iterator &operator++()
-    {
-      index += parent->sizeAt(index);
-      return *this;
-    }
-
-    Iterator operator++(int)
-    {
-      Iterator copy;
-      copy.parent = parent;
-      copy.index = index + parent->sizeAt(index);
-      return copy;
-    }
-
-    template <typename U>
-    void visit(U &&u)
-    {
-      parent->callAt(&parent->store[index], eastl::forward<U>(u));
-    }
-
-    template <typename U>
-    bool isType() const
-    {
-      typedef typename eastl::decay<U>::type DecayedU;
-      return parent->store[index] == TypeIndexOf<DecayedU, ThisTypesPack>::value;
-    }
-
-    size_t getIndex() const { return index; }
-
-    friend bool operator==(const Iterator &l, const Iterator &r) { return l.parent == r.parent && l.index == r.index; }
-    friend bool operator!=(const Iterator &l, const Iterator &r) { return !(l == r); }
-    friend bool operator<=(const Iterator &l, const Iterator &r) { return (l < r) || (l == r); }
-    friend bool operator>=(const Iterator &l, const Iterator &r) { return (l > r) || (l == r); }
-    friend bool operator<(const Iterator &l, const Iterator &r) { return l.parent == r.parent && l.index < r.index; }
-    friend bool operator>(const Iterator &l, const Iterator &r) { return r < l; }
-  };
-
-  VariantRingBufferT() = default;
-  VariantRingBufferT(const VariantRingBufferT &) = delete;
+  ConcurrentVariantRingBufferT() = default;
+  ConcurrentVariantRingBufferT(const ConcurrentVariantRingBufferT &) = delete;
   // could be implemented, but no need right now
-  VariantRingBufferT(VariantRingBufferT &&) = delete;
+  ConcurrentVariantRingBufferT(ConcurrentVariantRingBufferT &&) = delete;
 
-  VariantRingBufferT &operator=(const VariantRingBufferT &) = delete;
-  VariantRingBufferT &operator=(VariantRingBufferT &&) = delete;
+  ConcurrentVariantRingBufferT &operator=(const ConcurrentVariantRingBufferT &) = delete;
+  ConcurrentVariantRingBufferT &operator=(ConcurrentVariantRingBufferT &&) = delete;
 
-  ~VariantRingBufferT() = default;
+  ~ConcurrentVariantRingBufferT() = default;
 
   // Works on any mode but is not thread safe, it will destroy all active objects when this function
   // is called. Afterwards it will reset all internal counters to 0, concurrent additions during
   // clear will be lost!
   void clear()
   {
-    size_t pos = freeCount.load(std::memory_order_relaxed);
-    auto fillSize = committedCount.load(std::memory_order_relaxed);
-    while (pos < fillSize)
+    auto range = getVisitableRange();
+    while (range)
     {
-      pos += destroyAt(&store[pos % size]);
+      range += destroyAt(&store[range.index(size)]);
     }
     committedCount.store(0, std::memory_order_relaxed);
     allocationCount.store(0, std::memory_order_relaxed);
@@ -1947,7 +1456,7 @@ public:
   }
 
   template <typename T>
-  Iterator pushBack(T &&v, bool wake_executor = eastl::decay_t<T>::is_primary())
+  void pushBack(T &&v, ConsumerNotificationPolicy notification_policy)
   {
     auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
 
@@ -1955,71 +1464,35 @@ public:
 
     this->template moveConstructAt<T>(&store[allocResult % size], eastl::forward<T>(v));
 
-    commitSpace(allocResult, sizeNeeded, wake_executor);
-    return {Iterator{*this, allocResult}};
+    commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 
   template <typename U>
   void visitAll(U &&visitor)
   {
-    size_t at = freeCount.load(std::memory_order_relaxed);
-    auto lim = committedCount.load(std::memory_order_relaxed);
-    while (at != lim)
+    auto range = getVisitableRange();
+    while (range)
     {
-      at += callAt(&store[at], visitor);
+      range += callAt(&store[range.index(size)], visitor);
     }
   }
 
+  // Visits as many entries as possible, return the number of visitations
   template <typename U>
-  void visitAllAndIndex(U &&visitor)
+  uint32_t tryVisitAllAndDestroy(U &&visitor)
   {
-    size_t at = freeCount.load(std::memory_order_relaxed);
-    auto lim = committedCount.load(std::memory_order_relaxed);
-    while (at != lim)
+    auto range = getVisitableRange();
+    if (!range)
     {
-      at += callAtAndIndex(&store[at], at, visitor);
+      return 0;
     }
-  }
-
-  // Visits as many entries as possible, returns true if at least one entry was visited
-  template <typename U>
-  void tryVisitAllAndDestroy(U &&visitor)
-  {
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos == readyPos)
-      return;
-    while (exePos != readyPos)
+    uint32_t count = 0;
+    for (; range; ++count)
     {
-      auto exeIndex = exePos % size;
-      auto len = callAt(&store[exeIndex], visitor);
-      destroyAt(&store[exeIndex]);
-      exePos += len;
+      range += callAtAndDestroy(&store[range.index(size)], visitor);
     }
-    freeCount.store(exePos, std::memory_order_release);
-    notify_all(freeCount);
-  }
-
-  // Visits as many entries as possible, returns true if at least one entry was visited
-  template <typename U>
-  bool tryVisitAllIndexAndDestroy(U &&visitor)
-  {
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos == readyPos)
-    {
-      return false;
-    }
-    while (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = BaseType::callAtAndIndex(&store[exeIndex], exeIndex, visitor);
-      destroyAt(&store[exeIndex]);
-      exePos += len;
-    }
-    freeCount.store(exePos, std::memory_order_release);
-    notify_all(freeCount);
-    return true;
+    updateFree(range);
+    return count;
   }
 
   // Tries to visit next object.
@@ -2030,34 +1503,11 @@ public:
   template <typename U>
   bool tryVisitAndDestroy(U &&visitor)
   {
-    // we are the one that modifies freeCount so relaxed is best choice here
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos != readyPos)
+    auto range = getVisitableRange();
+    if (range)
     {
-      auto exeIndex = exePos % size;
-      auto len = callAt(&store[exeIndex], eastl::forward<U>(visitor));
-      destroyAt(&store[exeIndex]);
-      freeCount.store(exePos + len, std::memory_order_release);
-      notify_all(freeCount);
-      return true;
-    }
-    return false;
-  }
-
-  template <typename U>
-  bool tryVisitIndexAndDestroy(U &&visitor)
-  {
-    // we are the one that modifies freeCount so relaxed is best choice here
-    auto exePos = freeCount.load(std::memory_order_relaxed);
-    auto readyPos = committedCount.load(std::memory_order_acquire);
-    if (exePos != readyPos)
-    {
-      auto exeIndex = exePos % size;
-      auto len = callAtAndIndex(&store[exeIndex], exeIndex, eastl::forward<U>(visitor));
-      destroyAt(&store[exeIndex]);
-      freeCount.store(exePos + len, std::memory_order_release);
-      notify_all(freeCount);
+      range = callAtAndDestroy(&store[range.index(size)], eastl::forward<U>(visitor));
+      updateFree(range);
       return true;
     }
     return false;
@@ -2075,17 +1525,22 @@ public:
     --consumerWaiting;
   }
 
-  const void *indexToAddress(size_t index) const { return store.get() + index + 1; }
-
-  size_t addressToIndex(const void *ptr) const
+  /// Waits until there are no commands pending for execution.
+  void waitUntilEmpty()
   {
-    auto p = reinterpret_cast<const DataStoreType *>(ptr);
-    G_ASSERT(p >= store.get() && p < store.get() + size);
-    return p - store.get() - 1;
+    auto currentFreeCount = freeCount.load(std::memory_order_relaxed);
+    while (currentFreeCount != committedCount.load(std::memory_order_relaxed))
+    {
+      // ensure the consumers are not waiting while we are waiting on consumers to making progress, otherwise we deadlock waiting for
+      // consumers that are waiting to be notified
+      notify_one(committedCount);
+      wait(freeCount, currentFreeCount);
+      currentFreeCount = freeCount.load(std::memory_order_relaxed);
+    }
   }
 
   template <typename T, typename P0>
-  Iterator pushBack(T &&v, const P0 *p0, size_t p0_count)
+  void pushBack(T &&v, const P0 *p0, size_t p0_count, ConsumerNotificationPolicy notification_policy)
   {
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
 
@@ -2093,12 +1548,11 @@ public:
 
     this->template moveConstructAt<T, P0>(&store[allocResult % size], eastl::forward<T>(v), p0, p0_count);
 
-    commitSpace(allocResult, sizeNeeded, eastl::decay_t<T>::is_primary());
-    return {Iterator{*this, allocResult}};
+    commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 
   template <typename T, typename G0>
-  Iterator pushBack(T &&v, size_t p0_count, G0 g0)
+  void pushBack(T &&v, size_t p0_count, G0 g0, ConsumerNotificationPolicy notification_policy)
   {
     using P0 = decltype(g0(0));
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
@@ -2107,12 +1561,12 @@ public:
 
     this->template moveConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::forward<T>(v), p0_count, g0);
 
-    commitSpace(allocResult, sizeNeeded, eastl::decay_t<T>::is_primary());
-    return {Iterator{*this, allocResult}};
+    commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 
   template <typename T, typename P0, typename P1>
-  Iterator pushBack(const T &v, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
+  void pushBack(const T &v, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count,
+    ConsumerNotificationPolicy notification_policy)
   {
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p1_count);
 
@@ -2120,14 +1574,13 @@ public:
 
     this->template copyConstructAt<T, P0, P1>(&store[allocResult % size], v, p0, p0_count, p1, p1_count);
 
-    commitSpace(allocResult, sizeNeeded, T::is_primary());
-    return {Iterator{*this, allocResult}};
+    commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 
   // special variant, creates two extra data segments with equal size and g generates entry "i" of
   // both ranges at the same time
   template <typename T, typename P0, typename P1, typename G>
-  Iterator pushBack(const T &v, size_t p0_count, G g)
+  void pushBack(const T &v, size_t p0_count, G g, ConsumerNotificationPolicy notification_policy)
   {
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count);
 
@@ -2135,11 +1588,296 @@ public:
 
     this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, g);
 
-    commitSpace(allocResult, sizeNeeded, T::is_primary());
-
-    return {Iterator{*this, allocResult}};
+    commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 };
 
 template <typename T>
-using VariantRingBuffer = VariantRingBufferT<T, typename SelectIndexType<T>::Type>;
+using ConcurrentVariantRingBuffer = ConcurrentVariantRingBufferT<T, typename SelectIndexType<T>::Type>;
+
+template <typename, typename>
+class VariantStreamBufferT;
+
+// A buffer optimized to stream into continuously, optimized for quick writing
+// Currently this behaves like a vector with exponential growth.
+// TODO Use better internal data structure optimized for fast allocation.
+template <typename... Types, typename IType>
+class VariantStreamBufferT<TypePack<Types...>, IType> : public VariantContainerBase<TypePack<Types...>, IType>
+{
+private:
+  using BaseType = VariantContainerBase<TypePack<Types...>, IType>;
+  using ThisTypesPack = typename BaseType::ThisTypesPack;
+  using ThisType = VariantStreamBufferT<ThisTypesPack, IType>;
+  using DataStoreType = typename BaseType::DataStoreType;
+  using IndexType = typename BaseType::IndexType;
+  using DestructorType = typename BaseType::DestructorType;
+  using CopyType = typename BaseType::CopyType;
+  using MoveType = typename BaseType::MoveType;
+  using QuerySizeType = typename BaseType::QuerySizeType;
+  template <typename A, bool B>
+  using TypeHandler = typename BaseType::template TypeHandler<A, B>;
+
+  using BaseType::callAt;
+  using BaseType::copyConstructAt;
+  using BaseType::copyConstructInto;
+  using BaseType::destroyAt;
+  using BaseType::moveConstructAt;
+  using BaseType::moveConstructInto;
+  using BaseType::num_types;
+  using BaseType::sizeAt;
+
+  size_t size{0};
+  size_t allocatedCount{0};
+  eastl::unique_ptr<DataStoreType[]> store;
+
+  DataStoreType *allocateSpace(size_t alloc_size)
+  {
+    size_t remain = size - allocatedCount;
+    if (remain < alloc_size)
+    {
+      resize(max(size + alloc_size, size * 2));
+    }
+    return &store[allocatedCount];
+  }
+
+  void commitSpace(DataStoreType *at, size_t count) { allocatedCount = (at - &store[0]) + count; }
+
+public:
+  struct StreamPosition
+  {
+    DataStoreType *pos;
+    operator DataStoreType *() const { return pos; }
+    StreamPosition operator+(size_t o) const { return {pos + o}; }
+    bool operator==(const StreamPosition &) const = default;
+    bool operator!=(const StreamPosition &) const = default;
+    bool operator<=(const StreamPosition &) const = default;
+    bool operator>=(const StreamPosition &) const = default;
+    bool operator<(const StreamPosition &) const = default;
+    bool operator>(const StreamPosition &) const = default;
+  };
+
+private:
+  StreamPosition getStreamStart() { return {allocatedCount ? store.get() : nullptr}; }
+
+  template <typename T>
+  StreamPosition visitAndAdvance(StreamPosition at, T clb)
+  {
+    auto np = at + clb(at);
+    return {np.pos < (getStreamStart() + allocatedCount).pos ? np : nullptr};
+  }
+
+public:
+  VariantStreamBufferT() = default;
+  VariantStreamBufferT(const VariantStreamBufferT &) = delete;
+  // could be implemented, but no need right now
+  VariantStreamBufferT(VariantStreamBufferT &&) = delete;
+
+  VariantStreamBufferT &operator=(const VariantStreamBufferT &) = delete;
+  VariantStreamBufferT &operator=(VariantStreamBufferT &&) = delete;
+
+  ~VariantStreamBufferT() = default;
+
+  // Will destroy all active objects, does not free object store memory
+  // To free all memory use resize(0).
+  void clear()
+  {
+    for (auto at = getStreamStart(); at; at = visitAndAdvance(at, [this](auto pos) { return this->destroyAt(pos); })) {}
+    allocatedCount = 0;
+  }
+
+  void resize(size_t new_size)
+  {
+    if (size == new_size)
+    {
+      return;
+    }
+
+    eastl::unique_ptr<DataStoreType[]> newStore;
+    size_t pos = 0;
+    if (new_size > 0)
+    {
+      newStore.reset(new DataStoreType[new_size]);
+      if (new_size > size)
+      {
+        while (pos < allocatedCount)
+        {
+          pos += moveConstructInto(&store[pos], &newStore[pos]);
+        }
+      }
+      else
+      {
+        // when we shrink we need to look if the next object would go over the new size
+        // if yes, we stop. The later clear will clean up all non moved objects.
+        while (pos < allocatedCount)
+        {
+          auto objSize = sizeAt(&store[pos]);
+          if (objSize + pos > new_size)
+          {
+            break;
+          }
+          pos += moveConstructInto(&store[pos], &newStore[pos]);
+        }
+      }
+    }
+    clear();
+    store.reset(newStore.release());
+    // allocatedCount is set to 0 by clear, so have to always assign pos
+    allocatedCount = pos;
+    size = new_size;
+  }
+
+  template <typename T>
+  void pushBack(const T &v)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructAt<T>(allocResult, v);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T>
+  void pushBack(T &&v)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template moveConstructAt<T>(allocResult, eastl::forward<T>(v));
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  // Visits all objects, keeps them intact for later visit
+  template <typename U>
+  void visit(U &&visitor)
+  {
+    for (auto at = getStreamStart(); at; at = visitAndAdvance(at, [this, &visitor](auto pos) { return this->callAt(pos, visitor); }))
+    {}
+  }
+
+  StreamPosition begin() { return getStreamStart(); }
+  StreamPosition next(StreamPosition at)
+  {
+    if (at)
+    {
+      at = visitAndAdvance(at, [this](auto pos) { return this->sizeAt(pos); });
+    }
+    return at;
+  }
+
+  template <typename U>
+  StreamPosition skipUntil(StreamPosition at, U &&terminator)
+  {
+    while (at)
+    {
+      bool endReached = false;
+      auto newPos = visitAndAdvance(at, [this, &terminator, &endReached](auto pos) {
+        return this->callAt(pos, [&terminator, &endReached](auto &obj) { endReached = terminator(obj); });
+      });
+      if (endReached)
+      {
+        break;
+      }
+      at = newPos;
+    }
+    return at;
+  }
+
+  template <typename U>
+  void visitRange(StreamPosition from, StreamPosition to, U &&visitor)
+  {
+    for (; from && from != to; from = visitAndAdvance(from, [this, &visitor](auto pos) { return this->callAt(pos, visitor); })) {}
+  }
+
+
+  // Like visit but destroys all objects, after all visits the container has the same state as after its clear method was invoked
+  template <typename U>
+  void consume(U &&visitor)
+  {
+    for (auto at = getStreamStart(); at;
+         at = visitAndAdvance(at, [this, &visitor](auto pos) { return this->callAtAndDestroy(pos, visitor); }))
+    {}
+  }
+
+  template <typename T, typename P0>
+  void pushBack(const T &v, const P0 *p0, size_t p0_count)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructAt<T, P0>(allocResult, v, p0, p0_count);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T, typename P0>
+  void pushBack(T &&v, P0 *p0, size_t p0_count)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template moveConstructAt<T, P0>(allocResult, eastl::forward<T>(v), p0, p0_count);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T, typename G0>
+  void pushBack(const T &v, size_t p0_count, G0 g0)
+  {
+    using P0 = decltype(g0(0));
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructDataGeneratorAt<T, P0, G0>(allocResult, eastl::move(v), p0_count, g0);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T, typename G0>
+  void pushBack(T &&v, size_t p0_count, G0 g0)
+  {
+    using P0 = decltype(g0(0));
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template moveConstructDataGeneratorAt<T, P0, G0>(allocResult, eastl::forward<T>(v), p0_count, g0);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T, typename P0, typename P1>
+  void pushBack(const T &v, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p1_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructAt<T, P0, P1>(allocResult, v, p0, p0_count, p1, p1_count);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  // special variant, creates two extra data segments with equal size and g generates entry "i" of
+  // both ranges at the same time
+  template <typename T, typename P0, typename P1, typename G>
+  void pushBack(const T &v, size_t p0_count, G g)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructExtended2DataGenerator<T, P0, P1>(allocResult, v, p0_count, g);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+};
+
+template <typename T>
+using VariantStreamBuffer = VariantStreamBufferT<T, typename SelectIndexType<T>::Type>;

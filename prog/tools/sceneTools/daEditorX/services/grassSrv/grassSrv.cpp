@@ -10,7 +10,7 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <shaders/dag_shaders.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <oldEditor/de_util.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
@@ -38,14 +38,14 @@ struct RandomGrassRenderHelper : IRandomGrassRenderHelper
 
   RandomGrassRenderHelper();
   ~RandomGrassRenderHelper();
-  bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm);
-  void endRender();
-  void renderHeight(float min_height, float max_height);
-  void renderColor();
-  void renderMask();
-  void renderExplosions();
-  bool getHeightmapAtPoint(float x, float y, float &out);
-  bool isValid() const;
+  bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) override;
+  void endRender() override;
+  void renderHeight(float min_height, float max_height) override;
+  void renderColor() override;
+  void renderMask() override;
+  void renderExplosions() override;
+  bool getHeightmapAtPoint(float x, float y, float &out) override;
+  bool isValid() const override;
 };
 
 
@@ -145,9 +145,7 @@ class GrassService : public IGrassService
 public:
   bool srvDisabled;
 
-  GrassService::GrassService() : force_update(true), grassEnabled(false), grassRenderIteration(0) { srvDisabled = false; }
-
-  GrassService::~GrassService() {}
+  GrassService() : force_update(true), grassEnabled(false), grassRenderIteration(0) { srvDisabled = false; }
 
   const char *getResName(TEXTUREID id) const override { return ::get_managed_res_name(id); }
 
@@ -185,20 +183,21 @@ public:
     randomGrass->setWaterLevel(waterLevel);
   }
 
-  virtual void init() {}
+  void init() override {}
 
-  virtual void create_grass(DataBlock &grassBlk)
+  void create_grass(DataBlock &grassBlk) override
   {
     if (d3d::is_stub_driver())
       return;
 
+    randomGrass.reset(); // Resetting it first is needed to prevent ref. count assert.
     randomGrass = eastl::make_unique<EditorGrass>(grassBlk, *grassBlk.getBlockByNameEx("GrassSettingsPlanes"));
     randomGrass->isDissolve = true;
     setWaterLevel();
     grassRenderIteration = 0;
   }
 
-  virtual DataBlock *create_default_grass()
+  DataBlock *create_default_grass() override
   {
     if (d3d::is_stub_driver())
     {
@@ -216,6 +215,7 @@ public:
     }
 
     DataBlock *grassBlk = new DataBlock(*defaultGrassBlk.getBlockByNameEx("randomGrass"));
+    randomGrass.reset(); // Resetting it first is needed to prevent ref. count assert.
     randomGrass = eastl::make_unique<EditorGrass>(*grassBlk, *grassBlk->getBlockByNameEx("GrassSettingsPlanes"));
     randomGrass->isDissolve = true;
 
@@ -224,9 +224,9 @@ public:
     return grassBlk;
   }
 
-  virtual void enableGrass(bool flag) { grassEnabled = flag; }
+  void enableGrass(bool flag) override { grassEnabled = flag; }
 
-  virtual void beforeRender(Stage stage)
+  void beforeRender(Stage stage) override
   {
     if (!randomGrass || !grassEnabled)
       return;
@@ -254,7 +254,7 @@ public:
     grassRenderIteration++;
   }
 
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!randomGrass || !grassEnabled)
       return;
@@ -262,19 +262,19 @@ public:
     randomGrass->renderOpaque();
   }
 
-  virtual BBox3 *getGrassBbox() { return &grassHelper.box; }
+  BBox3 *getGrassBbox() override { return &grassHelper.box; }
 
-  virtual int addDefaultLayer() { return randomGrass->addDefaultLayer(); }
+  int addDefaultLayer() override { return randomGrass->addDefaultLayer(); }
 
-  virtual bool removeLayer(int layer_i) { return randomGrass->removeLayer(layer_i); }
+  bool removeLayer(int layer_i) override { return randomGrass->removeLayer(layer_i); }
 
-  virtual void reloadAll(const DataBlock &grass_blk, const DataBlock &params_blk) { randomGrass->reload(grass_blk, params_blk); }
+  void reloadAll(const DataBlock &grass_blk, const DataBlock &params_blk) override { randomGrass->reload(grass_blk, params_blk); }
 
-  virtual bool changeLayerResource(int layer_i, const char *resName) { return randomGrass->changeLayerResource(layer_i, resName); }
+  bool changeLayerResource(int layer_i, const char *resName) override { return randomGrass->changeLayerResource(layer_i, resName); }
 
-  virtual int getGrassLayersCount() { return randomGrass->getGrassLayersCount(); }
+  int getGrassLayersCount() override { return randomGrass->getGrassLayersCount(); }
 
-  virtual GrassLayerInfo *getLayerInfo(int layer_i)
+  GrassLayerInfo *getLayerInfo(int layer_i) override
   {
     if (!randomGrass)
       return NULL;
@@ -282,11 +282,11 @@ public:
     return randomGrass->getGrassLayer(layer_i);
   }
 
-  virtual void setLayerDensity(int layer_i, float new_density) { return randomGrass->setLayerDensity(layer_i, new_density); }
+  void setLayerDensity(int layer_i, float new_density) override { return randomGrass->setLayerDensity(layer_i, new_density); }
 
-  virtual void updateLayerVbo(int layer_i) { randomGrass->updateLayerVbo(layer_i); }
+  void updateLayerVbo(int layer_i) override { randomGrass->updateLayerVbo(layer_i); }
 
-  virtual void forceUpdate() { force_update = true; }
+  void forceUpdate() override { force_update = true; }
 };
 
 

@@ -16,6 +16,12 @@ MAKE_TYPE_FACTORY(DestructableObject, gamephys::DestructableObject);
 namespace bind_dascript
 {
 
+inline void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, bool create_destr_effects,
+  const Point3 &impulse, const Point3 &impulse_po)
+{
+  rendinstdestr::destroyRiExtra(riex_handle, transform, create_destr_effects, impulse, impulse_po);
+}
+
 inline void destroyRendinstSimple(const rendinst::RendInstDesc &desc, rendinst::RendInstDesc &out_desc)
 {
   out_desc = rendinstdestr::destroyRendinst(desc, // desc
@@ -26,7 +32,7 @@ inline void destroyRendinstSimple(const rendinst::RendInstDesc &desc, rendinst::
     nullptr,                                      // collision info
     false,                                        // create destr
     nullptr,                                      // apex damage info
-    0                                             // destroy neighbour recursive depth
+    -1                                            // destroy neighbour recursive depth
   );
 }
 
@@ -42,15 +48,14 @@ inline void destroyRendinstForce(const rendinst::RendInstDesc &desc, bool add_re
     nullptr,                                      // collision info
     create_destr,                                 // create destr
     nullptr,                                      // apex damage info
-    0,                                            // destroy neighbour recursive depth
+    -1,                                           // destroy neighbour recursive depth
     0.f,                                          // impulse mult for child
     nullptr,                                      // destr callback
     rendinst::DestrOptionFlag::ForceDestroy);
 }
 
 inline void destroyRendinst(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &pos, const Point3 &impulse,
-  float at_time, bool create_destr, int destroy_neighbour_recursive_depth, float impulse_mult_for_child, bool force_destroy,
-  rendinst::RendInstDesc &out_desc)
+  float at_time, bool create_destr, float impulse_mult_for_child, bool force_destroy, rendinst::RendInstDesc &out_desc)
 {
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi;
   if (force_destroy)
@@ -59,7 +64,7 @@ inline void destroyRendinst(const rendinst::RendInstDesc &desc, bool add_restora
     nullptr, // collision info
     create_destr,
     nullptr, // apex damage info
-    destroy_neighbour_recursive_depth, impulse_mult_for_child,
+    -1, impulse_mult_for_child,
     nullptr, // destr callback
     flags);
 }
@@ -73,7 +78,7 @@ inline void apply_impulse_to_riextra(const rendinst::riex_handle_t handle, const
 }
 
 inline void get_destructable_objects(
-  const das::TBlock<void, das::TTemporary<const das::TArray<gamephys::DestructableObject *>>> &block, das::Context *context,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::DestructableObject *>>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
   dag::ConstSpan<gamephys::DestructableObject *> destructables = destructables::getDestructableObjects();

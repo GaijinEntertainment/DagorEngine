@@ -1,9 +1,10 @@
 #strict
 
-let random = require("dagor.random")
+import "math" as math
+import "dagor.random" as random
+
 let cdate = (require_optional("datetime")?.date ?? @(_date=null,_format=null) {sec=0, min=0, hour=0, day=0, month=0, year=0, wday=0, yday=0})()
 let _default_seed = random.get_rnd_seed() + cdate.sec + cdate.min*60 + cdate.yday*86400
-let math = require("math")
 
 local position = 0
 function new_rnd_seed() {//setting new rnd
@@ -27,7 +28,7 @@ function randint_uniform(lo, hi, rand) { // returns random int in range [lo,hi],
   return lo + (x % n)
 }
 
-let class Rand{
+class Rand{
   _seed = null
   _count = null
 
@@ -88,6 +89,8 @@ let class Rand{
   static rnd = random.rnd
   static gauss_rnd = random.gauss_rnd
   static uint_noise1D = random.uint_noise1D
+  static set_rnd_seed = random.set_rnd_seed //for rnd and gauss_rnd
+  static get_rnd_seed = random.set_rnd_seed //for rnd and gauss_rnd
 
   static function chooseRandom(arr, seed = null) { //free standing
     if (arr.len()==0)
@@ -99,14 +102,9 @@ let class Rand{
   static function shuffle(arr, seed=null) {
     let res = clone arr
     let size = res.len()
-    local j
-    local v
     let randfunc = @(count) random.uint_noise1D(seed == null ? new_rnd_seed() : seed, count)
     for (local i = size - 1; i > 0; i--) {
-      j = randfunc(i) % (i + 1)
-      v = res[j]
-      res[j] = res[i]
-      res[i] = v
+      res.swap(randfunc(i) % (i + 1), i)
     }
     return res
   }
@@ -167,4 +165,4 @@ if (__name__ == "__main__") {
   testShuffle()
 }
 
-return Rand
+return freeze(Rand)

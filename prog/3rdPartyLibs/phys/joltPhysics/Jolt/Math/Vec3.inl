@@ -10,7 +10,7 @@ JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <random>
 JPH_SUPPRESS_WARNINGS_STD_END
 
-// Create a std::hash for Vec3
+// Create a std::hash/JPH::Hash for Vec3
 JPH_MAKE_HASHABLE(JPH::Vec3, t.GetX(), t.GetY(), t.GetZ())
 
 JPH_NAMESPACE_BEGIN
@@ -57,16 +57,14 @@ Vec3::Vec3(const Float3 &inV)
 	Type xy = _mm_unpacklo_ps(x, y);
 	mValue = _mm_shuffle_ps(xy, z, _MM_SHUFFLE(0, 0, 1, 0)); // Assure Z and W are the same
 #elif defined(JPH_USE_NEON)
-    float32x2_t xy = vld1_f32(&inV.x);
-    float32x2_t zz = vdup_n_f32(inV.z); // Assure Z and W are the same
-    mValue = vcombine_f32(xy, zz);
+	float32x2_t xy = vld1_f32(&inV.x);
+	float32x2_t zz = vdup_n_f32(inV.z); // Assure Z and W are the same
+	mValue = vcombine_f32(xy, zz);
 #else
 	mF32[0] = inV[0];
 	mF32[1] = inV[1];
 	mF32[2] = inV[2];
-	#ifdef JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
-		mF32[3] = inV[2];
-	#endif
+	mF32[3] = inV[2]; // Not strictly needed when JPH_FLOATING_POINT_EXCEPTIONS_ENABLED is off but prevents warnings about uninitialized variables
 #endif
 }
 
@@ -75,16 +73,14 @@ Vec3::Vec3(float inX, float inY, float inZ)
 #if defined(JPH_USE_SSE)
 	mValue = _mm_set_ps(inZ, inZ, inY, inX);
 #elif defined(JPH_USE_NEON)
-	uint32x2_t xy = vcreate_f32(static_cast<uint64>(*reinterpret_cast<uint32 *>(&inX)) | (static_cast<uint64>(*reinterpret_cast<uint32 *>(&inY)) << 32));
-	uint32x2_t zz = vcreate_f32(static_cast<uint64>(*reinterpret_cast<uint32* >(&inZ)) | (static_cast<uint64>(*reinterpret_cast<uint32 *>(&inZ)) << 32));
-	mValue = vcombine_f32(xy, zz);
+	uint32x2_t xy = vcreate_u32(static_cast<uint64>(BitCast<uint32>(inX)) | (static_cast<uint64>(BitCast<uint32>(inY)) << 32));
+	uint32x2_t zz = vreinterpret_u32_f32(vdup_n_f32(inZ));
+	mValue = vreinterpretq_f32_u32(vcombine_u32(xy, zz));
 #else
 	mF32[0] = inX;
 	mF32[1] = inY;
 	mF32[2] = inZ;
-	#ifdef JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
-		mF32[3] = inZ;
-	#endif
+	mF32[3] = inZ; // Not strictly needed when JPH_FLOATING_POINT_EXCEPTIONS_ENABLED is off but prevents warnings about uninitialized variables
 #endif
 }
 
@@ -124,6 +120,11 @@ Vec3 Vec3::sReplicate(float inV)
 #else
 	return Vec3(inV, inV, inV);
 #endif
+}
+
+Vec3 Vec3::sOne()
+{
+	return sReplicate(1.0f);
 }
 
 Vec3 Vec3::sNaN()
@@ -266,18 +267,22 @@ Vec3 Vec3::sFusedMultiplyAdd(Vec3Arg inMul1, Vec3Arg inMul2, Vec3Arg inAdd)
 #endif
 }
 
-Vec3 Vec3::sSelect(Vec3Arg inV1, Vec3Arg inV2, UVec4Arg inControl)
+Vec3 Vec3::sSelect(Vec3Arg inNotSet, Vec3Arg inSet, UVec4Arg inControl)
 {
-#if defined(JPH_USE_SSE4_1)
-	Type v = _mm_blendv_ps(inV1.mValue, inV2.mValue, _mm_castsi128_ps(inControl.mValue));
+#if defined(JPH_USE_SSE4_1) && !defined(JPH_PLATFORM_WASM) // _mm_blendv_ps has problems on FireFox
+	Type v = _mm_blendv_ps(inNotSet.mValue, inSet.mValue, _mm_castsi128_ps(inControl.mValue));
+	return sFixW(v);
+#elif defined(JPH_USE_SSE)
+	__m128 is_set = _mm_castsi128_ps(_mm_srai_epi32(inControl.mValue, 31));
+	Type v = _mm_or_ps(_mm_and_ps(is_set, inSet.mValue), _mm_andnot_ps(is_set, inNotSet.mValue));
 	return sFixW(v);
 #elif defined(JPH_USE_NEON)
-	Type v = vbslq_f32(vshrq_n_s32(inControl.mValue, 31), inV2.mValue, inV1.mValue);
+	Type v = vbslq_f32(vreinterpretq_u32_s32(vshrq_n_s32(vreinterpretq_s32_u32(inControl.mValue), 31)), inSet.mValue, inNotSet.mValue);
 	return sFixW(v);
 #else
 	Vec3 result;
 	for (int i = 0; i < 3; i++)
-		result.mF32[i] = inControl.mU32[i] ? inV2.mF32[i] : inV1.mF32[i];
+		result.mF32[i] = (inControl.mU32[i] & 0x80000000u) ? inSet.mF32[i] : inNotSet.mF32[i];
 #ifdef JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
 	result.mF32[3] = result.mF32[2];
 #endif // JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
@@ -290,7 +295,7 @@ Vec3 Vec3::sOr(Vec3Arg inV1, Vec3Arg inV2)
 #if defined(JPH_USE_SSE)
 	return _mm_or_ps(inV1.mValue, inV2.mValue);
 #elif defined(JPH_USE_NEON)
-	return vorrq_s32(inV1.mValue, inV2.mValue);
+	return vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(inV1.mValue), vreinterpretq_u32_f32(inV2.mValue)));
 #else
 	return Vec3(UVec4::sOr(inV1.ReinterpretAsInt(), inV2.ReinterpretAsInt()).ReinterpretAsFloat());
 #endif
@@ -301,7 +306,7 @@ Vec3 Vec3::sXor(Vec3Arg inV1, Vec3Arg inV2)
 #if defined(JPH_USE_SSE)
 	return _mm_xor_ps(inV1.mValue, inV2.mValue);
 #elif defined(JPH_USE_NEON)
-	return veorq_s32(inV1.mValue, inV2.mValue);
+	return vreinterpretq_f32_u32(veorq_u32(vreinterpretq_u32_f32(inV1.mValue), vreinterpretq_u32_f32(inV2.mValue)));
 #else
 	return Vec3(UVec4::sXor(inV1.ReinterpretAsInt(), inV2.ReinterpretAsInt()).ReinterpretAsFloat());
 #endif
@@ -312,7 +317,7 @@ Vec3 Vec3::sAnd(Vec3Arg inV1, Vec3Arg inV2)
 #if defined(JPH_USE_SSE)
 	return _mm_and_ps(inV1.mValue, inV2.mValue);
 #elif defined(JPH_USE_NEON)
-	return vandq_s32(inV1.mValue, inV2.mValue);
+	return vreinterpretq_f32_u32(vandq_u32(vreinterpretq_u32_f32(inV1.mValue), vreinterpretq_u32_f32(inV2.mValue)));
 #else
 	return Vec3(UVec4::sAnd(inV1.ReinterpretAsInt(), inV2.ReinterpretAsInt()).ReinterpretAsFloat());
 #endif
@@ -584,25 +589,25 @@ Vec3 Vec3::Abs() const
 
 Vec3 Vec3::Reciprocal() const
 {
-	return sReplicate(1.0f) / mValue;
+	return sOne() / mValue;
 }
 
 Vec3 Vec3::Cross(Vec3Arg inV2) const
 {
 #if defined(JPH_USE_SSE)
 	Type t1 = _mm_shuffle_ps(inV2.mValue, inV2.mValue, _MM_SHUFFLE(0, 0, 2, 1)); // Assure Z and W are the same
-    t1 = _mm_mul_ps(t1, mValue);
-    Type t2 = _mm_shuffle_ps(mValue, mValue, _MM_SHUFFLE(0, 0, 2, 1)); // Assure Z and W are the same
-    t2 = _mm_mul_ps(t2, inV2.mValue);
-    Type t3 = _mm_sub_ps(t1, t2);
-    return _mm_shuffle_ps(t3, t3, _MM_SHUFFLE(0, 0, 2, 1)); // Assure Z and W are the same
+	t1 = _mm_mul_ps(t1, mValue);
+	Type t2 = _mm_shuffle_ps(mValue, mValue, _MM_SHUFFLE(0, 0, 2, 1)); // Assure Z and W are the same
+	t2 = _mm_mul_ps(t2, inV2.mValue);
+	Type t3 = _mm_sub_ps(t1, t2);
+	return _mm_shuffle_ps(t3, t3, _MM_SHUFFLE(0, 0, 2, 1)); // Assure Z and W are the same
 #elif defined(JPH_USE_NEON)
 	Type t1 = JPH_NEON_SHUFFLE_F32x4(inV2.mValue, inV2.mValue, 1, 2, 0, 0); // Assure Z and W are the same
-    t1 = vmulq_f32(t1, mValue);
-    Type t2 = JPH_NEON_SHUFFLE_F32x4(mValue, mValue, 1, 2, 0, 0); // Assure Z and W are the same
-    t2 = vmulq_f32(t2, inV2.mValue);
-    Type t3 = vsubq_f32(t1, t2);
-    return JPH_NEON_SHUFFLE_F32x4(t3, t3, 1, 2, 0, 0); // Assure Z and W are the same
+	t1 = vmulq_f32(t1, mValue);
+	Type t2 = JPH_NEON_SHUFFLE_F32x4(mValue, mValue, 1, 2, 0, 0); // Assure Z and W are the same
+	t2 = vmulq_f32(t2, inV2.mValue);
+	Type t3 = vsubq_f32(t1, t2);
+	return JPH_NEON_SHUFFLE_F32x4(t3, t3, 1, 2, 0, 0); // Assure Z and W are the same
 #else
 	return Vec3(mF32[1] * inV2.mF32[2] - mF32[2] * inV2.mF32[1],
 				mF32[2] * inV2.mF32[0] - mF32[0] * inV2.mF32[2],
@@ -615,9 +620,9 @@ Vec3 Vec3::DotV(Vec3Arg inV2) const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_dp_ps(mValue, inV2.mValue, 0x7f);
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
+	float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    return vdupq_n_f32(vaddvq_f32(mul));
+	return vdupq_n_f32(vaddvq_f32(mul));
 #else
 	float dot = 0.0f;
 	for (int i = 0; i < 3; i++)
@@ -631,9 +636,9 @@ Vec4 Vec3::DotV4(Vec3Arg inV2) const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_dp_ps(mValue, inV2.mValue, 0x7f);
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
+	float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    return vdupq_n_f32(vaddvq_f32(mul));
+	return vdupq_n_f32(vaddvq_f32(mul));
 #else
 	float dot = 0.0f;
 	for (int i = 0; i < 3; i++)
@@ -647,9 +652,9 @@ float Vec3::Dot(Vec3Arg inV2) const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_cvtss_f32(_mm_dp_ps(mValue, inV2.mValue, 0x7f));
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
+	float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    return vaddvq_f32(mul);
+	return vaddvq_f32(mul);
 #else
 	float dot = 0.0f;
 	for (int i = 0; i < 3; i++)
@@ -663,9 +668,9 @@ float Vec3::LengthSq() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_cvtss_f32(_mm_dp_ps(mValue, mValue, 0x7f));
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, mValue);
+	float32x4_t mul = vmulq_f32(mValue, mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    return vaddvq_f32(mul);
+	return vaddvq_f32(mul);
 #else
 	float len_sq = 0.0f;
 	for (int i = 0; i < 3; i++)
@@ -679,10 +684,10 @@ float Vec3::Length() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(mValue, mValue, 0x7f)));
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, mValue);
+	float32x4_t mul = vmulq_f32(mValue, mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    float32x2_t sum = vdup_n_f32(vaddvq_f32(mul));
-    return vget_lane_f32(vsqrt_f32(sum), 0);
+	float32x2_t sum = vdup_n_f32(vaddvq_f32(mul));
+	return vget_lane_f32(vsqrt_f32(sum), 0);
 #else
 	return sqrt(LengthSq());
 #endif
@@ -704,10 +709,10 @@ Vec3 Vec3::Normalized() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_div_ps(mValue, _mm_sqrt_ps(_mm_dp_ps(mValue, mValue, 0x7f)));
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, mValue);
+	float32x4_t mul = vmulq_f32(mValue, mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    float32x4_t sum = vdupq_n_f32(vaddvq_f32(mul));
-    return vdivq_f32(mValue, vsqrtq_f32(sum));
+	float32x4_t sum = vdupq_n_f32(vaddvq_f32(mul));
+	return vdivq_f32(mValue, vsqrtq_f32(sum));
 #else
 	return *this / Length();
 #endif
@@ -715,9 +720,12 @@ Vec3 Vec3::Normalized() const
 
 Vec3 Vec3::NormalizedOr(Vec3Arg inZeroValue) const
 {
-#if defined(JPH_USE_SSE4_1)
+#if defined(JPH_USE_SSE4_1) && !defined(JPH_PLATFORM_WASM) // _mm_blendv_ps has problems on FireFox
 	Type len_sq = _mm_dp_ps(mValue, mValue, 0x7f);
-	Type is_zero = _mm_cmpeq_ps(len_sq, _mm_setzero_ps());
+	// clang with '-ffast-math' (which you should not use!) can generate _mm_rsqrt_ps
+	// instructions which produce INFs/NaNs when they get a denormal float as input.
+	// We therefore treat denormals as zero here.
+	Type is_zero = _mm_cmple_ps(len_sq, _mm_set1_ps(FLT_MIN));
 #ifdef JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
 	if (_mm_movemask_ps(is_zero) == 0xf)
 		return inZeroValue;
@@ -727,15 +735,14 @@ Vec3 Vec3::NormalizedOr(Vec3Arg inZeroValue) const
 	return _mm_blendv_ps(_mm_div_ps(mValue, _mm_sqrt_ps(len_sq)), inZeroValue.mValue, is_zero);
 #endif // JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
 #elif defined(JPH_USE_NEON)
-    float32x4_t mul = vmulq_f32(mValue, mValue);
+	float32x4_t mul = vmulq_f32(mValue, mValue);
 	mul = vsetq_lane_f32(0, mul, 3);
-    float32x4_t sum = vdupq_n_f32(vaddvq_f32(mul));
-	float32x4_t len = vsqrtq_f32(sum);
-	float32x4_t is_zero = vceqq_f32(len, vdupq_n_f32(0));
-    return vbslq_f32(is_zero, inZeroValue.mValue, vdivq_f32(mValue, len));
+	float32x4_t len_sq = vdupq_n_f32(vaddvq_f32(mul));
+	uint32x4_t is_zero = vcleq_f32(len_sq, vdupq_n_f32(FLT_MIN));
+	return vbslq_f32(is_zero, inZeroValue.mValue, vdivq_f32(mValue, vsqrtq_f32(len_sq)));
 #else
 	float len_sq = LengthSq();
-	if (len_sq == 0.0f)
+	if (len_sq <= FLT_MIN)
 		return inZeroValue;
 	else
 		return *this / sqrt(len_sq);
@@ -771,9 +778,9 @@ void Vec3::StoreFloat3(Float3 *outV) const
 	t = t.Swizzle<SWIZZLE_Y, SWIZZLE_UNUSED, SWIZZLE_UNUSED>();
 	_mm_store_ss(&outV->z, t.mValue);
 #elif defined(JPH_USE_NEON)
-    float32x2_t xy = vget_low_f32(mValue);
-    vst1_f32(&outV->x, xy);
-    vst1q_lane_f32(&outV->z, mValue, 2);
+	float32x2_t xy = vget_low_f32(mValue);
+	vst1_f32(&outV->x, xy);
+	vst1q_lane_f32(&outV->z, mValue, 2);
 #else
 	outV->x = mF32[0];
 	outV->y = mF32[1];
@@ -842,11 +849,11 @@ Vec3 Vec3::GetSign() const
 #elif defined(JPH_USE_NEON)
 	Type minus_one = vdupq_n_f32(-1.0f);
 	Type one = vdupq_n_f32(1.0f);
-	return vorrq_s32(vandq_s32(mValue, minus_one), one);
+	return vreinterpretq_f32_u32(vorrq_u32(vandq_u32(vreinterpretq_u32_f32(mValue), vreinterpretq_u32_f32(minus_one)), vreinterpretq_u32_f32(one)));
 #else
-	return Vec3(signbit(mF32[0])? -1.0f : 1.0f,
-				signbit(mF32[1])? -1.0f : 1.0f,
-				signbit(mF32[2])? -1.0f : 1.0f);
+	return Vec3(std::signbit(mF32[0])? -1.0f : 1.0f,
+				std::signbit(mF32[1])? -1.0f : 1.0f,
+				std::signbit(mF32[2])? -1.0f : 1.0f);
 #endif
 }
 

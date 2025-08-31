@@ -1,0 +1,104 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "decals/decal_inc.dshl"
+
+
+macro DYNAMIC_DECAL_VS(deferred)
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  // I don't think we will need these decals for skinned meshes, but if we do, feel free to remove this check
+  if (num_bones == four_bones)
+  {
+    dont_render;
+  }
+
+  hlsl {
+    #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
+    #define NEED_TC 1
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      ##if deferred
+        float3 diffuseTexcoord                : TEXCOORD0;
+      ##else
+        float2 diffuseTexcoord                : TEXCOORD0;
+      ##endif
+      #if HAS_NORMAL
+        float3 normal                         : TEXCOORD1;
+        float3 pointToEye                     : TEXCOORD2;
+      #endif
+      #if COLOR_NEEDED
+        nointerpolation float3 colorMul       : TEXCOORD3;
+      #endif
+      #if SET_UP_MULTIDRAW
+        VSOUT_DRAW_ID
+      #endif
+    };
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  USE_UNPACK_UNIT_VECTOR_VS()
+
+  hlsl(vs) {
+    VsOutput dynamic_decal_vs(VsInput input HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(get_draw_id() & MATERIAL_OFFSET_MASK);
+      #endif
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // unpack texcoord0
+      float2 diffuseTexcoord = input.diffuseTexcoord / 4096.;
+
+      // Skinning.
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = unpack_unit_vector(input.normal.rgb);
+      float3 localDu;
+      float3 localDv;
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      // Move decal a bit closer to camera, same as in rendinst decals
+      float3 eyeToShiftedPoint = eyeToPoint - normalize(eyeToPoint) * DECAL_TO_CAMERA_OFFSET;
+      ##if in_editor_assume == yes
+        output.pos = mulPointTm(world_view_pos + eyeToShiftedPoint, viewProjTm);
+      ##else
+        output.pos = mulPointTm(eyeToShiftedPoint, viewProjTm);
+      ##endif
+
+      SET_DIFFUSETC(output.diffuseTexcoord.xy, diffuseTexcoord);
+      ##if deferred
+        output.diffuseTexcoord.z = output.pos.w;
+      ##endif
+
+      #if HAS_NORMAL
+        worldNormal = normalize(worldNormal);
+        output.pointToEye.xyz = -eyeToPoint;
+        output.normal.xyz = worldNormal;
+      #endif
+
+      #if COLOR_NEEDED
+        output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
+      #endif
+      return output;
+    }
+  }
+  compile("target_vs", "dynamic_decal_vs");
+
+endmacro

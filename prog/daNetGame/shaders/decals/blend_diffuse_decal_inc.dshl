@@ -1,0 +1,126 @@
+include "normaldetail.dshl"
+include "decals/decal_painted_inc.dshl"
+include "decals/deferred_decal_inc.dshl"
+
+
+macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+
+  if (normal != NULL)
+  {
+    hlsl {
+      #define BLEND_GBUFFER 1
+      #define HAS_NORMAL 1
+    }
+    USE_PIXEL_TANGENT_SPACE()
+    if (deferred)
+    {
+      REDUCE_GBUFFER_MRT_MOBILE()
+    }
+    WRITE_GBUFFER()
+    (ps) { normal_tex@static = normal; }
+  }
+  else if (deferred && compatibility_mode == compatibility_mode_on)
+  {
+    hlsl {
+      #define BLEND_GBUFFER 1
+      #define HAS_NORMAL 1
+    }
+    WRITE_GBUFFER()
+  }
+  (ps) { diffuse_tex@static = tex; }
+endmacro
+
+macro BLEND_DIFFUSE_DECAL_PS(deferred)
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+
+  if (deferred)
+  {
+    DEFERRED_DECAL_DEPTH()
+  }
+
+  static float4 gamma_mask = (1,1,0,0); //x for albedo, y for normal
+  (ps) { gamma_mask@f2 = gamma_mask; }
+
+  USE_CHARACTER_MICRODETAIL()
+  USE_CONST_COLOR_OVERRIDES()
+  USE_DECAL_PAINTED()
+
+  hlsl(ps) {
+#if HAS_NORMAL
+    GBUFFER_OUTPUT simple_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      ##if deferred && compatibility_mode == compatibility_mode_on && normal == NULL
+        half4 packedNormalMap = 0;
+      ##else
+        half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy);
+      ##endif
+      half3 albedo = 0;
+      half alpha;
+      half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+      diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+      ##if deferred && atest == atestOn
+        alpha = smoothstep(0.5-0.05, 0.5+0.05, diffuseColor.a);
+      ##else
+        alpha = diffuseColor.a;
+      ##endif
+      albedo = diffuseColor.rgb;
+      half smoothness = packedNormalMap.r;
+      half metalness = packedNormalMap.b;
+      ##if deferred && compatibility_mode == compatibility_mode_on && normal == NULL
+        half3 worldNormal = normalize(input.normal);
+      ##else
+        half3 normalMap = unpack_ag_normal(packedNormalMap);
+        half3 vertexNormal = normalize(input.normal);
+        half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+      ##endif
+      BRANCH
+      if (character_micro_detail_layer >= 0)
+      {
+        half reflectance = 0.5;
+        apply_character_micro_detail(
+          sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+          albedo.rgb, worldNormal, reflectance, smoothness);
+      }
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, albedo.rgb);
+      init_smoothness(result, smoothness);
+      init_normal(result, worldNormal);
+      init_metalness(result, metalness);
+      half alpha_albedo = pow(alpha, get_gamma_mask().x);
+      half3 alpha_mask = half3(alpha_albedo, pow(alpha, get_gamma_mask().y), alpha_albedo);
+      ##if deferred
+        alpha_mask *= read_depth_mask(GET_SCREEN_POS(input.pos).xy, input.diffuseTexcoord.z);
+      ##endif
+      return encode_gbuffer_alpha3(result, alpha_mask, input.pointToEye, GET_SCREEN_POS(input.pos));
+    }
+#else
+    float4 simple_decal_ps(VsOutput input) : SV_Target0
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      ##if deferred
+        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+        diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+        ##if atest == atestOn
+          half alpha = smoothstep(0.5-0.05, 0.5+0.05, diffuseColor.a);
+        ##else
+          half alpha = diffuseColor.a;
+        ##endif
+        return float4(diffuseColor.rgb, alpha*read_depth_mask(GET_SCREEN_POS(input.pos).xy, input.diffuseTexcoord.z));
+      ##else
+        return MOBILE_PS_OUTPUT_WRAPPER(tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy));
+      ##endif
+    }
+#endif
+  }
+
+  compile("target_ps", "simple_decal_ps");
+endmacro

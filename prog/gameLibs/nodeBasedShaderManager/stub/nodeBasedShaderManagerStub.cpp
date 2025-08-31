@@ -19,4 +19,3 @@ bool NodeBasedShaderManager::compileShaderProgram(const DataBlock &, String &, P
 void NodeBasedShaderManager::saveToFile(const String &, PLATFORM) const {}
 void NodeBasedShaderManager::getShadersBinariesFileNames(const String &, Tab<String> &, PLATFORM) const {}
 void NodeBasedShaderManager::enableOptionalGraph(const String &, bool) {}
-const DataBlock &NodeBasedShaderManager::getMetadata() const { return emptyBlk; }

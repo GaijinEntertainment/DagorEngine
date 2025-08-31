@@ -97,6 +97,14 @@ struct FrameFeatures
   int featuresSizeInVec4f = 0;
   int trajectorySizeInVec4f = 0;
 
+  enum class FeatureType
+  {
+    TRAJECTORY_POSITION,
+    TRAJECTORY_DIRECTION,
+    NODE_POSITION,
+    NODE_VELOCITY,
+  };
+
   void init(int frames, int node_count, int trajectory_point_count)
   {
     trajectoryPointCount = trajectory_point_count;
@@ -108,6 +116,31 @@ struct FrameFeatures
     data.resize(frames * featuresSizeInVec4f, v_zero());
   }
 
+  int getFeatureOffset(FeatureType type, int idx) const
+  {
+    if (type == FeatureType::TRAJECTORY_POSITION)
+    {
+      G_ASSERT(idx >= 0 && idx < trajectoryPointCount);
+      return idx * sizeof(Point2);
+    }
+    else if (type == FeatureType::TRAJECTORY_DIRECTION)
+    {
+      G_ASSERT(idx >= 0 && idx < trajectoryPointCount);
+      return (trajectoryPointCount + idx) * sizeof(Point2);
+    }
+    else if (type == FeatureType::NODE_POSITION)
+    {
+      G_ASSERT(idx >= 0 && idx < nodeCount);
+      return trajectorySizeInVec4f * sizeof(vec4f) + idx * sizeof(Point3);
+    }
+    else if (type == FeatureType::NODE_VELOCITY)
+    {
+      G_ASSERT(idx >= 0 && idx < nodeCount);
+      return trajectorySizeInVec4f * sizeof(vec4f) + (nodeCount + idx) * sizeof(Point3);
+    }
+    G_ASSERT_RETURN(false, -1);
+  }
+
   void validateFrameOOB(int frame) const
   {
     G_UNUSED(frame); // compiles in release
@@ -115,6 +148,11 @@ struct FrameFeatures
       featuresSizeInVec4f, data.size());
   }
 
+  dag::ConstSpan<vec4f> get_features_raw(int frame) const
+  {
+    validateFrameOOB(frame);
+    return make_span_const(data.data() + frame * featuresSizeInVec4f, featuresSizeInVec4f);
+  }
   dag::Span<vec4f> get_trajectory_features(int frame)
   {
     validateFrameOOB(frame);
@@ -150,6 +188,11 @@ struct FrameFeatures
     return make_span(reinterpret_cast<Point3 *>(data.data() + offset + trajectorySizeInVec4f) + nodeCount, nodeCount);
   }
 
+  dag::ConstSpan<vec4f> get_trajectory_features(int frame) const
+  {
+    validateFrameOOB(frame);
+    return make_span(data.data() + frame * featuresSizeInVec4f, trajectorySizeInVec4f);
+  }
   dag::ConstSpan<Point2> get_root_positions(int frame) const
   {
     validateFrameOOB(frame);

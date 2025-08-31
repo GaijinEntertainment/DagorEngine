@@ -34,7 +34,7 @@ shader water_depth_nv2, water_depth_nv2_heightmap, water_depth_distant
         return float4(0,0,0,0);
       }
     ##else
-      float4 water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+      float4 water_nv_ps() : SV_Target0
       {
         return float4(0,0,0,0);
       }

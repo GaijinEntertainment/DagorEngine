@@ -68,7 +68,7 @@ assets {
         dynamic_facing_leaves:t="rendinst_facing_leaves"
         dynamic_glass_chrome:t="rendinst_glass_chrome"
         dynamic_masked_chrome_bump:t="rendinst_simple"
-	      dynamic_perlin_layered:t="rendinst_perlin_layered"
+        dynamic_perlin_layered:t="rendinst_perlin_layered"
       }
     }
 
@@ -144,6 +144,7 @@ assets {
         dynamic_skin:t="dynamic_skin"
         dynamic_spline_attachment:t="dynamic_spline_attachment"
         dynamic_spline_gen:t="dynamic_spline_gen"
+        dynamic_emissive_spline_gen:t="dynamic_emissive_spline_gen"
         dynamic_spline_gen_culler:t="dynamic_spline_gen_culler"
         dynamic_tank_atest:t="dynamic_tank_atest"
         dynamic_tank_selfillum:t="dynamic_tank_selfillum"

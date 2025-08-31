@@ -5,6 +5,7 @@
 #include <Jolt/Jolt.h>
 
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaleHelpers.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
@@ -35,6 +36,12 @@ ScaledShape::ScaledShape(const ScaledShapeSettings &inSettings, ShapeResult &out
 {
 	if (outResult.HasError())
 		return;
+
+	if (ScaleHelpers::IsZeroScale(inSettings.mScale))
+	{
+		outResult.SetError("Can't use zero scale!");
+		return;
+	}
 
 	outResult.Set(this);
 }
@@ -132,9 +139,9 @@ void ScaledShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubSh
 	mInnerShape->CollidePoint(inv_scale * inPoint, inSubShapeIDCreator, ioCollector, inShapeFilter);
 }
 
-void ScaledShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+void ScaledShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const
 {
-	mInnerShape->CollideSoftBodyVertices(inCenterOfMassTransform, inScale * mScale, ioVertices, inNumVertices, inDeltaTime, inDisplacementDueToGravity, inCollidingShapeIndex);
+	mInnerShape->CollideSoftBodyVertices(inCenterOfMassTransform, inScale * mScale, inVertices, inNumVertices, inCollidingShapeIndex);
 }
 
 void ScaledShape::CollectTransformedShapes(const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale, const SubShapeIDCreator &inSubShapeIDCreator, TransformedShapeCollector &ioCollector, const ShapeFilter &inShapeFilter) const
@@ -173,6 +180,11 @@ float ScaledShape::GetVolume() const
 bool ScaledShape::IsValidScale(Vec3Arg inScale) const
 {
 	return mInnerShape->IsValidScale(inScale * mScale);
+}
+
+Vec3 ScaledShape::MakeScaleValid(Vec3Arg inScale) const
+{
+	return mInnerShape->MakeScaleValid(mScale * inScale) / mScale;
 }
 
 void ScaledShape::sCollideScaledVsShape(const Shape *inShape1, const Shape *inShape2, Vec3Arg inScale1, Vec3Arg inScale2, Mat44Arg inCenterOfMassTransform1, Mat44Arg inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1, const SubShapeIDCreator &inSubShapeIDCreator2, const CollideShapeSettings &inCollideShapeSettings, CollideShapeCollector &ioCollector, const ShapeFilter &inShapeFilter)

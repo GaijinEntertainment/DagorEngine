@@ -1,10 +1,17 @@
 Root    ?= ../.. ;
 Location = outerSpace/prog ;
 Game = outer_space ;
-TargetType  = exe ;
-Target     ?= $(Game) ;
+GameMainVromFilePath = outer_space.vromfs.bin ;
+
+include $(Root)/prog/daNetGame/target_name_rules.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+TargetType ?= exe ;
+if $(Dedicated) != yes { TargetType = exe ; }
+UseHostedInternalServer = yes ;
+Target     ?= [ CorrectTargetName ] ;
 TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
 UseSystemOpenSSL = no ;
+PlatformArch_windows = x86_64 ;
 
 NOCARE $(Root)/$(Location)/def.jam ;
 include $(Root)/$(Location)/def.jam ;
@@ -26,12 +33,10 @@ if $(Dedicated) != yes && $(Platform) in windows && $(PlatformArch) != arm64 {
 UseEpic = no ;
 ContentUpdater = no ;
 
-if $(Dedicated) = yes { Target = $(Game)-ded ; }
-
 SetupOutputDir ;
 
 GameDir = $(Root)/outerSpace/game ;
-OutDir = $(GameDir)/$(LegacyPlatformSuffix) ;
+OutDir = $(GameDir)/$(Platform)-$(PlatformArch) ;
 
 local AllSrcFolder_CPP = ;
 local AllSrcFolder_ES = ;
@@ -60,6 +65,7 @@ AllSrcFolder_CPP = ;
 GameAuthKey_linux    = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
 GameAuthKeyPlatformListPairs = linux linux ;
 #GamePublicKeyDER = ;
+
 include $(Root)/$(Location)/logCryptKey.jam ;
 include $(Root)/prog/daNetGame/game.jam ;
 
@@ -102,6 +108,9 @@ if $(Dedicated) = no {
     daNetGameLibs/render_debug
   ;
 }
+else {
+  UseProgLibs += engine/drv/drv3d_stub ;
+}
 
 if $(HaveRenderer) = yes {
   gamePulls += framework_blurred_ui_pull ;
@@ -139,6 +148,7 @@ if $(Dedicated) != yes {
     ;
     opt on main/apple_main.mm = -D__S(X)=#X -DDAGOR_MACOSX_CONTENTS=__S(../../..) ;
 
+    if $(PlatformArch) = arm64 { BundleName = $(BundleName)Arm64 ; }
     if $(Config) = rel {
       CopyTo = $(OutDir)/$(BundleName) ;
       OutDir = $(OutDir)/../../rel-build/$(BundleName).app/Contents/MacOS ;
@@ -212,28 +222,6 @@ if $(Dedicated) != yes {
     if $(FmodStudio) && $(FmodStudio) != src {
       for l in $(FmodStudioSharedLibs) { BundleCopy += @$(l) libs/$(PlatformArch)/$(l:D=) ; }
     }
-    if $(Config) != rel {
-      local vulkan_libs = ;
-      if $(AndroidNdkVer) in r23b {
-        vulkan_libs = libVkLayer_khronos_validation.so ;
-      } else if $(AndroidNdkVer) in r25c {
-        # no more vulkan layers in ndk
-      } else {
-        vulkan_libs =
-          libVkLayer_core_validation.so
-          libVkLayer_object_tracker.so
-          libVkLayer_parameter_validation.so
-          libVkLayer_threading.so
-          libVkLayer_unique_objects.so
-        ;
-      }
-      for l in $(vulkan_libs) {
-        BundleCopy +=
-          @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(PlatformArch)/$(l)
-            libs/$(PlatformArch)/$(l)
-        ;
-      }
-    }
 
     include $(Root)/prog/engine/osApiWrappers/messageBox/android-bundle.jam ;
 
@@ -276,10 +264,12 @@ if $(VRDeviceSupport) = yes {
   }
 }
 
+if $(DumpBuildCmds) != yes {
 echo building Target\=$(Target) to $(_Output) "
   "\ using\ GlobalCPPopt\=$(GlobalCPPopt:J=" ") "
   "\ using\ CPPopt\=$(CPPopt:J=" ") "
   " HaveRenderer\=$(HaveRenderer) HaveFx\=$(HaveFx) HaveSound\=$(HaveSound) HaveTamVoice\=$(HaveTamVoice)
     HaveEnlist\=$(HaveEnlist) HaveWebui\=$(HaveWebui) HaveConsole\=$(HaveConsole) HaveEditor\=$(HaveEditor) ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

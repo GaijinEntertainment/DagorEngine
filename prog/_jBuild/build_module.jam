@@ -1,0 +1,73 @@
+StrictCompile = yes ;
+TargetType  = lib ;
+TargetCodeName = $(ModulePrefix)-$(Module).framework ;
+
+local module_m = $(Module) ;
+rule MangleDngModuleName # depend_on_var_list : config_var : value : suffix
+{
+  if $(2) in $(1) { if $($(2)) = $(3) { module_m = $(module_m)~$(4) ; } }
+}
+
+MangleDngModuleName $(ModuleDependsOnVars) : Dedicated : yes : srv ;
+if $(Dedicated) != yes || ! Dedicated in $(ModuleDependsOnVars) {
+  MangleDngModuleName $(ModuleDependsOnVars) : HaveRenderer     : no : nr ;
+  MangleDngModuleName $(ModuleDependsOnVars) : HaveSound        : no : ns ;
+  MangleDngModuleName $(ModuleDependsOnVars) : HaveEditor       : no : ne ;
+  MangleDngModuleName $(ModuleDependsOnVars) : HaveAssetManager : no : na ;
+}
+MangleDngModuleName $(ModuleDependsOnVars) : HaveSoundNet     : no : nsn ;
+MangleDngModuleName $(ModuleDependsOnVars) : UseModulesDM     : no : nd ;
+MangleDngModuleName $(ModuleDependsOnVars) : UseModulesWeapon : no : nw ;
+MangleDngModuleName $(ModuleDependsOnVars) : UseGPUReadbackModule : no : nrb ;
+
+if $(UseSyncDebugLib) = no || ! [ GLOB $(Root)/prog/gameLibs/syncDebug : * ] {
+  module_m = $(module_m)~nsd ;
+  CPPopt += -DDISABLE_SYNC_DEBUG ;
+}
+if $(NeedDasAotCompile) != yes { module_m = $(module_m)~no-aot ; }
+UseD3DMulti       ?= yes ;
+CheckedContainers ?= yes ;
+Exceptions        ?= no ;
+UseQuirrel        ?= sq3r ;
+
+Target = $(ModulePrefix)-$(module_m).lib ;
+module_m = ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/_jBuild/autoscan.jam ;
+if PhysName in $(ModuleDependsOnVars) { include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ; }
+
+#need to clear sources list because it can be not empty
+Sources = ;
+SourceES = ;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+
+AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+if $(DasModule) {
+  AutoscanBuildListsAndPull $(AllSrcFolder_DAS) : $(DasModule) ;
+}
+
+# build _es_pull jamvar/cpp
+$(Target)_es_pull = daECS/core/componentType.h framework_$(Module)_pull $(AddPullVars) ;
+for s in $(SourceES) {
+  local pullvar = [ MATCH "(.+)ES.cpp.inl$" : $(s:D=) ] ;
+  $(Target)_es_pull += $(pullvar) ;
+}
+
+$(Target)_es_pull_action = make_es_pull_cpp ;
+
+Sources += $(Target)_es_pull.jamvar ;
+SourceES = ;
+AddPullVars = ;
+
+include $(Root)/prog/_jBuild/build.jam ;
+
+AllSrcFolder_CPP = ;
+AllSrcFolder_DAS = ;
+AllSrcFolder_ES = ;
+Module = ;
+ModulePrefix = ;
+ModuleDependsOnVars = ;

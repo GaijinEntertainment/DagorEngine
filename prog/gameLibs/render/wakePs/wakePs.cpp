@@ -157,8 +157,11 @@ ParticleSystem::ParticleSystem(EffectManager *in_manager, const MainParams &main
   G_ASSERT(main_params.diffuseTexId != BAD_TEXTUREID);
 
   diffuseTexVarId = ::get_shader_variable_id("wfx_diffuse");
+  diffuseTex_samplerstateVarId = ::get_shader_variable_id("wfx_diffuse_samplerstate", true);
   distortionTexVarId = ::get_shader_variable_id("wfx_distortion");
+  distortionTex_samplerstateVarId = ::get_shader_variable_id("wfx_distortion_samplerstate", true);
   gradientTexVarId = ::get_shader_variable_id("wfx_gradient");
+  gradientTex_samplerstateVarId = ::get_shader_variable_id("wfx_gradient_samplerstate", true);
   countVarId = ::get_shader_variable_id("wfx_count");
   offsetVarId = ::get_shader_variable_id("wfx_offset");
   limitVarId = ::get_shader_variable_id("wfx_limit");
@@ -375,7 +378,7 @@ void ParticleSystem::update(float dt)
   STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, EMITTER_BUFFER_REGISTER, VALUE), emitterBuffer.getSbuffer());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, PARTICLE_BUFFER_REGISTER, VALUE), particleBuffer.get());
 
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, PARTICLE_RENDER_BUFFER_REGISTER, VALUE), particleRenderBuffer.get());
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, PARTICLE_RENDER_BUFFER_REGISTER_FOR_UPDATE, VALUE), particleRenderBuffer.get());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, INDIRECT_REGISTER, VALUE), indirectBuffer.get());
 
   manager->clearShader->dispatch(1, 1, 1);
@@ -399,7 +402,7 @@ void ParticleSystem::update(float dt)
     }
   }
   d3d::resource_barrier({particleBuffer.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-  d3d::resource_barrier({particleRenderBuffer.get(), RB_RO_SRV | RB_STAGE_VERTEX});
+  d3d::resource_barrier({particleRenderBuffer.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
   d3d::resource_barrier({indirectBuffer.get(), RB_RO_INDIRECT_BUFFER});
 }
 
@@ -410,11 +413,14 @@ bool ParticleSystem::render()
 
   d3d::set_buffer(STAGE_VS, PARTICLE_RENDER_BUFFER_REGISTER, particleRenderBuffer.get());
   ShaderGlobal::set_texture(diffuseTexVarId, mainParams.diffuseTexId);
+  ShaderGlobal::set_sampler(diffuseTex_samplerstateVarId, mainParams.diffuseSampler);
   if ((mainParams.renderType == RENDER_HEIGHT_DISTORTED) || (mainParams.renderType == RENDER_FOAM_DISTORTED) ||
       (mainParams.renderType == RENDER_FOAM_MASK))
   {
     ShaderGlobal::set_texture(distortionTexVarId, mainParams.distortionTexId);
+    ShaderGlobal::set_sampler(distortionTex_samplerstateVarId, mainParams.distortionSampler);
     ShaderGlobal::set_texture(gradientTexVarId, mainParams.gradientTexId);
+    ShaderGlobal::set_sampler(gradientTex_samplerstateVarId, mainParams.gradientSampler);
   }
 
   manager->renderShaders[mainParams.renderType].shader->setStates(0, true);
@@ -560,8 +566,7 @@ void EffectManager::initRes()
   for (int renderType = 0; renderType < ParticleSystem::RENDER_TYPE_END; renderType++)
     renderShaders[renderType].init(SHADER_NAMES[renderType], NULL, 0, SHADER_NAMES[renderType]);
 
-  randomBuffer = dag::create_tex(NULL, RANDOM_BUFFER_RESOLUTION_X, RANDOM_BUFFER_RESOLUTION_Y, TEXFMT_A8R8G8B8 | TEXCF_MAYBELOST, 1,
-    "wfxRandomBuffer");
+  randomBuffer = dag::create_tex(NULL, RANDOM_BUFFER_RESOLUTION_X, RANDOM_BUFFER_RESOLUTION_Y, TEXFMT_A8R8G8B8, 1, "wfxRandomBuffer");
   uint8_t *randomBufferData = NULL;
   int randomBufferStride = 0;
   if (!randomBuffer->lockimg((void **)&randomBufferData, randomBufferStride, 0, TEXLOCK_WRITE) || !randomBufferData)
@@ -571,7 +576,6 @@ void EffectManager::initRes()
       for (int c = 0; c < 4; ++c)
         randomBufferData[x * 4 + c] = clamp(gauss_rnd() * 0.5f + 0.5f, 0.0f, 1.0f) * 255;
   randomBuffer->unlockimg();
-  randomBuffer->texaddr(TEXADDR_WRAP);
 }
 
 void EffectManager::releaseRes()
@@ -621,9 +625,9 @@ void EffectManager::update(float dt)
 
   for (auto &pSystem : pSystems)
   {
-    d3d::set_tex(STAGE_CS, RANDOM_BUFFER_REGISTER, randomBuffer.get(), false);
+    d3d::set_tex(STAGE_CS, RANDOM_BUFFER_REGISTER, randomBuffer.get());
     pSystem->emit(dt);
-    d3d::set_tex(STAGE_CS, RANDOM_BUFFER_REGISTER, NULL, false);
+    d3d::set_tex(STAGE_CS, RANDOM_BUFFER_REGISTER, NULL);
 
     pSystem->update(dt);
   }

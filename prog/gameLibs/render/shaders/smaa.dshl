@@ -1,0 +1,171 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "postfx_inc.dshl"
+
+texture smaa_color_tex;
+texture smaa_edges_tex;
+texture smaa_blend_tex;
+texture smaa_area_tex;
+texture smaa_search_tex;
+sampler smaa_point_sampler;
+sampler smaa_linear_sampler;
+float4 smaa_rt_size = (1, 1, 1, 1);
+
+int smaa_stencil_test = 0;
+interval smaa_stencil_test: no < 0, yes;
+
+shader smaa_edge_detection, smaa_blend_weights, smaa_neighborhood_blending
+{
+  supports global_frame;
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  (vs) { smaa_rt_size@f4 = smaa_rt_size; }
+  (ps)
+  {
+    smaa_rt_size@f4 = smaa_rt_size;
+    PointSampler@sampler = smaa_point_sampler;
+    LinearSampler@sampler = smaa_linear_sampler;
+  }
+  hlsl(ps)
+  {
+    #define SMAA_CUSTOM_SAMPLERS 1
+  }
+  hlsl
+  {
+    #define SMAA_RT_METRICS smaa_rt_size
+    #define SMAA_HLSL_4
+    #define SMAA_PRESET_HIGH
+    #include "../../../prog/3rdPartyLibs/SMAA/SMAA.hlsl"
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  if (shader == smaa_edge_detection)
+  {
+    if (smaa_stencil_test == yes)
+    {
+      stencil = true;
+      stencil_func = always;
+      stencil_ref = 1;
+      stencil_zfail = keep;
+      stencil_fail = keep;
+      stencil_pass = replace;
+    }
+    hlsl
+    {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        noperspective float2 texcoord  : TEXCOORD0;
+        noperspective float4 offset[3] : TEXCOORD1;
+      };
+    }
+    hlsl(vs)
+    {
+      VsOutput smaa_vs(uint vertexId : SV_VertexID)
+      {
+        VsOutput output;
+        float2 inpos = getPostfxVertexPositionById(vertexId);
+        output.pos = float4(inpos, 0, 1);
+        output.texcoord = screen_to_texcoords(inpos);
+        SMAAEdgeDetectionVS(output.texcoord, output.offset);
+        return output;
+      }
+    }
+    (ps) { smaa_color_tex@tex2d = smaa_color_tex; }
+    hlsl(ps)
+    {
+      float2 smaa_ps(VsOutput input): SV_Target0
+      {
+        return SMAALumaEdgeDetectionPS(input.texcoord, input.offset, smaa_color_tex);
+      }
+    }
+  }
+  else if (shader == smaa_blend_weights)
+  {
+    if (smaa_stencil_test == yes)
+    {
+      stencil = true;
+      stencil_func = equal;
+      stencil_ref = 1;
+      stencil_zfail = keep;
+      stencil_fail = keep;
+      stencil_pass = keep;
+    }
+    hlsl
+    {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        noperspective float2 texcoord  : TEXCOORD0;
+        noperspective float2 pixcoord  : TEXCOORD1;
+        noperspective float4 offset[3] : TEXCOORD2;
+      };
+    }
+    hlsl(vs)
+    {
+      VsOutput smaa_vs(uint vertexId : SV_VertexID)
+      {
+        VsOutput output;
+        float2 inpos = getPostfxVertexPositionById(vertexId);
+        output.pos = float4(inpos, 0, 1);
+        output.texcoord = screen_to_texcoords(inpos);
+        SMAABlendingWeightCalculationVS(output.texcoord, output.pixcoord, output.offset);
+        return output;
+      }
+    }
+    (ps)
+    {
+      smaa_edges_tex@tex2d = smaa_edges_tex;
+      smaa_area_tex@tex2d = smaa_area_tex;
+      smaa_search_tex@tex2d = smaa_search_tex;
+    }
+    hlsl(ps)
+    {
+      float4 smaa_ps(VsOutput input): SV_Target0
+      {
+        return SMAABlendingWeightCalculationPS(input.texcoord, input.pixcoord, input.offset, smaa_edges_tex,
+          smaa_area_tex, smaa_search_tex, float4(0,0,0,0));
+      }
+    }
+  }
+  else if (shader == smaa_neighborhood_blending)
+  {
+    hlsl
+    {
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        noperspective float2 texcoord : TEXCOORD0;
+        noperspective float4 offset   : TEXCOORD1;
+      };
+    }
+    hlsl(vs)
+    {
+      VsOutput smaa_vs(uint vertexId : SV_VertexID)
+      {
+        VsOutput output;
+        float2 inpos = getPostfxVertexPositionById(vertexId);
+        output.pos = float4(inpos, 0, 1);
+        output.texcoord = screen_to_texcoords(inpos);
+        SMAANeighborhoodBlendingVS(output.texcoord, output.offset);
+        return output;
+      }
+    }
+    (ps)
+    {
+      smaa_color_tex@tex2d = smaa_color_tex;
+      smaa_blend_tex@tex2d = smaa_blend_tex;
+    }
+    hlsl(ps)
+    {
+      float4 smaa_ps(VsOutput input): SV_Target0
+      {
+        return SMAANeighborhoodBlendingPS(input.texcoord, input.offset, smaa_color_tex, smaa_blend_tex);
+      }
+    }
+  }
+  compile("target_vs", "smaa_vs");
+  compile("target_ps", "smaa_ps");
+}

@@ -499,9 +499,8 @@ void TemplateRefs::emplace(Template &&t, Template::ParentsList &&parents)
     templates[nid] = eastl::move(t);
   }
 #if DAECS_EXTENSIVE_CHECKS
-  for (size_t i = 0, e = templates.size(); i != e; ++i)
-    for (auto p : templates[nid].parents)
-      DAECS_EXT_ASSERTF(p < templates.size(), "%d <= %d %s", templates.size(), p, t.getName());
+  for (auto p : templates[nid].parents)
+    DAECS_EXT_ASSERTF(p < templates.size(), "%d <= %d %s", templates.size(), p, t.getName());
 #endif
   templates[nid].name = templatesIds.getName(nid);
 #if DAGOR_DBGLEVEL > 0
@@ -716,7 +715,9 @@ void TemplateRefs::finalize(uint32_t tag)
         }
 #endif
       if (c.second.isNull() && mgr && !mgr->getDataComponents().hasComponent(c.first) && !getComponentType(c.first))
-        logerr("template %s at %s has component %s that is not defined in code", t.getName(), t.getPath(), getComponentName(c.first));
+        if (!ignoreCompNm || (ignoreCompNm->nameCount() && ignoreCompNm->getNameId(getComponentName(c.first)) < 0))
+          logerr("template %s at %s has component %s that is not defined in code", t.getName(), t.getPath(),
+            getComponentName(c.first));
     }
 #endif
 #if DAGOR_DBGLEVEL > 0
@@ -744,7 +745,7 @@ void TemplateDB::addTemplates(TemplateRefs &trefs, uint32_t tag)
   if (trefs.getEmptyCount() == 0 && templates.empty())
   {
     debug("fast path of templates move");
-    ((TemplatesData &)*this) = eastl::move((TemplatesData &&) trefs);
+    ((TemplatesData &)*this) = eastl::move((TemplatesData &&)trefs);
     instantiatedTemplates.resize(templates.size());
   }
   else

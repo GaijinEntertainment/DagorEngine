@@ -422,6 +422,12 @@ public:
     parent.assign(index, eastl::move(u));
   }
 
+  template <>
+  void assign(ElementProxy &&u)
+  {
+    u.visit([this](auto &&v) { assign(eastl::move(v)); });
+  }
+
   template <typename V>
   auto visit(V &&v) const
   {

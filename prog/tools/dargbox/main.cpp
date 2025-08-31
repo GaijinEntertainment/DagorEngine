@@ -20,7 +20,6 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texPackMgr2.h>
 #include <fx/dag_commonFx.h>
-#include <fx/dag_fxInterface.h>
 #include <gui/dag_guiStartup.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
@@ -164,7 +163,6 @@ static void post_shutdown_handler()
   PictureManager::release();
   DEBUG_CTX("shutdown!");
   shutdown_game(RESTART_INPUT);
-  EffectsInterface::shutdown();
   shutdown_game(RESTART_ALL);
   cpujobs::term(false, 0);
 
@@ -179,8 +177,8 @@ static void post_shutdown_handler()
 
 static struct Reset3DCallback : public IDrv3DResetCB
 {
-  virtual void beforeReset(bool full_reset) { PictureManager::before_d3d_reset(); }
-  virtual void afterReset(bool full_reset)
+  void beforeReset(bool full_reset) override { PictureManager::before_d3d_reset(); }
+  void afterReset(bool full_reset) override
   {
     debug("Reset3DCallback::afterReset");
     debug_flush(false);
@@ -278,14 +276,15 @@ static void dagor_main(int nCmdShow)
     }
 
 
-  bool useVromSrc = false;
+  bool useAddonVromSrc = false;
   if (const DataBlock *debugBlk = dgs_get_settings()->getBlockByName("debug"))
-    useVromSrc = debugBlk->getBool("useVromSrc", false) || debugBlk->getBool("useAddonVromSrc", false);
+    useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
 
   if (const DataBlock *mnt = ::dgs_get_settings()->getBlockByName("mountPoints"))
   {
-    dblk::iterate_child_blocks(*mnt,
-      [p = useVromSrc ? "forSource" : "forVromfs"](const DataBlock &b) { dd_set_named_mount_path(b.getBlockName(), b.getStr(p)); });
+    dblk::iterate_child_blocks(*mnt, [p = useAddonVromSrc ? "forSource" : "forVromfs"](const DataBlock &b) {
+      dd_set_named_mount_path(b.getBlockName(), b.getStr(p));
+    });
     dd_dump_named_mounts();
   }
 
@@ -425,7 +424,6 @@ static void dagor_main(int nCmdShow)
     ShaderGlobal::enableAutoBlockChange(true);
     ::register_effect_gameres_factory();
     ::register_all_common_fx_factories();
-    EffectsInterface::startup();
 
     ::load_res_packs_from_list(blkFx.getStr("res"));
   }
@@ -449,7 +447,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   for (;;) // infinite cycle
     ::dagor_work_cycle();
-  return 0;
+  return dargbox_get_exit_code(); // Not sure if we will ever get here, but just in case
 }
 
 #include <startup/dag_leakDetector.inc.cpp>

@@ -36,10 +36,9 @@ void capture_gbuffer::make_gbuffer_capture()
     console::command(String(0, "render.show_gbuffer %s", gbuffer_debug_options[i].data()));
 
     {
-      TMatrix itm;
       d3d::GpuAutoLock gpuLock;
-      before_draw_scene(0, 0, 0, ::get_cur_cam_entity(), itm);
-      draw_scene(itm);
+      before_draw_scene(0, 0, 0, ::get_cur_cam_entity());
+      draw_scene(0);
     }
 
     String fileNameOverride(0, "%s/%d_%s", dir, i, gbuffer_debug_options[i].data());

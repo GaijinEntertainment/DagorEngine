@@ -114,3 +114,4 @@ ECS_UNICAST_EVENT_TYPE(EventOnGunCreated, ecs::EntityId);
 ECS_UNICAST_EVENT_TYPE(EventOnGunPayloadCreated, ecs::EntityId, int, Point3, float, float, int);
 ECS_UNICAST_EVENT_TYPE(EventOnGunsPayloadDestroyed, ecs::EntityId);
 ECS_UNICAST_EVENT_TYPE(EventOnGunsPayloadAmmoUpdate, ecs::EntityId, ecs::IntList);
+ECS_UNICAST_EVENT_TYPE(CmdInitPlaneSight);

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "addEntitiesES.cpp.inl"
 ECS_DEF_PULL_VAR(addEntities);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc editable_entities_ecs_query_comps[] =
 {

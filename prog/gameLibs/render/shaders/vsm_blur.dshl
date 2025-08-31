@@ -1,0 +1,161 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+int vsm_positive = 0;
+interval vsm_positive:vsm_is_negative<1, vsm_is_positive;
+
+shader vsm_shadow_blur_y,vsm_shadow_blur_x
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+  no_ablend;
+
+
+  dynamic texture tex;
+  (ps) { tex@smp2d=tex; }
+
+  dynamic float4 texsz_consts=(.5,-.5,.5,.5);
+  (vs) { texsz_consts@f4 = texsz_consts; }
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      ##if shader == vsm_shadow_blur_x
+        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        float2 tc : TEXCOORD0;
+        ##else
+        float4 tc0 : TEXCOORD0;
+        float4 tc1 : TEXCOORD1;
+        float2 tc2 : TEXCOORD2;
+        float4 tc3 : TEXCOORD3;
+        ##endif
+      ##else
+        float4 tc0 : TEXCOORD0;
+        float4 tc1 : TEXCOORD1;
+        float4 tc2 : TEXCOORD2;
+      ##endif
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput vsm_blur_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      half2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.x, pos.y, 1, 1);
+
+      float2 tc = screen_to_texcoords(pos);
+      float2 texelSize = texsz_consts.zw;
+
+      ##if shader == vsm_shadow_blur_x
+        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        output.tc.xy = tc;
+        ##else
+        output.tc3.xy = tc - float2(3.0*texelSize.x,0);
+        output.tc0.xy = tc - float2(2.0*texelSize.x,0);
+        output.tc0.zw = tc - float2(1.0*texelSize.x,0);
+        output.tc1.xy = tc;
+        output.tc1.zw = tc + float2(1.0*texelSize.x,0);
+        output.tc2.xy = tc + float2(2.0*texelSize.x,0);
+        output.tc3.zw = tc - float2(3.0*texelSize.x,0);
+        ##endif
+      ##else
+        output.tc0.xy = tc - float2(0,1.5*texelSize.y);
+        output.tc0.zw = tc - float2(0,0.5*texelSize.y);
+        output.tc1.xy = tc + float2(0,0.5*texelSize.y);
+        output.tc1.zw = tc + float2(0,1.5*texelSize.y);
+
+        output.tc2.xy = tc - float2(0,2.5*texelSize.y);
+        output.tc2.zw = tc + float2(0,2.5*texelSize.y);
+      ##endif
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    /*float4 pack_z2(float2 z2)
+    {
+      float2 distribute = frac(z2*32.0);
+      return float4((z2-distribute*(1.0/32.0)),distribute);
+    }
+    float2 unpack_z2(float4 z2)
+    {
+      return z2.xy+z2.zw*(1.0/32.0);
+    }*/
+    #define pack_z2(a) a.xyxy
+    #define unpack_z2(a) a.xy
+    #define pack_z2_1 pack_z2
+    #define unpack_z2_1 unpack_z2
+
+    float4 vsm_blur_ps(VsOutput input) : SV_Target
+    {
+      ##if shader == vsm_shadow_blur_x
+        float4 DepthSamples0123;
+        float3 DepthSamples4;
+        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        #define texel2DOffset(tex, tc, offset) tex.Sample(tex_samplerstate, tc, offset)
+        DepthSamples4.y = texel2DOffset(tex, input.tc, int2(-3,0)).r;
+
+        DepthSamples0123.x = texel2DOffset(tex, input.tc, int2(-2,0)).r;
+
+        DepthSamples0123.y = texel2DOffset(tex, input.tc, int2(-1,0)).r;
+        DepthSamples0123.z = tex2D(tex, input.tc).r;
+        DepthSamples0123.w = texel2DOffset(tex, input.tc, int2(1,0)).r;
+        DepthSamples4.x = texel2DOffset(tex, input.tc, int2(2,0)).r;
+        DepthSamples4.z = texel2DOffset(tex, input.tc, int2(3,0)).r;
+        ##else
+        DepthSamples4.y = tex2D(tex, input.tc3.xy).r;
+        DepthSamples0123[0] = tex2D(tex, input.tc0.xy).r;
+        DepthSamples0123[1] = tex2D(tex, input.tc0.zw).r;
+        DepthSamples0123[2] = tex2D(tex, input.tc1.xy).r;
+        DepthSamples0123[3] = tex2D(tex, input.tc1.zw).r;
+        DepthSamples4.x = tex2D(tex, input.tc2.xy).r;
+        DepthSamples4.z = tex2D(tex, input.tc3.zw).r;
+        ##endif
+        ##if vsm_positive == vsm_is_positive
+          DepthSamples0123 = DepthSamples0123*2.0 - 0.9988;
+          DepthSamples4 = DepthSamples4*2.0 - 0.9988;
+        ##endif
+
+        float2 z_z2;
+        //z_z2.x  = dot( DepthSamples0123.xyzw,  float4( 1.0/16, 4.0/16, 6.0/16, 4.0/16 ) ) + DepthSamples4___.x * ( 1.0 / 16 );
+        z_z2.x  = dot( DepthSamples0123.xyzw,  float4( 6.0/64, 15.0/64, 20.0/64, 15.0/64 ) ) + dot(DepthSamples4.xyz, float3( 6.0 / 64, 1.0/64, 1.0/64 ));
+
+        DepthSamples0123.xyzw = DepthSamples0123.xyzw * DepthSamples0123.xyzw;
+        //DepthSamples4___.x    = DepthSamples4___.x    * DepthSamples4___.x;
+        DepthSamples4.xyz    = DepthSamples4.xyz  * DepthSamples4.xyz;
+        //z_z2.y = dot( DepthSamples0123.xyzw,  float4( 1.0/64, 4.0/64, 6.0/64, 4.0/64 ) ) + DepthSamples4___.x * ( 1.0 / 16 );
+        z_z2.y  = dot( DepthSamples0123.xyzw,  float4( 6.0/64, 15.0/64, 20.0/64, 15.0/64 ) ) + dot(DepthSamples4.xyz, float3( 6.0 / 64, 1.0/64, 1.0/64 ));
+
+        return pack_z2_1(z_z2);
+      ##else
+        // Note that this second pass of the separable filter can use filtered fetches (if support filtering)
+        // Fetch 4 samples which filter across a column of 5 pixels from the VSM
+        float4 t0, t1, t2;
+        t2.xy = unpack_z2_1(tex2D(tex, input.tc2.xy));
+        t0.xy = unpack_z2_1(tex2D(tex, input.tc0.xy));
+        t0.zw = unpack_z2_1(tex2D(tex, input.tc0.zw));
+        t1.xy = unpack_z2_1(tex2D(tex, input.tc1.xy));
+        t1.zw = unpack_z2_1(tex2D(tex, input.tc1.zw));
+        t2.zw = unpack_z2_1(tex2D(tex, input.tc2.zw));
+        float2 z_z2;
+        //5x5
+        //z_z2.x  = dot( float4( t0.x, t0.z, t1.x, t1.z ), float4( 2.0/16, 6.0/16, 6.0/16, 2.0/16 ) );
+        //z_z2.y = dot( float4( t0.y, t0.w, t1.y, t1.w ), float4( 2.0/16, 6.0/16, 6.0/16, 2.0/16 ) );
+
+        //7x7
+        //2 10 20 20 10 2
+        z_z2.x  = dot( float4( t0.xz, t1.xz ), float4( 10.0/64, 20.0/64, 20.0/64, 10.0/64 ) );
+        z_z2.x  += dot( t2.xz, float2( 2.0/64, 2.0/64 ) );
+        z_z2.y = dot( float4( t0.yw, t1.yw ), float4( 10.0/64, 20.0/64, 20.0/64, 10.0/64 ) );
+        z_z2.y  += dot( t2.yw, float2( 2.0/64, 2.0/64 ) );
+        return pack_z2(z_z2);
+      ##endif
+    }
+  }
+
+  compile("target_vs", "vsm_blur_vs");
+  compile("target_ps", "vsm_blur_ps");
+}

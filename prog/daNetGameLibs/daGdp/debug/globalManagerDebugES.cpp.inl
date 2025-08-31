@@ -72,8 +72,6 @@ void GlobalManager::imgui()
       ImGui::BulletText("View max draw distance: %f", view.info.maxDrawDistance);
       ImGui::BulletText("Max viewports: %" PRIu32, view.info.maxViewports);
       ImGui::BulletText("Total max instances %" PRIu32, builder.totalMaxInstances);
-      ImGui::BulletText("Max static instances per viewport: %" PRIu32, builder.maxStaticInstancesPerViewport);
-      ImGui::BulletText("Max dynamic instances: %" PRIu32, builder.dynamicInstanceRegion.maxCount);
       ImGui::BulletText("Renderables: %" PRIu32, builder.numRenderables);
 
       ImGui::TreePop();

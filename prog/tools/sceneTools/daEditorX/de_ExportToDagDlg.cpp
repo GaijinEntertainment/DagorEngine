@@ -3,7 +3,7 @@
 #include "de_ExportToDagDlg.h"
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <de3_entityFilter.h>
 
 #include <debug/dag_debug.h>

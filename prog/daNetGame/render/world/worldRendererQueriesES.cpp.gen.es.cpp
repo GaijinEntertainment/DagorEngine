@@ -1,7 +1,27 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "worldRendererQueriesES.cpp.inl"
 ECS_DEF_PULL_VAR(worldRendererQueries);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
+//static constexpr ecs::ComponentDesc camera_update_lods_scaling_es_comps[] ={};
+static void camera_update_lods_scaling_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  G_UNUSED(components);
+    camera_update_lods_scaling_es(*info.cast<ecs::UpdateStageInfoAct>());
+}
+static ecs::EntitySystemDesc camera_update_lods_scaling_es_es_desc
+(
+  "camera_update_lods_scaling_es",
+  "prog/daNetGame/render/world/worldRendererQueriesES.cpp.inl",
+  ecs::EntitySystemOps(camera_update_lods_scaling_es_all),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<ecs::UpdateStageInfoAct::STAGE)
+,"render",nullptr,"after_camera_sync","bvh_out_of_scope_riex_dist_es");
 //static constexpr ecs::ComponentDesc invalidate_clipmap_under_camera_es_comps[] ={};
 static void invalidate_clipmap_under_camera_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -20,34 +40,6 @@ static ecs::EntitySystemDesc invalidate_clipmap_under_camera_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc add_volfog_optional_graph_es_event_handler_comps[] =
-{
-//start of 1 ro components at [0]
-  {ECS_HASH("volfog"), ecs::ComponentTypeInfo<ecs::string>()}
-};
-static void add_volfog_optional_graph_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    add_volfog_optional_graph_es_event_handler(evt
-        , ECS_RO_COMP(add_volfog_optional_graph_es_event_handler_comps, "volfog", ecs::string)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc add_volfog_optional_graph_es_event_handler_es_desc
-(
-  "add_volfog_optional_graph_es",
-  "prog/daNetGame/render/world/worldRendererQueriesES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, add_volfog_optional_graph_es_event_handler_all_events),
-  empty_span(),
-  make_span(add_volfog_optional_graph_es_event_handler_comps+0, 1)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear,
-                       ecs::EventEntityDestroyed,
-                       ecs::EventComponentsDisappear>::build(),
-  0
-);
 static constexpr ecs::ComponentDesc move_indoor_light_probes_to_render_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -224,40 +216,12 @@ inline void get_camera_fov_ecs_query(ecs::EntityId eid, Callable function)
     }
   );
 }
-static constexpr ecs::ComponentDesc volfog_optional_graphs_ecs_query_comps[] =
-{
-//start of 1 ro components at [0]
-  {ECS_HASH("volfog"), ecs::ComponentTypeInfo<ecs::string>()}
-};
-static ecs::CompileTimeQueryDesc volfog_optional_graphs_ecs_query_desc
-(
-  "volfog_optional_graphs_ecs_query",
-  empty_span(),
-  make_span(volfog_optional_graphs_ecs_query_comps+0, 1)/*ro*/,
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void volfog_optional_graphs_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, volfog_optional_graphs_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RO_COMP(volfog_optional_graphs_ecs_query_comps, "volfog", ecs::string)
-            );
-
-        }while (++comp != compE);
-    }
-  );
-}
 static constexpr ecs::ComponentDesc gather_closest_occluders_ecs_query_comps[] =
 {
 //start of 4 ro components at [0]
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
 //start of 1 rq components at [4]
   {ECS_HASH("is_occluder"), ecs::ComponentTypeInfo<ecs::auto_type>()}
@@ -280,7 +244,7 @@ inline void gather_closest_occluders_ecs_query(Callable function)
           function(
               ECS_RO_COMP(gather_closest_occluders_ecs_query_comps, "collres", CollisionResource)
             , ECS_RO_COMP(gather_closest_occluders_ecs_query_comps, "transform", TMatrix)
-            , ECS_RO_COMP(gather_closest_occluders_ecs_query_comps, "animchar_visbits", uint8_t)
+            , ECS_RO_COMP(gather_closest_occluders_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP(gather_closest_occluders_ecs_query_comps, "animchar_bsph", vec4f)
             );
 
@@ -288,35 +252,63 @@ inline void gather_closest_occluders_ecs_query(Callable function)
     }
   );
 }
-static constexpr ecs::ComponentDesc find_custom_sky_renderer_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc try_render_custom_sky_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
 //start of 1 rq components at [1]
   {ECS_HASH("customSkyRenderer"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
-static ecs::CompileTimeQueryDesc find_custom_sky_renderer_ecs_query_desc
+static ecs::CompileTimeQueryDesc try_render_custom_sky_ecs_query_desc
 (
-  "find_custom_sky_renderer_ecs_query",
+  "try_render_custom_sky_ecs_query",
   empty_span(),
-  make_span(find_custom_sky_renderer_ecs_query_comps+0, 1)/*ro*/,
-  make_span(find_custom_sky_renderer_ecs_query_comps+1, 1)/*rq*/,
+  make_span(try_render_custom_sky_ecs_query_comps+0, 1)/*ro*/,
+  make_span(try_render_custom_sky_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult find_custom_sky_renderer_ecs_query(Callable function)
+inline ecs::QueryCbResult try_render_custom_sky_ecs_query(Callable function)
 {
-  return perform_query(g_entity_mgr, find_custom_sky_renderer_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+  return perform_query(g_entity_mgr, try_render_custom_sky_ecs_query_desc.getHandle(),
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           if (function(
-              ECS_RO_COMP(find_custom_sky_renderer_ecs_query_comps, "eid", ecs::EntityId)
+              ECS_RO_COMP(try_render_custom_sky_ecs_query_comps, "eid", ecs::EntityId)
             ) == ecs::QueryCbResult::Stop)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
+  );
+}
+static constexpr ecs::ComponentDesc find_custom_sky_ecs_query_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("customSkyRenderer"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc find_custom_sky_ecs_query_desc
+(
+  "find_custom_sky_ecs_query",
+  empty_span(),
+  empty_span(),
+  make_span(find_custom_sky_ecs_query_comps+0, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline ecs::QueryCbResult find_custom_sky_ecs_query(Callable function)
+{
+  return perform_query(g_entity_mgr, find_custom_sky_ecs_query_desc.getHandle(),
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          if (function(
+            ) == ecs::QueryCbResult::Stop)
+            return ecs::QueryCbResult::Stop;
+        }while (++comp != compE);
+          return ecs::QueryCbResult::Continue;
+    })
   );
 }
 static constexpr ecs::ComponentDesc get_envi_probe_render_flags_ecs_query_comps[] =
@@ -367,7 +359,7 @@ template<typename Callable>
 inline ecs::QueryCbResult find_custom_envi_probe_renderer_ecs_query(Callable function)
 {
   return perform_query(g_entity_mgr, find_custom_envi_probe_renderer_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -377,7 +369,7 @@ inline ecs::QueryCbResult find_custom_envi_probe_renderer_ecs_query(Callable fun
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::ComponentDesc gather_occlusion_data_ecs_query_comps[] =

@@ -1,19 +1,16 @@
-require padd_function
+options gen2
 
-def take_structure ( foo : $padd_structure(type<auto(TT)>,null); value : TT )
-	print("general {typeinfo(typename foo)} with TT = {typeinfo(typename value)}\n")
+variant Foo {
+    i : int
+    f : float
+}
 
-def take_structure ( foo : $padd_structure(type<tuple<auto(TT);float>>,null); value : TT )
-	print("tuple specialized {typeinfo(typename foo)} with TT = {typeinfo(typename value)}\n")
+typedef Foo2 = variant<i : int; f : float>
 
 [export]
-def main
-	var foo : $padd_structure(type<int>,4)
-	take_structure(foo, 13)
-	var bar : $padd_structure(type<float>,8)
-	take_structure(bar, 3.14)
-	var dar : $padd_structure(type<tuple<int;float>>,4)
-	take_structure(dar, 13)
-
-options log_infer_passes
+def main {
+    let x = Foo(i = 3)
+    let y : Foo = Foo2(f = 4.0)
+    let a = array variant<i : int; f : float>(i = 3, f = 4.0)
+}
 

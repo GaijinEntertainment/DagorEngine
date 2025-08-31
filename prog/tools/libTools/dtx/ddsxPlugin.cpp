@@ -44,51 +44,47 @@ typedef IDdsxCreatorPlugin *(__stdcall *get_plugin_t)(IDdsxCreatorPlugin::IAlloc
 /// loads compatible plugins from given location; returns number of plugins
 int ddsx::load_plugins(const char *dirpath)
 {
-  alefind_t ff;
   const String mask(260, "%s/*" DAGOR_OS_DLL_SUFFIX, dirpath);
   String fname;
   int num = 0;
 
-  if (::dd_find_first(mask, DA_FILE, &ff))
-    do
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
+  {
+    fname.printf(260, "%s/%s", dirpath, ff.name);
+    dd_simplify_fname_c(fname);
+    debug("found: %s", fname.str());
+
+    void *dllHandle = os_dll_load_deep_bind(fname);
+    IDdsxCreatorPlugin *p = NULL;
+
+    if (dllHandle)
     {
-      fname.printf(260, "%s/%s", dirpath, ff.name);
-      dd_simplify_fname_c(fname);
-      debug("found: %s", fname.str());
+      get_plugin_t get_plugin = (get_plugin_t)os_dll_get_symbol(dllHandle, DDSX_GET_PLUGIN_PROC);
+      debug("get_plugin=%p", (void *)get_plugin);
 
-      void *dllHandle = os_dll_load_deep_bind(fname);
-      IDdsxCreatorPlugin *p = NULL;
-
-      if (dllHandle)
+      if (get_plugin)
       {
-        get_plugin_t get_plugin = (get_plugin_t)os_dll_get_symbol(dllHandle, DDSX_GET_PLUGIN_PROC);
-        debug("get_plugin=%p", (void *)get_plugin);
-
-        if (get_plugin)
+        p = get_plugin(&alloc);
+        if (p->checkVersion())
         {
-          p = get_plugin(&alloc);
-          if (p->checkVersion())
-          {
-            PluginState &st = plugins.push_back();
-            st.p = p;
-            st.dll = dllHandle;
-            st.started = false;
-            ::symhlp_load(fname);
-            num++;
-            debug("plugin for: %c%c%c%c", _DUMP4C(p->targetCode()));
-          }
-          else
-            p = NULL;
+          PluginState &st = plugins.push_back();
+          st.p = p;
+          st.dll = dllHandle;
+          st.started = false;
+          ::symhlp_load(fname);
+          num++;
+          debug("plugin for: %c%c%c%c", _DUMP4C(p->targetCode()));
         }
-
-        if (!p)
-          os_dll_close(dllHandle);
+        else
+          p = NULL;
       }
-      else
-        logwarn("failed to load %s\nerror=%s", fname, os_dll_get_last_error_str());
-    } while (::dd_find_next(&ff));
 
-  dd_find_close(&ff);
+      if (!p)
+        os_dll_close(dllHandle);
+    }
+    else
+      logwarn("failed to load %s\nerror=%s", fname, os_dll_get_last_error_str());
+  }
 
   return num;
 }

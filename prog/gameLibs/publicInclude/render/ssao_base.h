@@ -33,7 +33,7 @@ public:
   virtual int getHeight() const { return aoHeight; }
 
   virtual void reset() = 0;
-  virtual void changeResolution(int, int){};
+  virtual void changeResolution(int, int) {}
 
   virtual Texture *getSSAOTex() = 0;
   virtual TEXTUREID getSSAOTexId() = 0;

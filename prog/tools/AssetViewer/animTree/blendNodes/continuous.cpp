@@ -8,7 +8,7 @@
 
 const int DEFAULT_START = -1;
 const int DEFAULT_END = -1;
-const float DEFAULT_TIME = 1.0f;
+const float DEFAULT_TIME = 1.f;
 const bool DEFAULT_REWIND = true;
 
 void continuous_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx,
@@ -38,7 +38,8 @@ void continuous_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Contai
   add_edit_bool_if_not_exists(params, panel, field_idx, "rand_start");
 }
 
-void continuous_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+void continuous_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel,
+  const DagorAssetMgr &mgr)
 {
   const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
   set_str_param_by_name_if_default(params, panel, "key", nameValue.c_str());
@@ -49,15 +50,19 @@ void continuous_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropP
   set_str_param_by_name_if_default(params, panel, "key_end", defaultKeyEnd.c_str());
   const SimpleString keyStartValue = get_str_param_by_name_optional(params, panel, "key_start");
   set_str_param_by_name_if_default(params, panel, "sync_time", keyStartValue.c_str());
+  const SimpleString a2dValue = get_str_param_by_name_optional(params, panel, "a2d");
+  set_float_param_by_name_if_default(params, panel, "time", get_default_anim_time(a2dValue, mgr), DEFAULT_TIME);
 }
 
-void continuous_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, bool default_foreign)
+void continuous_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, bool default_foreign,
+  const DagorAssetMgr &mgr)
 {
   const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
   const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key", nameValue.c_str());
   const String defaultKeyStart(0, "%s_start", keyValue.c_str());
   const String defaultKeyEnd(0, "%s_end", keyValue.c_str());
   const SimpleString keyStartValue = get_str_param_by_name_optional(params, panel, "key_start", defaultKeyStart.c_str());
+  const SimpleString a2dValue = get_str_param_by_name_optional(params, panel, "a2d");
 
   remove_param_if_default_bool(params, panel, "own_timer");
   remove_param_if_default_bool(params, panel, "eoa_irq");
@@ -70,7 +75,7 @@ void continuous_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::Co
   remove_param_if_default_str(params, panel, "key_end", defaultKeyEnd.c_str());
   remove_param_if_default_int(params, panel, "start", DEFAULT_START);
   remove_param_if_default_int(params, panel, "end", DEFAULT_END);
-  remove_param_if_default_float(params, panel, "time", DEFAULT_TIME);
+  remove_param_if_default_float(params, panel, "time", get_default_anim_time(a2dValue, mgr));
   remove_param_if_default_float(params, panel, "moveDist");
   remove_param_if_default_str(params, panel, "sync_time", keyStartValue.c_str());
   remove_param_if_default_bool(params, panel, "additive");

@@ -39,7 +39,7 @@
   VAR(dagi_irrad_grid_inv_size)               \
   VAR(dagi_radiance_grid_samplerstate)
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -206,7 +206,7 @@ RadianceGrid::Clipmap::Temporal RadianceGrid::Clipmap::updateTemporal(const uint
   ShaderGlobal::set_int4(dagi_rad_grid_temporal_sizeVarId, temporalProbesBufferSize, t.batchSize, clipW, clipD);
 
   ShaderGlobal::set_int4(dagi_rad_grid_temporal_indirectVarId, clipW * clipW * clipD, (tempOffset + t.clip) * 8 + 4,
-    temporalProbesBufferSize, 0);
+    temporalProbesBufferSize, tempOffset ? 12 : 0);
   ++temporalFrame;
   return t;
 }
@@ -232,6 +232,7 @@ void RadianceGrid::createIndirect()
   d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
   d3d::set_rwbuffer(STAGE_CS, 1, nullptr);
   d3d::resource_barrier({dagi_rad_grid_indirect_buffer.getBuf(), RB_RO_INDIRECT_BUFFER});
+  d3d::resource_barrier({dagi_radiance_grid_selected_probes.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
 }
 
 void RadianceGrid::updateTemporal()
@@ -294,7 +295,7 @@ void RadianceGrid::updateTemporalIrradiance()
   selectProbes(*dagi_irradiance_grid_select_temporal_cs, t.batchSize);
 
   TIME_D3D_PROFILE(irrad_grid_calc_probes);
-  dagi_irradiance_grid_calc_temporal_cs->dispatch_indirect(dagi_rad_grid_indirect_buffer.getBuf(), 0);
+  dagi_irradiance_grid_calc_temporal_cs->dispatch_indirect(dagi_rad_grid_indirect_buffer.getBuf(), 12);
   auto stageAll = RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
   d3d::resource_barrier({dagi_irradiance_grid_sph0.getVolTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | stageAll, 0, 0});
   d3d::resource_barrier({dagi_irradiance_grid_sph1.getVolTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | stageAll, 0, 0});
@@ -611,8 +612,9 @@ void RadianceGrid::initTemporal(uint32_t frames_to_update_clip)
     dagi_radiance_grid_selected_probes =
       dag::create_sbuffer(sizeof(uint32_t), selectedProbesDwords + (DAGI_MAX_RAD_GRID_CLIPS + DAGI_MAX_IRRAD_GRID_CLIPS) * 2 + 1,
         SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES | debug_flag, 0, "dagi_radiance_grid_selected_probes");
-    dagi_rad_grid_indirect_buffer = dag::create_sbuffer(sizeof(uint32_t), 3,
+    dagi_rad_grid_indirect_buffer = dag::create_sbuffer(sizeof(uint32_t), 6,
       SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT | debug_flag, 0, "dagi_rad_grid_indirect_buffer");
+    debug("daGI radiance grid: temporalBufferSize is %d", radiance.temporalProbesBufferSize);
   }
   else
     selectedProbesDwords = 0;
@@ -622,6 +624,13 @@ void RadianceGrid::initTemporal(uint32_t frames_to_update_clip)
 void RadianceGrid::init(uint8_t w_, uint8_t d_, uint8_t clips_, float probe0, uint8_t additional_iclips, float irradiance_detail,
   uint32_t frames_to_update_clip)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
+
+  lastUpdatedRadianceClipsCount = lastUpdatedIrradianceClipsCount = 0;
   const uint32_t oct_res = DAGI_RAD_GRID_OCT_RES; // fixme
 
   uint16_t iw_ = w_ * irradiance_detail, id_ = d_ * irradiance_detail, iclips_ = clips_ + additional_iclips;
@@ -683,6 +692,8 @@ inline void RadianceGrid::Clipmap::updatePos(const Point3 &world_pos, bool updat
     }
   }
 }
+
+void RadianceGrid::resetHistoryAge() { afterReset(); }
 
 void RadianceGrid::afterReset()
 {

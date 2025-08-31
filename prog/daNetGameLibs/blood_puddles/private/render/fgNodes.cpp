@@ -9,26 +9,27 @@
 #include <render/world/defaultVrsSettings.h>
 #include <render/world/frameGraphHelpers.h>
 
-dabfg::NodeHandle make_blood_accumulation_prepass_node()
+dafg::NodeHandle make_blood_accumulation_prepass_node()
 {
-  auto ns = dabfg::root() / "opaque" / "statics";
-  return ns.registerNode("blood_decals_accumulation", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto bldBuf0Hndl = registry.createTexture2d("blood_acc_buf0", dabfg::History::No,
-      {TEXCF_RTARGET | TEXFMT_R8G8B8A8, registry.getResolution<2>("main_view", 1.0)});
-    auto bloodNormalsHndl = registry.createTexture2d("blood_acc_normals", dabfg::History::No,
-      {TEXCF_RTARGET | TEXFMT_R8G8, registry.getResolution<2>("main_view", 1.0)});
+  auto ns = dafg::root() / "opaque" / "statics";
+  return ns.registerNode("blood_decals_accumulation", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto bldBuf0Hndl = registry
+                         .createTexture2d("blood_acc_buf0", dafg::History::No,
+                           {TEXCF_RTARGET | TEXFMT_R8G8B8A8, registry.getResolution<2>("main_view", 1.0)})
+                         .clear(make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
+    auto bloodNormalsHndl = registry
+                              .createTexture2d("blood_acc_normals", dafg::History::No,
+                                {TEXCF_RTARGET | TEXFMT_R8G8, registry.getResolution<2>("main_view", 1.0)})
+                              .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
-    auto pass = registry.requestRenderPass()
-                  .clear(bldBuf0Hndl, make_clear_value(1.0f, 1.0f, 1.0f, 1.0f))
-                  .clear(bloodNormalsHndl, make_clear_value(0, 0, 0, 0))
-                  .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
-                  .color({bldBuf0Hndl, bloodNormalsHndl});
+    registry.requestRenderPass()
+      .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
+      .color({bldBuf0Hndl, bloodNormalsHndl})
+      .vrsRate(VRS_RATE_TEXTURE_NAME);
 
-    auto state = registry.requestState().setFrameBlock("global_frame");
-
-    use_default_vrs(pass, state);
+    registry.requestState().setFrameBlock("global_frame");
 
     DynamicShaderHelper shHolder;
     shHolder.init("blood_puddles_accumulation", nullptr, 0, "blood_puddles_accumulation", true);
@@ -41,18 +42,16 @@ dabfg::NodeHandle make_blood_accumulation_prepass_node()
   });
 }
 
-dabfg::NodeHandle make_blood_resolve_node()
+dafg::NodeHandle make_blood_resolve_node()
 {
-  auto ns = dabfg::root() / "opaque" / "statics";
-  return ns.registerNode("blood_puddles_resolve", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto pass = render_to_gbuffer_but_sample_depth(registry);
+  auto ns = dafg::root() / "opaque" / "statics";
+  return ns.registerNode("blood_puddles_resolve", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    render_to_gbuffer_but_sample_depth(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
-    registry.readTexture("blood_acc_buf0").atStage(dabfg::Stage::PS).bindToShaderVar("blood_acc_buf0");
-    registry.readTexture("blood_acc_normals").atStage(dabfg::Stage::PS).bindToShaderVar("blood_acc_normal");
+    registry.readTexture("blood_acc_buf0").atStage(dafg::Stage::PS).bindToShaderVar("blood_acc_buf0");
+    registry.readTexture("blood_acc_normals").atStage(dafg::Stage::PS).bindToShaderVar("blood_acc_normal");
 
-    auto state = registry.requestState().setFrameBlock("global_frame");
-
-    use_default_vrs(pass, state);
+    registry.requestState().setFrameBlock("global_frame");
 
     PostFxRenderer shHolder("blood_puddles_resolve");
 
@@ -60,15 +59,13 @@ dabfg::NodeHandle make_blood_resolve_node()
   });
 }
 
-dabfg::NodeHandle make_blood_forward_node()
+dafg::NodeHandle make_blood_forward_node()
 {
-  auto ns = dabfg::root() / "opaque" / "statics";
-  return ns.registerNode("blood_puddles_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto pass = render_to_gbuffer_but_sample_depth(registry);
+  auto ns = dafg::root() / "opaque" / "statics";
+  return ns.registerNode("blood_puddles_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    render_to_gbuffer_but_sample_depth(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
-    auto state = registry.requestState().setFrameBlock("global_frame").allowWireframe();
-
-    use_default_vrs(pass, state);
+    registry.requestState().setFrameBlock("global_frame").allowWireframe();
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 

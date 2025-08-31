@@ -7,6 +7,7 @@
 #include <daScript/daScript.h>
 #include <gui/dag_stdGuiRender.h>
 #include <dasModules/dasShaders.h>
+#include <daScript/daScriptBind.h>
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::FontFxType, FontFxType);
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::BlendMode, BlendMode);
@@ -17,6 +18,8 @@ MAKE_TYPE_FACTORY(StdGuiShader, StdGuiRender::StdGuiShader);
 namespace bind_dascript
 {
 
+BlendMode get_alpha_blend(::StdGuiRender::GuiContext &ctx);
+void set_alpha_blend(::StdGuiRender::GuiContext &ctx, BlendMode mode);
 void render_line_aa(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, bool is_closed, float line_width,
   const Point2 line_indent, E3DCOLOR color);
 void render_poly(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, E3DCOLOR fill_color);

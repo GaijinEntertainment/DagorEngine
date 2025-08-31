@@ -8,7 +8,7 @@
 #include <3d/dag_textureIDHolder.h>
 #include <generic/dag_carray.h>
 #include <render/viewDependentResource.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <math/integer/dag_IPoint2.h>
 #include <shaders/dag_postFxRenderer.h>
 
@@ -55,14 +55,14 @@ public:
   typedef TemporalAAParams Params;
 
   TemporalAA(const char *shader, const IPoint2 &input_resolution, const IPoint2 &output_resolution, int resolve_tex_fmt,
-    bool low_quality = false, bool req_dynamic_tex = false, bool hist_fmt_match_resolve = false, const char *name = nullptr);
+    bool low_quality = false, bool req_dynamic_tex = false, bool mobile_taa = false, const char *name = nullptr);
 
   void loadParamsFromBlk(const DataBlock *blk);
 
   bool beforeRenderFrame();
   bool beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter);
-  RTarget::CPtr apply(TEXTUREID currentFrameId);
-  void applyToSwapchain(TEXTUREID currentFrameId);
+  void apply(TEXTUREID currentFrameId, Texture *target);
+  void applyToCurrentTarget(TEXTUREID currentFrameId);
 
   void invalidate()
   {
@@ -91,16 +91,17 @@ private:
 
   Point2 jitterPixelOfs;
   Point2 jitterTexelOfs;
+  TextureIDHolderWithVar taaPrecomputedWeights;
 
   RTargetPool::Ptr historyTexPool;
   RTargetPool::Ptr wasDynamicTexPool;
-  RTargetPool::Ptr resolvedFramePool;
   ViewDependentResource<RTarget::Ptr, 2> historyTex;
   ViewDependentResource<RTarget::Ptr, 2> wasDynamicTex;
 
   float lodBias;
 
   bool enabled = true;
+  bool precomputedWeightsReady = false;
 
   int dtUsecs = 0;
 };

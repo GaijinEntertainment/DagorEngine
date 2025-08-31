@@ -146,6 +146,15 @@ bool Layout::readSize(const Sqrat::Object &size_obj, const char **err_msg)
   }
   else if (tp == OT_ARRAY)
     return size_spec_from_array(size_obj, size, err_msg);
+  else if (tp & SQOBJECT_NUMERIC)
+  {
+    SizeSpec ss;
+    if (!size_spec_from_obj(size_obj, ss, err_msg))
+      return false;
+    size[0] = ss;
+    size[1] = ss;
+    return true;
+  }
   else
   {
     if (err_msg)

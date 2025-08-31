@@ -71,12 +71,12 @@ public:
 
 
   virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
   virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
   virtual void dynamicItemChange(PropPanel::ContainerPropertyControl &panel);
 
-  virtual void draw();
+  void draw() override;
 
   virtual IBBox2 getDirtyBox() const { return dirtyBrushBox; }
   void resetDirtyBox() { dirtyBrushBox.setEmpty(); }
@@ -125,8 +125,8 @@ protected:
   float gridCellSize;
 
 
-  virtual bool calcCenter(IGenViewportWnd *wnd);
-  virtual bool traceDown(const Point3 &pos, Point3 &clip_pos, IGenViewportWnd *wnd);
+  bool calcCenter(IGenViewportWnd *wnd) override;
+  bool traceDown(const Point3 &pos, Point3 &clip_pos, IGenViewportWnd *wnd) override;
 };
 
 

@@ -8,7 +8,7 @@
 #include <EditorCore/ec_ObjectEditor.h>
 
 #include <oldEditor/de_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <de3_assetService.h>
 #include <de3_bitMaskMgr.h>
 #include <de3_hmapStorage.h>
@@ -190,118 +190,111 @@ public:
   void updateWaterProjectedFx();
 
   HmapLandPlugin();
-  ~HmapLandPlugin();
+  ~HmapLandPlugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "heightmapLand"; }
-  virtual const char *getMenuCommandName() const { return "Landscape"; }
-  virtual const char *getHelpUrl() const { return "/html/Plugins/HeightmapLand/index.htm"; }
+  const char *getInternalName() const override { return "heightmapLand"; }
+  const char *getMenuCommandName() const override { return "Landscape"; }
+  const char *getHelpUrl() const override { return "/html/Plugins/HeightmapLand/index.htm"; }
 
-  virtual int getRenderOrder() const { return 100; }
-  virtual int getBuildOrder() const { return 0; }
+  int getRenderOrder() const override { return 100; }
+  int getBuildOrder() const override { return 0; }
 
-  virtual bool showSelectAll() const { return true; }
-  virtual bool showInTabs() const { return true; }
+  bool showSelectAll() const override { return true; }
+  bool showInTabs() const override { return true; }
 
-  virtual void registered();
-  virtual void unregistered();
-  virtual void loadSettings(const DataBlock &global_settings) override;
-  virtual void saveSettings(DataBlock &global_settings) override;
-  virtual void beforeMainLoop();
+  void registered() override;
+  void unregistered() override;
+  void loadSettings(const DataBlock &global_settings, const DataBlock &per_app_settings) override;
+  void saveSettings(DataBlock &global_settings, DataBlock &per_app_settings) override;
+  void beforeMainLoop() override;
 
+  void registerMenuSettings(unsigned menu_id, int base_id) override;
   void registerMenuAccelerators() override;
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end();
-  virtual IGenEventHandler *getEventHandler();
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override;
+  IGenEventHandler *getEventHandler() override;
 
-  virtual void setVisible(bool vis);
-  virtual bool getVisible() const { return isVisible; }
-  virtual bool getSelectionBox(BBox3 &box) const;
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  void setVisible(bool vis) override;
+  bool getVisible() const override { return isVisible; }
+  bool getSelectionBox(BBox3 &box) const override;
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void onNewProject();
-  virtual void autoSaveObjects(DataBlock &local_data);
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual bool acceptSaveLoad() const { return true; }
+  void clearObjects() override;
+  void onNewProject() override;
+  void autoSaveObjects(DataBlock &local_data) override;
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void selectAll() { objEd.selectAll(); }
-  virtual void deselectAll() { objEd.unselectAll(); }
+  void selectAll() override { objEd.selectAll(); }
+  void deselectAll() override { objEd.unselectAll(); }
   void invalidateObjectProps() { objEd.invalidateObjectProps(); }
 
-  virtual void actObjects(float dt);
-  virtual void beforeRenderObjects(IGenViewportWnd *vp);
-  virtual void renderObjects();
-  virtual void renderTransObjects();
-  virtual void updateImgui() override;
-  virtual void renderGrass(Stage stage);
-  virtual void renderGPUGrass(Stage stage);
-  virtual void renderWater(Stage stage);
-  virtual void renderCables();
+  void actObjects(float dt) override;
+  void beforeRenderObjects(IGenViewportWnd *vp) override;
+  void renderObjects() override;
+  void renderTransObjects() override;
+  void updateImgui() override;
+  void renderGrass(Stage stage);
+  void renderGPUGrass(Stage stage);
+  void renderWater(Stage stage);
+  void renderCables();
 
-  virtual void replaceGrassMask(int landclass_id, const char *newGrassMaskName);
-  virtual void resetGrassMask(const DataBlock &grassBlk);
-  virtual int getLandclassIndex(const char *landclass_name);
-  virtual bool catchEvent(unsigned ev_huid, void *userData);
+  void replaceGrassMask(int landclass_id, const char *newGrassMaskName);
+  void resetGrassMask(const DataBlock &grassBlk);
+  int getLandclassIndex(const char *landclass_name);
+  bool catchEvent(unsigned ev_huid, void *userData) override;
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool onPluginMenuClick(unsigned id);
-  virtual void handleViewportAcceleratorCommand(unsigned id) override;
+  bool onPluginMenuClick(unsigned id) override;
+  bool onSettingsMenuClick(unsigned id) override;
+  void handleViewportAcceleratorCommand(unsigned id) override;
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IWndManagerWindowHandler
-  virtual void *onWmCreateWindow(int type) override;
-  virtual bool onWmDestroyWindow(void *window) override;
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
 
   // IRenderingService
-  virtual void renderGeometry(Stage stage);
-  virtual void prepare(const Point3 &center_pos, const BBox3 &box) override;
-  virtual int setSubDiv(int lod) override;
+  void renderGeometry(Stage stage) override;
+  void prepare(const Point3 &center_pos, const BBox3 &box) override;
+  int setSubDiv(int lod) override;
 
   // IGenEventHandler
-  virtual IGenEventHandler *getWrappedHandler() { return &objEd; }
-
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif);
+  IGenEventHandler *getWrappedHandler() override { return &objEd; }
 
   // IBrushClient
-  virtual void onBrushPaintStart(Brush *brush, int buttons, int key_modif);
-  virtual void onBrushPaintEnd(Brush *brush, int buttons, int key_modif);
-  virtual void onBrushPaint(Brush *brush, const Point3 &center, const Point3 &prev_center, const Point3 &normal, int buttons,
-    int key_modif);
-  virtual void onRBBrushPaintStart(Brush *brush, int buttons, int key_modif);
-  virtual void onRBBrushPaintEnd(Brush *brush, int buttons, int key_modif);
-  virtual void onRBBrushPaint(Brush *brush, const Point3 &center, const Point3 &prev_center, const Point3 &normal, int buttons,
-    int key_modif);
+  void onBrushPaintStart(Brush *brush, int buttons, int key_modif) override;
+  void onBrushPaintEnd(Brush *brush, int buttons, int key_modif) override;
+  void onBrushPaint(Brush *brush, const Point3 &center, const Point3 &prev_center, const Point3 &normal, int buttons,
+    int key_modif) override;
+  void onRBBrushPaintStart(Brush *brush, int buttons, int key_modif) override;
+  void onRBBrushPaintEnd(Brush *brush, int buttons, int key_modif) override;
+  void onRBBrushPaint(Brush *brush, const Point3 &center, const Point3 &prev_center, const Point3 &normal, int buttons,
+    int key_modif) override;
 
   // IBinaryDataBuilder
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
-  virtual bool addUsedTextures(ITextureNumerator &tn);
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
-  virtual bool checkMetrics(const DataBlock &metrics_blk) { return true; }
+  bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) override;
+  bool addUsedTextures(ITextureNumerator &tn) override;
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) override;
+  bool checkMetrics(const DataBlock &metrics_blk) override { return true; }
 
   // IWriteAddLtinputData
-  virtual void writeAddLtinputData(IGenSave &cwr);
+  void writeAddLtinputData(IGenSave &cwr) override;
 
   // IConsoleCmd
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params);
-  virtual const char *onConsoleCommandHelp(const char *cmd);
-
-  // IHeightmapProvider
-  virtual void requestHeightmapData(int x0, int y0, int step, int x_size, int y_size);
-
-  virtual void getHeightmapData(int x0, int y0, int step, int x_size, int y_size, real *data, int stride_bytes);
-
-  virtual bool isLandPreloadRequestComplete();
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
+  const char *onConsoleCommandHelp(const char *cmd) override;
 
   // ILandmesh
-  virtual BBox3 getBBoxWithHMapWBBox() const;
+  BBox3 getBBoxWithHMapWBBox() const override;
+  bool isLandmeshRenderingMode() const override;
 
   void updateLandDetailTexture(unsigned i);
 
@@ -318,9 +311,12 @@ public:
     int mapSize = getHeightmapSizeX();
     return max((mapSize / meshCells) * getGridCellSize(), 1.0f);
   }
-  virtual Point3 getOffset() const;
+  Point3 getOffset() const;
+  float getRIMaxCellSz() const { return riMaxCellSz; }
+  int getRIMaxGenLayerCellDiv() const { return riMaxGenLayerCellDivisor; }
 
-  virtual TEXTUREID getLightMap();
+  void readLandDetailTexturePixel(unsigned &ret_u, unsigned &ret_u2, int cx, int cy, dag::ConstSpan<uint8_t> type_remap);
+
   // Loads Land Datail Texture for LandMesh
   void loadLandDetailTexture(int x0, int y0, Texture *tex1, Texture *tex2, carray<uint8_t, LMAX_DET_TEX_NUM> &detail_tex_ids,
     bool *done_mark, int tex_size, int elem_size);
@@ -330,43 +326,40 @@ public:
 
   int getMostUsedDetTex(int x0, int y0, int texDataSize, uint8_t *det_tex_ids, uint8_t *idx_remap, int max_dtn);
 
-  template <class UpdateLC>
-  int updateLandclassWeight(int x0, int y0, int x1, int y1, UpdateLC &update_cb);
-
   // from IGatherStaticGeometry
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &cont)
+  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override
   {
     gatherStaticGeometry(cont, StaticGeometryNode::FLG_RENDERABLE, false);
   }
 
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont);
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont) override;
 
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) { gatherStaticGeometry(cont, 0, true); }
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) override { gatherStaticGeometry(cont, 0, true); }
 
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer &container) {}
+  void gatherStaticEnviGeometry(StaticGeometryContainer &container) override {}
   void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int stage = 0)
   {
     objEd.gatherStaticGeometry(cont, flags, collision, stage);
   }
 
   // IDagorEdCustomCollider
-  virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
-  virtual bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt);
-  virtual const char *getColliderName() const { return "HeightMap"; }
-  virtual bool isColliderVisible() const;
+  bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override;
+  bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) override;
+  const char *getColliderName() const override { return "HeightMap"; }
+  bool isColliderVisible() const override;
 
   // IHmapBrushImage
-  virtual real getBrushImageData(int x, int y, IHmapBrushImage::Channel channel);
-  virtual void setBrushImageData(int x, int y, real v, IHmapBrushImage::Channel channel);
+  real getBrushImageData(int x, int y, IHmapBrushImage::Channel channel) override;
+  void setBrushImageData(int x, int y, real v, IHmapBrushImage::Channel channel) override;
 
 #if defined(USE_HMAP_ACES)
   // IEnvironmentSettings.
-  virtual void getEnvironmentSettings(DataBlock &blk);
-  virtual void setEnvironmentSettings(DataBlock &blk);
+  void getEnvironmentSettings(DataBlock &blk) override;
+  void setEnvironmentSettings(DataBlock &blk) override;
 #endif
 
   // IExportToDag.
-  void gatherExportToDagGeometry(StaticGeometryContainer &container)
+  void gatherExportToDagGeometry(StaticGeometryContainer &container) override
   {
     if (!useMeshSurface || exportType == EXPORT_PSEUDO_PLANE)
       return;
@@ -381,6 +374,7 @@ public:
   bool traceRayPrivate(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
 
   void createHeightmapFile(CoolConsole &con);
+  void upscaleHeightMap(CoolConsole &con);
   void resizeHeightMapDet(CoolConsole &con);
   void createColormapFile(CoolConsole &con);
   void createLightmapFile(CoolConsole &con);
@@ -461,26 +455,30 @@ public:
   bool importTileTex();
 
   // IHeightmap
-  virtual bool isLoaded() const { return heightMap.isFileOpened(); }
-  virtual real getHeightmapCellSize() const { return gridCellSize; }
-  virtual int getHeightmapSizeX() const { return heightMap.getMapSizeX(); }
-  virtual int getHeightmapSizeY() const { return heightMap.getMapSizeY(); }
+  bool isLoaded() const override { return heightMap.isFileOpened(); }
+  real getHeightmapCellSize() const override { return gridCellSize; }
+  int getHeightmapSizeX() const override { return heightMap.getMapSizeX(); }
+  int getHeightmapSizeY() const override { return heightMap.getMapSizeY(); }
 
-  virtual bool getHeightmapPointHt(Point3 &inout_p, Point3 *out_norm) const;
-  virtual bool getHeightmapCell5Pt(const IPoint2 &cell, real &h0, real &hx, real &hy, real &hxy, real &hmid) const;
+  bool getHeightmapPointHt(Point3 &inout_p, Point3 *out_norm) const override;
+  bool getHeightmapCell5Pt(const IPoint2 &cell, real &h0, real &hx, real &hy, real &hxy, real &hmid) const override;
 
-  virtual Point3 getHeightmapOffset() const { return Point3(heightMapOffset[0], 0, heightMapOffset[1]); }
+  Point3 getHeightmapOffset() const override { return Point3(heightMapOffset[0], 0, heightMapOffset[1]); }
 
   bool getHeightmapHeight(const IPoint2 &cell, real &ht) const;
   bool getHeightmapOnlyPointHt(Point3 &inout_p, Point3 *out_norm) const;
 
   // IRoadsProvider
-  virtual IRoadsProvider::Roads *getRoadsSnapshot();
+  IRoadsProvider::Roads *getRoadsSnapshot() override;
 
   bool applyHmModifiers1(HeightMapStorage &hm, float gc_sz, bool gen_colors, bool reset_final, IBBox2 *out_dirty_clip,
     IBBox2 *out_sum_dirty, bool *out_colors_changed);
   void applyHmModifiers(bool gen_colors = true, bool reset_final = true, bool finished = true);
   void collapseModifiers(dag::ConstSpan<SplineObject *> collapse_splines);
+  void convertDelaunaySplinesToHeightBake();
+  bool shouldApplyModOnHeightBakeSplineEdit() const { return applyHeightBakeSplinesOnEdit; }
+  void setApplyModOnHeightBakeSplineEdit(bool new_runtime_update) { applyHeightBakeSplinesOnEdit = new_runtime_update; }
+
   void copyFinalHmapToInitial();
   void restoreBackup();
 
@@ -502,15 +500,15 @@ public:
   void calcGoodLandLightingInBox(const IBBox2 &calc_box);
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged();
+  void onLightingChanged() override {}
+  void onLightingSettingsChanged() override;
 
   // IOnExportNotify interface
-  virtual void onBeforeExport(unsigned target_code);
-  virtual void onAfterExport(unsigned target_code);
+  void onBeforeExport(unsigned target_code) override;
+  void onAfterExport(unsigned target_code) override;
 
   // IPostProcessGeometry
-  virtual void processGeometry(StaticGeometryContainer &container);
+  void processGeometry(StaticGeometryContainer &container) override;
 
   //! returns number of invisible faces, and marked faces to stay
   int markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, TMatrix *wtm);
@@ -539,7 +537,7 @@ public:
 
   void rebuildRivers();
 
-  bool buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh_idx);
+  bool buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh_idx, bool final_export_to_game = true);
   bool buildAndWriteNavMesh(BinDumpSaveCB &cwr);
   void clearNavMesh();
   void renderNavMeshDebug();
@@ -621,6 +619,7 @@ public:
   bool insideDetRectC(const IPoint2 &p) const { return insideDetRectC(p.x, p.y); }
 
   bool loadLevelSettingsBlk(DataBlock &level_blk);
+  void initWaterSurface();
   void updateWaterSettings(const DataBlock &level_blk);
   void invalidateDistanceField() { distFieldInvalid = true; }
 
@@ -636,9 +635,9 @@ private:
   int toolbarId;
 
   // IAssetUpdateNotify
-  virtual void onLandClassAssetChanged(landclass::AssetData *data) override {}
-  virtual void onLandClassAssetTexturesChanged(landclass::AssetData *data) override;
-  virtual void onSplineClassAssetChanged(splineclass::AssetData *data) override {}
+  void onLandClassAssetChanged(landclass::AssetData *data) override {}
+  void onLandClassAssetTexturesChanged(landclass::AssetData *data) override;
+  void onSplineClassAssetChanged(splineclass::AssetData *data) override {}
 
   void clearTexCache();
   void refillTexCache();
@@ -693,7 +692,6 @@ private:
   {
     int gridStep, elemSize, radiusElems, ringElems, numLods, maxDetailLod;
     real detailTile, canyonHorTile, canyonVertTile;
-    int holesLod;
     real canyonAngle, canyonFadeAngle;
     real hm2YbaseForLod;
 
@@ -768,6 +766,9 @@ private:
   Texture *bluewhiteTex;
 
   LandMeshMap landMeshMap;
+
+  bool applyHeightBakeSplines = true;
+  bool applyHeightBakeSplinesOnEdit = false;
 
   MapStorage<uint64_t> *detTexIdxMap, *detTexWtMap;
 
@@ -1050,7 +1051,7 @@ private:
     inline void calcClampMapping(float fx, float fy, int &ix, int &iy);
     inline void calcMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny, bool clamp_u, bool clamp_v);
     void registerFnotify();
-    virtual void onFileChanged(int /*file_name_id*/); // IFileChangedNotify
+    void onFileChanged(int /*file_name_id*/) override; // IFileChangedNotify
   };
 
   Tab<ScriptImage *> scriptImages;
@@ -1107,6 +1108,8 @@ private:
   int numMeshVertices;
   int lod1TrisDensity;
   float importanceMaskScale;
+  float riMaxCellSz = 2048.f;
+  int riMaxGenLayerCellDivisor = 8;
 
   bool distFieldInvalid;
   int distFieldBuiltAt;
@@ -1136,4 +1139,6 @@ private:
   bool bothPropertiesAndObjectPropertiesWereOpenLastTime = false;
 
   Tab<NavmeshAreasProcessing> navmeshAreasProcessing;
+
+  int settingsBaseId;
 };

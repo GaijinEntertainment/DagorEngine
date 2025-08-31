@@ -2,7 +2,7 @@
 AN ERROR HAS OCCURRED [the index 'isVisible' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w223_method_is.nut line [5]
+*FUNCTION [__main__()] testData/static_analyzer/w223_method_is.nut:5
 
 LOCALS
 [r] ""

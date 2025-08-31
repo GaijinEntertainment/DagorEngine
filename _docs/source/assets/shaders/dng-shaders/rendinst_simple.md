@@ -1,4 +1,4 @@
-# Shader: rendinst_simple / simple_aces
+# `rendinst_simple`/`simple_aces`
 
 ## Overview
 

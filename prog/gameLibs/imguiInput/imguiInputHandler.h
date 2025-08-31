@@ -23,8 +23,6 @@ struct DearImGuiInputHandler : public ecs::IGenHidEventHandler
 
   bool hybridInput = true;
   bool drawMouseCursor = true;
-  int viewPortOffsetX = 0;
-  int viewPortOffsetY = 0;
 
 private:
   void getModifiers(const Context &ctx, bool &ctrl, bool &shift, bool &alt);

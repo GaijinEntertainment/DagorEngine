@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "osApiWrappers/dag_atomic.h"
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_genGuiMgr.h>
 #include <workCycle/dag_gameSettings.h>
@@ -31,12 +32,15 @@
 #include <3d/dag_render.h>
 #include <3d/tql.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_cachesim.h>
 #include <shaders/dag_shaders.h>
 #include <util/dag_convar.h>
 #include "workCyclePriv.h"
+
+#include <EASTL/finally.h>
 
 using workcycle_internal::game_scene;
 using workcycle_internal::game_scene_renderer;
@@ -65,6 +69,7 @@ CONSOLE_INT_VAL("render", pix_capture_n_frames, 0, 0, 50);
 static bool updatescr_done = true;
 static real min_fps = 0, max_fps = 0, last_fps = 0;
 static bool occluded_window = false;
+static uint32_t latest_frame_started = 0;
 
 unsigned int dagor_workcycle_depth = 0;
 
@@ -95,11 +100,18 @@ bool dagor_work_cycle_is_need_to_draw()
 
 void dagor_work_cycle()
 {
-  workcycleperf::mark_cpu_only_cycle_start();
-  lowlatency::start_frame();
+  struct CpuOnlyCycleScope
+  {
+    CpuOnlyCycleScope() { workcycleperf::mark_cpu_only_cycle_start(); }
+    ~CpuOnlyCycleScope() { end(); }
+    void end() { workcycleperf::mark_cpu_only_cycle_end(); }
+  } cpuOnlyCycleScope;
+
   [[maybe_unused]] AutoDepthCounter acntr;
   TIME_PROFILER_TICK();
   ScopedCacheSim cachesim;
+
+  interlocked_increment(dagor_global_frame_id);
 
   // perform delayed actions
   if (dwc_alloc_perform_delayed_actions)
@@ -125,9 +137,16 @@ void dagor_work_cycle()
     dgs_on_dagor_cycle_start();
   }
 
-  lowlatency::sleep();
-  lowlatency::ScopedLatencyMarker actLatencyMarker(lowlatency::get_current_frame(), lowlatency::LatencyMarkerType::SIMULATION_START,
-    lowlatency::LatencyMarkerType::SIMULATION_END);
+  uint32_t currentFrameId = interlocked_relaxed_load(dagor_global_frame_id);
+  if (interlocked_acquire_load(latest_frame_started) < currentFrameId)
+  {
+    interlocked_release_store(latest_frame_started, currentFrameId);
+    // if the frame was not already started, we start it here
+    TIME_PROFILE(low_latency);
+    d3d::begin_frame(currentFrameId, true);
+    d3d::mark_simulation_start(currentFrameId);
+  }
+  auto deferredSimulationEnd = eastl::finally([]() { d3d::mark_simulation_end(dagor_get_global_frame_id()); });
 
   ::dagor_idle_cycle();
 
@@ -223,7 +242,7 @@ void dagor_work_cycle()
     time_step = workcycle_internal::minVariableRateActTimeUsec;
   }
 
-  actLatencyMarker.close();
+  deferredSimulationEnd.execute();
 
   int drawTimeElapsedUsec = max(get_time_usec_qpc(last_draw_time), 0);
   if (DAGOR_UNLIKELY(dgs_limit_fps && drawTimeElapsedUsec < time_step / 2))
@@ -255,12 +274,16 @@ void dagor_work_cycle()
   if (DAGOR_UNLIKELY(!dagor_work_cycle_is_need_to_draw()))
   {
     d3d::GpuAutoLock gpuLock;
-    d3d::driver_command(Drv3dCommand::PROCESS_APP_INACTIVE_UPDATE, &occluded_window);
-    interlocked_release_store(workcycle_internal::lastFrameTime, 1); // tell act to proceed working
-    ResourceChecker::report();
-    if (tql::on_frame_finished)
-      tql::on_frame_finished();
-    return;
+    int status = d3d::driver_command(Drv3dCommand::PROCESS_APP_INACTIVE_UPDATE, &occluded_window);
+    // transition case for android, as we must keep correct image on sceen after loosing focus
+    if (status <= 1)
+    {
+      interlocked_release_store(workcycle_internal::lastFrameTime, 1); // tell act to proceed working
+      ResourceChecker::report();
+      if (tql::on_frame_finished)
+        tql::on_frame_finished();
+      return;
+    }
   }
 #endif
 
@@ -288,7 +311,12 @@ void dagor_work_cycle()
     TIME_PROFILE(wait_for_async_present);
     d3d::wait_for_async_present();
   }
-  lowlatency::start_render();
+
+  if (DAGOR_UNLIKELY(check_and_handle_window_resize()))
+    check_and_restore_3d_device();
+
+  d3d::mark_render_start(dagor_get_global_frame_id());
+
   drawTimeElapsedUsec = max(get_time_usec_qpc(last_draw_time), 0);
   last_draw_time = ref_time_ticks_qpc();
   inplace_max(gametimeElapsed, 0.0f);
@@ -298,13 +326,16 @@ void dagor_work_cycle()
   int fdt = workcycleperf::get_frame_timepos_usec();
   workcycleperf::log("== draw: endt=%6d us, dur=%6d us", fdt, fdt);
 
-  workcycleperf::mark_cpu_only_cycle_end();
+  // end before scope close, because we must not include present time that is usually waiting for GPU
+  cpuOnlyCycleScope.end();
 
   if (game_scene && game_scene->canPresentAndReset())
   {
     updatescr_done = false;
     present(true);
   }
+
+  d3d::mark_render_end(dagor_get_global_frame_id());
 
   occluded_window = (da_profiler::get_active_mode() == 0) && d3d::is_window_occluded();
 
@@ -505,7 +536,7 @@ static bool present(bool updateScreenNeeded)
   {
     TIME_D3D_PROFILE_NAME(present, ("blockedPresent"));
     d3d::GpuAutoLock gpuLock;
-    updatescr_done = d3d::update_screen(dgs_app_active);
+    updatescr_done = d3d::update_screen(dagor_get_global_frame_id(), dgs_app_active);
   }
   ResourceChecker::report();
   if (tql::on_frame_finished)
@@ -521,9 +552,10 @@ void workcycle_internal::default_on_swap_callback()
   unsigned frameTime = get_time_usec(lastSwapTime);
   lastSwapTime = ref_time_ticks();
 
-  nv::DLSS *dlss = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_DLSS, &dlss);
-  dagor_frame_no_add(dlss ? dlss->getActualFramesPresented() : 1);
+  nv::Streamline *streamline = nullptr;
+  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
+  nv::DLSSFrameGeneration *dlss_g = streamline ? streamline->getDlssGFeature(0) : nullptr;
+  dagor_frame_no_add(dlss_g ? dlss_g->getActualFramesPresented() : 1);
   if (interlocked_relaxed_load(workcycle_internal::lastFrameTime) >= 0 || frameTime < 1000000000U)
   {
     if (dwc_hook_after_frame)
@@ -565,4 +597,13 @@ void workcycle_internal::default_on_swap_callback()
     dwc_hook_fps_log(frameTime);
   if (dwc_hook_memory_report)
     dwc_hook_memory_report();
+}
+
+uint32_t dagor_get_latest_frame_started() { return interlocked_relaxed_load(latest_frame_started); }
+
+void dagor_start_next_frame(bool allow_wait)
+{
+  uint32_t nextFrameId = interlocked_increment(latest_frame_started);
+  d3d::begin_frame(nextFrameId, allow_wait);
+  d3d::mark_simulation_start(nextFrameId);
 }

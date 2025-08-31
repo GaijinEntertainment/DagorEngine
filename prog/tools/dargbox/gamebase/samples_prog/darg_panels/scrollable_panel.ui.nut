@@ -1,12 +1,11 @@
+from "dagor.math" import IPoint2, Point2, Point3
 from "%darg/ui_imports.nut" import *
-
-let {IPoint2, Point2, Point3} = require("dagor.math")
-let {makeHVScrolls} = require("samples_prog/_basic/components/scrollbar.nut")
+let { makeHVScrolls } = require("samples_prog/_basic/components/scrollbar.nut")
 
 
 let panelCursor = Cursor({
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [24, 24]
+  size = 24
   hotspot = [12, 12]
 
   commands = [
@@ -33,7 +32,7 @@ function makeCells() {
     for (local j=0; j<16; ++j, ++colorIdx) {
       cols.append({
         rendObj = ROBJ_SOLID
-        size = [sh(17), sh(17)]
+        size = sh(17)
         color = colors[colorIdx % colors.len()]
       })
     }
@@ -77,7 +76,7 @@ let freePanelLayout = {
   worldCanBePointedAt = true
   cursor         = panelCursor
 
-  size           = [512, 512]
+  size           = 512
 
   flow           = FLOW_VERTICAL
 

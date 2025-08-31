@@ -1,0 +1,25 @@
+strip;
+lstrip ;
+   rstrip;
+false
+true
+false
+true
+
+false
+true
+false
+true
+
+true
+true
+strip;
+lstrip ;
+   rstrip;
+
+~\x0a\"\'\\~
+~\x0a\"\'\\~
+str:st; int:255; hex:ff
+str:st; int:255; hex:ff
+aaa;bb;c;
+aaa;bb;c;

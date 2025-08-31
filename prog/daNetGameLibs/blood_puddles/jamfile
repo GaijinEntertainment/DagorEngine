@@ -4,6 +4,7 @@ HaveRenderer ?= yes ;
 Root    ?= ../../.. ;
 Module = blood_puddles ;
 Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_blood_puddles_DAS_pull_AOT ;
 
 include $(Root)/prog/_jBuild/jCommonRules.jam ;
 
@@ -12,6 +13,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
   $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
 ;
 
 local AllSrcFolder_CPP = ;
@@ -29,6 +31,7 @@ for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
 if $(HaveRenderer) = yes {
   AllSrcFolder_ES += private/render ;
   AllSrcFolder_CPP += private/render ;
+  AllSrcFolder_DAS += private/render ;
 
   if $(Config) in dbg dev {
     AllSrcFolder_ES += debug/render ;

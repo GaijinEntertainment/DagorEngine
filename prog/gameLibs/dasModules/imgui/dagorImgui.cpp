@@ -41,6 +41,7 @@ public:
       "::imgui_window_is_visible");
     das::addExtern<DAS_BIND_FUN(imgui_get_state)>(*this, lib, "imgui_get_state", das::SideEffects::accessExternal,
       "::imgui_get_state");
+    das::addExtern<DAS_BIND_FUN(imgui_save_blk)>(*this, lib, "imgui_save_blk", das::SideEffects::accessExternal, "::imgui_save_blk");
     das::addExtern<DAS_BIND_FUN(bind_dascript::imgui_get_blk), das::SimNode_ExtFuncCallRef>(*this, lib, "imgui_get_blk",
       das::SideEffects::accessExternal, "::bind_dascript::imgui_get_blk");
     das::addExtern<DAS_BIND_FUN(::imgui_apply_style_from_blk)>(*this, lib, "imgui_apply_style_from_blk",

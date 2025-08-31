@@ -33,6 +33,11 @@ bool SplineGenGeometry::onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid)
   return true;
 }
 
+static float get_max_radius(const ecs::List<Point2> &radii)
+{
+  return eastl::max_element(radii.begin(), radii.end(), [](const auto &er1, const auto &er2) { return er1.y < er2.y; })->y;
+}
+
 template <typename Callable>
 void get_lod_data_ecs_query(ecs::EntityId, Callable);
 
@@ -43,7 +48,7 @@ static void spline_gen_geometry_select_lod_es(const UpdateStageInfoBeforeRender 
   ecs::EntityId spline_gen_geometry__lods_eid,
   int &spline_gen_geometry__lod,
   bool &spline_gen_geometry__is_rendered,
-  const Point3 &spline_gen_geometry__radius,
+  const ecs::List<Point2> &spline_gen_geometry__radii,
   const ecs::List<Point3> &spline_gen_geometry__points)
 {
   get_lod_data_ecs_query(spline_gen_geometry__lods_eid,
@@ -51,10 +56,10 @@ static void spline_gen_geometry_select_lod_es(const UpdateStageInfoBeforeRender 
       constexpr int pointsSampleCount = 5;
       int lastIndex = spline_gen_geometry__points.size() - 1;
       BBox3 bbox;
+      float maxRadius = get_max_radius(spline_gen_geometry__radii);
       for (int i = 0; i < pointsSampleCount; i++)
         bbox += spline_gen_geometry__points[lastIndex * i / (pointsSampleCount - 1)];
-      float distanceFromCamera = length(bbox.center() - stg.camPos) - length(bbox.width()) * 0.5f -
-                                 max(spline_gen_geometry__radius.x, max(spline_gen_geometry__radius.y, spline_gen_geometry__radius.z));
+      float distanceFromCamera = length(bbox.center() - stg.camPos) - length(bbox.width()) * 0.5f - maxRadius;
 
       const ecs::FloatList &distances = spline_gen_lods__distances;
       int lod = 0;
@@ -104,7 +109,9 @@ ECS_REQUIRE(eastl::true_type spline_gen_geometry__is_rendered)
 ECS_REQUIRE(eastl::true_type spline_gen_geometry__renderer_active)
 static void spline_gen_geometry_update_instancing_data_es(const UpdateStageInfoBeforeRender & /*stg*/,
   SplineGenGeometry &spline_gen_geometry_renderer,
-  Point3 &spline_gen_geometry__radius,
+  const ecs::List<Point2> &spline_gen_geometry__radii,
+  const ecs::List<Point3> &spline_gen_geometry__emissive_points,
+  const Point4 &spline_gen_geometry__emissive_color,
   float spline_gen_geometry__displacement_strength,
   int spline_gen_geometry__tiles_around,
   float spline_gen_geometry__tile_size_meters,
@@ -113,41 +120,57 @@ static void spline_gen_geometry_update_instancing_data_es(const UpdateStageInfoB
   float spline_gen_geometry__meter_between_objs)
 {
   int stripes = spline_gen_geometry_renderer.getManager().stripes;
-  if (spline_gen_geometry__radius.y <= 0.0f)
-    spline_gen_geometry__radius.y = lerp(spline_gen_geometry__radius.x, spline_gen_geometry__radius.z, (stripes - 1.0f) / stripes);
-  G_ASSERT(spline_gen_geometry__radius.x > 0);
-  G_ASSERT(spline_gen_geometry__radius.z >= 0);
   G_ASSERT(abs(spline_gen_geometry__displacement_strength) < 1);
   G_ASSERT(spline_gen_geometry__tiles_around >= 1);
   G_ASSERT(spline_gen_geometry__tile_size_meters > 0);
   G_ASSERT(spline_gen_geometry__points.size() >= 2);
+  G_ASSERT(spline_gen_geometry__radii.size() >= 2);
+  G_ASSERT(spline_gen_geometry_renderer.getManager().getType() == SplineGenGeometryManager::SplineGenType::REGULAR_SPLINE_GEN &&
+             spline_gen_geometry__emissive_points.size() == 0 ||
+           spline_gen_geometry_renderer.getManager().getType() == SplineGenGeometryManager::SplineGenType::EMISSIVE_SPLINE_GEN ||
+           spline_gen_geometry_renderer.getManager().getType() == SplineGenGeometryManager::SplineGenType::SKIN_SPLINE_GEN &&
+             spline_gen_geometry__emissive_points.size() == 0);
+  float maxRadius = get_max_radius(spline_gen_geometry__radii);
+  eastl::vector<SplineGenSpline, framemem_allocator> splineVec =
+    interpolate_points(spline_gen_geometry__points, spline_gen_geometry__radii, spline_gen_geometry__emissive_points, stripes);
 
-  eastl::vector<SplineGenSpline, framemem_allocator> splineVec = interpolate_points(spline_gen_geometry__points, stripes);
-
-  spline_gen_geometry_renderer.updateInstancingData(splineVec, spline_gen_geometry__radius, spline_gen_geometry__displacement_strength,
+  spline_gen_geometry_renderer.updateInstancingData(splineVec, maxRadius, spline_gen_geometry__displacement_strength,
     spline_gen_geometry__tiles_around, spline_gen_geometry__tile_size_meters, spline_gen_geometry__obj_size_mul,
-    spline_gen_geometry__meter_between_objs);
+    spline_gen_geometry__meter_between_objs, spline_gen_geometry__emissive_color);
 }
 
 ECS_TAG(render)
 ECS_AFTER(spline_gen_geometry_update_instancing_data_es)
 ECS_REQUIRE(eastl::true_type spline_gen_geometry__is_rendered)
-ECS_REQUIRE(eastl::false_type spline_gen_geometry__renderer_active)
-static void spline_gen_geometry_update_inactive_es(const UpdateStageInfoBeforeRender & /*stg*/,
+static void spline_gen_geometry_update_attachment_batchids_es(const UpdateStageInfoBeforeRender & /*stg*/,
   SplineGenGeometry &spline_gen_geometry_renderer)
 {
-  spline_gen_geometry_renderer.updateInactive();
+  spline_gen_geometry_renderer.updateAttachmentBatchIds();
 }
 
 ECS_TAG(render)
-ECS_AFTER(spline_gen_geometry_update_inactive_es)
-static void spline_gen_geometry_manager_generate_es(const UpdateStageInfoBeforeRender & /*stg*/,
+ECS_AFTER(spline_gen_geometry_update_attachment_batchids_es)
+static void spline_gen_geometry_manager_generate_es(const UpdateStageInfoBeforeRender &stg,
   SplineGenGeometryRepository &spline_gen_repository)
 {
+  if (spline_gen_repository.getManagers().empty())
+    return;
+
   for (auto &managerPair : spline_gen_repository.getManagers())
-  {
-    managerPair.second->generate();
-  }
+    managerPair.second->uploadGenerateData();
+  d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+  for (auto &managerPair : spline_gen_repository.getManagers())
+    managerPair.second->attachObjects();
+  d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+
+  // cull ahead of time for main opaq pass to avoid breaking render pass in FG node
+  set_frustum_planes(stg.mainCullingFrustum);
+  for (auto &managerPair : spline_gen_repository.getManagers())
+    managerPair.second->uploadCullData(SplineGenGeometryManager::CASCADE_COLOR);
+  d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+  for (auto &managerPair : spline_gen_repository.getManagers())
+    managerPair.second->cull(SplineGenGeometryManager::CASCADE_COLOR);
+  d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 }
 
 ECS_TAG(render)
@@ -155,9 +178,19 @@ static void spline_gen_geometry_render_opaque_es(const UpdateStageInfoRender &st
 {
   bool renderColor = stg.hints & UpdateStageInfoRender::RENDER_COLOR;
   set_frustum_planes(stg.cullingFrustum);
+  if (!renderColor)
+  {
+    // we do culling for shadow rendering in place, because we don't have separate buffers and it is allowed to do so
+    for (auto &managerPair : spline_gen_repository.getManagers())
+      managerPair.second->uploadCullData(SplineGenGeometryManager::CASCADE_SHADOW);
+    d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+    for (auto &managerPair : spline_gen_repository.getManagers())
+      managerPair.second->cull(SplineGenGeometryManager::CASCADE_SHADOW);
+    d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+  }
   for (auto &managerPair : spline_gen_repository.getManagers())
   {
-    managerPair.second->render(renderColor);
+    managerPair.second->render(renderColor ? SplineGenGeometryManager::CASCADE_COLOR : SplineGenGeometryManager::CASCADE_SHADOW);
   }
 }
 

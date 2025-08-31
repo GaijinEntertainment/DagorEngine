@@ -12,7 +12,7 @@ def file_test_es(evt : Event)
   print("saving ftest.txt\n")
   df_open("ftest.txt", DF_WRITE) <| $(file)
     if file != null
-      df_puts(file, "hello,world!\n")
+      df_write(file, "hello,world!\n")
     else
       panic("can't open ftest.txt for writing")
   print("loading ftest.txt\n")
@@ -26,7 +26,7 @@ def file_test_es(evt : Event)
   print("saving ftest.bin\n")
   df_open("ftest.bin", DF_WRITE) <| $(file)
     if file != null
-      df_write(file, [[FooBar x=1, y=1.0]])
+      df_write(file, FooBar(x = 1, y = 1.0))
     else
       panic("can't open ftest.bin for writing")
   print("loading ftest.bin\n")
@@ -36,7 +36,7 @@ def file_test_es(evt : Event)
       df_read(file, tfb)
       assert(tfb.x == 1 && tfb.y == 1.0)
       let pos = df_tell(file)
-      assert(pos == typeinfo(sizeof type<FooBar>))
+      assert(pos == typeinfo sizeof(type<FooBar>))
     else
       panic("can't open ftest.bin_save for reading")
   // save and load
@@ -44,7 +44,7 @@ def file_test_es(evt : Event)
   print("saving ftest.bin_save\n")
   df_open("ftest.bin_save", DF_WRITE) <| $(file)
     if file != null
-      df_save(file, [[FooBar x=1, y=1.0]])
+      df_save(file, FooBar(x = 1, y = 1.0))
     else
       panic("can't open ftest.bin for writing")
   print("loading ftest.bin_save\n")

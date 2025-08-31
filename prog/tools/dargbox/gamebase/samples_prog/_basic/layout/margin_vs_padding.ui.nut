@@ -13,7 +13,7 @@ let extPadding = @(children) {
 }
 
 let intMargin = @(margin) {
-  size = [hdpx(150), SIZE_TO_CONTENT]
+  size = static [hdpx(150), SIZE_TO_CONTENT]
   rendObj = ROBJ_SOLID
   padding = hdpx(5)
   margin = hdpx(margin)

@@ -15,7 +15,7 @@ void show_splash_screen(Texture *tex, bool independent_render)
 
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
 
-  d3d::stretch_rect(tex, NULL, NULL, NULL);
+  d3d::stretch_rect(tex, d3d::get_backbuffer_tex(), NULL, NULL);
 
   if (independent_render)
   {

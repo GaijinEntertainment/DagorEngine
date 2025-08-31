@@ -25,46 +25,6 @@ struct DasEcsStatistics
 
 namespace bind_dascript
 {
-struct LoadedScript final : public DasLoadedScript<EsContext>
-{
-  using EsContextUniquePtr = das::shared_ptr<EsContext>;
-  dag::VectorSet<ecs::EntitySystemDesc *> systems;
-  eastl::vector<QueryData> queries;
-#if DAGOR_DBGLEVEL > 0
-  SimpleString fn;
-#endif
-
-  LoadedScript() : bind_dascript::DasLoadedScript<EsContext>() {}
-
-  LoadedScript(das::ProgramPtr &&program_, EsContextUniquePtr &&ctx_, DagFileAccessPtr access_, AotMode aot_mode_override,
-    AotModeIsRequired aot_mode_is_required, EnableDebugger enable_debugger) :
-    bind_dascript::DasLoadedScript<EsContext>(eastl::move(program_), eastl::move(ctx_), access_, aot_mode_override,
-      aot_mode_is_required, enable_debugger)
-  {}
-
-  LoadedScript(LoadedScript &&l) :
-    bind_dascript::DasLoadedScript<EsContext>(eastl::move(l)),
-    systems(eastl::move(l.systems)),
-#if DAGOR_DBGLEVEL > 0
-    fn(eastl::move(l.fn)),
-#endif
-    queries(eastl::move(l.queries))
-  {}
-
-  LoadedScript &operator=(LoadedScript &&l)
-  {
-    this->bind_dascript::DasLoadedScript<EsContext>::operator=(eastl::move(l));
-    systems = eastl::move(l.systems);
-    queries = eastl::move(l.queries);
-#if DAGOR_DBGLEVEL > 0
-    fn = eastl::move(l.fn);
-#endif
-    return *this;
-  }
-
-  virtual void unload() override;
-  virtual ~LoadedScript() override { unload(); }
-};
 
 
 class ECS final : public das::Module

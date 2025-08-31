@@ -17,10 +17,6 @@ Sources =
   animCharMgr.cpp
 ;
 
-SourceES =
-  toolAnimcharES.cpp.inl
-;
-
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 
 SourceES = ;

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "render/fx/fx.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "render/fx/effectEntity.h"
 
 #include <daECS/core/coreEvents.h>

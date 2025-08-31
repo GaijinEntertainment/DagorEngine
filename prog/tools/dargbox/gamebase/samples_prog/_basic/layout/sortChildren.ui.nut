@@ -4,7 +4,7 @@ function box(offs, color, sortOrder) {
   return {
     rendObj = ROBJ_SOLID
     color = color
-    size = [sh(50), sh(50)]
+    size = sh(50)
     pos = [sh(10)*offs, sh(10)*offs]
     sortOrder = sortOrder
   }

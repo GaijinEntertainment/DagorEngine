@@ -1,4 +1,3 @@
-require app
 require ecs
 require Dacoll
 options no_aot
@@ -18,7 +17,7 @@ def path_check_path(sx, sy, sz, ex, ey, ez : float; dist_to_path : float = 10f;
   let end = float3(ex, ey, ez)
   let extents = float3(dist_to_path, FLT_MAX, dist_to_path)
   using(start, end, extents) <| $(var req : FindRequest#)
-    req.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
+    req.includeFlags |= int(PolyFlag.POLYFLAG_JUMP)
     req.maxJumpUpHeight = max_jump_up_height
     let res = check_path(req, horz_threshold, max_vert_dist)
     draw_debug_sphere_buffered(start, 1f, E3DCOLOR(0xFFFF0000), 12, 2000)
@@ -33,7 +32,7 @@ def path_calc_approx_path_length(sx, sy, sz, ex, ey, ez : float; dist_to_path : 
   let end = float3(ex, ey, ez)
   let extents = float3(dist_to_path, FLT_MAX, dist_to_path)
   using(start, end, extents) <| $(var req : FindRequest#)
-    req.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
+    req.includeFlags |= int(PolyFlag.POLYFLAG_JUMP)
     req.maxJumpUpHeight = max_jump_up_height
     let res = calc_approx_path_length(req, horz_threshold, max_vert_dist)
     draw_debug_sphere_buffered(start, 1f, E3DCOLOR(0xFFFF0000), 12, 2000)
@@ -49,7 +48,7 @@ def path_find_path(sx, sy, sz, ex, ey, ez : float; dist_to_path : float = 10f; s
   draw_debug_sphere_buffered(end, 1f, E3DCOLOR(0xFF00FF00), 12, 2000)
   let extents = float3(dist_to_path, FLT_MAX, dist_to_path)
   using(start, end, extents) <| $(var req : FindRequest#)
-    req.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
+    req.includeFlags |= int(PolyFlag.POLYFLAG_JUMP)
     req.maxJumpUpHeight = max_jump_up_height
     let res = find_path(req, step_size, slop) <| $(path)
       console_print("path: len {length(path)}")
@@ -126,7 +125,7 @@ def corridor_find_path(sx, sy, sz, ex, ey, ez : float; maxJumpUpHeight : float =
     let extents = float3(.5, FLT_MAX, .5)
     using(start, end, extents) <| $(var inp : CorridorInput#)
       if maxJumpUpHeight < FLT_MAX
-        inp.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
+        inp.includeFlags |= int(PolyFlag.POLYFLAG_JUMP)
       inp.maxJumpUpHeight = maxJumpUpHeight
       let res = path_corridor |> set_path_corridor(inp, null)
 
@@ -136,7 +135,7 @@ def corridor_find_path(sx, sy, sz, ex, ey, ez : float; maxJumpUpHeight : float =
       path_corridor |> corridor_getPath() <| $(list)
         let line = build_string() <| $(str)
           for l in list
-            str |> format("%lld", l)
+            str |> fmt(":d", l)
             str |> write("  ")
         console_print(line)
 
@@ -344,7 +343,7 @@ def console_draw_triangle(id : dtPolyRef)
   var polyFlags = uint16(0)
   get_poly_flags(id, polyFlags)
   get_triangle_by_poly(id, res)
-  if (int(polyFlags) & int(PolyFlag POLYFLAG_JUMP)) != 0
+  if (int(polyFlags) & int(PolyFlag.POLYFLAG_JUMP)) != 0
     draw_debug_line_buffered(res.p0, res.p1, E3DCOLOR(0xff5555ff), duration * 3)
     draw_debug_circle_buffered(res.p0, normalize(res.p1 - res.p0), 0.05, E3DCOLOR(0xff7777ff), 3, duration * 3)
     draw_debug_circle_buffered(res.p1, normalize(res.p1 - res.p0), 0.05, E3DCOLOR(0xff3333ff), 3, duration * 3)
@@ -381,7 +380,7 @@ def console_debug_nmesh_connections(x, y, z : float; depth : int = 3)
     get_triangle_by_poly(thisPoly, res)
     get_poly_flags(thisPoly, polyFlags)
     let center = get_poly_center(polyFlags, res)
-    let thisPolyIsJumplink = (int(polyFlags) & int(PolyFlag POLYFLAG_JUMP)) != 0
+    let thisPolyIsJumplink = (int(polyFlags) & int(PolyFlag.POLYFLAG_JUMP)) != 0
     if !thisPolyIsJumplink && res.p0 != res.p1 && res.p1 != res.p2 && res.p2 != res.p0
       draw_diminished_triangle(res.p0 + elevation, res.p1 + elevation, res.p2 + elevation, duration)
       draw_debug_text_mark_buffered(center + elevation, "{thisPoly}", duration)
@@ -411,7 +410,7 @@ def draw_diminished_triangle(p1, p2, p3 : float3; duration : int)
 
 
 def get_poly_center(flags : uint16; triangle : NavMeshTriangle)
-  if (int(flags) & int(PolyFlag POLYFLAG_JUMP)) == 0
+  if (int(flags) & int(PolyFlag.POLYFLAG_JUMP)) == 0
     return (triangle.p0 + triangle.p1 + triangle.p2) / 3.0
   else
     return (triangle.p0 + triangle.p1) / 2.0
@@ -440,7 +439,7 @@ def console_nmesh_info_around_camera()
     get_poly_area(thisPoly, area)
     let center = get_poly_center(polyFlags, res)
     draw_debug_text_mark_buffered(center + elevation, "({thisPoly}) F:{polyFlags} A:{area}", duration)
-    let thisPolyIsJumplink = (int(polyFlags) & int(PolyFlag POLYFLAG_JUMP)) != 0
+    let thisPolyIsJumplink = (int(polyFlags) & int(PolyFlag.POLYFLAG_JUMP)) != 0
     if !thisPolyIsJumplink && res.p0 != res.p1 && res.p1 != res.p2 && res.p2 != res.p0
       draw_diminished_triangle(res.p0 + elevation, res.p1 + elevation, res.p2 + elevation, duration)
     else

@@ -18,8 +18,8 @@ class FileUpdateCallback : public ITimerCallBack
 public:
   FileUpdateCallback() : mTimer(this, 1000, false) {}
 
-  virtual void setFile(const char *fn);
-  virtual void update();
+  void setFile(const char *fn);
+  void update() override;
 
 protected:
   virtual void UpdateFile() = 0;

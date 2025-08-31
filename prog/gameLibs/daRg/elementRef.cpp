@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "elementRef.h"
+#include "elementTree.h"
 #include <daRg/dag_element.h>
 #include <quirrel/sqStackChecker.h>
 
@@ -131,6 +132,16 @@ static SQInteger elem_get_scroll_offs_y(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger elem_get_over_scroll_offs_y(HSQUIRRELVM vm)
+{
+  GET_EREF;
+  ElementTree::OverscrollMap::iterator itOverscroll = ref->elem->etree->overscroll.find(ref->elem);
+  sq_pushfloat(vm, itOverscroll == ref->elem->etree->overscroll.end()
+                     ? ref->elem->screenCoord.scrollOffs.y
+                     : ref->elem->screenCoord.scrollOffs.y + itOverscroll->second.delta.y);
+  return 1;
+}
+
 static SQInteger on_delete_elemref_instance(SQUserPointer ptr, SQInteger size)
 {
   G_UNUSED(size);
@@ -179,6 +190,7 @@ void ElementRef::bind_script(HSQUIRRELVM vm)
     .SquirrelFunc("getContentHeight", elem_get_content_height, 1, "x")
     .SquirrelFunc("getScrollOffsX", elem_get_scroll_offs_x, 1, "x")
     .SquirrelFunc("getScrollOffsY", elem_get_scroll_offs_y, 1, "x")
+    .SquirrelFunc("getOverScrollOffsY", elem_get_over_scroll_offs_y, 1, "x")
     /**/;
 }
 

@@ -153,7 +153,6 @@ public:
 public:
   enum
   {
-    STEP = 512,
     MAX_ENTITIES = 0x7FFFFFFF
   };
   TMatrix tm;
@@ -279,7 +278,7 @@ public:
     rendEntGeomMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("rend_ent_geom");
     splineSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("spline_cls");
   }
-  ~SplineGenEntityManagementService()
+  ~SplineGenEntityManagementService() override
   {
     if (self == this)
       self = nullptr;
@@ -443,7 +442,7 @@ public:
             if (node && node->script.getInt("layer", 0) == layer && (!flags || (node->flags & flags)))
             {
               StaticGeometryNode *n = new (tmpmem) StaticGeometryNode(*node);
-              n->name = String(1024, "%p_%d", e, ni);
+              n->name = (ni == 0) ? String(0, "%s_%p", node->name, e) : String(0, "%s_%p_%d", node->name, e, ni);
               if (spl_layer >= 0)
                 n->script.setInt("splineLayer", e->splineLayer); // Use this and layer:i from loft to split materials by layers.
               cont.addNode(n);

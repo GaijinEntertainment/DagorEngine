@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 
 return {
-  size = [sh(50), sh(50)]
+  size = sh(50)
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
   halign = ALIGN_CENTER

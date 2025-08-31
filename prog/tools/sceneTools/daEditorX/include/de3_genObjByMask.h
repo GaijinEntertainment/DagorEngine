@@ -26,7 +26,7 @@ inline void generateTiledEntitiesInMaskedRect(landclass::TiledEntities &lcd, int
       !mask.getClamped((pos.x - world0_x) * world2sampler, (pos.z - world0_y) * world2sampler) || \
       !is_place_allowed(pos.x + entity_ofs_x, pos.z + entity_ofs_z))                              \
   {                                                                                               \
-    _rnd(seed);                                                                                   \
+    rnd(seed);                                                                                    \
     continue;                                                                                     \
   }                                                                                               \
   pos.x += entity_ofs_x;                                                                          \
@@ -110,7 +110,7 @@ inline void generateTiledEntitiesInMaskedRect(landclass::TiledEntities &lcd, int
   e->setTm(tm);                                                                                   \
   IColor *ecol = e->queryInterface<IColor>();                                                     \
   if (ecol)                                                                                       \
-    ecol->setColor(sep.colorRangeIdx), _skip_rnd_ivec4(seed);                                     \
+    ecol->setColor(sep.colorRangeIdx), skip_rnd_ivec4(seed);                                      \
   obj_idx++;
 
   BBox2 rect(Point2(world0_x, world0_y), Point2(world0_x + box_x, world0_y + box_y));

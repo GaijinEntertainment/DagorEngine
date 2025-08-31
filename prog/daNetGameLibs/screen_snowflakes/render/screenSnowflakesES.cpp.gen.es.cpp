@@ -1,17 +1,21 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "screenSnowflakesES.cpp.inl"
 ECS_DEF_PULL_VAR(screenSnowflakes);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps[] =
 {
-//start of 1 ro components at [0]
-  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()}
+//start of 2 ro components at [0]
+  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()}
 };
 static void create_screen_snowflakes_renderer_entity_on_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_screen_snowflakes_renderer_entity_on_settings_changed_es(evt
         , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
+    , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__bare_minimum", bool)
     );
   while (++comp != compE);
 }
@@ -21,14 +25,14 @@ static ecs::EntitySystemDesc create_screen_snowflakes_renderer_entity_on_setting
   "prog/daNetGameLibs/screen_snowflakes/render/screenSnowflakesES.cpp.inl",
   ecs::EntitySystemOps(nullptr, create_screen_snowflakes_renderer_entity_on_settings_changed_es_all_events),
   empty_span(),
-  make_span(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps+0, 1)/*ro*/,
+  make_span(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps+0, 2)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeatures,
                        OnRenderSettingsReady,
                        SetResolutionEvent>::build(),
   0
-,"render","render_settings__screenSpaceWeatherEffects");
+,"render","render_settings__bare_minimum,render_settings__screenSpaceWeatherEffects");
 static constexpr ecs::ComponentDesc create_screen_snowflakes_renderer_entity_on_snow_appearance_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -83,7 +87,7 @@ static constexpr ecs::ComponentDesc init_screen_snowflakes_es_comps[] =
   {ECS_HASH("screen_snowflakes__enabled_on_level"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("screen_snowflakes__camera_inside_vehicle"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
-  {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
 //start of 1 ro components at [4]
   {ECS_HASH("screen_snowflakes__max_count"), ecs::ComponentTypeInfo<int>()}
 };
@@ -95,7 +99,7 @@ static void init_screen_snowflakes_es_all_events(const ecs::Event &__restrict ev
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)
     , ECS_RO_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__max_count", int)
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
-    , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -116,7 +120,7 @@ static constexpr ecs::ComponentDesc destroy_screen_snowflakes_es_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
-  {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("screen_snowflakes__enabled_on_level"), ecs::ComponentTypeInfo<bool>()}
 };
 static void destroy_screen_snowflakes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -124,7 +128,7 @@ static void destroy_screen_snowflakes_es_all_events(const ecs::Event &__restrict
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     destroy_screen_snowflakes_es(evt
         , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
-    , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__node", dabfg::NodeHandle)
+    , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__node", dafg::NodeHandle)
     , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__enabled_on_level", bool)
     );
   while (++comp != compE);

@@ -74,6 +74,7 @@ public:
 
   void waitPendingIO()
   {
+    TIME_PROFILE(AsyncWriterCB__waitPendingIO)
     while (done == WRITE_IN_PROGRESS)
     {
       THREAD_YIELD;
@@ -240,6 +241,7 @@ void AsyncWriterCB::write(const void *ptr, int size)
   if (buf.empty())
     return;
 
+  TIME_PROFILE(AsyncWriterCB__asyncWriteBegin)
 #if _TARGET_APPLE | _TARGET_PC_LINUX
   G_ASSERT(offs >= 0);
   memset(&aio, 0, sizeof(aio));

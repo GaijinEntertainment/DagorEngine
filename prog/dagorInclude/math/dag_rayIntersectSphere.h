@@ -53,8 +53,10 @@ __forceinline float rayIntersectSphereDist(const Point3 &ray_start, const Point3
 {
   Point3 p = ray_start - sphere_center;
 
-  float b = 2.f * (p * ray_normalized_dir);
   float c = p * p - sphere_radius * sphere_radius;
+  if (c < 0.f)
+    return 0.f;
+  float b = 2.f * (p * ray_normalized_dir);
   float d = b * b - 4 * c;
   if (d >= 0)
   {

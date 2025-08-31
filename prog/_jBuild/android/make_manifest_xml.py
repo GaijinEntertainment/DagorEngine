@@ -18,6 +18,7 @@ parser.add_argument('--gmsAppId')
 parser.add_argument('--oculusVersion')
 parser.add_argument('--applicationAttribures', nargs='+', default=[])
 parser.add_argument('--userPermissions', nargs='+', default=[])
+parser.add_argument('--metaData', nargs='+', default=[])
 
 
 args = parser.parse_args()
@@ -86,6 +87,8 @@ for f in os.listdir(os.path.dirname(args.ARG_DST_XML)):
 
 USER_PERMISSIONS = ''.join([f'<uses-permission android:name="{p}"/>' for p in args.userPermissions])
 
+META_DATA = ''.join([f'<meta-data android:name="{m[0]}" android:value="{m[1]}"/>' for m in [m.split('=') for m in args.metaData]])
+
 origin = open(args.ARG_SRC_XML, 'r')
 content = origin.readlines()
 
@@ -107,7 +110,8 @@ for i in range(len(content)):
     GMS_APP_ID=args.GMS_APP_ID,
     OCULUS_VERSION=args.OCULUS_VERSION,
     ANDROID_ACTIVITIES=ANDROID_ACTIVITIES,
-    USER_PERMISSIONS=USER_PERMISSIONS
+    USER_PERMISSIONS=USER_PERMISSIONS,
+    META_DATA=META_DATA
     )
 
 output = open(str(args.ARG_DST_XML), 'w+')

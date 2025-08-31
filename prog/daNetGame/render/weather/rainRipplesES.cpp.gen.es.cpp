@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "rainRipplesES.cpp.inl"
 ECS_DEF_PULL_VAR(rainRipples);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc rain_ripples_appear_es_comps[] =
 {

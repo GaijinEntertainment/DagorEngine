@@ -253,6 +253,10 @@ class StatefulCommandBuffer
   GlobalState globalState;
   ID3D12PipelineState *activeEmbeddedPipeline = nullptr;
   FeatureState::Type activeFeatures = {};
+  /// Commands written by this object
+  uint32_t knownWrittenCommands = 0;
+  /// Commands that may be written by external users, we don't know how many, could even be 0
+  uint32_t unknownWrittenCommands = 0;
 
   bool validateTopology()
   {
@@ -305,45 +309,65 @@ public:
   void clearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE view, const FLOAT color[4], UINT rect_count, const D3D12_RECT *rects)
   {
     cmd.clearRenderTargetView(view, color, rect_count, rects);
+    ++knownWrittenCommands;
   }
   void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
     DXGI_FORMAT format)
   {
     cmd.resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+    ++knownWrittenCommands;
   }
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE view, D3D12_CLEAR_FLAGS flags, FLOAT d, UINT8 s, UINT rect_count,
     const D3D12_RECT *rects)
   {
     cmd.clearDepthStencilView(view, flags, d, s, rect_count, rects);
+    ++knownWrittenCommands;
   }
-  void beginQuery(ID3D12QueryHeap *heap, D3D12_QUERY_TYPE type, UINT index) { cmd.beginQuery(heap, type, index); }
-  void endQuery(ID3D12QueryHeap *heap, D3D12_QUERY_TYPE type, UINT index) { cmd.endQuery(heap, type, index); }
+  void beginQuery(ID3D12QueryHeap *heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    cmd.beginQuery(heap, type, index);
+    ++knownWrittenCommands;
+  }
+  void endQuery(ID3D12QueryHeap *heap, D3D12_QUERY_TYPE type, UINT index)
+  {
+    cmd.endQuery(heap, type, index);
+    ++knownWrittenCommands;
+  }
   void resolveQueryData(ID3D12QueryHeap *heap, D3D12_QUERY_TYPE type, UINT index, UINT count, ID3D12Resource *target, UINT64 offset)
   {
     cmd.resolveQueryData(heap, type, index, count, target, offset);
+    ++knownWrittenCommands;
   }
   void clearUnorderedAccessViewFloat(D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc, D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc, ID3D12Resource *res,
     const FLOAT values[4], UINT num_rects, const D3D12_RECT *rects)
   {
     flushGlobalState(NeedSamplerHeap::No);
     cmd.clearUnorderedAccessViewFloat(gpu_desc, cpu_desc, res, values, num_rects, rects);
+    ++knownWrittenCommands;
   }
   void clearUnorderedAccessViewUint(D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc, D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc, ID3D12Resource *res,
     const UINT values[4], UINT num_rects, const D3D12_RECT *rects)
   {
     flushGlobalState(NeedSamplerHeap::No);
     cmd.clearUnorderedAccessViewUint(gpu_desc, cpu_desc, res, values, num_rects, rects);
+    ++knownWrittenCommands;
   }
-  void copyResource(ID3D12Resource *dst, ID3D12Resource *src) { cmd.copyResource(dst, src); }
+  void copyResource(ID3D12Resource *dst, ID3D12Resource *src)
+  {
+    cmd.copyResource(dst, src);
+    ++knownWrittenCommands;
+  }
 
   void copyBuffer(ID3D12Resource *dst, UINT64 dst_offset, ID3D12Resource *src, UINT64 src_offset, UINT64 size)
   {
     cmd.copyBufferRegion(dst, dst_offset, src, src_offset, size);
+    ++knownWrittenCommands;
   }
   void copyTexture(const D3D12_TEXTURE_COPY_LOCATION *dst, UINT dx, UINT dy, UINT dz, const D3D12_TEXTURE_COPY_LOCATION *src,
     const D3D12_BOX *sb = nullptr)
   {
     cmd.copyTextureRegion(dst, dx, dy, dz, src, sb);
+    ++knownWrittenCommands;
   }
   void barriers(uint32_t count, const D3D12_RESOURCE_BARRIER *barriers) { cmd.resourceBarrier(count, barriers); }
 #if D3D_HAS_RAY_TRACING
@@ -352,6 +376,7 @@ public:
   {
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     cmd.buildRaytracingAccelerationStructure(desc, num_post_build_info_descs, post_build_info_descs);
+    ++knownWrittenCommands;
   }
 #if _TARGET_XBOX
 #include "stateful_command_buffer_xbox.inc.h"
@@ -361,6 +386,7 @@ public:
   {
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     cmd.copyRaytracingAccelerationStructure(dst, src, mode);
+    ++knownWrittenCommands;
   }
 #endif
   void setSamplerHeap(ID3D12DescriptorHeap *heap, D3D12_GPU_DESCRIPTOR_HANDLE binldess_address)
@@ -377,7 +403,15 @@ public:
   }
   bool areDescriptorHeapsDirty() { return globalState.dirtyState.test(GlobalState::DirtySet::DESCRIPTOR_HEAPS); }
   void resetForFrameStart() { globalState.descriptorHeaps[0] = globalState.descriptorHeaps[1] = nullptr; }
+  // TODO: change the return type to only allow checkpoint writes
+  /// DO NOT USE TO RECORD COMMANDS, USE recordExternalCommands
   D3DGraphicsCommandList *getHandle() { return cmd.get(); }
+  template <typename T>
+  void recordExternalCommands(T &&accessor)
+  {
+    accessor(cmd.get());
+    ++unknownWrittenCommands;
+  }
 
   void dirtyAll()
   {
@@ -395,9 +429,28 @@ public:
     activeEmbeddedPipeline = nullptr;
   }
 
+  enum class RecordedCommandsStatus
+  {
+    NoCommandsRecorded,
+    CommandsWereRecorded,
+    CommandsMayBeRecorded,
+  };
+
+  RecordedCommandsStatus getRecordingStatus() const
+  {
+    return knownWrittenCommands > 0     ? RecordedCommandsStatus::CommandsWereRecorded
+           : unknownWrittenCommands > 0 ? RecordedCommandsStatus::CommandsMayBeRecorded
+                                        : RecordedCommandsStatus::NoCommandsRecorded;
+  }
+
   const GraphicsCommandList<AnyCommandListPtr> &getBufferWrapper() const { return cmd; }
 
-  void resetBuffer() { cmd.reset(); }
+  void resetBuffer()
+  {
+    cmd.reset();
+    knownWrittenCommands = 0;
+    unknownWrittenCommands = 0;
+  }
 
   bool isReadyForRecording() const { return static_cast<bool>(cmd); }
 
@@ -421,6 +474,7 @@ public:
 #if _TARGET_PC_WIN
     D3D12_WRITEBUFFERIMMEDIATE_PARAMETER writeInfo{target, value};
     cmd.writeBufferImmediate(1, &writeInfo, &mode);
+    ++knownWrittenCommands;
 #endif
   }
 
@@ -557,6 +611,7 @@ public:
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     flushRaytrace();
     cmd.dispatchRays(&def);
+    ++knownWrittenCommands;
   }
 
   void dispatchaysIndirect(ID3D12CommandSignature *signature, ID3D12Resource *args_buffer, uint64_t args_offset,
@@ -565,6 +620,7 @@ public:
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     flushRaytrace();
     cmd.executeIndirect(signature, max_count, args_buffer, args_offset, count_buffer, count_offset);
+    ++knownWrittenCommands;
   }
 #endif
 
@@ -641,6 +697,9 @@ public:
       computeState.dirtyState.set(ComputeState::DirtySet::SAMPLER_DESCRIPTORS);
       computeState.dirtyState.set(ComputeState::DirtySet::SRV_DESCRIPTORS);
       computeState.dirtyState.set(ComputeState::DirtySet::UAV_DESCRIPTORS);
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+      computeState.dirtyState.set(ComputeState::DirtySet::CBV_DESCRIPTORS);
+#endif
       globalState.resetActiveBindlessAddresses();
     }
     if (computeState.rootConstantDirtyState.any())
@@ -695,6 +754,7 @@ public:
 
     flushCompute();
     cmd.dispatch(x, y, z);
+    ++knownWrittenCommands;
   }
 
   void dispatchIndirect(ID3D12CommandSignature *signature, ID3D12Resource *buffer, uint64_t offset)
@@ -704,6 +764,7 @@ public:
 
     flushCompute();
     cmd.executeIndirect(signature, 1, buffer, offset, nullptr, 0);
+    ++knownWrittenCommands;
   }
 
   void bindGraphicsPipeline(GraphicsPipelineSignature *signature, ID3D12PipelineState *pipeline, bool has_gs, bool has_ts,
@@ -983,9 +1044,13 @@ public:
       graphicsDirtyState.set(GraphicsState::DirtySet::PIXEL_SAMPLER_DESCRIPTORS);
       graphicsDirtyState.set(GraphicsState::DirtySet::PIXEL_SRV_DESCRIPTORS);
       graphicsDirtyState.set(GraphicsState::DirtySet::PIXEL_UAV_DESCRIPTORS);
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+      graphicsDirtyState.set(GraphicsState::DirtySet::VERTEX_CBV_DESCRIPTORS);
+      graphicsDirtyState.set(GraphicsState::DirtySet::PIXEL_CBV_DESCRIPTORS);
+#endif
       globalState.resetActiveBindlessAddresses();
     }
-    if (graphicsState.dirtyState.test(GraphicsState::DirtySet::PRIMITIVE_TOPOLOGY))
+    if (graphicsDirtyState.test(GraphicsState::DirtySet::PRIMITIVE_TOPOLOGY))
     {
       cmd.iaSetPrimitiveTopology(graphicsState.dynamicState.top);
     }
@@ -996,7 +1061,7 @@ public:
       graphicsState.vertexRootConstantDirtyState.reset();
     }
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-    bool vertexCBVDescriptorsDirty = graphicsState.dirtyState.test(GraphicsState::DirtySet::VERTEX_CBV_DESCRIPTORS);
+    bool vertexCBVDescriptorsDirty = graphicsDirtyState.test(GraphicsState::DirtySet::VERTEX_CBV_DESCRIPTORS);
     D3D12_GPU_DESCRIPTOR_HANDLE vertexCBVDescriptors = graphicsState.vertexShader.cbvExtraRange;
 #else
     constexpr bool vertexCBVDescriptorsDirty = false;
@@ -1027,7 +1092,7 @@ public:
       graphicsState.pixelRootConstantDirtyState.reset();
     }
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-    bool pixelCBVDescriptorsDirty = graphicsState.dirtyState.test(GraphicsState::DirtySet::PIXEL_CBV_DESCRIPTORS);
+    bool pixelCBVDescriptorsDirty = graphicsDirtyState.test(GraphicsState::DirtySet::PIXEL_CBV_DESCRIPTORS);
     D3D12_GPU_DESCRIPTOR_HANDLE pixelCBVDescriptors = graphicsState.pixelShader.cbvExtraRange;
 #else
     constexpr bool pixelCBVDescriptorsDirty = false;
@@ -1105,6 +1170,7 @@ public:
       return;
     flushGraphics(PrimitivePipeline::VERTEX);
     cmd.executeIndirect(signature, draw_count, buffer, offset, nullptr, 0);
+    ++knownWrittenCommands;
   }
 
   void drawIndexedIndirect(ID3D12CommandSignature *signature, ID3D12Resource *buffer, uint64_t offset, uint32_t draw_count)
@@ -1115,6 +1181,7 @@ public:
       return;
     flushGraphics(PrimitivePipeline::VERTEX);
     cmd.executeIndirect(signature, draw_count, buffer, offset, nullptr, 0);
+    ++knownWrittenCommands;
   }
 
   void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
@@ -1125,6 +1192,7 @@ public:
       return;
     flushGraphics(PrimitivePipeline::VERTEX);
     cmd.drawInstanced(vertex_count, instance_count, first_vertex, first_instance);
+    ++knownWrittenCommands;
   }
 
   void drawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance)
@@ -1136,6 +1204,7 @@ public:
 
     flushGraphics(PrimitivePipeline::VERTEX);
     cmd.drawIndexedInstanced(index_count, instance_count, first_index, vertex_offset, first_instance);
+    ++knownWrittenCommands;
   }
 
   void embeddedExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
@@ -1183,6 +1252,7 @@ public:
     }
 #endif
     cmd.drawInstanced(3, 1, 0, 0);
+    ++knownWrittenCommands;
 
     graphicsState.dirtyState.set(GraphicsState::DirtySet::RENDER_TARGETS);
     graphicsState.dirtyState.set(GraphicsState::DirtySet::SCISSOR_RECT);
@@ -1231,7 +1301,11 @@ public:
 #endif
 
 #if _TARGET_XBOX
-  void resummarizeHtile(ID3D12Resource *depth) { xbox_resummarize_htile(cmd, depth); }
+  void resummarizeHtile(ID3D12Resource *depth)
+  {
+    xbox_resummarize_htile(cmd, depth);
+    ++knownWrittenCommands;
+  }
 #endif
 
   void iaSetVertexBuffers(UINT start_slot, UINT num_views, const D3D12_VERTEX_BUFFER_VIEW *views)
@@ -1244,6 +1318,10 @@ public:
   {
     cmd.setPredication(buffer, aligned_buffer_offset, operation);
   }
+  void soSetTargets(UINT start_slot, UINT num_views, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *views)
+  {
+    cmd.soSetTargets(start_slot, num_views, views);
+  }
   void resourceBarrier(UINT num_barriers, const D3D12_RESOURCE_BARRIER *barriers) { cmd.resourceBarrier(num_barriers, barriers); }
 
 #if !_TARGET_XBOXONE
@@ -1253,6 +1331,7 @@ public:
       return;
     flushGraphics(PrimitivePipeline::MESH);
     cmd.dispatchMesh(x, y, z);
+    ++knownWrittenCommands;
   }
   void dispatchMeshIndirect(ID3D12CommandSignature *signature, ID3D12Resource *args_buffer, uint64_t args_offset,
     ID3D12Resource *count_buffer, uint64_t count_offset, uint32_t max_count)
@@ -1261,6 +1340,7 @@ public:
       return;
     flushGraphics(PrimitivePipeline::MESH);
     cmd.executeIndirect(signature, max_count, args_buffer, args_offset, count_buffer, count_offset);
+    ++knownWrittenCommands;
   }
 #endif
 };

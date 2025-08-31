@@ -4,8 +4,9 @@
 //
 #pragma once
 
-#include <squirrel.h>
 #include <EASTL/functional.h>
+
+typedef struct SQVM *HSQUIRRELVM;
 
 namespace Json
 {
@@ -22,12 +23,16 @@ class SqModules;
 namespace sqeventbus
 {
 
-using NativeEventHandler = void (*)(const char *event_name, const Json::Value &data, const char *source_id, bool immediate);
-
 enum class ProcessingMode
 {
   IMMEDIATE,
   MANUAL_PUMP
+};
+
+struct EventParams
+{
+  const char *sourceId = "native";
+  int memoryThresholdBytes = 0; // zero means no value
 };
 
 void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode);
@@ -39,7 +44,5 @@ void send_event(const char *event_name, const Json::Value &data, const char *sou
 bool has_listeners(const char *event_name, const char *source_id = "native");
 void process_events(HSQUIRRELVM vm);
 void do_with_vm(const eastl::function<void(HSQUIRRELVM)> &callback);
-
-void set_native_event_handler(NativeEventHandler handler);
 
 } // namespace sqeventbus

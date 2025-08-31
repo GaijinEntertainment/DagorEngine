@@ -17,11 +17,11 @@
 #else
 #define DAG_FINITE_MATH
 #endif
-#if defined(__clang__) && !defined(__arm64__)
+#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__)
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
-#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 19) || defined(__APPLE__) || _TARGET_ANDROID) && \
+#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 21) || defined(__APPLE__) || _TARGET_ANDROID) && \
   defined(__clang__) && defined(__FAST_MATH__)
 // unfortunately older clang versions do not work with float_control, and in clang 17-19.1 it's broken
 __forceinline DAG_FINITE_MATH bool check_nan(float a)
@@ -59,7 +59,7 @@ DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(float a) { return __buil
 DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(double a) { return __builtin_isfinite(a) && !__builtin_isnan(a); }
 #endif
 #undef DAG_FINITE_MATH
-#if defined(__clang__) && !defined(__arm64__)
+#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__)
 #pragma float_control(pop)
 #endif
 #else

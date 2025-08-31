@@ -1,7 +1,13 @@
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
+
 Location = prog/samples/physTest ;
 
 TargetType  = exe ;
 Target      = samples/physTest$(PhysEngine) ;
+
+UseD3DMultiList = DX11 vulkan Metal stub ;
+UseD3DMulti = yes ;
 
 OutDir      = $(Root)/samples/physTest ;
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -32,6 +38,7 @@ UseProgLibs =
   engine/scene
   engine/sceneRay
   engine/coreUtil
+  engine/drv/drv3d_pc_multi
 
   engine/phys/physCommon
   engine/perfMon
@@ -42,9 +49,9 @@ UseProgLibs =
 ;
 
 if $(Headless) = yes {
+  UseD3DMultiList = stub ;
   UseProgLibs +=
     engine/drv/hid_nulldrv
-    engine/drv/drv3d_stub
   ;
 }
 
@@ -58,13 +65,11 @@ if $(Platform) in windows {
     UseProgLibs +=
       engine/drv/hid_mouse
       engine/drv/hid_keyboard
-      engine/drv/drv3d_DX11
     ;
   }
 } else if $(Platform) in linux {
   if $(Headless) != yes {
     UseProgLibs +=
-      engine/drv/drv3d_vulkan
       engine/drv/hid_mouse
       engine/drv/hid_keyboard
       engine/osApiWrappers/messageBox

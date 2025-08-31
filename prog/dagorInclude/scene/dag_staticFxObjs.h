@@ -10,7 +10,6 @@
 
 // forward declarations for external classes
 struct RoDataBlock;
-class IEffectRayTracer;
 struct ObjectsToPlace;
 class BaseEffectObject;
 class Occlusion;
@@ -39,8 +38,6 @@ void on_bindump_unload(unsigned bindump_id);
 void on_bindump_renderable_change(unsigned bindump_id, bool renderable);
 
 void clear();
-
-void set_raytracer(IEffectRayTracer *);
 
 void render(int render_type, const TMatrix &view_itm, const Occlusion *occlusion);
 void update(real dt);

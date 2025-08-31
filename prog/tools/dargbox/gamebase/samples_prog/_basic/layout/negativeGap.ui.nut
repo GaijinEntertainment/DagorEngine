@@ -24,9 +24,9 @@ function block(height, order, margin = null) {
     borderRadius = borderRadius
     borderWidth = gap
     fillColor = 0xFF808000
-    borderColor = stateFlags.value & S_HOVER ? 0xFFFFFFFF : 0x00000001
+    borderColor = stateFlags.get() & S_HOVER ? 0xFFFFFFFF : 0x00000001
 
-    onElemState = @(sf) stateFlags(sf)
+    onElemState = @(sf) stateFlags.set(sf)
     behavior = Behaviors.Button
   }
 }

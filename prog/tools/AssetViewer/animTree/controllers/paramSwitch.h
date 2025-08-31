@@ -26,4 +26,9 @@ void param_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::
 void param_switch_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
 void param_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
 const char *param_switch_get_child_name_by_idx(const DataBlock &settings, int idx);
-String param_switch_get_child_prefix_name(const DataBlock &settings, int idx);
+String param_switch_get_enum_gen_child_name_by_idx(const DataBlock &enum_root, const char *name, int idx);
+bool param_switch_get_child_is_optional_by_idx(const DataBlock &settings, int idx);
+String param_switch_get_child_prefix_name(const DataBlock &settings, int idx, const DataBlock &enum_root_props);
+void param_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name);
+void param_switch_update_enum_gen_child_name(DataBlock &enum_props, const char *controller_name, const char *name,
+  const String &old_name, dag::Vector<int> &dependent_items);

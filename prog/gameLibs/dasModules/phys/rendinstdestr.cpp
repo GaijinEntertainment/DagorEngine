@@ -26,6 +26,8 @@ public:
     das::addExtern<DAS_BIND_FUN(rendinstdestr::remove_ri_without_collision_in_radius)>(*this, lib,
       "remove_ri_without_collision_in_radius", das::SideEffects::modifyExternal,
       "rendinstdestr::remove_ri_without_collision_in_radius");
+    das::addExtern<DAS_BIND_FUN(destroyRiExtra)>(*this, lib, "destroyRiExtra", das::SideEffects::modifyExternal,
+      "bind_dascript::destroyRiExtra");
     das::addExtern<DAS_BIND_FUN(destroyRendinstSimple)>(*this, lib, "destroyRendinst", das::SideEffects::modifyArgumentAndExternal,
       "bind_dascript::destroyRendinstSimple");
     das::addExtern<DAS_BIND_FUN(destroyRendinstForce)>(*this, lib, "destroyRendinstForce", das::SideEffects::modifyArgumentAndExternal,

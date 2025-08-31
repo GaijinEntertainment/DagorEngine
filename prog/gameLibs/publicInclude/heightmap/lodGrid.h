@@ -17,37 +17,6 @@ struct LodGridVertex
   int16_t x, y;
 };
 
-struct LodGridNode
-{
-  enum
-  {
-    INTERNAL = 0,
-    LF = 1,    // left from this is low detailed
-    RG = 2,    // right from this is low detailed
-    TP = 3,    // top from this is low detailed
-    LF_TP = 4, // left and top from this is low detailed
-    RG_TP = 5, // right and top from this is low detailed
-    BT = 6,
-    LF_BT = 7,
-    RG_BT = 8, // right and bottom from this is low detailed
-    TOTAL
-  };
-  static inline bool is_left_border(uint8_t nodeType) { return nodeType % 3 == LodGridNode::LF; }
-
-  static inline bool is_right_border(uint8_t nodeType) { return nodeType % 3 == LodGridNode::RG; }
-
-  static inline bool is_top_border(uint8_t nodeType) { return nodeType / 3 == 1; }
-
-  static inline bool is_bottom_border(uint8_t nodeType) { return nodeType / 3 == 2; }
-
-  int16_t posX, posY;
-  uint8_t nodeType;
-  uint8_t level;
-  LodGridNode(int16_t pos_x, int16_t pos_y, uint8_t clevel, uint8_t node_tp) :
-    posX(pos_x), posY(pos_y), level(clevel), nodeType(node_tp)
-  {}
-};
-
 class LodGrid
 {
 public:
@@ -74,79 +43,34 @@ public:
 };
 
 template <class It>
-static inline int generate_patch_indices(int dim, It &&indices, int startInd, uint8_t nodeType, int flip_order = 0)
+static inline int generate_patch_indices(int dim, It &&indices, int flip_order = 0, int diamond_mask = 1)
 {
   size_t index = 0;
   for (int y = 0; y < dim; ++y)
     for (int x = 0; x < dim; ++x)
     {
 
-      int topleft = y * (dim + 1) + x + startInd;
+      int topleft = y * (dim + 1) + x;
       int downleft = topleft + (dim + 1);
       int downright = topleft + (dim + 1) + 1;
       int topright = topleft + 1;
-      bool skip_first = false, skip_second = false;
-      if (nodeType)
-      {
-        if (x == 0 && LodGridNode::is_left_border(nodeType))
-        {
-          if ((y & 1) == 0)
-            downleft += dim + 1;
-          else
-            skip_first = true;
-        }
-        if (x == dim - 1 && LodGridNode::is_right_border(nodeType))
-        {
-          if ((y & 1) == 0)
-            downright += dim + 1;
-          else
-            skip_second = true;
-        }
-        if (y == 0 && LodGridNode::is_top_border(nodeType))
-        {
-          if ((x & 1) == 0)
-            topright += 1;
-          else
-            skip_first = true;
-        }
-        if (y == dim - 1 && LodGridNode::is_bottom_border(nodeType))
-        {
-          if ((x & 1) == 0)
-            downright += 1;
-          else
-            skip_first = true;
-        }
-      }
-      if (!skip_first)
+      indices[index + 0] = topleft;
+      indices[index + 1] = downleft;
+      indices[index + 2] = ((x + y) & diamond_mask) == flip_order ? downright : topright;
+      index += 3;
+      if (((x + y) & diamond_mask) == flip_order)
       {
         indices[index + 0] = topleft;
-        indices[index + 1] = downleft;
-        if (((x + y) & 1) == flip_order)
-        {
-          indices[index + 2] = downright;
-        }
-        else
-        {
-          indices[index + 2] = topright;
-        }
-        index += 3;
+        indices[index + 1] = downright;
+        indices[index + 2] = topright;
       }
-      if (!skip_second)
+      else
       {
-        if (((x + y) & 1) == flip_order)
-        {
-          indices[index + 0] = topleft;
-          indices[index + 1] = downright;
-          indices[index + 2] = topright;
-        }
-        else
-        {
-          indices[index + 0] = topright;
-          indices[index + 1] = downleft;
-          indices[index + 2] = downright;
-        }
-        index += 3;
+        indices[index + 0] = topright;
+        indices[index + 1] = downleft;
+        indices[index + 2] = downright;
       }
+      index += 3;
     }
   return index;
 }

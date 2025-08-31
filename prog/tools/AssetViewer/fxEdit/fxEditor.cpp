@@ -11,13 +11,13 @@
 
 #include <fx/dag_paramScriptsPool.h>
 #include <fx/dag_baseFxClasses.h>
-#include <fx/dag_fxInterface.h>
 #include <fx/dag_commonFx.h>
 #include <fx/commonFxTools.h>
 #include <gameRes/dag_stdGameRes.h>
 
 // #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <de3_interface.h>
 
 #include <fx/effectClassTools.h>
@@ -27,7 +27,6 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <propPanel/commonWindow/listDialog.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
-#include <sepGui/wndPublic.h>
 
 #include <libTools/util/strUtil.h>
 #include <libTools/util/makeBindump.h>
@@ -56,12 +55,6 @@ namespace dafx_ex
 #include <daFx/dafx_def.hlsli>
 #include "../../commonFx/commonFxGame/dafx_globals.hlsli"
 } // namespace dafx_ex
-
-// Implemented in fxMgrService.cpp
-extern dafx::ContextId g_dafx_ctx;
-extern dafx::CullingId g_dafx_cull;
-extern dafx::Stats g_dafx_stats;
-extern float g_dafx_dt_mul;
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
@@ -99,7 +92,7 @@ enum
   PID_DEBUG_PARENT_VELOCITY = PID_DEBUG_MOTION_DIR_AXIS + 1,
 };
 
-extern bool particles_debug_render;
+static bool particles_debug_render;
 
 bool particles_debug_static_vis_sphere = false;
 
@@ -118,7 +111,7 @@ float particles_debug_rot_y = 0;
 float particles_debug_time_speed = 1;
 float particles_debug_wind_speed = 0;
 float particles_debug_wind_dir = 0;
-Point3 particles_debug_camera_velocity = Point3(0.0f, 0.0f, 4.5f);
+Point2 particles_debug_camera_velocity2D = Point2(0.0f, 4.5f);
 float particles_debug_parent_velocity = 0;
 bool particles_debug_hdr_emission = false;
 float particles_debug_hdr_emission_threshold = 1;
@@ -128,7 +121,6 @@ int particles_debug_trail_id = -1;
 float particles_debug_motion_time = 0;
 int partices_default_transform = 0;
 int particles_quality_preview = 2;
-extern int particles_resolution_preview;
 
 static int dynamic_lights_countVarId = -1;
 static int simple_point_light_pos_radiusVarId = -1;
@@ -167,7 +159,7 @@ public:
     return "?";
   }
 
-  virtual void addRefSlot(const char *name, const char *type_name, bool make_unique)
+  void addRefSlot(const char *name, const char *type_name, bool make_unique) override
   {
     String slotName(name);
 
@@ -242,20 +234,20 @@ public:
     simple_point_light_box_extentVarId = ::get_shader_variable_id("simple_point_light_box_extent", true);
     fxwindhelper::load_fx_wind_curve_params(::dgs_get_game_params());
   }
-  ~EffectsPlugin()
+  ~EffectsPlugin() override
   {
     destroyFx();
     ScriptHelpers::set_param_change_cb(NULL);
   }
 
-  virtual const char *getInternalName() const { return "Effects"; }
+  const char *getInternalName() const override { return "Effects"; }
 
-  virtual void registered() { register_all_common_fx_tools(); }
-  virtual void unregistered() {}
+  void registered() override { register_all_common_fx_tools(); }
+  void unregistered() override {}
 
-  virtual bool havePropPanel() { return true; }
+  bool havePropPanel() override { return true; }
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     IWndManager &manager = getWndManager();
     manager.registerWindowHandler(this);
@@ -284,7 +276,7 @@ public:
 
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     IWndManager &manager = getWndManager();
 
@@ -312,7 +304,7 @@ public:
     return true;
   }
 
-  virtual void *onWmCreateWindow(int type) override
+  void *onWmCreateWindow(int type) override
   {
     switch (type)
     {
@@ -331,7 +323,7 @@ public:
     return ScriptHelpers::on_wm_create_window(type);
   }
 
-  virtual bool onWmDestroyWindow(void *window) override
+  bool onWmDestroyWindow(void *window) override
   {
     if (mToolPanel && mToolPanel == window)
     {
@@ -342,17 +334,17 @@ public:
     return false;
   }
 
-  virtual void clearObjects() {}
+  void clearObjects() override {}
 
-  virtual void onSaveLibrary()
+  void onSaveLibrary() override
   {
     if (curAsset)
       saveResource();
   }
 
-  virtual void onLoadLibrary() {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     if (!effect)
       return false;
@@ -373,7 +365,7 @@ public:
     return true;
   }
 
-  virtual void actObjects(real dt)
+  void actObjects(real dt) override
   {
     dt *= particles_debug_time_speed;
 
@@ -384,6 +376,12 @@ public:
     {
       particles_debug_tm = rotyTM(-particles_debug_rot_x * 3.14);
       particles_debug_tm *= rotzTM(-particles_debug_rot_y * 3.14);
+
+      if (!effectDafxSetupDone && dafx_helper_globals::ctx)
+      {
+        set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, &particles_debug_tm, partices_default_transform == 0);
+        effectDafxSetupDone = true;
+      }
 
       ShaderGlobal::set_int(::get_shader_variable_id("modfx_debug_render", true), particles_debug_render);
       ShaderGlobal::set_int(::get_shader_variable_id("fx_debug_editor_mode", true), (int)particles_debug_hdr_emission);
@@ -457,12 +455,16 @@ public:
         effect->setParam(HUID_VELOCITY, &pz);
       }
 
-      Point2 windDir = Point2(cos(particles_debug_wind_dir), -sin(particles_debug_wind_dir));
-      set_dafx_wind_params(g_dafx_ctx, windDir,
-        AmbientWind::beaufort_to_meter_per_second(fxwindhelper::apply_wind_strength_curve(particles_debug_wind_speed)),
-        effectTotalLifeTime);
+      if (dafx_helper_globals::ctx)
+      {
+        Point2 windDir = Point2(cos(particles_debug_wind_dir), -sin(particles_debug_wind_dir));
+        set_dafx_wind_params(dafx_helper_globals::ctx, windDir,
+          AmbientWind::beaufort_to_meter_per_second(fxwindhelper::apply_wind_strength_curve(particles_debug_wind_speed)),
+          effectTotalLifeTime);
 
-      set_dafx_camera_velocity(g_dafx_ctx, particles_debug_camera_velocity);
+        set_dafx_camera_velocity(dafx_helper_globals::ctx,
+          Point3(particles_debug_camera_velocity2D.x, 0, particles_debug_camera_velocity2D.y));
+      }
 
       Point4 p4 = Point4::xyz0(particles_debug_tm.getcol(3));
       effect->setParam(_MAKE4C('PFXP'), &p4);
@@ -484,7 +486,7 @@ public:
   }
   void drawDafxStats(BaseEffectObject &effect)
   {
-    if (!g_dafx_ctx)
+    if (!dafx_helper_globals::ctx)
       return;
 
     bool started = StdGuiRender::is_render_started();
@@ -494,7 +496,7 @@ public:
     StdGuiRender::set_font(0);
     StdGuiRender::set_color(E3DCOLOR_MAKE(255, 255, 255, 255));
 
-    const dafx::Stats &s = g_dafx_stats;
+    const dafx::Stats &s = dafx_helper_globals::stats;
     String insts(128, "instances: %d", (int)(s.activeInstances / 2)); // instances are 2 part objects
     String cpuSim(128, "cpuSimulation: %d", s.cpuElemProcessed);
     String gpuSim(128, "gpuSimulation: %d", s.gpuElemProcessed);
@@ -505,6 +507,7 @@ public:
     effect.getParam(_MAKE4C('PFXX'), fxStats);
     String params(128, "param_ren: %d, param_sim: %d", fxStats[0], fxStats[1]);
     String data(128, "part_ren: %d, part_sim: %d", fxStats[2], fxStats[3]);
+    String distance(128, "distance to camera: %.2f", length(::grs_cur_view.pos));
 
     int x = hdpi::_pxS(8);
     int y = hdpi::_pxS(40);
@@ -516,17 +519,18 @@ public:
     StdGuiRender::draw_strf_to(x, y + n * 4, tris);
     StdGuiRender::draw_strf_to(x, y + n * 5, data);
     StdGuiRender::draw_strf_to(x, y + n * 6, params);
+    StdGuiRender::draw_strf_to(x, y + n * 7, distance);
 
     StdGuiRender::flush_data();
     if (!started)
       StdGuiRender::end_render();
   }
-  virtual void beforeRenderObjects()
+  void beforeRenderObjects() override
   {
     if (ScriptHelpers::obj_editor)
       ScriptHelpers::obj_editor->beforeRender();
   }
-  virtual void renderObjects()
+  void renderObjects() override
   {
     if (ScriptHelpers::obj_editor)
     {
@@ -535,27 +539,15 @@ public:
       end_draw_cached_debug_lines();
     }
   }
-  virtual void renderTransObjects()
+  void renderTransObjects() override
   {
     if (ScriptHelpers::obj_editor)
       ScriptHelpers::obj_editor->renderTrans();
 
-    if (effect)
-    {
-      if (particles_debug_static_vis_sphere)
-      {
-        BSphere3 sphere;
-        effect->getParam(HUID_STATICVISSPHERE, &sphere);
-
-        if (!sphere.isempty())
-          draw_debug_sph(sphere, E3DCOLOR(255, 255, 255));
-      }
-    }
-
-    if (!g_dafx_ctx)
+    if (!dafx_helper_globals::ctx)
       return;
 
-    dafx::render_debug_opt(g_dafx_ctx);
+    dafx::render_debug_opt(dafx_helper_globals::ctx);
     if (effect)
     {
       if (particles_debug_static_vis_sphere)
@@ -582,7 +574,7 @@ public:
       drawDafxStats(*effect);
     }
   }
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!effect || !getVisible())
       return;
@@ -597,12 +589,15 @@ public:
 
       case STG_RENDER_FX_DISTORTION:
         effect->render(FX_RENDER_DISTORTION, ::grs_cur_view.itm);
-        dafx::render(g_dafx_ctx, g_dafx_cull, "distortion", 0.f);
+        if (dafx_helper_globals::ctx)
+          dafx::render(dafx_helper_globals::ctx, dafx_helper_globals::cull_id, "distortion", 0.f);
         break;
+
+      default: break;
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const
+  bool supportAssetType(const DagorAsset &asset) const override
   {
     return asset.getFileNameId() >= 0 && strcmp(asset.getTypeStr(), "fx") == 0;
   }
@@ -619,7 +614,7 @@ public:
     panel->setEnabledById(PID_DEBUG_TRAIL_INDEX, particles_debug_motion && trail);
   }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setEventHandler(this);
     panel.clear();
@@ -648,7 +643,7 @@ public:
     panel.createTrackFloat(PID_DEBUG_TIME_SPEED, "    debug time speed", particles_debug_time_speed, 0, 5, 0.01);
     panel.createTrackFloat(PID_DEBUG_WIND_SPEED, "    debug wind speed(Beaufort)", particles_debug_wind_speed, 0, 8, 0.01);
     panel.createTrackFloat(PID_DEBUG_WIND_DIR, "    debug wind angle", particles_debug_wind_dir, 0, 6.28, 0.01);
-    panel.createTrackFloat(PID_DEBUG_CAMERA_VELOCITY, "  debug camera velocity", particles_debug_camera_velocity.z, 0, 10, 0.01);
+    panel.createTrackFloat(PID_DEBUG_CAMERA_VELOCITY, "  debug camera velocity", particles_debug_camera_velocity2D.y, 0, 10, 0.01);
     panel.createTrackFloat(PID_DEBUG_PARENT_VELOCITY, "  debug parent velocity", particles_debug_parent_velocity, 0, 10, 0.01);
 
     Tab<String> transformNames(tmpmem);
@@ -666,7 +661,7 @@ public:
     resolutionNames.push_back(String("lowres (force)"));
     resolutionNames.push_back(String("default"));
     resolutionNames.push_back(String("highres (force)"));
-    panel.createCombo(PID_DEBUG_RESOLUTION, "Resolution preview:", resolutionNames, particles_resolution_preview);
+    panel.createCombo(PID_DEBUG_RESOLUTION, "Resolution preview:", resolutionNames, dafx_helper_globals::particles_resolution_preview);
 
     updateDebugMotionControllers(&panel);
 
@@ -686,10 +681,10 @@ public:
     }
   }
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
   // ControlEventHandler
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pid, PropPanel::ContainerPropertyControl *panel) override
   {
     int refIdx = -1;
     if (pid >= PID_CHANGE_REF && pid < PID_CHANGE_REF + 32)
@@ -728,7 +723,8 @@ public:
         dlg.selectObj(b->getStr("ref", ""));
 
         dlg.setManualModalSizingEnabled();
-        dlg.positionLeftToWindow("Properties", true);
+        if (!dlg.hasEverBeenShown())
+          dlg.positionLeftToWindow("Properties", true);
 
         int ret = dlg.showDialog();
         if (ret == PropPanel::DIALOG_ID_CLOSE)
@@ -802,8 +798,8 @@ public:
 
       case PID_SHOW_STATIC_VIS_SPHERE:
         particles_debug_static_vis_sphere = panel->getBool(pid);
-        if (g_dafx_ctx)
-          dafx::set_debug_flags(g_dafx_ctx,
+        if (dafx_helper_globals::ctx)
+          dafx::set_debug_flags(dafx_helper_globals::ctx,
             dafx::DEBUG_DISABLE_CULLING | (particles_debug_static_vis_sphere ? dafx::DEBUG_SHOW_BBOXES : 0));
         break;
 
@@ -817,7 +813,7 @@ public:
       case PID_DEBUG_MOTION_DIR: particles_debug_motion_dir = panel->getBool(pid); break;
     }
   }
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override
   {
     switch (pid)
     {
@@ -834,53 +830,41 @@ public:
       case PID_DEBUG_EMITTER_ROT_Y: particles_debug_rot_y = panel->getFloat(pid); break;
       case PID_DEBUG_TIME_SPEED:
         particles_debug_time_speed = panel->getFloat(pid);
-        g_dafx_dt_mul = particles_debug_time_speed;
+        dafx_helper_globals::dt_mul = particles_debug_time_speed;
         break;
       case PID_DEBUG_WIND_SPEED: particles_debug_wind_speed = panel->getFloat(pid); break;
       case PID_DEBUG_WIND_DIR: particles_debug_wind_dir = panel->getFloat(pid); break;
       case PID_DEBUG_DEFAULT_TRANSFORM: partices_default_transform = panel->getInt(pid); break;
       case PID_DEBUG_QUALITY: particles_quality_preview = panel->getInt(pid); break;
-      case PID_DEBUG_RESOLUTION: particles_resolution_preview = panel->getInt(pid); break;
-      case PID_DEBUG_CAMERA_VELOCITY: particles_debug_camera_velocity.z = panel->getFloat(pid); break;
+      case PID_DEBUG_RESOLUTION: dafx_helper_globals::particles_resolution_preview = panel->getInt(pid); break;
+      case PID_DEBUG_CAMERA_VELOCITY: particles_debug_camera_velocity2D.y = panel->getFloat(pid); break;
       case PID_DEBUG_PARENT_VELOCITY: particles_debug_parent_velocity = panel->getFloat(pid); break;
       case PID_DEBUG_HDR_EMISSION: particles_debug_hdr_emission = panel->getBool(pid); break;
       case PID_DEBUG_HDR_EMISSION_THRESHOLD: particles_debug_hdr_emission_threshold = panel->getFloat(pid); break;
     }
 
-    if (pid == PID_DEBUG_QUALITY)
+    if (pid == PID_DEBUG_QUALITY && dafx_helper_globals::ctx)
     {
-      dafx::Config cfg = dafx::get_config(g_dafx_ctx);
+      dafx::Config cfg = dafx::get_config(dafx_helper_globals::ctx);
       cfg.qualityMask = 1 << particles_quality_preview;
-      dafx::set_config(g_dafx_ctx, cfg);
+      dafx::set_config(dafx_helper_globals::ctx, cfg);
       onScriptHelpersParamChange();
     }
   }
 
-  virtual void registerMenuAccelerators()
+  void registerMenuAccelerators() override
   {
     IWndManager &wndManager = *EDITORCORE->getWndManager();
-    wndManager.addViewportAccelerator(CM_FX_EDITOR_RESET_EFFECTS, 'S');
+    wndManager.addViewportAccelerator(CM_FX_EDITOR_RESET_EFFECTS, ImGuiKey_S);
   }
 
-  virtual void handleViewportAcceleratorCommand(IGenViewportWnd &wnd, unsigned id)
+  void handleViewportAcceleratorCommand(IGenViewportWnd &wnd, unsigned id) override
   {
     if (id == CM_FX_EDITOR_RESET_EFFECTS)
       createFx();
   }
 
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    if (ScriptHelpers::obj_editor)
-      ScriptHelpers::obj_editor->handleKeyPress(wnd, vk, modif);
-  }
-
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    if (ScriptHelpers::obj_editor)
-      ScriptHelpers::obj_editor->handleKeyRelease(wnd, vk, modif);
-  }
-
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ScriptHelpers::obj_editor)
       return ScriptHelpers::obj_editor->handleMouseMove(wnd, x, y, inside, buttons, key_modif);
@@ -888,7 +872,7 @@ public:
     return false;
   }
 
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ScriptHelpers::obj_editor)
       return ScriptHelpers::obj_editor->handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
@@ -896,7 +880,7 @@ public:
     return false;
   }
 
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ScriptHelpers::obj_editor)
       return ScriptHelpers::obj_editor->handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
@@ -904,7 +888,7 @@ public:
     return false;
   }
 
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif)
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override
   {
     if (ScriptHelpers::obj_editor)
       return ScriptHelpers::obj_editor->handleMouseDoubleClick(wnd, x, y, key_modif);
@@ -1002,7 +986,7 @@ public:
     }
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     if (!mToolPanel)
       return;
@@ -1056,6 +1040,7 @@ protected:
   String className;
 
   BaseEffectObject *effect;
+  bool effectDafxSetupDone = false;
 
   Tab<ScriptClass> scriptClasses;
 
@@ -1067,20 +1052,20 @@ protected:
   float effectTotalLifeTime = 0;
 
 protected:
-  virtual void onScriptHelpersParamChange()
+  void onScriptHelpersParamChange() override
   {
     setDirty();
     loadFxParams();
-    if (g_dafx_ctx) // simulation rollback
+    if (dafx_helper_globals::ctx) // simulation rollback
     {
       effectTotalLifeTime = min(effectTotalLifeTime, 60.f);
       const float step = 1.f / 60.f;
       for (float t = 0; t < effectTotalLifeTime; t += step) //-V1034
       {
         float dt = min(step, effectTotalLifeTime - t) * particles_debug_time_speed;
-        dafx::set_global_value(g_dafx_ctx, "dt", &dt, 4);
-        dafx::start_update(g_dafx_ctx, dt);
-        dafx::finish_update(g_dafx_ctx);
+        dafx::set_global_value(dafx_helper_globals::ctx, "dt", &dt, 4);
+        dafx::start_update(dafx_helper_globals::ctx, dt);
+        dafx::finish_update(dafx_helper_globals::ctx);
         if (effect)
           effect->update(dt);
       }
@@ -1121,6 +1106,7 @@ protected:
       return;
 
     effect = (BaseEffectObject *)obj;
+    effectDafxSetupDone = false;
 
     DAEDITOR3.setFatalHandler();
     DAEDITOR3.resetFatalStatus();
@@ -1142,9 +1128,8 @@ protected:
       return;
 
     Tab<IDagorAssetRefProvider::Ref> refList(tmpmem);
-    IDagorAssetRefProvider *refResv = curAsset->getMgr().getAssetRefProvider(curAsset->getType());
-    if (refResv)
-      refList = refResv->getAssetRefs(*curAsset);
+    if (IDagorAssetRefProvider *refResv = curAsset->getMgr().getAssetRefProvider(curAsset->getType()))
+      refResv->getAssetRefs(*curAsset, refList);
 
     mkbindump::BinDumpSaveCB cb(64 << 10, _MAKE4C('PC'), false);
     EffectsPluginSaveLoadParamsDataCB saveLoadCb;
@@ -1161,8 +1146,11 @@ protected:
     else
       particles_debug_trail_id = -1;
 
-    set_up_dafx_effect(g_dafx_ctx, effect, true, true, &particles_debug_tm,
-      partices_default_transform == dafx_ex::TRANSFORM_WORLD_SPACE);
+    if (dafx_helper_globals::ctx)
+    {
+      set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, &particles_debug_tm, partices_default_transform == 0);
+      effectDafxSetupDone = true;
+    }
   }
 
   void setupLight()

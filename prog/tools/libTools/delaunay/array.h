@@ -20,22 +20,22 @@ class array : public Tab<T>
 {
 public:
   array() : Tab<T>(delmem) {}
-  array(int l) : Tab<T>(delmem) { resize(l); }
+  array(int l) : Tab<T>(delmem) { Tab<T>::resize(l); }
 
-  inline T &ref(int i);
-  inline T &operator()(int i) { return ref(i); }
-  inline int length() { return size(); }
-  inline int maxLength() { return size(); }
+  T &ref(int i);
+  T &operator()(int i) { return ref(i); }
+  int length() const { return Tab<T>::size(); }
+  int maxLength() const { return Tab<T>::size(); }
 };
 
 template <class T>
 inline T &array<T>::ref(int i)
 {
 #ifdef SAFETY
-  assert(data());
-  assert(i >= 0 && i < size());
+  assert(Tab<T>::data());
+  assert(i >= 0 && i < Tab<T>::size());
 #endif
-  return operator[](i);
+  return Tab<T>::operator[](i);
 }
 
 
@@ -63,10 +63,10 @@ public:
     data.resize(w * h);
   }
 
-  inline T &ref(int i, int j);
-  inline T &operator()(int i, int j) { return ref(i, j); }
-  inline int width() { return w; }
-  inline int height() { return h; }
+  T &ref(int i, int j);
+  T &operator()(int i, int j) { return ref(i, j); }
+  int width() const { return w; }
+  int height() const { return h; }
 };
 
 template <class T>

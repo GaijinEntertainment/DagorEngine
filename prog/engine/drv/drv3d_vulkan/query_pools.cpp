@@ -7,6 +7,7 @@
 #include "buffer_resource.h"
 #include "device_context.h"
 #include "backend.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -32,7 +33,7 @@ void SurveyQueryManager::createSurveyPoolImpl()
   VkQueryPoolCreateInfo qpci = {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
   qpci.queryType = VK_QUERY_TYPE_OCCLUSION;
   qpci.queryCount = SurveyQueryPool::POOL_SIZE;
-  VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, NULL, ptr(pool.pool)));
+  VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, VKALLOC(query_pool), ptr(pool.pool)));
 
   pool.dataStore = Buffer::create(sizeof(uint32_t) * SurveyQueryPool::POOL_SIZE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1,
     BufferMemoryFlags::NONE);
@@ -129,6 +130,26 @@ bool SurveyQueryManager::getResult(uint32_t name)
     return true;
 }
 
+void SurveyQueryManager::onDeviceReset()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+  for (auto &&pool : surveyPool)
+    VULKAN_LOG_CALL(vkDev.vkDestroyQueryPool(vkDev.get(), pool.pool, VKALLOC(query_pool)));
+}
+
+void SurveyQueryManager::afterDeviceReset()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+
+  for (auto &&pool : surveyPool)
+  {
+    VkQueryPoolCreateInfo qpci = {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
+    qpci.queryType = VK_QUERY_TYPE_OCCLUSION;
+    qpci.queryCount = SurveyQueryPool::POOL_SIZE;
+    VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, VKALLOC(query_pool), ptr(pool.pool)));
+  }
+}
+
 void SurveyQueryManager::shutdownDataBuffers()
 {
   // delete the buffers here and later the pools
@@ -143,7 +164,7 @@ void SurveyQueryManager::shutdownPools()
   VulkanDevice &vkDev = Globals::VK::dev;
   for (auto &&pool : surveyPool)
   {
-    VULKAN_LOG_CALL(vkDev.vkDestroyQueryPool(vkDev.get(), pool.pool, nullptr));
+    VULKAN_LOG_CALL(vkDev.vkDestroyQueryPool(vkDev.get(), pool.pool, VKALLOC(query_pool)));
   }
   surveyPool.clear();
 }
@@ -151,13 +172,13 @@ void SurveyQueryManager::shutdownPools()
 VulkanQueryPoolHandle RaytraceBLASCompactionSizeQueryPool::getPool()
 {
   // lazy allocate
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   if (is_null(pool))
   {
     const VkQueryPoolCreateInfo qpci = //
       {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, 1, 0};
 
-    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateQueryPool(Globals::VK::dev.get(), &qpci, nullptr, ptr(pool)));
+    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateQueryPool(Globals::VK::dev.get(), &qpci, VKALLOC(query_pool), ptr(pool)));
   }
 #else
   DAG_FATAL("vulkan: RaytraceBLASCompactionSizeQueryPool used when RT is not available");
@@ -168,5 +189,5 @@ VulkanQueryPoolHandle RaytraceBLASCompactionSizeQueryPool::getPool()
 void RaytraceBLASCompactionSizeQueryPool::shutdownPools()
 {
   if (!is_null(pool))
-    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyQueryPool(Globals::VK::dev.get(), pool, nullptr));
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyQueryPool(Globals::VK::dev.get(), pool, VKALLOC(query_pool)));
 }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "navMeshPhysProxyES.cpp.inl"
 ECS_DEF_PULL_VAR(navMeshPhysProxy);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc clear_navmeshproxy_collision_es_event_handler_comps[] ={};
 static void clear_navmeshproxy_collision_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

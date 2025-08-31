@@ -18,12 +18,12 @@ hlsl {
     #define SP_RADIANCE_SIZE_IS_WARP 1
   #endif
 
+  #define SP_TRACE_WARP_SIZE 64
+
   #if !SP_RADIANCE_SIZE_IS_WARP
     #define SP_FILTER_WARP_SIZE 64
-    #define SP_TRACE_WARP_SIZE 64
   #else
     #define SP_FILTER_WARP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
-    #define SP_TRACE_WARP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
   #endif
 
   #include <sp_calc_common.hlsl>

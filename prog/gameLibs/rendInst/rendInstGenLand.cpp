@@ -5,6 +5,7 @@
 #include "riGen/landClassData.h"
 #include "riGen/riGenData.h"
 
+#include <landMesh/riLandClass.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <shaders/dag_rendInstRes.h>
@@ -222,7 +223,11 @@ public:
         logerr("LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2 + 1], name2.str());
       }
       if (ld->riCollRes[i])
-        ld->riCollRes[i]->collapseAndOptimize(USE_GRID_FOR_RI);
+      {
+        String name;
+        get_game_resource_name(res_id, name);
+        ld->riCollRes[i]->collapseAndOptimize(name, USE_GRID_FOR_RI);
+      }
       else if (ld->riRes[i]->hasImpostor())
         logwarn("missing tree-RI-collRes: ri=%s", ri_name);
       riPosInst[i] = ld->riRes[i]->hasImpostor();
@@ -638,8 +643,20 @@ bool rendinst::gen::land::AssetData::loadPlantedEntities(const RoDataBlock &blk,
   return true;
 }
 
+static bool get_detail_data(DataBlock &dest_data, const char *land_cls_res_nm)
+{
+  if (GameResource *res = ::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(land_cls_res_nm), rendinst::HUID_LandClassGameRes))
+  {
+    dest_data = reinterpret_cast<rendinst::gen::land::AssetData *>(res)->detailData;
+    release_game_resource(res);
+    return true;
+  }
+  return false;
+}
+
 void rendinst::register_land_gameres_factory()
 {
+  get_land_class_detail_data = &get_detail_data;
   land_gameres_factory.demandInit();
   add_factory(land_gameres_factory);
 }
@@ -652,10 +669,6 @@ void rt_rigen_free_unused_land_classes()
 }
 } // namespace rendinst
 
-const DataBlock &rendinst::get_detail_data(void *land_cls_res)
-{
-  return reinterpret_cast<rendinst::gen::land::AssetData *>(land_cls_res)->detailData;
-}
 int rendinst::get_landclass_data_hash(void *land_cls_res, void *buf, int buf_sz)
 {
   return reinterpret_cast<rendinst::gen::land::AssetData *>(land_cls_res)->getHash(buf, buf_sz);

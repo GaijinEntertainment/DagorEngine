@@ -18,7 +18,7 @@
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 enum
 {
@@ -83,8 +83,8 @@ static ThreadSafeMsgIoEx input_queue(64 << 10);
 static ConstSizeBitArrayBase<BS_OFS_end> input_queue_bt_state;
 static carray<short, AS_OFS_end> input_queue_ax_state;
 static int64_t last_processed_t_us = 0;
-static std::atomic<int64_t> last_queued_t_us{0};
-static std::atomic<int64_t> time0_us{0};
+static dag::AtomicInteger<int64_t> last_queued_t_us{0};
+static dag::AtomicInteger<int64_t> time0_us{0};
 
 static inline unsigned get_rel_time_msec(int64_t t)
 {
@@ -485,8 +485,11 @@ static void process_actions(uint32_t t)
               if (notify_progress_changed_cb)
               {
                 if (!prev_longPressBegan && s.longPressBegan)
-                  daProgress.push_back() = DigitalActionProgress{
-                    a, DigitalActionProgress::ST_in_progress, int16_t(b.eventType), int(t - get_btn_press_dur(b.devId, b.ctrlId, t))};
+                {
+                  int t_bias = get_time_msec() - int((ref_time_delta_to_usec(ref_time_ticks()) - time0_us.load()) / 1000);
+                  daProgress.push_back() = DigitalActionProgress{a, DigitalActionProgress::ST_in_progress, int16_t(b.eventType),
+                    int(t + t_bias - get_btn_press_dur(b.devId, b.ctrlId, t))};
+                }
                 else if (prev_longPressBegan && (!modif_pressed || !get_btn_state(b.devId, b.ctrlId)))
                 {
                   if (get_btn_press_dur(b.devId, b.ctrlId, t) < dainput::agData.longPressDur)
@@ -1013,7 +1016,7 @@ void dainput::kbd_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed)
   dev_kbd_lastInputOnFrameNo = dagor_frame_no();
   G_ASSERTF(btn_id >= 0 && btn_id < BS_OFS_pointing - BS_OFS_kbd, "btn_id=%d", btn_id);
 
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   if (!pressed)
     dev_clicks_count[get_const_log2(dainput::DEV_USED_kbd)]++;
   emergency_events_dispatch();
@@ -1033,7 +1036,7 @@ void dainput::mouse_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed)
 #endif
   G_ASSERTF(btn_id >= 0 && btn_id < BS_OFS_gamepad - BS_OFS_pointing, "btn_id=%d", btn_id);
 
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   if (!pressed)
     dev_clicks_count[get_const_log2(dainput::DEV_USED_mouse)]++;
   emergency_events_dispatch();
@@ -1057,7 +1060,7 @@ void dainput::mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc)
   dev_mouse_lastInputOnFrameNo = dagor_frame_no();
   int btn_id = wheel_inc > 0 ? 5 : 6;
 
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   emergency_events_dispatch();
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_btn | (t_usec << INPMSG_time_shift));
@@ -1074,7 +1077,7 @@ void dainput::mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int sc
 {
   if (dx != 0.f || dy != 0.f)
     dev_mouse_lastInputOnFrameNo = dagor_frame_no();
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   emergency_events_dispatch();
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_mmove | (t_usec << INPMSG_time_shift));
@@ -1129,7 +1132,7 @@ static unsigned write_joy_input_event(HumanInput::IGenJoystick *j, int bs_ofs, i
 }
 void dainput::gpad_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *gamepad)
 {
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   emergency_events_dispatch();
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_ax_btn | (t_usec << INPMSG_time_shift));
@@ -1141,7 +1144,7 @@ void dainput::gpad_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick 
 }
 void dainput::joy_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *joy)
 {
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   emergency_events_dispatch();
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_ax_btn | (t_usec << INPMSG_time_shift));
@@ -1152,9 +1155,9 @@ void dainput::joy_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *
 }
 void dainput::tick_event_occurs(int64_t t_usec)
 {
-  if (last_queued_t_us + 2000 >= t_usec)
+  if (last_queued_t_us.load() + 2000 >= t_usec)
     return;
-  last_queued_t_us = t_usec;
+  last_queued_t_us.store(t_usec);
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_tick | (t_usec << INPMSG_time_shift));
   cwr->beginBlock();
@@ -1170,8 +1173,8 @@ void dainput::reset_input_state()
   input_queue_bt_state.reset();
   mem_set_0(input_queue_ax_state);
   last_processed_t_us = 0;
-  last_queued_t_us = 0;
-  time0_us = 0;
+  last_queued_t_us.store(0);
+  time0_us.store(0);
   debug("dainput::reset_input_state()  time0_us=%lld", time0_us.load());
   input_queue.endWrite();
 
@@ -1302,7 +1305,7 @@ void dainput::process_actions_tick(dainput::actions_processed_t on_input_sample_
 {
   if (!time0_us.load())
   {
-    time0_us = ref_time_delta_to_usec(rel_ref_time_ticks(ref_time_ticks(), -10000000));
+    time0_us.store(ref_time_delta_to_usec(rel_ref_time_ticks(ref_time_ticks(), -10000000)));
     debug("dainput::process_actions_tick() -> time0_us=%lld (ticks=%lld)", time0_us.load(), ref_time_ticks());
   }
 
@@ -1561,16 +1564,15 @@ void dainput::set_initial_usage_mask_immediate(dag::ConstSpan<SingleButtonId> di
 
 unsigned dainput::get_last_used_device_mask(unsigned past_frames_threshold)
 {
-#define SET_FLAG(DEV)                                                                                              \
-  if (dev_##DEV##_lastInputOnFrameNo && dev_##DEV##_lastInputOnFrameNo + past_frames_threshold > dagor_frame_no()) \
+#define SET_FLAG(DEV)                                                            \
+  if ((devReportMask & DEV_USED_##DEV) && dev_##DEV##_lastInputOnFrameNo &&      \
+      dev_##DEV##_lastInputOnFrameNo + past_frames_threshold > dagor_frame_no()) \
     mask |= DEV_USED_##DEV;
 
   unsigned mask = 0;
-#if !(_TARGET_C1 | _TARGET_C2 | _TARGET_XBOX)
   SET_FLAG(mouse);
   SET_FLAG(kbd);
   SET_FLAG(touch);
-#endif
   SET_FLAG(gamepad);
   return mask;
 
@@ -1580,13 +1582,11 @@ unsigned dainput::get_last_used_device_mask(unsigned past_frames_threshold)
 unsigned dainput::get_overall_button_clicks_count(unsigned dev_used_mask)
 {
   unsigned clicks = 0;
-#define ADD_CLICKS(DEV)               \
-  if (dev_used_mask & DEV_USED_##DEV) \
-  clicks += dev_clicks_count[get_const_log2(DEV_USED_##DEV)]
-#if !(_TARGET_C1 | _TARGET_C2 | _TARGET_XBOX)
+#define ADD_CLICKS(DEV)                                                     \
+  if ((devReportMask & DEV_USED_##DEV) && (dev_used_mask & DEV_USED_##DEV)) \
+    clicks += dev_clicks_count[get_const_log2(DEV_USED_##DEV)];
   ADD_CLICKS(mouse);
   ADD_CLICKS(kbd);
-#endif
   ADD_CLICKS(gamepad);
 #undef ADD_CLICKS
   return clicks;

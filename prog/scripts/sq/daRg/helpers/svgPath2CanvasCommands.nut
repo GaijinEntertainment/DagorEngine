@@ -1,7 +1,6 @@
+from "dagor.system" import get_arg_value_by_name
 from "daRg" import *
-
-let {get_arg_value_by_name} = require("dagor.system") //for game_name stub below below
-let {chunk} = require("std/underscore.nut")
+from "std/underscore.nut" import chunk
 
 const MOVE_ABS = "MOVE_ABS"
 const MOVE_REL = "MOVE_REL"

@@ -36,7 +36,7 @@ class INetworkObserver
 public:
   virtual ~INetworkObserver() = default;
   virtual void onConnect(Connection &conn) = 0;
-  virtual void onDisconnect(Connection *conn, DisconnectionCause cause) = 0;
+  virtual void onDisconnect(Connection *conn, DisconnectionCause cause, ecs::EntityManager &mgr) = 0;
   virtual bool onPacket(const Packet *) { return false; } // return true if packet was processed
 
 private:
@@ -52,8 +52,8 @@ static constexpr int PROTO_VERSION_UNKNOWN = 0;
 class CNetwork
 {
 public:
-  CNetwork(INetDriver *drv_, INetworkObserver *obsrv, uint16_t protov = PROTO_VERSION_UNKNOWN, uint64_t session_rand = 0,
-    scope_query_cb_t &&sq = {});
+  CNetwork(ecs::EntityManager &mgr_, INetDriver *drv_, INetworkObserver *obsrv, uint16_t protov = PROTO_VERSION_UNKNOWN,
+    uint64_t session_rand = 0, scope_query_cb_t &&sq = {});
   ~CNetwork();
 
   void setScopeQueryCb(scope_query_cb_t &&cb); // Shall be called before any client connected
@@ -77,12 +77,16 @@ public:
 
   bool isServer() const { return bServer; }
   bool isClient() const { return !bServer; }
+  void setRelayConnection(SystemIndex peerIndex) { relayIndex = peerIndex; }
 
   INetDriver *getDriver() { return drv.get(); }
   void enableComponentFiltering(ConnectionId id, bool on);
   bool isComponentFilteringEnabled(ConnectionId id);
   void dumpStats();
   bool readReplayKeyFrame(const danet::BitStream &bs);
+
+  ecs::EntityManager &getEntityManager() { return mgr; }
+  const ecs::EntityManager &getEntityManager() const { return mgr; }
 
 private:
   void receivePackets(int cur_time_ms, uint8_t replication_channel);
@@ -93,7 +97,9 @@ private:
   Connection *getConnection(unsigned idx);
 
 private:
+  SystemIndex relayIndex;
   bool bServer; // cached value of 'drv->isServer()'
+  ecs::EntityManager &mgr;
   eastl::unique_ptr<INetDriver, DestroyDeleter<INetDriver>> drv;
   INetworkObserver *observer;
   eastl::unique_ptr<Connection> serverConnection;

@@ -39,10 +39,11 @@ public:
 
 #ifndef NO_3D_GFX
   int getModelCount() const { return modelEntries.size(); }
-
   DynamicRenderableSceneInstance *getModel(int index) const { return modelEntries[index]->model; }
-
   void replaceModel(int index, DynamicRenderableSceneLodsResource *res);
+
+  void getBodyVisualTm(int body_index, TMatrix &tm);
+  void beforeRender(const Point3 &cam_pos);
 #endif // NO_3D_GFX
 
   PhysSystemInstance *getPhysSys() const { return physSys; }
@@ -50,13 +51,6 @@ public:
   GeomNodeTree *getNodeTree() const { return nodeTree; }
 
   const DynamicPhysObjectData *getData() const { return data; }
-
-#ifndef NO_3D_GFX
-  void beforeRender(const Point3 &cam_pos);
-  void render(real opacity = 1);
-  void renderTrans(real opacity = 1);
-  void getBodyVisualTm(int index, TMatrix &tm);
-#endif
 
 protected:
   const DynamicPhysObjectData *data;

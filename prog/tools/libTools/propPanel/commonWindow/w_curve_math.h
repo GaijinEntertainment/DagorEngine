@@ -100,21 +100,21 @@ protected:
 
 public:
   CatmullRomCBTest();
-  virtual void getControlPoints(Tab<ControlPoint> &points);
+  void getControlPoints(Tab<ControlPoint> &points) override;
 
-  virtual bool selectControlPoints(const Tab<int> &point_ids);
+  bool selectControlPoints(const Tab<int> &point_ids) override;
 
-  virtual bool beginMoveControlPoints(int picked_point_id);
-  virtual bool moveSelectedControlPoints(const Point2 &_from_starting_pos);
-  virtual bool endMoveControlPoints(bool cancel_movement);
+  bool beginMoveControlPoints(int picked_point_id) override;
+  bool moveSelectedControlPoints(const Point2 &_from_starting_pos) override;
+  bool endMoveControlPoints(bool cancel_movement) override;
 
-  virtual bool deleteSelectedControlPoints();
-  virtual bool addNewControlPoint(const Point2 &at_pos);
-  virtual void clear() { clear_and_shrink(controlPoints); };
+  bool deleteSelectedControlPoints() override;
+  bool addNewControlPoint(const Point2 &at_pos) override;
+  void clear() override { clear_and_shrink(controlPoints); };
 
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
 
-  virtual bool getCoefs(Tab<Point2> &xy) const
+  bool getCoefs(Tab<Point2> &xy) const override
   {
     xy.clear();
     return false;
@@ -124,7 +124,7 @@ public:
 
 class LinearCB : public CatmullRomCBTest
 {
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
 };
 
 
@@ -132,11 +132,11 @@ class CubicPolynomCB : public CatmullRomCBTest
 {
 public:
   CubicPolynomCB() { lock_x = lock_ends = true; }
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
-  virtual void setLockX(bool) { lock_x = true; }
-  virtual void setLockEnds(bool) { lock_ends = true; }
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
+  void setLockX(bool) override { lock_x = true; }
+  void setLockEnds(bool) override { lock_ends = true; }
 
-  virtual bool getCoefs(Tab<Point2> &xy_4c_per_seg) const;
+  bool getCoefs(Tab<Point2> &xy_4c_per_seg) const override;
 };
 
 
@@ -144,11 +144,11 @@ class CubicPSplineCB : public CatmullRomCBTest
 {
 public:
   CubicPSplineCB() { lock_x = lock_ends = true; }
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
-  virtual void setLockX(bool) { lock_x = true; }
-  virtual void setLockEnds(bool) { lock_ends = true; }
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
+  void setLockX(bool) override { lock_x = true; }
+  void setLockEnds(bool) override { lock_ends = true; }
 
-  virtual bool getCoefs(Tab<Point2> &xy_4c_per_seg) const;
+  bool getCoefs(Tab<Point2> &xy_4c_per_seg) const override;
 };
 
 
@@ -163,20 +163,20 @@ class NurbCBTest : public ICurveControlCallback
 
 public:
   NurbCBTest();
-  virtual void getControlPoints(Tab<ControlPoint> &points);
+  void getControlPoints(Tab<ControlPoint> &points) override;
 
-  virtual bool selectControlPoints(const Tab<int> &point_ids);
+  bool selectControlPoints(const Tab<int> &point_ids) override;
 
-  virtual bool beginMoveControlPoints(int picked_point_id);
-  virtual bool moveSelectedControlPoints(const Point2 &_from_starting_pos);
-  virtual bool endMoveControlPoints(bool cancel_movement);
+  bool beginMoveControlPoints(int picked_point_id) override;
+  bool moveSelectedControlPoints(const Point2 &_from_starting_pos) override;
+  bool endMoveControlPoints(bool cancel_movement) override;
 
-  virtual bool deleteSelectedControlPoints();
-  virtual bool addNewControlPoint(const Point2 &at_pos);
+  bool deleteSelectedControlPoints() override;
+  bool addNewControlPoint(const Point2 &at_pos) override;
 
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
 
-  virtual bool getCoefs(Tab<Point2> &xy) const
+  bool getCoefs(Tab<Point2> &xy) const override
   {
     xy.clear();
     return false;
@@ -190,20 +190,20 @@ class QuadraticCBTest : public ICurveControlCallback
 
 public:
   QuadraticCBTest();
-  virtual void getControlPoints(Tab<ControlPoint> &points);
+  void getControlPoints(Tab<ControlPoint> &points) override;
 
-  virtual bool selectControlPoints(const Tab<int> &point_ids);
+  bool selectControlPoints(const Tab<int> &point_ids) override;
 
-  virtual bool beginMoveControlPoints(int picked_point_id);
-  virtual bool moveSelectedControlPoints(const Point2 &_from_starting_pos);
-  virtual bool endMoveControlPoints(bool cancel_movement);
+  bool beginMoveControlPoints(int picked_point_id) override;
+  bool moveSelectedControlPoints(const Point2 &_from_starting_pos) override;
+  bool endMoveControlPoints(bool cancel_movement) override;
 
-  virtual bool deleteSelectedControlPoints();
-  virtual bool addNewControlPoint(const Point2 &at_pos);
+  bool deleteSelectedControlPoints() override;
+  bool addNewControlPoint(const Point2 &at_pos) override;
 
-  virtual void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size);
+  void buildPolylines(Tab<PolyLine> &poly_lines, const BBox2 &view_box, const Point2 &view_size) override;
 
-  virtual bool getCoefs(Tab<Point2> &xy) const
+  bool getCoefs(Tab<Point2> &xy) const override
   {
     xy.clear();
     return false;

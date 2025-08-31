@@ -38,15 +38,16 @@ void update_component_filter_events();                                      // r
 void update_component_filter_event(replicate_component_filter_index_t fid); // retrigger poll filters for specific filter
 
 replicate_component_filter_index_t find_component_filter(const char *name); // will return replicate_everywhere_filter_id if missing
-replicate_component_filter_index_t find_component_filter_for_component(ecs::component_t component); // will return invalid_filter_id if
-                                                                                                    // missing
+replicate_component_filter_index_t find_component_filter_for_component(const ecs::EntityManager &mgr,
+  ecs::component_t component); // will return invalid_filter_id if
+                               // missing
 
 const char *get_component_filter_name(replicate_component_filter_index_t); // will return nullptr if missing
 
 void reset_replicate_component_filters();
-void set_component_filter_cidx(ecs::component_index_t cidx, replicate_component_filter_index_t filter);
-void set_component_filter(ecs::component_t component, const char *filter_name);
-void set_component_filter(ecs::component_t component, replicate_component_filter_index_t filter);
+void set_component_filter_cidx(const ecs::EntityManager &mgr, ecs::component_index_t cidx, replicate_component_filter_index_t filter);
+void set_component_filter(const ecs::EntityManager &mgr, ecs::component_t component, const char *filter_name);
+void set_component_filter(const ecs::EntityManager &mgr, ecs::component_t component, replicate_component_filter_index_t filter);
 
 // for performance it is made inline
 inline void update_component_filter_event(replicate_component_filter_index_t fid) // retrigger poll filters for specific filter

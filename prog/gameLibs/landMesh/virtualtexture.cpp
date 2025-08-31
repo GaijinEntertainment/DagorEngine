@@ -2,7 +2,8 @@
 
 #include <landMesh/clipMap.h>
 #include <landMesh/lmeshRenderer.h>
-#include <rendInst/rendInstGen.h>
+#include <landMesh/riLandClass.h>
+#include <landMesh/heightmapQuery.h>
 #include <math/dag_Point4.h>
 #include <math/dag_Point2.h>
 #include <math/dag_adjpow2.h>
@@ -34,6 +35,7 @@
 #include <memory/dag_framemem.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_dynShaderBuf.h>
 #include <shaders/dag_computeShaders.h>
 #include <drv/3d/dag_rwResource.h>
@@ -65,6 +67,74 @@ static constexpr int RI_INVALID_ID = -2; // -1 is invalid source RI, -2 is inval
 
 static constexpr int MAX_TEXTURES = 4;
 
+#include "clipmapDebug.h"
+
+
+#define VTEX_CONST_LIST VAR(uav_feedback_const_no)
+
+#define VAR(a) static int a = -1;
+VTEX_CONST_LIST
+#undef VAR
+
+static void init_shader_vars()
+{
+#define VAR(a)                             \
+  {                                        \
+    int tmp = get_shader_variable_id(#a);  \
+    if (tmp >= 0)                          \
+      a = ShaderGlobal::get_int_fast(tmp); \
+  }
+  VTEX_CONST_LIST
+#undef VAR
+}
+
+namespace var
+{
+static ShaderVariableInfo supports_uav("supports_uav", true);
+static ShaderVariableInfo requires_uav("requires_uav", true);
+static ShaderVariableInfo clipmap_feedback_calc_histogram_on_gpu("clipmap_feedback_calc_histogram_on_gpu", true);
+static ShaderVariableInfo clipmap_feedback_stride("clipmap_feedback_stride", true);
+static ShaderVariableInfo clipmap_feedback_readback_stride("clipmap_feedback_readback_stride", true);
+static ShaderVariableInfo clipmap_feedback_readback_size("clipmap_feedback_readback_size", true);
+static ShaderVariableInfo clipmap_feedback_buf("clipmap_feedback_buf", true);
+static ShaderVariableInfo clipmap_feedback_readback_buf_rw("clipmap_feedback_readback_buf_rw", true);
+static ShaderVariableInfo clipmap_tex_mips("clipmap_tex_mips", true);
+static ShaderVariableInfo uav_feedback_exists("uav_feedback_exists", true);
+static ShaderVariableInfo ri_landclass_changed_indicex_bits("ri_landclass_changed_indicex_bits", true);
+static ShaderVariableInfo rendering_feedback_view_scale("rendering_feedback_view_scale", true);
+static ShaderVariableInfo rendinst_landscape_area_left_top_right_bottom("rendinst_landscape_area_left_top_right_bottom", true);
+static ShaderVariableInfo clipmap_histogram_buf("clipmap_histogram_buf", true);
+static ShaderVariableInfo feedback_downsample_dim("feedback_downsample_dim", true);
+static ShaderVariableInfo clipmap_histogram_buf_rw("clipmap_histogram_buf_rw", true);
+static ShaderVariableInfo clipmap_tile_info_buf_rw("clipmap_tile_info_buf_rw", true);
+static ShaderVariableInfo feedback_downsample_in("feedback_downsample_in", true);
+static ShaderVariableInfo feedback_downsample_out("feedback_downsample_out", true);
+static ShaderVariableInfo clipmap_cache_output_count("clipmap_cache_output_count", true);
+static ShaderVariableInfo clipmap_feedback_order_prefix("clipmap_feedback_order_prefix", true);
+static ShaderVariableInfo bypass_cache_no("bypass_cache_no", true);
+static ShaderVariableInfo indirection_tex("indirection_tex", true);
+static ShaderVariableInfo landscape2uv("landscape2uv", true);
+static ShaderVariableInfo world_dd_scale("world_dd_scale", true);
+static ShaderVariableInfo g_VTexDim("g_VTexDim", true);
+static ShaderVariableInfo g_TileSize("g_TileSize", true);
+static ShaderVariableInfo g_cache2uv("g_cache2uv", true);
+static ShaderVariableInfo fallback_info0("fallback_info0", true);
+static ShaderVariableInfo fallback_info1("fallback_info1", true);
+static ShaderVariableInfo use_secondary_terrain_vtex{"use_secondary_terrain_vtex", true};
+static ShaderVariableInfo secondary_terrain_landscape2uv{"secondary_terrain_landscape2uv", true};
+static ShaderVariableInfo enable_debug_color{"clipmap_enable_debug_color", true};
+static ShaderVariableInfo feedback_tex_unfiltered{"feedback_tex_unfiltered", true};
+
+} // namespace var
+
+struct MipPosition
+{
+  IPoint2 offset = IPoint2::ZERO;
+  int tileZoomShift = 0;
+
+  __forceinline int getZoom() { return (1 << tileZoomShift); }
+};
+
 struct TexTileFeedback
 {
   static constexpr int TILE_FEEDBACK_FORMAT = TEXFMT_A8R8G8B8;
@@ -89,16 +159,39 @@ struct TexTilePos
   TexTilePos() = default;
   TexTilePos(int X, int Y, int MIP, int RI_OFFSET) : x(X), y(Y), mip(MIP), ri_offset(RI_OFFSET) {}
 
+  bool isValid() const { return x < TILE_WIDTH && y < TILE_WIDTH && mip < TEX_MIPS && ri_offset < MAX_VTEX_CNT; }
+
   uint32_t getTileTag() const
   {
-    G_FAST_ASSERT(x < TILE_WIDTH);
-    G_FAST_ASSERT(y < TILE_WIDTH);
-    G_FAST_ASSERT(mip < TEX_MIPS);
-    G_FAST_ASSERT(ri_offset < MAX_VTEX_CNT);
+    G_FAST_ASSERT(isValid());
     return ((uint32_t)mip << (TILE_WIDTH_BITS + TILE_WIDTH_BITS + MAX_RI_VTEX_CNT_BITS)) |
            ((uint32_t)ri_offset << (TILE_WIDTH_BITS + TILE_WIDTH_BITS)) | ((uint32_t)y << TILE_WIDTH_BITS) | ((uint32_t)x);
   }
   uint32_t getTileBitIndex() const { return getTileTag(); }
+
+  eastl::optional<TexTilePos> migrateMipPosition(const MipPosition &old_mippos, const MipPosition &new_mippos, int mip_count) const
+  {
+    G_FAST_ASSERT(isValid());
+
+    int dzoom = old_mippos.tileZoomShift - new_mippos.tileZoomShift;
+    int newMip = (int)mip + dzoom;
+    if (!(newMip >= 0 && newMip < mip_count))
+      return eastl::nullopt;
+
+    int gx = ((((int)x - (TILE_WIDTH / 2)) << mip) + old_mippos.offset.x) << old_mippos.tileZoomShift;
+    int gy = ((((int)y - (TILE_WIDTH / 2)) << mip) + old_mippos.offset.y) << old_mippos.tileZoomShift;
+    int nx = (((gx >> new_mippos.tileZoomShift) - new_mippos.offset.x) >> newMip) + (TILE_WIDTH / 2);
+    int ny = (((gy >> new_mippos.tileZoomShift) - new_mippos.offset.y) >> newMip) + (TILE_WIDTH / 2);
+
+    // Check rounding... A position transition of 2^n tiles can keep n+1 mips aligned. Thus ClipmapImpl::alignMips member.
+    int GGX = (((nx - (TILE_WIDTH / 2)) << newMip) + new_mippos.offset.x) << new_mippos.tileZoomShift;
+    int GGY = (((ny - (TILE_WIDTH / 2)) << newMip) + new_mippos.offset.y) << new_mippos.tileZoomShift;
+
+    if (nx >= 0 && nx < TILE_WIDTH && ny >= 0 && ny < TILE_WIDTH && GGX == gx && GGY == gy)
+      return TexTilePos{nx, ny, newMip, ri_offset};
+    else
+      return eastl::nullopt;
+  }
 };
 
 struct TexTileInfo : TexTilePos
@@ -120,7 +213,8 @@ struct TexTileInfoOrder : TexTileInfo
 
   void updateOrder()
   {
-    uint32_t scaledCount = count * (TEX_MIPS - mip);
+    uint32_t scaledCount = ri_offset >= RI_VTEX_SECONDARY_OFFSET_START ? (TILE_WIDTH * TILE_WIDTH) : count;
+    scaledCount *= (TEX_MIPS - mip);
     uint32_t index = getTileTag();
     sortOrder = ~(uint64_t)scaledCount << 32 | index;
   }
@@ -208,13 +302,6 @@ struct TexTileIndirection
   TexTileIndirection(CacheCoords CACHECOORDS, int MIP, int TAG) : cacheCoords(CACHECOORDS), mip(MIP), tag(TAG) {}
 };
 
-struct MipPosition
-{
-  int xOffset = 0;
-  int yOffset = 0;
-  int tileZoom = 1;
-};
-
 #if MAX_RI_VTEX_CNT_BITS > 0
 struct RiIndices : public eastl::array<int, MAX_RI_VTEX_CNT>
 {
@@ -251,17 +338,14 @@ struct CaptureMetadata
   {
     INVALID,
     ZOOM_OR_OFFSET_CHANGED,
-    OFFSET_CHANGED,
     EQUAL
   };
   CompResult compare(const MipPosition &other) const
   {
     if (feedbackMode == HWFeedbackMode::INVALID)
       return CompResult::INVALID;
-    else if (position.tileZoom != other.tileZoom)
+    else if (position.tileZoomShift != other.tileZoomShift || position.offset != other.offset)
       return CompResult::ZOOM_OR_OFFSET_CHANGED;
-    else if (position.xOffset != other.xOffset || position.yOffset != other.yOffset)
-      return CompResult::OFFSET_CHANGED;
     else
       return CompResult::EQUAL;
   }
@@ -304,12 +388,15 @@ struct MipContext
   using InCacheBitmap = eastl::bitset<CLIPMAP_HIST_TOTAL_ELEMENTS>;
   InCacheBitmap inCacheBitmap;
 
+  PostFxRenderer *feedbackTexFilterRenderer = nullptr;
   carray<CaptureMetadata, MAX_FRAMES_AHEAD> captureMetadata;
   carray<EventQueryHolder, MAX_FRAMES_AHEAD> captureTexFence;
   // non-UAV HW feedback textures
+  UniqueTex captureTexRtUnfiltered;
   carray<UniqueTex, MAX_FRAMES_AHEAD> captureTexRt;
   UniqueTex captureTexRtSyslocked;
   // UAV HW feedback textures
+  uint32_t feedbackUAVAtomicPrefix = 0;
   UniqueBuf captureStagingBuf;
   carray<UniqueBuf, MAX_FRAMES_AHEAD> captureBuf;
   UniqueBuf captureBufSyslocked;
@@ -329,8 +416,10 @@ struct MipContext
   IPoint2 feedbackSize = IPoint2::ZERO;
   int feedbackOversampling = 1;
   uint32_t maxTilesFeedback = 0;
+  bool useFeedbackTexFilter = false;
 
-  void init(bool use_uav_feedback, IPoint2 feedback_size, int feedback_oversampling, uint32_t max_tiles_feedback);
+  void init(bool use_uav_feedback, IPoint2 feedback_size, int feedback_oversampling, uint32_t max_tiles_feedback,
+    bool useFeedbackTexFilter);
   void initIndirection(int tex_mips);
   void closeIndirection();
   void closeHWFeedback();
@@ -360,19 +449,175 @@ struct MipContext
 };
 
 static constexpr int calc_squared_area_around(int tile_width) { return sqr(tile_width * 2 + 1); }
+static constexpr int MAX_RI_VTEX_CNT_WITHOUT_SECONDARY = (MAX_RI_VTEX_CNT - 1) / 2;
+
+class RiLandclassDataManager
+{
+#if MAX_RI_VTEX_CNT_BITS > 0
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landscape2uv_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_pos_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_normal_arr;
+
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_mapping_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_inv_tm_x_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_inv_tm_y_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_inv_tm_z_arr;
+  carray<Point4, MAX_RI_VTEX_CNT> ri_landclass_inv_tm_w_arr;
+
+  carray<Point4, MAX_RI_VTEX_CNT_WITHOUT_SECONDARY> world_to_hmap_tex_ofs_arr;
+  carray<Point4, MAX_RI_VTEX_CNT_WITHOUT_SECONDARY> world_to_hmap_ofs_arr;
+  static constexpr int RI_INDICES_ARR4_SIZE = (MAX_RI_VTEX_CNT + 4 - 1) / 4;
+  carray<IPoint4, RI_INDICES_ARR4_SIZE> riIndicesArr4;
+
+  static constexpr int RI_LANDCLASS_DATA_BUFFER_SIZE =
+    8 * MAX_RI_VTEX_CNT + 2 * MAX_RI_VTEX_CNT_WITHOUT_SECONDARY + RI_INDICES_ARR4_SIZE;
+  carray<Point4, RI_LANDCLASS_DATA_BUFFER_SIZE> gpuData;
+
+  UniqueBufHolder riLandclassDataBuf;
+#endif
+
+public:
+  void clear()
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    for (int i = 0; i < MAX_RI_VTEX_CNT; i++)
+    {
+      ri_landscape2uv_arr[i] = Point4::ZERO;
+      ri_landclass_pos_arr[i] = Point4::ZERO;
+      ri_landclass_normal_arr[i] = Point4::ZERO;
+      ri_landclass_mapping_arr[i] = Point4::ZERO;
+      ri_landclass_inv_tm_x_arr[i] = Point4::ZERO;
+      ri_landclass_inv_tm_y_arr[i] = Point4::ZERO;
+      ri_landclass_inv_tm_z_arr[i] = Point4::ZERO;
+      ri_landclass_inv_tm_w_arr[i] = Point4::ZERO;
+
+      if (i < MAX_RI_VTEX_CNT_WITHOUT_SECONDARY)
+      {
+        world_to_hmap_tex_ofs_arr[i] = Point4::ZERO;
+        world_to_hmap_ofs_arr[i] = Point4::ZERO;
+      }
+
+      if (i < RI_INDICES_ARR4_SIZE)
+        riIndicesArr4[i] = IPoint4::ZERO;
+    }
+#endif
+  }
+
+  void init()
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    clear();
+    riLandclassDataBuf = dag::buffers::create_persistent_cb(RI_LANDCLASS_DATA_BUFFER_SIZE, "ri_landclass_data_buffer");
+#endif
+  }
+
+  RiLandclassDataManager() { init(); }
+
+#if MAX_RI_VTEX_CNT_BITS > 0
+#define SET_LANDCLASS_MANAGER_OFS_VAL(array, idx, val) \
+  G_ASSERT(idx < MAX_RI_VTEX_CNT_WITHOUT_SECONDARY);   \
+  array[idx] = val;
+#else
+#define SET_LANDCLASS_MANAGER_OFS_VAL(array, idx, val)
+#endif
+
+  void setHmapTexOfs(int idx, const Point4 &val) { SET_LANDCLASS_MANAGER_OFS_VAL(world_to_hmap_tex_ofs_arr, idx, val); }
+  void setHmapOfs(int idx, const Point4 &val) { SET_LANDCLASS_MANAGER_OFS_VAL(world_to_hmap_ofs_arr, idx, val); }
+
+  template <typename Landscape2uvCb>
+  void updateLandclass2uv(RiIndices riIndices, Landscape2uvCb getLandscape2uv)
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    for (int i = 0; i < MAX_RI_VTEX_CNT; ++i)
+      ri_landscape2uv_arr[i] = riIndices[i] != RI_INVALID_ID ? (getLandscape2uv(i + 1)) : Point4(1, 1, 0, 0);
+
+    ShaderGlobal::set_color4(var::secondary_terrain_landscape2uv, ri_landscape2uv_arr[RI_VTEX_SECONDARY_OFFSET_START - 1]);
+#endif
+  }
+
+  void updateClosestIndices(RiIndices riIndices)
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    G_STATIC_ASSERT(MAX_RI_VTEX_CNT < 32); // limitation due to firstbithigh in get_clipmap_indirection_offset(but it's also expensive)
+    auto getRiIndex = [&](int i) { return i < riIndices.size() ? riIndices[i] : RI_INVALID_ID; };
+    for (int i = 0; i < riIndicesArr4.size(); ++i)
+      riIndicesArr4[i] = IPoint4(getRiIndex(i * 4 + 0), getRiIndex(i * 4 + 1), getRiIndex(i * 4 + 2), getRiIndex(i * 4 + 3));
+#endif
+  }
+
+  void updateLandclassData(int idx, const RendinstLandclassData &riLandclass)
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    G_ASSERT(idx < MAX_RI_VTEX_CNT);
+
+    const auto &matrix = riLandclass.matrix;
+    const auto &invMatrix = riLandclass.matrixInv;
+
+    ri_landclass_mapping_arr[idx] = riLandclass.mapping;
+    ri_landclass_pos_arr[idx] = Point4(matrix.getcol(3).x, matrix.getcol(3).y, matrix.getcol(3).z, 1);
+    ri_landclass_normal_arr[idx] = Point4(matrix.getcol(1).x, matrix.getcol(1).y, matrix.getcol(1).z, 0);
+
+    ri_landclass_inv_tm_x_arr[idx] = Point4(invMatrix.getcol(0).x, invMatrix.getcol(0).y, invMatrix.getcol(0).z, 0);
+    ri_landclass_inv_tm_y_arr[idx] = Point4(invMatrix.getcol(1).x, invMatrix.getcol(1).y, invMatrix.getcol(1).z, 0);
+    ri_landclass_inv_tm_z_arr[idx] = Point4(invMatrix.getcol(2).x, invMatrix.getcol(2).y, invMatrix.getcol(2).z, 0);
+    ri_landclass_inv_tm_w_arr[idx] = Point4(invMatrix.getcol(3).x, invMatrix.getcol(3).y, invMatrix.getcol(3).z, 1);
+#endif
+  }
+
+  void updateGpuData()
+  {
+#if MAX_RI_VTEX_CNT_BITS > 0
+    for (int i = 0; i < MAX_RI_VTEX_CNT; ++i)
+    {
+      gpuData[i + MAX_RI_VTEX_CNT * 0] = ri_landscape2uv_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 1] = ri_landclass_pos_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 2] = ri_landclass_normal_arr[i];
+
+      gpuData[i + MAX_RI_VTEX_CNT * 3] = ri_landclass_mapping_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 4] = ri_landclass_inv_tm_x_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 5] = ri_landclass_inv_tm_y_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 6] = ri_landclass_inv_tm_z_arr[i];
+      gpuData[i + MAX_RI_VTEX_CNT * 7] = ri_landclass_inv_tm_w_arr[i];
+      if (i < MAX_RI_VTEX_CNT_WITHOUT_SECONDARY)
+      {
+        gpuData[i + MAX_RI_VTEX_CNT * 8 + MAX_RI_VTEX_CNT_WITHOUT_SECONDARY * 0] = world_to_hmap_tex_ofs_arr[i];
+        gpuData[i + MAX_RI_VTEX_CNT * 8 + MAX_RI_VTEX_CNT_WITHOUT_SECONDARY * 1] = world_to_hmap_ofs_arr[i];
+      }
+
+      if (i < RI_INDICES_ARR4_SIZE)
+        gpuData[i + MAX_RI_VTEX_CNT * 8 + MAX_RI_VTEX_CNT_WITHOUT_SECONDARY * 2] = Point4(bitwise_cast<float>(riIndicesArr4[i].x),
+          bitwise_cast<float>(riIndicesArr4[i].y), bitwise_cast<float>(riIndicesArr4[i].z), bitwise_cast<float>(riIndicesArr4[i].w));
+    }
+
+    riLandclassDataBuf.getBuf()->updateData(0, gpuData.size() * sizeof(gpuData[0]), gpuData.data(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+#endif
+  }
+};
 
 class ClipmapImpl
 {
 public:
-  static constexpr int NUM_TILES_AROUND_RI_FIXED_MIP = 0;
-  static constexpr int NUM_TILES_AROUND_RI_FALLBACK = 1;
+  static constexpr int SECONDARY_OFFSET_START_NO_TERRAIN = RI_VTEX_SECONDARY_OFFSET_START - 1;
 
-  static constexpr int NUM_TILES_AROUND = 2;
+  static constexpr int NUM_TILES_AROUND_0 = 2;
+  static constexpr int NUM_TILES_AROUND_1 = 1;
+  static constexpr int NUM_TILES_AROUND_LASTMIP = 1;
+  static constexpr int FAKE_TILE_MIP_AROUND_CAMERA_0 = 2;
+  static constexpr int FAKE_TILE_MIP_AROUND_CAMERA_1 = 5;
 
-  static constexpr int MAX_FAKE_TILE_CNT = // based on processTilesAroundCamera
-    (calc_squared_area_around(NUM_TILES_AROUND) + calc_squared_area_around(NUM_TILES_AROUND / 2)) * MAX_VTEX_CNT +
-    (calc_squared_area_around(NUM_TILES_AROUND_RI_FIXED_MIP) + calc_squared_area_around(NUM_TILES_AROUND_RI_FIXED_MIP)) *
-      MAX_RI_VTEX_CNT;
+  // based on processTilesAroundCamera
+  static constexpr int MAX_SECONDARY_FAKE_TILE_CNT =
+    (calc_squared_area_around(NUM_TILES_AROUND_0 * 2) + calc_squared_area_around(NUM_TILES_AROUND_1 * 2) +
+      calc_squared_area_around(NUM_TILES_AROUND_LASTMIP)) *
+    (MAX_VTEX_CNT - RI_VTEX_SECONDARY_OFFSET_START);
+
+  static constexpr int MAX_PRIMARY_FAKE_TILE_CNT = // based on processTilesAroundCamera
+    (calc_squared_area_around(NUM_TILES_AROUND_0) + calc_squared_area_around(NUM_TILES_AROUND_1)) * RI_VTEX_SECONDARY_OFFSET_START +
+    calc_squared_area_around(NUM_TILES_AROUND_LASTMIP) * (RI_VTEX_SECONDARY_OFFSET_START - 1);
+
+  static constexpr int MAX_FAKE_TILE_CNT = max(MAX_PRIMARY_FAKE_TILE_CNT, MAX_SECONDARY_FAKE_TILE_CNT);
+
+  static constexpr int UNIQUE_SECONDARY_TERRAIN_VTEX_INDEX = -3; // -1 and -2 are used for invalid values, see RI_INVALID_ID
 
   enum
   {
@@ -384,7 +629,6 @@ public:
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
-  bool updateOrigin(const Point3 &cameraPosition, bool update_snap);
 
   // fallbackTexelSize is fallbackPage size in meters
   // can be set to something like max(4, (1<<(getAlignMips()-1))*getPixelRatio*8) - 8 times bigger texel than last aligned clip, but
@@ -392,39 +636,25 @@ public:
   // pages_dim*pages_dim is amount of pages allocated for fallback
   void initFallbackPage(int pages_dim, float fallback_texel_size);
 
-  void updateFromFeedback(CaptureMetadata capture_metadata, TMatrix4 &globtm, bool force_update);
-  void prepareTileInfoFromTextureFeedback(const CaptureMetadata &capture_metadata, TMatrix4 &globtm);
-
-  bool changeXYOffset(int nx, int ny);                  // return true if chaned
-  bool changeZoom(int newZoom, const Point3 &position); // return true if chaned
-  void centerOffset(const Point3 &position, int &xofs, int &yofs, float zoom) const;
-  void updateMip(const CaptureMetadata &capture_metadata, bool force_update);
   void update(ClipmapRenderer &renderer, bool turn_off_decals_on_fallback);
   void updateCache(ClipmapRenderer &renderer);
-  void checkConsistency();
-  bool checkClipmapInited();
+
+  void resetSecondaryFeedbackCenter() { nextSecondaryFeedbackCenter.reset(); }
+  void setSecondaryFeedbackCenter(const Point3 &center) { nextSecondaryFeedbackCenter = center; }
+
+  void startSecondaryFeedback() { ShaderGlobal::set_int(var::use_secondary_terrain_vtex, 1); }
+  void endSecondaryFeedback() { ShaderGlobal::set_int(var::use_secondary_terrain_vtex, 0); }
 
   Point3 getMappedRiPos(int ri_offset) const;
 
   Point3 getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_position, float &dist_to_ground) const;
 
-  Point4 getLandscape2uv(const Point2 &offset, float zoom) const;
-  Point4 getLandscape2uv(int ri_offset) const;
-  Point4 getUV2landacape(const Point2 &offset, float zoom) const;
-  Point4 getUV2landacape(int ri_offset) const;
-
-  IPoint2 getTileOffset(int ri_offset) const;
-
-  Point4 getFallbackLandscape2uv() const;
-
   void restoreIndirectionFromLRU(SmallTab<TexTileIndirection, MidmemAlloc> *tiles); // debug
-  void GPUrestoreIndirectionFromLRUFull();                                          // restore completely
-  void GPUrestoreIndirectionFromLRU();
   int getTexMips() const { return texMips; }
   int getAlignMips() const { return alignMips; }
   void setMaxTileUpdateCount(int count) { maxTileUpdateCount = count; }
-  __forceinline int getZoom() const { return currentContext->bindedPos.tileZoom; }
-  __forceinline float getPixelRatio() const { return currentContext->bindedPos.tileZoom * pixelRatio; }
+  __forceinline int getZoom() const { return currentContext->bindedPos.getZoom(); }
+  __forceinline float getPixelRatio() const { return getZoom() * pixelRatio; }
 
   __forceinline TexTileIndirection &atTile(SmallTab<TexTileIndirection, MidmemAlloc> *tiles, int mip, int addr)
   {
@@ -458,12 +688,11 @@ public:
     texTileBorder = 1; // bilinear only
     texTileInnerSize = texTileSize - 2 * texTileBorder;
     texMips = 0;
-    pixelRatio = 1.0f;
-    maxTexelSize = 32.0f;
     feedbackType = SOFTWARE_FEEDBACK;
     feedbackDepthTex.close();
     failLockCount = 0;
     // END OF VIRTUAL TEXTURE INITIALIZATION
+    sampler = d3d::request_sampler({});
   }
   ~ClipmapImpl() { close(); }
   // sz - texture size of each clip, clip_count - number of clipmap stack. multiplayer - size of next clip
@@ -517,28 +746,38 @@ public:
   void setSoftwareFeedbackRadius(int inner_tiles, int outer_tiles);
   void setSoftwareFeedbackMipTiles(int mip, int tiles_for_mip);
 
-  void enableUAVOutput(bool enable); // default is enabled
-  void startUAVFeedback(int reg_no = 6);
-  void endUAVFeedback(int reg_no = 6);
+  void startUAVFeedback();
+  void endUAVFeedback();
+  void increaseUAVAtomicPrefix();
+  void resetUAVAtomicPrefix();
+
   void copyUAVFeedback();
-  const UniqueTexHolder &getCache(int at) { return cache[at]; }                   // for debug
-  const UniqueTex &getIndirection() const { return currentContext->indirection; } // for debug
+  BcCompressor *createCacheCompressor(int cache_id, uint32_t format, int compress_buf_width, int compress_buf_height);
   void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
     uint32_t buffer_cnt);
   void setCacheBufferCount(int cache_count, int buffer_count);
+  void setDynamicDDScale(float targetAtlasUsageRatio, float proportionalTerm);
   void beforeReset();
   void afterReset();
 
   void getRiLandclassIndices(dag::Vector<int> &ri_landclass_indices)
   {
 #if MAX_RI_VTEX_CNT_BITS > 0
-    ri_landclass_indices.resize(rendinstLandclasses.size());
-    for (int i = 0; i < ri_landclass_indices.size(); ++i)
-      ri_landclass_indices[i] = rendinstLandclasses[i].index;
+    ri_landclass_indices.clear();
+    int cnt = min((int)rendinstLandclasses.size(), SECONDARY_OFFSET_START_NO_TERRAIN);
+    for (int i = 0; i < cnt; ++i)
+    {
+      if (riIndices[i] == RI_INVALID_ID)
+        break;
+      ri_landclass_indices.push_back(riIndices[i]);
+    }
 #else
     ri_landclass_indices.clear();
 #endif
   }
+
+  RiLandclassDataManager &getRiLandclassDataManager() { return riLandclassDataManager; }
+  void updateLandclassData();
 
   static bool is_uav_supported();
 
@@ -547,6 +786,7 @@ public:
   // debug
   void toggleManualUpdate(bool manual_update) { triggerUpdatesManually = manual_update; };
   void requestManualUpdates(int count) { manualUpdates = count; };
+  void setDebugColorMode(Clipmap::DebugMode mode) { ShaderGlobal::set_int(var::enable_debug_color, eastl::to_underlying(mode)); }
 
 private:
   void beginUpdateTiles(ClipmapRenderer &renderer);
@@ -563,6 +803,25 @@ private:
   void prepareSoftwarePoi(const int vx, const int vy, const int mip, const int mipsize,
     carray<uint64_t, (TEX_MIPS * TILE_WIDTH * TILE_WIDTH + 63) / 64> &bitarrayUsed, const Point4 &uv2landscapetile,
     const vec4f *planes2d, int planes2dCnt);
+
+  IPoint2 centerOffset(const Point3 &position, float zoom) const;
+  void scheduleUpdate(const CaptureMetadata &capture_metadata, bool force_update);
+  void scheduleUpdateFromFeedback(CaptureMetadata capture_metadata, TMatrix4 &globtm, bool force_update);
+
+  Point4 getLandscape2uv(const IPoint2 &offset, float zoom) const;
+  Point4 getLandscape2uv(int ri_offset) const;
+  Point4 getUV2landacape(const IPoint2 &offset, float zoom) const;
+  Point4 getUV2landacape(int ri_offset) const;
+
+  IPoint2 getTileOffset(int ri_offset) const;
+
+  int getZoomLimit() const;
+
+  void checkConsistency();
+
+  void GPUrestoreIndirectionFromLRUFull();
+  void GPUrestoreIndirectionFromLRU();
+
   BBox2 currentLRUBox;
   void checkUpload();
   uint32_t feedbackType;
@@ -588,12 +847,19 @@ private:
 
   carray<BcCompressor *, MAX_TEXTURES> compressor;
   carray<UniqueTexHolder, MAX_TEXTURES> cache;
+  d3d::SamplerHandle sampler;
   int cacheCnt = 0;
   int maxCacheCnt = 0;
   int mipCnt = 1;
   int fallbackFramesUpdate = 0;
   int updatedTilesCnt = 0;
 
+  float dynamicDDScale = 1.f;
+  float dynamicDDChangeThreshold = 0.0f;
+  float targetAtlasUsageRatio = 0.f;
+  float dynamicDDProportionalTerm = 0.f;
+
+  bool migrateLRU(const MipPosition &old_mipPos, const MipPosition &new_mipPos);
   void changeFallback(ClipmapRenderer &renderer, const Point3 &viewer, bool turn_off_decals_on_fallback);
 
   void initHWFeedback();
@@ -607,8 +873,11 @@ private:
   void updateRendinstLandclassRenderState();
   void updateRendinstLandclassParams();
 
-  void processTileFeedback(const CaptureMetadata &capture_metadata, const TMatrix4 &globtm, dag::Vector<TexTileInfoOrder> &result_arr,
-    int &result_size);
+  void prepareTileFeedbackFromTextureFeedback();
+
+  template <typename Funct>
+  void processTileFeedback(const CaptureMetadata &capture_metadata, const TMatrix4 &globtm, Funct feedback_getter,
+    uint32_t feedback_size, dag::Vector<TexTileInfoOrder> &result_arr, int &result_size);
 
 private:
   vec4f align_hist; /// aligns histogramm to 128 bit!
@@ -617,11 +886,12 @@ private:
   eastl::unique_ptr<MipContext> currentContext;
 
 #if MAX_RI_VTEX_CNT_BITS > 0
-  int riLandclassCount = 0;
-  dag::Vector<rendinst::RendinstLandclassData> rendinstLandclasses;
+  using RiLandclasses = eastl::array<RendinstLandclassData, MAX_RI_VTEX_CNT>;
+  RiLandclasses rendinstLandclasses;
   eastl::array<int, MAX_RI_VTEX_CNT> changedRiIndices;
 #endif
   RiIndices riIndices;
+  RiLandclassDataManager riLandclassDataManager;
 
   eastl::unique_ptr<ComputeShaderElement> clearHistogramCs;
   eastl::unique_ptr<ComputeShaderElement> processFeedbackCs;
@@ -639,6 +909,8 @@ private:
   dag::Vector<TexTileInfoOrder> tileInfo; // used as array
   int tileInfoSize = 0;
 
+  dag::Vector<TexTileInfo> preparedTilesFeedback;
+
   // for debug comparison
   dag::Vector<TexTileInfoOrder> debugTileInfo;
   int debugTileInfoSize = 0;
@@ -651,7 +923,7 @@ private:
   float targetMipBias = 0.f;
   float maxEffectiveTargetResolution = float(-1);
 
-  float pixelRatio = 0, maxTexelSize = 0;
+  float pixelRatio = 1.f, maxTexelSize = 32.f;
   int texTileSize = 256;
   eastl::array<int, TEX_MIPS> swFeedbackTilesPerMip;
 
@@ -659,14 +931,8 @@ private:
   float fallbackTexelSize = 1;
 
   Point3 viewerPosition;
-
-  int indirectionTexVarId = -1;
-  int landscape2uvVarId = -1;
-  int worldDDScaleVarId = -1;
-  int vTexDimVarId = -1;
-  int tileSizeVarId = -1;
-  int g_cache2uvVarId = -1;
-  int fallback_info0VarId = -1, fallback_info1VarId = -1;
+  eastl::optional<Point3> secondaryFeedbackCenter;
+  eastl::optional<Point3> nextSecondaryFeedbackCenter;
 
   bool use_uav_feedback = true;
   bool feedbackPendingChanges = true;
@@ -674,14 +940,34 @@ private:
   uint16_t moreThanFeedback;
   uint16_t moreThanFeedbackInv;
   int feedbackOversampling;
+  bool useFeedbackTexFilter = false;
 
   int maxTileCaptureInfoBufElements;
 
   bool triggerUpdatesManually = false;
   int manualUpdates = 0;
 
-  void initCurrentContext();
-  void freeCurrentContext();
+  template <typename Funct>
+  void prepareFakeTiles(const TMatrix4 &globtm, Funct funct)
+  {
+    const RiIndices::CompareBitset validRiIndices = riIndices.compareEqual(riIndices); // validity check
+    for (int ri_offset = 0; ri_offset < MAX_VTEX_CNT; ++ri_offset)                     // -V1008
+    {
+      if (ri_offset != TERRAIN_RI_OFFSET && !validRiIndices[ri_offset - 1]) // -V560
+        continue;
+      if (ri_offset >= RI_VTEX_SECONDARY_OFFSET_START && !secondaryFeedbackCenter) // -V560
+        continue;
+      // if we have secondary, only update that
+      if (ri_offset < RI_VTEX_SECONDARY_OFFSET_START && secondaryFeedbackCenter) // -V560
+        continue;
+
+      float dist_to_ground;
+      Point3 absoluteCamPos = ri_offset >= RI_VTEX_SECONDARY_OFFSET_START ? *secondaryFeedbackCenter : viewerPosition; //-V547
+      Point3 relativeCamPos = getMappedRelativeRiPos(ri_offset, absoluteCamPos, dist_to_ground);
+      processTilesAroundCamera(texMips, globtm, getUV2landacape(ri_offset), getLandscape2uv(ri_offset), relativeCamPos,
+        getLandscape2uv(TERRAIN_RI_OFFSET), ri_offset, dist_to_ground, funct);
+    }
+  }
 };
 
 const IPoint2 Clipmap::FEEDBACK_DEFAULT_SIZE = IPoint2(FEEDBACK_DEFAULT_WIDTH, FEEDBACK_DEFAULT_HEIGHT);
@@ -692,25 +978,18 @@ void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiv
   clipmapImpl->initVirtualTexture(cacheDimX, cacheDimY, maxEffectiveTargetResolution);
 }
 void Clipmap::closeVirtualTexture() { clipmapImpl->closeVirtualTexture(); }
-bool Clipmap::updateOrigin(const Point3 &cameraPosition, bool update_snap)
-{
-  return clipmapImpl->updateOrigin(cameraPosition, update_snap);
-}
 
-bool Clipmap::checkClipmapInited() { return clipmapImpl->checkClipmapInited(); }
+void Clipmap::resetSecondaryFeedbackCenter() { clipmapImpl->resetSecondaryFeedbackCenter(); }
+void Clipmap::setSecondaryFeedbackCenter(const Point3 &center) { clipmapImpl->setSecondaryFeedbackCenter(center); }
+
+void Clipmap::startSecondaryFeedback() { clipmapImpl->startSecondaryFeedback(); }
+void Clipmap::endSecondaryFeedback() { clipmapImpl->endSecondaryFeedback(); }
 
 void Clipmap::initFallbackPage(int pages_dim, float fallback_texel_size)
 {
   clipmapImpl->initFallbackPage(pages_dim, fallback_texel_size);
 }
 
-
-bool Clipmap::changeXYOffset(int nx, int ny) { return clipmapImpl->changeXYOffset(nx, ny); }
-bool Clipmap::changeZoom(int newZoom, const Point3 &position) { return clipmapImpl->changeZoom(newZoom, position); }
-void Clipmap::checkConsistency() { clipmapImpl->checkConsistency(); }
-
-void Clipmap::GPUrestoreIndirectionFromLRUFull() { clipmapImpl->GPUrestoreIndirectionFromLRUFull(); }
-void Clipmap::GPUrestoreIndirectionFromLRU() { clipmapImpl->GPUrestoreIndirectionFromLRU(); }
 int Clipmap::getTexMips() const { return clipmapImpl->getTexMips(); }
 int Clipmap::getAlignMips() const { return clipmapImpl->getAlignMips(); }
 void Clipmap::setMaxTileUpdateCount(int count) { clipmapImpl->setMaxTileUpdateCount(count); }
@@ -751,7 +1030,6 @@ void Clipmap::renderFallbackFeedback(ClipmapRenderer &render, const TMatrix4 &gl
   clipmapImpl->renderFallbackFeedback(render, globtm);
 }
 void Clipmap::finalizeFeedback() { clipmapImpl->finalizeFeedback(); }
-void Clipmap::invalidatePointi(int tx, int ty, int lastMip) { clipmapImpl->invalidatePointi(tx, ty, lastMip); }
 void Clipmap::invalidatePoint(const Point2 &world_xz) { clipmapImpl->invalidatePoint(world_xz); }
 void Clipmap::invalidateBox(const BBox2 &world_xz) { clipmapImpl->invalidateBox(world_xz); }
 void Clipmap::invalidate(bool force_redraw) { clipmapImpl->invalidate(force_redraw); }
@@ -766,18 +1044,21 @@ void Clipmap::setSoftwareFeedbackRadius(int inner_tiles, int outer_tiles)
   clipmapImpl->setSoftwareFeedbackRadius(inner_tiles, outer_tiles);
 }
 void Clipmap::setSoftwareFeedbackMipTiles(int mip, int tiles_for_mip) { clipmapImpl->setSoftwareFeedbackMipTiles(mip, tiles_for_mip); }
-void Clipmap::enableUAVOutput(bool enable) { clipmapImpl->enableUAVOutput(enable); }
-void Clipmap::startUAVFeedback(int reg_no) { clipmapImpl->startUAVFeedback(reg_no); }
-void Clipmap::endUAVFeedback(int reg_no) { clipmapImpl->endUAVFeedback(reg_no); }
+void Clipmap::startUAVFeedback() { clipmapImpl->startUAVFeedback(); }
+void Clipmap::endUAVFeedback() { clipmapImpl->endUAVFeedback(); }
+void Clipmap::increaseUAVAtomicPrefix() { clipmapImpl->increaseUAVAtomicPrefix(); };
+void Clipmap::resetUAVAtomicPrefix() { clipmapImpl->resetUAVAtomicPrefix(); };
 void Clipmap::copyUAVFeedback() { clipmapImpl->copyUAVFeedback(); }
-const UniqueTexHolder &Clipmap::getCache(int at) { return clipmapImpl->getCache(at); }
-const UniqueTex &Clipmap::getIndirection() const { return clipmapImpl->getIndirection(); }
 void Clipmap::createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
   uint32_t buffer_cnt)
 {
   clipmapImpl->createCaches(formats, uncompressed_formats, cnt, buffer_formats, buffer_cnt);
 }
 void Clipmap::setCacheBufferCount(int cache_count, int buffer_count) { clipmapImpl->setCacheBufferCount(cache_count, buffer_count); }
+void Clipmap::setDynamicDDScale(float targetAtlasUsageRatio, float proportionalTerm)
+{
+  clipmapImpl->setDynamicDDScale(targetAtlasUsageRatio, proportionalTerm);
+}
 void Clipmap::beforeReset() { clipmapImpl->beforeReset(); }
 void Clipmap::afterReset() { clipmapImpl->afterReset(); }
 int Clipmap::getLastUpdatedTileCount() const { return clipmapImpl->getLastUpdatedTileCount(); }
@@ -797,47 +1078,20 @@ Point3 Clipmap::getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_posit
   return clipmapImpl->getMappedRelativeRiPos(ri_offset, viewer_position, dist_to_ground);
 }
 
-#define VTEX_VARS_LIST                               \
-  VAR(supports_uav)                                  \
-  VAR(requires_uav)                                  \
-  VAR(clipmap_feedback_calc_histogram_on_gpu)        \
-  VAR(clipmap_feedback_sride)                        \
-  VAR(clipmap_feedback_readback_sride)               \
-  VAR(clipmap_feedback_readback_size)                \
-  VAR(clipmap_feedback_buf)                          \
-  VAR(clipmap_feedback_readback_buf_rw)              \
-  VAR(clipmap_tex_mips)                              \
-  VAR(clipmap_ri_landscape2uv_arr)                   \
-  VAR(ri_landclass_closest_indices_arr)              \
-  VAR(ri_landclass_changed_indicex_bits)             \
-  VAR(rendering_feedback_view_scale)                 \
-  VAR(rendinst_landscape_area_left_top_right_bottom) \
-  VAR(clipmap_histogram_buf)                         \
-  VAR(feedback_downsample_dim)                       \
-  VAR(clipmap_histogram_buf_rw)                      \
-  VAR(clipmap_tile_info_buf_rw)                      \
-  VAR(feedback_downsample_in)                        \
-  VAR(feedback_downsample_out)                       \
-  VAR(clipmap_cache_output_count)                    \
-  VAR(bypass_cache_no)
-#define VAR(a) static int a##VarId = -1;
-VTEX_VARS_LIST
-#undef VAR
+void Clipmap::setDebugColorMode(DebugMode mode) { clipmapImpl->setDebugColorMode(mode); }
 
-static void init_shader_vars()
+void Clipmap::setHmapOfsAndTexOfs(int idx, const Point4 &hamp_ofs, const Point4 &hmap_tex_ofs)
 {
-  static bool has_initialized = false;
-  if (has_initialized)
-    return;
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  VTEX_VARS_LIST
-#undef VAR
-  has_initialized = true;
+  auto &riLandclassDataManager = clipmapImpl->getRiLandclassDataManager();
+  riLandclassDataManager.setHmapTexOfs(idx, hmap_tex_ofs);
+  riLandclassDataManager.setHmapOfs(idx, hamp_ofs);
 }
 
+void Clipmap::updateLandclassData() { clipmapImpl->updateLandclassData(); }
 
 CONSOLE_INT_VAL("clipmap", ri_invalid_frame_cnt, 6, 0, 20);
-CONSOLE_FLOAT_VAL_MINMAX("clipmap", ri_fake_tile_max_height, 10.0f, 1.0f, 100.0f);
+CONSOLE_FLOAT_VAL_MINMAX("clipmap", ri_fake_tile_max_height_0, 10.0f, 1.0f, 100.0f);
+CONSOLE_FLOAT_VAL_MINMAX("clipmap", ri_fake_tile_max_height_1, 20.0f, 1.0f, 100.0f);
 
 CONSOLE_BOOL_VAL("clipmap", disable_fake_tiles, false);
 CONSOLE_FLOAT_VAL_MINMAX("clipmap", fixed_zoom, -1, -1.0f, 64.0f);
@@ -870,10 +1124,7 @@ using TempMap = eastl::vector_map<K, T, eastl::less<K>, framemem_allocator,
 
 #define CHECK_MEMGUARD 0
 
-#define MAX_ZOOM_TO_ALLOW_PARALLAX           8
 #define MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA 64 // all tiles!
-#define MIP_AROUND_CAMERA                    2
-#define FRAME_FRACTION_TO_SPEND_IN_UPDATE    0.06 // limit update time to 1 msec at 60 FPS
 
 #define RESTORE_IN_INDIRECTION_ONLY_USED_LRU \
   0 // change this to 1, if we need only used LRU tiles in indirection. However, on SLI/Crossfire we always restore only used
@@ -900,7 +1151,7 @@ static uint4 unpackTileInfo(PackedTile packed_data, uint32_t &ri_offset)
   ri_offset = packed_data.y;
   G_FAST_ASSERT(ri_offset < MAX_VTEX_CNT);
 #else
-  ri_offset = 0;
+  ri_offset = TERRAIN_RI_OFFSET;
   for (int i = 0; i < 4; ++i)
     data[i] = (packed_data >> TILE_PACKED_SHIFT[i]) & TILE_PACKED_MASK[i];
 #endif
@@ -937,12 +1188,14 @@ static float calc_landclass_sort_order(const TMatrix &ri_matrix_inv, float ri_ra
   return calc_landclass_to_point_dist_sq(ri_matrix_inv, point, ri_radius, relPos);
 }
 
-void MipContext::init(bool in_use_uav_feedback, IPoint2 in_feedback_size, int in_feedback_oversampling, uint32_t in_max_tiles_feedback)
+void MipContext::init(bool in_use_uav_feedback, IPoint2 in_feedback_size, int in_feedback_oversampling, uint32_t in_max_tiles_feedback,
+  bool in_use_feedback_fex_filter)
 {
   use_uav_feedback = in_use_uav_feedback;
   feedbackSize = in_feedback_size;
   feedbackOversampling = in_feedback_oversampling;
   maxTilesFeedback = in_max_tiles_feedback;
+  useFeedbackTexFilter = in_use_feedback_fex_filter;
 
   closeHWFeedback();
   captureTargetCounter = oldestCaptureTargetCounter = 0;
@@ -1191,8 +1444,7 @@ static void processTilesAroundCamera(int tex_mips, const TMatrix4 &globtm, const
             if (planes2dCnt > 0)
             {
               // software 2d culling to save some cache
-              int worldCx = ((cx - TILE_WIDTH / 2) << mipToAdd) + TILE_WIDTH / 2,
-                  worldCy = ((cy - TILE_WIDTH / 2) << mipToAdd) + TILE_WIDTH / 2;
+              int worldCx = ((cx - TILE_WIDTH / 2) << mipToAdd), worldCy = ((cy - TILE_WIDTH / 2) << mipToAdd);
               vec4f pos = v_make_vec4f(uv2landscapetile.x * worldCx + uv2landscapetile.z, 0,
                 uv2landscapetile.y * worldCy + uv2landscapetile.w, 0);
               if (!is_2d_frustum_visible(pos, width, height, planes2d.data(), planes2dCnt))
@@ -1205,7 +1457,7 @@ static void processTilesAroundCamera(int tex_mips, const TMatrix4 &globtm, const
     }
   };
   auto insertTilesRI = [ri_offset, funct](IPoint2 tile_center, int mipToAdd, int tilesAround) {
-    G_ASSERT(ri_offset != 0);
+    G_ASSERT(ri_offset != TERRAIN_RI_OFFSET);
     int uvy = (tile_center.y >> mipToAdd) + TILE_WIDTH / 2, uvx = (tile_center.x >> mipToAdd) + TILE_WIDTH / 2;
     for (int y = -tilesAround; y <= tilesAround; ++y)
     {
@@ -1226,84 +1478,97 @@ static void processTilesAroundCamera(int tex_mips, const TMatrix4 &globtm, const
   };
   auto calcTileCenter = [viewerPosition](const Point4 &l2uv) {
     Point2 viewerUV = Point2(viewerPosition.x * l2uv.x + l2uv.z, viewerPosition.z * l2uv.y + l2uv.w);
-    return IPoint2((int)(viewerUV.x * TILE_WIDTH) - (TILE_WIDTH / 2), (int)(viewerUV.y * TILE_WIDTH) - (TILE_WIDTH / 2));
+    return IPoint2(floor(viewerUV.x * TILE_WIDTH), floor(viewerUV.y * TILE_WIDTH));
   };
 
-  IPoint2 tileCenter0 = calcTileCenter(l2uv0);
   if (ri_offset != TERRAIN_RI_OFFSET)
   {
     IPoint2 tileCenter = calcTileCenter(l2uv);
-    tileCenter.x += (TILE_WIDTH / 2);
-    tileCenter.y += (TILE_WIDTH / 2);
-    int lastMip = tex_mips - 1;
-
-    // insert fallback tiles to terrain indirection to make the transition smoother
-    // Basically even when we render and have feedback from ri indirection, we also store the least detailed mip of the terrain
-    // indirection for them, so when we switch, there is already a tile in the cache, and we don't need to use the terrain fallback
-    // (which can be extremely blurry for ri tiles).
-    insertTilesTerrain(tileCenter0, lastMip, ClipmapImpl::NUM_TILES_AROUND_RI_FIXED_MIP);
+    const int lastMip = tex_mips - 1;
+    const int tilesAroundMultiplier = ri_offset >= RI_VTEX_SECONDARY_OFFSET_START ? 2 : 1;
 
     // insert the least detailed tiles to RI indirection (so we never need to use the terrain fallback)
-    insertTilesRI(IPoint2::ZERO, lastMip, ClipmapImpl::NUM_TILES_AROUND_RI_FALLBACK);
+    insertTilesRI(IPoint2::ZERO, lastMip, ClipmapImpl::NUM_TILES_AROUND_LASTMIP);
 
     // insert tiles close to camera to RI indirection
-    if (dist_to_ground < ri_fake_tile_max_height)
-      insertTilesRI(tileCenter, MIP_AROUND_CAMERA, 1);
+    if (dist_to_ground < ri_fake_tile_max_height_0)
+      insertTilesRI(tileCenter, ClipmapImpl::FAKE_TILE_MIP_AROUND_CAMERA_0, ClipmapImpl::NUM_TILES_AROUND_0 * tilesAroundMultiplier);
+    if (dist_to_ground < ri_fake_tile_max_height_1)
+      insertTilesRI(tileCenter, ClipmapImpl::FAKE_TILE_MIP_AROUND_CAMERA_1, ClipmapImpl::NUM_TILES_AROUND_1 * tilesAroundMultiplier);
   }
   else
   {
-    for (int mipToAdd = MIP_AROUND_CAMERA, tilesAround = ClipmapImpl::NUM_TILES_AROUND; tilesAround; tilesAround /= 2, mipToAdd += 3)
-      insertTilesTerrain(tileCenter0, mipToAdd, tilesAround);
+    IPoint2 tileCenter = calcTileCenter(l2uv0);
+    insertTilesTerrain(tileCenter, ClipmapImpl::FAKE_TILE_MIP_AROUND_CAMERA_0, ClipmapImpl::NUM_TILES_AROUND_0);
+    insertTilesTerrain(tileCenter, ClipmapImpl::FAKE_TILE_MIP_AROUND_CAMERA_1, ClipmapImpl::NUM_TILES_AROUND_1);
   }
 }
 
-void ClipmapImpl::updateFromFeedback(CaptureMetadata capture_metadata, TMatrix4 &globtm, bool force_update)
+void ClipmapImpl::scheduleUpdateFromFeedback(CaptureMetadata capture_metadata, TMatrix4 &globtm, bool force_update)
 {
-  {
-    TIME_PROFILE_DEV(clipmap_updateFromFeedback);
-    G_ASSERT(capture_metadata.isValid());
-    if (capture_metadata.compare(currentContext->LRUPos) != CaptureMetadata::CompResult::EQUAL)
-    {
-      // If LRU position has changed since feedback capture, we should compensate for that.
-      // Optimized readback doesn't support that case, so we will fallback to HWFeedbackMode::DEFAULT.
-      // TODO: Add tiles zoom and offset change.
-      capture_metadata.feedbackMode = HWFeedbackMode::DEFAULT;
-    }
+  TIME_PROFILE(clipmap_scheduleUpdateFromFeedback);
 
-    if (capture_metadata.feedbackMode == HWFeedbackMode::DEBUG_COMPARE)
-    {
-      debugTileInfo.resize(getMaxTileInfoElementCount());
-      processTileFeedback(capture_metadata, globtm, debugTileInfo, debugTileInfoSize);
-      prepareTileInfoFromTextureFeedback(capture_metadata, globtm);
-    }
-    else if (capture_metadata.feedbackMode == HWFeedbackMode::OPTIMIZED)
-    {
-      processTileFeedback(capture_metadata, globtm, tileInfo, tileInfoSize);
-    }
-    else
-    {
-      prepareTileInfoFromTextureFeedback(capture_metadata, globtm);
-    }
+  G_ASSERT(capture_metadata.isValid());
+
+  const PackedTile *feedbackTilesPtr = currentContext->lockedTileInfoPtr;
+  auto directTilesFeedbackGetter = [&feedbackTilesPtr](uint32_t i) -> TexTileInfo {
+    uint32_t ri_offset;
+    uint4 fb = unpackTileInfo(feedbackTilesPtr[i], ri_offset);
+    return TexTileInfo(fb.x, fb.y, fb.z, ri_offset, fb.w);
+  };
+
+  auto preparedFeedbackGetter = [this](uint32_t i) -> TexTileInfo { return preparedTilesFeedback[i]; };
+
+  if (capture_metadata.feedbackMode == HWFeedbackMode::DEBUG_COMPARE)
+  {
+    prepareTileFeedbackFromTextureFeedback();
+
+    // For the optimized version (tile GPU readback), count is stored in 15 bits, which is not enough in extreme cases,
+    // but the first N in the sorted tiles will still be the same, so it doesn't matter
+    // To make the comparison fair and avoid false-positive errors, the original version must be clamped to simulate the same
+    // behavior.
+    for (TexTileInfo &tile : preparedTilesFeedback)
+      tile.count = min(tile.count, MAX_GPU_FEEDBACK_COUNT);
+    processTileFeedback(capture_metadata, globtm, preparedFeedbackGetter, preparedTilesFeedback.size(), tileInfo, tileInfoSize);
+
+    G_ASSERT(currentContext->lockedTileInfoPtr);
+    debugTileInfo.resize(getMaxTileInfoElementCount());
+    processTileFeedback(capture_metadata, globtm, directTilesFeedbackGetter, currentContext->lockedTileInfoCnt, debugTileInfo,
+      debugTileInfoSize);
+  }
+  else if (capture_metadata.feedbackMode == HWFeedbackMode::OPTIMIZED)
+  {
+    G_ASSERT(currentContext->lockedTileInfoPtr);
+    processTileFeedback(capture_metadata, globtm, directTilesFeedbackGetter, currentContext->lockedTileInfoCnt, tileInfo,
+      tileInfoSize);
+  }
+  else
+  {
+    prepareTileFeedbackFromTextureFeedback();
+    processTileFeedback(capture_metadata, globtm, preparedFeedbackGetter, preparedTilesFeedback.size(), tileInfo, tileInfoSize);
   }
 
   if (tileInfoSize)
   {
-    updateMip(capture_metadata, force_update);
+    scheduleUpdate(capture_metadata, force_update);
   }
 }
 
-void ClipmapImpl::prepareTileInfoFromTextureFeedback(const CaptureMetadata &capture_metadata, TMatrix4 &globtm)
+void ClipmapImpl::prepareTileFeedbackFromTextureFeedback()
 {
   // we do not have correct feedback for a stub driver, and random data
   // will cause the memory corruption
-  if (d3d::is_stub_driver())
+  if (d3d::is_stub_driver() || disable_feedback)
+  {
+    preparedTilesFeedback.resize(0);
     return;
+  }
 
   TIME_PROFILE_DEV(clipmap_updateFromReadPixels);
 
-  IPoint2 feedbackSizeRO = disable_feedback ? IPoint2::ZERO : feedbackSize;
+  preparedTilesFeedback.resize(getMaxTileInfoElementCount());
+  int tilesSize = 0;
 
-  tileInfoSize = 0;
   mem_set_0(hist);
 
   auto appendHist = [this](const TexTilePos &tilePos) {
@@ -1316,144 +1581,30 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(const CaptureMetadata &capt
 #endif
   };
 
-  const RiIndices::CompareBitset equalRiIndices = capture_metadata.riIndices.compareEqual(riIndices);
-
   G_ASSERT(currentContext->lockedPixelsPtr);
-  auto captureComparison = capture_metadata.compare(currentContext->LRUPos);
-  if (captureComparison == CaptureMetadata::CompResult::ZOOM_OR_OFFSET_CHANGED)
+  for (const TexTileFeedback &fb :
+    Image2DView<const TexTileFeedback>(const_cast<uint8_t *>(currentContext->lockedPixelsMemCopy ? currentContext->lockedPixelsMemCopy
+                                                                                                 : currentContext->lockedPixelsPtr),
+      feedbackSize.x, feedbackSize.y, currentContext->lockedPixelsBytesStride, TexTileFeedback::TILE_FEEDBACK_FORMAT))
   {
-    int newZoom = currentContext->LRUPos.tileZoom;
-    int oldZoom = capture_metadata.position.tileZoom;
-
-    int oldZoomShift = get_log2i_of_pow2w(oldZoom);
-    int newZoomShift = get_log2i_of_pow2w(newZoom);
-    if (abs(newZoomShift - oldZoomShift) > 1)
-      return;
-
-    for (const TexTileFeedback &fb : Image2DView<const TexTileFeedback>(
-           const_cast<uint8_t *>(
-             currentContext->lockedPixelsMemCopy ? currentContext->lockedPixelsMemCopy : currentContext->lockedPixelsPtr),
-           feedbackSizeRO.x, feedbackSizeRO.y, currentContext->lockedPixelsBytesStride, TexTileFeedback::TILE_FEEDBACK_FORMAT))
-    {
-      if (fb.ri_offset != TERRAIN_RI_OFFSET)
-      {
-        if (fb.mip < texMips && equalRiIndices[fb.ri_offset - 1])
-          appendHist({fb.x, fb.y, fb.mip, fb.ri_offset});
-      }
-      else
-      {
-        int newMip = oldZoom > newZoom ? (fb.mip + 1) : max(0, fb.mip - 1);
-        if (newMip >= texMips)
-          continue;
-
-        int gx = ((((int)fb.x - (TILE_WIDTH / 2)) << fb.mip) + (TILE_WIDTH / 2) + capture_metadata.position.xOffset) << oldZoomShift;
-        int gy = ((((int)fb.y - (TILE_WIDTH / 2)) << fb.mip) + (TILE_WIDTH / 2) + capture_metadata.position.yOffset) << oldZoomShift;
-        int nx = (((gx >> newZoomShift) - currentContext->LRUPos.xOffset - (TILE_WIDTH / 2)) >> newMip) + (TILE_WIDTH / 2);
-        int ny = (((gy >> newZoomShift) - currentContext->LRUPos.yOffset - (TILE_WIDTH / 2)) >> newMip) + (TILE_WIDTH / 2);
-
-        if (nx >= 0 && nx < TILE_WIDTH && ny >= 0 && ny < TILE_WIDTH)
-          appendHist({nx, ny, newMip, 0});
-      }
-    }
-  }
-  else if (captureComparison == CaptureMetadata::CompResult::OFFSET_CHANGED)
-  {
-    // this is fairly rare case for when we changed origin and collecting old feedback
-    int offsetDeltaX = capture_metadata.position.xOffset - currentContext->LRUPos.xOffset;
-    int offsetDeltaY = capture_metadata.position.yOffset - currentContext->LRUPos.yOffset;
-
-    for (const TexTileFeedback &fb : Image2DView<const TexTileFeedback>(
-           const_cast<uint8_t *>(
-             currentContext->lockedPixelsMemCopy ? currentContext->lockedPixelsMemCopy : currentContext->lockedPixelsPtr),
-           feedbackSizeRO.x, feedbackSizeRO.y, currentContext->lockedPixelsBytesStride, TexTileFeedback::TILE_FEEDBACK_FORMAT))
-    {
-      if (fb.mip < texMips)
-      {
-        if (fb.ri_offset != TERRAIN_RI_OFFSET)
-        {
-          if (equalRiIndices[fb.ri_offset - 1])
-            appendHist({fb.x, fb.y, fb.mip, fb.ri_offset});
-        }
-        else
-        {
-          // G_ASSERTF(fb.y < (TILE_WIDTH>>fb.mip), "fb = %dx%d mip = %d", fb.x, fb.y, fb.mip);
-          // G_ASSERTF(fb.x < (TILE_WIDTH>>fb.mip), "fb = %dx%d mip = %d", fb.x, fb.y, fb.mip);
-          // int mip = min(uint8_t(texMips-1),fb.mip);
-          int mip = fb.mip;
-          int newX = int(fb.x) + (offsetDeltaX >> mip);
-          int newY = int(fb.y) + (offsetDeltaY >> mip);
-          if (newX >= 0 && newX < TILE_WIDTH && newY >= 0 && newY < TILE_WIDTH)
-            appendHist({newX, newY, mip, 0});
-        }
-      }
-    }
-  }
-  else
-  {
-    for (const TexTileFeedback &fb : Image2DView<const TexTileFeedback>(
-           const_cast<uint8_t *>(
-             currentContext->lockedPixelsMemCopy ? currentContext->lockedPixelsMemCopy : currentContext->lockedPixelsPtr),
-           feedbackSizeRO.x, feedbackSizeRO.y, currentContext->lockedPixelsBytesStride, TexTileFeedback::TILE_FEEDBACK_FORMAT))
-    {
-      if (fb.mip < texMips)
-      {
-        G_FAST_ASSERT(fb.y < TILE_WIDTH && fb.x < TILE_WIDTH);
-        if (fb.ri_offset == TERRAIN_RI_OFFSET || equalRiIndices[fb.ri_offset - 1])
-          appendHist({fb.x, fb.y, fb.mip, fb.ri_offset});
-      }
-    }
-  }
-
-  if (capture_metadata.feedbackMode == HWFeedbackMode::DEBUG_COMPARE)
-  {
-    // For the optimized version (tile GPU readback), count is stored in 15 bits, which is not enough in extreme cases,
-    // but the first N in the sorted tiles will still be the same, so it doesn't matter
-    // To make the comparison fair and avoid false-positive errors, the original version must be clamped to simulate the same behavior.
-    for (int i = 0; i < hist.size(); ++i)
-      hist[i] = min(hist[i], MAX_GPU_FEEDBACK_COUNT);
-  }
-
-  if (!disable_fake_tiles && currentContext->LRUPos.tileZoom <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
-  {
-    auto funct = [this](const TexTilePos &tilePos) {
-      int hist_ofs = tilePos.getTileTag();
-      if (hist[hist_ofs] >= moreThanFeedback) // only apply fake tiles once (overlapping can cause issues otherwise)
-        return;
-#if CHECK_MEMGUARD
-      hist[hist_ofs] = min(hist[hist_ofs], moreThanFeedbackInv) + moreThanFeedback;
-#else
-      hist.data()[hist_ofs] = min(hist.data()[hist_ofs], moreThanFeedbackInv) + moreThanFeedback;
-#endif
-    };
-
-    const RiIndices::CompareBitset validRiIndices = riIndices.compareEqual(riIndices);
-    for (int ri_offset = 0; ri_offset < MAX_VTEX_CNT; ++ri_offset) // -V1008
-    {
-      if (ri_offset != TERRAIN_RI_OFFSET && !validRiIndices[ri_offset - 1]) // -V560
-        continue;
-      float dist_to_ground;
-      Point3 camPos = getMappedRelativeRiPos(ri_offset, viewerPosition, dist_to_ground);
-      processTilesAroundCamera(texMips, globtm, getUV2landacape(ri_offset), getLandscape2uv(ri_offset), //-V547
-        camPos, getLandscape2uv(TERRAIN_RI_OFFSET), ri_offset, dist_to_ground, funct);
-    }
+    if (fb.mip < texMips)
+      appendHist({fb.x, fb.y, fb.mip, fb.ri_offset});
   }
 
   {
-    // According to C++17 specs, TexTileInfoOrder are constructed in-place.
+    TIME_PROFILE_DEV(clipmap_processHist);
+    // According to C++17 specs, TexTileInfo are constructed in-place.
     uint16_t *__restrict pHist = static_cast<uint16_t *>(hist.data());
-#if _TARGET_SIMD_SSE
     G_ASSERT(!(((intptr_t)pHist) & 0xF));
     G_STATIC_ASSERT(!(TILE_WIDTH & 7));
     vec4f *__restrict pHistVec = (vec4f *)pHist;
-    vec4f zero = v_zero();
-    for (uint32_t mip = 0; mip < texMips && tileInfoSize + 8 < tileInfo.size(); mip++)
+    for (uint32_t mip = 0; mip < texMips && tilesSize + 8 < tileInfo.size(); mip++)
       for (uint32_t ri_offset = 0; ri_offset < MAX_VTEX_CNT; ri_offset++) // -V1008
       {
         static constexpr int X_MASK = (1 << TILE_WIDTH_BITS) - 1;
-        for (uint32_t i = 0; i < (TILE_WIDTH * TILE_WIDTH) && tileInfoSize + 8 < tileInfo.size(); i += 8, pHistVec++)
+        for (uint32_t i = 0; i < (TILE_WIDTH * TILE_WIDTH) && tilesSize + 8 < preparedTilesFeedback.size(); i += 8, pHistVec++)
         {
-          vec4i eq = _mm_cmpeq_epi32(v_cast_vec4i(*pHistVec), v_cast_vec4i(zero));
-          if (_mm_movemask_ps(v_cast_vec4f(eq)) == 0xF)
+          if (v_test_all_bits_zeros(*pHistVec))
             continue;
           uint32_t y = (i >> TILE_WIDTH_BITS) & X_MASK;
           uint32_t x = i & X_MASK;
@@ -1462,149 +1613,86 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(const CaptureMetadata &capt
 
           count2 = chist[0];
           if (uint32_t count = (count2 & 0xffff))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x, y, mip, ri_offset, count);
           if (uint32_t count = (count2 >> 16))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 1, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 1, y, mip, ri_offset, count);
 
           count2 = chist[1];
           if (uint32_t count = (count2 & 0xffff))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 2, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 2, y, mip, ri_offset, count);
           if (uint32_t count = (count2 >> 16))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 3, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 3, y, mip, ri_offset, count);
 
           count2 = chist[2];
           if (uint32_t count = (count2 & 0xffff))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 4, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 4, y, mip, ri_offset, count);
           if (uint32_t count = (count2 >> 16))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 5, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 5, y, mip, ri_offset, count);
 
           count2 = chist[3];
           if (uint32_t count = (count2 & 0xffff))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 6, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 6, y, mip, ri_offset, count);
           if (uint32_t count = (count2 >> 16))
-            tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 7, y, mip, ri_offset, count);
+            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 7, y, mip, ri_offset, count);
         }
       }
-#elif _TARGET_64BIT
-    uint64_t *__restrict pHist64 = (uint64_t *)pHist;
-    for (uint32_t mip = 0; mip < texMips && tileInfoSize + 8 < tileInfo.size(); mip++)
-      for (uint32_t ri_offset = 0; ri_offset < MAX_VTEX_CNT; ri_offset++)
-      {
-        const uint32_t x_bits = TILE_WIDTH_BITS;
-        const uint32_t x_mask = (1 << TILE_WIDTH_BITS) - 1;
-        for (uint32_t i = 0; i < (TILE_WIDTH * TILE_WIDTH) && tileInfoSize + 8 < tileInfo.size(); i += 4, pHist64++)
-        {
-          if (uint64_t count2 = *pHist64)
-          {
-            // _mm_prefetch( (const char *) out, _MM_HINT_NTA);
-            uint32_t y = (i >> x_bits) & x_mask;
-            uint32_t x = i & x_mask;
-            if (uint32_t count = (count2 & 0xffff))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x, y, mip, ri_offset, count);
-            if (uint32_t count = ((count2 >> 16) & 0xffff))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 1, y, mip, ri_offset, count);
-            if (uint32_t count = ((count2 >> 32) & 0xffff))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 2, y, mip, ri_offset, count);
-            if (uint32_t count = ((count2 >> 48) & 0xffff))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 3, y, mip, ri_offset, count);
-          }
-        }
-      }
-#else
-    uint32_t *__restrict pHist32 = (uint32_t *)pHist;
-    for (uint32_t mip = 0; mip < texMips && tileInfoSize + 8 < tileInfo.size(); mip++)
-      for (uint32_t ri_offset = 0; ri_offset < MAX_VTEX_CNT; ri_offset++)
-      {
-        const uint32_t x_bits = TILE_WIDTH_BITS;
-        const uint32_t x_mask = (1 << TILE_WIDTH_BITS) - 1;
-        for (uint32_t i = 0; i < (TILE_WIDTH * TILE_WIDTH) && tileInfoSize + 8 < tileInfo.size(); i += 4, pHist32++)
-        {
-          if (uint32_t count2 = *pHist32)
-          {
-            // _mm_prefetch( (const char *) out, _MM_HINT_NTA);
-            uint32_t y = (i >> x_bits) & x_mask;
-            uint32_t x = i & x_mask;
-            if (uint32_t count = (count2 & 0xffff))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x, y, mip, ri_offset, count);
-            if (uint32_t count = (count2 >> 16))
-              tileInfo[tileInfoSize++] = TexTileInfoOrder(x + 1, y, mip, ri_offset, count);
-          }
-        }
-      }
-#endif
   }
-  // G_ASSERT(tileInfoSize <= tileInfo.size());
-  // for (int i = 0; i < tileInfoSize; ++i)
-  //{
-  //   G_ASSERTF(tileInfo[i].x < (TILE_WIDTH), "mip=%d x = %d y = %d", tileInfo[i].mip, tileInfo[i].x, tileInfo[i].y);
-  //   G_ASSERTF(tileInfo[i].y < (TILE_WIDTH), "mip=%d x = %d y = %d", tileInfo[i].mip, tileInfo[i].x, tileInfo[i].y);
-  // }
 
-  // debug("vx = %i, vy = %i", vx, vy );
-
-  // this ugly hack should only be applied
-  // when we know we need to apply it
+  preparedTilesFeedback.resize(tilesSize);
 }
 
-void ClipmapImpl::processTileFeedback(const CaptureMetadata &capture_metadata, const TMatrix4 &globtm,
-  dag::Vector<TexTileInfoOrder> &result_arr, int &result_size)
+template <typename Funct>
+void ClipmapImpl::processTileFeedback(const CaptureMetadata &capture_metadata, const TMatrix4 &globtm, Funct feedback_tile_getter,
+  uint32_t feedback_size, dag::Vector<TexTileInfoOrder> &result_arr, int &result_size)
 {
+  TIME_PROFILE_DEV(clipmap_processTileFeedback);
+
   TempMap<uint32_t, TexTileInfo, MAX_FAKE_TILE_CNT> aroundCameraTileIndexMap;
-  if (!disable_fake_tiles && currentContext->LRUPos.tileZoom <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
+  if (!disable_fake_tiles && currentContext->LRUPos.getZoom() <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
   {
     auto funct = [&aroundCameraTileIndexMap, moreThanFeedback = this->moreThanFeedback](const TexTilePos &tilePos) {
       aroundCameraTileIndexMap.insert(eastl::pair(tilePos.getTileTag(), TexTileInfo(tilePos, moreThanFeedback)));
       if (aroundCameraTileIndexMap.size() > MAX_FAKE_TILE_CNT) // TempMap can overflow
         logerr("clipmap: Max fake tiles count exceeded: %d > %d", aroundCameraTileIndexMap.size(), MAX_FAKE_TILE_CNT);
     };
-
-    const RiIndices::CompareBitset validRiIndices = riIndices.compareEqual(riIndices);
-    for (int ri_offset = 0; ri_offset < MAX_VTEX_CNT; ++ri_offset) // -V1008
-    {
-      if (ri_offset != TERRAIN_RI_OFFSET && !validRiIndices[ri_offset - 1]) // -V560
-        continue;
-      float dist_to_ground;
-      Point3 camPos = getMappedRelativeRiPos(ri_offset, viewerPosition, dist_to_ground);
-      processTilesAroundCamera(texMips, globtm, getUV2landacape(ri_offset), getLandscape2uv(ri_offset), //-V547
-        camPos, getLandscape2uv(TERRAIN_RI_OFFSET), ri_offset, dist_to_ground, funct);
-    }
+    prepareFakeTiles(globtm, funct);
   }
 
-  int feedback_tile_cnt = currentContext->lockedTileInfoCnt;
   if (disable_feedback)
-    feedback_tile_cnt = 0;
+    feedback_size = 0;
 
+  const RiIndices::CompareBitset equalRiIndices = capture_metadata.riIndices.compareEqual(riIndices);
+  if (feedback_size > result_arr.size())
   {
-    const RiIndices::CompareBitset equalRiIndices = capture_metadata.riIndices.compareEqual(riIndices);
-    if (feedback_tile_cnt > result_arr.size())
+    logerr("feedback_size is out of bounds: %d > %d", feedback_size, result_arr.size());
+    feedback_size = 0;
+  }
+
+  bool migrationNeeded = capture_metadata.compare(currentContext->LRUPos) == CaptureMetadata::CompResult::ZOOM_OR_OFFSET_CHANGED;
+
+  result_size = 0;
+  for (int i = 0; i < feedback_size; ++i)
+  {
+    TexTileInfo tile = feedback_tile_getter(i);
+    if (tile.ri_offset > 0 && !equalRiIndices[tile.ri_offset - 1])
+      continue;
+
+    if (tile.ri_offset != 0 || !migrationNeeded) {}
+    else if (auto newTilePos = tile.migrateMipPosition(capture_metadata.position, currentContext->LRUPos, texMips))
+      tile.TexTilePos::operator=(*newTilePos);
+    else
+      continue; // We cannot migrate the feedback to current LRUPos.
+
+    uint32_t tag = tile.getTileTag();
+    auto it = aroundCameraTileIndexMap.find(tag);
+    if (it != aroundCameraTileIndexMap.end())
     {
-      logerr("feedback_tile_cnt is out of bounds: %d > %d", feedback_tile_cnt, result_arr.size());
-      feedback_tile_cnt = 0;
+      TexTileInfo &taggedTileRef = it->second;
+      taggedTileRef.count = min(tile.count, moreThanFeedbackInv) + moreThanFeedback;
     }
-    G_ASSERT(currentContext->lockedTileInfoPtr);
-    const PackedTile *feedbackPtr = currentContext->lockedTileInfoPtr;
-    result_size = 0;
-    for (int i = 0; i < feedback_tile_cnt; ++i)
+    else
     {
-      uint32_t ri_offset;
-      uint4 fb = unpackTileInfo(feedbackPtr[i], ri_offset);
-
-      if (ri_offset > 0 && !equalRiIndices[ri_offset - 1])
-        continue;
-
-      TexTileInfoOrder tile(fb.x, fb.y, fb.z, ri_offset, fb.w);
-      uint32_t tag = tile.getTileTag();
-
-      auto it = aroundCameraTileIndexMap.find(tag);
-      if (it != aroundCameraTileIndexMap.end())
-      {
-        TexTileInfo &taggedTileRef = it->second;
-        taggedTileRef.count = min(tile.count, moreThanFeedbackInv) + moreThanFeedback;
-      }
-      else
-      {
-        result_arr[result_size++] = tile;
-      }
+      result_arr[result_size++] = TexTileInfoOrder(tile);
     }
   }
 
@@ -1641,9 +1729,9 @@ void ClipmapImpl::updateCache(ClipmapRenderer &renderer)
   d3d::set_render_target(prevRt);
 }
 
-void ClipmapImpl::updateMip(const CaptureMetadata &capture_metadata, bool force_update)
+void ClipmapImpl::scheduleUpdate(const CaptureMetadata &capture_metadata, bool force_update)
 {
-  TIME_PROFILE_DEV(clipmap_updateMip);
+  TIME_PROFILE_DEV(clipmap_scheduleUpdate);
   sortFeedback(capture_metadata.feedbackMode);
   // currentContext->checkBitmapLRUCoherence(); // debug helper
   applyFeedback(capture_metadata, force_update);
@@ -1773,7 +1861,10 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
   manualUpdates = max(0, manualUpdates - 1);
 
   TexLRUList &LRU = currentContext->LRU;
-  bool softwareFeedback = feedbackType == SOFTWARE_FEEDBACK;
+  const bool softwareFeedback = feedbackType == SOFTWARE_FEEDBACK;
+
+  bool onlyUpdatePrimary = false; // TODO: only use the first half of ri_offset, hist, etc. if frame is not in secondary mode
+  const int riVtexCnt = onlyUpdatePrimary ? RI_VTEX_SECONDARY_OFFSET_START : MAX_VTEX_CNT; //-V547
 
   const RiIndices::CompareBitset equalRiIndices = capture_metadata.riIndices.compareEqual(riIndices);
 
@@ -1827,8 +1918,12 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
         if (
           (ti.flags & ti.NEED_UPDATE) && (needUpdateInLRUIndicesCount.size() < needUpdateInLRUIndicesCount.max_size() || force_update))
         {
-          bool forceUpdateLast = !softwareFeedback && tileToCount->second == moreThanFeedback; // invisible fake tile
-          needUpdateInLRUIndicesCount.emplace_back(usedLRU.size() - 1, !forceUpdateLast ? tileToCount->second : 0);
+          auto count = tileToCount->second;
+          if (ti.tilePos.ri_offset >= RI_VTEX_SECONDARY_OFFSET_START)
+            count = eastl::numeric_limits<decltype(count)>::max(); // top priority for secondary vtex (eg. portal baking)
+          else if (!softwareFeedback && count == moreThanFeedback)
+            count = 0; // invisible fake tile -> force update last
+          needUpdateInLRUIndicesCount.emplace_back(usedLRU.size() - 1, count);
         }
       }
     }
@@ -1858,6 +1953,10 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
   };
 
   int totalHeadroom = !force_update ? maxTileUpdateCount : MAX_CACHE_TILES;
+
+  if (secondaryFeedbackCenter)
+    totalHeadroom = MAX_FAKE_TILE_CNT; // TODO: we only need secondary feedback immediately, also, we can make it multi-frame
+
   auto &updateLRUIndices = currentContext->updateLRUIndices;
   updateLRUIndices.reserve(totalHeadroom);
 
@@ -1896,8 +1995,9 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     updateLRUIndices.emplace_back(LRU.size() - 1);
   }
 
+  constexpr unsigned maxTilesCascadeScoring = 32;
   int newTilesHeadroom = min<int>(totalHeadroom, superfluousLRU.size());
-  if (tilesNotInLRU.size() <= newTilesHeadroom || newTilesHeadroom > 16 /*TODO: Tune fallback param*/ || softwareFeedback)
+  if (tilesNotInLRU.size() <= newTilesHeadroom || newTilesHeadroom > maxTilesCascadeScoring || softwareFeedback)
   {
     for (int i = 0; i < newTilesHeadroom && i < tilesNotInLRU.size(); i++)
     {
@@ -1919,7 +2019,8 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     TIME_PROFILE_DEV(cascadeScoring);
 
     // stealSuperfluousLRU now in order to update inCacheBitmap.
-    eastl::fixed_vector<TexLRU, 32, true> stealedLRUs;
+    G_ASSERT(newTilesHeadroom <= maxTilesCascadeScoring);
+    eastl::fixed_vector<TexLRU, maxTilesCascadeScoring, false> stealedLRUs;
     for (int i = 0; i < newTilesHeadroom; ++i)
       stealedLRUs.push_back(stealSuperfluousLRU());
 
@@ -1932,12 +2033,14 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     for (const TexTileInfo &tile : tilesNotInLRU)
     {
       uint16_t countCapped = min<unsigned>(tile.count, TileScore::samplesCap); // Avoid uint32_t overflow.
-
-      TexTileIntPos tileIntPos(tile);
-      scoreMaps[tile.ri_offset][tile.mip][packPos(tileIntPos.x, tileIntPos.y)] = {countCapped};
+      if (tile.mip < TEX_MIPS)
+      {
+        TexTileIntPos tileIntPos(tile);
+        scoreMaps[tile.ri_offset][tile.mip][packPos(tileIntPos.x, tileIntPos.y)] = {countCapped};
+      }
     }
 
-    for (int ri_offset = 0; ri_offset < MAX_VTEX_CNT; ri_offset++) // -V1008
+    for (int ri_offset = 0; ri_offset < riVtexCnt; ri_offset++) // -V1008
     {
       for (int mip = 0; mip < texMips; mip++)
       {
@@ -1989,8 +2092,11 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
       bool operator>(const TexTileIntPosScore &rhs) const { return this->score.finalCount > rhs.score.finalCount; }
     };
 
-    eastl::fixed_vector<TexTileIntPosScore, 32, true> queueHeap(2 * newTilesHeadroom);
-    for (int ri_offset = 0; ri_offset < MAX_VTEX_CNT; ri_offset++) // -V1008
+    unsigned candidatesCount = 2 * newTilesHeadroom;
+    G_ASSERT(candidatesCount <= 2 * maxTilesCascadeScoring);
+    eastl::fixed_vector<TexTileIntPosScore, 2 * maxTilesCascadeScoring, false> queueHeap(candidatesCount);
+
+    for (int ri_offset = 0; ri_offset < riVtexCnt; ri_offset++) // -V1008
     {
       for (int mip = 0; mip < texMips; mip++)
       {
@@ -2018,7 +2124,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
       queueHeap.pop_back();
 
       // Update queueHeap satisfication.
-      // TODO: Break O(n^2) for high queueHeap size.
+      // TODO: Break O(n^2) for high queueHeap > 64.
       for (auto &candidateTile : queueHeap)
       {
         if (candidateTile.ri_offset != maxTile.ri_offset || candidateTile.score.finalCount == 0)
@@ -2068,6 +2174,42 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
 
   append_items(LRU, superfluousLRU.size(), superfluousLRU.data());
   G_ASSERT(LRU.size() == LRUSize);
+
+  if (clipmap_should_collect_debug_stats())
+  {
+    clipmapDebugStats.reset();
+    clipmapDebugStats.cacheDim = IPoint2(cacheDimX, cacheDimY);
+    clipmapDebugStats.texMips = texMips;
+    clipmapDebugStats.texTileSize = texTileSize;
+    clipmapDebugStats.texTileInnerSize = texTileInnerSize;
+    clipmapDebugStats.tilesCount = (cacheDimX / texTileSize) * (cacheDimY / texTileSize);
+    clipmapDebugStats.texelSize = pixelRatio;
+    clipmapDebugStats.tileZoom = currentContext->LRUPos.getZoom();
+    for (int i = 0; i < tileInfoSize; ++i)
+    {
+      clipmapDebugStats.tilesFromFeedback[tileInfo[i].mip]++;
+    }
+    for (int i = 0; i < currentContext->LRU.size(); ++i)
+    {
+      const TexLRU &ti = currentContext->LRU[i];
+      if (ti.tilePos.mip >= TEX_MIPS)
+      {
+        clipmapDebugStats.tilesUnassigned++;
+        continue;
+      }
+      const bool isInvalid = (ti.flags & TexLRU::IS_INVALID) == TexLRU::IS_INVALID;
+      const bool needUpdate = (ti.flags & TexLRU::NEED_UPDATE) == TexLRU::NEED_UPDATE;
+      const bool isUsed = (ti.flags & TexLRU::IS_USED) == TexLRU::IS_USED;
+      if (isInvalid)
+        clipmapDebugStats.tilesInvalid[ti.tilePos.mip]++;
+      if (needUpdate)
+        clipmapDebugStats.tilesNeedUpdate[ti.tilePos.mip]++;
+      if (isUsed)
+        clipmapDebugStats.tilesUsed[ti.tilePos.mip]++;
+      if (!isInvalid && !needUpdate && !isUsed)
+        clipmapDebugStats.tilesUnused[ti.tilePos.mip]++;
+    }
+  }
 }
 
 void ClipmapImpl::setFeedbackType(uint32_t ftp)
@@ -2117,17 +2259,25 @@ void MipContext::initHWFeedback()
 
   if (!use_uav_feedback)
   {
+    int captureTexFlags = TEXCF_RTARGET | TexTileFeedback::TILE_FEEDBACK_FORMAT;
     for (int i = 0; i < MAX_FRAMES_AHEAD + 1; ++i)
     {
       String captureTexName(128, "capture_tex_rt_%d", i);
-      UniqueTex tempCaptureTexRt = dag::create_tex(nullptr, feedbackSize.x, feedbackSize.y,
-        TEXCF_RTARGET | TexTileFeedback::TILE_FEEDBACK_FORMAT, 1, captureTexName.str());
+      UniqueTex tempCaptureTexRt = dag::create_tex(nullptr, feedbackSize.x, feedbackSize.y, captureTexFlags, 1, captureTexName.str());
       d3d_err(tempCaptureTexRt.getTex2D());
 
       if (i < MAX_FRAMES_AHEAD)
         captureTexRt[i] = eastl::move(tempCaptureTexRt);
       else
         captureTexRtSyslocked = eastl::move(tempCaptureTexRt);
+    }
+    if (useFeedbackTexFilter)
+    {
+      captureTexRtUnfiltered = dag::create_tex(nullptr, feedbackSize.x, feedbackSize.y, captureTexFlags, 1, "capture_tex_rt_uf");
+      d3d_err(captureTexRtUnfiltered.getTex2D());
+
+      feedbackTexFilterRenderer = create_postfx_renderer("clipmap_feedback_filter");
+      G_ASSERT(feedbackTexFilterRenderer);
     }
     return;
   }
@@ -2176,6 +2326,9 @@ void MipContext::closeHWFeedback()
     captureTexFence[i].reset();
     captureMetadata[i] = CaptureMetadata();
   }
+
+  captureTexRtUnfiltered.close();
+  del_it(feedbackTexFilterRenderer);
 
   if (lockedPixelsPtr)
   {
@@ -2237,9 +2390,9 @@ void ClipmapImpl::setTexMips(int tex_mips)
   texMips = clamp(tex_mips, (int)4, (int)TEX_MIPS);
   alignMips = min<int>(get_log2w(TILE_WIDTH), texMips);
   debug("tex_mips now = %d, align = %d", tex_mips, alignMips);
-  mostLeft = ((-TILE_WIDTH / 2) << (texMips - 1)) + TILE_WIDTH / 2;
-  mostRight = ((TILE_WIDTH / 2) << (texMips - 1)) + TILE_WIDTH / 2;
-  ShaderGlobal::set_int(get_shader_variable_id("clipmapTexMips", true), texMips);
+  mostLeft = (-TILE_WIDTH / 2) << (texMips - 1);
+  mostRight = (TILE_WIDTH / 2) << (texMips - 1);
+  ShaderGlobal::set_int(var::clipmap_tex_mips, texMips);
   if (currentContext)
   {
     currentContext->closeIndirection();
@@ -2251,16 +2404,18 @@ void ClipmapImpl::setTexMips(int tex_mips)
 
 void ClipmapImpl::setTileSizeVars()
 {
-  ShaderGlobal::set_color4(vTexDimVarId, Color4(TILE_WIDTH * texTileInnerSize, TILE_WIDTH * texTileInnerSize, 0, 0));
-  ShaderGlobal::set_color4(tileSizeVarId, Color4(texTileInnerSize, 1.0f / texTileInnerSize, texTileSize, log2f(cacheAnisotropy)));
+  ShaderGlobal::set_color4(var::g_VTexDim, Color4(TILE_WIDTH * texTileInnerSize, TILE_WIDTH * texTileInnerSize, 0, 0));
+  ShaderGlobal::set_color4(var::g_TileSize, Color4(texTileInnerSize, 1.0f / texTileInnerSize, texTileSize, log2f(cacheAnisotropy)));
   float brd = texTileBorder;
   float cpx = 1.0f / cacheDimX;
   float cpy = 1.0f / cacheDimY;
-  ShaderGlobal::set_color4(g_cache2uvVarId, Color4(cpx, cpy, (brd)*cpx, (brd)*cpy));
+  ShaderGlobal::set_color4(var::g_cache2uv, Color4(cpx, cpy, (brd)*cpx, (brd)*cpy));
 }
 
 void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float argMaxEffectiveTargetResolution)
 {
+  init_shader_vars();
+
   argCacheDimX = min(argCacheDimX, d3d::get_driver_desc().maxtexw);
   argCacheDimY = min(argCacheDimY, d3d::get_driver_desc().maxtexh);
 
@@ -2284,18 +2439,6 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float a
   float wp = 1.0f / (texMips * TILE_WIDTH_F);
   float hp = 1.0f / (TILE_WIDTH_F);
 
-  fallback_info0VarId = get_shader_variable_id("fallback_info0", true);
-  fallback_info1VarId = get_shader_variable_id("fallback_info1", true);
-  g_cache2uvVarId = ::get_shader_glob_var_id("g_cache2uv");
-
-  landscape2uvVarId = ::get_shader_glob_var_id("landscape2uv", true);
-
-  worldDDScaleVarId = ::get_shader_glob_var_id("world_dd_scale", true);
-
-  vTexDimVarId = ::get_shader_glob_var_id("g_VTexDim", true);
-  tileSizeVarId = ::get_shader_glob_var_id("g_TileSize", true);
-
-  indirectionTexVarId = ::get_shader_glob_var_id("indirection_tex", true);
   // context
 
   constantFillerMat = new_shader_material_by_name("tileConstantFiller");
@@ -2317,7 +2460,7 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float a
   constantFillerBuf->setCurrentShader(constantFillerElement);
 
   currentContext.reset(new MipContext());
-  currentContext->init(use_uav_feedback, feedbackSize, feedbackOversampling, maxTileCaptureInfoBufElements);
+  currentContext->init(use_uav_feedback, feedbackSize, feedbackOversampling, maxTileCaptureInfoBufElements, useFeedbackTexFilter);
   currentContext->initIndirection(texMips);
   currentContext->reset(cacheDimX, cacheDimY, true, texTileSize, feedbackType);
 
@@ -2333,10 +2476,10 @@ void MipContext::initIndirection(int tex_mips)
   String ind_tex(30, "ind_tex_%p", this);
   unsigned indFlags = TEXFMT_A8R8G8B8 | TEXCF_RTARGET;
 
+  // TODO: we only need half of MAX_VTEX_CNT (with ri vtex),
+  // but need to rebuild it after primary/secondary switch,
+  // and use offsets to correct it
   indirection = dag::create_tex(nullptr, TILE_WIDTH * texMips * MAX_VTEX_CNT, TILE_WIDTH, indFlags, 1, ind_tex);
-  indirection.getTex2D()->texaddr(TEXADDR_BORDER);
-  indirection.getTex2D()->texbordercolor(0xFFFFFFFF);
-  indirection.getTex2D()->texfilter(TEXFILTER_POINT);
 }
 
 void MipContext::closeIndirection() { indirection.close(); }
@@ -2352,7 +2495,7 @@ public:
   enum class FeedbackType
   {
     UPDATE_FROM_READPIXELS,
-    UPDATE_MIP,
+    UPDATE_FROM_SOFTWARE,
     UPDATE_INVALID,
   } updateFeedbackType;
 
@@ -2374,20 +2517,22 @@ public:
   {
     clipmap = &clip_;
     captureMetadata = {};
-    updateFeedbackType = FeedbackType::UPDATE_MIP;
+    updateFeedbackType = FeedbackType::UPDATE_FROM_SOFTWARE;
     forceUpdate = force_update;
   }
+
+  const char *getJobName(bool &) const override { return "PrepareFeedbackJob"; }
 
   virtual void doJob() override
   {
     if (updateFeedbackType == FeedbackType::UPDATE_FROM_READPIXELS)
     {
       G_ASSERT(clipmap->currentContext->lockedTileInfoCnt <= clipmap->maxTileCaptureInfoBufElements); // should never happen
-      clipmap->updateFromFeedback(captureMetadata, globtm, forceUpdate);
+      clipmap->scheduleUpdateFromFeedback(captureMetadata, globtm, forceUpdate);
     }
-    else if (updateFeedbackType == FeedbackType::UPDATE_MIP)
+    else if (updateFeedbackType == FeedbackType::UPDATE_FROM_SOFTWARE)
     {
-      clipmap->updateMip(captureMetadata, forceUpdate);
+      clipmap->scheduleUpdate(captureMetadata, forceUpdate);
     }
   }
 } feedbackJob;
@@ -2401,17 +2546,10 @@ void ClipmapImpl::update(ClipmapRenderer &renderer, bool turn_off_decals_on_fall
     GPUrestoreIndirectionFromLRU();
 }
 
-bool ClipmapImpl::checkClipmapInited()
-{
-  TEXTUREID indirTex = ShaderGlobal::get_tex(indirectionTexVarId);
-  bool inited = !(indirTex == BAD_TEXTUREID);
-  return inited;
-}
-
 void ClipmapImpl::closeVirtualTexture()
 {
   threadpool::wait(&feedbackJob);
-  ShaderGlobal::set_texture(indirectionTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(var::indirection_tex, BAD_TEXTUREID);
 
   del_it(directUncompressMat);
   directUncompressElem = 0;
@@ -2435,42 +2573,8 @@ void ClipmapImpl::closeVirtualTexture()
   currentContext.reset();
 }
 
-bool ClipmapImpl::changeZoom(int newZoom, const Point3 &position)
+bool ClipmapImpl::migrateLRU(const MipPosition &old_mipPos, const MipPosition &new_mipPos)
 {
-  if (currentContext->LRUPos.tileZoom == newZoom)
-    return false;
-  newZoom = max(newZoom, 1);
-  newZoom = min(newZoom, int(TEX_MAX_ZOOM));
-  if (pixelRatio > 0)
-  {
-    int max_zoom = 1.75 * maxTexelSize / ((1 << (texMips - 1)) * pixelRatio);
-    newZoom = max(min(newZoom, get_bigger_pow2(max_zoom)), 1);
-  }
-
-  if (currentContext->LRUPos.tileZoom == newZoom)
-    return false;
-
-  int oldZoom = currentContext->LRUPos.tileZoom;
-  int oldXOffset = currentContext->LRUPos.xOffset;
-  int oldYOffset = currentContext->LRUPos.yOffset;
-
-  currentContext->LRUPos.tileZoom = newZoom;
-  int newXOffset, newYOffset;
-  centerOffset(position, newXOffset, newYOffset, currentContext->LRUPos.tileZoom);
-  // debug("centerOffset = %gx%g pr=%g(%g) %dx%d",P2D(Point2::xz(position)), getPixelRatio(), pixelRatio, newXOffset, newYOffset);
-  newXOffset -= (TILE_WIDTH / 2);
-  newYOffset -= (TILE_WIDTH / 2);
-  currentContext->LRUPos.xOffset = newXOffset;
-  currentContext->LRUPos.yOffset = newYOffset;
-  // debug("chzoom %d->%d ofs = %dx%d -> %dx%d", oldZoom, newZoom, oldXOffset, oldYOffset, newXOffset, newYOffset);
-
-  /*
-   l2uv = 1 / Zoom
-   uv2l = Zoom
-   */
-
-  int dzoom = newZoom > oldZoom ? -1 : 1;
-
   carray<TexLRU, MAX_CACHE_TILES> newLRU;
   int newLRUUsed = 0;
   TexLRUList &LRU = currentContext->LRU;
@@ -2490,30 +2594,11 @@ bool ClipmapImpl::changeZoom(int newZoom, const Point3 &position)
         newLRU[newLRUUsed++] = ti;
         currentContext->inCacheBitmap[ti.tilePos.getTileBitIndex()] = true;
       }
-      else
+      else if (auto newTexTilePos = ti.tilePos.migrateMipPosition(old_mipPos, new_mipPos, texMips))
       {
-        int newMip = ti.tilePos.mip + dzoom;
-        if (newMip >= 0 && newMip < texMips)
-        {
-          int gx = ((((int)ti.tilePos.x - (TILE_WIDTH / 2)) << ti.tilePos.mip) + (TILE_WIDTH / 2) + oldXOffset) * oldZoom;
-          int gy = ((((int)ti.tilePos.y - (TILE_WIDTH / 2)) << ti.tilePos.mip) + (TILE_WIDTH / 2) + oldYOffset) * oldZoom;
-          int nx = (((gx / newZoom) - newXOffset - (TILE_WIDTH / 2)) >> newMip) + (TILE_WIDTH / 2);
-          int ny = (((gy / newZoom) - newYOffset - (TILE_WIDTH / 2)) >> newMip) + (TILE_WIDTH / 2);
-
-          if (nx >= 0 && nx < TILE_WIDTH && ny >= 0 && ny < TILE_WIDTH)
-          {
-            int GGX = (((nx - (TILE_WIDTH / 2)) << newMip) + newXOffset + (TILE_WIDTH / 2)) * newZoom;
-            int GGY = (((ny - (TILE_WIDTH / 2)) << newMip) + newYOffset + (TILE_WIDTH / 2)) * newZoom;
-            if (GGX == gx && GGY == gy)
-            {
-              discard = false;
-              TexTilePos tilePos(nx, ny, newMip, ti.tilePos.ri_offset);
-              uint32_t addr = tilePos.getTileBitIndex();
-              currentContext->inCacheBitmap[addr] = true;
-              newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords, tilePos).setFlags(ti.flags);
-            }
-          }
-        }
+        discard = false;
+        currentContext->inCacheBitmap[newTexTilePos->getTileBitIndex()] = true;
+        newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords, *newTexTilePos).setFlags(ti.flags);
       }
     }
     if (discard)
@@ -2522,55 +2607,6 @@ bool ClipmapImpl::changeZoom(int newZoom, const Point3 &position)
   G_ASSERT(newLRUUsed == LRU.size());
   LRU.resize(newLRUUsed);
   memcpy(LRU.data(), newLRU.data(), data_size(LRU));
-  return true;
-}
-
-bool ClipmapImpl::changeXYOffset(int nx, int ny)
-{
-  if (currentContext->LRUPos.xOffset == nx && currentContext->LRUPos.yOffset == ny)
-    return false;
-  // debug("changeXYOffset = %dx%d -> %dx%d", currentContext->xOffset, currentContext->yOffset, nx, ny);
-  carray<TexLRU, MAX_CACHE_TILES> newLRU;
-  int newLRUUsed = 0;
-  TexLRUList &LRU = currentContext->LRU;
-  G_ASSERT(currentContext->updateLRUIndices.empty());
-  currentContext->resetInCacheBitmap();
-  currentContext->invalidateIndirection = true;
-  for (int i = 0; i < LRU.size(); ++i)
-  {
-    TexLRU &ti = LRU[i];
-    if (ti.tilePos.mip < alignMips)
-    {
-      if (ti.tilePos.ri_offset != TERRAIN_RI_OFFSET)
-      {
-        // RI indirection has fixed offset (the virtual camera is always at the UV center)
-        newLRU[newLRUUsed++] = ti;
-        currentContext->inCacheBitmap[ti.tilePos.getTileBitIndex()] = true;
-      }
-      else
-      {
-        IPoint2 diff = IPoint2(currentContext->LRUPos.xOffset - nx, currentContext->LRUPos.yOffset - ny);
-        int newX = (int)ti.tilePos.x + (diff.x >> ti.tilePos.mip);
-        int newY = (int)ti.tilePos.y + (diff.y >> ti.tilePos.mip);
-        if (newX >= 0 && newX < TILE_WIDTH && newY >= 0 && newY < TILE_WIDTH)
-        {
-          TexTilePos tilePos(newX, newY, ti.tilePos.mip, ti.tilePos.ri_offset);
-          newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords, tilePos).setFlags(ti.flags);
-          uint32_t addr = tilePos.getTileBitIndex();
-          currentContext->inCacheBitmap[addr] = true;
-        }
-        else
-          newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords);
-      }
-    }
-    else
-      newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords);
-  }
-  G_ASSERT(newLRUUsed == LRU.size());
-  LRU.resize(newLRUUsed);
-  memcpy(LRU.data(), newLRU.data(), data_size(LRU));
-  currentContext->LRUPos.xOffset = nx;
-  currentContext->LRUPos.yOffset = ny;
   return true;
 }
 
@@ -2627,7 +2663,7 @@ bool MipContext::allocateFallback(int ndim, int tex_tile_size)
 
 void ClipmapImpl::initFallbackPage(int pages_dim, float texel_size)
 {
-  if (!VariableMap::isGlobVariablePresent(fallback_info0VarId) || !VariableMap::isGlobVariablePresent(fallback_info1VarId))
+  if (!VariableMap::isGlobVariablePresent(var::fallback_info0) || !VariableMap::isGlobVariablePresent(var::fallback_info1))
     return;
   fallbackPages = clamp(pages_dim, (int)0, (int)4);
   fallbackTexelSize = clamp(texel_size, 0.0001f, 1e4f);
@@ -2747,7 +2783,7 @@ void ClipmapImpl::checkUpload()
   restoreIndirectionFromLRU(tiles);
   uint8_t *data;
   int stride;
-  currentContext->indirectionTex->lockimg((void **)&data, stride, 0, TEXLOCK_READ);
+  currentContext->indirection_tex->lockimg((void **)&data, stride, 0, TEXLOCK_READ);
   for (int mip = 0; mip < texMips; ++mip)
   {
     int ofsx = mip * TILE_WIDTH;
@@ -2761,12 +2797,12 @@ void ClipmapImpl::checkUpload()
         for (int x = 0; x < TILE_WIDTH; ++x)
           if (((uint32_t *)dest)[x] != ((uint32_t *)src)[x])
             debug("mip = %d, y = %d, x = %d GPU %X CPU %X", mip, y, x, ((uint32_t *)dest)[x], ((uint32_t *)src)[x]);
-        save_rt_image_as_tga(currentContext->indirectionTex, "indirection.tga");
+        save_rt_image_as_tga(currentContext->indirection_tex, "indirection.tga");
         G_ASSERT(0);
       }
     }
   }
-  currentContext->indirectionTex->unlockimg();
+  currentContext->indirection_tex->unlockimg();
 #endif
 }
 
@@ -2785,16 +2821,16 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
     if (ti.tilePos.mip >= texMips || (ti.flags & ti.IS_INVALID))
       continue;
     mippedLRU[ti.tilePos.mip][mippedLRUCount[ti.tilePos.mip]++] = i;
-    IPoint2 lefttop(((ti.tilePos.x - TILE_WIDTH / 2) << ti.tilePos.mip), ((ti.tilePos.y - TILE_WIDTH / 2) << ti.tilePos.mip));
+    IPoint2 lefttop((int)(ti.tilePos.x - TILE_WIDTH / 2) << ti.tilePos.mip, (int)(ti.tilePos.y - TILE_WIDTH / 2) << ti.tilePos.mip);
     totalbox += lefttop;
     totalbox += lefttop + IPoint2((1 << ti.tilePos.mip), (1 << ti.tilePos.mip));
     totalUpdated++;
   }
-  float ratio = texTileInnerSize * currentContext->LRUPos.tileZoom * pixelRatio;
-  currentLRUBox[0] = Point2((totalbox[0].x + TILE_WIDTH / 2 + currentContext->LRUPos.xOffset) * ratio,
-    (totalbox[0].y + TILE_WIDTH / 2 + currentContext->LRUPos.yOffset) * ratio);
-  currentLRUBox[1] = Point2((totalbox[1].x + TILE_WIDTH / 2 + currentContext->LRUPos.xOffset) * ratio,
-    (totalbox[1].y + TILE_WIDTH / 2 + currentContext->LRUPos.yOffset) * ratio);
+  float ratio = texTileInnerSize * currentContext->LRUPos.getZoom() * pixelRatio;
+  currentLRUBox[0] =
+    Point2((totalbox[0].x + currentContext->LRUPos.offset.x) * ratio, (totalbox[0].y + currentContext->LRUPos.offset.y) * ratio);
+  currentLRUBox[1] =
+    Point2((totalbox[1].x + currentContext->LRUPos.offset.x) * ratio, (totalbox[1].y + currentContext->LRUPos.offset.y) * ratio);
 
   int maxQuadCount = 0;
   for (int i = 0; i < texMips; ++i)
@@ -2866,7 +2902,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
   d3d::resource_barrier({currentContext->indirection.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   // static int fullId = 0;
-  // save_rt_image_as_tga(currentContext->indirectionTex,String(128, "indirection_full_%02d.tga", fullId));
+  // save_rt_image_as_tga(currentContext->indirection_tex,String(128, "indirection_full_%02d.tga", fullId));
   // fullId++;
 
   d3d::set_render_target(prevRt);
@@ -2895,11 +2931,11 @@ void ClipmapImpl::dump()
   int used = 0;
   if (currentContext)
   {
-    debug("zoom = %d, xOffset = %d, yOffset = %d", currentContext->LRUPos.tileZoom, currentContext->LRUPos.xOffset,
-      currentContext->LRUPos.yOffset);
+    debug("zoom = %d, offset.x = %d, offset.y = %d", currentContext->LRUPos.getZoom(), currentContext->LRUPos.offset.x,
+      currentContext->LRUPos.offset.y);
     BBox2 box;
     const TexLRUList &LRU = currentContext->LRU;
-    float ratio = texTileInnerSize * currentContext->LRUPos.tileZoom * pixelRatio;
+    float ratio = texTileInnerSize * currentContext->LRUPos.getZoom() * pixelRatio;
     carray<Point4, MAX_TEXTURES> cacheMSE;
     eastl::fill(cacheMSE.begin(), cacheMSE.end(), Point4::ZERO);
     int countMSE = 0;
@@ -2913,8 +2949,8 @@ void ClipmapImpl::dump()
       }
 
       BBox2 lruBox;
-      lruBox[1] = lruBox[0] = Point2(((int)ti.tilePos.x << ti.tilePos.mip) + currentContext->LRUPos.xOffset,
-                                ((int)ti.tilePos.y << ti.tilePos.mip) + currentContext->LRUPos.yOffset) *
+      lruBox[1] = lruBox[0] = Point2(((int)(ti.tilePos.x - TILE_WIDTH / 2) << ti.tilePos.mip) + currentContext->LRUPos.offset.x,
+                                ((int)(ti.tilePos.x - TILE_WIDTH / 2) << ti.tilePos.mip) + currentContext->LRUPos.offset.y) *
                               ratio;
       lruBox[1] += Point2((1 << ti.tilePos.mip) * ratio, (1 << ti.tilePos.mip) * ratio);
       box += lruBox;
@@ -2949,30 +2985,35 @@ void ClipmapImpl::dump()
 
 IPoint2 ClipmapImpl::getTileOffset(int ri_offset) const
 {
-  IPoint2 offset;
-  if (ri_offset == 0)
+  if (ri_offset == TERRAIN_RI_OFFSET)
   {
-    offset.x = currentContext->LRUPos.xOffset;
-    offset.y = currentContext->LRUPos.yOffset;
+    return currentContext->LRUPos.offset;
   }
   else
   {
-    centerOffset(getMappedRiPos(ri_offset), offset.x, offset.y, RI_LANDCLASS_FIXED_ZOOM);
-    offset.x -= (TILE_WIDTH / 2);
-    offset.y -= (TILE_WIDTH / 2);
+    return centerOffset(getMappedRiPos(ri_offset), RI_LANDCLASS_FIXED_ZOOM);
   }
-  return offset;
 }
 
 
 Point3 ClipmapImpl::getMappedRiPos(int ri_offset) const
 {
-  G_ASSERTF(ri_offset > 0 && ri_offset < MAX_VTEX_CNT, "ri_offset = %d", ri_offset);
   Point3 mappedCenter = Point3::ZERO;
 #if MAX_RI_VTEX_CNT_BITS > 0
+  G_ASSERTF_RETURN(ri_offset > TERRAIN_RI_OFFSET && ri_offset < MAX_VTEX_CNT, mappedCenter, "ri_offset = %d", ri_offset);
+
+  if (ri_offset == RI_VTEX_SECONDARY_OFFSET_START)
+  {
+    if (!secondaryFeedbackCenter)
+      return Point3::ZERO;
+    return Point3(secondaryFeedbackCenter->x, 0, secondaryFeedbackCenter->z);
+  }
+
   int realRiOffset = ri_offset - 1;
 
-  Color4 rendinst_landscape_area_left_top_right_bottom = ShaderGlobal::get_color4(rendinst_landscape_area_left_top_right_bottomVarId);
+  G_ASSERTF_RETURN(riIndices[realRiOffset] != RI_INVALID_ID, mappedCenter, "ri_offset %d is invalid", ri_offset);
+
+  Color4 rendinst_landscape_area_left_top_right_bottom = ShaderGlobal::get_color4(var::rendinst_landscape_area_left_top_right_bottom);
   Point4 ri_landscape_tc_to_world =
     Point4(rendinst_landscape_area_left_top_right_bottom.b - rendinst_landscape_area_left_top_right_bottom.r,
       rendinst_landscape_area_left_top_right_bottom.a - rendinst_landscape_area_left_top_right_bottom.g,
@@ -2991,10 +3032,12 @@ Point3 ClipmapImpl::getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_p
 {
   dist_to_ground = 0;
 #if MAX_RI_VTEX_CNT_BITS > 0
-  if (ri_offset != 0)
+  if (ri_offset != TERRAIN_RI_OFFSET)
   {
-    G_ASSERTF(ri_offset > 0 && ri_offset < MAX_VTEX_CNT, "ri_offset = %d", ri_offset);
+    G_ASSERTF_RETURN(ri_offset > 0 && ri_offset < MAX_VTEX_CNT, viewer_position, "ri_offset = %d", ri_offset);
     int realRiOffset = ri_offset - 1;
+
+    G_ASSERTF_RETURN(riIndices[realRiOffset] != RI_INVALID_ID, viewer_position, "ri_offset %d is invalid", ri_offset);
 
     Point3 relPos;
     float distSq = calc_landclass_to_point_dist_sq(rendinstLandclasses[realRiOffset].matrixInv, viewer_position,
@@ -3002,18 +3045,22 @@ Point3 ClipmapImpl::getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_p
 
     dist_to_ground = sqrt(distSq);
 
+    if (ri_offset == RI_VTEX_SECONDARY_OFFSET_START)
+    {
+      dist_to_ground = 0;
+      return secondaryFeedbackCenter ? *secondaryFeedbackCenter : viewer_position;
+    }
+
     return getMappedRiPos(ri_offset) + relPos;
   }
 #endif
   return viewer_position;
 };
 
-Point4 ClipmapImpl::getLandscape2uv(const Point2 &offset, float zoom) const
+Point4 ClipmapImpl::getLandscape2uv(const IPoint2 &offset, float zoom) const
 {
   float pRatio = zoom * pixelRatio;
-  Point2 TO;
-  TO.x = float(offset.x) / TILE_WIDTH_F;
-  TO.y = float(offset.y) / TILE_WIDTH_F;
+  Point2 TO = Point2(offset) / TILE_WIDTH_F;
   Point2 iLS;
   iLS.x = 1.0f / (TILE_WIDTH_F * texTileInnerSize);
   iLS.y = 1.0f / (TILE_WIDTH_F * texTileInnerSize);
@@ -3031,11 +3078,12 @@ Point4 ClipmapImpl::getLandscape2uv(const Point2 &offset, float zoom) const
 
 Point4 ClipmapImpl::getLandscape2uv(int ri_offset) const
 {
-  G_ASSERTF(ri_offset >= 0 && ri_offset < MAX_VTEX_CNT, "ri_offset = %d", ri_offset);
-  return getLandscape2uv((Point2)getTileOffset(ri_offset), ri_offset == 0 ? currentContext->LRUPos.tileZoom : RI_LANDCLASS_FIXED_ZOOM);
+  G_ASSERTF(ri_offset >= TERRAIN_RI_OFFSET && ri_offset < MAX_VTEX_CNT, "ri_offset = %d", ri_offset);
+  return getLandscape2uv(getTileOffset(ri_offset),
+    ri_offset == TERRAIN_RI_OFFSET ? currentContext->LRUPos.getZoom() : RI_LANDCLASS_FIXED_ZOOM);
 }
 
-Point4 ClipmapImpl::getUV2landacape(const Point2 &offset, float zoom) const
+Point4 ClipmapImpl::getUV2landacape(const IPoint2 &offset, float zoom) const
 {
   Point4 landscape2uv = getLandscape2uv(offset, zoom);
 
@@ -3061,38 +3109,6 @@ Point4 ClipmapImpl::getUV2landacape(int ri_offset) const
   uv2landscape.z = -landscape2uv.z * uv2landscape.x;
   uv2landscape.w = -landscape2uv.w * uv2landscape.y;
   return uv2landscape;
-}
-
-Point4 ClipmapImpl::getFallbackLandscape2uv() const
-{
-  Point2 iLS;
-  iLS.x = 1.0f / (TILE_WIDTH_F * texTileInnerSize);
-  iLS.y = 1.0f / (TILE_WIDTH_F * texTileInnerSize);
-  Point2 US;
-  US.x = 1.0f / getPixelRatio();
-  US.y = 1.0f / getPixelRatio();
-  // this one is for the fallback texture
-  Point4 landscape2uv_fallback;
-  landscape2uv_fallback.x = iLS.x * US.x;
-  landscape2uv_fallback.y = iLS.y * US.y;
-  landscape2uv_fallback.z = 0.0f;
-  landscape2uv_fallback.w = 0.0f;
-  return landscape2uv_fallback;
-}
-
-bool ClipmapImpl::updateOrigin(const Point3 &cameraPosition, bool update_snap)
-{
-  int xofs, yofs;
-  centerOffset(cameraPosition, xofs, yofs, currentContext->LRUPos.tileZoom);
-  xofs = xofs - TILE_WIDTH / 2;
-  yofs = yofs - TILE_WIDTH / 2;
-  if (abs(xofs - currentContext->LRUPos.xOffset) >= 10 || abs(yofs - currentContext->LRUPos.yOffset) >= 10 ||
-      (update_snap && (xofs != currentContext->LRUPos.xOffset || yofs != currentContext->LRUPos.yOffset)))
-  {
-    TIME_PROFILE(changeXYOffset);
-    return changeXYOffset(xofs, yofs);
-  }
-  return false;
 }
 
 bool Clipmap::isCompressionAvailable(uint32_t format) { return BcCompressor::isAvailable((BcCompressor::ECompressionType)format); }
@@ -3122,18 +3138,22 @@ FeedbackProperties Clipmap::getSuggestedOversampledFeedbackProperties(IPoint2 ta
   feedbackProperties.feedbackSize = IPoint2(div_ceil(target_res.x, feedbackOversampling * feedbackRegion),
     div_ceil(target_res.y, feedbackOversampling * feedbackRegion));
   feedbackProperties.feedbackOversampling = feedbackOversampling;
+  feedbackProperties.useFeedbackTexFilter = false;
 
   return feedbackProperties;
 }
 
-void ClipmapImpl::centerOffset(const Point3 &position, int &xofs, int &yofs, float zoom) const
+IPoint2 ClipmapImpl::centerOffset(const Point3 &position, float zoom) const
 {
   float pRatio = zoom * pixelRatio;
-  xofs = (int)floor(safediv(position.x, pRatio) / texTileInnerSize);
-  yofs = (int)floor(safediv(position.z, pRatio) / texTileInnerSize);
-  int useMips = alignMips;
-  xofs = (xofs + (1 << (useMips - 2))) & (~((1 << (useMips - 1)) - 1));
-  yofs = (yofs + (1 << (useMips - 2))) & (~((1 << (useMips - 1)) - 1));
+  int xofs = (int)floor(safediv(position.x, pRatio) / texTileInnerSize);
+  int yofs = (int)floor(safediv(position.z, pRatio) / texTileInnerSize);
+
+  // Round xofs, yofs. Distance between round points is 2^(alignMips - 1) tiles.
+  IPoint2 ipos;
+  ipos.x = (xofs + (1 << (alignMips - 2))) & (~((1 << (alignMips - 1)) - 1));
+  ipos.y = (yofs + (1 << (alignMips - 2))) & (~((1 << (alignMips - 1)) - 1));
+  return ipos;
 }
 
 // TODO: resurrect it, it's broken now
@@ -3289,9 +3309,10 @@ void ClipmapImpl::finalizeCompressionQueue()
   {
     if (compressor[ci] && compressor[ci]->isValid())
     {
+      TIME_D3D_PROFILE(compressBuffer);
       for (int mipNo = 0; mipNo < mipCnt; mipNo++)
       {
-        compressor[ci]->updateFromMip(bufferTex[ci].getTexId(), mipNo, mipNo, compressionQueue.size());
+        compressor[ci]->updateFromMip(bufferTex[ci].getTexId(), sampler, mipNo, mipNo, compressionQueue.size());
         if (recordTilesError)
         {
           for (int i = 0; i < compressionQueue.size(); ++i)
@@ -3313,6 +3334,7 @@ void ClipmapImpl::finalizeCompressionQueue()
   for (int ci = 0; ci < cacheCnt; ++ci)
     if (compressor[ci] && compressor[ci]->isValid())
     {
+      TIME_D3D_PROFILE(copyBufferToCache);
       for (int mipNo = 0; mipNo < mipCnt; mipNo++)
         for (int i = 0; i < compressionQueue.size(); ++i)
           compressor[ci]->copyToMip(cache[ci].getTex2D(), mipNo, (compressionQueue[i].x * texTileSize) >> mipNo,
@@ -3339,7 +3361,7 @@ void ClipmapImpl::finalizeCompressionQueue()
 
     for (int mipNo = 0; mipNo < mipCnt; mipNo++)
     {
-      if (VariableMap::isVariablePresent(bypass_cache_noVarId))
+      if (VariableMap::isVariablePresent(var::bypass_cache_no))
       {
         for (int ci = 0; ci < cacheCnt; ++ci)
         {
@@ -3348,7 +3370,7 @@ void ClipmapImpl::finalizeCompressionQueue()
           if (texInfo.cflg & TEXCF_RTARGET)
           {
             d3d::set_render_target(cache[ci].getTex2D(), mipNo);
-            ShaderGlobal::set_int(bypass_cache_noVarId, ci);
+            ShaderGlobal::set_int(var::bypass_cache_no, ci);
             directUncompressElem->setStates(0, true);
             d3d::set_vs_const1(51, mipNo, 0, 0, 0);
             d3d::set_vs_const(52, &quads[0].x, quads.size());
@@ -3418,8 +3440,8 @@ void ClipmapImpl::updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &
 {
   int block = 1 << tilePos.mip;
   Point4 uv2landscape = getUV2landacape(tilePos.ri_offset);
-  int x = ((tilePos.x - (TILE_WIDTH / 2)) << tilePos.mip) + (TILE_WIDTH / 2);
-  int y = ((tilePos.y - (TILE_WIDTH / 2)) << tilePos.mip) + (TILE_WIDTH / 2);
+  int x = (int)(tilePos.x - (TILE_WIDTH / 2)) << tilePos.mip;
+  int y = (int)(tilePos.y - (TILE_WIDTH / 2)) << tilePos.mip;
 
   float brd = float(texTileBorder << tilePos.mip) / float(texTileInnerSize);
   Point2 t0(float(x - brd) / TILE_WIDTH, float(y - brd) / TILE_WIDTH);
@@ -3444,17 +3466,19 @@ void ClipmapImpl::close()
 void ClipmapImpl::init(float texel_size, uint32_t feedback_type, FeedbackProperties feedback_properties, int tex_mips,
   int tex_tile_size, int virtual_texture_mip_cnt, int virtual_texture_anisotropy)
 {
-  init_shader_vars();
-
   finalizeFeedback();
 
-  if (feedbackSize != feedback_properties.feedbackSize || feedbackOversampling != feedback_properties.feedbackOversampling)
+  if (feedbackType != feedback_type || feedbackSize != feedback_properties.feedbackSize ||
+      feedbackOversampling != feedback_properties.feedbackOversampling ||
+      useFeedbackTexFilter != feedback_properties.useFeedbackTexFilter)
     feedbackPendingChanges = true;
+  feedbackType = feedback_type;
   feedbackSize = feedback_properties.feedbackSize;
   feedbackOversampling = feedback_properties.feedbackOversampling;
   moreThanFeedback = feedbackSize.x * feedbackSize.y + 1;
   moreThanFeedbackInv = 0xFFFF - moreThanFeedback;
   maxTileCaptureInfoBufElements = min(TILE_WIDTH * TILE_WIDTH * MAX_VTEX_CNT, feedbackSize.x * feedbackSize.y);
+  useFeedbackTexFilter = feedback_properties.useFeedbackTexFilter;
 
   G_ASSERT(feedbackSize.x * feedbackSize.y <= MAX_FEEDBACK_RESOLUTION);
   G_ASSERT((feedbackOversampling == 1 || use_uav_feedback) && is_pow_of2(feedbackOversampling));
@@ -3466,6 +3490,7 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, FeedbackPropert
   riIndices = RiIndices();
 #endif
 
+  pixelRatio = texel_size;
   texTileSize = tex_tile_size;
   setTexMips(tex_mips);
   cacheAnisotropy = clamp(virtual_texture_anisotropy, 1, (int)MAX_TEX_TILE_BORDER);
@@ -3480,7 +3505,7 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, FeedbackPropert
 #define PS4_ANISO_WA 0
   if (cacheAnisotropy > 1)
   {
-    if (d3d_get_gpu_cfg().primaryVendor == D3D_VENDOR_ATI)
+    if (d3d_get_gpu_cfg().primaryVendor == GpuVendor::ATI)
     {
       mipCnt = max(mipCnt, 2); // But ATI on PC requires 2 valid mips for aniso without harsh moire.
     }
@@ -3491,9 +3516,6 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, FeedbackPropert
   texTileInnerSize = texTileSize - texTileBorder * 2;
   debug("clipmap: init texTileBorder = %d, cacheAnisotropy = %d", texTileBorder, cacheAnisotropy);
 
-  pixelRatio = texel_size;
-  feedbackType = feedback_type;
-
   if (shader_exists("clipmap_process_feedback_cs"))
   {
     clearHistogramCs.reset(new_compute_shader("clipmap_clear_histogram_cs", true));
@@ -3501,10 +3523,10 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, FeedbackPropert
     buildTileInfoCs.reset(new_compute_shader("clipmap_build_tile_info_cs", true));
   }
 
-  ShaderGlobal::set_int(feedback_downsample_dimVarId, feedbackOversampling);
-  ShaderGlobal::set_int(clipmap_feedback_srideVarId, feedbackSize.x * feedbackOversampling);
-  ShaderGlobal::set_int(clipmap_feedback_readback_srideVarId, feedbackSize.x);
-  ShaderGlobal::set_int(clipmap_feedback_readback_sizeVarId, feedbackSize.x * feedbackSize.y);
+  ShaderGlobal::set_int(var::feedback_downsample_dim, feedbackOversampling);
+  ShaderGlobal::set_int(var::clipmap_feedback_stride, feedbackSize.x * feedbackOversampling);
+  ShaderGlobal::set_int(var::clipmap_feedback_readback_stride, feedbackSize.x);
+  ShaderGlobal::set_int(var::clipmap_feedback_readback_size, feedbackSize.x * feedbackSize.y);
 }
 
 void ClipmapImpl::invalidate(bool force_redraw)
@@ -3518,17 +3540,12 @@ void ClipmapImpl::invalidate(bool force_redraw)
     currentLRUBox.setempty();
 }
 
-// enum {MOST_LEFT = ((-TILE_WIDTH/2)<<(TEX_MIPS-1)) + TILE_WIDTH/2, MOST_RIGHT = ((TILE_WIDTH/2)<<(TEX_MIPS-1)) + TILE_WIDTH/2};
-
 void ClipmapImpl::invalidatePointi(int tx, int ty, int lastMip)
 {
-
   if (tx < mostLeft || tx >= mostRight || ty < mostLeft || ty >= mostRight)
     return;
 
   threadpool::wait(&feedbackJob);
-  tx -= TILE_WIDTH / 2;
-  ty -= TILE_WIDTH / 2;
   if (currentContext)
   {
     TexLRUList &LRU = currentContext->LRU;
@@ -3557,10 +3574,10 @@ void ClipmapImpl::invalidateBox(const BBox2 &world_xz)
   DECL_ALIGN16(Point4, txBox) =
     Point4(landscape2uv.x * world_xz[0].x + landscape2uv.z, landscape2uv.y * world_xz[0].y + landscape2uv.w,
       landscape2uv.x * world_xz[1].x + landscape2uv.z, landscape2uv.y * world_xz[1].y + landscape2uv.w);
-  int tx0 = txBox.x * TILE_WIDTH;
-  int ty0 = txBox.y * TILE_WIDTH;
-  int tx1 = txBox.z * TILE_WIDTH;
-  int ty1 = txBox.w * TILE_WIDTH;
+  int tx0 = floor(txBox.x * TILE_WIDTH_F);
+  int ty0 = floor(txBox.y * TILE_WIDTH_F);
+  int tx1 = floor(txBox.z * TILE_WIDTH_F);
+  int ty1 = floor(txBox.w * TILE_WIDTH_F);
   if (tx1 < mostLeft || tx0 > mostRight || ty1 < mostLeft || ty0 >= mostRight)
     return;
   IPoint2 texelSize =
@@ -3577,10 +3594,6 @@ void ClipmapImpl::invalidateBox(const BBox2 &world_xz)
     invalidatePointi(tx0, ty0, lastMip);
     return;
   }
-  tx0 -= TILE_WIDTH / 2;
-  ty0 -= TILE_WIDTH / 2;
-  tx1 -= TILE_WIDTH / 2;
-  ty1 -= TILE_WIDTH / 2;
 
   threadpool::wait(&feedbackJob);
 
@@ -3606,7 +3619,7 @@ void ClipmapImpl::prepareSoftwarePoi(const int vx, const int vy, const int mip, 
 {
   G_ASSERTF(MAX_RI_VTEX_CNT == 0, "software feedback is not supported with RI clipmap indirection"); // TODO: implement it
   static constexpr int ri_offset = 0;
-  int uvy = ((vy - TILE_WIDTH / 2) >> mip) + TILE_WIDTH / 2, uvx = ((vx - TILE_WIDTH / 2) >> mip) + TILE_WIDTH / 2;
+  int uvy = (vy >> mip) + TILE_WIDTH / 2, uvx = (vx >> mip) + TILE_WIDTH / 2;
   vec4f width = v_make_vec4f(uv2landscapetile.x * (1 << mip), 0, 0, 0);
   vec4f height = v_make_vec4f(0, 0, uv2landscapetile.y * (1 << mip), 0);
   for (int y = -mipsize; y <= mipsize; ++y)
@@ -3630,7 +3643,7 @@ void ClipmapImpl::prepareSoftwarePoi(const int vx, const int vy, const int mip, 
       // total++;
       if (planes2dCnt > 0)
       {
-        int worldCx = ((cx - TILE_WIDTH / 2) << mip) + TILE_WIDTH / 2, worldCy = ((cy - TILE_WIDTH / 2) << mip) + TILE_WIDTH / 2;
+        int worldCx = (cx - TILE_WIDTH / 2) << mip, worldCy = (cy - TILE_WIDTH / 2) << mip;
         vec4f pos =
           v_make_vec4f(uv2landscapetile.x * worldCx + uv2landscapetile.z, 0, uv2landscapetile.y * worldCy + uv2landscapetile.w, 0);
         if (!is_2d_frustum_visible(pos, width, height, planes2d, planes2dCnt))
@@ -3779,14 +3792,13 @@ void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, co
   Point4 uv2landscape = getUV2landacape(TERRAIN_RI_OFFSET);
   Point4 uv2landscapetile(uv2landscape.x / TILE_WIDTH, uv2landscape.y / TILE_WIDTH, uv2landscape.z, uv2landscape.w);
 
-  int vx = (center0.x * landscape2uv.x + landscape2uv.z) * TILE_WIDTH;
-  int vy = (center0.y * landscape2uv.y + landscape2uv.w) * TILE_WIDTH;
+  int vx = floor((center0.x * landscape2uv.x + landscape2uv.z) * TILE_WIDTH_F);
+  int vy = floor((center0.y * landscape2uv.y + landscape2uv.w) * TILE_WIDTH_F);
   // G_STATIC_ASSERT(sizeof(uint64_t)*8 == TILE_WIDTH);
   carray<uint64_t, (TEX_MIPS * TILE_WIDTH * TILE_WIDTH + 63) / 64> bitarrayUsed;
   mem_set_0(bitarrayUsed);
   for (int mip = 0; mip < texMips; ++mip)
   {
-    int uvy = ((vy - TILE_WIDTH / 2) >> mip) + TILE_WIDTH / 2, uvx = ((vx - TILE_WIDTH / 2) >> mip) + TILE_WIDTH / 2;
     int mipsize = (mip >= texMips - 1) ? swFeedbackOuterMipTiles : swFeedbackInnerMipTiles;
     if (swFeedbackTilesPerMip[mip] >= 0)
     {
@@ -3797,8 +3809,8 @@ void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, co
 
   if (maxClipMoveDist0 > 0 && maxClipMoveDist0 < maxClipMoveDist1)
   {
-    int vx = (center1.x * landscape2uv.x + landscape2uv.z) * TILE_WIDTH;
-    int vy = (center1.y * landscape2uv.y + landscape2uv.w) * TILE_WIDTH;
+    int vx = floor((center1.x * landscape2uv.x + landscape2uv.z) * TILE_WIDTH_F);
+    int vy = floor((center1.y * landscape2uv.y + landscape2uv.w) * TILE_WIDTH_F);
     for (int mip = 2; mip < texMips; ++mip)
     {
       const int mipsize = 2;
@@ -3822,10 +3834,35 @@ void ClipmapImpl::setDDScale()
   float ddw = float(feedbackSize.x * feedbackOversampling) / float(targetSize.x);
   float ddh = float(feedbackSize.y * feedbackOversampling) / float(targetSize.y);
 
-  float targetResolution = float(targetSize.x * targetSize.y);
-  float effectiveTargetResolution = targetResolution * exp2f(-2 * targetMipBias);
-  float sddh = sqrtf(targetResolution / min(effectiveTargetResolution, maxEffectiveTargetResolution));
-  ShaderGlobal::set_color4(worldDDScaleVarId, Color4(ddw, ddh, sddh, sddh));
+  float sddh = 1.f;
+  if (targetAtlasUsageRatio > 0.f)
+  {
+    const int tilesTotal = (cacheDimX / texTileSize) * (cacheDimY / texTileSize);
+    const float requestedTilesRatio = float(tileInfoSize) / tilesTotal;
+    const float ratioDiff = requestedTilesRatio - targetAtlasUsageRatio;
+    constexpr float changeThreshold = 0.01f;
+
+    if (abs(ratioDiff) > changeThreshold)
+    {
+      const float newDDScale = dynamicDDScale + dynamicDDProportionalTerm * ratioDiff;
+      const float minDDScale = exp2f(targetMipBias);
+      dynamicDDScale = clamp(newDDScale, minDDScale, 8.f);
+    }
+    sddh = dynamicDDScale;
+  }
+  else
+  {
+    float targetResolution = float(targetSize.x * targetSize.y);
+    float effectiveTargetResolution = targetResolution * exp2f(-2 * targetMipBias);
+    sddh = sqrtf(targetResolution / min(effectiveTargetResolution, maxEffectiveTargetResolution));
+  }
+  ShaderGlobal::set_color4(var::world_dd_scale, Color4(ddw, ddh, sddh, sddh));
+}
+
+int ClipmapImpl::getZoomLimit() const
+{
+  static constexpr float zoomLimitBias = 1.75f; // log2(1.75) = 0.81 additional zoom levels than the one that includes maxTexelSize.
+  return eastl::clamp<int>(get_bigger_pow2(zoomLimitBias * maxTexelSize / ((1 << (texMips - 1)) * pixelRatio)), 1, TEX_MAX_ZOOM);
 }
 
 void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm, const TMatrix4 &globtm, float zoom_height,
@@ -3839,12 +3876,11 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
   viewerPosition = center;
   // debug("at %f %f pixel ratio %f, at tile %i %i", center2.x, center2.y, pixelRatio, xOffset, yOffset);
 
-  // NOTE
-  //  comment this out to avoid bad zoom artefacts
+  // fix-me: Zoom doesn't account FOV and resolution.
   float zoom_at_0m = 0.0f;
   float zoom_at_Bm = 2.0f;
   float bHeight = 20.f;
-  float zoom_limit = TEX_MAX_ZOOM;
+  int zoom_limit = getZoomLimit();
   float new_zoom;
   zoom_height /= bHeight;
 
@@ -3858,22 +3894,31 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
 
   new_zoom = max(new_zoom, 1.0f);
 
-  const float log2e = 1.44269504089f;
-  const float ln2 = 0.6931471805599453f;
-  if (fabsf(new_zoom - currentContext->LRUPos.tileZoom) < 1.f)
-    new_zoom = currentContext->LRUPos.tileZoom;
+  if (fabsf(new_zoom - currentContext->LRUPos.getZoom()) < 1.f) // fix-me: this LOC prevents zoom 2 -> 1 transition.
+    new_zoom = currentContext->LRUPos.getZoom();
   else
-    new_zoom = exp(ln2 * floorf(log(new_zoom) * log2e)); // exp2(floor(log2(new_zoom)))
-  new_zoom = min(new_zoom, zoom_limit);
+    new_zoom = exp2(floor(log2(new_zoom)));
+  new_zoom = min(new_zoom, (float)zoom_limit);
 
-  int nextZoom = currentContext->LRUPos.tileZoom;
-  if (new_zoom > currentContext->LRUPos.tileZoom * 1.5f)
-    nextZoom = currentContext->LRUPos.tileZoom * 2;
-  else if (new_zoom < currentContext->LRUPos.tileZoom / 1.5f || (new_zoom < 2.0 && currentContext->LRUPos.tileZoom >= 2.0))
-    nextZoom = currentContext->LRUPos.tileZoom / 2;
+  int nextZoom = currentContext->LRUPos.getZoom();
+  if (new_zoom > currentContext->LRUPos.getZoom() * 1.5f)
+    nextZoom = currentContext->LRUPos.getZoom() * 2;
+  else if (new_zoom < currentContext->LRUPos.getZoom() / 1.5f || (new_zoom < 2.0 && currentContext->LRUPos.getZoom() >= 2.0))
+    nextZoom = currentContext->LRUPos.getZoom() / 2;
 
-  if (!changeZoom(nextZoom, viewerPosition))
-    updateOrigin(viewerPosition, true);
+  nextZoom = eastl::clamp(nextZoom, 1, zoom_limit);
+  IPoint2 nextOffset = centerOffset(center, nextZoom);
+
+  if (currentContext->LRUPos.getZoom() != nextZoom || currentContext->LRUPos.offset != nextOffset)
+  {
+    MipPosition oldMipPosition = currentContext->LRUPos;
+
+    int newZoomShift = get_log2i_of_pow2w(nextZoom);
+    currentContext->LRUPos.tileZoomShift = newZoomShift;
+    currentContext->LRUPos.offset = nextOffset;
+
+    migrateLRU(oldMipPosition, currentContext->LRUPos);
+  }
 
   updateRendinstLandclassParams();
 
@@ -3961,7 +4006,7 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
               eastl::swap(currentContext->captureBuf[captureTargetReadbackIdx], currentContext->captureBufSyslocked);
               validLockedPixels = true;
             }
-            else
+            else if (!d3d::is_in_device_reset_now())
               LOGERR_ONCE("Clipmap: Could not capture feedback buffer.");
           }
           else
@@ -3990,7 +4035,7 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
                 memcpy(currentContext->lockedPixelsMemCopy, currentContext->lockedPixelsPtr, feedbackSizeBytes);
               }
             }
-            else
+            else if (!d3d::is_in_device_reset_now())
               LOGERR_ONCE("Clipmap: Could not capture feedback texture target.");
           }
         }
@@ -4022,7 +4067,7 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
 
             eastl::swap(currentContext->captureTileInfoBuf[captureTargetReadbackIdx], currentContext->captureTileInfoBufSyslocked);
           }
-          else
+          else if (!d3d::is_in_device_reset_now())
             LOGERR_ONCE("Clipmap: Could not capture feedback tile buffer.");
         }
 
@@ -4057,12 +4102,11 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
     }
   }
 
-  enableUAVOutput(true);
-
   if (use_uav_feedback)
   {
-    unsigned clearbits[4] = {CLIPMAP_INVALID_FEEDBACK_CLEAR, 0x0, 0x0, 0x0};
-    d3d::clear_rwbufi(currentContext->captureStagingBuf.getBuf(), clearbits);
+    // 0 = invalid data, with dummy ri_offset==0 value (it can never occur in real feedback, only from clearing)
+    d3d::zero_rwbufi(currentContext->captureStagingBuf.getBuf());
+    resetUAVAtomicPrefix();
   }
 }
 
@@ -4082,14 +4126,29 @@ void ClipmapImpl::renderFallbackFeedback(ClipmapRenderer &renderer, const TMatri
   SCOPE_VIEW_PROJ_MATRIX;
 
   setDDScale();
-  d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
+  const bool shouldUseFeedbackTexFilter = useFeedbackTexFilter && currentContext->feedbackTexFilterRenderer;
+  if (shouldUseFeedbackTexFilter)
+    d3d::set_render_target(currentContext->captureTexRtUnfiltered.getTex2D(), 0);
+  else
+    d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
   d3d::set_depth(feedbackDepthTex.getTex2D(), DepthAccess::RW);
-  ShaderGlobal::set_real(rendering_feedback_view_scaleVarId, feedback_view_scale);
+  ShaderGlobal::set_real(var::rendering_feedback_view_scale, feedback_view_scale);
   TMatrix4 scaledGlobTm = globtm * TMatrix4(feedback_view_scale, 0, 0, 0, 0, feedback_view_scale, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   d3d::settm(TM_PROJ, &scaledGlobTm);
   d3d::settm(TM_VIEW, TMatrix::IDENT);
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(255, 255, 255, 255), 0.0f, 0);
   renderer.renderFeedback(scaledGlobTm);
+  if (shouldUseFeedbackTexFilter)
+  {
+    d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
+    d3d::set_depth(nullptr, DepthAccess::SampledRO);
+    ShaderGlobal::set_texture(var::feedback_tex_unfiltered, currentContext->captureTexRtUnfiltered.getTexId());
+    ShaderBlockSetter blockFrame(-1, ShaderGlobal::LAYER_FRAME);
+    ShaderBlockSetter blockScene(-1, ShaderGlobal::LAYER_SCENE);
+    ShaderBlockSetter blockObject(-1, ShaderGlobal::LAYER_OBJECT);
+    currentContext->feedbackTexFilterRenderer->render();
+  }
+
   // save_rt_image_as_tga(currentContext->captureTex[currentContext->captureTargetIdx], "feedback.tga");
 
   currentContext->captureMetadata[captureTargetIdx].feedbackMode = HWFeedbackMode::DEFAULT;
@@ -4104,18 +4163,13 @@ void ClipmapImpl::copyAndAdvanceCaptureTarget(int captureTargetIdx)
 
     {
       TIME_PROFILE(copyImg);
-      int stride;
       if (use_uav_feedback)
       {
         if (currentContext->captureBuf[captureTargetIdx]->lock(0, 0, static_cast<void **>(nullptr), VBLOCK_READONLY))
           currentContext->captureBuf[captureTargetIdx]->unlock();
       }
       else
-      {
-        if (currentContext->captureTexRt[captureTargetIdx]->lockimg(nullptr, stride, 0,
-              TEXLOCK_READ | TEXLOCK_NOSYSLOCK | TEXLOCK_RAWDATA))
-          currentContext->captureTexRt[captureTargetIdx]->unlockimg();
-      }
+        request_readback_nosyslock<TEXLOCK_RAWDATA>(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
     }
 
     if (currentContext->captureMetadata[captureTargetIdx].canUseOptimizedReadback())
@@ -4130,36 +4184,30 @@ void ClipmapImpl::copyAndAdvanceCaptureTarget(int captureTargetIdx)
   currentContext->captureMetadata[captureTargetIdx].riIndices = currentContext->bindedRiIndices;
 }
 
-void ClipmapImpl::enableUAVOutput(bool enable)
-{
-  int value = enable && use_uav_feedback ? 1 : 0;
-  ShaderGlobal::set_int(supports_uavVarId, value);
-}
-
-void ClipmapImpl::startUAVFeedback(int reg_no)
+void ClipmapImpl::startUAVFeedback()
 {
   if (feedbackType != CPU_HW_FEEDBACK || !use_uav_feedback)
     return;
 
-  d3d::set_rwbuffer(STAGE_PS, reg_no, currentContext->captureStagingBuf.getBuf());
+  d3d::set_rwbuffer(STAGE_PS, uav_feedback_const_no, currentContext->captureStagingBuf.getBuf());
+  var::uav_feedback_exists.set_int(1);
 }
 
 void ClipmapImpl::processUAVFeedback(int captureTargetIdx)
 {
   G_ASSERT(clearHistogramCs && processFeedbackCs && buildTileInfoCs);
   G_ASSERT(feedbackOversampling >= 1 && is_pow_of2(feedbackOversampling));
-  TIME_D3D_PROFILE(clipmap_feedback_transform);
+  TIME_D3D_PROFILE(clipmap_GPU_process_feedback);
 
   bool useGpuHistogramCalc = currentContext->captureMetadata[captureTargetIdx].canUseOptimizedReadback();
-  ShaderGlobal::set_int(clipmap_feedback_calc_histogram_on_gpuVarId, useGpuHistogramCalc);
-  ShaderGlobal::set_int(clipmap_tex_mipsVarId, texMips);
+  ShaderGlobal::set_int(var::clipmap_feedback_calc_histogram_on_gpu, useGpuHistogramCalc);
 
   if (useGpuHistogramCalc)
   {
     TIME_D3D_PROFILE(clear_histogram);
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_tile_info_buf_rwVarId, VALUE),
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_tile_info_buf_rw, VALUE),
       currentContext->captureTileInfoBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_histogram_buf_rwVarId, VALUE), currentContext->intermediateHistBuf.getBufId(),
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_histogram_buf_rw, VALUE), currentContext->intermediateHistBuf.getBufId(),
       BAD_TEXTUREID);
     clearHistogramCs->dispatchThreads(CLIPMAP_HIST_TOTAL_ELEMENTS, 1, 1);
   }
@@ -4175,11 +4223,11 @@ void ClipmapImpl::processUAVFeedback(int captureTargetIdx)
         {currentContext->captureTileInfoBuf[captureTargetIdx].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     }
 
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_feedback_bufVarId, VALUE), currentContext->captureStagingBuf.getBufId(),
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_feedback_buf, VALUE), currentContext->captureStagingBuf.getBufId(),
       BAD_TEXTUREID);
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_feedback_readback_buf_rwVarId, VALUE),
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_feedback_readback_buf_rw, VALUE),
       currentContext->captureBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_histogram_buf_rwVarId, VALUE),
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_histogram_buf_rw, VALUE),
       useGpuHistogramCalc ? currentContext->intermediateHistBuf.getBufId() : BAD_D3DRESID, BAD_TEXTUREID);
 
     processFeedbackCs->dispatchThreads(feedbackSize.x * feedbackSize.y, 1, 1);
@@ -4190,8 +4238,8 @@ void ClipmapImpl::processUAVFeedback(int captureTargetIdx)
     d3d::resource_barrier({currentContext->intermediateHistBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
 
     TIME_D3D_PROFILE(build_tile_info);
-    ShaderGlobal::set_buffer(clipmap_histogram_bufVarId, currentContext->intermediateHistBuf);
-    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_tile_info_buf_rwVarId, VALUE),
+    ShaderGlobal::set_buffer(var::clipmap_histogram_buf, currentContext->intermediateHistBuf);
+    STATE_GUARD(ShaderGlobal::set_buffer(var::clipmap_tile_info_buf_rw, VALUE),
       currentContext->captureTileInfoBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
     buildTileInfoCs->dispatchThreads(TILE_WIDTH, TILE_WIDTH, 1);
   }
@@ -4201,12 +4249,34 @@ void ClipmapImpl::processUAVFeedback(int captureTargetIdx)
   d3d::resource_barrier({currentContext->captureStagingBuf.getBuf(), RB_RW_UAV | RB_STAGE_PIXEL});
 }
 
-void ClipmapImpl::endUAVFeedback(int reg_no)
+void ClipmapImpl::endUAVFeedback()
 {
   if (feedbackType != CPU_HW_FEEDBACK || !use_uav_feedback)
     return;
 
-  d3d::set_rwtex(STAGE_PS, reg_no, nullptr, 0, 0);
+  d3d::set_rwbuffer(STAGE_PS, uav_feedback_const_no, nullptr);
+  var::uav_feedback_exists.set_int(0);
+}
+
+void ClipmapImpl::increaseUAVAtomicPrefix()
+{
+  if (feedbackType != CPU_HW_FEEDBACK || !use_uav_feedback)
+    return;
+
+  currentContext->feedbackUAVAtomicPrefix++;
+
+  G_ASSERTF_RETURN(currentContext->feedbackUAVAtomicPrefix < 16, , "Clipmap, increaseUAVAtomicPrefix: atomic prefix exceeds limit.");
+  var::clipmap_feedback_order_prefix.set_int(currentContext->feedbackUAVAtomicPrefix);
+}
+
+void ClipmapImpl::resetUAVAtomicPrefix()
+{
+  if (feedbackType != CPU_HW_FEEDBACK || !use_uav_feedback)
+    return;
+
+  currentContext->feedbackUAVAtomicPrefix = 0;
+
+  var::clipmap_feedback_order_prefix.set_int(currentContext->feedbackUAVAtomicPrefix);
 }
 
 void ClipmapImpl::copyUAVFeedback()
@@ -4248,13 +4318,10 @@ void ClipmapImpl::prepareRender(ClipmapRenderer &renderer, bool turn_off_decals_
 
 struct SortRendinstBySortOrder
 {
-  bool operator()(const rendinst::RendinstLandclassData &a, const rendinst::RendinstLandclassData &b) const
-  {
-    return a.sortOrder < b.sortOrder;
-  }
+  bool operator()(const RendinstLandclassData &a, const RendinstLandclassData &b) const { return a.sortOrder < b.sortOrder; }
 };
 
-static void sort_rendinst_info_list(rendinst::TempRiLandclassVec &ri_landclasses, const Point3 &camera_pos)
+static void sort_rendinst_info_list(TempRiLandclassVec &ri_landclasses, const Point3 &camera_pos)
 {
   for (int i = 0; i < ri_landclasses.size(); i++)
     ri_landclasses[i].sortOrder = calc_landclass_sort_order(ri_landclasses[i].matrixInv, ri_landclasses[i].radius, camera_pos);
@@ -4283,77 +4350,112 @@ void ClipmapImpl::updateRendinstLandclassRenderState()
   for (int i = 0; i < changedRiIndices.size(); ++i)
     if (changedRiIndices[i])
       changedRiIndexBits |= 1 << i;
-  ShaderGlobal::set_int(ri_landclass_changed_indicex_bitsVarId, changedRiIndexBits);
+  ShaderGlobal::set_int(var::ri_landclass_changed_indicex_bits, changedRiIndexBits);
 
-  carray<Point4, MAX_RI_VTEX_CNT> l2uvArr;
-  for (int i = 0; i < riLandclassCount; ++i)
-    l2uvArr[i] = getLandscape2uv(i + 1) + Point4(0, 0, -0.5f, -0.5f); // same offset applied as in clipmap shader
-  ShaderGlobal::set_color4_array(clipmap_ri_landscape2uv_arrVarId, l2uvArr.data(), MAX_RI_VTEX_CNT);
-
-  G_STATIC_ASSERT(MAX_RI_VTEX_CNT < 32); // limitation due to firstbithigh in get_clipmap_indirection_offset(but it's also expensive)
-  auto getRiIndex = [this](int i) { return i < riIndices.size() ? riIndices[i] : RI_INVALID_ID; };
-  carray<IPoint4, (MAX_RI_VTEX_CNT + 4 - 1) / 4> riIndicesArr4;
-  for (int i = 0; i < riIndicesArr4.size(); ++i)
-    riIndicesArr4[i] = IPoint4(getRiIndex(i * 4 + 0), getRiIndex(i * 4 + 1), getRiIndex(i * 4 + 2), getRiIndex(i * 4 + 3));
-  ShaderGlobal::set_int4_array(ri_landclass_closest_indices_arrVarId, riIndicesArr4.data(), riIndicesArr4.size());
+  auto &dataManager = getRiLandclassDataManager();
+  dataManager.updateLandclass2uv(riIndices, [this](int ri_offset) { return this->getLandscape2uv(ri_offset); });
+  dataManager.updateClosestIndices(riIndices);
 #endif
 }
 
-void ClipmapImpl::updateRendinstLandclassParams()
+static void update_rendinst_landclass_subset(dag::Span<RendinstLandclassData> rendinst_landclass_data,
+  dag::ConstSpan<RendinstLandclassData> prev_rendinst_landclass_data, const Point3 &camera_pos)
 {
-#if MAX_RI_VTEX_CNT_BITS > 0
-  rendinst::TempRiLandclassVec rendinstLandclassesCandidate;
-  rendinst::getRendinstLandclassData(rendinstLandclassesCandidate);
+  TempRiLandclassVec rendinstLandclassesCandidate;
+  if (get_rendinst_land_class_data)
+    get_rendinst_land_class_data(rendinstLandclassesCandidate);
 
-  sort_rendinst_info_list(rendinstLandclassesCandidate, viewerPosition);
+  sort_rendinst_info_list(rendinstLandclassesCandidate, camera_pos);
 
-  riLandclassCount = min<int>(rendinstLandclassesCandidate.size(), MAX_RI_VTEX_CNT);
+  int riLandclassCount = min<int>(rendinstLandclassesCandidate.size(), rendinst_landclass_data.size());
 
   // stable sorting, so feedback result don't need special invalidation:
   rendinstLandclassesCandidate.resize(riLandclassCount);
-  rendinst::TempRiLandclassVec rendinstLandclassesNewElements;
+  TempRiLandclassVec rendinstLandclassesNewElements;
   eastl::bitset<MAX_RI_VTEX_CNT> prevMatchingIndices;
   for (const auto &candidate : rendinstLandclassesCandidate)
   {
-    auto it = eastl::find_if(rendinstLandclasses.begin(), rendinstLandclasses.end(),
+    auto it = eastl::find_if(prev_rendinst_landclass_data.begin(), prev_rendinst_landclass_data.end(),
       [&candidate](const auto &prevData) { return prevData.index >= 0 && candidate.index == prevData.index; });
     int offset;
-    if (it != rendinstLandclasses.end() && (offset = eastl::distance(rendinstLandclasses.begin(), it)) < riLandclassCount)
+    if (it != prev_rendinst_landclass_data.end() &&
+        (offset = eastl::distance(prev_rendinst_landclass_data.begin(), it)) < riLandclassCount)
       prevMatchingIndices.set(offset);
     else
       rendinstLandclassesNewElements.push_back(candidate);
   }
 
-  rendinst::TempRiLandclassVec newRendinstLandclasses;
-  newRendinstLandclasses.resize(riLandclassCount);
-  for (int i = 0, insertedId = 0; i < newRendinstLandclasses.size(); ++i)
+  for (int i = 0, insertedId = 0; i < riLandclassCount; ++i)
     if (prevMatchingIndices[i])
-      newRendinstLandclasses[i] = rendinstLandclasses[i];
+      rendinst_landclass_data[i] = prev_rendinst_landclass_data[i];
     else
     {
-      newRendinstLandclasses[i] = rendinstLandclassesNewElements[insertedId++];
-      newRendinstLandclasses[i].mapping = transform_mapping(newRendinstLandclasses[i].mapping);
+      rendinst_landclass_data[i] = rendinstLandclassesNewElements[insertedId++];
+      rendinst_landclass_data[i].mapping = transform_mapping(rendinst_landclass_data[i].mapping);
     }
 
-  int minCnt = min<int>(rendinstLandclasses.size(), riLandclassCount);
-  for (int i = 0; i < minCnt; ++i)
-    if (newRendinstLandclasses[i].index != rendinstLandclasses[i].index)
-      changedRiIndices[i] = ri_invalid_frame_cnt;
-  for (int i = riLandclassCount; i < rendinstLandclasses.size(); ++i)
-    changedRiIndices[i] = ri_invalid_frame_cnt;
+  for (int i = riLandclassCount; i < rendinst_landclass_data.size(); ++i)
+    rendinst_landclass_data[i].index = RI_INVALID_ID;
+}
 
+static bool is_approx_equal(const Point3 &a, const Point3 &b, float epsilon = 0.0001f)
+{
+  return (a - b).lengthSq() < epsilon * epsilon;
+}
+
+static RendinstLandclassData make_secondary_terrain_vtex_landclass_data()
+{
+  RendinstLandclassData secondaryTerrainVtex;
+  secondaryTerrainVtex.index = ClipmapImpl::UNIQUE_SECONDARY_TERRAIN_VTEX_INDEX;
+  secondaryTerrainVtex.matrixInv = TMatrix::IDENT; // unused
+  secondaryTerrainVtex.mapping = Point4(0, 0, 1, 1);
+  secondaryTerrainVtex.bbox = bbox3f(); // unused
+  secondaryTerrainVtex.radius = 0;      // unused
+  return secondaryTerrainVtex;
+}
+
+void ClipmapImpl::updateRendinstLandclassParams()
+{
+#if MAX_RI_VTEX_CNT_BITS > 0
+  RiLandclasses prevRendinstLandclasses = rendinstLandclasses;
   RiIndices prevRiIndices = riIndices;
-  for (int i = 0; i < riLandclassCount; ++i)
-    riIndices[i] = newRendinstLandclasses[i].index;
 
-  for (int i = riLandclassCount; i < MAX_RI_VTEX_CNT; ++i)
-    riIndices[i] = RI_INVALID_ID;
+  const bool secondaryFeedbackCenterChanged =
+    !!secondaryFeedbackCenter != !!nextSecondaryFeedbackCenter ||
+    (secondaryFeedbackCenter && !is_approx_equal(*secondaryFeedbackCenter, *nextSecondaryFeedbackCenter));
+  secondaryFeedbackCenter = nextSecondaryFeedbackCenter;
+
+  auto updateRendinstLandclassSubset = [&](const Point3 &camera_pos, int start, int end) -> void {
+    G_ASSERT(start < end && start >= 0 && end <= MAX_RI_VTEX_CNT);
+    update_rendinst_landclass_subset(make_span(rendinstLandclasses.begin() + start, end - start),
+      make_span_const(prevRendinstLandclasses.begin() + start, end - start), camera_pos);
+  };
+
+  updateRendinstLandclassSubset(viewerPosition, 0, SECONDARY_OFFSET_START_NO_TERRAIN);
+  if (secondaryFeedbackCenter)
+  {
+    rendinstLandclasses[SECONDARY_OFFSET_START_NO_TERRAIN] = make_secondary_terrain_vtex_landclass_data();
+    updateRendinstLandclassSubset(*secondaryFeedbackCenter, SECONDARY_OFFSET_START_NO_TERRAIN + 1, MAX_RI_VTEX_CNT);
+  }
+  else
+  {
+    for (int i = SECONDARY_OFFSET_START_NO_TERRAIN; i < MAX_RI_VTEX_CNT; ++i)
+      rendinstLandclasses[i].index = RI_INVALID_ID;
+  }
+
+  for (int i = 0; i < MAX_RI_VTEX_CNT; ++i)
+  {
+    riIndices[i] = rendinstLandclasses[i].index;
+    if (rendinstLandclasses[i].index == RI_INVALID_ID || rendinstLandclasses[i].index != prevRendinstLandclasses[i].index)
+      changedRiIndices[i] = ri_invalid_frame_cnt;
+  }
 
   eastl::fixed_vector<CacheCoords, MAX_CACHE_TILES, false> removedLRUs;
   const RiIndices::CompareBitset equalRiIndices = riIndices.compareEqual(prevRiIndices);
-  auto validLRUsEndIt =
-    eastl::remove_if(currentContext->LRU.begin(), currentContext->LRU.end(), [this, &equalRiIndices, &removedLRUs](const TexLRU &ti) {
-      if (ti.tilePos.ri_offset != TERRAIN_RI_OFFSET && !equalRiIndices[ti.tilePos.ri_offset - 1])
+  auto validLRUsEndIt = eastl::remove_if(currentContext->LRU.begin(), currentContext->LRU.end(),
+    [this, &equalRiIndices, &removedLRUs, secondaryFeedbackCenterChanged](const TexLRU &ti) {
+      if (ti.tilePos.ri_offset != TERRAIN_RI_OFFSET && !equalRiIndices[ti.tilePos.ri_offset - 1] ||
+          (ti.tilePos.ri_offset >= RI_VTEX_SECONDARY_OFFSET_START && secondaryFeedbackCenterChanged))
       {
         uint32_t addr = ti.tilePos.getTileBitIndex();
         G_ASSERT(currentContext->inCacheBitmap[addr]);
@@ -4380,9 +4482,9 @@ void ClipmapImpl::updateRendinstLandclassParams()
     eastl::string txt;
     txt += "{";
     bool hasIt = false;
-    for (int j = 0; j < newRendinstLandclasses.size(); ++j)
+    for (int j = 0; j < rendinstLandclasses.size(); ++j)
     {
-      if (newRendinstLandclasses[j].index != rendinstLandclasses[j].index)
+      if (rendinstLandclasses[j].index != prevRendinstLandclasses[j].index)
       {
         txt += eastl::to_string(j);
         txt += " ";
@@ -4393,17 +4495,15 @@ void ClipmapImpl::updateRendinstLandclassParams()
     if (hasIt)
     {
       txt += " {";
+      for (int j = 0; j < prevRendinstLandclasses.size(); ++j)
+        txt += eastl::to_string(prevRendinstLandclasses[j].index) + " ";
+      txt += "} {";
       for (int j = 0; j < rendinstLandclasses.size(); ++j)
         txt += eastl::to_string(rendinstLandclasses[j].index) + " ";
-      txt += "} {";
-      for (int j = 0; j < newRendinstLandclasses.size(); ++j)
-        txt += eastl::to_string(newRendinstLandclasses[j].index) + " ";
       txt += "}";
       logerr("RI indirection changed: %s", txt);
     }
   }
-
-  rendinstLandclasses = newRendinstLandclasses;
 #endif
 }
 
@@ -4414,14 +4514,14 @@ void ClipmapImpl::updateRenderStates()
   for (int ci = 0; ci < cacheCnt; ++ci)
     cache[ci].setVar(); // new way
 
-  ShaderGlobal::set_texture(indirectionTexVarId, currentContext->indirection.getTexId());
+  ShaderGlobal::set_texture(var::indirection_tex, currentContext->indirection.getTexId());
   setDDScale();
 
   Point4 landscape2uv = getLandscape2uv(TERRAIN_RI_OFFSET);
-  ShaderGlobal::set_color4(landscape2uvVarId, Color4(&landscape2uv.x));
+  ShaderGlobal::set_color4(var::landscape2uv, landscape2uv);
   currentContext->bindedPos = currentContext->LRUPos;
 
-  if (VariableMap::isGlobVariablePresent(fallback_info0VarId))
+  if (VariableMap::isGlobVariablePresent(var::fallback_info0))
   {
     Point3 fallback0(0, 2, 2);
     Point2 fallback1(0, 0);
@@ -4435,8 +4535,8 @@ void ClipmapImpl::updateRenderStates()
       fallback1 = Point2(texels / float(cacheDimX), texels / float(cacheDimY));
       gradScale = fallback1 * scale;
     }
-    ShaderGlobal::set_color4(fallback_info0VarId, fallback0.x, fallback0.y, fallback0.z, 0);
-    ShaderGlobal::set_color4(fallback_info1VarId, fallback1.x, fallback1.y, gradScale.x, gradScale.y);
+    ShaderGlobal::set_color4(var::fallback_info0, fallback0.x, fallback0.y, fallback0.z, 0);
+    ShaderGlobal::set_color4(var::fallback_info1, fallback1.x, fallback1.y, gradScale.x, gradScale.y);
   }
 
   updateRendinstLandclassRenderState();
@@ -4455,10 +4555,29 @@ bool ClipmapImpl::getBBox(BBox2 &ret) const
 bool ClipmapImpl::getMaximumBBox(BBox2 &ret) const
 {
   Point4 uv2landscape = getUV2landacape(TERRAIN_RI_OFFSET);
-  ret[0] = Point2(uv2landscape.z, uv2landscape.w);
-  ret[1] = Point2(uv2landscape.z + uv2landscape.x, uv2landscape.w + uv2landscape.y);
+  ret[0] = Point2(uv2landscape.z - 0.5f * uv2landscape.x, uv2landscape.w - 0.5f * uv2landscape.y);
+  ret[1] = Point2(uv2landscape.z + 0.5f * uv2landscape.x, uv2landscape.w + 0.5f * uv2landscape.y);
   ret.scale(1 << (texMips - 1));
   return true;
+}
+
+BcCompressor *ClipmapImpl::createCacheCompressor(int cache_id, uint32_t format, int compress_buf_width, int compress_buf_height)
+{
+  auto compressionType = get_texture_compression_type(format);
+  if (compressionType == BcCompressor::COMPRESSION_ERR)
+    return nullptr;
+
+  const String compressionShader = [compressionType, cache_id]() {
+    switch (compressionType)
+    {
+      case BcCompressor::COMPRESSION_ETC2_RGBA:
+      case BcCompressor::COMPRESSION_ETC2_RG: return String(64, "cache%d_etc2_compressor", cache_id);
+      case BcCompressor::COMPRESSION_ASTC4: return String(64, "cache%d_astc4_compressor", cache_id);
+      default: return String(64, "cache%d_compressor", cache_id);
+    }
+  }();
+
+  return new BcCompressor(compressionType, mipCnt, compress_buf_width, compress_buf_height, COMPRESS_QUEUE_SIZE, compressionShader);
 }
 
 void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt,
@@ -4508,10 +4627,10 @@ void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompre
       dag::create_tex(nullptr, compressBufW, compressBufH, buffer_formats[ci] | TEXCF_RTARGET | mipGenFlag, mipCnt, bufferTexName);
     d3d_err(bufferTex[ci].getTex2D());
     bufferTex[ci].setVarId(::get_shader_glob_var_id(bufferVarName, true));
-    bufferTex[ci].getTex2D()->texfilter(TEXFILTER_POINT);
     String bufferSamplerName(30, "cache_buffer_tex_%d_samplerstate", ci);
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     ShaderGlobal::set_sampler(get_shader_variable_id(bufferSamplerName.c_str(), true), d3d::request_sampler(smpInfo));
   }
 
@@ -4539,14 +4658,7 @@ void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompre
     if (compressBufDimensionsChanged || shouldCreateCacheTex)
     {
       del_it(compressor[ci]);
-
-      auto compressionType = get_texture_compression_type(formats[ci]);
-      if (compressionType != BcCompressor::COMPRESSION_ERR)
-      {
-        bool etc2 = compressionType == BcCompressor::COMPRESSION_ETC2_RGBA || compressionType == BcCompressor::COMPRESSION_ETC2_RG;
-        compressor[ci] = new BcCompressor(compressionType, mipCnt, compressBufW, compressBufH, COMPRESS_QUEUE_SIZE,
-          etc2 ? String(64, "cache%d_etc2_compressor", ci) : String(64, "cache%d_compressor", ci));
-      }
+      compressor[ci] = createCacheCompressor(ci, formats[ci], compressBufW, compressBufH);
     }
 
     if (!shouldCreateCacheTex)
@@ -4561,7 +4673,6 @@ void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompre
       (hasCompressor ? (formats[ci] | TEXCF_UPDATE_DESTINATION) : (uncompressed_formats[ci] | TEXCF_RTARGET)) | TEXCF_CLEAR_ON_CREATE;
     cache[ci] = dag::create_tex(nullptr, cacheDimX, cacheDimY, texFormat, max(mipCnt, 1 + PS4_ANISO_WA), cacheTexName);
     d3d_err(cache[ci].getTex2D());
-    cache[ci]->disableSampler();
 #if PS4_ANISO_WA
     cache[ci].getTex2D()->texmiplevel(0, 0);
 #endif
@@ -4569,7 +4680,7 @@ void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompre
 
   // we have to set here, since it is not guaranteed that it was re-created
   setTileSizeVars();
-  ShaderGlobal::set_int(clipmap_cache_output_countVarId, cacheCnt);
+  ShaderGlobal::set_int(var::clipmap_cache_output_count, cacheCnt);
   maxCacheCnt = cacheCnt;
   maxBufferCnt = bufferCnt;
 
@@ -4585,14 +4696,21 @@ void ClipmapImpl::setCacheBufferCount(int cache_count, int buffer_count)
   const bool needInvalidate = cacheCnt < cache_count || bufferCnt < buffer_count;
   cacheCnt = cache_count;
   bufferCnt = buffer_count;
-  ShaderGlobal::set_int(clipmap_cache_output_countVarId, cacheCnt);
+  ShaderGlobal::set_int(var::clipmap_cache_output_count, cacheCnt);
   debug("clipmap: setCacheBufferCount: cache: %d, buffer: %d, invalidate: %d", cacheCnt, bufferCnt, needInvalidate);
   if (needInvalidate)
     invalidate(true);
 }
 
+void ClipmapImpl::setDynamicDDScale(float targetAtlasUsageRatio_, float proportionalTerm)
+{
+  targetAtlasUsageRatio = targetAtlasUsageRatio_;
+  dynamicDDProportionalTerm = proportionalTerm;
+}
+
 void ClipmapImpl::beforeReset()
 {
+  riLandclassDataManager.clear();
   finalizeFeedback();
   closeHWFeedback();
 }
@@ -4615,21 +4733,48 @@ void ClipmapImpl::afterReset()
     del_it(compressor[ci]);
     const int compressBufW = COMPRESS_QUEUE_SIZE * texTileSize;
     const int compressBufH = texTileSize;
-    compressor[ci] = new BcCompressor(get_texture_compression_type(texInfo.cflg), mipCnt, compressBufW, compressBufH,
-      COMPRESS_QUEUE_SIZE, String(64, "cache%d_compressor", ci));
+    compressor[ci] = createCacheCompressor(ci, texInfo.cflg, compressBufW, compressBufH);
   }
+
+  riLandclassDataManager.init();
 }
 
 bool ClipmapImpl::is_uav_supported()
 {
-  init_shader_vars();
-
   if (d3d::get_driver_desc().shaderModel < 5.0_sm)
     return false; // Pre-5.0 Shader Model binding UAV on Pixel Shader was not a thing.
-  if (d3d_get_gpu_cfg().disableUav && (requires_uavVarId < 0 || ShaderGlobal::get_int(requires_uavVarId) == 0))
+  if (d3d_get_gpu_cfg().disableUav && (var::requires_uav < 0 || ShaderGlobal::get_int(var::requires_uav) == 0))
     return false; // Some GPU drivers have broken UAV support, BUT on some games we "requires_uav" and do a best-effort eitherway.
-  if (ShaderGlobal::has_associated_interval(supports_uavVarId) && ShaderGlobal::is_var_assumed(supports_uavVarId) &&
-      ShaderGlobal::get_interval_assumed_value(supports_uavVarId) == 0)
+  if (ShaderGlobal::has_associated_interval(var::supports_uav) && ShaderGlobal::is_var_assumed(var::supports_uav) &&
+      ShaderGlobal::get_interval_assumed_value(var::supports_uav) == 0)
     return false; // If shader has been compiled with "supports_uav = 0" assumption we cannot bind UAV on PS.
   return true;
+}
+
+void ClipmapImpl::updateLandclassData()
+{
+#if MAX_RI_VTEX_CNT_BITS > 0
+  auto &riLandclassDataManager = getRiLandclassDataManager();
+
+  dag::Vector<int> localRiIndices;
+  getRiLandclassIndices(localRiIndices);
+
+  LandclassQueryData queryData;
+  queryData.indices = localRiIndices;
+  for (int ri_index = 0; ri_index < localRiIndices.size(); ++ri_index)
+  {
+    float distToGround;
+    int riOffset = ri_index + 1;
+    riLandclassDataManager.updateLandclassData(ri_index, rendinstLandclasses[ri_index]);
+
+    Point3 landclassY = rendinstLandclasses[ri_index].matrix.getcol(1);
+    Point3 landclassPos = rendinstLandclasses[ri_index].matrix.getcol(3);
+    float radius = rendinstLandclasses[ri_index].radius;
+    queryData.landclass_gravs.emplace_back(-landclassY);
+    queryData.pos_radiusSqr.emplace_back(landclassPos.x, landclassPos.y, landclassPos.z, radius * radius);
+  }
+
+  riLandclassDataManager.updateGpuData();
+  heightmap_query::update_landclass_data(queryData);
+#endif
 }

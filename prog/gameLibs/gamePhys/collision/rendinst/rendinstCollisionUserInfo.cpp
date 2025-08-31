@@ -11,17 +11,24 @@
 RendinstCollisionUserInfo::RendinstImpulseThresholdData::RendinstImpulseThresholdData(float impulse,
   const rendinst::RendInstDesc &ri_desc, float at_time, const rendinst::CollisionInfo &coll_info) :
   CachedCollisionObjectInfo(impulse, ri_desc, at_time), collInfo(coll_info)
-{}
+{
+  finalPos.zero();
+  finalImpulse.zero();
+}
 
 RendinstCollisionUserInfo::RendinstImpulseThresholdData::~RendinstImpulseThresholdData()
 {
   if (!alive)
+    // for now don't apply absorbed impulse, as it makes behaviour worse
     rendinstdestr::destroyRendinst(riDesc, true /*add_restorable*/, Point3(0.f, 0.f, 0.f), Point3(0.f, 0.f, 0.f), atTime, &collInfo,
-      rendinstdestr::get_destr_settings().createDestr);
+      true /*createDestr*/, nullptr, -1, 1, nullptr,
+      rendinst::DestrOptionFlag::DestroyedByCollision | rendinst::DestrOptionFlag::AddDestroyedRi |
+        rendinst::DestrOptionFlag::ForceDestroy);
 }
 
 float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos,
-  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc log_func)
+  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc log_func,
+  const char *actor_name)
 {
   if (riDesc.isRiExtra() && impulse > 0.0f && rendinst::get_ri_phys_settings().impulseCallbacksEnabled)
     rendinst::onRiExtraImpulse(riDesc.getRiExtraHandle(), impulse, dir, pos, collision_normal, user_data);
@@ -31,12 +38,13 @@ float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float i
 
   collInfo.userData = user_data;
 
+  float absorbedImpulse = 0.f;
   if (riDesc.isRiExtra() && collInfo.hp > 0.f)
   {
     if (riDesc.pool < 0)
       return 0;
 
-    float absorbedImpulse = impulse;
+    absorbedImpulse = impulse;
     if (impulse > 0 && alive)
     {
       float damage;
@@ -46,19 +54,24 @@ float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float i
         damage = impulse * rendinstdestr::get_destr_settings().destrImpulseHitPointsMult;
       absorbedImpulse = damage;
       if (log_func)
-        log_func(rendinst::get_rendinst_res_name_from_col_info(collInfo), impulse, damage, collInfo.hp);
+        log_func(rendinst::get_rendinst_res_name_from_col_info(collInfo), actor_name, impulse, damage, collInfo.hp);
       if (rendinst::applyDamageRIGenExtra(riDesc, damage, &absorbedImpulse, true))
         alive = false;
       absorbedImpulse = safediv(absorbedImpulse, damage) * impulse;
     }
-    return absorbedImpulse;
+  }
+  else
+  {
+    absorbedImpulse = min(impulse, thresImpulse);
+    if (absorbedImpulse > 0.f && impulse >= thresImpulse && alive)
+      alive = false;
+    CachedCollisionObjectInfo::onImpulse(impulse, dir, pos, point_vel, collision_normal, flags, user_data);
   }
 
-  float absorbedImpulse = min(impulse, thresImpulse);
-  if (absorbedImpulse > 0.f && impulse >= thresImpulse && alive)
-    alive = false;
+  finalImpulse += -dir * absorbedImpulse;
+  finalPos = pos;
   thresImpulse = min(originalThreshold, thresImpulse - absorbedImpulse);
-  CachedCollisionObjectInfo::onImpulse(impulse, dir, pos, point_vel, collision_normal, flags, user_data);
+
   return absorbedImpulse;
 }
 
@@ -71,7 +84,6 @@ RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::TreeRendinstImpulse
   CachedCollisionObjectInfo(impulse, ri_desc, at_time), lastPointVel(0.f), lastOmega(0.f), collInfo(coll_info)
 {
   finalImpulse.zero();
-  invRiTm = inverse(coll_info.tm);
 }
 
 RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::~TreeRendinstImpulseThresholdData()
@@ -85,13 +97,13 @@ RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::~TreeRendinstImpuls
 }
 
 float RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos,
-  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc)
+  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc, const char *)
 {
   if (flags & CIF_NO_DAMAGE)
     return impulse;
 
   G_ASSERTF(!check_nan(impulse) && impulse < 1e8f, "onImpulse %f, originalThreshold %f", impulse, originalThreshold);
-  Point3 localPos = invRiTm * pos;
+  Point3 localPos = inverse(collInfo.tm) * pos;
   float absorbedImpulse = min(impulse * max(1.f, length(localPos)), thresImpulse);
   finalImpulse += -dir * absorbedImpulse;
   if (absorbedImpulse > 0.f && impulse >= thresImpulse && alive)

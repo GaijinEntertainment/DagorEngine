@@ -1,7 +1,8 @@
+options gen2
 require UnitTest
 
 [export]
-def test
+def test {
     var tab : table<EntityId; string>
     tab |> insert(EntityId(1), "hello")
     tab |> insert(EntityId(2), "world")
@@ -10,41 +11,55 @@ def test
     tab |> erase(EntityId(3))
     assert(length(tab) == 2)
 
-    tab |> find(EntityId(2)) <| $ ( val )
-        assert(val!=null && *val=="world")
+    var found = tab |> get(EntityId(2)) <| $(val) {
+        assert(val == "world")
+    }
+    assert(found)
 
-    tab |> get(EntityId(1)) <| $ ( val )
-        assert(val=="hello")
+    found = tab |> get(EntityId(1)) <| $(val) {
+        assert(val == "hello")
+    }
+    assert(found)
 
-    if tab |> key_exists(EntityId(1))
+    if (tab |> key_exists(EntityId(1))) {
         assert(true)
-    if tab |> key_exists(EntityId(3))
+    } else {
         assert(false)
+    }
+    if (tab |> key_exists(EntityId(3))) {
+        assert(false)
+    }
 
     let t = tab ?[EntityId(1)] ?? "goodbye"
-    assert(t=="hello")
+    assert(t == "hello")
     var ptab = unsafe(addr(tab))
     let q = ptab ?[EntityId(2)] ?? "goodbye"
-    assert(q=="world")
+    assert(q == "world")
 
     var count = 0
-    for k,v in keys(tab),values(tab)
-        if int(k) == 1
-            assert(v=="hello")
-        if int(k) == 2
-            assert(v=="world")
+    for (k, v in keys(tab), values(tab)) {
+        if (int(k) == 1) {
+            assert(v == "hello")
+        }
+        if (int(k) == 2) {
+            assert(v == "world")
+        }
         count ++
-    assert(count==2)
+    }
+    assert(count == 2)
 
     var set : table<EntityId>
     set |> insert(EntityId(1))
     set |> insert(EntityId(2))
     set |> insert(EntityId(3))
     assert(length(set) == 3)
-    if set |> key_exists(EntityId(3))
+    if (set |> key_exists(EntityId(3))) {
         assert(true)
-    if set |> key_exists(EntityId(4))
+    }
+    if (set |> key_exists(EntityId(4))) {
         assert(false)
+    }
     return true
+}
 
 

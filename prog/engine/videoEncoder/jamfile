@@ -19,10 +19,8 @@ Sources =
 
 if $(Platform) in windows {
     AddLibs +=
-      mfplat.lib
       mfuuid.lib
       Winmm.lib
-      Mfreadwrite.lib
     ;
   }
 

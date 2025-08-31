@@ -76,7 +76,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual real getAvgSpeed(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getAvgSpeed(st) : 0; }
   virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getTimeScaleParamId(st) : -1; }
 
@@ -149,7 +149,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getDuration(IPureAnimStateHolder &st);
 
@@ -214,7 +214,7 @@ public:
   virtual void reset(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getAvgSpeed(IPureAnimStateHolder &st)
   {
@@ -263,8 +263,11 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
+  virtual real getDuration(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getDuration(st) : 0; }
+  virtual real getAvgSpeed(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getAvgSpeed(st) : 0; }
+  virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getTimeScaleParamId(st) : -1; }
 
   virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
   virtual void pause(IPureAnimStateHolder &st);
@@ -323,7 +326,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual real getDuration(IPureAnimStateHolder &st);
   virtual real tell(IPureAnimStateHolder &st);
@@ -375,7 +378,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
 
   // creation-time routines
   void setBlendNodes(IAnimBlendNode *n1, real n1_mtime, IAnimBlendNode *n2, real n2_mtime);
@@ -427,7 +430,7 @@ public:
   virtual void buildBlendingList(BlendCtx &bctx, real w);
   virtual void reset(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
-  virtual void collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map);
+  virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
   virtual void pause(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
@@ -500,7 +503,7 @@ struct IrqPos
 //
 class AnimBlendNodeContinuousLeaf : public AnimBlendNodeLeaf
 {
-protected:
+public:
   int paramId;
   int t0, dt;
   real rate, duration;
@@ -511,7 +514,6 @@ protected:
 
   Tab<IrqPos> irqs;
 
-public:
   AnimBlendNodeContinuousLeaf(AnimationGraph &graph, AnimData *a, const char *time_param_name);
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
@@ -531,7 +533,7 @@ public:
   // creation-time routines
   void setAnim(AnimData *a);
   void setRange(int tStart, int tEnd, real anim_time, float move_dist, const char *name);
-  void setRange(const char *keyStart, const char *keyEnd, real anim_time, float move_dist, const char *name);
+  int getKeyTime(const char *key);
   void setSyncTime(const char *syncKey);
   void setSyncTime(real stime);
   void setEndOfAnimIrq(bool on);
@@ -565,9 +567,9 @@ public:
 
 class AnimBlendNodeStillLeaf : public AnimBlendNodeLeaf
 {
+public:
   int ctPos;
 
-public:
   AnimBlendNodeStillLeaf(AnimationGraph &graph, AnimData *a, int ct) : AnimBlendNodeLeaf(graph, a) { ctPos = ct; }
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
@@ -589,6 +591,7 @@ public:
 
 class AnimBlendNodeParametricLeaf : public AnimBlendNodeLeaf
 {
+public:
   int paramId;
   int paramLastId;
   int t0, dt;
@@ -599,7 +602,6 @@ class AnimBlendNodeParametricLeaf : public AnimBlendNodeLeaf
 
   Tab<IrqPos> irqs;
 
-public:
   AnimBlendNodeParametricLeaf(AnimationGraph &graph, AnimData *a, const char *param_name, bool upd_pc);
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);

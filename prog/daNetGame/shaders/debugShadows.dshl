@@ -1,7 +1,7 @@
 include "combine_shadows_common.dshl"
 
 int show_shadows=0;
-interval show_shadows: static_shadows<1, csm_shadows<2, csm_cascades<3, contact_shadow<4, combined_shadows<5, clouds_shadows<6, static_shadows_cascades<7, ssss;
+interval show_shadows: static_shadows<1, csm_shadows<2, csm_cascades<3, contact_shadow<4, combined_shadows<5, clouds_shadows<6, static_shadows_cascades<7, ssss<8, vsm;
 
 shader debug_shadows
 {
@@ -77,6 +77,8 @@ shader debug_shadows
         return lerp(shadowColor, float4(1, 1, 1, 1), shadows.staticShadow);
       ##elif show_shadows == ssss
         return float4(decode_ssss_transmittance(shadows.ssssTransmittance).xxx, 1);
+      ##elif show_shadows == vsm
+        return float4(shadows.vsm.xxx, 1.f);
       ##endif
       return 0;
     }

@@ -30,8 +30,8 @@ function draggable(data) {
       children = { rendObj = ROBJ_TEXT text=data hplace=ALIGN_CENTER vplace=ALIGN_CENTER}
 
       dropData = data
-      onDragMode = function(on, data) {
-        draggedData.update(on ? data : null)
+      onDragMode = function(on, val) {
+        draggedData.set(on ? val : null)
       }
       onDoubleClick = function(event) {
         if (event.button == 0) {
@@ -59,7 +59,7 @@ function target(label, color, can_drop) {
   }
 
   function builder(sf) {
-    let needMark = draggedData.value && (!can_drop || can_drop(draggedData.value))
+    let needMark = draggedData.get() && (!can_drop || can_drop(draggedData.get()))
     return {
       rendObj = ROBJ_BOX
       fillColor = color

@@ -2,6 +2,9 @@
 #pragma once
 
 #include <3d/tql.h>
+#include <resourceName.h>
+#include <dag/dag_vector.h>
+#include <drv/3d/dag_query.h>
 
 /* This validation is disabled by default because at the end of frame
 it iterates over all created buffers and we don't wan't to waste time on it.
@@ -11,11 +14,14 @@ framemem flag mandatory for dynamic buffers and the validation could be removed.
 */
 // #define ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
 
+// check that updates of buffers do not generate GPU waits
+// #define VALIDATE_FOR_BLOCKING_UPDATES 1
+
 namespace drv3d_dx11
 {
 static constexpr int VBLOCK_DELAYED = 0x10000;
 
-class GenericBuffer final : public Sbuffer
+class GenericBuffer final : public D3dResourceNameImpl<Sbuffer>
 {
 public:
   ID3D11Buffer *buffer = nullptr;
@@ -28,6 +34,23 @@ public:
   int handle = -1;
 #ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
   bool updated = false;
+#endif
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+  struct UpdateHistoryElement
+  {
+    bool completed;
+    bool write;
+    d3d::EventQuery *completion;
+    size_t offset;
+    size_t size;
+  };
+  dag::Vector<UpdateHistoryElement> updateHistory;
+  int activeLockFlags;
+  void checkBlockingUpdate(size_t offset, size_t size, bool write);
+  void trackUpdate(size_t offset, size_t size, bool write);
+#else
+  void checkBlockingUpdate(size_t, size_t, bool) {}
+  void trackUpdate(size_t, size_t, bool) {}
 #endif
 
   enum BufferState
@@ -52,7 +75,7 @@ public:
   GenericBuffer() = default;
   ~GenericBuffer();
 
-  int ressize() const override { return (int)bufSize; }
+  uint32_t getSize() const override { return (int)bufSize; }
   int getFlags() const override { return (int)bufFlags; }
 
   int getElementSize() const override { return (int)structSize; }

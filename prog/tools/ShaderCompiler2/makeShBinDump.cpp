@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #define _DEBUG_TAB_ 1
+#include "makeShBinDump.h"
 #include "linkShaders.h"
 #include "loadShaders.h"
 
+#include "shTargetContext.h"
 #include "globVar.h"
 #include "varMap.h"
 #include "shcode.h"
@@ -13,6 +15,7 @@
 #include "globalConfig.h"
 
 #include "cppStcode.h"
+#include <shaders/cppStcodeVer.h>
 
 #include "shLog.h"
 #include <osApiWrappers/dag_files.h>
@@ -34,23 +37,23 @@
 #include <drv/3d/dag_sampler.h>
 #include <EASTL/unordered_map.h>
 #include <dag/dag_vector.h>
-#include <shaders/stcodeHash.h>
+#include <generic/dag_enumerate.h>
+
+#include <hash/sha256.h>
 
 #include <util/dag_threadPool.h>
+#include <perfMon/dag_cpuFreq.h>
 
 using namespace mkbindump;
 using namespace shader_layout;
 
-static const int ZSTD_SH_CLEVEL = 11;
-
 namespace semicooked
 {
-static const int HARDCODED_BLK_NUM = 3;
 // alphabetically sorted list of hardcoded names (describes nil block for each level)
-static const char *hardcodedBlkName[HARDCODED_BLK_NUM] = {"!frame", "!obj", "!scene"};
-static const int hardcodedBlkLayer[HARDCODED_BLK_NUM] = {
-  ShaderStateBlock::LEV_FRAME, ShaderStateBlock::LEV_OBJECT, ShaderStateBlock::LEV_SCENE};
-static ShaderStateBlock::BuildTimeData hardcodedBlk[ShaderStateBlock::LEV_SHADER];
+static const char *hardcodedBlkName[SHADER_BLOCK_HIER_LEVELS] = {"!frame", "!obj", "!scene"};
+static const ShaderBlockLevel hardcodedBlkLayer[SHADER_BLOCK_HIER_LEVELS] = {
+  ShaderBlockLevel::FRAME, ShaderBlockLevel::OBJECT, ShaderBlockLevel::SCENE};
+static ShaderStateBlock::BuildTimeData hardcodedBlk[SHADER_BLOCK_HIER_LEVELS];
 static unsigned fullBlkLayerMask = 0;
 
 static void addSuppCodes(Tab<const ShaderStateBlock *> &ssbHier, Tab<blk_word_t> &codes)
@@ -72,35 +75,28 @@ static void addSuppCodes(Tab<const ShaderStateBlock *> &ssbHier, Tab<blk_word_t>
     }
 }
 
-static int cmp_ptr(const bindump::Address<ShaderStateBlock> *a, const bindump::Address<ShaderStateBlock> *b) { return *a - *b; }
-static int cmp_blk_codes(blk_word_t const *a, blk_word_t const *b) { return *a - *b; }
-static int __cdecl cmp_ssb_name(const void *a, const void *b)
-{
-  const ShaderStateBlock *sa = *(const ShaderStateBlock **)a;
-  const ShaderStateBlock *sb = *(const ShaderStateBlock **)b;
-  return strcmp(sa->name.c_str(), sb->name.c_str());
-}
-
 static void processShaderBlocks(dag::Span<ShaderStateBlock *> blocks, SharedStorage<blk_word_t> &blkPartSign)
 {
-  int blk_count[ShaderStateBlock::LEV_SHADER];
+  int blk_count[SHADER_BLOCK_HIER_LEVELS];
   memset(blk_count, 0, sizeof(blk_count));
 
   for (int i = 0; i < blocks.size(); i++)
   {
     G_ASSERT(blocks[i]);
-    if (blocks[i]->layerLevel == ShaderStateBlock::LEV_GLOBAL_CONST)
+    if (blocks[i]->layerLevel == ShaderBlockLevel::GLOBAL_CONST)
       continue;
-    G_ASSERT(blocks[i]->layerLevel >= 0 && blocks[i]->layerLevel < ShaderStateBlock::LEV_SHADER);
-    blk_count[blocks[i]->layerLevel]++;
-    sort(blocks[i]->shConst.suppBlk, &cmp_ptr);
+    G_ASSERT(blocks[i]->layerLevel != ShaderBlockLevel::UNDEFINED && blocks[i]->layerLevel < ShaderBlockLevel::SHADER);
+    blk_count[size_t(blocks[i]->layerLevel)]++;
+    fast_sort(blocks[i]->shConst.suppBlk,
+      [](const bindump::Address<ShaderStateBlock> &a, const bindump::Address<ShaderStateBlock> &b) { return a.get() < b.get(); });
   }
-  qsort(blocks.data(), blocks.size(), elem_size(blocks), cmp_ssb_name);
+  fast_sort(blocks,
+    [](const ShaderStateBlock *b1, const ShaderStateBlock *b2) { return strcmp(b1->name.c_str(), b2->name.c_str()) < 0; });
 
-  int bit_per_layer[ShaderStateBlock::LEV_SHADER];
-  int sum_shift[ShaderStateBlock::LEV_SHADER];
+  int bit_per_layer[SHADER_BLOCK_HIER_LEVELS];
+  int sum_shift[SHADER_BLOCK_HIER_LEVELS];
   int total_bits = 0;
-  for (int i = 0; i < ShaderStateBlock::LEV_SHADER; i++)
+  for (int i = 0; i < SHADER_BLOCK_HIER_LEVELS; i++)
   {
     blk_count[i]++;
     bit_per_layer[i] = 1;
@@ -121,12 +117,12 @@ static void processShaderBlocks(dag::Span<ShaderStateBlock *> blocks, SharedStor
   memset(blk_count, 0, sizeof(blk_count));
   for (int i = 0; i < blocks.size(); i++)
   {
-    if (blocks[i]->layerLevel == ShaderStateBlock::LEV_GLOBAL_CONST)
+    if (blocks[i]->layerLevel == ShaderBlockLevel::GLOBAL_CONST)
     {
       blocks[i]->btd.uidMask = blocks[i]->btd.uidVal = 0;
       continue;
     }
-    int layer = blocks[i]->layerLevel;
+    auto layer = size_t(blocks[i]->layerLevel);
     blocks[i]->btd.uidMask = ((1 << bit_per_layer[layer]) - 1) << sum_shift[layer];
     blocks[i]->btd.uidVal = blk_count[layer] << sum_shift[layer];
     blk_count[layer]++;
@@ -136,8 +132,8 @@ static void processShaderBlocks(dag::Span<ShaderStateBlock *> blocks, SharedStor
   Tab<const ShaderStateBlock *> ssbHier(tmpmem);
   for (int i = 0; i < blocks.size(); i++)
   {
-    int layer = blocks[i]->layerLevel;
-    if (layer == 0 || layer == ShaderStateBlock::LEV_GLOBAL_CONST)
+    auto layer = blocks[i]->layerLevel;
+    if (layer == ShaderBlockLevel::FRAME || layer == ShaderBlockLevel::GLOBAL_CONST)
     {
       blocks[i]->btd.suppMask = 0;
       blocks[i]->btd.suppListOfs = -1;
@@ -150,12 +146,12 @@ static void processShaderBlocks(dag::Span<ShaderStateBlock *> blocks, SharedStor
     ssbHier.push_back(blocks[i]);
     addSuppCodes(ssbHier, codes);
 
-    unsigned mask = (1 << sum_shift[layer]) - 1;
+    unsigned mask = (1 << sum_shift[size_t(layer)]) - 1;
     for (int j = 0; j < codes.size(); j++)
       codes[j] &= mask;
     codes.push_back(BLK_WORD_FULLMASK);
     if (codes.size() > 2)
-      sort(codes, &cmp_blk_codes);
+      fast_sort(codes, [](blk_word_t a, blk_word_t b) { return a < b; });
 
     blkPartSign.getRef(blocks[i]->btd.suppListOfs, codes.data(), codes.size(), 64);
     blocks[i]->btd.suppMask = mask;
@@ -172,10 +168,12 @@ bool areIntervalsEqual(const shader_layout::Interval<> &a, const shader_layout::
 
 struct Variables
 {
-  Variables(const GatherNameMap &vmap) : varLists(tmpmem), varMap(vmap) {}
+  Variables(const GatherNameMap &vmap, const shc::TargetContext &a_ctx) : ctx{a_ctx}, varLists(tmpmem), varMap(vmap) {}
 
   int addGlobVars(Tab<int> &remappingTable)
   {
+    const Tab<ShaderGlobal::Var> &globvars = ctx.globVars().getVariableList();
+
     int count = 0;
     for (int i = 0; i < remappingTable.size(); i++)
       if (remappingTable[i] != -1)
@@ -194,7 +192,7 @@ struct Variables
     {
       if (remappingTable[i] != -1)
       {
-        ShaderGlobal::Var &v = ShaderGlobal::get_var(i);
+        const ShaderGlobal::Var &v = globvars[i];
         G_ASSERT(v.nameId >= 0 && v.nameId < varMap.xmap.size());
         vl.v[gv_ind].nameId = varMap.xmap[v.nameId];
         vl.v[gv_ind].type = v.type;
@@ -212,7 +210,7 @@ struct Variables
       if (remappingTable[i] == -1)
         continue;
 
-      const ShaderGlobal::Var &v = ShaderGlobal::get_var(i);
+      const ShaderGlobal::Var &v = globvars[i];
       if (v.array_size == 1 || v.index != 0)
         continue;
 
@@ -228,7 +226,7 @@ struct Variables
 
       for (int j = i + 1; j < i + v.array_size; j++)
       {
-        const ShaderGlobal::Var &elem = ShaderGlobal::get_var(j);
+        const ShaderGlobal::Var &elem = globvars[j];
         auto next_var = find_var(elem);
         if ((const char *)&next_var->valPtr.get() - (const char *)&first_var->valPtr.get() != (j - i) * 4 * sizeof(float))
           sh_debug(SHLOG_ERROR, "Wrong element array order for `%s`", varMap.getOrdinalName(first_var->nameId));
@@ -283,13 +281,15 @@ struct Variables
 
   void fillStorage(shader_layout::VarList<> &vl, int tex_size, Tab<int> &remapTable)
   {
+    const Tab<ShaderGlobal::Var> &globvars = ctx.globVars().getVariableList();
+
     allocStorage(vl, tex_size);
 
-    for (int i = 0; i < ShaderGlobal::get_var_count(); i++)
+    for (int i = 0; i < globvars.size(); i++)
     {
       if (remapTable[i] == -1)
         continue;
-      ShaderGlobal::Var &v = ShaderGlobal::get_var(i);
+      const ShaderGlobal::Var &v = globvars[i];
       for (auto &var : vl.v)
       {
         if (var.nameId == varMap.xmap[v.nameId])
@@ -366,6 +366,7 @@ struct Variables
     storage.resize(storage.size() + stor_p - stor_start);
   }
 
+  const shc::TargetContext &ctx;
   bindump::VecHolder<int, 4 * sizeof(int)> storage;
   Tab<shader_layout::VarList<>> varLists;
   bindump::VecHolder<shader_layout::Var<>> vars;
@@ -382,7 +383,9 @@ struct Variants
     static int cmpCode(const VariantPair *a, const VariantPair *b) { return a->code - b->code; }
   };
 
-  Variants(const GatherNameMap &vmap) : intervals(tmpmem), subintervals_by_interval(tmpmem), varMap(vmap) {}
+  Variants(const GatherNameMap &vmap, const shc::TargetContext &a_ctx) :
+    ctx{a_ctx}, intervals(tmpmem), subintervals_by_interval(tmpmem), varMap(vmap)
+  {}
 
   static void clearTemp()
   {
@@ -436,7 +439,7 @@ struct Variants
       }
       else
       {
-        const char *ivalname = ct.interval->getNameStr();
+        const char *ivalname = get_interval_name(*ct.interval, ctx);
 
         if (ct.type == ShaderVariant::VARTYPE_INTERVAL)
           ival.type = ival.TYPE_INTERVAL;
@@ -468,7 +471,7 @@ struct Variants
         subintervals.resize(ct.interval->getValueCount());
         for (int i = 0; i < ct.interval->getValueCount(); i++)
         {
-          subintervals[i] = ct.interval->getValueName(i);
+          subintervals[i] = get_interval_value_name(*ct.interval, i, ctx);
           RealValueRange r = ct.interval->getValueRange(i);
 
           if (i == 0)
@@ -688,6 +691,7 @@ struct Variants
     return intervals.size() - 1;
   }
 
+  const shc::TargetContext &ctx;
   Tab<shader_layout::Interval<>> intervals;
   Tab<bindump::VecHolder<bindump::StrHolder<>>> subintervals_by_interval;
   SharedStorage<real> iValStorage;
@@ -752,6 +756,8 @@ struct ShaderCodes
 
     scr.varSize = scode.varsize;
     scr.codeFlags = scode.flags;
+    if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+      scr.branchedCppStcodeId = scode.branchedCppStcodeId;
     scr.vertexStride = scode.getVertexStride();
 
     if (tmpPasses.size())
@@ -771,7 +777,7 @@ struct ShaderCodes
   int addCodePasses(::ShaderCode::PassTab &pt)
   {
     shader_layout::Pass<> p;
-    shader_layout::ShaderCode<>::ShRef sr;
+    shader_layout::ShaderCode<>::ShRef sr{};
     if (!pt.rpass)
       p.rpass = nullptr;
     else
@@ -789,6 +795,11 @@ struct ShaderCodes
       sr.threadGroupSizeX = pt.rpass->threadGroupSizes[0];
       sr.threadGroupSizeY = pt.rpass->threadGroupSizes[1];
       sr.threadGroupSizeZ = pt.rpass->threadGroupSizes[2];
+      sr.branchlessCppStblkcodeId = pt.rpass->branchlessCppStblkcodeId;
+      if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+        sr.branchedCppStcodeRegisterTableOffset = pt.rpass->branchedCppStcodeTableOffset;
+      else
+        sr.branchlessCppStcodeId = pt.rpass->branchlessCppStcodeId;
       G_ASSERT(pt.rpass->threadGroupSizes[2] < (1 << 15));
       sr.scarlettWave32 = pt.rpass->scarlettWave32;
       bindump::Span<shader_layout::ShaderCode<>::ShRef> rpass;
@@ -821,7 +832,7 @@ struct ShaderCodes
 
     codes.push_back(BLK_WORD_FULLMASK);
     if (codes.size() > 2)
-      sort(codes, &cmp_blk_codes);
+      fast_sort(codes, [](blk_word_t a, blk_word_t b) { return a < b; });
 
     bindump::Span<blk_word_t> idx;
     globalSuppBlkSign.getRef(idx, codes.data(), codes.size(), 64);
@@ -922,83 +933,141 @@ using namespace semicooked;
 // shaders binary dump builder
 //
 bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode,
-  BindumpPackingFlags packing_flags, StcodeInterface *stcode_interface)
+  BindumpPackingFlags packing_flags, const shc::CompilationContext &ctx)
 {
-  using loadedshaders::fsh;
-  using loadedshaders::render_state;
-  using loadedshaders::shClass;
-  using loadedshaders::stCode;
-  using loadedshaders::vpr;
+  int64_t reft;
+  String finalReport{};
+
+  //
+  // Load shaders and construct bindump from them
+  //
+  shc::TargetContext targetCtx = ctx.makeTargetContext(dump_name);
+
   Tab<uint32_t> gvmap(tmpmem);
 
   GatherNameMap varMap, shNameMap;
-  Variants vt(varMap);
-  Variables vars(varMap);
+  Variants vt(varMap, targetCtx);
+  Variables vars(varMap, targetCtx);
   Tab<ShaderClassRecEx> dumpClasses(tmpmem);
 
-  bindump::FileWriter file_writer(dump_name);
-  if (!file_writer)
+  sh_debug(SHLOG_NORMAL, "[INFO] Building bindump at '%s'...", dump_name);
+  reft = ref_time_ticks();
+
+  FullFileSaveCB fileWriter{dump_name};
+  if (!fileWriter.fileHandle)
     return false;
 
   //
-  // read data from intermediate shader file (.cached)
+  // read data from intermediate shader file (.lib.bin)
   //
-  ShaderStateBlock::deleteAllBlocks();
-  if (!load_scripted_shaders(cache_filename, false))
+  if (!load_scripted_shaders(cache_filename, false, targetCtx))
     return false;
+
+  sh_debug(SHLOG_NORMAL, "[INFO] Loaded linker output in %gms", get_time_usec(reft) / 1000.);
+  reft = ref_time_ticks();
+
+  ShaderTargetStorage &stor = targetCtx.storage();
+
   if (strip_shaders_and_stcode)
   {
-    for (int i = 0; i < stCode.size(); i++)
-      clear_and_shrink(stCode[i]);
-    for (int i = 0; i < vpr.size(); i++)
-      clear_and_shrink(vpr[i]);
-    for (int i = 0; i < fsh.size(); i++)
-      clear_and_shrink(fsh[i]);
-    clear_and_shrink(stCode);
-    clear_and_shrink(vpr);
-    clear_and_shrink(fsh);
-    clear_and_shrink(render_state);
-    for (int i = 0; i < shClass.size(); i++)
+    for (int i = 0; i < stor.shadersStcode.size(); i++)
+      clear_and_shrink(stor.shadersStcode[i]);
+    for (int i = 0; i < stor.ldShVpr.size(); i++)
+      clear_and_shrink(stor.ldShVpr[i]);
+    for (int i = 0; i < stor.ldShFsh.size(); i++)
+      clear_and_shrink(stor.ldShFsh[i]);
+    clear_and_shrink(stor.shadersStcode);
+    clear_and_shrink(stor.ldShVpr);
+    clear_and_shrink(stor.ldShFsh);
+    clear_and_shrink(stor.renderStates);
+    for (auto *&ptr : stor.shadersCompProg)
+      delete eastl::exchange(ptr, nullptr);
+    clear_and_shrink(stor.shadersCompProg);
+    targetCtx.globVars().clear();
+    targetCtx.samplers().clear();
+    targetCtx.blocks() = {};
+    for (::ShaderClass *sc : stor.shaderClass)
     {
-      ::ShaderClass &sc = *shClass[i];
-      for (int j = 0; j < sc.code.size(); j++)
+      SerializableTab<::ShaderCode *> uniqueCodes{};
+      Tab<int> codeIdRemapping(sc->code.size(), -1);
+      for (auto [ind, cd] : enumerate(sc->code))
       {
-        for (::ShaderCode::PassTab *pt : sc.code[j]->passes)
-          if (pt)
+        if (cd->passes.size() > 1)
+          cd->passes.resize(1);
+        if (cd->allPasses.size() > 1)
+          cd->allPasses.resize(1);
+        if (cd->passes.size())
+        {
+          if (auto *pt = cd->passes[0])
           {
             clear_and_shrink(pt->suppBlk);
+            if (cd->allPasses.size())
+              pt->rpass = &cd->allPasses[0];
           }
-        if (sc.code[j]->passes.size() > 1)
-          sc.code[j]->passes.resize(1);
+        }
+        if (cd->allPasses.size())
+        {
+          auto &p = cd->allPasses[0];
+          p.stblkcodeNo = p.stcodeNo = p.branchlessCppStblkcodeId = p.branchlessCppStcodeId = p.renderStateNo = p.fsh = p.vprog = -1;
+          p.branchedCppStblkcodeTableOffset = p.branchedCppStcodeTableOffset = -1;
+          p.threadGroupSizes = {};
+          p.scarlettWave32 = false;
+        }
 
-        sc.code[j]->dynVariants.reset();
-        for (::ShaderCode::Pass &p : sc.code[j]->allPasses)
-          p.stblkcodeNo = p.stcodeNo = p.renderStateNo = p.fsh = p.vprog = -1;
+        cd->dynVariants.reset();
+        cd->branchedCppStblkcodeId = cd->branchedCppStcodeId = -1;
+        clear_and_shrink(cd->stvarmap);
+        cd->varsize = cd->regsize = 0;
+
+        const auto strippedCodesIsEq = [cd](const ::ShaderCode *other) {
+          const auto dataArraysAreEq = [](const auto &arr1, const auto &arr2) {
+            G_ASSERT(elem_size(arr1) == elem_size(arr2));
+            return arr1.size() == arr2.size() && memcmp(arr1.data(), arr2.data(), arr1.size() * elem_size(arr1)) == 0;
+          };
+          return dataArraysAreEq(other->channel, cd->channel) && other->initcode == cd->initcode &&
+                 other->staticTextureTypes == cd->staticTextureTypes && other->flags == cd->flags;
+        };
+        if (auto it = eastl::find_if(uniqueCodes.begin(), uniqueCodes.end(), strippedCodesIsEq); it != uniqueCodes.end())
+        {
+          codeIdRemapping[ind] = eastl::distance(uniqueCodes.begin(), it);
+          delete cd;
+        }
+        else
+        {
+          codeIdRemapping[ind] = uniqueCodes.size();
+          uniqueCodes.push_back(cd);
+        }
+      }
+      sc->code = eastl::move(uniqueCodes);
+      for (int i = 0; i < sc->staticVariants.getVarCount(); ++i)
+      {
+        auto &var = *sc->staticVariants.getVariant(i);
+        if (var.codeId >= 0)
+          var.codeId = codeIdRemapping[var.codeId];
       }
     }
   }
 
   // process shader blocks
-  dag::Span<ShaderStateBlock *> blocks =
-    strip_shaders_and_stcode ? dag::Span<ShaderStateBlock *>() : make_span(ShaderStateBlock::getBlocks());
+  Tab<ShaderStateBlock *> blocks = strip_shaders_and_stcode ? Tab<ShaderStateBlock *>{} : targetCtx.blocks().release();
   SharedStorage<blk_word_t> blkPartSign;
-  processShaderBlocks(blocks, blkPartSign);
+  processShaderBlocks(make_span(blocks), blkPartSign);
   globalSuppBlkSign.clear();
 
-  bindumphlp::sortShaders(blocks, stcode_interface);
+  bindumphlp::sortShaders(blocks, targetCtx);
 
-  dag::Vector<int> stcode_type(stCode.size()); // 1 - blk, 2 - shclass blk, 3 -- shclass
+  dag::Vector<int> stcode_type(stor.shadersStcode.size()); // 1 - blk, 2 - shclass blk, 3 -- shclass
   for (int i = 0; i < blocks.size(); i++)
   {
     int id = blocks[i]->stcodeId;
     if (id < 0)
       continue;
-    G_ASSERT(id < stCode.size());
+    G_ASSERT(id < stor.shadersStcode.size());
     stcode_type[id] = 1;
   }
-  for (int i = 0; i < shClass.size(); i++)
+  for (int i = 0; i < stor.shaderClass.size(); i++)
   {
-    ::ShaderClass &sc = *shClass[i];
+    ::ShaderClass &sc = *stor.shaderClass[i];
     for (int j = 0; j < sc.code.size(); j++)
       if (sc.code[j])
         for (int k = 0; k < sc.code[j]->allPasses.size(); k++)
@@ -1006,14 +1075,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
           int id = sc.code[j]->allPasses[k].stblkcodeNo;
           if (id < 0)
             continue;
-          G_ASSERT(id < stCode.size());
+          G_ASSERT(id < stor.shadersStcode.size());
           if (stcode_type[id] == 0)
             stcode_type[id] = 2;
         }
   }
-  for (int i = 0; i < shClass.size(); i++)
+  for (int i = 0; i < stor.shaderClass.size(); i++)
   {
-    ::ShaderClass &sc = *shClass[i];
+    ::ShaderClass &sc = *stor.shaderClass[i];
     for (int j = 0; j < sc.code.size(); j++)
       if (sc.code[j])
         for (int k = 0; k < sc.code[j]->allPasses.size(); k++)
@@ -1021,31 +1090,31 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
           int id = sc.code[j]->allPasses[k].stcodeNo;
           if (id < 0)
             continue;
-          G_ASSERT(id < stCode.size());
+          G_ASSERT(id < stor.shadersStcode.size());
           if (stcode_type[id] == 0)
             stcode_type[id] = 3;
         }
   }
 
   // prepare new sorted varMap
-  for (int i = 0; i < VarMap::getIdCount(); i++)
-    varMap.addNameId(VarMap::getName(i));
+  for (int i = 0; i < targetCtx.varNameMap().getIdCount(); i++)
+    varMap.addNameId(targetCtx.varNameMap().getName(i));
   varMap.prepareXmap();
 
   // prepare new sorted shaderNameMap
-  for (int i = 0; i < shClass.size(); i++)
-    shNameMap.addNameId(shClass[i]->name.c_str());
+  for (int i = 0; i < stor.shaderClass.size(); i++)
+    shNameMap.addNameId(stor.shaderClass[i]->name.c_str());
   shNameMap.prepareXmap();
 
-  if (shClass.size() != shNameMap.xmap.size())
+  if (stor.shaderClass.size() != shNameMap.xmap.size())
   {
-    sh_debug(SHLOG_ERROR, "%d shaders, only %d unique, duplicates are:", shClass.size(), shNameMap.xmap.size());
+    sh_debug(SHLOG_ERROR, "%d shaders, only %d unique, duplicates are:", stor.shaderClass.size(), shNameMap.xmap.size());
 
     SmallTab<int, TmpmemAlloc> cnt;
     clear_and_resize(cnt, shNameMap.nameCount());
     mem_set_0(cnt);
-    for (int i = 0; i < shClass.size(); i++)
-      cnt[shNameMap.getNameId(shClass[i]->name.c_str())]++;
+    for (int i = 0; i < stor.shaderClass.size(); i++)
+      cnt[shNameMap.getNameId(stor.shaderClass[i]->name.c_str())]++;
 
     for (int i = 0; i < shNameMap.xmap.size(); i++)
       if (cnt[i] > 1)
@@ -1056,14 +1125,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // remap shader classes to be in sync with shaderNameMap
   {
     SmallTab<::ShaderClass *, TmpmemAlloc> n_shClass;
-    clear_and_resize(n_shClass, shClass.size());
-    for (int i = 0; i < shClass.size(); i++)
-      n_shClass[shNameMap.xmap[i]] = shClass[i];
-    mem_copy_from(shClass, n_shClass.data());
+    clear_and_resize(n_shClass, stor.shaderClass.size());
+    for (int i = 0; i < stor.shaderClass.size(); i++)
+      n_shClass[shNameMap.xmap[i]] = stor.shaderClass[i];
+    mem_copy_from(stor.shaderClass, n_shClass.data());
   }
 
   Tab<int> remapTable(tmpmem);
-  bindumphlp::countRefAndRemapGlobalVars(remapTable, shClass, varMap);
+  bindumphlp::countRefAndRemapGlobalVars(remapTable, stor.shaderClass, varMap, targetCtx);
 
   bindump::VecHolder<bindump::StrHolder<>> shader_names;
   bindump::VecHolder<bindump::StrHolder<>> blk_names;
@@ -1073,17 +1142,17 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   for (int i = 0; i < shNameMap.xmap.size(); i++)
     shader_names[i] = shNameMap.getOrdinalName(i);
 
-  blk_names.resize(blocks.size() + HARDCODED_BLK_NUM);
-  for (int i = 0; i < HARDCODED_BLK_NUM; i++)
+  blk_names.resize(blocks.size() + SHADER_BLOCK_HIER_LEVELS);
+  for (int i = 0; i < SHADER_BLOCK_HIER_LEVELS; i++)
     blk_names[i] = hardcodedBlkName[i];
   for (int i = 0; i < blocks.size(); i++)
-    blk_names[i + HARDCODED_BLK_NUM] = blocks[i]->name;
+    blk_names[i + SHADER_BLOCK_HIER_LEVELS] = blocks[i]->name;
 
   // prepare global vars
   vars.addGlobVars(remapTable);
 
   // Generate the cpp stcode file for them
-  if (!strip_shaders_and_stcode && stcode_interface)
+  if (shc::config().compileCppStcode() && !strip_shaders_and_stcode)
   {
     StcodeGlobalVars stcodeGlobvars(StcodeGlobalVars::Type::MAIN_COLLECTION);
     for (int i = 0; i < vars.varLists.back().v.size(); ++i)
@@ -1098,7 +1167,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       stcodeGlobvars.setVar((ShaderVarType)var.type, name, i);
     }
 
-    save_stcode_global_vars(eastl::move(stcodeGlobvars));
+    save_stcode_global_vars(eastl::move(stcodeGlobvars), ctx.compInfo());
   }
 
   // convert data into binary dump prefabs
@@ -1108,11 +1177,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   int vpr_bytes = 0, fsh_bytes = 0, stcode_bytes0 = 0, stcode_bytes1 = 0, stcode_bytes2 = 0;
   int hs_ds_gs_bytes = 0, cs_bytes = 0;
 
-  dumpClasses.resize(shClass.size());
+  dumpClasses.resize(stor.shaderClass.size());
   eastl::unordered_map<eastl::string, uint8_t> assumedIntervals;
-  for (int i = 0; i < shClass.size(); i++)
+  for (int i = 0; i < stor.shaderClass.size(); i++)
   {
-    ::ShaderClass &sc = *shClass[i];
+    ::ShaderClass &sc = *stor.shaderClass[i];
 
     for (auto &inter : sc.assumedIntervals)
       assumedIntervals[inter.name] = inter.value;
@@ -1126,7 +1195,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
         if (max_reg_size < sc.code[j]->regsize)
           max_reg_size = sc.code[j]->regsize;
         if (sc.code[j]->regsize > MAX_TEMP_REGS)
-          sh_debug(SHLOG_FATAL, "  ShaderClass=%s has too much registers %d, limit is %d", sc.name, sc.code[j]->regsize,
+          sh_debug(SHLOG_FATAL, "  ShaderClass=%s has too many registers %d, limit is %d", sc.name, sc.code[j]->regsize,
             MAX_TEMP_REGS);
 
         for (int k = 0; k < sc.code[j]->passes.size(); k++)
@@ -1167,7 +1236,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   Variants::clearTemp();
 
   sh_debug(SHLOG_INFO, "  ShaderClasses=%d CodeNum=%d->%d CodePasses=%d", classnum, codenum, new_codenum, codepasses);
-  sh_debug(SHLOG_INFO, "  VPR.num=%d FSH.num=%d stcode.num=%d", vpr.size(), fsh.size(), stCode.size());
+  sh_debug(SHLOG_INFO, "  VPR.num=%d FSH.num=%d stcode.num=%d", stor.ldShVpr.size(), stor.ldShFsh.size(), stor.shadersStcode.size());
 
   sh_debug(SHLOG_INFO, "  intervals=%d  iValStor=%d pcsStor=%d  lmap/qmap=%d/%d", vt.intervals.size(), vt.iValStorage.data.size(),
     vt.vtPcsStorage.data.size(), vt.vtLmapStorage.data.size(), vt.vtQmapStorage.data.size());
@@ -1179,22 +1248,22 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   bindump::Master<shader_layout::ScriptedShadersBinDumpV3> shaders_dump;
 
   // write dump header
-  shaders_dump_compressed.signPart1 = _MAKE4C('VSPS');
-  shaders_dump_compressed.signPart2 = _MAKE4C('dump');
-  shaders_dump_compressed.version = SHADER_BINDUMP_VER;
+  shaders_dump_compressed.header.magicPart1 = _MAKE4C('VSPS');
+  shaders_dump_compressed.header.magicPart2 = _MAKE4C('dump');
+  shaders_dump_compressed.header.version = SHADER_BINDUMP_VER;
+
   shaders_dump.maxRegSize = max_reg_size;
 
   // write render states
-  shaders_dump.renderStates = make_span(render_state);
+  shaders_dump.renderStates = make_span(stor.renderStates);
 
   // write stcode data
-  shaders_dump.stcode.resize(stCode.size());
-  for (int i = 0; i < stCode.size(); i++)
+  shaders_dump.stcode.resize(stor.shadersStcode.size());
+  for (int i = 0; i < stor.shadersStcode.size(); i++)
   {
     if (stcode_type[i] == 0)
       continue;
-    dag::ConstSpan<int> _st = stcode_type[i] < 3 ? ::process_stblkcode(stCode[i], stcode_type[i] == 1) : make_span_const(stCode[i]);
-    dag::ConstSpan<int> st = ::transcode_stcode(_st);
+    dag::ConstSpan<int> st = ::transcode_stcode(make_span_const(stor.shadersStcode[i]));
 
     shaders_dump.stcode[i] = st;
     if (stcode_type[i] == 1)
@@ -1205,9 +1274,45 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       stcode_bytes2 += data_size(st);
   }
 
-  // Generate stcode main file w/ the final stcode hash
-  if (!strip_shaders_and_stcode && stcode_interface)
-    save_stcode_dll_main(eastl::move(*stcode_interface), calc_stcode_hash(shaders_dump.stcode));
+  shaders_dump.externalStcodeMode = shc::config().cppStcodeMode;
+  shaders_dump.externalStcodeVersion = uint32_t(CPP_STCODE_COMMON_VER);
+  CryptoHash externalStcodeHash{};
+  memset(externalStcodeHash.data, 0, sizeof(externalStcodeHash.data));
+
+  if (shc::config().compileCppStcode() && !strip_shaders_and_stcode)
+  {
+    // Calculate overall cpp stcode hash for matching.
+    CryptoHasher hasher{};
+    for (const auto &hash : targetCtx.cppStcode().dynamicRoutineHashes)
+      hasher.update(hash);
+    for (const auto &hash : targetCtx.cppStcode().staticRoutineHashes)
+      hasher.update(hash);
+    externalStcodeHash = hasher.hash();
+
+    eastl::string logHash{};
+    for (uint8_t byte : externalStcodeHash.data)
+      logHash.append_sprintf("%02x", byte);
+    finalReport.aprintf(0, "\nGenerated stcode with\n  | version : %d\n  | hash    : %s\n", CPP_STCODE_COMMON_VER, logHash.c_str());
+
+    // If validation masks are present, save them to the bindump
+    if (shc::config().generateCppStcodeValidationData)
+    {
+      G_ASSERT(stor.stcodeConstValidationMasks.size() == shaders_dump.stcode.size());
+      shaders_dump.stcodeConstValidationMasks.resize(stor.stcodeConstValidationMasks.size());
+      for (const auto &[id, mask] : enumerate(stor.stcodeConstValidationMasks))
+      {
+        G_ASSERT(mask);
+        shaders_dump.stcodeConstValidationMasks[id] = *mask;
+        delete mask;
+      }
+    }
+
+    // Generate stcode main file w/ the final stcode hash
+    save_stcode_dll_main(eastl::move(targetCtx.cppStcode()), externalStcodeHash, ctx.compInfo());
+  }
+
+  static_assert(sizeof(shaders_dump.externalStcodeHash) == sizeof(externalStcodeHash.data));
+  memcpy(shaders_dump.externalStcodeHash, externalStcodeHash.data, sizeof(shaders_dump.externalStcodeHash));
 
   auto &iValStorage = vt.iValStorage.getVecHolder();
 
@@ -1346,14 +1451,103 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   shaders_dump.vtQmapStorage = eastl::move(vt.vtQmapStorage.getVecHolder());
   shaders_dump.vtLmapStorage = eastl::move(vt.vtLmapStorage.getVecHolder());
 
+  // write storage sizes for vprId/fshId
+  shaders_dump.vprCount = stor.ldShVpr.size();
+  shaders_dump.fshCount = stor.ldShFsh.size();
+
+  // write global vars data
+  shaders_dump.gvMap = make_span(gvmap);
+
+  // write vars storage
+  shaders_dump.varStorage = eastl::move(vars.storage);
+  shaders_dump.variables = vars.vars;
+  shaders_dump.globVars.v = vars.varLists[0].v;
+
+  // write strings
+  shaders_dump.varMap = var_names;
+  shaders_dump.shaderNameMap = shader_names;
+  shaders_dump.blockNameMap = blk_names;
+
+  // write shader blocks test codes
+  shaders_dump.blkPartSign = eastl::move(blkPartSign.getVecHolder());
+  shaders_dump.globalSuppBlkSign = eastl::move(globalSuppBlkSign.getVecHolder());
+
+  // write shader blocks
+  shaders_dump.blocks.resize(SHADER_BLOCK_HIER_LEVELS + blocks.size());
+  for (int i = 0; i < SHADER_BLOCK_HIER_LEVELS; i++)
+  {
+    shaders_dump.blocks[i].uidMask = hardcodedBlk[size_t(hardcodedBlkLayer[i])].uidMask;
+    shaders_dump.blocks[i].uidVal = hardcodedBlk[size_t(hardcodedBlkLayer[i])].uidVal;
+    shaders_dump.blocks[i].stcodeId = -1;
+    shaders_dump.blocks[i].cppStcodeId = -1;
+    shaders_dump.blocks[i].nameId = i;
+  }
+
+  for (int i = 0; i < blocks.size(); i++)
+  {
+    ShaderStateBlock &b = *blocks[i];
+
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].uidMask = b.btd.uidMask;
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].uidVal = b.btd.uidVal;
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].suppBlkMask = b.btd.suppMask;
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].stcodeId = b.stcodeId;
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].cppStcodeId = b.cppStcodeId;
+    shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].nameId = i + SHADER_BLOCK_HIER_LEVELS;
+    if (b.btd.suppListOfs >= 0)
+      shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].suppBlockUid = shaders_dump.blkPartSign.getElementAddress(b.btd.suppListOfs);
+  }
+
+  {
+    auto samplers = targetCtx.samplers().releaseSamplers();
+    shaders_dump.samplers.resize(samplers.size());
+    int smp_id = 0;
+    for (const auto &s : samplers)
+      shaders_dump.samplers[smp_id++] = s.mSamplerInfo;
+  }
+
+  // write shader classes
+  SharedStorage<int> shInitCodeStorage;
+  shaders_dump.classes.resize(dumpClasses.size());
+  shaders_dump.messagesByShclass.resize(dumpClasses.size());
+  for (int i = 0; i < dumpClasses.size(); i++)
+  {
+    ShaderCodes &code = dumpClasses[i].codes;
+    auto &out_c = shaders_dump.classes[i];
+    out_c = dumpClasses[i].shClass;
+
+    out_c.shrefStorage = eastl::move(code.shrefStorage.getVecHolder());
+
+    out_c.chanStorage = eastl::move(code.chanStorage.getVecHolder());
+    out_c.icStorage = eastl::move(code.icStorage.getVecHolder());
+    out_c.svStorage = eastl::move(code.svStorage.getVecHolder());
+    out_c.localVars.v = vars.varLists[i + 1].v;
+    out_c.code = make_span(code.codes);
+    out_c.name = shaders_dump.shaderNameMap[out_c.nameId].getElementAddress(0);
+    out_c.name.setCount(shaders_dump.shaderNameMap[out_c.nameId].size());
+
+    if (shc::config().addTextureType && !code.staticTextureTypesByCode.empty())
+      out_c.staticTextureTypeBySlot = code.staticTextureTypesByCode.front();
+
+    shInitCodeStorage.getRef(out_c.initCode, stor.shaderClass[i]->shInitCode.data(), stor.shaderClass[i]->shInitCode.size(), 8);
+
+    shaders_dump.messagesByShclass[i].resize(stor.shaderClass[i]->messages.size());
+    for (int j = 0; j < stor.shaderClass[i]->messages.size(); j++)
+      shaders_dump.messagesByShclass[i][j] = stor.shaderClass[i]->messages[j];
+  }
+  shaders_dump.shInitCodeStorage = eastl::move(shInitCodeStorage.getVecHolder());
+
+  sh_debug(SHLOG_NORMAL, "[INFO] Built bindump data in %gms", get_time_usec(reft) / 1000.);
+
   // write vpr/fsh data
   // 1) collecting all transcoded shader codes into one container
 
-  dag::Vector<dag::ConstSpan<uint32_t>> shaders(vpr.size() + fsh.size());
-  for (int i = 0; i < vpr.size(); i++)
+  reft = ref_time_ticks();
+
+  dag::Vector<dag::ConstSpan<uint32_t>> shaders(stor.ldShVpr.size() + stor.ldShFsh.size());
+  for (int i = 0; i < stor.ldShVpr.size(); i++)
   {
-    bool combi_type = vpr[i].size() > 4 && vpr[i][0] == _MAKE4C('DX11') && vpr[i][4] == _MAKE4C('DX11');
-    dag::ConstSpan<uint32_t> sh = ::transcode_vertex_shader(vpr[i]);
+    bool combi_type = stor.ldShVpr[i].size() > 4 && stor.ldShVpr[i][0] == _MAKE4C('DX11') && stor.ldShVpr[i][4] == _MAKE4C('DX11');
+    dag::ConstSpan<uint32_t> sh = ::transcode_vertex_shader(stor.ldShVpr[i]);
     shaders[i] = sh;
     if (!combi_type)
       vpr_bytes += data_size(sh);
@@ -1363,11 +1557,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       hs_ds_gs_bytes += (sh[5] + sh[6] + sh[7]) * 4;
     }
   }
-  for (int i = 0; i < fsh.size(); i++)
+  for (int i = 0; i < stor.ldShFsh.size(); i++)
   {
-    int type = fsh[i].size() ? fsh[i][0] : 0;
-    dag::ConstSpan<uint32_t> sh = ::transcode_pixel_shader(fsh[i]);
-    shaders[i + vpr.size()] = sh;
+    int type = stor.ldShFsh[i].size() ? stor.ldShFsh[i][0] : 0;
+    dag::ConstSpan<uint32_t> sh = ::transcode_pixel_shader(stor.ldShFsh[i]);
+    shaders[i + stor.ldShVpr.size()] = sh;
     if (type != _MAKE4C('D11c'))
       fsh_bytes += data_size(sh);
     else
@@ -1391,12 +1585,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     dag::Vector<int> sh_ids;
   };
 
-  const bool packGroups = (packing_flags & BindumpPackingFlagsBits::SHADER_GROUPS) && !shc::config().autotestMode;
+  const bool packGroups = (packing_flags & BindumpPackingFlagsBits::SHADER_GROUPS);
 
   const size_t dictSizeBytes = packGroups ? shc::config().dictionarySizeInKb << 10 : 0;
   const bool needToTrainDict = dictSizeBytes > 0;
   const size_t groupThresholdBytes = packGroups ? shc::config().shGroupSizeInKb << 10 : 0;
   const bool packEachShaderIntoSeparateGroup = groupThresholdBytes == 0;
+  const int groupCompressionLevel = shc::config().shGroupCompressionLevel;
+  const int dumpCompressionLevel = shc::config().shDumpCompressionLevel;
 
   dag::Vector<GroupInfo> groups;
   groups.reserve(shaders.size());
@@ -1430,7 +1626,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     return group;
   };
 
+  sh_debug(SHLOG_NORMAL, "[INFO] Collected shader groups in %gms", get_time_usec(reft) / 1000.);
+
   // 3) forming a solid array of all groups to create a common dictionary
+
+  reft = ref_time_ticks();
 
   ZSTD_CDict_s *dict = nullptr;
   shaders_dump.dictionary = dag::Vector<char>{};
@@ -1451,16 +1651,20 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
     dag::Vector<char> dict_buffer;
     dict_buffer.resize(dictSizeBytes);
-    size_t dict_size = zstd_train_dict_buffer(make_span(dict_buffer), ZSTD_SH_CLEVEL, samples_buffer, samples_sizes);
+    size_t dict_size = zstd_train_dict_buffer(make_span(dict_buffer), groupCompressionLevel, samples_buffer, samples_sizes);
     debug("using dictionary %dK: trained from %d samples (%dK total size) to trained size=%dK (%d)", shc::config().dictionarySizeInKb,
       samples_sizes.size(), samples_total_size >> 10, dict_size >> 10, dict_size);
     dict_buffer.resize(dict_size);
     shaders_dump.dictionary = dict_buffer;
 
-    dict = zstd_create_cdict(dag::Span<char>(dict_buffer.data(), dict_buffer.size()), ZSTD_SH_CLEVEL);
+    dict = zstd_create_cdict(dag::Span<char>(dict_buffer.data(), dict_buffer.size()), groupCompressionLevel);
+
+    sh_debug(SHLOG_NORMAL, "[INFO] Trained group compression dict in %gms", get_time_usec(reft) / 1000.);
   }
 
-  // 4) compressing of all groups
+  // 4) compression of all groups
+
+  reft = ref_time_ticks();
 
   shaders_dump.shGroups.resize(groups.size());
 
@@ -1469,7 +1673,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   {
     ZSTD_CCtx_s *cctx = packGroups ? zstd_create_cctx() : nullptr;
     // @NOTE: calling compress with level = -1 means "write as is without compression"
-    int packLevel = packGroups ? ZSTD_SH_CLEVEL : -1;
+    int packLevel = packGroups ? groupCompressionLevel : -1;
     for (size_t i = 0; i < shaders_dump.shGroups.size(); ++i)
       shaders_dump.shGroups[i].compress(make_group(groups[i]), packLevel, cctx, dict);
 
@@ -1487,20 +1691,21 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       CompressedGroupRef dest;
       Group src;
       const ZSTD_CDict_s *cdict;
+      const int groupCompressionLevel;
 
-      CompressionJob(CompressedGroupRef shGroup, const Group &&group, const ZSTD_CDict_s *dict) :
-        dest(shGroup), src(group), cdict(dict)
+      CompressionJob(CompressedGroupRef shGroup, const Group &&group, const ZSTD_CDict_s *dict, int groupCompressionLevel) :
+        dest(shGroup), src(group), cdict(dict), groupCompressionLevel(groupCompressionLevel)
       {}
 
-      virtual void doJobBody() final
+      void doJobBody() final
       {
         // Using TLS did not give any performance benefit while testing, but creates a slight mem leak
         ZSTD_CCtx_s *cctx = zstd_create_cctx();
-        dest.compress(src, ZSTD_SH_CLEVEL, cctx, cdict);
+        dest.compress(src, groupCompressionLevel, cctx, cdict);
         zstd_destroy_cctx(cctx);
       }
 
-      virtual void releaseJobBody() final {}
+      void releaseJobBody() final {}
     };
 
     const int jobsCnt = shaders_dump.shGroups.size();
@@ -1509,7 +1714,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     uint32_t queuePos;
     for (int i = 0; i < jobsCnt; ++i)
     {
-      jobs.emplace_back(shaders_dump.shGroups[i], make_group(groups[i]), dict);
+      jobs.emplace_back(shaders_dump.shGroups[i], make_group(groups[i]), dict, groupCompressionLevel);
       shc::add_job(&jobs.back(), shc::JobMgrChoiceStrategy::ROUND_ROBIN);
     }
 
@@ -1519,98 +1724,49 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   if (dict)
     zstd_destroy_cdict(dict);
 
-  // write storage sizes for vprId/fshId
-  shaders_dump.vprCount = vpr.size();
-  shaders_dump.fshCount = fsh.size();
+  sh_debug(SHLOG_NORMAL, "[INFO] Compressed groups in %gms", get_time_usec(reft) / 1000.);
+  reft = ref_time_ticks();
 
-  // write global vars data
-  shaders_dump.gvMap = make_span(gvmap);
-
-  // write vars storage
-  shaders_dump.varStorage = eastl::move(vars.storage);
-  shaders_dump.variables = vars.vars;
-  shaders_dump.globVars.v = vars.varLists[0].v;
-
-  // write strings
-  shaders_dump.varMap = var_names;
-  shaders_dump.shaderNameMap = shader_names;
-  shaders_dump.blockNameMap = blk_names;
-
-  // write shader blocks test codes
-  shaders_dump.blkPartSign = eastl::move(blkPartSign.getVecHolder());
-  shaders_dump.globalSuppBlkSign = eastl::move(globalSuppBlkSign.getVecHolder());
-
-  // write shader blocks
-  shaders_dump.blocks.resize(HARDCODED_BLK_NUM + blocks.size());
-  for (int i = 0; i < HARDCODED_BLK_NUM; i++)
-  {
-    shaders_dump.blocks[i].uidMask = hardcodedBlk[hardcodedBlkLayer[i]].uidMask;
-    shaders_dump.blocks[i].uidVal = hardcodedBlk[hardcodedBlkLayer[i]].uidVal;
-    shaders_dump.blocks[i].stcodeId = -1;
-    shaders_dump.blocks[i].nameId = i;
-  }
-
-  for (int i = 0; i < blocks.size(); i++)
-  {
-    ShaderStateBlock &b = *blocks[i];
-
-    shaders_dump.blocks[i + HARDCODED_BLK_NUM].uidMask = b.btd.uidMask;
-    shaders_dump.blocks[i + HARDCODED_BLK_NUM].uidVal = b.btd.uidVal;
-    shaders_dump.blocks[i + HARDCODED_BLK_NUM].suppBlkMask = b.btd.suppMask;
-    shaders_dump.blocks[i + HARDCODED_BLK_NUM].stcodeId = b.stcodeId;
-    shaders_dump.blocks[i + HARDCODED_BLK_NUM].nameId = i + HARDCODED_BLK_NUM;
-    if (b.btd.suppListOfs >= 0)
-      shaders_dump.blocks[i + HARDCODED_BLK_NUM].suppBlockUid = shaders_dump.blkPartSign.getElementAddress(b.btd.suppListOfs);
-  }
-
-  {
-    auto samplers = g_sampler_table.releaseSamplers();
-    shaders_dump.samplers.resize(samplers.size());
-    int smp_id = 0;
-    for (const auto &s : samplers)
-      shaders_dump.samplers[smp_id++] = s.mSamplerInfo;
-  }
-
-  // write shader classes
-  SharedStorage<int> shInitCodeStorage;
-  shaders_dump.classes.resize(dumpClasses.size());
-  shaders_dump.messagesByShclass.resize(dumpClasses.size());
-  for (int i = 0; i < dumpClasses.size(); i++)
-  {
-    ShaderCodes &code = dumpClasses[i].codes;
-    auto &out_c = shaders_dump.classes[i];
-    out_c = dumpClasses[i].shClass;
-
-    out_c.shrefStorage = eastl::move(code.shrefStorage.getVecHolder());
-
-    out_c.chanStorage = eastl::move(code.chanStorage.getVecHolder());
-    out_c.icStorage = eastl::move(code.icStorage.getVecHolder());
-    out_c.svStorage = eastl::move(code.svStorage.getVecHolder());
-    out_c.localVars.v = vars.varLists[i + 1].v;
-    out_c.code = make_span(code.codes);
-    out_c.name = shaders_dump.shaderNameMap[out_c.nameId].getElementAddress(0);
-    out_c.name.setCount(shaders_dump.shaderNameMap[out_c.nameId].size());
-
-    if (shc::config().addTextureType && !code.staticTextureTypesByCode.empty())
-      out_c.staticTextureTypeBySlot = code.staticTextureTypesByCode.front();
-
-    shInitCodeStorage.getRef(out_c.initCode, shClass[i]->shInitCode.data(), shClass[i]->shInitCode.size(), 8);
-
-    shaders_dump.messagesByShclass[i].resize(shClass[i]->messages.size());
-    for (int j = 0; j < shClass[i]->messages.size(); j++)
-      shaders_dump.messagesByShclass[i][j] = shClass[i]->messages[j];
-  }
-  shaders_dump.shInitCodeStorage = eastl::move(shInitCodeStorage.getVecHolder());
-
-  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY) && !shc::config().autotestMode;
+  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY);
   const int compressedSize =
-    shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, packBin ? ZSTD_SH_CLEVEL : -1);
+    shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, packBin ? dumpCompressionLevel : -1);
+
+  sh_debug(SHLOG_NORMAL, "[INFO] Compressed dump in %gms", get_time_usec(reft) / 1000.);
+  reft = ref_time_ticks();
+
+  // Splat data and calculate sha256 hash (of everything except the header)
+
+  bindump::VectorWriter contentWriter{};
+  bindump::streamWrite(shaders_dump_compressed, contentWriter);
+
+  auto mapped = bindump::map<ScriptedShadersBinDumpCompressed>(contentWriter.mData.data());
+  G_ASSERT(mapped);
+
+  static_assert(offsetof(eastl::remove_pointer_t<decltype(mapped)>, scriptedShadersBindumpCompressed) == sizeof(mapped->header));
+  auto content = dag::ConstSpan<uint8_t>{contentWriter.mData.data(), contentWriter.mData.size()}.subspan(sizeof(mapped->header));
+
+  uint8_t checksum[SHA256_DIGEST_LENGTH];
+  sha256_csum(content.data(), content.size(), checksum);
+
+  static_assert(sizeof(mapped->header.checksumHash) == sizeof(checksum));
+  memcpy(mapped->header.checksumHash, checksum, sizeof(mapped->header.checksumHash));
+
+  sh_debug(SHLOG_NORMAL, "[INFO] Calculated checksum in %gms", get_time_usec(reft) / 1000.);
+  reft = ref_time_ticks();
+
+  {
+    eastl::string logHash{};
+    for (uint8_t byte : mapped->header.checksumHash)
+      logHash.append_sprintf("%02x", byte);
+    finalReport.aprintf(0, "Scripted shaders bindump:\n  | version : %d\n  | csum    : %s\n", mapped->header.version, logHash.c_str());
+  }
 
   sh_debug(SHLOG_INFO, "  %d vars (%d global vars), storage=%d", vars.vars.size(), vars.varLists[0].v.size(),
     vars.storage.size() * sizeof(vars.storage[0]));
   sh_debug(SHLOG_INFO, "  shaders: %d bytes (VS: %d,  HS/DS/GS: %d,  PS: %d,  CS: %d)",
     vpr_bytes + fsh_bytes + hs_ds_gs_bytes + cs_bytes, vpr_bytes, hs_ds_gs_bytes, fsh_bytes, cs_bytes);
   sh_debug(SHLOG_INFO, "  stcode: %d/%d/%d bytes", stcode_bytes0, stcode_bytes1, stcode_bytes2);
+
   sh_debug(SHLOG_NORMAL, "  scripted shaders size: %d bytes (%d K)", compressedSize, compressedSize >> 10);
   if (shaders_dump_compressed.scriptedShadersBindumpCompressed.getDecompressedSize())
   {
@@ -1622,10 +1778,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   //
   // write dump to output stream
   //
-  unload_scripted_shaders();
   if (ErrorCounter::allShaders().err != 0)
     return false;
 
-  bindump::streamWrite(shaders_dump_compressed, file_writer);
+  fileWriter.seekto(0);
+  fileWriter.write(contentWriter.mData.data(), contentWriter.mData.size());
+
+  sh_debug(SHLOG_NORMAL, "[INFO] Saved bindump in %gms", get_time_usec(reft) / 1000.);
+  sh_debug(SHLOG_NORMAL, "%s", finalReport.c_str());
+
   return true;
 }

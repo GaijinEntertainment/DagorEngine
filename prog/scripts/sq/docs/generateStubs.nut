@@ -1,9 +1,9 @@
-let io = require("io")
-let {file_exists, mkdir} = require("dagor.fs")
-let {argv, get_arg_value_by_name} = require("dagor.system")
-let {get_native_module_names} = require("modules")
+import "io" as io
+from "dagor.fs" import file_exists, mkdir
+from "dagor.system" import argv, get_arg_value_by_name
+from "modules" import get_native_module_names
+from "%sqstd/moduleInfo.nut" import mkStubStr
 let log = require("%sqstd/log.nut")().log
-let {mkStubStr} = require("%sqstd/moduleInfo.nut")
 /*
   allow generate stubs for native modules
   TODO:
@@ -42,4 +42,3 @@ if (__name__ == "__main__") {
     log("to generate stubs to ../stubs dir add '-build' in arguments\n","-v for verbosity")
   }
 }
-

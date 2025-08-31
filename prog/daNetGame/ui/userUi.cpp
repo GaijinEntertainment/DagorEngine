@@ -55,6 +55,7 @@
 #include <quirrel/nestdb/nestdb.h>
 
 #include "uiVideoMode.h"
+#include "xrayUiOrder.h"
 
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
@@ -92,7 +93,9 @@
 #include "main/gameLoad.h"
 #include "loadingUi.h"
 
-SQInteger get_thread_id_func();
+#if DAGOR_DBGLEVEL > 0
+static SQInteger get_thread_id_func() { return SQInteger(get_current_thread_id()); }
+#endif
 
 #define UI_ECS_EVENT ECS_REGISTER_EVENT
 UI_ECS_EVENTS
@@ -210,6 +213,7 @@ static void bind_ui_script_apis(SqModules *moduleMgr)
   ecs::sq::bind_net(moduleMgr);
   do_bind_das(moduleMgr);
   ui::videomode::bind_script(moduleMgr);
+  ui::xray_ui_order::bind_script(moduleMgr);
 
   bindquirrel::register_dagor_shell(moduleMgr);
   bindquirrel::sqrat_bind_dagor_math(moduleMgr);

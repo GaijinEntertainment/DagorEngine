@@ -3,6 +3,7 @@
 
 #include <gui/dag_imgui.h>
 #include <propPanel/control/container.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_string.h>
@@ -18,17 +19,17 @@ public:
     ContainerPropertyControl(id, event_handler, parent, x, y, w, h), controlCaption(caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL; }
 
-  virtual bool getBoolValue() const override { return minimized; }
-  virtual void setBoolValue(bool value) override { minimized = value; }
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
-  virtual void setUserDataValue(const void *value) override { userData = const_cast<void *>(value); }
-  virtual void *getUserDataValue() const override { return userData; }
+  bool getBoolValue() const override { return minimized; }
+  void setBoolValue(bool value) override { minimized = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setUserDataValue(const void *value) override { userData = const_cast<void *>(value); }
+  void *getUserDataValue() const override { return userData; }
 
-  virtual int getCaptionValue(char *buffer, int buflen) const override
+  int getCaptionValue(char *buffer, int buflen) const override
   {
     if ((controlCaption.size() + 1) >= buflen)
       return 0;
@@ -38,7 +39,7 @@ public:
     return controlCaption.size();
   }
 
-  virtual void clear() override
+  void clear() override
   {
     ContainerPropertyControl::clear();
 
@@ -47,32 +48,44 @@ public:
 
   // saving and loading state with datablock
 
-  virtual int saveState(DataBlock &datablk) override
+  int saveState(DataBlock &datablk, bool by_name) override
   {
-    DataBlock *_block = datablk.addNewBlock(String(64, "group_%d", this->getID()).str());
+    String groupId;
+    if (by_name)
+      groupId.printf(64, "group_%s", getStringCaption().c_str());
+    else
+      groupId.printf(64, "group_%d", getID());
+
+    DataBlock *_block = datablk.addNewBlock(groupId.c_str());
     _block->addBool("minimize", this->getBoolValue());
 
     for (PropertyControlBase *control : mControlArray)
-      control->saveState(*_block);
+      control->saveState(*_block, by_name);
 
     return 0;
   }
 
-  virtual int loadState(DataBlock &datablk) override
+  int loadState(DataBlock &datablk, bool by_name) override
   {
-    DataBlock *_block = datablk.getBlockByName(String(64, "group_%d", this->getID()).str());
+    String groupId;
+    if (by_name)
+      groupId.printf(64, "group_%s", getStringCaption().c_str());
+    else
+      groupId.printf(64, "group_%d", getID());
+
+    DataBlock *_block = datablk.getBlockByName(groupId.c_str());
     if (_block)
     {
       this->setBoolValue(_block->getBool("minimize", true));
 
       for (PropertyControlBase *control : mControlArray)
-        control->loadState(*_block);
+        control->loadState(*_block, by_name);
     }
 
     return 0;
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     // NOTE: if you modify this then you might have to modify the code in ExtGroupPropertyControl too!
 
@@ -108,17 +121,10 @@ public:
 
       addVerticalSpaceAfterControl();
 
-      // Draw the half frame.
       const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-      ImDrawList *drawList = ImGui::GetWindowDrawList();
-      drawList->AddLine(ImVec2(buttonTopLeft.x, buttonBottomRight.y), ImVec2(buttonTopLeft.x, cursorPos.y),
-        Constants::GROUP_BORDER_COLOR);
-      drawList->AddLine(ImVec2(buttonTopLeft.x, cursorPos.y), ImVec2(buttonBottomRight.x, cursorPos.y), Constants::GROUP_BORDER_COLOR);
-
+      drawHalfFrame(buttonTopLeft.x, buttonBottomRight.y, buttonBottomRight.x, cursorPos.y);
       ImGui::SetCursorScreenPos(ImVec2(cursorPos.x, cursorPos.y + ImGui::GetStyle().ItemSpacing.y));
-
-      // This is here to prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
-      ImGui::Dummy(ImVec2(0.0f, 0.0f));
+      ImGui::Dummy(ImVec2(0.0f, 0.0f)); // Prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
     }
   }
 
@@ -128,6 +134,21 @@ public:
 
   bool isMinimized() const { return minimized; }
   void setMinimized(bool in_minimized) { minimized = in_minimized; }
+
+  // Draw the left bottom of the frame with an optionally rounded corner.
+  static void drawHalfFrame(float line_left_x, float line_top_y, float line_right_x, float line_bottom_y)
+  {
+    const ImU32 lineColor = getOverriddenColorU32(ColorOverride::GROUP_BORDER);
+    if ((lineColor & IM_COL32_A_MASK) == 0)
+      return;
+
+    const float rounding = ImGui::GetStyle().FrameRounding;
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    drawList->PathLineTo(ImVec2(line_left_x + 0.5f, line_top_y - rounding + 0.5f));
+    drawList->PathArcToFast(ImVec2(line_left_x + rounding + 0.5f, line_bottom_y - rounding + 0.5f), rounding, 6, 3);
+    drawList->PathLineTo(ImVec2(line_right_x + 0.5f, line_bottom_y + 0.5f));
+    drawList->PathStroke(lineColor);
+  }
 
 protected:
   void setFocusToPreviousImGuiControlAndScrollToItsTopIfRequested()

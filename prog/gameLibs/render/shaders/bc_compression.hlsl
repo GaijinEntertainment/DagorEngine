@@ -1,5 +1,6 @@
 #ifndef BC_COMPRESSION_MATH_HLSL
 #define BC_COMPRESSION_MATH_HLSL 1
+  #include "eigenvector.hlsl"
   half4 find_min_base_color(in half4 texels[16])
   {
     half4 minColor = texels[0];
@@ -29,8 +30,8 @@
 
 
 
-  // refine reference colors
-  void refine_rgb_base_colors( half4 texels[16], inout half4 min_color, inout half4 max_color )
+  // correlate reference colors
+  void correlate_rgb_base_colors( half4 texels[16], inout half4 min_color, inout half4 max_color )
   {
     float3 center = ( min_color.rgb + max_color.rgb ) * 0.5f;
 
@@ -56,10 +57,64 @@
 
     min_color.g = cov.y < 0 ? tmp_max.g : tmp_min.g;
     max_color.g = cov.y < 0 ? tmp_min.g : tmp_max.g;
+  }
 
+  void inset_rgb_base_colors( inout half4 min_color, inout half4 max_color )
+  {
     float3 inset = ( max_color.rgb - min_color.rgb ) / 16.f;
 
     min_color.rgb = saturate( min_color.rgb + inset );
     max_color.rgb = saturate( max_color.rgb - inset );
+  }
+
+  // Find reference colors using Principal Component Analysis for RGB colors.
+  static const float scale = pow(2, 10);
+  static const float epsilon = scale*(1./128.)*pow(1./255., 2);
+  void find_base_colors_pca_rgb( half4 texels[16], out half4 min_color, out half4 max_color )
+  {
+    half2 minMaxAlpha = half2(1, 0);
+
+    int i = 0;
+    for (i = 0; i < 16; ++i)
+    {
+      minMaxAlpha.x = min(texels[i].a, minMaxAlpha.x);
+      minMaxAlpha.y = max(texels[i].a, minMaxAlpha.y);
+    }
+
+    half4 texels_mean = half4(0, 0, 0, 0);
+    for (i = 0; i < 16; ++i)
+      texels_mean.rgb += texels[i].rgb / 16;
+
+    float Err = 0, Egg = 0, Ebb = 0, Erg = 0, Egb = 0, Erb = 0;
+    for (i = 0; i < 16; ++i)
+    {
+      float3 ctex = texels[i].rgb - texels_mean.rgb;
+      Err += ctex.r * ctex.r;
+      Egg += ctex.g * ctex.g;
+      Ebb += ctex.b * ctex.b;
+      Erg += ctex.r * ctex.g;
+      Egb += ctex.g * ctex.b;
+      Erb += ctex.r * ctex.b;
+    }
+
+    Err = Err*scale + 1*epsilon;
+    Egg = Egg*scale + 2*epsilon;
+    Ebb = Ebb*scale + 3*epsilon;
+    Erg = Erg*scale - 1.5*epsilon;
+    Egb = Egb*scale - 2.5*epsilon;
+    Erb = Erb*scale - 3.5*epsilon;
+
+    float3 majorVec = normalize(majorEigenvector3x3sym(Err, Egg, Ebb, Erg, Egb, Erb));
+
+    float2 minMaxProj = float2(100, -100);
+    for (i = 0; i < 16; ++i)
+    {
+      float3 ctex = texels[i].rgb - texels_mean.rgb;
+      float proj = dot(ctex, majorVec);
+      minMaxProj.x = min(proj, minMaxProj.x);
+      minMaxProj.y = max(proj, minMaxProj.y);
+    }
+    min_color = half4(majorVec*minMaxProj.x + texels_mean.rgb, minMaxAlpha.x);
+    max_color = half4(majorVec*minMaxProj.y + texels_mean.rgb, minMaxAlpha.y);
   }
 #endif

@@ -8,8 +8,8 @@ require ECSGlobalTags
 [init]
 def load
   var ok = true
-  if app::get_game_name() == "aot" || (get_DAGOR_DBGLEVEL() > 0 && find_index(get_command_line_arguments(), "--das-no-linter") == -1)
+  if is_in_aot() || (get_DAGOR_DBGLEVEL() > 0 && find_index(get_command_line_arguments(), "--das-no-linter") == -1)
     ok = load_das("%danetlibs/dascript_base/linter.das") && ok
 
-  if app::get_game_name() == "aot"
+  if is_in_aot()
     assert(ok)

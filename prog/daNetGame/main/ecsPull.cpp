@@ -6,6 +6,7 @@
   RS(keyTrackAnim)            \
   RS(replication)             \
   RS(animchar)                \
+  RS(hierarchy_transform)     \
   RS(input)                   \
   RS(collres)                 \
   RS(phys_body)               \
@@ -13,6 +14,7 @@
   RS(animPhys)                \
   RS(physVars)                \
   RS(animCharFastPhys)        \
+  RS(animCharFastPhysDebug)   \
   RS(action)                  \
   RS(rendinst)                \
   RS(particle_phys)           \
@@ -22,6 +24,7 @@
   RS(riGpuObjects)            \
   RS(animCharEffectors)       \
   RS(soundComponent)          \
+  RS(animcharSound)           \
   RS(ecs_debug)               \
   RS(animIrq)                 \
   RS(animCharCameraTarget)    \

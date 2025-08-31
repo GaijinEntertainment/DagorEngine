@@ -26,6 +26,7 @@
 #include <drv/3d/dag_driverNetManager.h>
 #include <drv/3d/dag_info.h>
 #include <drv_log_defs.h>
+#include <drv_assert_defs.h>
 #include <generic/dag_objectPool.h>
 #include <mutex>
 
@@ -46,10 +47,10 @@ struct TextureSubresourceInfo
   uint32_t totalByteSize{};
 };
 
-TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, ArrayLayerCount arrays, FormatStore fmt);
+TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, FormatStore fmt);
 inline TextureSubresourceInfo calculate_texture_mip_info(const Image &texture, MipMapIndex mip_level)
 {
-  return calculate_texture_region_info(texture.getMipExtents(mip_level), texture.getArrayLayers(), texture.getFormat());
+  return calculate_texture_region_info(texture.getMipExtents(mip_level), texture.getFormat());
 }
 inline TextureSubresourceInfo calculate_texture_subresource_info(const Image &texture, SubresourceIndex subres_index)
 {
@@ -496,10 +497,12 @@ private:
   D3D12_CPU_DESCRIPTOR_HANDLE defaultSampler{};
   D3D12_CPU_DESCRIPTOR_HANDLE defaultCmpSampler{};
 #if _TARGET_PC_WIN
+  uint32_t vendorID = 0;
   DriverVersion driverVersion{};
 #endif
   frontend::BindlessManager bindlessManager;
   BufferState nullBuffer;
+  Sbuffer *dummyUavBuffer = nullptr;
 
   D3D12_CPU_DESCRIPTOR_HANDLE getNonRecentImageViews(Image *img, ImageViewState state); // checks oldViews, update LRU entry if found
   // context lock has to be held to ensure data consistency
@@ -510,8 +513,8 @@ private:
     return getNonRecentImageViews(img, state);
   }
 
-  Device(const Device &);
-  Device &operator=(const Device &);
+  Device(const Device &) = delete;
+  Device &operator=(const Device &) = delete;
   // TODO rename and move null resource table gen into it
   void setupNullViews();
   void configureFeatureCaps();
@@ -555,24 +558,30 @@ private:
   bool createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level);
 #endif
 
+  template <typename F>
+  bool processDefragmentation(const F &defragmentation_call, const char *defragmentation_method_name);
+
 public:
   eastl::unique_ptr<DriverNetManager> netManager;
+  using debug::DeviceState::nameObject;
+  using debug::DeviceState::nameResource;
   using debug::DeviceState::processDebugLog;
-
+  using debug::DeviceState::setRtValidationCallback;
 
   Device() : context(*this) {}
   ~Device();
 #if _TARGET_PC_WIN
   bool init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
-    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
-    const DataBlock *dx_cfg);
+    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg);
+  uint32_t ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIFactory> &factory);
+  void destroySecondarySwapchainForWindow(HWND window);
 #elif _TARGET_XBOX
   bool init(SwapchainCreateInfo swapchain_create_info, const Config &cfg);
 #endif
   bool isInitialized() const;
   void shutdown(const DeviceCapsAndShaderModel &deatures);
   void adjustCaps(Driver3dDesc &);
-  void initializeBindlessManager();
+  void initializeBindlessManager(bool enable_types_validation);
 #if D3D_HAS_RAY_TRACING
   bool hasRaytraceSupport() const { return caps.test(Caps::RAY_TRACING); }
   bool hasRaytrace1Dot1Support() const { return caps.test(Caps::RAY_TRACING_T1_1); }
@@ -580,6 +589,9 @@ public:
   uint64_t getGpuTimestampFrequency();
   int getGpuClockCalibration(uint64_t *gpu, uint64_t *cpu, int *cpu_freq_type);
   Image *createImage(const ImageInfo &ii, Image *base_image, const char *name);
+#if _TARGET_PC_WIN
+  Image *createVirtualBackbuffer(Image *base);
+#endif
 #if DX12_USE_ESRAM
   Image *createEsramBackedImage(const ImageInfo &ii, Image *base_image, const char *name);
 #endif
@@ -604,6 +616,7 @@ public:
   D3DDevice *getDevice();
 
   void processEmergencyDefragmentation(uint32_t heap_group, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv);
+  bool processDefragmentationForAllGroups();
 
   DeviceContext &getContext() { return context; }
   FrontendQueryManager &getQueryManager() { return frontendQueryManager; }
@@ -615,6 +628,16 @@ public:
   RaytraceAccelerationStructure *createRaytraceAccelerationStructure(uint32_t size);
   RaytraceAccelerationStructure *createRaytraceAccelerationStructure(uint32_t elements, RaytraceBuildFlags flags,
     uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+
+
+  ::raytrace::TopAccelerationStructure *createRaytraceAccelerationStructure(
+    const ::raytrace::TopAccelerationStructurePlacementInfo &top_info);
+  ::raytrace::TopAccelerationStructure *createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
+    const ::raytrace::TopAccelerationStructurePlacementInfo &top_info);
+  ::raytrace::BottomAccelerationStructure *createRaytraceAccelerationStructure(
+    const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info);
+  ::raytrace::BottomAccelerationStructure *createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
+    const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info);
 
   uint64_t getRaytraceAccelerationStructuresMemoryUsage() { return resources.getRaytraceAccelerationStructuresGpuMemoryUsage(); }
 #endif
@@ -646,11 +669,14 @@ public:
   HRESULT findClosestMatchingMode(DXGI_MODE_DESC *out_desc);
 #endif
 
-  bool isSamplesCountSupported(DXGI_FORMAT format, int32_t samples_count);
-
-  D3D12_FEATURE_DATA_FORMAT_SUPPORT getFormatFeatures(FormatStore fmt);
-  ImageGlobalSubresourceId getSwapchainColorGlobalId() const { return resources.getSwapchainColorGlobalId(); }
-  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId() const { return resources.getSwapchainSecondaryColorGlobalId(); }
+  ImageGlobalSubresourceId getSwapchainColorGlobalId(uint32_t swapchain_index) const
+  {
+    return resources.getSwapchainColorGlobalId(swapchain_index);
+  }
+  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId(uint32_t swapchain_index) const
+  {
+    return resources.getSwapchainSecondaryColorGlobalId(swapchain_index);
+  }
 
 #if _TARGET_PC_WIN
   void signalDeviceError()
@@ -690,6 +716,8 @@ public:
     D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd);
   bool finalizeRecovery();
 
+  using debug::DeviceState::isAnyCapturerLoaded;
+  using debug::DeviceState::isGpuBasedValidationEnabled;
   using debug::DeviceState::sendGPUCrashDump;
 #endif
 
@@ -721,30 +749,37 @@ public:
     return bindlessManager.registerSampler(context, resources.getSamplerInfo(sampler));
   }
 
-  uint32_t allocateBindlessResourceRange(uint32_t count) { return bindlessManager.allocateBindlessResourceRange(count); }
-
-  uint32_t resizeBindlessResourceRange(uint32_t index, uint32_t current_count, uint32_t new_count)
+  uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count)
   {
-    return bindlessManager.resizeBindlessResourceRange(context, index, current_count, new_count);
+    return bindlessManager.allocateBindlessResourceRange(type, count);
   }
 
-  void freeBindlessResourceRange(uint32_t index, uint32_t count) { bindlessManager.freeBindlessResourceRange(index, count); }
-
-  void updateBindlessBuffer(uint32_t index, GenericBufferInterface *buffer)
+  uint32_t resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
   {
-    bindlessManager.updateBindlessBuffer(context, index, buffer);
+    return bindlessManager.resizeBindlessResourceRange(type, context, index, current_count, new_count);
   }
 
-  void updateBindlessTexture(uint32_t index, BaseTex *res) { bindlessManager.updateBindlessTexture(context, index, res); }
-
-  void updateBindlessNull(uint32_t resource_type, uint32_t index, uint32_t count)
+  void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
   {
-    bindlessManager.updateBindlessNull(context, resource_type, index, count);
+    bindlessManager.freeBindlessResourceRange(type, index, count);
   }
 
-  void updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image, bool ignore_previous_view);
+  bool updateBindlessBuffer(uint32_t index, GenericBufferInterface *buffer)
+  {
+    return bindlessManager.updateBindlessBuffer(context, index, buffer);
+  }
+
+  bool updateBindlessTexture(uint32_t index, BaseTex *res) { return bindlessManager.updateBindlessTexture(context, index, res); }
+
+  void updateBindlessNull(D3DResourceType type, uint32_t index, uint32_t count)
+  {
+    bindlessManager.updateBindlessNull(context, type, index, count);
+  }
+
+  void updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image);
 
 #if _TARGET_PC_WIN
+  uint32_t getDeviceVendorID() const { return vendorID; }
   DriverVersion getDriverVersion() const { return driverVersion; }
 #endif
 
@@ -763,9 +798,6 @@ public:
     context.finish();
     resources.resetAllLayouts();
   }
-  void fetchTexturesToESRAM() { resources.fetchMovableTextures(context); }
-  void writeBackTexturesFromESRAM() { resources.writeBackMovableTextures(context); }
-  void registerMovableESRAMTexture(Image *texture) { resources.registerMovableTexture(texture); }
 #endif
 
 #if DX12_CONFIGUREABLE_BARRIER_MODE
@@ -902,11 +934,6 @@ public:
   }
 #endif
 
-  ResourceMemory getResourceMemoryForBuffer(BufferResourceReference ref)
-  {
-    return resources.getResourceMemoryForBuffer(ref.resourceId);
-  }
-
   bool ignorePredication() const { return config.features.test(DeviceFeaturesConfig::IGNORE_PREDICATION); }
 
   // This buffer can also be used to initialize other GPU resources with 0, as long as they are not bigger than this buffer.
@@ -991,7 +1018,15 @@ public:
   RayTracePipeline *createPipeline(const ::raytrace::PipelineCreateInfo &pci);
 #endif
   RayTracePipeline *expandPipeline(RayTracePipeline *base, const ::raytrace::PipelineExpandInfo &pei);
+
+  ::raytrace::AccelerationStructureSizes calculateAccelerationStructureSizes(
+    const ::raytrace::TopAccelerationStructureSizeCalculcationInfo &info);
+  ::raytrace::AccelerationStructureSizes calculateAccelerationStructureSizes(
+    const ::raytrace::BottomAccelerationStructureSizeCalculcationInfo &info);
+
+  ::raytrace::AccelerationStructurePool createAccelerationStructurePool(const ::raytrace::AccelerationStructurePoolCreateInfo &info);
 #endif
+  D3D12_CPU_DESCRIPTOR_HANDLE allocateResourceDescriptor() { return resources.allocateTextureSRVDescriptor(device.get()); }
 };
 
 // makes all uses as dirty so that a discarded buffer is correctly used
@@ -1016,8 +1051,8 @@ inline void PipelineStageStateBase::enumerateUAVResources(uint32_t uav_mask, T c
 }
 
 inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
-  ConstBufferStreamDescriptorHeap &stream_heap, D3D12_CONSTANT_BUFFER_VIEW_DESC default_const_buffer, uint32_t cb_mask,
-  StatefulCommandBuffer &cmd, uint32_t stage, ConstantBufferPushMode mode, uint32_t frame_idx)
+  D3D12_CONSTANT_BUFFER_VIEW_DESC default_const_buffer, uint32_t cb_mask, StatefulCommandBuffer &cmd, uint32_t stage,
+  ConstantBufferPushMode mode, uint32_t frame_idx)
 {
   const uint32_t count = ConstantBufferPushMode::DESCRIPTOR_HEAP == mode ? __popcount(cb_mask) : 0;
   if (bRegisterValidMask == cb_mask)
@@ -1051,30 +1086,28 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
     const auto &info = bRegisterBuffers[i];
     if (info.isStreamBuffer && info.lastDiscardFrameIdx != frame_idx)
     {
-      D3D_ERROR("DX12: Framem buffer '%s' is used without initialization (frame: %u, discard frame: %u)", info.name, frame_idx,
-        info.lastDiscardFrameIdx);
+      D3D_CONTRACT_ERROR("DX12: Framem buffer '%s' is used without initialization (frame: %u, discard frame: %u)", info.name,
+        frame_idx, info.lastDiscardFrameIdx);
     }
   }
 #endif
 
   if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
   {
-    const auto base = stream_heap.getDescriptors(device, count);
-    const auto width = stream_heap.getDescriptorSize();
-    auto pos = base;
-
+    const auto baseIndex = heap.allocateConstBufferDescriptors(count);
+    auto index = baseIndex;
     auto defView = constRegisterLastBuffer.BufferLocation != 0 ? &constRegisterLastBuffer : nullptr;
 
     for (auto i : LsbVisitor{cb_mask}) // pos may be changed on each iteration
     {
+      const auto pos = heap.getCpuAddress(index);
       auto view = bRegisters[i].BufferLocation ? &bRegisters[i] : defView;
       defView = nullptr;
       device->CreateConstantBufferView(view, pos);
-      pos.ptr += width;
+      index.descriptorIndex++;
     }
 
-    auto index = heap.appendToConstScratchSegment(device, base, count);
-    bRegisterDescribtorRange = DescriptorHeapRange::make(index, count);
+    bRegisterDescribtorRange = DescriptorHeapRange::make(baseIndex, count);
   }
   else
   {
@@ -1671,7 +1704,7 @@ inline void BufferInterfaceConfigCommon::flushMappedRange(BufferReferenceType bu
 }
 inline uint8_t *BufferInterfaceConfigCommon::getMappedPointer(BufferReferenceType buffer, uint32_t offset)
 {
-  return buffer.cpuPointer + buffer.size * buffer.currentDiscardIndex + offset;
+  return buffer.currentCPUPointer(offset);
 }
 inline void BufferInterfaceConfigCommon::invalidateMemory(HostDeviceSharedMemoryRegion mem, uint64_t offset, uint32_t size)
 {
@@ -1746,7 +1779,10 @@ inline BufferInterfaceConfigCommon::TemporaryMemoryType BufferInterfaceConfigCom
   notify_discard(self, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, SBCF_BIND_SHADER_RES & flags,
     SBCF_BIND_UNORDERED & flags);
   uint32_t alignment = (SBCF_BIND_CONSTANT & flags) ? D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT : sizeof(uint32_t);
-  return get_device().getContext().allocatePushMemory(size, alignment);
+  // Const buffers size must be aligned
+  uint32_t alignedSize =
+    (SBCF_BIND_CONSTANT & flags) ? align_value<uint32_t>(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) : size;
+  return get_device().getContext().allocatePushMemory(alignedSize, alignment);
 }
 
 inline bool BufferInterfaceConfigCommon::allowsStreamBuffer(uint32_t flags)
@@ -1812,19 +1848,22 @@ inline bool BufferInterfaceConfigCommon::allowsStreamBuffer(uint32_t flags)
   }
 }
 
-inline bool PlatformBufferInterfaceConfig::isMapable(BufferConstReferenceType buf) { return buf.cpuPointer != nullptr; }
-
-#if _TARGET_PC_WIN
-Device::Config update_config_for_vendor(Device::Config config, const DataBlock *cfg, Device::AdapterInfo &adapterInfo);
-#endif
+inline bool PlatformBufferInterfaceConfig::isMapable(BufferConstReferenceType buf) { return buf.cpuPointer() != nullptr; }
 
 Device::Config get_device_config(const DataBlock *cfg);
 
-inline BaseTex *DeviceContext::getSwapchainColorTexture() { return front.swapchain.getColorTexture(); }
+inline uint32_t DeviceContext::getCurrentSwapchainIndex() const { return front.swapchain.getCurrentSwapchainIndex(); }
 
-inline BaseTex *DeviceContext::getSwapchainSecondaryColorTexture() { return front.swapchain.getSecondaryColorTexture(); }
+inline BaseTex *DeviceContext::getSwapchainColorTexture(uint32_t swapchain_index)
+{
+  return front.swapchain.getColorTexture(swapchain_index);
+}
 
-inline Extent2D DeviceContext::getSwapchainExtent() const { return front.swapchain.getExtent(); }
+inline BaseTex *DeviceContext::getCurrentSwapchainColorTexture() { return front.swapchain.getCurrentColorTexture(); }
+
+inline BaseTex *DeviceContext::getCurrentSwapchainSecondaryColorTexture() { return front.swapchain.getCurrentSecondaryColorTexture(); }
+
+inline Extent2D DeviceContext::getSwapchainExtent() const { return front.swapchain.getCurrentExtent(); }
 
 inline bool DeviceContext::isVrrSupported() const { return back.swapchain.isVrrSupported(); }
 
@@ -1834,13 +1873,18 @@ inline bool DeviceContext::isHfrSupported() const { return back.swapchain.isHfrS
 
 inline bool DeviceContext::isHfrEnabled() const { return back.swapchain.isHfrEnabled(); }
 
-inline FormatStore DeviceContext::getSwapchainColorFormat() const { return front.swapchain.getColorFormat(); }
+inline FormatStore DeviceContext::getSwapchainColorFormat() const { return front.swapchain.getCurrentColorFormat(); }
 
-inline FormatStore DeviceContext::getSwapchainSecondaryColorFormat() const { return front.swapchain.getSecondaryColorFormat(); }
+inline FormatStore DeviceContext::getSwapchainSecondaryColorFormat() const { return front.swapchain.getCurrentSecondaryColorFormat(); }
 
-inline Extent2D frontend::Swapchain::getExtent() const
+inline DXGISwapChain *DeviceContext::getDxgiSwapchain() const { return back.swapchain.getDxgiSwapchain(); }
+
+inline Extent2D frontend::Swapchain::getCurrentExtent() const { return getExtent(getCurrentSwapchainIndex()); }
+
+inline Extent2D frontend::Swapchain::getExtent(uint32_t swapchain_index) const
 {
   Extent2D extent{};
+  const auto &swapchainColorTex = getColorTexture(swapchain_index);
   if (swapchainColorTex)
   {
     extent.width = swapchainColorTex->width;
@@ -1849,16 +1893,20 @@ inline Extent2D frontend::Swapchain::getExtent() const
   return extent;
 }
 
-inline void frontend::Swapchain::bufferResize(const Extent2D &extent)
+inline void frontend::Swapchain::bufferResize(const Extent2D &extent, uint32_t swapchain_index)
 {
-  swapchainColorTex->setParams(extent.width, extent.height, 1, 1, "swapchain color target");
+  auto &colorTex = targets[swapchain_index].swapchainColorTex;
+  char name[64];
+  snprintf(name, sizeof(name), "swapchain color target %u", swapchain_index);
+  colorTex->setParams(extent.width, extent.height, 1, 1, name);
 }
 
-inline FormatStore frontend::Swapchain::getColorFormat() const { return swapchainColorTex->getFormat(); }
+inline FormatStore frontend::Swapchain::getCurrentColorFormat() const { return getCurrentColorTexture()->getFormat(); }
 
-inline FormatStore frontend::Swapchain::getSecondaryColorFormat() const
+inline FormatStore frontend::Swapchain::getCurrentSecondaryColorFormat() const
 {
 #if _TARGET_XBOX
+  const auto &swapchainSecondaryColorTex = getCurrentSecondaryColorTexture();
   if (swapchainSecondaryColorTex)
     return swapchainSecondaryColorTex->getFormat();
 #endif
@@ -1869,8 +1917,15 @@ inline FormatStore frontend::Swapchain::getSecondaryColorFormat() const
 #if _TARGET_PC_WIN
 inline void frontend::Swapchain::preRecovery()
 {
-  swapchainColorTex->stagingMemory = {};
+  for (auto &target : targets)
+  {
+    if (!target.swapchainColorTex)
+      continue;
+    target.swapchainColorTex->stagingMemory = {};
+    target.swapchainColorTex->preRecovery();
+  }
   waitableObject.reset();
+  freeSwapchainsMask = ~1u;
 }
 #endif
 
@@ -1882,8 +1937,57 @@ inline bool is_swapchain_color_image(Image *img)
   {
     return false;
   }
-  return swapchain_color_texture_global_id == img->getGlobalSubResourceIdBase() ||
-         swapchain_secondary_color_texture_global_id == img->getGlobalSubResourceIdBase();
+  return first_dynamic_texture_global_id > img->getGlobalSubResourceIdBase();
 }
 
+inline void ReadBackManager::doSwapchainReadBack(ResourceUsageManagerWithHistory &resource_state, BarrierBatcher &barrier_batcher,
+  SplitTransitionTracker &split_transition_tracker, StatefulCommandBuffer &command_list)
+{
+  // are any read backs pending for the texture?
+  auto firstEntry = eastl::find_if(textureReadBackRecords.begin(), textureReadBackRecords.end(),
+    [](auto &info) { return is_swapchain_color_image(info.image); });
+  if (textureReadBackRecords.end() == firstEntry)
+  {
+    return;
+  }
+
+  // we need to generate all barriers first
+  auto at = firstEntry;
+  do
+  {
+    resource_state.useTextureAsCopySource(barrier_batcher, split_transition_tracker, at->image,
+      SubresourceIndex::make(at->copyInfo.subresourceIndex));
+
+    at = eastl::find_if(at + 1, textureReadBackRecords.end(), [](auto &info) { return is_swapchain_color_image(info.image); });
+  } while (at != textureReadBackRecords.end());
+
+  barrier_batcher.execute(command_list);
+
+  // now we generate all read back copy commands and remove the entries
+  D3D12_TEXTURE_COPY_LOCATION src;
+  D3D12_TEXTURE_COPY_LOCATION dst;
+  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+  at = firstEntry;
+  do
+  {
+    src.pResource = at->image->getHandle();
+    src.SubresourceIndex = at->copyInfo.subresourceIndex;
+
+    dst.pResource = at->targetMemory.buffer;
+    dst.PlacedFootprint = at->copyInfo.layout;
+    dst.PlacedFootprint.Offset += at->targetMemory.range.front();
+
+    // TODO: remove offset
+    G_ASSERT(at->copyInfo.imageOffset.x == 0 && at->copyInfo.imageOffset.y == 0 && at->copyInfo.imageOffset.z == 0);
+    command_list.copyTexture(&dst, 0, 0, 0, &src, nullptr);
+
+    // swap with back and pop back -> fast remove
+    eastl::swap(*at, textureReadBackRecords.back());
+    textureReadBackRecords.pop_back();
+
+    at = eastl::find_if(at, textureReadBackRecords.end(), [](auto &info) { return is_swapchain_color_image(info.image); });
+  } while (at != textureReadBackRecords.end());
+}
 } // namespace drv3d_dx12

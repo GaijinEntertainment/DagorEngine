@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
 enum class MotionBlurNodeStatus
 {
@@ -12,8 +12,8 @@ enum class MotionBlurNodeStatus
 
 struct MotionBlurNodePointers
 {
-  dabfg::NodeHandle *accumulationNode;
-  dabfg::NodeHandle *combineNode;
+  dafg::NodeHandle *accumulationNode;
+  dafg::NodeHandle *combineNode;
   MotionBlurNodeStatus *status;
 };
 

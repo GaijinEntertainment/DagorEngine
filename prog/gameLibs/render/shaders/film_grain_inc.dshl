@@ -1,0 +1,94 @@
+// Taken from https://www.shadertoy.com/view/3sGSWV (MIT license)
+float4 film_grain_params = float4(0.0, 1.0, 0.75, 0.0); // strength, rate, pitch [0.5; 1.0]
+
+texture noise_128_tex_hash;
+
+macro INIT_FILM_GRAIN(use_separate_sampler)
+  (ps)
+  {
+    film_grain_params@f4 = (film_grain_params.x, film_grain_params.y, 1.0 / film_grain_params.z, 1000 * time_phase(0, 0));
+  }
+
+  if (use_separate_sampler)
+  {
+    (ps)
+    {
+      noise_128_tex_hash@tex = noise_128_tex_hash hlsl {
+        Texture2D<float2> noise_128_tex_hash@tex;
+      }
+    }
+    hlsl (ps)
+    {
+      // reuse blood_texture_samplerstate as there we use needed UVW wrap+linear sampler
+      // TODO: fix this to separate sampler when they are finished
+      #define noise_128_tex_hash_sampler_state blood_texture_samplerstate
+    }
+  }
+  else
+  {
+    (ps)
+    {
+      noise_128_tex_hash@smp2d = noise_128_tex_hash;
+    }
+    hlsl (ps)
+    {
+      #define noise_128_tex_hash_sampler_state noise_128_tex_hash_samplerstate
+    }
+  }
+endmacro
+
+macro USE_FILM_GRAIN()
+  hlsl (ps)
+  {
+    // From iq: https://www.shadertoy.com/view/4sfGzS.
+    float2 noise(float3 x)
+    {
+      float3 f = frac(x);
+      //manually extract square and use followup consumed temp register + mad
+      //f = f * f * (3.0 - 2.0 * f)
+      float3 fsq = f*f;
+      f = -2.0 * f + 3.0;
+      f *= fsq;
+      float3 i = float3(floor(x.xy),x.z);//first 2 is UV, third is already rounded
+
+      float2 uv = (i.xy+float2(37.0,17.0)*i.z) + f.xy;
+      const float noise_inv_resolution = 1.0f/128.0f;
+      float2 rg = noise_128_tex_hash.SampleLevel(noise_128_tex_hash_sampler_state, uv * noise_inv_resolution + 0.5f*noise_inv_resolution, 0).rg;
+      return rg;
+    }
+
+    // Slightly high-passed continuous value-noise.
+    float2 grain_source(float3 x, float strength, float inv_pitch)
+    {
+      float2 total = float2(0.0, 0.0);
+      total -= noise(float3( 1, 0, 0) * inv_pitch + x);
+      total -= noise(float3( 0, 1, 0) * inv_pitch + x);
+      total -= noise(float3(-1, 0, 0) * inv_pitch + x);
+      total -= noise(float3( 0,-1, 0) * inv_pitch + x);
+
+      total = total * 0.25 + noise(x) + float2(1.0, 1.0);
+      return lerp(float2(1.0, 1.0), total, strength);
+    }
+
+    float3 apply_film_grain(float3 color, float2 uvs)
+    {
+      float grain_strength = film_grain_params.x;
+      float grain_rate = film_grain_params.y;
+      float grain_inv_pitch = film_grain_params.z;
+      //loop phase to avoid float errors in noise LUT tex sampling
+      float grain_phase = film_grain_params.w % 100000;
+
+      // Previously it was applied on SDR then moved to HDR
+      // So this coeff serves to preserve the same settings
+      grain_strength *= 0.25;
+
+      float2 grain_rg = grain_source(float3(uvs, floor(grain_rate * (grain_phase))), grain_strength, grain_inv_pitch);
+      float grain_b = grain_source(float3(uvs, floor(grain_rate * (grain_phase - 9.0))), grain_strength, grain_inv_pitch).r;
+
+      float3 grain = float3(grain_rg, grain_b);
+
+      const float grain_lift_ratio = 0.5; // choose blending (0.0 - multiply, 1.0 - add)
+      return max(lerp(color * grain, color + (grain - 1.0), grain_lift_ratio), 0.0);
+    }
+  }
+endmacro

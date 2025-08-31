@@ -118,19 +118,17 @@ void camtrack::record(const char *filename)
 
 inline float fov_to_deg(float fov) { return RAD_TO_DEG * 2.f * atan(1.f / fov); }
 
-void camtrack::update_record(float abs_time, const TMatrix &itm)
+void camtrack::update_record(float abs_time, const TMatrix &itm, const float hor_fov)
 {
   if (!write_stream)
     return;
   if (latest_written_timestamp == abs_time)
     return;
   latest_written_timestamp = abs_time;
-  Driver3dPerspective persp;
-  d3d::getpersp(persp);
   CamRecord rec;
   rec.time = abs_time;
   rec.itm = itm;
-  rec.fov = fov_to_deg(persp.wk);
+  rec.fov = fov_to_deg(hor_fov);
   write_stream->write(&rec, sizeof(CamRecord));
 }
 

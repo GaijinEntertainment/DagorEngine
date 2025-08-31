@@ -76,9 +76,6 @@ namespace das {
         virtual bool isPod() const override { return true; }
         virtual bool isRawPod() const override { return false; }
         virtual bool canClone() const override { return true; }
-        virtual SimNode * simulateCopy ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
-            return context.code->makeNode<SimNode_CopyRefValue>(at, l, r, sizeOf);
-        }
         virtual SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
             return context.code->makeNode<SimNode_CopyRefValue>(at, l, r, sizeOf);
         }

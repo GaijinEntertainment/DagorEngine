@@ -25,6 +25,7 @@ private:
   int strideAmt{0};
 
   ManagedTex &panoramaTex;
+  d3d::SamplerHandle sampler;
   uint32_t panoramaWidth{0};
   uint32_t panoramaHeight{0};
 

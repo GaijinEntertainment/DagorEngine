@@ -93,8 +93,8 @@ void instrument_function(das::Context &ctx, das::SimFunction *FNPTR, bool isInst
   }
 }
 
-void daProfiler_resolve_path(const char *fname, const das::TBlock<void, das::TTemporary<const char *>> &blk, das::Context *context,
-  das::LineInfoArg *at)
+void daProfiler_resolve_path(const char *fname, const das::TBlock<void, const das::TTemporary<const char *>> &blk,
+  das::Context *context, das::LineInfoArg *at)
 {
   String mountPath;
   if (fname && dd_resolve_named_mount(mountPath, fname))
@@ -138,8 +138,8 @@ void daProfiler_resolve_path(const char *fname, const das::TBlock<void, das::TTe
 
 void instrument_function(das::Context &, das::SimFunction *, bool, uint64_t) {}
 
-void daProfiler_resolve_path(const char *fname, const das::TBlock<void, das::TTemporary<const char *>> &blk, das::Context *context,
-  das::LineInfoArg *at)
+void daProfiler_resolve_path(const char *fname, const das::TBlock<void, const das::TTemporary<const char *>> &blk,
+  das::Context *context, das::LineInfoArg *at)
 {
   vec4f args = das::cast<char *>::from(fname);
   context->invoke(blk, &args, nullptr, at);

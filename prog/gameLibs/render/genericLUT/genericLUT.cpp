@@ -25,9 +25,10 @@ static bool check_compute_support()
 
 static uint32_t get_color_format(GenericTonemapLUT::HDROutput hdr)
 {
-  if (hdr == GenericTonemapLUT::HDROutput::HDR && d3d::get_texformat_usage(TEXFMT_A16B16G16R16F, RES3D_VOLTEX) & d3d::USAGE_RTARGET)
+  if (hdr == GenericTonemapLUT::HDROutput::HDR &&
+      d3d::get_texformat_usage(TEXFMT_A16B16G16R16F, D3DResourceType::VOLTEX) & d3d::USAGE_RTARGET)
     return TEXFMT_A16B16G16R16F;
-  if (d3d::get_texformat_usage(TEXFMT_A2B10G10R10, RES3D_VOLTEX) & d3d::USAGE_RTARGET)
+  if (d3d::get_texformat_usage(TEXFMT_A2B10G10R10, D3DResourceType::VOLTEX) & d3d::USAGE_RTARGET)
     return TEXFMT_A2B10G10R10;
   return TEXFMT_DEFAULT;
 }
@@ -40,7 +41,8 @@ bool GenericTonemapLUT::init(const char *lut_name, const char *render_shader_nam
   uint32_t flag = get_color_format(hdr);
 
   if (ComputeShaderElement * computeShader;
-      check_compute_support() && (d3d::get_texformat_usage(flag, RES3D_VOLTEX) & d3d::USAGE_UNORDERED) == d3d::USAGE_UNORDERED &&
+      check_compute_support() &&
+      (d3d::get_texformat_usage(flag, D3DResourceType::VOLTEX) & d3d::USAGE_UNORDERED) == d3d::USAGE_UNORDERED &&
       (computeShader = new_compute_shader(compute_shader_name, true)) != nullptr)
   {
     computeLUT.reset(computeShader);
@@ -67,7 +69,6 @@ bool GenericTonemapLUT::init(const char *lut_name, const char *render_shader_nam
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     ShaderGlobal::set_sampler(get_shader_variable_id(samplerName.c_str(), true), d3d::request_sampler(smpInfo));
-    lut->disableSampler();
     return true;
   }
 

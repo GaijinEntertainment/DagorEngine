@@ -16,4 +16,9 @@ class RiExtraRendererT;
 // Opaque class, should only be passed as a pointer/reference outside of the library.
 using RiExtraRenderer = RiExtraRendererT<EASTLAllocatorType, OpaqueGlobalDynVarsPolicy>;
 
+struct RiExtraRendererDelete
+{
+  void operator()(RiExtraRenderer *p) const EA_NOEXCEPT;
+};
+
 } // namespace rendinst::render

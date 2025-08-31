@@ -9,59 +9,104 @@
 
 namespace drv3d_dx12::resource_manager
 {
-
-RaytraceAccelerationStructureHeap RaytraceAccelerationStructureObjectProvider::allocAccelStructHeap(DXGIAdapter *adapter,
-  Device &device, uint32_t size)
+::raytrace::AccelerationStructurePool drv3d_dx12::resource_manager::RaytraceAccelerationStructurePoolProvider::
+  createAccelerationStructurePool(Device &device, const ::raytrace::AccelerationStructurePoolCreateInfo &info)
 {
-  auto properties = getProperties(D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
-    D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+  auto newPool = eastl::make_unique<RayTraceAccelerationStructurePool>();
+  newPool->sizeInBytes = info.sizeInBytes;
 
-  D3D12_RESOURCE_DESC desc;
-  desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-  desc.Width = size;
-  desc.Height = 1;
-  desc.DepthOrArraySize = 1;
-  desc.MipLevels = 1;
-  desc.Format = DXGI_FORMAT_UNKNOWN;
-  desc.SampleDesc.Count = 1;
-  desc.SampleDesc.Quality = 0;
-  desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  D3D12_HEAP_PROPERTIES memoryProperties = {
+    .Type = D3D12_HEAP_TYPE_DEFAULT,
+    .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+    .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+    .CreationNodeMask = 0,
+    .VisibleNodeMask = 0,
+  };
 
-  D3D12_RESOURCE_ALLOCATION_INFO allocInfo;
-  allocInfo.SizeInBytes = desc.Width;
-  allocInfo.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+  D3D12_RESOURCE_DESC desc = {
+    .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+    .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+    .Width = info.sizeInBytes,
+    .Height = 1,
+    .DepthOrArraySize = 1,
+    .MipLevels = 1,
+    .Format = DXGI_FORMAT_UNKNOWN,
+    .SampleDesc =
+      {
+        .Count = 1,
+        .Quality = 0,
+      },
+    .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+    .Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+  };
 
-  HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit(
-    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"allocAccelStructHeap", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw});
+  device.getDevice()->CreateCommittedResource(&memoryProperties, D3D12_HEAP_FLAG_NONE, &desc,
+    D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nullptr, COM_ARGS(&newPool->poolResource));
 
-  auto memory = allocate(adapter, device.getDevice(), properties, allocInfo, {}, &errorCode);
-  if (!memory)
+  if (newPool->poolResource)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, true, false);
-    errorCode = S_OK;
-    memory = allocate(adapter, device.getDevice(), properties, allocInfo, {}, &errorCode);
+    newPool->baseAddress = newPool->poolResource->GetGPUVirtualAddress();
   }
-  const ResourceHeapProperties allocatedProperties{memory.getHeapID().group};
-  if (!memory)
-    return {};
+
+  auto result = reinterpret_cast<::raytrace::AccelerationStructurePool>(newPool.get());
+  pools.access()->push_back(eastl::move(newPool));
+
+  recordRaytraceAccelerationStructurePoolAllocated(info.sizeInBytes);
+  return result;
+}
+
+RaytraceAccelerationStructure *drv3d_dx12::resource_manager::RaytraceAccelerationStructurePoolProvider::createAccelerationStructure(
+  Device &device, ::raytrace::AccelerationStructurePool pool, const ::raytrace::TopAccelerationStructurePlacementInfo &info)
+{
+  auto asPool = reinterpret_cast<RayTraceAccelerationStructurePool *>(pool);
+  auto newAs = asPool->subStructures.allocate();
+  newAs->asHeapResource = asPool->poolResource.Get();
+  newAs->gpuAddress = asPool->baseAddress + info.offsetInBytes;
+  newAs->size = info.sizeInBytes;
+  newAs->requestedSize = info.sizeInBytes;
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC desc = {
+    .Format = DXGI_FORMAT_UNKNOWN,
+    .ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE,
+    .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+    .RaytracingAccelerationStructure =
+      {
+        .Location = newAs->gpuAddress,
+      },
+  };
+  newAs->descriptor = allocateBufferSRVDescriptor(device.getDevice());
+  device.getDevice()->CreateShaderResourceView(nullptr /*must be null*/, &desc, newAs->descriptor);
+
+  recordRaytraceTopStructureAllocated(info.sizeInBytes);
+  return newAs;
+}
+
+RaytraceAccelerationStructure *drv3d_dx12::resource_manager::RaytraceAccelerationStructurePoolProvider::createAccelerationStructure(
+  ::raytrace::AccelerationStructurePool pool, const ::raytrace::BottomAccelerationStructurePlacementInfo &info)
+{
+  auto asPool = reinterpret_cast<RayTraceAccelerationStructurePool *>(pool);
+  auto newAs = asPool->subStructures.allocate();
+  newAs->asHeapResource = asPool->poolResource.Get();
+  newAs->gpuAddress = asPool->baseAddress + info.offsetInBytes;
+  newAs->size = info.sizeInBytes;
+  newAs->requestedSize = info.sizeInBytes;
+
+  recordRaytraceBottomStructureAllocated(info.sizeInBytes);
+  return newAs;
+}
+
+RaytraceAccelerationStructureHeap RaytraceAccelerationStructureObjectProvider::allocAccelStructHeap(Device &device, uint32_t size)
+{
+
+  ::raytrace::AccelerationStructurePoolCreateInfo poolCreateInfo = {
+    .debugName = "DriverManagedPool",
+    .sizeInBytes = size,
+  };
 
   RaytraceAccelerationStructureHeap heap;
-  errorCode = heap.create(device.getDevice(), desc, memory, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
-    allocatedProperties.isCPUVisible());
-  if (DX12_CHECK_FAIL(errorCode))
-  {
-    free(memory, false);
-    return {};
-  }
+  heap.pool = reinterpret_cast<RayTraceAccelerationStructurePool *>(createAccelerationStructurePool(device, poolCreateInfo));
 
-  updateMemoryRangeUse(memory, RaytraceAccelerationStructureHeapReference{heap.buffer.Get()});
-
-  memoryUsed += memory.size();
-  recordRaytraceAccelerationStructureHeapAllocated(static_cast<uint32_t>(memory.size()));
+  memoryUsed += heap.pool->sizeInBytes;
 
   return heap;
 }
@@ -70,9 +115,12 @@ void RaytraceAccelerationStructureObjectProvider::freeAccelStructHeap(RaytraceAc
 {
   G_FAST_ASSERT(heap.freeSlots.all());
   G_FAST_ASSERT(heap.takenSlotCount == 0);
-  recordRaytraceAccelerationStructureHeapFreed(static_cast<uint32_t>(heap.bufferMemory.size()));
-  memoryUsed -= heap.bufferMemory.size();
-  heap.reset(this);
+  // recordRaytraceAccelerationStructureHeapFreed(static_cast<uint32_t>(heap.bufferMemory.size()));
+  memoryUsed -= heap.pool->sizeInBytes;
+
+  // we remove the pool directly as here we already had the time to complete all frames using this pool and
+  // we are already under the lock for the frame related data
+  removePool(heap.pool);
 }
 
 static uint32_t align_as_size(uint32_t size)
@@ -88,8 +136,7 @@ static uint32_t align_as_size(uint32_t size)
   return size;
 }
 
-drv3d_dx12::RaytraceAccelerationStructure *RaytraceAccelerationStructureObjectProvider::allocAccelStruct(DXGIAdapter *adapter,
-  Device &device, uint32_t size)
+drv3d_dx12::RaytraceAccelerationStructure *RaytraceAccelerationStructureObjectProvider::allocAccelStruct(Device &device, uint32_t size)
 {
   OSSpinlockScopedLock lock{rtasSpinlock};
 
@@ -107,7 +154,7 @@ drv3d_dx12::RaytraceAccelerationStructure *RaytraceAccelerationStructureObjectPr
   for (auto &heap : bucket)
   {
     const uint16_t slot = heap.freeSlots.find_first();
-    if (heap && slot < slotsInHeap)
+    if (heap.pool && slot < slotsInHeap)
     {
       slotIdx = slot;
       break;
@@ -118,7 +165,7 @@ drv3d_dx12::RaytraceAccelerationStructure *RaytraceAccelerationStructureObjectPr
   if (heapIdx == bucket.size())
   {
     heapIdx = 0;
-    while (heapIdx < bucket.size() && bucket[heapIdx])
+    while (heapIdx < bucket.size() && bucket[heapIdx].pool)
       ++heapIdx;
 
     if (heapIdx == bucket.size())
@@ -130,23 +177,23 @@ drv3d_dx12::RaytraceAccelerationStructure *RaytraceAccelerationStructureObjectPr
     // by aligning to 64K, because a "tail" of <64K size can never be used by anything else.
     const uint32_t heapSize = align_value(slotsInHeap > 1 ? slotsInHeap * alignedSize : alignedSize, RAYTRACE_HEAP_ALIGNMENT);
 
-    bucket[heapIdx] = allocAccelStructHeap(adapter, device, heapSize);
+    bucket[heapIdx] = allocAccelStructHeap(device, heapSize);
   }
 
   auto &heap = bucket[heapIdx];
 
   // Allocation failed completely for some reason, should not happen probably?
-  if (!heap)
+  if (!heap.pool)
     return nullptr;
 
   G_FAST_ASSERT(heap.freeSlots.test(slotIdx));
   heap.freeSlots.set(slotIdx, false);
   heap.takenSlotCount++;
 
-  auto result = accelStructPool.allocate();
-  result->asHeapResource = heap.buffer.Get();
+  auto result = heap.pool->subStructures.allocate();
+  result->asHeapResource = heap.pool->poolResource.Get();
   result->descriptor = {};
-  result->gpuAddress = heap.getGPUPointer() + slotIdx * alignedSize;
+  result->gpuAddress = heap.pool->baseAddress + slotIdx * alignedSize;
   result->size = alignedSize;
   result->slotInAsHeap = slotIdx;
   result->asHeapIdx = heapIdx;
@@ -161,26 +208,27 @@ void RaytraceAccelerationStructureObjectProvider::freeAccelStruct(RaytraceAccele
   auto &bucket = heapBuckets[accelStruct->size];
   auto &heap = bucket[accelStruct->asHeapIdx];
 
+  // need struct size after the object is freed
+  auto structSize = accelStruct->size;
   G_FAST_ASSERT(!heap.freeSlots.test(accelStruct->slotInAsHeap));
   heap.freeSlots.set(accelStruct->slotInAsHeap, true);
+  heap.pool->subStructures.free(accelStruct);
   if (--heap.takenSlotCount == 0)
   {
-    freeAccelStructHeap(eastl::move(heap));
+    freeAccelStructHeap(eastl::exchange(heap, {}));
   }
 
-  while (!bucket.empty() && !bucket.back())
+  while (!bucket.empty() && !bucket.back().pool)
     bucket.pop_back();
 
   if (bucket.empty())
-    heapBuckets.erase(accelStruct->size);
-
-  accelStructPool.free(accelStruct);
+    heapBuckets.erase(structSize);
 }
 
 drv3d_dx12::RaytraceAccelerationStructure *drv3d_dx12::resource_manager::RaytraceAccelerationStructureObjectProvider::
-  newRaytraceTopAccelerationStructure(DXGIAdapter *adapter, Device &device, uint64_t size)
+  newRaytraceTopAccelerationStructure(Device &device, uint64_t size)
 {
-  auto result = allocAccelStruct(adapter, device, size);
+  auto result = allocAccelStruct(device, size);
 
   if (result)
   {
@@ -198,11 +246,11 @@ drv3d_dx12::RaytraceAccelerationStructure *drv3d_dx12::resource_manager::Raytrac
 }
 
 drv3d_dx12::RaytraceAccelerationStructure *drv3d_dx12::resource_manager::RaytraceAccelerationStructureObjectProvider::
-  newRaytraceBottomAccelerationStructure(DXGIAdapter *adapter, Device &device, uint64_t size)
+  newRaytraceBottomAccelerationStructure(Device &device, uint64_t size)
 {
   G_ASSERT(size < static_cast<uint64_t>(UINT32_MAX));
 
-  auto result = allocAccelStruct(adapter, device, size);
+  auto result = allocAccelStruct(device, size);
 
   if (result)
   {

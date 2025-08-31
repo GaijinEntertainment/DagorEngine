@@ -38,8 +38,9 @@ public:
   ~HeatHazeRenderer();
 
   void renderHazeParticles(Texture *haze_depth, Texture *haze_offset, TEXTUREID depth_tex_id, int depth_tex_lod,
-    RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze);
-  void renderColorHaze(Texture *haze_color, RenderCustomHazeCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze);
+    RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze, Texture *stencil = nullptr);
+  void renderColorHaze(Texture *haze_color, RenderCustomHazeCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze,
+    Texture *stencil = nullptr);
   void applyHaze(double total_time, Texture *back_buffer, const RectInt *back_buffer_area, TEXTUREID back_buffer_id,
     TEXTUREID resolve_depth_tex_id, Texture *haze_temp, TEXTUREID haze_temp_id, const IPoint2 &back_buffer_resolution);
 
@@ -66,5 +67,8 @@ private:
   Point2 hazeLuminanceScale;
 
   eastl::unique_ptr<PostFxRenderer> hazeFxRenderer;
-  shaders::UniqueOverrideStateId zDisabledBlendMinStateId;
+  shaders::UniqueOverrideStateId zDisabledStateId, zDisabledBlendMinStateId;
+
+  d3d::SamplerHandle sourceLinearTexSampler;
+  d3d::SamplerHandle sourcePointTexSampler;
 };

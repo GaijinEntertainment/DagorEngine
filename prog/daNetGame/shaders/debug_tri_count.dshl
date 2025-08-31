@@ -112,6 +112,8 @@ shader temp_faces_count
   compile("target_vs_for_gs", "count_collision_vs");
 }
 
+int debug_buffer_reg_no = 1 always_referenced;
+
 shader debug_count_tri_boxes_cs
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -124,6 +126,10 @@ shader debug_count_tri_boxes_cs
   (cs) {
     debug_count_tri_cell@f4 = debug_count_tri_cell;
     debug_count_tri_start@f4 = debug_count_tri_start;
+    triangles@buf : register(debug_buffer_reg_no) hlsl {
+      struct MyTriangle { float4 v[3]; };
+      StructuredBuffer<MyTriangle> triangles@buf;
+    }
   }
   ENABLE_ASSERT(cs)
   hlsl(cs) {
@@ -133,9 +139,7 @@ shader debug_count_tri_boxes_cs
     uint4 triangle_info:register(c9);
 
     RWStructuredBuffer<uint> tri_count:register(u0);
-    struct MyTriangle { float4 v[3]; };
 
-    StructuredBuffer<MyTriangle> triangles:register(t0);
     [numthreads(16, 1, 1)]
     void count_triangle_boxes_treshold_cs(uint dId : SV_DispatchThreadID)
     {
@@ -179,12 +183,14 @@ shader debug_count_tri_cs
   (cs) {
     debug_count_tri_cell@f4 = debug_count_tri_cell;
     debug_count_tri_start@f4 = debug_count_tri_start;
+    gridCount@buf : register(debug_buffer_reg_no) hlsl {
+      StructuredBuffer<uint> gridCount@buf;
+    }
   }
   ENABLE_ASSERT(cs)
   hlsl(cs) {
     RWStructuredBuffer<float4> passed:register(u0);
     RWStructuredBuffer<uint> passedCount:register(u1);
-    StructuredBuffer<uint> gridCount:register(t0);
     [numthreads(4, 4, 4)]
     void count_triangles_treshold_cs(uint3 dId_xzy : SV_DispatchThreadID)
     {

@@ -24,7 +24,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = SpirV-5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     //base mobile assumes
     include common_assumes.blk
@@ -33,12 +33,13 @@ Compile
     "@delete:ssao_strength":r = 1
     "@override:bloom_tex":i=0
     "@override:volumetric_light_assumed_off":i=1
-    "@override:use_contact_shadows":i=0
     "@override:fluid_wind_support_assume":i=0
     "@override:projected_on_water_effects_tex":i=0
     "@override:water_cascades":i=6
     "@override:water_ripples_normal":i=0
+    "@delete:use_glass_dual_source_blending":i=1  // needs to be set in runtime due to some hardware lacking support of the feature
     //gi_voxelize_use_multidraw:i=1
+    use_contact_shadows:i=0
     shadows_quality:i =0
     water_render_ssr:i=0
     particles_buffer_id:i=8
@@ -47,7 +48,7 @@ Compile
     hmap_tess_factor:r=0
     water_tess_factor:r=0
     gi_quality:i=-1
-    envi_cover:i=0
+    envi_cover_use_in_resolve:i=0
     hdr_ps_output_mode:i=0
     enable_hmap_blend:i=0
     fluid_wind_status:i=0
@@ -61,6 +62,7 @@ Compile
     depth_bounds_support:i=0
     static_shadows_cascades:i=2
   }
+  required_shaders {}
 }
 
 explicit_var_ref

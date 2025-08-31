@@ -1,0 +1,148 @@
+x
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:1:2
+
+1
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:2:1
+
+(
+ERROR: Expected type name
+at testData\types\invalid.nut.txt:3:2
+
+)
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:4:1
+
+[
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:5:1
+
+]
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:6:1
+
+...
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:7:1
+
+int
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:8:4
+
+-
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:9:1
+
+,
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:10:1
+
+.
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:11:1
+
+|
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:12:1
+
+(|
+ERROR: Expected type name
+at testData\types\invalid.nut.txt:13:2
+
+(int
+ERROR: Expected ')' after type list
+at testData\types\invalid.nut.txt:14:5
+
+function_name(())
+ERROR: Expected argument name
+at testData\types\invalid.nut.txt:15:15
+
+function_name([)
+ERROR: Unmatched '['
+at testData\types\invalid.nut.txt:16:16
+
+function_name(])
+ERROR: Unmatched ']'
+at testData\types\invalid.nut.txt:17:15
+
+function_name(.)
+ERROR: Expected argument name
+at testData\types\invalid.nut.txt:18:15
+
+function_name(,,,,,,,,x)
+ERROR: Argument expected before ','
+at testData\types\invalid.nut.txt:19:15
+
+function_name(x x x)
+ERROR: Expected ':' after argument name
+at testData\types\invalid.nut.txt:20:17
+
+1function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+ERROR: Expected function name
+at testData\types\invalid.nut.txt:21:1
+
+function_name)(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+ERROR: Expected '(' after function name
+at testData\types\invalid.nut.txt:22:14
+
+function_name.(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+ERROR: Expected function name after '.'
+at testData\types\invalid.nut.txt:23:15
+
+function_name(1arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+ERROR: Expected argument name
+at testData\types\invalid.nut.txt:24:15
+
+function_name(arg1_name: 1number, [arg2_name: float, arg3_name: float], ...)
+ERROR: Expected type name
+at testData\types\invalid.nut.txt:25:26
+
+function_name(arg1_name: number, )[arg2_name: float, arg3_name: float], ...)
+ERROR: Unexpected characters after function type string
+at testData\types\invalid.nut.txt:26:35
+
+function_name(arg1_name: number, [[arg2_name: float, arg3_name: float], ...)
+ERROR: Nested optional blocks are not allowed
+at testData\types\invalid.nut.txt:27:35
+
+function_name(arg1_name: number, ][arg2_name: float, arg3_name: float], ...)
+ERROR: Unmatched ']'
+at testData\types\invalid.nut.txt:28:34
+
+function_name(arg1_name: number, [arg2_name float, arg3_name: float], ...)
+ERROR: Expected ':' after argument name
+at testData\types\invalid.nut.txt:29:45
+
+function_name(arg1_name: number, [arg2_name: float arg3_name: float], ...)
+ERROR: Expected ',' or ')'
+at testData\types\invalid.nut.txt:30:52
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float, ...)
+ERROR: Unmatched '['
+at testData\types\invalid.nut.txt:31:74
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float] ....)
+ERROR: Expected ')' after ellipsis argument
+at testData\types\invalid.nut.txt:32:74
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...])
+ERROR: Unmatched ']'
+at testData\types\invalid.nut.txt:33:75
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float],] ...)
+ERROR: Unmatched ']'
+at testData\types\invalid.nut.txt:34:71
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], [...])
+ERROR: Optional block must be the last argument
+at testData\types\invalid.nut.txt:35:72
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...
+ERROR: Expected ')' after ellipsis argument
+at testData\types\invalid.nut.txt:36:75
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...(
+ERROR: Expected ')' after ellipsis argument
+at testData\types\invalid.nut.txt:37:75
+

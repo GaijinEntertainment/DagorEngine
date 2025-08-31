@@ -27,7 +27,10 @@ public:
   void setTexName(Image *img, const char *name);
   void setBufName(Buffer *buf, const char *name);
   void setRenderPassName(RenderPassResource *rp, const char *name);
+  void setRenderPassName(VulkanRenderPassHandle rp, const char *name);
   void setAccelerationStructureName(RaytraceAccelerationStructure *as, const char *name);
+  void setSamplerName(VulkanSamplerHandle sampler, const char *name);
+  void setSemaphoreName(VulkanSemaphoreHandle sem, const char *name);
 };
 
 } // namespace drv3d_vulkan

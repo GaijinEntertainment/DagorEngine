@@ -1,9 +1,11 @@
 "@override:source" {
   file:t = "../../../prog/gameLibs/render/rtr/shaders/rtr.dshl"
+  file:t = "../../../prog/gameLibs/render/rtr/shaders/rtr_probes.dshl"
 }
 
 incDir:t="../../../prog/gameLibs/render/rtr/shaders"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Include"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Resources"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/NRD"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Include"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Resources"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/math/MathLib"

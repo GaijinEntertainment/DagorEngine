@@ -445,7 +445,11 @@ void TAA(out float4 result_color, out float taaWeight,
     float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
     float2 motionVector = historyUV-screenUV;
   #endif
-  bool bOffscreen = historyUV.x >= 1.0 || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= 1.0 || historyUV.y <= 0.0;
+
+  const bool cameFromDifferentViewArea = invalidate_mvec_to_invalid_view_area(screenUV, motionVector);
+  bool bOffscreen = cameFromDifferentViewArea || historyUV.x >= 1.0 || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= 1.0 || historyUV.y <= 0.0;
+
+
 
   bool bilinear = TAA_BILINEAR;
 
@@ -568,7 +572,7 @@ void TAA(out float4 result_color, out float taaWeight,
 
   // Motion vector changes.
   float newTaaEventFrame = 0;
-  const float blurredFrameNo = all(abs(screenUV*2-1) < 2*depthScreenSizeInv) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isngt
+  const float blurredFrameNo = !cameFromDifferentViewArea && all(abs(screenUV*2-1) < 2*depthScreenSizeInv) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isngt
   #if TAA_ALWAYS_BLUR
     current.color = current.colorBlurred;
     newTaaEventFrame = blurredFrameNo;

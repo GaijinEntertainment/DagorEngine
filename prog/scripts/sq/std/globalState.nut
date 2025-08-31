@@ -1,14 +1,18 @@
+import "dagor.math" as math
 from "modules" import on_module_unload
 from "nestdb" import ndbRead, ndbWrite, ndbDelete, ndbExists
 from "eventbus" import eventbus_send_foreign, eventbus_subscribe
 from "dagor.debug" import logerr
-// Disabled due to bug in zstd streaming decompression
-//from "json" import parse_json_from_zstd_stream, object_to_zstd_json
-from "json" import parse_json, object_to_json_string
 from "dagor.memtrace" import is_quirrel_object_larger_than, set_huge_alloc_threshold
 from "dagor.time" import get_time_msec
+from "iostream" import blob
+// Disabled due to bug in zstd streaming decompression
+//from "json" import parse_json_from_zstd_stream, object_to_zstd_json
+// from "json" import parse_json, object_to_json_string
 
-//let {logerr} = require("%sqstd/log.nut")()
+let serialazableClasses = {}.__update(math)
+
+// let {dlog} = require("%sqstd/log.nut")()
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!So that there is no record in nestdb on shutdown!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -111,7 +115,8 @@ on_module_unload(function(is_closing) {
           let t1 = get_time_msec()
           println($"json for {key} zstd-compressed in {t1-t0} ms")
           */
-          data = object_to_json_string(val, false)
+          data = blob()
+          data.writeobject(val, serialazableClasses)
         }
         else
           data = val
@@ -162,7 +167,7 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
         let t1 = get_time_msec()
         println($"json for {key} zstd-decompressed in {t1-t0} ms")
         */
-        val = parse_json(data)
+        val = data?.readobject(serialazableClasses)
 
         //let size0 = get_quirrel_object_size(val).size
         if (big_immutable_data) {
@@ -197,8 +202,8 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!So that there is no record in nestdb on shutdown!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!eventbus event app.shutdown is required!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-return {
+return freeze({
   globalWatched
   hardPersistWatched
   setUniqueNestKey
-}
+})

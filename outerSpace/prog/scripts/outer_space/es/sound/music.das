@@ -12,7 +12,7 @@ def music_toggle(evt : Event; music : string; sound_banks_state__isPresetLoaded 
   print("music_toggle")
   if sound_banks_state__isPresetLoaded && !empty(music)
     print("send EventSetMusic")
-    broadcastEvent([[EventSetMusic music=music]])
+    broadcastEvent(EventSetMusic(music = music))
 
 
 [es(tag=sound)]

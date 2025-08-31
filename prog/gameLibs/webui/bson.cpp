@@ -230,6 +230,8 @@ void BsonStream::addAsTreeNode(const DataBlock &blk, const char *name)
       add("value", blk.getIPoint2(paramNo));
     else if (type == DataBlock::TYPE_IPOINT3)
       add("value", blk.getIPoint3(paramNo));
+    else if (type == DataBlock::TYPE_IPOINT4)
+      add("value", blk.getIPoint4(paramNo));
     else if (type == DataBlock::TYPE_BOOL)
       add("value", blk.getBool(paramNo));
     else if (type == DataBlock::TYPE_E3DCOLOR)

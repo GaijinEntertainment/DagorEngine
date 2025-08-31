@@ -1,7 +1,6 @@
 Root    ?= ../../../../../.. ;
 
 Location = prog/gameLibs/gamePhys/collision/rendinst/stub ;
-UsingStaticCore = yes ;
 
 StrictCompile = yes ;
 

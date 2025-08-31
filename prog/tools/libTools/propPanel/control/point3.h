@@ -3,13 +3,14 @@
 
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
 #include "spinEditStandalone.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
 {
 
-class Point3PropertyControl : public PropertyControlBase
+class Point3PropertyControl : public PropertyControlBase, public IImmediateFocusLossHandler
 {
 public:
   Point3PropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
@@ -23,12 +24,18 @@ public:
     Point3PropertyControl::setPoint3Value(Point3::ZERO);
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_POINT3 | CONTROL_CAPTION | CONTROL_DATA_PREC; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_POINT3; }
+  ~Point3PropertyControl() override
+  {
+    if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
+  }
 
-  virtual Point3 getPoint3Value() const override { return controlValue; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_POINT3 | CONTROL_CAPTION | CONTROL_DATA_PREC; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_POINT3; }
 
-  virtual void setPoint3Value(Point3 value) override
+  Point3 getPoint3Value() const override { return controlValue; }
+
+  void setPoint3Value(Point3 value) override
   {
     controlValue = value;
     spinEditX.setValue(value.x);
@@ -36,25 +43,25 @@ public:
     spinEditZ.setValue(value.z);
   }
 
-  virtual void setPrecValue(int prec) override
+  void setPrecValue(int prec) override
   {
     spinEditX.setPrecValue(prec);
     spinEditY.setPrecValue(prec);
     spinEditZ.setPrecValue(prec);
   }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void reset() override
+  void reset() override
   {
     setPoint3Value(Point3::ZERO);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -73,16 +80,28 @@ public:
     ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x); // NOTE: PushMultiItemsWidths calculated with ItemInnerSpacing.
     spinEditZ.updateImgui(*this, &controlTooltip, this);
     ImGui::PopItemWidth();
+
+    if (spinEditX.isTextInputFocused() || spinEditY.isTextInputFocused() || spinEditZ.isTextInputFocused())
+      set_focused_immediate_focus_loss_handler(this);
+    else if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
   }
 
 private:
-  virtual void onWcChange(WindowBase *source) override
+  void onWcChange(WindowBase *source) override
   {
     controlValue.x = spinEditX.getValue();
     controlValue.y = spinEditY.getValue();
     controlValue.z = spinEditZ.getValue();
 
     PropertyControlBase::onWcChange(source);
+  }
+
+  void onImmediateFocusLoss() override
+  {
+    spinEditX.sendWcChangeIfVarChanged(*this);
+    spinEditY.sendWcChangeIfVarChanged(*this);
+    spinEditZ.sendWcChangeIfVarChanged(*this);
   }
 
   String controlCaption;

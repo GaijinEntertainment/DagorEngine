@@ -8,6 +8,9 @@ namespace das {
 
     class TrackVariableFlags : public Visitor {
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         // global let
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
             Visitor::preVisitGlobalLet(var);
@@ -95,13 +98,13 @@ namespace das {
     public:
         void MarkSideEffects ( Module & mod ) {
             for ( auto & fn : mod.functions.each() ) {
-                if (!fn->builtIn) {
+                if (!fn->isTemplate && !fn->builtIn) {
                     fn->knownSideEffects = false;
                     fn->sideEffectFlags &= ~uint32_t(SideEffects::inferredSideEffects);
                 }
             }
             for ( auto & fn : mod.functions.each() ) {
-                if (!fn->builtIn && !fn->knownSideEffects) {
+                if (!fn->isTemplate && !fn->builtIn && !fn->knownSideEffects) {
                     asked.clear();
                     getSideEffects(fn);
                 }
@@ -187,9 +190,6 @@ namespace das {
                 auto rr = (ExprRef2Value *)expr;
                 propagateRead(rr->subexpr.get());
             }
-            // TODO:
-            //  propagate read to call or expr-like-call???
-            //  do we need to?
         }
         void propagateWrite ( Expression * expr ) {
             if ( expr->rtti_isVar() ) {
@@ -238,12 +238,60 @@ namespace das {
                 auto rr = (ExprRef2Value *)expr;
                 propagateWrite(rr->subexpr.get());
             }
-            // TODO:
-            //  propagate write to call or expr-like-call???
-            //  do we need to?
+        }
+        void propagateWriteViaCopyOrMove ( Expression * expr ) {
+            if ( expr->rtti_isVar() ) {
+                auto var = (ExprVar *) expr;
+                var->write = true;
+                if ( var->variable->source ) {
+                    propagateWrite(var->variable->source.get());    /// this went to variable, we done via copy or move
+                }
+            } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
+                       || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
+                auto field = (ExprField *) expr;
+                //if ( !field->value->type->isPointer() ) {
+                    field->write = true;
+                    propagateWriteViaCopyOrMove(field->value.get());
+                //} else {
+                //    propagateRead(field->value.get());
+                //}
+                if ( func && field->value->type->isPointer() ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
+            } else if ( expr->rtti_isSwizzle() ) {
+                auto swiz = (ExprSwizzle *) expr;
+                swiz->write = true;
+                propagateWriteViaCopyOrMove(swiz->value.get());
+            } else if ( expr->rtti_isAt() || expr->rtti_isSafeAt() ) {
+                auto at = (ExprAt *) expr;
+                at->write = true;
+                propagateWriteViaCopyOrMove(at->subexpr.get());
+            } else if ( expr->rtti_isOp3() ) {
+                auto op3 = (ExprOp3 *) expr;
+                propagateWriteViaCopyOrMove(op3->left.get());
+                propagateWriteViaCopyOrMove(op3->right.get());
+            } else if ( expr->rtti_isNullCoalescing() ) {
+                auto nc = (ExprNullCoalescing *) expr;
+                propagateWriteViaCopyOrMove(nc->subexpr.get());
+                propagateWriteViaCopyOrMove(nc->defaultValue.get());
+            } else if ( expr->rtti_isCast() ) {
+                auto ca = (ExprCast *) expr;
+                propagateWriteViaCopyOrMove(ca->subexpr.get());
+            } else if ( expr->rtti_isRef2Ptr() ) {
+                auto rr = (ExprRef2Ptr *)expr;
+                propagateWriteViaCopyOrMove(rr->subexpr.get());
+            } else if ( expr->rtti_isPtr2Ref() ) {
+                auto rr = (ExprPtr2Ref *)expr;
+                propagateWriteViaCopyOrMove(rr->subexpr.get());
+                if ( func ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
+            } else if ( expr->rtti_isR2V() ) {
+                auto rr = (ExprRef2Value *)expr;
+                propagateWriteViaCopyOrMove(rr->subexpr.get());
+            } else if ( expr->rtti_isCallFunc() ) {
+                auto call = (ExprCallFunc *) expr;
+                call->write = true;
+            }
         }
         uint32_t getSideEffects ( const FunctionPtr & fnc ) {
-            if ( fnc->builtIn || fnc->knownSideEffects ) {
+            if ( fnc->isTemplate || fnc->builtIn || fnc->knownSideEffects ) {
                 return fnc->sideEffectFlags;
             }
             if ( asked.find(fnc.get())!=asked.end() ) {
@@ -320,15 +368,24 @@ namespace das {
             return flags;
         }
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
     // Variable initializatoin
         virtual void preVisitLetInit ( ExprLet * let, const VariablePtr & var, Expression * init ) override {
             Visitor::preVisitLetInit(let, var, init);
-            // TODO:
-            //  at some point we should do better data trackng for this type of aliasing
-            if ( var->type->ref ) propagateWrite(init);
+            if ( var->init_via_move ) {
+                propagateWrite(init);
+            } else if ( var->type->ref ) {
+                // TODO:
+                //  at some point we should do better data trackng for this type of aliasing
+                propagateWrite(init);
+            } else {
+                propagateRead(init);
+            }
         }
     // addr of expression
         virtual void preVisit ( ExprRef2Ptr * expr ) override {
@@ -384,13 +441,13 @@ namespace das {
     // ExprMove
         virtual void preVisit ( ExprMove * expr ) override {
             Visitor::preVisit(expr);
-            propagateWrite(expr->left.get());
+            propagateWriteViaCopyOrMove(expr->left.get());
             propagateWrite(expr->right.get());
         }
     // ExprCopy
         virtual void preVisit ( ExprCopy * expr ) override {
             Visitor::preVisit(expr);
-            propagateWrite(expr->left.get());
+            propagateWriteViaCopyOrMove(expr->left.get());
             propagateRead(expr->right.get());
         }
     // ExprClone
@@ -607,11 +664,19 @@ namespace das {
             Visitor::preVisit(expr);
             expr->func->addressTaken = true;
         }
+    // if-then-else
+        virtual void preVisit ( ExprIfThenElse * expr ) override {
+            Visitor::preVisit(expr);
+            propagateRead(expr->cond.get());
+        }
     };
 
 
     class RemoveUnusedLocalVariables : public PassVisitor {
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }

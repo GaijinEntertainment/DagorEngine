@@ -4,6 +4,7 @@ local class TiledMapContext {
   function setup(config) {
     assert(type(config)=="table")
   }
+  getVisibleRadiusRange = @() Point2()
   getVisibleRadius = @() 0.0
   setVisibleRadius = @(_radius) 0.0
   mapToWorld = @(_point) Point3()

@@ -29,6 +29,7 @@ def insert_libs_files(build_gradle_path, libs_files):
           new_lines.append("    implementation '"+ line.strip() + "'\n")
           existing_lines.add(line)
 
+  new_lines = list(dict.fromkeys(new_lines))
   lines[dependencies_index + 1:dependencies_index + 1] = new_lines
 
   with open(build_gradle_path, 'w') as file:

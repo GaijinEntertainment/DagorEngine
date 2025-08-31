@@ -34,9 +34,7 @@ public:
   KRNLIMP void seekto(int ofs);
   KRNLIMP void seektoend(int ofs = 0);
   KRNLIMP virtual const char *getTargetName() { return "(mem)"; }
-  KRNLIMP virtual void flush()
-  { /*noop*/
-  }
+  KRNLIMP virtual void flush() { /*noop*/ }
 
   KRNLIMP void resize(intptr_t sz);
   KRNLIMP void setsize(intptr_t sz);

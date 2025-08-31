@@ -12,15 +12,15 @@ public:
     makeKernel();
   }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void fillParams(PropPanel::ContainerPropertyControl &panel) override;
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual bool brushPaintApply(int x, int y, float inc, bool rb);
-  virtual void brushPaintApplyStart(const IBBox2 &where);
-  virtual void saveToBlk(DataBlock &blk) const;
-  virtual void loadFromBlk(const DataBlock &blk);
+  bool brushPaintApply(int x, int y, float inc, bool rb) override;
+  void brushPaintApplyStart(const IBBox2 &where) override;
+  void saveToBlk(DataBlock &blk) const override;
+  void loadFromBlk(const DataBlock &blk) override;
 
-  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid) override;
 
 protected:
   void makeKernel();

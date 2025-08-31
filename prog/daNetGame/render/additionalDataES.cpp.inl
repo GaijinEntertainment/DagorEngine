@@ -6,10 +6,10 @@
 #include <render/world/animCharRenderAdditionalData.h>
 #include <ecs/anim/anim.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <shaders/animchar_additional_data_types.hlsli>
 #include <shaders/dynamic_material_params.hlsli>
 #include "shaders/metatex_const.hlsli"
 #include <generic/dag_carray.h>
+#include <render/world/animCharRenderUtil.h>
 
 
 ECS_TAG(render)
@@ -19,7 +19,7 @@ static void additional_data_for_plane_cutting_es(const UpdateStageInfoBeforeRend
   bool plane_cutting__orMode,
   ecs::Point4List &additional_data)
 {
-  int cutting_pos = animchar_additional_data::request_space<PLANE_CUTTING>(additional_data, 1);
+  int cutting_pos = animchar_additional_data::request_space<AAD_PLANE_CUTTING>(additional_data, 1);
   additional_data[cutting_pos].x = float(max(plane_cutting__setId, 0));
   additional_data[cutting_pos].y = float(plane_cutting__cutting && plane_cutting__setId >= 0 ? 1.f : 0.f);
   additional_data[cutting_pos].z = float(plane_cutting__orMode ? 1.f : 0.f);
@@ -31,10 +31,35 @@ static void additional_data_for_tracks_es(const UpdateStageInfoBeforeRender &,
   const Point2 &vehicle_tracks_visual_pos_delta,
   ecs::Point4List &additional_data)
 {
-  int start_pos = animchar_additional_data::request_space<VEHICLE_TRACKS>(additional_data, 1);
+  int start_pos = animchar_additional_data::request_space<AAD_VEHICLE_TRACKS>(additional_data, 1);
   additional_data[start_pos] = Point4(vehicle_tracks_visual_pos.x, vehicle_tracks_visual_pos.y, vehicle_tracks_visual_pos_delta.x,
     vehicle_tracks_visual_pos_delta.y);
 }
+
+static Point2 get_camo_scale_and_rotation_vars(float scale, float rotation)
+{
+  float rotationSin, rotationCos;
+  sincos(rotation, rotationSin, rotationCos);
+  float camoScale = 2.f / (4096.f * scale);
+  return Point2(camoScale * rotationSin, camoScale * rotationCos);
+}
+
+ECS_TAG(render)
+static void additional_data_for_vehicle_camo_es(const UpdateStageInfoBeforeRender &,
+  float vehicle_camo_condition,
+  float vehicle_camo_scale,
+  float vehicle_camo_rotation,
+  ecs::Point4List &additional_data)
+{
+  int start_pos = animchar_additional_data::request_space<AAD_VEHICLE_CAMO>(additional_data, 1);
+  Point2 camoVars = get_camo_scale_and_rotation_vars(vehicle_camo_scale, vehicle_camo_rotation);
+  additional_data[start_pos] = Point4(1.0f / max(vehicle_camo_condition, 0.001f), camoVars.x, camoVars.y, 0);
+}
+
+ECS_TAG(render)
+ECS_TRACK(vehicle_camo_condition, vehicle_camo_scale, vehicle_camo_rotation)
+ECS_REQUIRE(float vehicle_camo_condition, float vehicle_camo_scale, float vehicle_camo_rotation)
+static void on_vehicle_camo_changed_es(const ecs::Event &, ecs::EntityId eid) { mark_animchar_for_reactive_mask_pass(eid); }
 
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es)
@@ -42,7 +67,7 @@ ECS_REQUIRE(ecs::Tag needModelMatrix)
 static void additional_data_copy_model_tm_es(
   const UpdateStageInfoBeforeRender &, const AnimV20::AnimcharRendComponent &animchar_render, ecs::Point4List &additional_data)
 {
-  int model_pos = animchar_additional_data::request_space<MODEL_TM>(additional_data, 3);
+  int model_pos = animchar_additional_data::request_space<AAD_MODEL_TM>(additional_data, 3);
   const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
   const TMatrix &tm = scene->getNodeWtm(0);
   additional_data[model_pos] = Point4(tm.getcol(0).x, tm.getcol(1).x, tm.getcol(2).x, -tm.getcol(3).x);
@@ -219,11 +244,16 @@ static void additional_data_for_dynamic_material_params_es(
     paramOffsetPerChannel[i] = paramCountSum;
     paramCountSum += dynMatInfo.param_cnt;
   }
+  for (int i = channelCnt; i < DYNMAT_MAX_CHANNEL_CNT; ++i)
+  {
+    materialTypePerChannel[i] = static_cast<uint32_t>(DynMatType::DMT_INVALID); // for validation
+    paramOffsetPerChannel[i] = 0;
+  }
 
   if (paramCountSum > DYNMAT_MAX_PARAM_CNT)
     return; // no reasonable fallback, but it can only happen in extreme cases
 
-  int offset = animchar_additional_data::request_space<MATERIAL_PARAMS>(additional_data, paramCountSum);
+  int offset = animchar_additional_data::request_space<AAD_MATERIAL_PARAMS>(additional_data, paramCountSum);
   offset += paramCountSum - 1; // we fill additional_data in reverse order
 
   // first float4 is metadata

@@ -27,10 +27,12 @@ Temporary values accomplish this by following certain rules.
 
 Temporary values can't be copied or moved::
 
-    def sample ( var t : das_string )
+    def sample ( var t : das_string ) {
         var s : string
-        peek(t) <| $ ( boo : string# )
+        peek(t) $ ( boo : string# ) {
             s = boo // error, can't copy temporary value
+        }
+    }
 
 Temporary values can't be returned or passed to functions, which require regular values::
 
@@ -38,8 +40,10 @@ Temporary values can't be returned or passed to functions, which require regular
         print("s={s}\n")
 
     def sample ( var t : das_string )
-        peek(t) <| $ ( boo : string# )
+        peek(t) $ ( boo : string# ) {
             accept_string(boo) // error
+        }
+    }
 
 This causes the following error::
 
@@ -51,19 +55,24 @@ This causes the following error::
 Values need to be marked as ``implicit`` to accept both temporary and regular values.
 These functions implicitly promise that the data will not be cached (copied, moved) in any form::
 
-    def accept_any_string(s:string implicit)
+    def accept_any_string(s:string implicit) {
         print("s={s}\n")
+    }
 
-    def sample ( var t : das_string )
-        peek(t) <| $ ( boo : string# )
+    def sample ( var t : das_string ) {
+        peek(t) $ ( boo : string# ) {
             accept_any_string(boo)
+        }
+    }
 
 Temporary values can and are intended to be cloned::
 
-    def sample ( var t : das_string )
-        peek(t) <| $ ( boo : string# )
+    def sample ( var t : das_string ) {
+        peek(t) $ ( boo : string# ) {
             var boo_clone : string := boo
             accept_string(boo_clone)
+        }
+    }
 
 Returning a temporary value is an unsafe operation.
 
@@ -71,8 +80,10 @@ A pointer to the temporary value can be received for the corresponding scope via
 
     require daslib/safe_addr
 
-    def foo
+    def foo {
         var a = 13
         ...
         var b = safe_addr(a)    // b is int?#, and this operation does not require unsafe
         ...
+    }
+

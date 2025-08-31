@@ -30,10 +30,6 @@ uint calc_raymarch_noise_index(uint2 dtId)
 
 float4 get_media(float3 world_pos, float3 screenTcJittered, float wind_time)
 {
-  float3 depthAboveTcAndVignette = getDepthAboveTcAndVignette(world_pos); // TODO: not sure if needed
-  float2 depthAboveTc = depthAboveTcAndVignette.xy;
-  float depthAboveVignette = depthAboveTcAndVignette.z;
-
   MRTOutput result = (MRTOutput)0;
 
   //[[shader_code]]

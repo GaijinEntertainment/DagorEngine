@@ -150,7 +150,8 @@ void DynamicLutManager::loadBlk(const DataBlock &weatherBlk)
   }
 }
 
-DynamicLutParams DynamicLutManager::getLerpedLutParams(Tab<DynamicLutParams> dynamicLut_array, float time, float lerping_power)
+DynamicLutParams DynamicLutManager::getLerpedLutParams(const Tab<DynamicLutParams> &dynamicLut_array, float time,
+  float lerping_power) const
 {
   int nextTimeOfDayIndex = 0;
   for (int i = 0; i < dynamicLut_array.size(); ++i)

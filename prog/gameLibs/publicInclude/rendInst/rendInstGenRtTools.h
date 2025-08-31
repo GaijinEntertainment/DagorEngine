@@ -10,6 +10,7 @@
 
 
 struct RendInstGenData;
+class DataBlock;
 
 namespace rendinst
 {
@@ -86,4 +87,5 @@ enum class QuantizeRendInstMatrixResult
 };
 QuantizeRendInstMatrixResult quantize_rendinst_matrix(int layer_idx, int ri_idx, const TMatrix &in_tm, TMatrix &out_tm);
 
+unsigned precompute_ri_cells_for_stats(DataBlock &out_stats);
 } // namespace rendinst

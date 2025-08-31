@@ -10,15 +10,23 @@ StrictCompile ?= yes ;
 WError ?= yes ; # treat all warnings as errors
 Exceptions ?= no ;
 Config ?= dev ;
-NeedDasAotCompile ?= no ;
-HaveAssetManager ?= no ;
-Dedicated ?= no ;
+NeedDasAotCompile ?= no ;   # optional usage of AoT (ahead-of-time) compilation for DAS scripts
+# HaveRenderer ?= yes ;     # include/skip renderer-related code
+# HaveDngInput ?= yes ;     # include/skip input-related code
+# HaveOverlayUI ?= yes ;    # include/skip UI/hud-related code
+# HaveWebui ?= yes ;        # include/skip webUI support
+# HaveConsole ?= yes ;      # include/skip developer console support
+# HaveEditor ?= yes ;       # include/skip embedded daEditorE support
+# HaveFx ?= yes ;           # include/skip FX support
+# HaveSound ?= yes ;        # include/skip sound code
+# HaveSoundNet ?= yes ;     # include/skip sound-for-network code
+HaveEmbeddedBrowser ?= no ; # include/skip embedded browser support
+HaveAssetManager ?= no ;    # include/skip asset manager (runtime dabuild-cache) support
+Dedicated ?= no ;           # select dedicated server or client
 
 if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
 }
-
-HaveEmbeddedBrowser ?= no ;
 
 if $(Dedicated) = yes { ContentUpdater ?= no ; }
 else { ContentUpdater ?= yes ; }
@@ -32,7 +40,7 @@ if $(Dedicated) != yes {
   CamStub ?= no ;
 } else {
   IsHeadless = yes ;
-  HaveRenderer ?= no ;
+  HaveRenderer = no ;
   if $(OS) = LINUX { # before inclusion of 'defaults.jam' $(Platform) is not defined unless passed in command line
     NetPeerAuth ?= yes ; # TODO: move this default to project builds
     if $(Sanitize) != address {
@@ -45,9 +53,9 @@ if $(Dedicated) != yes {
   }
   if $(NetPeerAuth) = yes {
     if $(Platform) = windows {
-      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH=1 /Y- ; # Exclude from PCH
+      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH /Y- ; # Exclude from PCH
     } else {
-      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH=1 ;
+      opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH ;
     }
   }
 }
@@ -93,12 +101,8 @@ if $(Platform)-$(PlatformArch) != windows-x86 {
 }
 
 # Note: we are still using MSVC in win32 dev (default) mode for x87 support (to catch FPEs)
-if $(Platform)-$(PlatformArch) = windows-x86_64 {
+if $(Platform) = windows && $(PlatformArch) != x86 {
   PlatformSpec ?= clang ;
-}
-
-if $(Platform) in windows && $(PlatformSpec) != clang {
-  PlatformSpec ?= vc17 ;
 }
 
 # both clang & msvc gerenate bugggy code in win32 (mostly das/das-aot related) which we workaround with out-of-line
@@ -167,7 +171,7 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
   if $(host_platform) {
     SetupOutputDir ;
     local DasAotFusion = ;
-    # if $(Config) = rel && $(PlatformArch) != x86 && $(Platform) in windows ps4 ps5 xboxOne linux macOS android nswitch { DasAotFusion = yes ; } # fusion was switched off here https://cvs1.gaijin.lan/c/dagor4/+/221318
+    # if $(Config) = rel && $(PlatformArch) != x86 && $(Platform) in windows ps4 ps5 xboxOne linux macOS android nswitch { DasAotFusion = yes ; } # fusion was switched off
     BuildJams = $(jam) ;
     platform on $(jam:G=JAM) = -sPlatform=$(host_platform) -sPlatformArch=$(host_arch) ;
     config on $(jam:G=JAM) = -sConfig=dev ;
@@ -195,7 +199,9 @@ if $(Platform) in nswitch {
 }
 
 if $(UseGDK) != no {
-  UseSystemLibcurl = yes ;
+  if $(GdkRequiresXCurl) = yes {
+    UseSystemLibcurl = yes ;
+  }
   Yuplay2NoCurlInit = yes ;
 }
 
@@ -302,5 +308,5 @@ if $(WError) = yes {
   }
 }
 
-include $(Root)/prog/daNetGame/autoscan.jam ;
+include $(Root)/prog/_jBuild/autoscan.jam ;
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

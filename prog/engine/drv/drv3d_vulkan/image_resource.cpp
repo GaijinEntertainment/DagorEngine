@@ -12,6 +12,7 @@
 #include "execution_sync.h"
 #include "bindless.h"
 #include "wrapped_command_buffer.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -25,7 +26,7 @@ namespace drv3d_vulkan
 {
 
 template <>
-void Image::onDelayedCleanupBackend<Image::CLEANUP_DESTROY>()
+void Image::onDelayedCleanupBackend<CleanupTag::DESTROY>()
 {
   // cleanup bindless a bit earlier to avoid leaving texture in bindless on followup frame
   // i.e. "finish" cb happens after waiting for frame on what we did deletion,
@@ -36,10 +37,11 @@ void Image::onDelayedCleanupBackend<Image::CLEANUP_DESTROY>()
 }
 
 template <>
-void Image::onDelayedCleanupFinish<Image::CLEANUP_DESTROY>()
+void Image::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
   // delayed destroy images must be marked dead here
   //(because they are "surely" referenced at deletion time)
+  G_ASSERTF(bindlessSlots.empty(), "vulkan: bindless slots are not free at destruction of img %p:%s", this, getDebugName());
   markDead();
 
   // shader var system * delayed state tansit may give us delete-bind command order, avoid crashin on it
@@ -58,20 +60,12 @@ void Image::onDelayedCleanupFinish<Image::CLEANUP_DESTROY>()
 
   ResourceManager &rm = Globals::Mem::res;
   if (hostCopy)
+  {
     rm.free(hostCopy);
+    hostCopy = nullptr;
+  }
   rm.free(this);
 }
-
-template <>
-void Image::onDelayedCleanupFinish<Image::CLEANUP_DELAYED_DESTROY>()
-{
-  // destroy in next frame if we are not using image
-  Backend::State::pendingCleanups.removeReferenced(this);
-}
-
-template <>
-void Image::onDelayedCleanupBackend<Image::CLEANUP_DELAYED_DESTROY>()
-{}
 
 } // namespace drv3d_vulkan
 
@@ -81,7 +75,9 @@ void ImageCreateInfo::initByTexCreate(uint32_t cflag, bool cube_tex)
   samples = VkSampleCountFlagBits(get_sample_count(cflag));
   setUsageBitsFromCflags(cflag);
   setVulkanCreateFlagsFromCflags(cflag, cube_tex);
-  residencyFlags = (usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) ? Image::MEM_LAZY_ALLOCATION : Image::MEM_NORMAL;
+  memFlags = (usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) ? Image::MEM_LAZY_ALLOCATION : Image::MEM_NORMAL;
+  if (cflag & TEXCF_TILED_RESOURCE)
+    memFlags |= Image::MEM_NOT_EVICTABLE | Image::MEM_SPARSE;
 }
 
 void ImageCreateInfo::setUsageBitsFromCflags(uint32_t cflag)
@@ -106,7 +102,7 @@ void ImageCreateInfo::setUsageBitsFromCflags(uint32_t cflag)
     usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
   }
   usage |= (cflag & TEXCF_UNORDERED) ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
-  G_ASSERT(!(isDepth && (cflag & TEXCF_READABLE)));
+  D3D_CONTRACT_ASSERT(!(isDepth && (cflag & TEXCF_READABLE)));
 }
 
 void ImageCreateInfo::setVulkanCreateFlagsFromCflags(uint32_t cflag, bool cube_tex)
@@ -120,25 +116,28 @@ void ImageCreateInfo::setVulkanCreateFlagsFromCflags(uint32_t cflag, bool cube_t
   if (isRT && (type == VK_IMAGE_TYPE_3D) && Globals::cfg.has.renderTo3D)
     flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
 #endif
+  if (cflag & TEXCF_TILED_RESOURCE)
+  {
+    flags |= VK_IMAGE_CREATE_SPARSE_BINDING_BIT;
+    if (type == VK_IMAGE_TYPE_3D)
+    {
+      if (Globals::VK::phy.features.sparseResidencyImage3D)
+        flags |= VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT;
+    }
+    else if (Globals::VK::phy.features.sparseResidencyImage2D)
+      flags |= VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT;
+
+    if (Globals::VK::phy.features.sparseResidencyAliased)
+      flags |= VK_IMAGE_CREATE_SPARSE_ALIASED_BIT;
+  }
 }
 
 void Image::destroyVulkanObject()
 {
   VulkanDevice &dev = Globals::VK::dev;
 
-  Globals::VK::dev.vkDestroyImage(dev.get(), getHandle(), nullptr);
+  Globals::VK::dev.vkDestroyImage(dev.get(), getHandle(), VKALLOC(image));
   setHandle(generalize(Handle()));
-}
-
-SamplerInfo *Image::getSampler(SamplerState sampler_state)
-{
-  if (!cachedSampler || !(sampler_state == cachedSamplerState))
-  {
-    cachedSampler = Globals::samplers.get(sampler_state);
-    cachedSamplerState = sampler_state;
-  }
-
-  return cachedSampler;
 }
 
 bool Image::useFallbackFormat(VkImageCreateInfo &ici)
@@ -227,18 +226,33 @@ void Image::createVulkanObject()
   G_ASSERT((ici.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) == 0 || (ici.usage & disallowedTransientUsageFlags) == 0);
 
   Handle ret{};
-  VULKAN_EXIT_ON_FAIL(dev.vkCreateImage(dev.get(), &ici, nullptr, ptr(ret)));
+  VULKAN_EXIT_ON_FAIL(dev.vkCreateImage(dev.get(), &ici, VKALLOC(image), ptr(ret)));
 
   setHandle(generalize(ret));
+}
+
+bool Image::isSparseAspected()
+{
+  uint32_t aspects = 0;
+  VULKAN_LOG_CALL(Globals::VK::dev.vkGetImageSparseMemoryRequirements(Globals::VK::dev.get(), getHandle(), &aspects, nullptr));
+  return aspects != 1;
+}
+
+VkSparseImageMemoryRequirements Image::getSparseMemoryReqNonAspected()
+{
+  uint32_t aspects = 1;
+  VkSparseImageMemoryRequirements ret;
+  VULKAN_LOG_CALL(Globals::VK::dev.vkGetImageSparseMemoryRequirements(Globals::VK::dev.get(), getHandle(), &aspects, &ret));
+  if (ret.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT)
+    ret.imageMipTailStride = 0; // otherwise undefined by spec
+  return ret;
 }
 
 MemoryRequirementInfo Image::getMemoryReq()
 {
   G_ASSERT(getBaseHandle());
 
-  VulkanDevice &dev = Globals::VK::dev;
-
-  return get_memory_requirements(dev, getHandle());
+  return get_memory_requirements(getHandle());
 }
 
 VkMemoryRequirements Image::getSharedHandleMemoryReq()
@@ -273,14 +287,32 @@ void Image::shutdown() { cleanupReferences(); }
 
 bool Image::nonResidentCreation()
 {
-  if (!isEvictable())
+  if (desc.memFlags & MEM_NOT_EVICTABLE)
     return false;
 
   createVulkanObject();
   return true;
 }
 
-void Image::evict() { cleanupReferences(); }
+void Image::evict()
+{
+  for (uint32_t i : bindlessSlots)
+    Backend::bindless.evictBindlessTexture(i, this);
+  cleanupReferences();
+}
+
+void Image::onDeviceReset()
+{
+  cleanupReferences();
+  layout.resetTo(VK_IMAGE_LAYOUT_UNDEFINED);
+  disallowAccessesOnGpuWorkId(-1);
+}
+
+void Image::afterDeviceReset()
+{
+  for (uint32_t i : bindlessSlots)
+    Backend::bindless.restoreBindlessTexture(i, this);
+}
 
 void Image::restoreFromSysCopy(ExecutionContext &ctx)
 {
@@ -299,8 +331,9 @@ void Image::delayedRestoreFromSysCopy()
   fillImage2BufferCopyData(copies, hostCopy);
 
 
-  ExecutionContext::PrimaryPipelineBarrier layoutSwitch(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  ExecutionContext::PrimaryPipelineBarrier layoutSwitch;
   layoutSwitch.modifyImageTemplate(this);
+  layoutSwitch.modifyImageTemplateStage({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
   layoutSwitch.modifyImageTemplate({VK_ACCESS_NONE, VK_ACCESS_TRANSFER_WRITE_BIT});
   layoutSwitch.modifyImageTemplate(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   layoutSwitch.modifyImageTemplate(0, (uint8_t)desc.ici.mipLevels, 0, (uint8_t)desc.ici.arrayLayers);
@@ -311,16 +344,17 @@ void Image::delayedRestoreFromSysCopy()
 
   // TODO: make sure usage barrier is correct after this operation (should be generated srcless due to layout change)
 
-  Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*hostCopy);
+  Backend::gpuJob.get().cleanups.enqueue(*hostCopy);
   hostCopy = nullptr;
+
+  for (uint32_t i : bindlessSlots)
+    Backend::bindless.restoreBindlessTexture(i, this);
 }
 
 bool Image::isEvictable()
 {
   const VkImageUsageFlags transferableMask = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   if ((getUsage() & transferableMask) != transferableMask)
-    return false;
-  if (isUsedInBindless())
     return false;
   return (desc.memFlags & MEM_NOT_EVICTABLE) == 0;
 }
@@ -333,7 +367,7 @@ void Image::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
   alloc_desc.forceDedicated = (memFlags & Image::MEM_DEDICATE_ALLOC) > 0;
   alloc_desc.canUseSharedHandle = 0;
   alloc_desc.temporary = 0;
-  alloc_desc.objectBaked = 0;
+  alloc_desc.objectBaked = (memFlags & Image::MEM_SPARSE) > 0;
 }
 
 //////////////
@@ -356,6 +390,8 @@ Buffer *Image::getHostCopyBuffer()
       desc.format.calculateImageSize(desc.ici.extent.width, desc.ici.extent.height, desc.ici.extent.depth, desc.ici.mipLevels) *
       desc.ici.arrayLayers;
     hostCopy = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::NONE);
+    if (Globals::cfg.debugLevel > 0)
+      hostCopy->setDebugName(String(128, "host copy of img %s", getDebugName()));
   }
   return hostCopy;
 }
@@ -396,12 +432,12 @@ void Image::cleanupReferences()
   for (auto &&view : views)
   {
     if (view.state.isRenderTarget)
-      Globals::passes.unloadWith(dev, view.view);
-    VULKAN_LOG_CALL(dev.vkDestroyImageView(dev.get(), view.view, NULL));
+      Globals::passes.unloadWith(view.view);
+    VULKAN_LOG_CALL(dev.vkDestroyImageView(dev.get(), view.view, VKALLOC(image_view)));
   }
   views.clear();
 
-  if (isUsedInBindless())
+  if (isUsedInBindless() && (!isEvicting() && !isInDeviceReset()))
     D3D_ERROR("vulkan: image %p:%s was registred in bindless while being removed", this, getDebugName());
 }
 
@@ -425,7 +461,7 @@ bool shouldUsePool(const VkImageCreateInfo &ici)
         return false;
     }
 
-    // large (what is large?) textures get thier own memory block to benifit from
+    // large (what is large?) textures get their own memory block to benifit from
     // dedicated memory
     return (ici.extent.width * ici.extent.height * max(ici.extent.depth, 1u)) <=
            Globals::cfg.dedicatedMemoryForImageTexelCountThreshold;
@@ -439,7 +475,7 @@ Image *Image::create(const ImageCreateInfo &ii)
   ici.fillFromImageCreate(ii);
 
   bool useDedAlloc = !shouldUsePool(ici.toVk());
-  uint8_t memFlags = (useDedAlloc ? (MEM_DEDICATE_ALLOC) : 0) | ii.residencyFlags;
+  uint8_t memFlags = (useDedAlloc ? (MEM_DEDICATE_ALLOC) : 0) | ii.memFlags;
 
   WinAutoLock lk(Globals::Mem::mutex);
   return Globals::Mem::res.alloc<Image>({ici, memFlags, ii.format, VK_IMAGE_LAYOUT_UNDEFINED}, true);
@@ -458,8 +494,8 @@ bool Image::checkImageCreate(const VkImageCreateInfo &ici, FormatStore format)
     image_tiling_name[ici.tiling], formatImageUsageFlags(ici.usage), ici.flags, ici.samples, __VA_ARGS__)
 
   VkImageFormatProperties properties;
-  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::dev.getInstance().vkGetPhysicalDeviceImageFormatProperties(
-    Globals::VK::phy.device, ici.format, ici.imageType, ici.tiling, ici.usage, ici.flags, &properties));
+  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, ici.format,
+    ici.imageType, ici.tiling, ici.usage, ici.flags, &properties));
   if (VULKAN_FAIL(result))
   {
     FAIL_MESSAGE(", because vkGetPhysicalDeviceImageFormatProperties failed", "");
@@ -509,10 +545,101 @@ bool Image::checkImageCreate(const VkImageCreateInfo &ici, FormatStore format)
   return true;
 }
 
-bool Image::checkImageViewFormat(FormatStore fmt, VkImageUsageFlags usage)
+bool Image::checkImageViewFormat(FormatStore fmt, VkImageUsageFlags usage) const
 {
   return Globals::VK::fmt.support(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, usage, getCreateFlags(),
     getSampleCount());
+}
+
+VulkanImageViewHandle Image::createNewImageView(ImageViewState state) const
+{
+  // this should not happen at every frame, add marker to catch such things
+  TIME_PROFILE(vulkan_get_image_view_ctor);
+  VkImageViewCreateInfo ivci = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr};
+  VkImageViewUsageCreateInfo ivuci = {VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO, nullptr};
+  FormatStore fmt = state.getFormat();
+  // this masking logic comes from fact that we handle mutable formats silently
+  // but some reconstruction in needed to allow proper format to be selected when needed
+  // i.e. non srgb for UAVs and srgb for sampled & framebuffer
+  VkImageUsageFlags maskedUsage = VK_IMAGE_USAGE_SAMPLED_BIT;
+  if (state.isUAV)
+    maskedUsage = getUsage();
+  else if (state.isRenderTarget)
+    maskedUsage = getUsage() & ~VK_IMAGE_USAGE_STORAGE_BIT;
+
+  ivuci.usage = maskedUsage;
+  bool fmtOk = checkImageViewFormat(fmt, maskedUsage);
+  if (!fmtOk && fmt != getFormat())
+  {
+    debug("vulkan: unsupported view format %s, falling back for image original format %s", fmt.getNameString(),
+      getFormat().getNameString());
+    fmt = getFormat();
+    fmtOk = checkImageViewFormat(fmt, maskedUsage);
+  }
+  if (!fmtOk)
+  {
+    D3D_CONTRACT_ERROR("vulkan: failed to create image view for %p:%s with format %s usage %s samples %u flags %u", this,
+      getDebugName(), fmt.getNameString(), formatImageUsageFlags(getUsage()), getSampleCount(), getCreateFlags());
+    return VulkanImageViewHandle{};
+  }
+  D3D_CONTRACT_ASSERT((state.isRenderTarget == 1 && state.isCubemap == 0) || (state.isRenderTarget == 0));
+  D3D_CONTRACT_ASSERT((state.getMipBase() + state.getMipCount()) <= getMipLevels());
+  ivci.viewType = state.getViewType(getType());
+  ivci.image = getHandle();
+  ivci.format = fmt.asVkFormat();
+  memset(&ivci.components, 0, sizeof(ivci.components));
+
+  // apply correct swizzle for mapped formats
+  // for compatibility in shaders
+  switch (fmt.getFormatFlags())
+  {
+    case TEXFMT_A8:
+      // as A8 is mapped to R8, we need to properly swizzle it
+      if (fmt.asVkFormat() == VK_FORMAT_R8_UNORM)
+      {
+        ivci.components.r = VK_COMPONENT_SWIZZLE_ZERO;
+        ivci.components.g = VK_COMPONENT_SWIZZLE_ZERO;
+        ivci.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+        ivci.components.a = VK_COMPONENT_SWIZZLE_R;
+      }
+      break;
+    case TEXFMT_R5G6B5:
+      // no need to swizzle if we reading from render target
+      if ((fmt.asVkFormat() == VK_FORMAT_R5G6B5_UNORM_PACK16) && !(getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
+      {
+        ivci.components.r = VK_COMPONENT_SWIZZLE_B;
+        ivci.components.g = VK_COMPONENT_SWIZZLE_G;
+        ivci.components.b = VK_COMPONENT_SWIZZLE_R;
+        ivci.components.a = VK_COMPONENT_SWIZZLE_ONE;
+      }
+      break;
+    default:; // no action needed, keep swizzle as is
+  }
+
+  ivci.flags = 0;
+  ivci.subresourceRange.aspectMask = fmt.getAspektFlags();
+  if (!state.isRenderTarget)
+  {
+    // either sample stencil or depth
+    if (state.sampleStencil)
+      ivci.subresourceRange.aspectMask &= ~VK_IMAGE_ASPECT_DEPTH_BIT;
+    else
+      ivci.subresourceRange.aspectMask &= ~VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
+  ivci.subresourceRange.baseMipLevel = state.getMipBase();
+  ivci.subresourceRange.levelCount = state.getMipCount();
+  ivci.subresourceRange.baseArrayLayer = state.getArrayBase();
+  ivci.subresourceRange.layerCount = state.getArrayCount();
+
+  VulkanImageViewHandle result;
+  if (Globals::cfg.has.separateImageViewUsage)
+    chain_structs(ivci, ivuci);
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateImageView(Globals::VK::dev.get(), &ivci, VKALLOC(image_view), ptr(result)));
+
+  if (Globals::cfg.debugLevel)
+    Globals::Dbg::naming.setImageViewName(result, getDebugName());
+
+  return result;
 }
 
 VulkanImageViewHandle Image::getImageView(ImageViewState state)
@@ -520,89 +647,32 @@ VulkanImageViewHandle Image::getImageView(ImageViewState state)
   auto iter = eastl::find_if(views.begin(), views.end(), [state](const Image::ViewInfo &view) { return view.state == state; });
   if (iter == views.end())
   {
-    // this should not happen at every frame, add marker to catch such things
-    TIME_PROFILE(vulkan_get_image_view_ctor);
-    VkImageViewCreateInfo ivci = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, nullptr};
-    VkImageViewUsageCreateInfo ivuci = {VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO, nullptr};
-    FormatStore fmt = state.getFormat();
-    VkImageUsageFlags maskedUsage = (state.isUAV || state.isRenderTarget) ? getUsage() : VK_IMAGE_USAGE_SAMPLED_BIT;
-    ivuci.usage = maskedUsage;
-    bool fmtOk = checkImageViewFormat(fmt, maskedUsage);
-    if (!fmtOk && fmt != getFormat())
-    {
-      debug("vulkan: unsupported view format %s, falling back for image original format %s", fmt.getNameString(),
-        getFormat().getNameString());
-      fmt = getFormat();
-      fmtOk = checkImageViewFormat(fmt, maskedUsage);
-    }
-    if (!fmtOk)
-    {
-      D3D_ERROR("vulkan: failed to create image view for %p:%s with format %s usage %s samples %u flags %u", this, getDebugName(),
-        fmt.getNameString(), formatImageUsageFlags(getUsage()), getSampleCount(), getCreateFlags());
-      return VulkanImageViewHandle{};
-    }
-    G_ASSERT((state.isRenderTarget == 1 && state.isCubemap == 0) || (state.isRenderTarget == 0));
-    G_ASSERT((state.getMipBase() + state.getMipCount()) <= getMipLevels());
-    ivci.viewType = state.getViewType(getType());
-    ivci.image = getHandle();
-    ivci.format = fmt.asVkFormat();
-    memset(&ivci.components, 0, sizeof(ivci.components));
-
-    // apply correct swizzle for mapped formats
-    // for compatibility in shaders
-    switch (fmt.getFormatFlags())
-    {
-      case TEXFMT_A8:
-        // as A8 is mapped to R8, we need to properly swizzle it
-        if (fmt.asVkFormat() == VK_FORMAT_R8_UNORM)
-        {
-          ivci.components.r = VK_COMPONENT_SWIZZLE_ZERO;
-          ivci.components.g = VK_COMPONENT_SWIZZLE_ZERO;
-          ivci.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-          ivci.components.a = VK_COMPONENT_SWIZZLE_R;
-        }
-        break;
-      case TEXFMT_R5G6B5:
-        // no need to swizzle if we reading from render target
-        if ((fmt.asVkFormat() == VK_FORMAT_R5G6B5_UNORM_PACK16) && !(getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
-        {
-          ivci.components.r = VK_COMPONENT_SWIZZLE_B;
-          ivci.components.g = VK_COMPONENT_SWIZZLE_G;
-          ivci.components.b = VK_COMPONENT_SWIZZLE_R;
-          ivci.components.a = VK_COMPONENT_SWIZZLE_ONE;
-        }
-        break;
-      default:; // no action needed, keep swizzle as is
-    }
-
-    ivci.flags = 0;
-    ivci.subresourceRange.aspectMask = fmt.getAspektFlags();
-    if (!state.isRenderTarget)
-    {
-      // either sample stencil or depth
-      if (state.sampleStencil)
-        ivci.subresourceRange.aspectMask &= ~VK_IMAGE_ASPECT_DEPTH_BIT;
-      else
-        ivci.subresourceRange.aspectMask &= ~VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-    ivci.subresourceRange.baseMipLevel = state.getMipBase();
-    ivci.subresourceRange.levelCount = state.getMipCount();
-    ivci.subresourceRange.baseArrayLayer = state.getArrayBase();
-    ivci.subresourceRange.layerCount = state.getArrayCount();
-
     Image::ViewInfo viewInfo;
     viewInfo.state = state;
-    if (Globals::cfg.has.separateImageViewUsage)
-      chain_structs(ivci, ivuci);
-    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateImageView(Globals::VK::dev.get(), &ivci, NULL, ptr(viewInfo.view)));
-
-    if (Globals::cfg.debugLevel)
-      Globals::Dbg::naming.setImageViewName(viewInfo.view, getDebugName());
-
+    viewInfo.view = createNewImageView(state);
     iter = addView(viewInfo);
   }
 
   return iter->view;
+}
+
+bool Image::verifyLinearFilteringSupported(const char *usageContextStr, ExecutionContext *ctx)
+{
+  const VkFormatFeatureFlags fmtFeatures = Globals::VK::fmt.features(getFormat().asVkFormat());
+  const bool linearSamplingSupported = fmtFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+#if DAGOR_DBGLEVEL > 0
+  if (!linearSamplingSupported && !unsupportedLinearFilterReported)
+  {
+    debug("vulkan: linear filtering for image %s, format %s is not supported (usageContext: %s, commandCaller: %s)", getDebugName(),
+      getFormat().getNameString(), usageContextStr ? usageContextStr : "<unknown>",
+      ctx ? ctx->getCurrentCmdCaller().c_str() : "<unknown>");
+    unsupportedLinearFilterReported = true;
+  }
+#else
+  G_UNUSED(ctx);
+  G_UNUSED(usageContextStr);
+#endif
+  return linearSamplingSupported;
 }
 
 void drv3d_vulkan::viewFormatListFrom(FormatStore format, VkImageUsageFlags usage, Image::ViewFormatList &viewFormats)

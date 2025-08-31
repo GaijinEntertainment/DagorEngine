@@ -59,6 +59,7 @@ private:
   bool loopedPlay;
   bool drawSkeleton;
   bool drawA2dnodes;
+  bool disableAdditivity;
 
   bool isAnimInProgress() const { return (currAnimProgress < 1.f) && (currAnimProgress >= 0.f); }
   void resetAnimProgress(float defined_progress);
@@ -74,31 +75,31 @@ public:
   A2dPlugin();
   ~A2dPlugin() override;
 
-  virtual const char *getInternalName() const override { return "A2d viewer"; }
+  const char *getInternalName() const override { return "A2d viewer"; }
 
-  virtual void registered() override {}
-  virtual void unregistered() override {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset) override;
-  virtual bool end() override;
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
 
-  virtual void clearObjects() override {}
-  virtual void onSaveLibrary() override {}
-  virtual void onLoadLibrary() override {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override;
-  virtual bool getSelectionBox(BBox3 &box) const override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void actObjects(float dt) override;
-  virtual void beforeRenderObjects() override {}
-  virtual void renderObjects() override {}
-  virtual void renderTransObjects() override;
-  virtual void handleViewportPaint(IGenViewportWnd *wnd) override;
+  void actObjects(float dt) override;
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override;
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
 
-  virtual bool supportAssetType(const DagorAsset &asset) const override;
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
-  virtual void postFillPropPanel() override {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 };

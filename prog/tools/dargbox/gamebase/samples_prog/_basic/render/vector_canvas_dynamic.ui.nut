@@ -6,7 +6,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let canvas = {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [sh(80), sh(80)]
+  size = sh(80)
 
   function draw(ctx, rect) {
     let t = clock()

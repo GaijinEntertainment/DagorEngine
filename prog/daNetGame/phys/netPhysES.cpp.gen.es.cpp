@@ -5,9 +5,11 @@ static constexpr ecs::component_t isInVehicle_get_type();
 static ecs::LTComponentList isInVehicle_component(ECS_HASH("isInVehicle"), isInVehicle_get_type(), "prog/daNetGame/phys/netPhysES.cpp.inl", "", 0);
 static constexpr ecs::component_t net__controlsTickDelta_get_type();
 static ecs::LTComponentList net__controlsTickDelta_component(ECS_HASH("net__controlsTickDelta"), net__controlsTickDelta_get_type(), "prog/daNetGame/phys/netPhysES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "netPhysES.cpp.inl"
 ECS_DEF_PULL_VAR(netPhys);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc net_phys_update_es_comps[] ={};
 static void net_phys_update_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)

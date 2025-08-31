@@ -494,7 +494,7 @@ static void consume_impulse_reserve(daphys::SolverBodyInfo &lhs, daphys::SolverB
 }
 
 bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::Span<gamephys::SeqImpulseInfo> collisions,
-  double fric_k, double bounce_k, int num_iter)
+  double fric_k, double bounce_k, int num_iter, BodyInnerConstraints l_constraints, BodyInnerConstraints r_constraints)
 {
   bool hadCollision = false;
   for (int iteration = 0; iteration < num_iter; ++iteration)
@@ -541,6 +541,12 @@ bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag
       apply_lambda(rhs, n2, w2, lambda, rhs.addVel, rhs.addOmega);
       info.appliedImpulse += lambda;
     }
+
+    if (l_constraints)
+      l_constraints(lhs);
+    if (r_constraints)
+      r_constraints(rhs);
+
     if (!hadImpulse)
       break;
   }
@@ -548,7 +554,7 @@ bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag
 }
 
 void daphys::resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::ConstSpan<gamephys::SeqImpulseInfo> collisions,
-  double erp, int num_iter)
+  double erp, int num_iter, BodyInnerConstraints l_constraints, BodyInnerConstraints r_constraints)
 {
   for (int iteration = 0; iteration < num_iter; ++iteration)
   {
@@ -577,6 +583,12 @@ void daphys::resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, 
       apply_lambda(lhs, n1, w1, lambda, lhs.pseudoVel, lhs.pseudoOmega);
       apply_lambda(rhs, n2, w2, lambda, rhs.pseudoVel, rhs.pseudoOmega);
     }
+
+    if (l_constraints)
+      l_constraints(lhs);
+    if (r_constraints)
+      r_constraints(rhs);
+
     if (!hadImpulse)
       break;
   }

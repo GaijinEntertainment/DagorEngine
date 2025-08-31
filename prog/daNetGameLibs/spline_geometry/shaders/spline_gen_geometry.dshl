@@ -1,9 +1,7 @@
 include "spline_gen_inc.dshl"
 include "frustum.dshl"
 
-texture spline_gen_texture_d;
 texture spline_gen_texture_n;
-int spline_gen_vertex_buffer_uav_no = 0;
 
 int spline_gen_instance_count;
 int spline_gen_active_instance_count;
@@ -13,153 +11,6 @@ int spline_gen_params_buffer_uav_no = 1;
 int spline_gen_obj_elem_count;
 int spline_gen_attachment_data_uav_no = 0;
 
-shader spline_gen_generator, spline_gen_normal_calculator
-{
-  if (in_editor_assume == yes) { dont_render; }
-  INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
-  USE_SPLINE_GEN_INSTANTIATION(cs)
-  ENABLE_ASSERT(cs)
-
-  (cs)
-  {
-    spline_gen_vertex_buffer@uav : register(spline_gen_vertex_buffer_uav_no) hlsl {
-      #include "spline_gen_buffer.hlsli"
-      RWStructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@uav;
-    };
-  }
-
-  if (shader == spline_gen_generator)
-  {
-    (cs)
-    {
-      spline_gen_texture_d@smp2d = spline_gen_texture_d;
-    }
-
-    hlsl (cs)
-    {
-
-      float2 get_texcoord(SplineGenInstance instance_data, float2 coord)
-      {
-        return coord * instance_data.tcMul;
-      }
-
-      float get_radius(SplineGenInstance instance_data, uint2 coord, float2 texcoord)
-      {
-        float3 radius = instance_data.radius;
-        if (spline_gen_stripes == coord.y)
-          return radius.z;
-
-        float alpha = tex2Dlod(spline_gen_texture_d, float4(texcoord, 0, instance_data.displacementLod)).a;
-        radius *= 1 + (alpha * 2 - 1) * instance_data.displacementStrength;
-        return lerp(radius.x, radius.y, float(coord.y) * spline_gen_inverses.z);
-      }
-
-      float3 get_world_pos(float2 coord, SplineGenSpline spline, float radius)
-      {
-        float3 planeX = spline.bitangent;
-        float3 planeY = cross(spline.tangent, spline.bitangent);
-        float sina, cosa;
-        sincos(coord.x * PI * 2.0, sina, cosa);
-        return spline.pos + radius * (cosa * planeX - sina * planeY);
-      }
-
-      SplineGenVertex get_vertex(InstanceId instance_id, uint2 coord_uint)
-      {
-        SplineGenVertex vertex;
-        SplineGenInstance instanceData = spline_gen_instancing_buffer[instance_id];
-        float2 coord = convert_coord_to_float(coord_uint);
-        vertex.texcoord = get_texcoord(instanceData, coord);
-        float radius = get_radius(instanceData, coord_uint, vertex.texcoord);
-        SplineGenSpline spline = spline_gen_spline_buffer[get_spline_index(instance_id, coord_uint.y)];
-        vertex.worldPos = get_world_pos(coord, spline, radius);
-        vertex.normal = 0;
-        vertex.tangent = 0;
-        vertex.bitangent = 0;
-        return vertex;
-      }
-
-      [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
-      void main(uint2 dispatch_thread_id : SV_DispatchThreadID)
-      {
-        uint hardwareInstanceId = dispatch_thread_id.y;
-        uint vertexId = dispatch_thread_id.x;
-        uint2 coord = get_vertex_coord(vertexId);
-        if (!is_coord_valid(coord))
-          return;
-
-        InstanceId instanceId = spline_gen_indirection_buffer[hardwareInstanceId];
-        SplineGenVertex vertex = get_vertex(instanceId, coord);
-        structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertexId)) = vertex;
-      }
-    }
-  }
-  else if (shader == spline_gen_normal_calculator)
-  {
-    USE_UNIT_VEC_CODEC()
-
-    hlsl (cs)
-    {
-      [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
-      void main(uint2 dispatch_thread_id : SV_DispatchThreadID)
-      {
-        uint hardwareInstanceId = dispatch_thread_id.y;
-        uint vertexId = dispatch_thread_id.x;
-        uint2 coord = get_vertex_coord(vertexId);
-        if (!is_coord_valid(coord))
-          return;
-
-        InstanceId instanceId = spline_gen_indirection_buffer[hardwareInstanceId];
-        SplineGenInstance instanceData = spline_gen_instancing_buffer[instanceId];
-        uint vbIndex = get_vb_index(instanceId, vertexId);
-
-        float3 normal = float3(0,0,0);
-        float3 tangent = float3(0,0,0);
-        float3 bitangent = float3(0,0,0);
-
-        if (coord.y < spline_gen_stripes || instanceData.radius.z > 0.001)
-        {
-          float3 pos00 = structuredBufferAt(spline_gen_vertex_buffer, vbIndex).worldPos;
-          float3 pos10 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(1, 0))).worldPos;
-          float3 pos_10 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(-1, 0))).worldPos;
-          tangent = pos10 - pos_10;
-
-          if (coord.y < spline_gen_stripes)
-          {
-            float3 pos01 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(0, 1))).worldPos;
-            float3 pos_11 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(-1, 1))).worldPos;
-            normal += cross(normalize(pos01 - pos00), normalize(pos10 - pos00));
-            normal += cross(normalize(pos_11 - pos00), normalize(pos01 - pos00));
-            normal += cross(normalize(pos_10 - pos00), normalize(pos_11 - pos00));
-            bitangent += pos01 - pos00;
-          }
-          if (coord.y > 0)
-          {
-            float3 pos0_1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(0, -1))).worldPos;
-            float3 pos1_1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(1, -1))).worldPos;
-            normal += cross(normalize(pos0_1 - pos00), normalize(pos_10 - pos00));
-            normal += cross(normalize(pos1_1 - pos00), normalize(pos0_1 - pos00));
-            normal += cross(normalize(pos10 - pos00), normalize(pos1_1 - pos00));
-            bitangent += pos00 - pos0_1;
-          }
-        }
-        else
-        {
-          //Special handling for the tip, since all the triangles share a common point
-          normal = spline_gen_spline_buffer[get_spline_index(instanceId, coord.y)].tangent;
-          float3 pos1_1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(1, -1))).worldPos;
-          float3 pos_1_1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coord, int2(-1, -1))).worldPos;
-          tangent = pos1_1 - pos_1_1;
-          bitangent = cross(tangent, normal);
-        }
-        structuredBufferAt(spline_gen_vertex_buffer, vbIndex).normal = encode_unit_vector(normalize(normal));
-        structuredBufferAt(spline_gen_vertex_buffer, vbIndex).tangent = encode_unit_vector(normalize(tangent));
-        structuredBufferAt(spline_gen_vertex_buffer, vbIndex).bitangent = encode_unit_vector(normalize(bitangent));
-      }
-    }
-  }
-  compile("target_cs", "main");
-}
-
 
 shader spline_gen_obj_attacher
 {
@@ -167,20 +18,18 @@ shader spline_gen_obj_attacher
   INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
   USE_SPLINE_GEN_INSTANTIATION(cs)
   INIT_SPLINE_GEN_ATTACHMENT_BATCHES(cs)
-  USE_UNIT_VEC_CODEC()
+  USE_VS_SPLINE_GEN(cs)
   ENABLE_ASSERT(cs)
 
   (cs)
   {
     spline_gen_active_instance_count@i1 = (spline_gen_active_instance_count);
-    spline_gen_vertex_buffer@buf = spline_gen_vertex_buffer hlsl {
-      #include "spline_gen_buffer.hlsli"
-      StructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@buf;
-    }
     spline_gen_attachment_data@uav : register(spline_gen_attachment_data_uav_no) hlsl {
       #include "spline_gen_attachment.hlsl"
       RWStructuredBuffer<AttachmentData> spline_gen_attachment_data@uav;
     };
+
+    spline_gen_texture_d@smp2d = spline_gen_texture_d;
   }
 
   hlsl (cs)
@@ -206,8 +55,8 @@ shader spline_gen_obj_attacher
 
     float3x3 get_rotation_matrix(InstanceId instance_id, CoordEx coord_ex, float3 normal)
     {
-      float3 tangent = lerp(spline_gen_spline_buffer[get_spline_index(instance_id, coord_ex.coord.y + 0)].tangent,
-                            spline_gen_spline_buffer[get_spline_index(instance_id, coord_ex.coord.y + 1)].tangent, coord_ex.lerpS);
+      float3 tangent = lerp(structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instance_id, coord_ex.coord.y + 0)).tangent,
+                            structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instance_id, coord_ex.coord.y + 1)).tangent, coord_ex.lerpS);
       float3 axisX, axisY, axisZ;
       axisY = normal;
       axisX = normalize(cross(axisY, tangent));
@@ -216,12 +65,9 @@ shader spline_gen_obj_attacher
       return float3x3(axisX, axisY, axisZ);
     }
 
-    float get_size(CoordEx coord_ex, float obj_size_mul, float3 radius)
+    float get_size(float obj_size_mul, float radius, float inv_max_rad)
     {
-      float3 size = obj_size_mul * float3(1, radius.y / radius.x, radius.z / radius.x);
-      if (coord_ex.coord.y < spline_gen_stripes - 1)
-        return lerp(size.x, size.y, (float(coord_ex.coord.y) + coord_ex.lerpS) * spline_gen_inverses.z);
-      return lerp(size.y, size.z, float(coord_ex.coord.y) + coord_ex.lerpS - float(spline_gen_stripes - 1));
+      return obj_size_mul * radius * inv_max_rad;
     }
 
     [numthreads(SPLINE_GEN_ATTACHMENT_COMPUTE_X, SPLINE_GEN_ATTACHMENT_COMPUTE_Y, 1)]
@@ -230,26 +76,39 @@ shader spline_gen_obj_attacher
       if (dispatch_thread_id.y >= spline_gen_active_instance_count)
         return;
       uint objectId = dispatch_thread_id.x;
-      InstanceId instanceId = spline_gen_indirection_buffer[dispatch_thread_id.y];
-      SplineGenInstance instanceData = spline_gen_instancing_buffer[instanceId];
+      InstanceId instanceId = bufferAt(spline_gen_indirection_buffer, dispatch_thread_id.y);
+      SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
       if (objectId >= instanceData.objCount)
         return;
 
       CoordEx coordEx = get_hammersley_coord(objectId, instanceData.objCount, instanceData.objStripeMul);
-      SplineGenVertex baseVertex0 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coordEx.coord, int2(0, 0)));
-      SplineGenVertex baseVertex1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coordEx.coord, int2(0, 1)));
-      float3 interpolatedNormal = normalize(lerp(decode_unit_vector(baseVertex0.normal),
-                                                 decode_unit_vector(baseVertex1.normal), coordEx.lerpS));
-      float3 interpolatedWorldPos = lerp(baseVertex0.worldPos, baseVertex1.worldPos, coordEx.lerpS);
+      SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coordEx.coord.y));
+      uint vertex_id0 = decode_shifted_coord(coordEx.coord, int2(0, 0));
+      uint vertex_id1 = decode_shifted_coord(coordEx.coord, int2(0, 1));
+
+      SplineGenSpline nextSpline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coordEx.coord.y + 1));
+
+      uint2 currCoord = coordEx.coord;
+      uint2 nextCoord = get_vertex_coord(vertex_id1);
+
+      float3 transformedPos0 = get_world_pos(spline, instanceData, currCoord);
+      float3 transformedPos1 = get_world_pos(nextSpline, instanceData, nextCoord);
+
+      float3 vertexNormal0 = calculate_normal(currCoord, vertex_id0, instanceId);
+      float3 vertexNormal1 = calculate_normal(nextCoord, vertex_id1, instanceId);
+
+      float3 interpolatedNormal = normalize(lerp(vertexNormal0, vertexNormal1, coordEx.lerpS));
+      float3 interpolatedWorldPos = lerp(transformedPos0, transformedPos1, coordEx.lerpS);
       float3x3 rotScaleMat = get_rotation_matrix(instanceId, coordEx, interpolatedNormal);
-      float size = get_size(coordEx, instanceData.objSizeMul, instanceData.radius);
+
+      float size = get_size(instanceData.objSizeMul, spline.radius, instanceData.inverseMaxRadius);
       rotScaleMat *= size;
 
       AttachmentData result;
       pack_tm(rotScaleMat, interpolatedWorldPos, result);
-      uint objBatchId = spline_gen_obj_batch_id_buffer[instanceData.batchIdsStart + objectId / spline_gen_attachment_batch_size];
+      uint objBatchId = bufferAt(spline_gen_obj_batch_id_buffer, instanceData.batchIdsStart + objectId / spline_gen_attachment_batch_size);
       uint idInBatch = objectId % spline_gen_attachment_batch_size;
-      spline_gen_attachment_data[objBatchId * spline_gen_attachment_batch_size + idInBatch] = result;
+      structuredBufferAt(spline_gen_attachment_data, objBatchId * spline_gen_attachment_batch_size + idInBatch) = result;
     }
   }
   compile("target_cs", "main");
@@ -257,51 +116,72 @@ shader spline_gen_obj_attacher
 
 
 
-shader dynamic_spline_gen
+shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
 {
   if (in_editor_assume == yes) { dont_render; }
   cull_mode=none;
+  ENABLE_ASSERT(ps)
   NO_ATEST()
 
-  USE_UNIT_VEC_CODEC()
   DYNAMIC_SPLINE_GEN_VS_COMMON()
+  USE_VS_SPLINE_GEN(vs)
 
   (vs)
   {
-    spline_gen_vertex_buffer@buf = spline_gen_vertex_buffer hlsl {
+    spline_gen_prev_spline_buffer@buf = spline_gen_prev_spline_buffer hlsl {
       #include "spline_gen_buffer.hlsli"
-      StructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@buf;
+      StructuredBuffer<SplineGenSpline> spline_gen_prev_spline_buffer@buf;
     }
-    spline_gen_prev_vertex_buffer@buf = spline_gen_prev_vertex_buffer hlsl {
-      #include "spline_gen_buffer.hlsli"
-      StructuredBuffer<SplineGenVertex> spline_gen_prev_vertex_buffer@buf;
-    }
+
+    spline_gen_texture_d@smp2d = spline_gen_texture_d;
   }
 
   hlsl (vs)
   {
     VsOutput spline_gen_vs(uint hardware_instance_id : SV_InstanceID, uint vertex_id : SV_VertexID)
     {
-      InstanceId instanceId = spline_gen_culled_buffer[hardware_instance_id];
-      SplineGenInstance instanceData = spline_gen_instancing_buffer[instanceId];
-      SplineGenVertex currVertex = spline_gen_vertex_buffer[get_vb_index(instanceId, vertex_id)];
+      InstanceId instanceId = structuredBufferAt(spline_gen_culled_buffer, hardware_instance_id);
+      SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
+
+      uint2 coord = get_vertex_coord(vertex_id);
+      SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+      float2 floatCoord = convert_coord_to_float(coord);
+      float2 texcoord = floatCoord * instanceData.tcMul;
+      float3 transformedPos = get_world_pos(spline, instanceData, coord);
 
       VsOutput output;
-      output.pos = mul(float4(currVertex.worldPos, 1), viewProjTm);
-      output.pointToEye = world_view_pos - currVertex.worldPos;
-      output.texcoord = currVertex.texcoord;
-      output.normal = decode_unit_vector(currVertex.normal);
-      output.tangent = decode_unit_vector(currVertex.tangent);
-      output.bitangent = decode_unit_vector(currVertex.bitangent);
+      output.pos = mul(float4(transformedPos, 1), viewProjTm);
+      output.pointToEye = world_view_pos - transformedPos;
+      output.texcoord = texcoord;
+
+    ##if (shader == dynamic_emissive_spline_gen)
+      output.emissiveColor = instanceData.emissiveColor;
+      output.emissiveIntensity = spline.emissiveIntensity;
+    ##endif
+
+    ##if (dyn_model_render_pass == render_pass_normal)
+      // We don't care about normals for shadows
+      float3 vertexNormal, vertexTangent, vertexBitangent;
+      calculate_tangent_space(coord, vertex_id, instanceId, vertexTangent, vertexBitangent, vertexNormal);
+      output.normal = normalize(vertexNormal);
+      output.tangent = normalize(vertexTangent);
+      output.bitangent = normalize(vertexBitangent);
+
       #ifdef MOTION_VECTORS_ENABLED
         output.out_pos =  output.pos;
-        float3 prevPos = currVertex.worldPos;
-        if (instanceData.flags & PREV_VB_VALID)
+        float3 prevPos = transformedPos;
+        if (instanceData.flags & PREV_SB_VALID)
         {
-          prevPos = spline_gen_prev_vertex_buffer[get_vb_index(instanceId, vertex_id)].worldPos;
+          SplineGenSpline prevSpline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+          prevPos = get_world_pos(prevSpline, instanceData, coord);
         }
         output.out_prev_pos = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm);
       #endif
+    ##else
+      output.normal = 0;
+      output.tangent = 0;
+      output.bitangent = 0;
+    ##endif
       return output;
     }
   }
@@ -364,14 +244,14 @@ shader dynamic_spline_gen_culler
     {
       if (dispatch_thread_id >= spline_gen_instance_count)
         return INVALID_INSTANCE_ID;
-      return spline_gen_indirection_buffer[dispatch_thread_id];
+      return bufferAt(spline_gen_indirection_buffer, dispatch_thread_id);
     }
 
     BBox3 get_bbox(uint source_index)
     {
       BBox3 result;
-      result.lim[0] = spline_gen_instancing_buffer[source_index].bbox_lim0;
-      result.lim[1] = spline_gen_instancing_buffer[source_index].bbox_lim1;
+      result.lim[0] = structuredBufferAt(spline_gen_instancing_buffer, source_index).bbox_lim0;
+      result.lim[1] = structuredBufferAt(spline_gen_instancing_buffer, source_index).bbox_lim1;
       return result;
     }
 
@@ -392,7 +272,7 @@ shader dynamic_spline_gen_culler
           uint address = (6 + i * 5) * 4;
           spline_gen_params_buffer.InterlockedAdd(uint((CHECK_BUFFER_EXPR(spline_gen_params_buffer, address), address)), uint(spline_gen_attachment_max_no));
         }
-        spline_gen_culled_buffer[culledIndex] = sourceIndex;
+        structuredBufferAt(spline_gen_culled_buffer, culledIndex) = sourceIndex;
       }
     }
   }

@@ -21,19 +21,19 @@ BaseTexture *tql::makeResizedTmpTexResCopy(BaseTexture *t, unsigned w, unsigned 
   const unsigned start_src_level = tex_ld_lev >= tex_lev ? 0 : tex_lev - tex_ld_lev;
   unsigned a = 1;
 
-  if (t->restype() == RES3D_CUBETEX)
+  if (t->getType() == D3DResourceType::CUBETEX)
   {
     d = 1;
     a = 6;
   }
-  else if (t->restype() == RES3D_ARRTEX)
+  else if (t->getType() == D3DResourceType::ARRTEX)
   {
     a = d;
     d = 1;
   }
 
-  G_ASSERTF_RETURN(tex_a == a, nullptr, "restype=%d a=%d tex_a=%d tex=%dx%dx%d,L%d -> %dx%dx%d,L%d", t->restype(), a, tex_a, tex_w,
-    tex_h, max(tex_d, tex_a), tex_l, w, h, max(d, a), l);
+  G_ASSERTF_RETURN(tex_a == a, nullptr, "type=%d a=%d tex_a=%d tex=%dx%dx%d,L%d -> %dx%dx%d,L%d", eastl::to_underlying(t->getType()),
+    a, tex_a, tex_w, tex_h, max(tex_d, tex_a), tex_l, w, h, max(d, a), l);
 
   if (tex_w == w && tex_h == h && tex_d == d && tex_l == l)
     return t;

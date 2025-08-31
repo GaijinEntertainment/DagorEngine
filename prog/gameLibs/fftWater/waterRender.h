@@ -58,7 +58,7 @@ public:
 
   WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int quality,
     int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
-    float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap);
+    float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, bool water_heightmap_draw_patches);
   ~WaterNVRender();
 
   void reset();
@@ -69,6 +69,9 @@ public:
   void reinit(const Point2 &wind_dir, float wind_speed, float period);
 
   void setLevel(float water_level);
+  float getMinLevel() const { return minWaterLevel; }
+  float getMaxLevel() const { return maxWaterLevel; }
+  void setMinMaxLevel(float min_water_level, float max_water_level);
   const Point2 &getWaveDisplacementDistance() const { return waveDisplacementDist; }
   void setWaveDisplacementDistance(const Point2 &value);
   void calcWaveHeight(float &out_max_wave_height, float &out_significant_wave_height);
@@ -108,6 +111,7 @@ public:
   void setGridLod0AdditionalTesselation(float additional_tesselation) { lod0TesselationAdditional = additional_tesselation; }
 
   void setForceTessellation(bool force) { forceTessellation = force; }
+  bool isWaterHeightmapDrawPatches() const { return waterHeightmapDrawPatches; }
 
   void getRoughness(float &out_roughness_base, float &out_cascades_roughness_base)
   {
@@ -135,7 +139,6 @@ public:
 
   bool isShoreEnabled() const;
   void shoreEnable(bool enable);
-  void setRenderPass(int pass);
 
 protected:
   struct SavedStates
@@ -164,10 +167,10 @@ protected:
   int waterHeightmapPatchesGridScale = 1;
   int waterHeightmapTessFactor = 3; // water_tess_factor of water heightmap shaders in common_assumes.blk
   eastl::vector<Point4> waterHeightmapPatchPositions;
+  bool waterHeightmapDrawPatches = false;
   bool waterHeightmapUseTessellation = false;
   LodGridVertexData waterHeightmapVdata;
   float waterCellSize;
-  int renderPass;
 
   UniqueTex dispCPU[MAX_NUM_CASCADES];
 
@@ -187,7 +190,9 @@ protected:
   eastl::unique_ptr<ShaderMaterial> heightmapShmat[fft_water::RenderMode::MAX];
   ShaderElement *heightmapShElem[fft_water::RenderMode::MAX] = {nullptr, nullptr, nullptr};
 
-  float waterLevel, maxWaveHeight, significantWaveHeight;
+  float waterLevel;
+  float minWaterLevel, maxWaterLevel;
+  float maxWaveHeight, significantWaveHeight;
   float maxWaveSize[MAX_NUM_CASCADES];
   Point2 waveDisplacementDist;
   NVWaveWorks_FFT_CPU_Simulation *fft;

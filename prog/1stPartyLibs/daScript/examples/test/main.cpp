@@ -422,7 +422,11 @@ bool run_module_test ( const string & path, const string & main, bool usePak, bo
     }
 }
 
+namespace das { vector<void *> force_aot_stub(); }
+
 int main( int argc, char * argv[] ) {
+    // force libDaScriptAot linking
+    force_aot_stub();
     if ( argc>2 ) {
         tout << "daScriptTest [pathToDasRoot]\n";
         return -1;

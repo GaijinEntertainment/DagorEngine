@@ -64,7 +64,7 @@ shader clipmap_clear_histogram_cs
 
 
 
-int clipmap_tex_mips = 0;
+int clipmap_tex_mips = 6;
 interval clipmap_tex_mips: other_low<4, n_4<5, n_5<6, n_6<7, n_7<8, other_high;
 
 int feedback_downsample_dim = 2;
@@ -76,8 +76,8 @@ interval clipmap_feedback_calc_histogram_on_gpu: no < 1, yes;
 buffer clipmap_feedback_buf;
 buffer clipmap_feedback_readback_buf_rw;
 int clipmap_feedback_readback_size;
-int clipmap_feedback_sride;
-int clipmap_feedback_readback_sride;
+int clipmap_feedback_stride;
+int clipmap_feedback_readback_stride;
 
 shader clipmap_process_feedback_cs
 {
@@ -104,8 +104,8 @@ shader clipmap_process_feedback_cs
   {
     (cs)
     {
-      clipmap_feedback_sride@i1 = clipmap_feedback_sride;
-      clipmap_feedback_readback_sride@i1 = clipmap_feedback_readback_sride;
+      clipmap_feedback_stride@i1 = clipmap_feedback_stride;
+      clipmap_feedback_readback_stride@i1 = clipmap_feedback_readback_stride;
     }
   }
 
@@ -142,10 +142,10 @@ shader clipmap_process_feedback_cs
       uint feedback = loadBuffer(clipmap_feedback_buf, dtId*4);
 ##else
       uint2 dtId2d;
-      dtId2d.y = dtId / clipmap_feedback_readback_sride;
-      dtId2d.x = dtId - dtId2d.y * clipmap_feedback_readback_sride;
+      dtId2d.y = dtId / clipmap_feedback_readback_stride;
+      dtId2d.x = dtId - dtId2d.y * clipmap_feedback_readback_stride;
 
-      int flattenedId0 = (dtId2d.y * clipmap_feedback_sride + dtId2d.x) * DOWNSAMPLE_DIM;
+      int flattenedId0 = (dtId2d.y * clipmap_feedback_stride + dtId2d.x) * DOWNSAMPLE_DIM;
       uint feedback = loadBuffer(clipmap_feedback_buf, flattenedId0*4);
       UNROLL
       for (uint j = 0; j < DOWNSAMPLE_DIM; ++j)
@@ -156,7 +156,7 @@ shader clipmap_process_feedback_cs
           if (i == 0 && j == 0)
             continue;
 
-          uint flattenedId = flattenedId0 + j*clipmap_feedback_sride + i;
+          uint flattenedId = flattenedId0 + j*clipmap_feedback_stride + i;
           feedback = max(feedback, loadBuffer(clipmap_feedback_buf, flattenedId*4));
         }
       }

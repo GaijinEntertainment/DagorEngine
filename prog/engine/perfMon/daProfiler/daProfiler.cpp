@@ -50,11 +50,9 @@ ProfilerData::~ProfilerData()
   // switch off profiling
   shutdown(false);
 
-  while (threadsData.size() > threadsDataStor.size())
-  {
-    delete threadsData.back();
-    threadsData.pop_back();
-  }
+  for (auto thr : threadsData)
+    if (!(thr >= threadsDataStor.begin() && thr < threadsDataStor.end()))
+      delete thr;
 }
 
 static __forceinline EventData *start_cpu_event(uint32_t description, ThreadStorage &storage)

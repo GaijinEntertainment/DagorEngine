@@ -27,7 +27,7 @@ class DETextureNameResolver : public ITextureNameResolver
 public:
   DETextureNameResolver(const char *fname) : basePath(fname) { ::location_from_path(basePath); }
 
-  virtual bool resolveTextureName(const char *src_name, String &out_str)
+  bool resolveTextureName(const char *src_name, String &out_str) override
   {
     DETextureName texName = src_name;
     if (texName.findExisting(basePath))
@@ -262,14 +262,14 @@ void StaticGeometryContainer::loadDagNode(class Node &node, DagLoadData &dag)
         if (gn->script.getBool("fade_null", false))
           gn->flags |= StaticGeometryNode::FLG_FADENULL;
 
-        if (strcmp(gn->script.getStr("vss_use", ""), "disable vss") == NULL)
+        if (strcmp(gn->script.getStr("vss_use", ""), "disable vss") == 0)
           gn->vss = 0;
-        else if (strcmp(gn->script.getStr("vss_use", ""), "force def") == NULL)
+        else if (strcmp(gn->script.getStr("vss_use", ""), "force def") == 0)
           gn->vss = 1;
-        else if (strcmp(gn->script.getStr("vss_use", ""), "use as is") == NULL)
+        else if (strcmp(gn->script.getStr("vss_use", ""), "use as is") == 0)
           gn->vss = -1;
 
-        if (strcmp(gn->script.getStr("normals", ""), "world") == NULL)
+        if (strcmp(gn->script.getStr("normals", ""), "world") == 0)
         {
           gn->flags |= StaticGeometryNode::FLG_FORCE_WORLD_NORMALS;
           gn->normalsDir = gn->script.getPoint3("dir", Point3(0, 1, 0));
@@ -279,7 +279,7 @@ void StaticGeometryContainer::loadDagNode(class Node &node, DagLoadData &dag)
           if (gn->normalsDir.lengthSq() < 0.0001)
             gn->normalsDir = Point3(0, 1, 0);
         }
-        else if (strcmp(gn->script.getStr("normals", ""), "local") == NULL)
+        else if (strcmp(gn->script.getStr("normals", ""), "local") == 0)
         {
           gn->normalsDir = gn->script.getPoint3("dir", Point3(0, 0, 1));
           gn->flags |= StaticGeometryNode::FLG_FORCE_LOCAL_NORMALS;
@@ -289,7 +289,7 @@ void StaticGeometryContainer::loadDagNode(class Node &node, DagLoadData &dag)
           if (gn->normalsDir.lengthSq() < 0.0001)
             gn->normalsDir = Point3(0, 1, 0);
         }
-        else if (strcmp(gn->script.getStr("normals", ""), "spherical") == NULL)
+        else if (strcmp(gn->script.getStr("normals", ""), "spherical") == 0)
         {
           gn->flags |= StaticGeometryNode::FLG_FORCE_SPHERICAL_NORMALS;
         }
@@ -516,7 +516,7 @@ void StaticGeometryContainer::getBlkScript(const char *script, String &blk_scrip
   while (rStr || nStr)
   {
     if (rStr && nStr)
-      end = __min(rStr, nStr);
+      end = ::min(rStr, nStr);
     else if (rStr)
       end = rStr;
     else

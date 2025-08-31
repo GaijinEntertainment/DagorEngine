@@ -318,7 +318,7 @@ bool Connection::deserializeComponentReplication(ecs::EntityId eid, const danet:
   bool crefIsNull = cref.isNull();
   if (DAGOR_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds, mgr)))
   {
-    replicated_component_on_client_deserialize(eid, clientCidx);
+    replicated_component_on_client_deserialize(mgr, eid, clientCidx);
     return true;
   }
   ecs::DataComponent compInfo = mgr.getDataComponents().getComponentById(clientCidx);
@@ -442,11 +442,11 @@ const char *Connection::deserializeTemplate(const danet::BitStream &bs, ecs::tem
   return serverTemplates[templateId].c_str();
 }
 
-#define NET_STAT_PROFILE_INITIAL_SIZES (DAECS_EXTENSIVE_CHECKS)
+#define NET_STAT_PROFILE_INITIAL_SIZES (DAGOR_DBGLEVEL > 0)
 #if NET_STAT_PROFILE_INITIAL_SIZES
 static eastl::vector_map<ecs::template_t, uint32_t> templatesSize;
 static ska::flat_hash_map<uint32_t, uint32_t> templatesComponentSize;
-void dump_initial_construction_stats()
+void dump_initial_construction_stats(ecs::EntityManager &mgr)
 {
   if (!templatesSize.size())
     return;
@@ -462,7 +462,7 @@ void dump_initial_construction_stats()
   for (size_t i = 0; i < min(templSizes.size(), size_t(20)); ++i)
   {
     auto &t = templSizes[i];
-    debug("template %d (%s) total kbytes =%.2f", t.first, g_entity_mgr->getTemplateName(t.first), t.second / (8. * 1024));
+    debug("template %d (%s) total kbytes =%.2f", t.first, mgr.getTemplateName(t.first), t.second / (8. * 1024));
     templCompSizes.clear();
     size_t totalCompSizes = 0;
     for (auto &c : templatesComponentSize)
@@ -478,7 +478,7 @@ void dump_initial_construction_stats()
     debug("  template components total kb =%.2f, count = %d", totalCompSizes / (8. * 1024), templCompSizes.size());
     for (size_t j = 0; j < min(templCompSizes.size(), size_t(20)); ++j)
     {
-      debug("    component %s bits =%d", g_entity_mgr->getDataComponents().getComponentNameById(templCompSizes[j].first),
+      debug("    component %s bits =%d", mgr.getDataComponents().getComponentNameById(templCompSizes[j].first),
         templCompSizes[j].second);
     }
   }
@@ -486,7 +486,7 @@ void dump_initial_construction_stats()
   templatesComponentSize.clear();
 }
 #else
-void dump_initial_construction_stats() {}
+void dump_initial_construction_stats(ecs::EntityManager &) {}
 #endif
 
 extern const ecs::component_index_t *get_template_ignored_initial_components(ecs::template_t);
@@ -579,12 +579,12 @@ void Connection::serializeTemplateForClientReplay(danet::BitStream &bs, ecs::tem
 void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial)
 {
 #if NET_STAT_PROFILE_INITIAL_SIZES
-  BitSize_t beginWr = bs.GetWriteOffset();
+  int beginWr = !isBlackHole() ? (int)bs.GetWriteOffset() : -1;
 #endif
   const int componentsCount = mgr.getNumComponents(eid);
   const ecs::template_t templateId = mgr.getEntityTemplateId(eid);
 
-  Object *object = Object::getByEid(eid);
+  Object *object = Object::getByEid(mgr, eid);
   ObjectReplica *replica = getReplicaByEid(eid);
 
   auto iterateReplicatable = [&, componentsCount](auto fn) {
@@ -678,8 +678,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
     }
     componentsInTemplate++;
 #if NET_STAT_PROFILE_INITIAL_SIZES
-    const uint32_t bits = serializer.bs.GetWriteOffset() - beginWrComp;
-    if (bits && !isBlackHole())
+    if (uint32_t bits = (beginWr >= 0) ? (serializer.bs.GetWriteOffset() - beginWrComp) : 0)
       templatesComponentSize[templateId | (comp.getComponentId() << 16)] += bits;
 #endif
   });
@@ -695,7 +694,7 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
   else
     bs.WriteAt(uint16_t(writtenComponents), countSizePos);
 #if NET_STAT_PROFILE_INITIAL_SIZES
-  if (!isBlackHole())
+  if (beginWr >= 0)
     templatesSize[templateId] += bs.GetWriteOffset() - beginWr;
 #endif
 }
@@ -792,7 +791,7 @@ ecs::EntityId Connection::deserializeConstruction(const danet::BitStream &bs, ec
     ecs::entity_id_t(srvEid), serverId, mgr.getEntityTemplateName(srvEid), templName);
 #endif
 #if DAECS_EXTENSIVE_CHECKS
-  if (!templ->hasComponent(ECS_HASH("noECSDebug")))
+  if (!templ->hasComponent(ECS_HASH("noECSDebug"), mgr.getTemplateDB().data()))
     debug("create <%d> of server<%d> %stemplate <%s> %d bytes in %d/%d comps (cratio=%.3f,cpacket_seq=%u)", ecs::entity_id_t(srvEid),
       serverId, templDeserialized ? "initial " : "", templName, sz, ncomp, clientTemplatesComponents[serverTemplate].size(), cratio,
       constructionPacketSequence);

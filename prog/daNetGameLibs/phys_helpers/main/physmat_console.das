@@ -1,7 +1,7 @@
 options no_aot
 
 require DagorConsole
-require app
+require app // physmat_init
 require ecs
 
 [console_cmd(name="physmat.reload")]

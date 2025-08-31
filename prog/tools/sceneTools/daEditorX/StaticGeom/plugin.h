@@ -2,7 +2,7 @@
 #pragma once
 
 #include <oldEditor/de_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <oldEditor/de_common_interface.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <de3_occluderGeomProvider.h>
@@ -28,100 +28,95 @@ class StaticGeometryPlugin : public IGenEditorPlugin,
 {
 public:
   StaticGeometryPlugin();
-  ~StaticGeometryPlugin();
+  ~StaticGeometryPlugin() override;
 
   // IGenEditorPlugin interface implementation
-  virtual const char *getInternalName() const { return "staticGeometry"; }
-  virtual const char *getMenuCommandName() const { return "SGeometry"; }
-  virtual const char *getHelpUrl() const { return "/html/Plugins/SGeometry/index.htm"; }
+  const char *getInternalName() const override { return "staticGeometry"; }
+  const char *getMenuCommandName() const override { return "SGeometry"; }
+  const char *getHelpUrl() const override { return "/html/Plugins/SGeometry/index.htm"; }
 
-  virtual int getRenderOrder() const { return 5; }
-  virtual int getBuildOrder() const { return 0; }
-  virtual bool showInTabs() const { return true; }
+  int getRenderOrder() const override { return 5; }
+  int getBuildOrder() const override { return 0; }
+  bool showInTabs() const override { return true; }
 
-  virtual void registered();
-  virtual void unregistered();
-  virtual void beforeMainLoop() {}
+  void registered() override;
+  void unregistered() override;
+  void beforeMainLoop() override {}
 
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end() { return true; }
-  virtual IGenEventHandler *getEventHandler() { return this; }
+  void registerMenuAccelerators() override;
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override { return true; }
+  IGenEventHandler *getEventHandler() override { return this; }
 
-  virtual void setVisible(bool vis);
-  virtual bool getVisible() const { return objsVisible; }
-  virtual bool getSelectionBox(BBox3 &bounds) const;
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  void setVisible(bool vis) override;
+  bool getVisible() const override { return objsVisible; }
+  bool getSelectionBox(BBox3 &bounds) const override;
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void onNewProject() {}
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual bool acceptSaveLoad() const { return true; }
+  void clearObjects() override;
+  void onNewProject() override {}
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void selectAll() override {}
+  void deselectAll() override {}
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects(IGenViewportWnd *vp) {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects();
+  void actObjects(float dt) override {}
+  void beforeRenderObjects(IGenViewportWnd *vp) override {}
+  void renderObjects() override {}
+  void renderTransObjects() override;
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool onPluginMenuClick(unsigned id);
+  bool onPluginMenuClick(unsigned id) override;
 
   // IGenEventHandler interface implementation
-  // virtual void handleButtonClick ( int btn_id, CtlBtnTemplate *btn, bool btn_pressed ) {}
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif);
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif);
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif);
-  virtual void handleViewportPaint(IGenViewportWnd *wnd);
-  virtual void handleViewChange(IGenViewportWnd *wnd);
-  // virtual void handleChildCreate ( CtlWndObject  *child ) {}
-  // virtual void handleChildClose ( CtlWndObject  *child ) {}
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override;
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override;
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
+  void handleViewChange(IGenViewportWnd *wnd) override;
 
   // from IGatherStaticGeometry
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &container);
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer &container);
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &container);
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container);
+  void gatherStaticVisualGeometry(StaticGeometryContainer &container) override;
+  void gatherStaticEnviGeometry(StaticGeometryContainer &container) override;
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &container) override;
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container) override;
 
   // IOccluderGeomProvider
-  virtual void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads);
-  virtual void renderOccluders(const Point3 &camPos, float max_dist) {}
+  void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads) override;
+  void renderOccluders(const Point3 &camPos, float max_dist) override {}
 
   // from IRenderingService
-  virtual void renderGeometry(Stage stage);
+  void renderGeometry(Stage stage) override;
 
   // IDagorEdCustomCollider
-  virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
-  virtual bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt);
-  virtual const char *getColliderName() const { return getMenuCommandName(); }
-  virtual bool isColliderVisible() const { return getVisible(); }
+  bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override;
+  bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) override;
+  const char *getColliderName() const override { return getMenuCommandName(); }
+  bool isColliderVisible() const override { return getVisible(); }
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
+  void onLightingChanged() override {}
   void onLightingSettingsChanged() override {}
 
   // IFileChangedNotify
-  virtual void onFileChanged(int file_name_id);
+  void onFileChanged(int file_name_id) override;
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 protected:
   GeomObject *geom;
 
   String lastImportFilename;
-  String sceneFileName;
 
   bool objsVisible, loaded, collisionBuilt;
 
@@ -131,7 +126,7 @@ private:
   bool loadingFailed;
   collisionpreview::Collision collision;
 
-  String StaticGeometryPlugin::getPluginFilePath(const char *fileName);
+  String getPluginFilePath(const char *fileName);
 
   void loadGeometry();
   void resetGeometry();

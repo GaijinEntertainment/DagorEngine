@@ -7,6 +7,7 @@
 #include "touchPointers.h"
 #include <3d/dag_textureIDHolder.h>
 #include <math/dag_TMatrix4.h>
+#include <render/viewDependentResource.h>
 
 namespace darg_panel_renderer
 {
@@ -38,6 +39,7 @@ enum class PanelRotationConstraint
   FaceHead,
   FaceHeadLockY,
   FaceEntity,
+  FaceHeadLockPlayspaceY,
 };
 
 enum class PanelGeometry
@@ -88,10 +90,11 @@ struct PanelSpatialInfo
   Point3 position = Point3(0, 0, 0);
   Point3 angles = Point3(0, 0, 0);
   Point3 size = Point3(0, 0, 0);
+  float headDirOffset = 0.f;
   uint32_t anchorEntityId = 0;
   uint32_t facingEntityId = 0;
 
-  mutable TMatrix lastTransform = TMatrix::IDENT;
+  mutable ViewDependentResource<eastl::optional<TMatrix>, 2> lastTransform;
 
   eastl::string anchorNodeName;
 };
@@ -111,7 +114,7 @@ public:
   Panel(GuiScene *scene_);
   ~Panel();
 
-  void init(const Sqrat::Object &markup);
+  void init(int screen_id, const Sqrat::Object &markup);
 
   void rebuildStacks();
   void clear();
@@ -124,15 +127,12 @@ public:
 
 public:
   GuiScene *scene = nullptr;
-  ElementTree etree;
-  RenderList renderList;
-  InputStack inputStack;
-  InputStack cursorStack;
+  Screen *screen = nullptr;
 
   PanelSpatialInfo spatialInfo;
   PanelRenderInfo renderInfo;
 
-  static constexpr int MAX_POINTERS = 2;
+  static constexpr int MAX_POINTERS = 3;
 
   PanelPointer pointers[MAX_POINTERS];
   TouchPointers touchPointers;

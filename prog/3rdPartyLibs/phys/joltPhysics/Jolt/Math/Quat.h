@@ -81,7 +81,7 @@ public:
 	JPH_INLINE Vec3				GetXYZ() const													{ return Vec3(mValue); }
 
 	/// Get the quaternion as a Vec4
-	JPH_INLINE Vec4 			GetXYZW() const													{ return mValue; }
+	JPH_INLINE Vec4				GetXYZW() const													{ return mValue; }
 
 	/// Set individual components
 	JPH_INLINE void				SetX(float inX)													{ mValue.SetX(inX); }
@@ -248,7 +248,7 @@ public:
 	Vec4						mValue;
 };
 
-static_assert(is_trivial<Quat>(), "Is supposed to be a trivial type!");
+static_assert(std::is_trivial<Quat>(), "Is supposed to be a trivial type!");
 
 JPH_NAMESPACE_END
 

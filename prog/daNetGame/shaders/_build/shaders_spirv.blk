@@ -12,10 +12,12 @@ source
   file:t = "../../gameLibs/fftWater/shaders/fft_cs.dshl"
   file:t = "../renderFullTonemapLUT.dshl"
   file:t = "../renderGradedColorLUT.dshl"
+  file:t = "../resolve_thin_g_buffer.dshl"
 
   include "../../../gameLibs/daGI2/shaders/shadersList.blk"
   include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
   include shadersList.blk
+  include shadersListForTools.blk
 }
 
 common_valid_variants
@@ -29,7 +31,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = SpirV-5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
     supports_sh_6_1:i = 0
@@ -39,7 +41,9 @@ Compile
     grass_use_quads:i=0
     impostor_per_pixel_depth:i=0
     dagi_sp_has_exposure_assume:i=1
+    combined_shadows_allow_half_precision:i=1
   }
+  required_shaders {}
 }
 
 explicit_var_ref

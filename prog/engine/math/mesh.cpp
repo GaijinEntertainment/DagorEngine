@@ -4,6 +4,7 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_qsort.h>
 #include <generic/dag_carray.h>
+#include <vecmath/dag_vecMath.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
@@ -876,7 +877,8 @@ static void optimize_tface_base(Tab<int> &nv, Tab<int> &map, Bitarray &vfm, Tab<
   bool chg = false;
 
   eastl::hash_map<T, int, VertexHasher<T>> vertex_hash_map;
-  vertex_hash_map.reserve(tvertn);
+  if (threshold == 0.0f)
+    vertex_hash_map.reserve(tvertn);
 
   for (int i = 0; i < tvertn; ++i)
   {
@@ -995,13 +997,22 @@ void MeshData::kill_unused_verts(float sqThreshold)
   ::optimize_tface<GetFaceVert>(nv, map, vfm, face, vert, sqThreshold, false);
 }
 
-class RemoveDegenerate
+struct RemoveDegenerate
 {
-public:
-  inline bool can_remove(const Face &f, int) const
+  float faceAreaThres;
+  RemoveDegenerate(float fath) : faceAreaThres(fath) {}
+  bool can_remove(const Face &f, dag::ConstSpan<Point3> verts, int) const
   {
     if (f.v[0] == f.v[1] || f.v[0] == f.v[2] || f.v[1] == f.v[2])
       return true;
+
+    vec3f v0 = v_ldu(&verts[f.v[0]].x);
+    vec3f v1 = v_ldu(&verts[f.v[1]].x);
+    vec3f v2 = v_ldu(&verts[f.v[2]].x);
+    vec3f fa = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
+    if (DAGOR_UNLIKELY(v_extract_x(v_length3_sq_x(fa)) < faceAreaThres))
+      return true;
+
     return false;
   }
 };
@@ -1012,14 +1023,15 @@ static void remove_faces(MeshData &m, const CanRemove &c)
   if (arr.size()) \
     memmove(arr.data() + i - delta, arr.data() + i, elem_size(arr) * count);
   int nf = m.face.size();
+  dag::ConstSpan<Point3> verts(m.vert);
   int delta = 0;
   for (int i = 0; i < nf; ++i)
   {
-    if (!c.can_remove(m.face[i], i))
+    if (!c.can_remove(m.face[i], verts, i))
     {
       int j = i + 1;
       for (; j < nf; ++j)
-        if (c.can_remove(m.face[j], j))
+        if (c.can_remove(m.face[j], verts, j))
           break;
       if (delta)
       {
@@ -1042,7 +1054,7 @@ static void remove_faces(MeshData &m, const CanRemove &c)
     }
     int j = i + 1;
     for (; j < nf; ++j)
-      if (!c.can_remove(m.face[j], j))
+      if (!c.can_remove(m.face[j], verts, j))
         break;
     delta += j - i;
     i = j - 1;
@@ -1069,7 +1081,42 @@ static void remove_faces(MeshData &m, const CanRemove &c)
 #undef ERASE
 }
 
-void MeshData::kill_bad_faces() { remove_faces(*this, RemoveDegenerate()); }
+void MeshData::kill_bad_faces(float fa_thres) { remove_faces(*this, RemoveDegenerate(fa_thres)); }
+
+void MeshData::kill_bad_faces2(float fa_thresh, float fa_to_check_thresh, float fa_to_perim_ratio_thresh)
+{
+  struct RemoveDegenerateByPerimeterToFaceAreaRatio
+  {
+    float faceAreaThres;
+    float faceAreaCheckThres;
+    float faceAreaToPerimeterRatioThres;
+    bool can_remove(const Face &f, dag::ConstSpan<Point3> verts, int) const
+    {
+      if (f.v[0] == f.v[1] || f.v[0] == f.v[2] || f.v[1] == f.v[2])
+        return true;
+
+      vec3f v0 = v_ldu(&verts[f.v[0]].x);
+      vec3f v1 = v_ldu(&verts[f.v[1]].x);
+      vec3f v2 = v_ldu(&verts[f.v[2]].x);
+      vec3f v10 = v_sub(v1, v0);
+      vec3f v20 = v_sub(v2, v0);
+      vec3f vfa2 = v_length3_sq_x(v_cross3(v10, v20));
+      if (DAGOR_UNLIKELY(v_extract_x(vfa2) < faceAreaCheckThres))
+      {
+        if (v_extract_x(vfa2) < faceAreaThres)
+          return true;
+        vec4f v21fa2 = v_perm_xaxa(v_length3_sq_x(v_sub(v2, v1)), vfa2);
+        vec4f vpfa = v_sqrt(v_perm_xyab(v_perm_xaxa(v_length3_sq_x(v10), v_length3_sq_x(v20)), v21fa2));
+        if (v_extract_x(v_hadd3_x(vpfa)) / v_extract_w(vpfa) > faceAreaToPerimeterRatioThres)
+          return true;
+      }
+
+      return false;
+    }
+  };
+  RemoveDegenerateByPerimeterToFaceAreaRatio cb{fa_thresh, fa_to_check_thresh, fa_to_perim_ratio_thresh};
+  remove_faces(*this, cb);
+}
 
 class RemoveUnused
 {
@@ -1077,7 +1124,7 @@ class RemoveUnused
 
 public:
   RemoveUnused(const Bitarray &us) : used(&us) {}
-  inline bool can_remove(const Face &, int fi) const { return used->get(fi) ? false : true; }
+  inline bool can_remove(const Face &, dag::ConstSpan<Point3>, int fi) const { return used->get(fi) ? false : true; }
 };
 void MeshData::removeFacesFast(const Bitarray &used)
 {

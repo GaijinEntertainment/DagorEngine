@@ -34,7 +34,7 @@ void RenderPassDescription::fillAllocationDesc(AllocationDesc &alloc_desc) const
 }
 
 template <>
-void RenderPassResource::onDelayedCleanupFinish<RenderPassResource::CLEANUP_DESTROY>()
+void RenderPassResource::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
   Globals::Mem::res.free(this);
 }
@@ -47,7 +47,7 @@ void RenderPassResource::destroyVulkanObject()
 {
   VulkanDevice &dev = Globals::VK::dev;
 
-  Globals::VK::dev.vkDestroyRenderPass(dev.get(), getHandle(), nullptr);
+  Globals::VK::dev.vkDestroyRenderPass(dev.get(), getHandle(), VKALLOC(render_pass));
   setHandle(generalize(Handle()));
 }
 
@@ -82,12 +82,17 @@ void RenderPassResource::shutdown()
   state = nullptr;
   VulkanDevice &device = Globals::VK::dev;
   for (FbWithCreationInfo iter : compiledFBs)
-    VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), iter.handle, nullptr));
+    VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), iter.handle, VKALLOC(framebuffer)));
+  compiledFBs.clear();
 }
 
 bool RenderPassResource::nonResidentCreation() { return false; }
 
 void RenderPassResource::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: render pass are not evictable"); }
+
+void RenderPassResource::onDeviceReset() { shutdown(); }
+
+void RenderPassResource::afterDeviceReset() { Globals::Dbg::naming.setRenderPassName(getHandle(), getDebugName()); }
 
 // helpers/getters functions
 
@@ -112,7 +117,7 @@ bool RenderPassResource::hasDepthAtSubpass(uint32_t subpass)
 
 bool RenderPassResource::isDepthAtSubpassRO(uint32_t subpass)
 {
-  G_ASSERT(hasDepthAtSubpass(subpass));
+  D3D_CONTRACT_ASSERT(hasDepthAtSubpass(subpass));
   int32_t dsAtt = desc.subpassAttachmentsInfos[subpass].depthStencilAttachment;
   return desc.attImageLayouts[subpass][dsAtt] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 }
@@ -121,14 +126,14 @@ bool RenderPassResource::hasDepthAtCurrentSubpass() { return desc.subpassAttachm
 
 bool RenderPassResource::isCurrentDepthRO()
 {
-  G_ASSERT(hasDepthAtCurrentSubpass());
+  D3D_CONTRACT_ASSERT(hasDepthAtCurrentSubpass());
   int32_t dsAtt = desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment;
   return desc.attImageLayouts[activeSubpass][dsAtt] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 }
 
 Image *RenderPassResource::getCurrentDepth()
 {
-  G_ASSERT(hasDepthAtCurrentSubpass());
+  D3D_CONTRACT_ASSERT(hasDepthAtCurrentSubpass());
   int32_t dsAtt = desc.subpassAttachmentsInfos[activeSubpass].depthStencilAttachment;
   return state->targets.data[dsAtt].image;
 }
@@ -190,7 +195,7 @@ void RenderPassResource::updateImageStatesForCurrentSubpass(ExecutionContext &ct
     if (activeSubpass == 0 || activeSubpass == desc.subpasses - 1)
     {
       // all attachments must be valid
-      G_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", attIndex, this,
+      D3D_CONTRACT_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", attIndex, this,
         getBaseHandle(), getDebugName());
       ctx.verifyResident(tgt.image);
     }
@@ -221,8 +226,8 @@ void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass)
   if (!selfDep.dependencyFlags)
     return;
 
-  PipelineBarrier barrier(barrierCache, selfDep.srcStageMask, selfDep.dstStageMask);
-  barrier.addMemory({selfDep.srcAccessMask, selfDep.dstAccessMask});
+  PipelineBarrier barrier(barrierCache);
+  barrier.addMemory({selfDep.srcStageMask, selfDep.dstStageMask}, {selfDep.srcAccessMask, selfDep.dstAccessMask});
   barrier.addDependencyFlags(selfDep.dependencyFlags);
   barrier.submit();
 }
@@ -252,7 +257,6 @@ void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
     getBaseHandle(), getDebugName());
   performSelfDepsForSubpass(activeSubpass);
   ++activeSubpass;
-  ctx.popEventTracked();
   Backend::sync.setCurrentRenderSubpass(activeSubpass);
 
   if (activeSubpass != desc.subpasses)
@@ -265,7 +269,7 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
     getBaseHandle(), getDebugName());
   G_ASSERTF(activeSubpass == 0, "vulkan: render pass %p [ %p ] <%s> started twice", this, getBaseHandle(), getDebugName());
 
-  ctx.pushEventTracked(getDebugName(), nativePassDebugMarkerColor);
+  ctx.insertEvent(getDebugName(), nativePassDebugMarkerColor);
 
   Backend::sync.setCurrentRenderSubpass(0);
   updateImageStatesForCurrentSubpass(ctx);
@@ -293,7 +297,7 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
 
   Backend::cb.startReorder();
   Backend::cb.wCmdBeginRenderPass(&rpbi, VK_SUBPASS_CONTENTS_INLINE);
-  ctx.pushEventTracked("subpass", subpassDebugMarkerColor);
+  ctx.insertEvent("subpass", subpassDebugMarkerColor);
 }
 
 void RenderPassResource::nextSubpass(ExecutionContext &ctx)
@@ -303,7 +307,7 @@ void RenderPassResource::nextSubpass(ExecutionContext &ctx)
     desc.subpasses, this, getBaseHandle(), getDebugName(), activeSubpass);
   Backend::cb.wCmdNextSubpass(VK_SUBPASS_CONTENTS_INLINE);
 
-  ctx.pushEventTracked("subpass", subpassDebugMarkerColor);
+  ctx.insertEvent("subpass", subpassDebugMarkerColor);
 }
 
 void RenderPassResource::endPass(ExecutionContext &ctx)
@@ -318,6 +322,4 @@ void RenderPassResource::endPass(ExecutionContext &ctx)
   state = nullptr;
   bakedAttachments = nullptr;
   activeSubpass = 0;
-
-  ctx.popEventTracked();
 }

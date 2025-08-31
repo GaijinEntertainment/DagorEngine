@@ -28,7 +28,7 @@ def blood_decals_add(distance : float)
       return false
     let eye = transform[3]
     let forward = transform[2]
-    add_blood_decal(distance, eye, forward);
+    add_blood_decal(distance, eye, forward)
     return true
 
 [console_cmd(name="blood_decals.add_around")]

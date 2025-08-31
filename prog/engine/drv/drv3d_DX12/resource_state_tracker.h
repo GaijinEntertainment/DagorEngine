@@ -20,6 +20,12 @@
 #include <generic/dag_enumerate.h>
 
 
+#if DX12_VALIDATE_BARRIER_TRANSITION
+#define VALIDATE G_ASSERT_LOG
+#else
+#define VALIDATE(...) (void)0
+#endif
+
 namespace dag
 {
 template <>
@@ -35,12 +41,6 @@ namespace drv3d_dx12
 {
 // Meta stage, stage values of this indicate that any stage be meant (used for resource activation)
 inline constexpr uint32_t STAGE_ANY = ~uint32_t(0);
-
-#if DX12_REPORT_TRANSITION_INFO
-#define REPORT debug
-#else
-#define REPORT(...)
-#endif
 
 #if !DX12_USE_AUTO_PROMOTE_AND_DECAY
 // D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE is not included, depends on device support
@@ -765,11 +765,11 @@ class ResourceStateBaseBitsProvider
 protected:
   // Make all bits available for states we don't use (yet)
   static constexpr uint32_t AvailableBits =
-    D3D12_RESOURCE_STATE_STREAM_OUT | D3D12_RESOURCE_STATE_VIDEO_DECODE_READ | D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE |
-    D3D12_RESOURCE_STATE_VIDEO_PROCESS_READ | D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE | D3D12_RESOURCE_STATE_VIDEO_ENCODE_READ |
-    D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE | unused_bit_31 | gdk_preserve_compressed_color | gdk_preserve_compressed_depth |
-    gdk_preserve_compreesed_stencil | gdk_preserve_indirect_color_clear | gdk_preserve_scattered_color_fmask | gdk_preserve_dcc |
-    gdk_preserve_expanded_color | gdk_preserve_expanded_depth | gdk_preserve_expanded_stencil;
+    D3D12_RESOURCE_STATE_VIDEO_DECODE_READ | D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE | D3D12_RESOURCE_STATE_VIDEO_PROCESS_READ |
+    D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE | D3D12_RESOURCE_STATE_VIDEO_ENCODE_READ | D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE |
+    unused_bit_31 | gdk_preserve_compressed_color | gdk_preserve_compressed_depth | gdk_preserve_compreesed_stencil |
+    gdk_preserve_indirect_color_clear | gdk_preserve_scattered_color_fmask | gdk_preserve_dcc | gdk_preserve_expanded_color |
+    gdk_preserve_expanded_depth | gdk_preserve_expanded_stencil;
 
   static constexpr uint32_t StateMask = ~AvailableBits;
   uint32_t value = DefaultState;
@@ -979,7 +979,7 @@ public:
 
   void decay()
   {
-    if (!isAutoPromoteDisabled())
+    if (!isAutoPromoteDisabled() && !has_write_state(get()))
     {
       reset(D3D12_RESOURCE_STATE_COMMON);
     }
@@ -1154,7 +1154,7 @@ public:
     newBarrier.Transition.Subresource = sub_res.index();
     newBarrier.Transition.StateBefore = from;
     newBarrier.Transition.StateAfter = to;
-    G_ASSERT(validate_transition_barrier(newBarrier.Transition));
+    VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
   }
 
@@ -1167,12 +1167,16 @@ public:
     newBarrier.Transition.Subresource = sub_res.index();
     newBarrier.Transition.StateBefore = from;
     newBarrier.Transition.StateAfter = to;
-    G_ASSERT(validate_transition_barrier(newBarrier.Transition));
+    VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
   }
 
   void transition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    if (tryUpdateTransition(res, sub_res, from, to))
+    {
+      return;
+    }
     D3D12_RESOURCE_BARRIER newBarrier;
     newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1180,7 +1184,7 @@ public:
     newBarrier.Transition.Subresource = sub_res.index();
     newBarrier.Transition.StateBefore = from;
     newBarrier.Transition.StateAfter = to;
-    G_ASSERT(validate_transition_barrier(newBarrier.Transition));
+    VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
   }
 
@@ -1271,7 +1275,7 @@ public:
     }
 
     ref->Transition.StateAfter = to;
-    G_ASSERT(validate_transition_barrier(ref->Transition));
+    VALIDATE(validate_transition_barrier(ref->Transition), "%d is failed!", __FUNCTION__);
     return true;
   }
 
@@ -1791,7 +1795,6 @@ public:
   {
     bufferStates.decay();
     textureStates.decay();
-    REPORT("DX12: Decaying state");
     if (reportDecay)
     {
       logdbg("DX12: StateTrack: Decaying resource state of all regular buffers and auto promoted textures to <COMMON>");
@@ -2350,7 +2353,7 @@ public:
         break;
       }
 
-      auto subresource = optionalEnd->first.toSubresouceIndex(global_base);
+      auto subresource = optionalEnd->first.toSubresourceIndex(global_base);
       auto endState = optionalEnd->second;
 
 #if DAGOR_DBGLEVEL > 0
@@ -2507,6 +2510,28 @@ public:
       return;
     }
     transitionBuffer(barriers, buffer.buffer, buffer.resourceId, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+  }
+
+  void useBufferAsStreamOutput(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
+  {
+    if (!buffer.resourceId)
+    {
+      return;
+    }
+    // Likely there is a driver issue on Intel iGPU with the stream output state. It works with the common state.
+    const D3D12_RESOURCE_STATES targetState = is_intel_gpu ? D3D12_RESOURCE_STATE_COMMON : D3D12_RESOURCE_STATE_STREAM_OUT;
+    transitionBuffer(barriers, buffer.buffer, buffer.resourceId, targetState);
+  }
+
+  void useBufferAsStreamOutputCounter(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
+  {
+    if (!buffer.resourceId)
+    {
+      return;
+    }
+    // Likely there is a driver issue on Intel iGPU with the stream output state. It works with the common state.
+    const D3D12_RESOURCE_STATES targetState = is_intel_gpu ? D3D12_RESOURCE_STATE_COMMON : D3D12_RESOURCE_STATE_STREAM_OUT;
+    transitionBuffer(barriers, buffer.buffer, buffer.resourceId, targetState);
   }
 
   void useBufferAsCopySource(BarrierBatcher &barriers, BufferResourceReference buffer)
@@ -3172,7 +3197,6 @@ public:
   }
 };
 
-#undef REPORT
 
 class ResourceUsageHistoryDataSet
 {
@@ -3201,6 +3225,9 @@ public:
     RT_AS_BUID_SOURCE,
 
     INDIRECT_BUFFER,
+
+    STREAM_OUTPUT,
+    STREAM_OUTPUT_COUNTER,
 
     COPY_SOURCE,
     COPY_DESTINATION,
@@ -3301,6 +3328,8 @@ private:
       case UsageEntryType::VERTEX_BUFFER:
       case UsageEntryType::RT_AS_BUID_SOURCE:
       case UsageEntryType::INDIRECT_BUFFER:
+      case UsageEntryType::STREAM_OUTPUT:
+      case UsageEntryType::STREAM_OUTPUT_COUNTER:
       case UsageEntryType::COPY_SOURCE:
       case UsageEntryType::COPY_SOURCE_ALL:
       case UsageEntryType::COPY_SOURCE_PLANE1: return false;
@@ -3358,6 +3387,8 @@ private:
       case UsageEntryType::VERTEX_BUFFER:
       case UsageEntryType::RT_AS_BUID_SOURCE:
       case UsageEntryType::INDIRECT_BUFFER:
+      case UsageEntryType::STREAM_OUTPUT:
+      case UsageEntryType::STREAM_OUTPUT_COUNTER:
       case UsageEntryType::COPY_SOURCE:
       case UsageEntryType::COPY_SOURCE_ALL:
       case UsageEntryType::COPY_SOURCE_PLANE1:
@@ -3413,6 +3444,8 @@ private:
       case UsageEntryType::VERTEX_BUFFER: return "vertex buffer";
       case UsageEntryType::RT_AS_BUID_SOURCE: return "RTAS build source";
       case UsageEntryType::INDIRECT_BUFFER: return "indirect buffer";
+      case UsageEntryType::STREAM_OUTPUT: return "stream output buffer";
+      case UsageEntryType::STREAM_OUTPUT_COUNTER: return "stream output counter buffer";
       case UsageEntryType::COPY_SOURCE: return "copy source";
       case UsageEntryType::COPY_DESTINATION: return "copy destination";
       case UsageEntryType::COPY_SOURCE_ALL: return "copy source all";
@@ -4067,6 +4100,24 @@ public:
     BaseType::useBufferAsIA(barriers, buffer);
   }
 
+  void useBufferAsStreamOutput(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
+  {
+    if (shouldRecordData(buffer))
+    {
+      recordBuffer(buffer, RB_STREAM_OUTPUT, UsageEntryType::STREAM_OUTPUT);
+    }
+    BaseType::useBufferAsStreamOutput(barriers, buffer, is_intel_gpu);
+  }
+
+  void useBufferAsStreamOutputCounter(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
+  {
+    if (shouldRecordData(buffer))
+    {
+      recordBuffer(buffer, RB_STREAM_OUTPUT_COUNTER, UsageEntryType::STREAM_OUTPUT_COUNTER);
+    }
+    BaseType::useBufferAsStreamOutputCounter(barriers, buffer, is_intel_gpu);
+  }
+
   void useBufferAsCopySource(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
     if (shouldRecordData(buffer))
@@ -4154,7 +4205,7 @@ public:
           break;
         default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
-      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
+      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [DX12_CAPTURE_DEF_EQ](auto sub_res) {
         if (view.getPlaneIndex().index() > 0)
         {
           sub_res += texture->getSubresourcesPerPlane();
@@ -4240,7 +4291,7 @@ public:
         default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) { recordTexture(texture, sub_res, barrier, what); });
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) { recordTexture(texture, sub_res, barrier, what); });
     }
     BaseType::useTextureAsUAV(barriers, stt, stage, texture, view);
   }
@@ -4292,7 +4343,7 @@ public:
   {
     if (shouldRecordData(texture))
     {
-      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
+      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [DX12_CAPTURE_DEF_EQ](auto sub_res) {
         recordTexture(texture, sub_res, RB_RW_DEPTH_STENCIL_TARGET, UsageEntryType::DSV_PLANE0_CLEAR);
         if (texture->getPlaneCount().count() > 1)
         {
@@ -4317,7 +4368,7 @@ public:
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) { recordTexture(texture, sub_res, RB_RW_RENDER_TARGET, UsageEntryType::RTV_CLEAR); });
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) { recordTexture(texture, sub_res, RB_RW_RENDER_TARGET, UsageEntryType::RTV_CLEAR); });
     }
     BaseType::useTextureAsRTVForClear(barriers, stt, texture, view);
   }
@@ -4448,7 +4499,7 @@ public:
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) { recordTexture(texture, sub_res, RB_RO_BLIT_SOURCE, UsageEntryType::BLIT_SOURCE); });
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) { recordTexture(texture, sub_res, RB_RO_BLIT_SOURCE, UsageEntryType::BLIT_SOURCE); });
     }
     BaseType::useTextureAsBlitSource(barriers, stt, texture, view);
   }
@@ -4458,7 +4509,7 @@ public:
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) { recordTexture(texture, sub_res, RB_RW_BLIT_DEST, UsageEntryType::BLIT_DESTINATION); });
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) { recordTexture(texture, sub_res, RB_RW_BLIT_DEST, UsageEntryType::BLIT_DESTINATION); });
     }
     BaseType::useTextureAsBlitDestination(barriers, stt, texture, view);
   }
@@ -4488,7 +4539,7 @@ public:
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) { recordTexture(texture, sub_res, RB_RW_RENDER_TARGET, UsageEntryType::RTV); });
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) { recordTexture(texture, sub_res, RB_RW_RENDER_TARGET, UsageEntryType::RTV); });
     }
     BaseType::useTextureAsRTV(barriers, stt, texture, view);
   }
@@ -4512,7 +4563,7 @@ public:
   {
     if (shouldRecordData(texture))
     {
-      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
+      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [DX12_CAPTURE_DEF_EQ](auto sub_res) {
         recordTexture(texture, sub_res, RB_RW_DEPTH_STENCIL_TARGET, UsageEntryType::DSV_PLANE0);
         if (texture->getPlaneCount().count() > 1)
         {
@@ -4527,7 +4578,7 @@ public:
   {
     if (shouldRecordData(texture))
     {
-      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
+      view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [DX12_CAPTURE_DEF_EQ](auto sub_res) {
         recordTexture(texture, sub_res, RB_RO_CONSTANT_DEPTH_STENCIL_TARGET, UsageEntryType::DSV_PLANE0_CONST);
         if (texture->getPlaneCount().count() > 1)
         {
@@ -4567,7 +4618,7 @@ public:
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
-        [=](auto sub_res) //
+        [DX12_CAPTURE_DEF_EQ](auto sub_res) //
         { recordTexture(texture, sub_res, RB_RW_UAV, UsageEntryType::UAV_CLEAR); });
     }
     BaseType::useTextureAsUAVForClear(barriers, stt, texture, view);
@@ -4922,13 +4973,13 @@ class ResourceActivationTracker
   struct ResourceDeactivation
   {
     ID3D12Resource *res;
-    ResourceMemory memory;
+    ResourceMemoryRange memory;
   };
 
   dag::Vector<ResourceDeactivation> deactivations;
 
 public:
-  void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemory &memory)
+  void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemoryRange &memory)
   {
     ResourceDeactivation rd;
     rd.res = buffer.buffer;
@@ -4960,13 +5011,12 @@ public:
     return false;
   }
 
-  void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemory &memory,
-    ResourceActivationAction action, const ResourceClearValue &value, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb,
-    ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &descriptors, StatefulCommandBuffer &cmd)
+  void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemoryRange &memory,
+    ResourceActivationAction action, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, ID3D12Device *device,
+    ShaderResourceViewDescriptorHeapManager &descriptors, StatefulCommandBuffer &cmd)
   {
     auto beforeBatchSize = bb.batchSize();
-    auto finder = [memory](auto &rd) //
-    { return memory.intersectsWith(rd.memory); };
+    auto finder = [memory](auto &rd) { return rd.memory.intersectsWith(memory); };
 
     for (auto at = begin(deactivations);;)
     {
@@ -5016,13 +5066,13 @@ public:
         cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
         if (ResourceActivationAction::CLEAR_F_AS_UAV == action)
         {
-          cmd.clearUnorderedAccessViewFloat(descriptors.getGpuAddress(index), buffer.clearView, buffer.buffer, value.asFloat, 0,
-            nullptr);
+          float clearValue[] = {0.0f, 0.0f, 0.0f, 0.0f};
+          cmd.clearUnorderedAccessViewFloat(descriptors.getGpuAddress(index), buffer.clearView, buffer.buffer, clearValue, 0, nullptr);
         }
         else
         {
-          cmd.clearUnorderedAccessViewUint(descriptors.getGpuAddress(index), buffer.clearView, buffer.buffer, value.asUint, 0,
-            nullptr);
+          uint32_t clearValue[] = {0, 0, 0, 0};
+          cmd.clearUnorderedAccessViewUint(descriptors.getGpuAddress(index), buffer.clearView, buffer.buffer, clearValue, 0, nullptr);
         }
         break;
       }
@@ -5037,15 +5087,15 @@ public:
 
   void activateTexture(Image *tex, ResourceActivationAction action, const ResourceClearValue &value, ImageViewState view_state,
     D3D12_CPU_DESCRIPTOR_HANDLE view, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, SplitTransitionTracker &stt,
-    ID3D12Device2 *device, ShaderResourceViewDescriptorHeapManager &descriptors, PipelineManager &pipeMan, StatefulCommandBuffer &cmd)
+    ID3D12Device2 *device, ShaderResourceViewDescriptorHeapManager &descriptors, PipelineManager &pipeMan, StatefulCommandBuffer &cmd,
+    Device &device_obj)
   {
     auto beforeBatchSize = bb.batchSize();
     // we do only the memory overlap, aliasing barrier and state barriers on mip level 0 and array
     // layer 0 for the whole resource
     if (0 == view_state.getMipBase().index() && 0 == view_state.getArrayBase().index())
     {
-      auto finder = [memory = tex->getMemory()](auto &rd) //
-      { return memory.intersectsWith(rd.memory); };
+      auto finder = [memory = tex->getMemory()](auto &rd) { return rd.memory.intersectsWith(memory); };
 
       for (auto at = begin(deactivations);;)
       {
@@ -5155,7 +5205,7 @@ public:
           else
           {
             cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
-            auto clearPipeline = pipeMan.getClearPipeline(device, tex->getFormat().asDxGiFormat(), true);
+            auto clearPipeline = pipeMan.getClearPipeline(device_obj, tex->getFormat().asDxGiFormat());
 
             if (!clearPipeline)
               return;

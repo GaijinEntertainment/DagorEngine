@@ -21,6 +21,7 @@
 #include <main/weatherPreset.h>
 #include <daECS/core/entityManager.h>
 #include <util/dag_convar.h>
+#include <ecs/weather/skiesSettings.h>
 #include "main/level.h"
 #if DAGOR_DBGLEVEL > 0
 #include <osApiWrappers/dag_files.h>
@@ -62,6 +63,8 @@ DngSkies *get_daskies()
   return nullptr;
 }
 
+DaSkies *get_daskies_impl() { return get_daskies(); }
+
 DngSkies::DngSkies() : DaSkies(/*cpuOnly=*/false)
 {
   minCloudThickness = 2.9f;
@@ -99,16 +102,24 @@ bool DngSkies::updateSkyLightParams()
   return true;
 }
 
-void DngSkies::useFog(
-  const Point3 &origin, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool update_sky, float altitude_tolerance)
+void DngSkies::useFog(const Point3 &origin,
+  SkiesData *data,
+  const TMatrix &view_tm,
+  const TMatrix4 &proj_tm,
+  UpdateSky update_sky,
+  float altitude_tolerance)
 {
   ShaderGlobal::set_real(skies_scattering_effectVarId, scatteringEffect);
   ShaderGlobal::set_real(last_skies_scattering_effectVarId, lastScatteringEffect);
   DaSkies::useFog(calcViewPos(origin), data, calcViewTm(view_tm), proj_tm, update_sky, altitude_tolerance);
 }
 
-void DngSkies::useFogNoScattering(
-  const Point3 &origin, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool update_sky, float altitude_tolerance)
+void DngSkies::useFogNoScattering(const Point3 &origin,
+  SkiesData *data,
+  const TMatrix &view_tm,
+  const TMatrix4 &proj_tm,
+  UpdateSky update_sky,
+  float altitude_tolerance)
 {
   ShaderGlobal::set_real(skies_scattering_effectVarId, 1.0f);
   ShaderGlobal::set_real(last_skies_scattering_effectVarId, 1.0f);
@@ -164,7 +175,7 @@ static struct SkiesPanel
   bool reload = false;
 #endif
 
-  bool operator==(const SkiesPanel &rhs)
+  bool operator==(const SkiesPanel &rhs) const
   {
     return
 #if DAGOR_DBGLEVEL > 0
@@ -173,7 +184,7 @@ static struct SkiesPanel
       time == rhs.time && day == rhs.day && month == rhs.month && year == rhs.year && latitude == rhs.latitude &&
       longtitude == rhs.longtitude && seed == rhs.seed;
   }
-  bool operator!=(const SkiesPanel &rhs) { return !(*this == rhs); }
+  bool operator!=(const SkiesPanel &rhs) const { return !(*this == rhs); }
 } skies_panel, prev_skies;
 
 static void set_dir_to_sun(int year, int month, int day, float time)
@@ -236,7 +247,8 @@ void load_daskies_int(
       weather_mtime = stat.mtime;
     }
 #endif
-    weather.load(weatherToLoad);
+    if (!dblk::load(weather, weatherToLoad, dblk::ReadFlag::ROBUST))
+      logerr("can't loading weather blk. Blk path = %s", weatherToLoad);
   }
 
   if (seed < 0)
@@ -270,7 +282,7 @@ void load_daskies_int(
   daSkies->setStarsLatLon(skies_panel.latitude, skies_panel.longtitude);
   set_dir_to_sun(skies_panel.year, skies_panel.month, skies_panel.day, skies_panel.time);
   prev_skies = skies_panel;
-  daSkies->invalidatePanorama(true); // to avoid logerr
+  daSkies->invalidate();
 }
 
 void load_daskies(
@@ -333,7 +345,7 @@ void before_render_daskies()
     get_world_renderer()->reloadCube(true);
     prev_skies = skies_panel;
 
-    g_entity_mgr->broadcastEventImmediate(SkiesLoaded{});
+    g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
   }
 
   ShaderGlobal::set_real(daskies_timeVarId, get_daskies_time());
@@ -347,8 +359,6 @@ void set_daskies_time(float time_of_day)
   g_entity_mgr->set(get_current_level_eid(), ECS_HASH("level__timeOfDay"), time_of_day);
   debug("set time %f", time_of_day);
 }
-
-static Point2 get_daskies_clouds_hole() { return daSkies->getCloudsHolePosition(); }
 
 void set_daskies_latitude(float latitude)
 {
@@ -373,9 +383,9 @@ void move_skies(const Point2 &amount)
   move_strata_clouds(amount);
 }
 
-int get_skies_seed() { return skies_panel.seed; }
+int get_daskies_seed() { return skies_panel.seed; }
 
-void set_skies_seed(int seed) { skies_panel.seed = seed; }
+void set_daskies_seed(int seed) { skies_panel.seed = seed; }
 
 DPoint2 get_clouds_origin() { return daSkies->getCloudsOrigin(); }
 
@@ -402,11 +412,6 @@ static bool skies_console_handler(const char *argv[], int argc)
   {
     static int seed = 1121213;
     set_daskies_time(to_real(argv[1 + (_rnd(seed) % (argc - 1))]));
-  }
-  CONSOLE_CHECK_NAME("skies", "holePos", 1, 1)
-  {
-    Point2 hole = get_daskies_clouds_hole();
-    console::print_d("clouds hole: %f %f", hole.x, hole.y);
   }
   CONSOLE_CHECK_NAME("skies", "setLatitude", 2, 2) { set_daskies_latitude(to_real(argv[1])); }
   CONSOLE_CHECK_NAME("skies", "moveClouds", 3, 3) { move_skies(Point2(to_real(argv[1]), to_real(argv[2]))); }

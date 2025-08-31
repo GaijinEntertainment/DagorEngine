@@ -1058,7 +1058,7 @@ int DataBlock::addIPoint3(const char *name, const IPoint3 &value)
 {
   reset();
 
-  text.Append(1, "\0");
+  text.Append(1, (char *)"\0");
   debug("text %i", text.Count());
   DataBlockParser parser(text, filename);
 
@@ -1193,7 +1193,7 @@ void DataBlock::load(/*GeneralLoadCB &cb*/ FILE *cb, class NameMap &stringMap)
 {
   Tab<char> buf;
   buf.Append(len, text);
-  buf.Append(1, "");
+  buf.Append(1, (char *)"");
 
   return loadText(buf, filename);
 }
@@ -1325,7 +1325,7 @@ bool DataBlock::loadFromStream(FILE *f, const char *fname)
   // try to load stream as text file
   // crd.seekto(0);
 
-  char buf[0x10000];
+  static char buf[0x10000];
   Tab<char> text;
   int len = filelength(fileno(f));
   if (fread(&buf[0], len, 1, f) != 1)

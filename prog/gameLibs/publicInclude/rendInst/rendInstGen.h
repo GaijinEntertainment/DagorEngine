@@ -47,15 +47,12 @@ typedef eastl::fixed_function<2 * sizeof(void *), void(const char *)> res_walk_c
 extern void (*do_delayed_ri_extra_destruction)();
 extern void (*sweep_rendinst_cb)(const RendInstDesc &);
 
-extern void (*shadow_invalidate_cb)(const BBox3 &box);
-extern BBox3 (*get_shadows_bbox_cb)();
 extern void (*shader_material_validation_cb)(ShaderMaterial *mat, const char *res_name);
 extern void (*on_vsm_invalidate)();
 
 void register_land_gameres_factory();
 
 inline constexpr unsigned HUID_LandClassGameRes = 0x03FB59C4u; // LandClass
-const DataBlock &get_detail_data(void *land_cls_res);
 int get_landclass_data_hash(void *land_cls_res, void *buf, int buf_sz);
 
 void configurateRIGen(const DataBlock &riSetup);
@@ -90,6 +87,9 @@ using FxTypeByNameCallback = int (*)(const char *);
 void initRiGenDebris(const DataBlock &ri_blk, FxTypeByNameCallback get_fx_type_by_name, bool init_sec_ri_extra_here = true);
 void initRiGenDebrisSecondary(const DataBlock &ri_blk, FxTypeByNameCallback get_fx_type_by_name);
 void updateRiDestrFxIds(FxTypeByNameCallback get_fx_type_by_name);
+void initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
+  const dag::ConstSpan<eastl::pair<const char *, float>> &occluders);
+float debugGetSoundOcclusion(const char *ri_name, float def_value);
 
 void precomputeRIGenCellsAndPregenerateRIExtra();
 
@@ -105,6 +105,18 @@ CollisionResource *getRIGenCollInfo(const rendinst::RendInstDesc &desc);
 void registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list);
 int scheduleRIGenPrepare(dag::ConstSpan<Point3> poi);
 bool isRIGenPrepareFinished();
+
+using ri_added_from_rigendata_cb = void (*)(riex_handle_t handle);
+void registerRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb);
+bool unregisterRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb);
+void onRiExtraAddedFromGenData(riex_handle_t id);
+
+using ri_gen_cell_loaded_cb = void (*)(int layer_idx, int cell_idx, int x, int z, bool loaded, bool last_job);
+void registerRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb);
+bool unregisterRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb);
+void onRiGenCellLoaded(int layer_idx, int cell_idx, int x, int z, bool loaded, bool last_job);
+
+bool isRiGenCellPrepared(int layer);
 
 void get_ri_color_infos(eastl::fixed_function<sizeof(void *) * 4, void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name)> cb);
 extern void regenerateRIGen();
@@ -179,18 +191,6 @@ void setPreloadPointForRendInsts(const Point3 &pointAt); // sets additional POI 
 
 void hideRIGenExtraNotCollidable(const BBox3 &box, bool hide_immortals);
 
-struct RendinstLandclassData
-{
-  int index;
-  TMatrix matrixInv;
-  Point4 mapping;
-  bbox3f bbox;
-  float radius;
-  float sortOrder;
-};
-using TempRiLandclassVec = dag::Vector<rendinst::RendinstLandclassData, framemem_allocator>;
-extern void getRendinstLandclassData(TempRiLandclassVec &ri_landclasses);
-
 extern float getMaxRendinstHeight();
 extern float getMaxRendinstHeight(int variableId);
 void closeImpostorShadowTempTex();
@@ -202,6 +202,6 @@ using RiApexIterationCallback = eastl::fixed_function<32, void(const char *riRes
 void iterate_apex_destructible_rendinst_data(RiApexIterationCallback callback);
 
 bool should_init_ri_damage_model();
-void dm_iter_all_ri_layers(eastl::fixed_function<16, void(int, const dag::ConstSpan<const char *> &)> cb);
+void dm_iter_all_ri_layers(eastl::fixed_function<20, void(int, const dag::ConstSpan<const char *> &)> cb);
 
 }; // namespace rendinst

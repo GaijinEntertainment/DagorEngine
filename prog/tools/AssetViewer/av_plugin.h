@@ -23,7 +23,7 @@ class IGenEditorPlugin : public IGenEditorPluginBase, public IGenEventHandler, p
 {
 public:
   IGenEditorPlugin() : spEditor(NULL) {}
-  virtual ~IGenEditorPlugin() { del_it(spEditor); }
+  ~IGenEditorPlugin() override { del_it(spEditor); }
 
   virtual const char *getInternalName() const = 0;
 
@@ -32,8 +32,8 @@ public:
 
   // Plugins can save and load their settings with these functions. Each plugin has its own block within the main
   // application settings, so any name can be used freely in the provided DataBlock.
-  virtual void loadSettings(const DataBlock &settings) {}
-  virtual void saveSettings(DataBlock &settings) const {}
+  virtual void loadSettings([[maybe_unused]] const DataBlock &settings) {}
+  virtual void saveSettings([[maybe_unused]] DataBlock &settings) const {}
 
   virtual bool begin(DagorAsset *asset) = 0;
   virtual bool end() = 0;
@@ -42,10 +42,10 @@ public:
   // called when user requests switch to this plugin
   virtual void registerMenuAccelerators() {}
 
-  virtual void handleViewportAcceleratorCommand(IGenViewportWnd &wnd, unsigned id) {}
+  virtual void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) {}
 
-  virtual bool reloadOnAssetChanged(const DagorAsset *changed_asset) { return false; }
-  virtual bool reloadAsset(DagorAsset *asset) { return false; }
+  virtual bool reloadOnAssetChanged([[maybe_unused]] const DagorAsset *changed_asset) { return false; }
+  virtual bool reloadAsset([[maybe_unused]] DagorAsset *asset) { return false; }
 
   virtual bool havePropPanel() { return false; }
   virtual bool haveToolPanel() { return false; }
@@ -59,10 +59,10 @@ public:
   virtual void beforeRenderObjects() = 0;
   virtual void renderObjects() = 0;
   virtual void renderTransObjects() = 0;
-  virtual void renderUI() {}
+  void renderUI() override {}
   virtual void updateImgui() {}
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return false; }
+  virtual bool supportAssetType([[maybe_unused]] const DagorAsset &asset) const { return false; }
   virtual bool supportEditing() const { return true; }
 
   virtual void fillPropPanel(PropPanel::ContainerPropertyControl &propPanel) = 0;
@@ -75,32 +75,29 @@ public:
 
   // IGenEventHandler
   //===========================================================================
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) {}
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
+  bool handleMouseMove(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseLBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseLBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseRBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseRBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseCBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseWheel(IGenViewportWnd *, int, int, int, int) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *, int, int, int) override { return false; }
 
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) { return false; }
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) { return false; }
-
-  virtual void handleViewportPaint(IGenViewportWnd *wnd) { drawInfo(wnd); }
-  virtual void handleViewChange(IGenViewportWnd *wnd) {}
+  void handleViewportPaint(IGenViewportWnd *wnd) override { drawInfo(wnd); }
+  void handleViewChange(IGenViewportWnd *) override {}
   //===========================================================================
 
   // IGenEditorPluginBase
-  virtual bool getVisible() const;
-  virtual void *queryInterfacePtr(unsigned huid)
+  bool getVisible() const override;
+  void *queryInterfacePtr(unsigned huid) override
   {
     return huid == IRenderingService::HUID ? static_cast<IRenderingService *>(this) : NULL;
   }
 
   // IRenderingService
-  virtual void renderGeometry(Stage stage) {}
+  void renderGeometry(Stage) override {}
 
   static void drawInfo(IGenViewportWnd *wnd);
   static void repaintView();

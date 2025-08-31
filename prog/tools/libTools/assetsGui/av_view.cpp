@@ -8,6 +8,7 @@
 #include <assetsGui/av_assetSelectorCommon.h>
 #include <assetsGui/av_assetTypeFilterButtonGroupControl.h>
 #include <assetsGui/av_assetTypeFilterControl.h>
+#include <assetsGui/av_globalState.h>
 #include <assetsGui/av_ids.h>
 #include <assetsGui/av_selObjDlg.h>
 
@@ -20,10 +21,10 @@
 #include <propPanel/focusHelper.h>
 #include <propPanel/imguiHelper.h>
 #include <propPanel/propPanel.h>
-#include <sepGui/wndMenuInterface.h>
 
 #include <imgui/imgui.h>
 
+using PropPanel::ROOT_MENU_ITEM;
 using PropPanel::TLeafHandle;
 
 //==============================================================================
@@ -34,10 +35,10 @@ AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContext
 {
   assetsTree.reset(new AllAssetsTree(this));
   assetTypeFilterControl.reset(new AssetTypeFilterControl());
-  closeIcon = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
-  searchIcon = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
-  settingsIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
-  settingsOpenIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
+  closeIcon = PropPanel::load_icon("close_editor");
+  searchIcon = PropPanel::load_icon("search");
+  settingsIcon = PropPanel::load_icon("filter_default");
+  settingsOpenIcon = PropPanel::load_icon("filter_active");
 }
 
 
@@ -170,24 +171,7 @@ bool AssetBaseView::selectObjInBase(const char *_name)
 }
 
 
-void AssetBaseView::saveTreeData(DataBlock &blk)
-{
-  const String originalTextToSearch = textToSearch;
-  const Tab<int> originalCurFilter = curFilter;
-  const Tab<bool> originalShownTypes = shownTypes;
-
-  resetFilter();
-  assetsTree->refilter();
-  assetsTree->saveTreeData(blk);
-
-  textToSearch = originalTextToSearch;
-  curFilter = originalCurFilter;
-  shownTypes = originalShownTypes;
-
-  assetsTree->setSearchText(textToSearch);
-  assetsTree->setShownTypes(shownTypes);
-  assetsTree->refilter();
-}
+void AssetBaseView::saveTreeData(DataBlock &blk) { assetsTree->saveTreeData(blk); }
 
 
 void AssetBaseView::getTreeNodesExpand(Tab<bool> &exps)
@@ -220,6 +204,9 @@ void AssetBaseView::setTreeNodesExpand(dag::ConstSpan<bool> exps)
     else
       assetsTree->collapse(leaf);
 }
+
+
+void AssetBaseView::expandNodesFromSelectionTillRoot() { assetsTree->expandTillRoot(assetsTree->getSelectedItem()); }
 
 
 void AssetBaseView::setFilterStr(const char *str)
@@ -266,10 +253,19 @@ void AssetBaseView::setShownAssetTypeIndexes(dag::ConstSpan<int> shown_type_inde
 void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu)
 {
   menu.addSeparator(ROOT_MENU_ITEM);
-  menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
-  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFilePathMenuItem, "File path");
-  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
-  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+  if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
+  {
+    menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
+    menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFilePathMenuItem, "File path");
+    menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
+    menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+  }
+  else
+  {
+    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFilePathMenuItem, "Copy file path");
+    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
+    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+  }
   menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
 }
 
@@ -319,7 +315,7 @@ void AssetBaseView::updateImgui(float control_height)
   const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
     textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-  PropPanel::set_previous_imgui_control_tooltip((const void *)inputId, AssetSelectorCommon::searchTooltip);
+  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
 
   if (inputFocused)
   {
@@ -347,10 +343,10 @@ void AssetBaseView::updateImgui(float control_height)
 
   ImGui::SameLine();
   const char *popupId = "settingsPopup";
-  const ImTextureID settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
+  const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
   bool settingsButtonPressed =
     PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
 
   if (settingsPanelOpen)
     showSettingsPanel(popupId);

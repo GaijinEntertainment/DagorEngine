@@ -39,7 +39,7 @@ typedef std::set<const char *, CharPtrLess> CharPtrSet;
 class StringTable
 {
 public:
-  StringTable(void){};
+  StringTable(void) {}
 
   ~StringTable(void)
   {

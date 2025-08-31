@@ -1,4 +1,4 @@
-## Introduction
+# About Dagor
 
 The Dagor Engine is an open-source game engine by
 [Gaijin](https://gaijinent.com/), continuously updated since 2002 for
@@ -9,7 +9,7 @@ high-performance gaming and realistic graphics.
 Supports Windows PC, Linux, iOS, Android, Nintendo Switch, PlayStation 4,
 PlayStation 5, Xbox One, Xbox Series X/S.
 
-## Games Created with the Dagor Engine
+## Games Created with Dagor Engine
 
 Powers games with detailed physics and large-scale environments, including:
 
@@ -29,7 +29,7 @@ solutions for physics simulation: [Jolt
 Physics](https://github.com/jrouwe/JoltPhysics) (preferable) and [Bullet
 Physics](https://github.com/bulletphysics).
 
-- **DaGI (Dagor Global Illumination)**
+- **daGI (Dagor Global Illumination)**
 
   - Optimized for efficient global illumination on huge dynamic scenes with low
     memory usage (less than 1ms on PS4!), and with raytracing support for modern
@@ -38,7 +38,7 @@ Physics](https://github.com/bulletphysics).
     - [GDC talk: Scalable Real-Time Ray Traced Global Illumination for Large Scenes](https://enlisted.net/en/news/show/25-gdc-talk-scalable-real-time-ray-traced-global-illumination-for-large-scenes-en/#!/)
     - [Dagor Engine 5.0: light and shadows: Global Illumination, contact shadows, shadows on effects](https://warthunder.com/en/news/5338-development-dagor-engine-5-0-light-and-shadows-global-illumination-contact-shadows-shadows-on-effects-en)
 
-- **[Darg (Dagor Reactive GUI)](../api-references/quirrel-modules/quirrel-modules/darg_framework/index.rst)**
+- **[daRG (Dagor Reactive GUI)](../api-references/quirrel-modules/quirrel-modules/darg_framework/index.rst)**
 
   - Reactive UI framework based on
     [Quirrel](../api-references/quirrel-modules/dargbox/index.rst) scripting.
@@ -51,12 +51,12 @@ Physics](https://github.com/bulletphysics).
   - Manages entities through templates, supporting parallel processing and cache
     efficiency.
 
-- **[Render Framegraph](../api-references/dagor-render/index/daBFG.rst)**
+- **[Render daFrameGraph](../api-references/dagor-render/index/daFrameGraph.rst)**
 
   - Directed acyclic graph for defining frame rendering sequences.
   - Allows flexible integration of game-specific and engine features.
 
-- **[daNetGame Framework](../danetgame-framework/index.rst)**
+- **daNetGame Framework**
 
   - Modular platform for comprehensive game development.
   - Integrates core systems like rendering, physics, networking, and audio.

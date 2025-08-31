@@ -19,8 +19,8 @@ shader downsample_depth_hzb_vr
     depth_lod@i1 = (depth_lod, 0, 0, 0);
   }
 
-  INIT_BOUNDING_VIEW_REPROJECTION(cs)
-  USE_BOUNDING_VIEW_REPROJECTION(cs)
+  INIT_BOUNDING_VIEW_REPROJECTION_CS()
+  USE_BOUNDING_VIEW_REPROJECTION_CS()
 
   INIT_ZNZFAR_STAGE(cs)
   ENABLE_ASSERT(cs)

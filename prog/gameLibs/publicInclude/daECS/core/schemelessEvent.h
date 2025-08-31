@@ -33,8 +33,8 @@ public:
   SchemelessEvent(ecs::event_type_t tp) : SchemelessEvent(tp, EVFLG_SERIALIZE | EVFLG_SCHEMELESS | EVCAST_BOTH) {}
   SchemelessEvent(ecs::event_type_t tp, ecs::event_flags_t flags);
 
-  static void destroy(Event &e);
-  static void move_out(void *__restrict allocateAt, Event &&from);
+  static void destroy(ecs::EntityManager &mgr, Event &e);
+  static void move_out(ecs::EntityManager &mgr, void *__restrict allocateAt, Event &&from);
   static const char *staticName() { return nullptr; }
   static constexpr event_flags_t staticFlags() { return EVFLG_SCHEMELESS | EVFLG_DESTROY; }
 };

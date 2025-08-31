@@ -4,6 +4,7 @@
 #include "vr.h"
 #include "main.h"
 #include <drv/hid/dag_hiVrInput.h>
+#include <drv/hid/dag_hiMouseIds.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
@@ -151,7 +152,7 @@ void handle_controller_input()
       hand_poses[side].aim = get_pose(state.aim);
 
       if (darg_scene)
-        darg_scene->onVrInputEvent(darg::INP_EV_POINTER_MOVE, side);
+        darg_scene->onVrInputEvent(darg::INP_EV_POINTER_MOVE, side, 0);
     }
   }
 
@@ -170,7 +171,7 @@ void handle_controller_input()
       if (click.isActive && click.hasChanged)
       {
         darg::InputEvent evt = click.state ? darg::INP_EV_PRESS : darg::INP_EV_RELEASE;
-        darg_scene->onVrInputEvent(evt, side);
+        darg_scene->onVrInputEvent(evt, side, HumanInput::DBUTTON_LEFT);
       }
 
       StickAction &stick = stickActions[side];

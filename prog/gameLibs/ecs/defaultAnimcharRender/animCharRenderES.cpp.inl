@@ -10,6 +10,7 @@
 #include <3d/dag_render.h>
 #include <ecs/render/updateStageRender.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <ecs/anim/animchar_visbits.h>
 
 // this is for demo purposes only, should not be used in production.
 // no occlusion, unoptimal culling check!
@@ -19,7 +20,7 @@ ECS_TAG(render)
 ECS_AFTER(after_camera_sync)
 static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeRender &stg,
   AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, vec4f &animchar_bsph,
-  bbox3f &animchar_bbox, uint8_t &animchar_visbits, bool animchar_render__enabled = true)
+  bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true)
 {
   mat44f globtm;
   d3d::getglobtm(globtm);
@@ -28,18 +29,18 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
   animchar_visbits = animchar_render.getVisBits();
 }
 
-static __forceinline void render_animchar_opaque(AnimV20::AnimcharRendComponent &animchar_render, uint8_t &animchar_visbits,
+static __forceinline void render_animchar_opaque(AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t &animchar_visbits,
   const Point3 &cam_pos, int main_render)
 {
   animchar_render.render(cam_pos);
   if (main_render)
-    animchar_visbits |= 0x80; //< store visibility result for render trans
+    animchar_visbits |= VISFLG_MAIN_CAMERA_RENDERED; //< store visibility result for render trans
 }
 
 ECS_TAG(render)
 ECS_NO_ORDER
 static __forceinline void animchar_render_opaque_es(const UpdateStageInfoRender &stg, AnimV20::AnimcharRendComponent &animchar_render,
-  const bbox3f &animchar_bbox, uint8_t &animchar_visbits)
+  const bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits)
 {
   mat44f globtm;
   d3d::getglobtm(globtm);
@@ -52,8 +53,8 @@ static __forceinline void animchar_render_opaque_es(const UpdateStageInfoRender 
 ECS_TAG(render)
 ECS_NO_ORDER
 static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTrans &stg,
-  AnimV20::AnimcharRendComponent &animchar_render, const uint8_t &animchar_visbits)
+  AnimV20::AnimcharRendComponent &animchar_render, const animchar_visbits_t &animchar_visbits)
 {
-  if (animchar_visbits & 0x80) //< reuse visibility check from render
+  if (animchar_visbits & VISFLG_MAIN_CAMERA_RENDERED) //< reuse visibility check from render
     animchar_render.renderTrans(stg.viewItm.getcol(3));
 }

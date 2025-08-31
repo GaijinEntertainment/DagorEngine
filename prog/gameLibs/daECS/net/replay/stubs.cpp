@@ -20,7 +20,7 @@ class StubConnection final : public net::Connection
 public:
   StubConnection() : Connection(*g_entity_mgr, 0) {}
   virtual bool isBlackHole() const override { return true; }
-  virtual void sendEcho(const char *, uint32_t) override{};
+  virtual void sendEcho(const char *, uint32_t) override {}
   virtual bool send(int, const danet::BitStream &, PacketPriority, PacketReliability, uint8_t, int) override { return true; }
   virtual int getMTU() const override { return 1 << 30; } // unlimited
   SystemAddress getIP() const override { return SystemAddress(); }

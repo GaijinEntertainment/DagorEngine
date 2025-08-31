@@ -77,7 +77,7 @@ struct BVHConnection : public ::BVHConnection
     {
       counter = dag::buffers::create_ua_sr_byte_address(1, String(0, "bvh_%s_instance_counter", name.data()));
       HANDLE_LOST_DEVICE_STATE(counter, false);
-      counterReadback = dag::buffers::create_staging(4, String(0, "bvh_%s_instance_counter_readback", name.data()));
+      counterReadback = dag::buffers::create_ua_byte_address_readback(1, String(0, "bvh_%s_instance_counter_readback", name.data()));
       HANDLE_LOST_DEVICE_STATE(counterReadback, false);
       counterQuery.reset(d3d::create_event_query());
       HANDLE_LOST_DEVICE_STATE(counterQuery, false);
@@ -87,9 +87,8 @@ struct BVHConnection : public ::BVHConnection
     // no instances, the BVH will get zero matrices and BLAS pointers for the TLAS. That is easy to
     // optimize out during the TLAS build.
 
-    uint32_t zero[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(counter.getBuf(), zero);
-    d3d::clear_rwbufi(instances.getBuf(), zero);
+    d3d::zero_rwbufi(counter.getBuf());
+    d3d::zero_rwbufi(instances.getBuf());
 
     if (instancesThisFrame)
       instancesThisFrame->copyTo(instances.getBuf());
@@ -123,6 +122,7 @@ struct BVHConnection : public ::BVHConnection
     counterReadback.close();
     counterQuery.reset();
     instances.close();
+    metainfoMappings.close();
     queryInProgress = false;
     maxCount = 1;
   }

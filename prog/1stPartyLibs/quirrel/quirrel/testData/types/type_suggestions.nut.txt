@@ -1,0 +1,4 @@
+fn(x: Float)
+fn(x: float|None)
+closure.fn()
+string.fn():integer

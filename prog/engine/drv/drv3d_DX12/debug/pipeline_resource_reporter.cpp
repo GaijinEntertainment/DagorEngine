@@ -17,8 +17,9 @@ void report_resources_impl(const PipelineStageStateBase &state, uint32_t b_reg_m
     if (gpuPointer)
     {
       auto &bufferResource = state.bRegisterBuffers[i].buffer;
+      D3D12_GPU_VIRTUAL_ADDRESS bufferBaseAddress = bufferResource.buffer ? bufferResource.buffer->GetGPUVirtualAddress() : 0;
       logdbg("DX12: ...B register slot %u with %p / %u @ %u...", i, gpuPointer, bufferResource.buffer, bufferResource.resourceId,
-        gpuPointer - bufferResource.buffer->GetGPUVirtualAddress());
+        gpuPointer - bufferBaseAddress);
     }
     else if (i == 0)
     {

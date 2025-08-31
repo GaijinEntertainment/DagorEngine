@@ -61,31 +61,61 @@ struct CommonPhysPartialStateAnnotation : das::ManagedStructureAnnotation<Common
   }
 };
 
-struct GamePhysMassAnnotation : das::ManagedStructureAnnotation<gamephys::Mass, false>
+struct GamePhysMassPropsAnnotation : das::ManagedStructureAnnotation<gamephys::MassProps, false>
 {
-  GamePhysMassAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Mass", ml)
+  GamePhysMassPropsAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("MassProps", ml)
   {
-    cppName = " ::gamephys::Mass";
+    cppName = " ::gamephys::MassProps";
+
     addField<DAS_BIND_MANAGED_FIELD(massEmpty)>("massEmpty");
-    addField<DAS_BIND_MANAGED_FIELD(mass)>("mass");
     addField<DAS_BIND_MANAGED_FIELD(maxWeight)>("maxWeight");
-    addField<DAS_BIND_MANAGED_FIELD(payloadMass)>("payloadMass");
-    addField<DAS_BIND_MANAGED_FIELD(payloadMomentOfInertia)>("payloadMomentOfInertia");
     addField<DAS_BIND_MANAGED_FIELD(numFuelSystems)>("numFuelSystems");
     addField<DAS_BIND_MANAGED_FIELD(separateFuelTanks)>("separateFuelTanks");
     addField<DAS_BIND_MANAGED_FIELD(numTanks)>("numTanks");
     addField<DAS_BIND_MANAGED_FIELD(crewMass)>("crewMass");
     addField<DAS_BIND_MANAGED_FIELD(oilMass)>("oilMass");
-    addField<DAS_BIND_MANAGED_FIELD(nitro)>("nitro");
     addField<DAS_BIND_MANAGED_FIELD(maxNitro)>("maxNitro");
-    addField<DAS_BIND_MANAGED_FIELD(centerOfGravity)>("centerOfGravity");
     addField<DAS_BIND_MANAGED_FIELD(initialCenterOfGravity)>("initialCenterOfGravity");
     addField<DAS_BIND_MANAGED_FIELD(centerOfGravityClampY)>("centerOfGravityClampY");
     addField<DAS_BIND_MANAGED_FIELD(momentOfInertiaNorm)>("momentOfInertiaNorm");
-    addField<DAS_BIND_MANAGED_FIELD(momentOfInertiaNormMult)>("momentOfInertiaNormMult");
-    addField<DAS_BIND_MANAGED_FIELD(momentOfInertia)>("momentOfInertia");
     addField<DAS_BIND_MANAGED_FIELD(advancedMass)>("advancedMass");
     addField<DAS_BIND_MANAGED_FIELD(doesPayloadAffectCOG)>("doesPayloadAffectCOG");
+  }
+};
+
+struct FloatingVolumeAnnotation : das::ManagedStructureAnnotation<gamephys::floating_volumes::FloatingVolume, false>
+{
+  FloatingVolumeAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("FloatingVolume", ml)
+  {
+    cppName = " ::gamephys::floating_volumes::FloatingVolume";
+    addField<DAS_BIND_MANAGED_FIELD(floatingVolumes)>("floatingVolumes");
+    addField<DAS_BIND_MANAGED_FIELD(floatVolumesCd)>("floatVolumesCd");
+  }
+};
+
+struct GamePhysMassStateAnnotation : das::ManagedStructureAnnotation<gamephys::MassState, false>
+{
+  GamePhysMassStateAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("MassState", ml)
+  {
+    cppName = " ::gamephys::MassState";
+
+    addField<DAS_BIND_MANAGED_FIELD(mass)>("mass");
+    addField<DAS_BIND_MANAGED_FIELD(payloadMass)>("payloadMass");
+    addField<DAS_BIND_MANAGED_FIELD(payloadMomentOfInertia)>("payloadMomentOfInertia");
+    addField<DAS_BIND_MANAGED_FIELD(nitro)>("nitro");
+    addField<DAS_BIND_MANAGED_FIELD(centerOfGravity)>("centerOfGravity");
+    addField<DAS_BIND_MANAGED_FIELD(momentOfInertiaNormMult)>("momentOfInertiaNormMult");
+    addField<DAS_BIND_MANAGED_FIELD(momentOfInertia)>("momentOfInertia");
+  }
+};
+
+struct GamePhysMassAnnotation : das::ManagedStructureAnnotation<gamephys::Mass, false>
+{
+  GamePhysMassAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Mass", ml)
+  {
+    cppName = " ::gamephys::Mass";
+    addProperty<DAS_BIND_MANAGED_PROP(getProps)>("props", "getProps");
+    addProperty<DAS_BIND_MANAGED_PROP(getState)>("state", "getState");
   }
 };
 
@@ -129,7 +159,10 @@ public:
     addAnnotation(das::make_smart<OrientAnnotation>(lib));
     addAnnotation(das::make_smart<LocAnnotation>(lib));
     addAnnotation(das::make_smart<CommonPhysPartialStateAnnotation>(lib));
+    addAnnotation(das::make_smart<GamePhysMassPropsAnnotation>(lib));
+    addAnnotation(das::make_smart<GamePhysMassStateAnnotation>(lib));
     addAnnotation(das::make_smart<GamePhysMassAnnotation>(lib));
+    addAnnotation(das::make_smart<FloatingVolumeAnnotation>(lib));
     addAnnotation(das::make_smart<VolumetricDamageDataAnnotation>(lib));
 
     addAnnotation(das::make_smart<ECSCustomPhysStateSyncerDataAnnotation>(lib));
@@ -226,9 +259,9 @@ public:
         "&ECSCustomPhysStateSyncer::registerSyncComponent >::invoke");
     }
 
-    das::addConstant(*this, "MAIN_FUEL_SYSTEM", (int)gamephys::FuelTank::MAIN_SYSTEM);
-    das::addConstant(*this, "MAX_FUEL_SYSTEMS", (int)gamephys::FuelTank::MAX_SYSTEMS);
-    das::addConstant(*this, "MAX_FUEL_TANKS", (int)gamephys::FuelTank::MAX_TANKS);
+    das::addConstant(*this, "MAIN_FUEL_SYSTEM", (int)gamephys::FuelTankProps::MAIN_SYSTEM);
+    das::addConstant(*this, "MAX_FUEL_SYSTEMS", (int)gamephys::FuelTankProps::MAX_SYSTEMS);
+    das::addConstant(*this, "MAX_FUEL_TANKS", (int)gamephys::FuelTankProps::MAX_TANKS);
     das::addConstant(*this, "PHYSICS_UPDATE_FIXED_DT", (float)gamephys::PHYSICS_UPDATE_FIXED_DT);
 
     verifyAotReady();

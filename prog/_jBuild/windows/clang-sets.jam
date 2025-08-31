@@ -8,7 +8,7 @@ if $(_CLANG_LIB_FOLDER) = 15 {
   _VC_DIR         = $(_DEVTOOL)/vc2019_16.11.34 ;
   _MSC_VER        = 19.29.30154 ;
     _CLANG_LIB_FOLDER = $(CLangVer) ;
-} else if $(_CLANG_LIB_FOLDER) in 16 17 18 19 {
+} else if $(_CLANG_LIB_FOLDER) in 16 17 18 19 20 21 {
   _VC_DIR         = $(_DEVTOOL)/vc2022_17.9.5 ;
   _MSC_VER        = 19.39.33523 ;
 } else {
@@ -36,12 +36,12 @@ if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit FATAL\: \"$(_DEVTOOL)/nasm\" not found
 
 local _DEF_C_CMDLINE =
   -fms-compatibility-version=$(_MSC_VER)
-  -X /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /Dasm=__asm /DWIN32_LEAN_AND_MEAN= /D_USE_MATH_DEFINES
-  /DNOMINMAX
+  -X -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
+  -DNOMINMAX
   -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
-  /D_USING_V110_SDK71_
+  -D_USING_V110_SDK71_
   -Di_strlen=(int)strlen
-  /DDELAYIMP_INSECURE_WRITABLE_HOOKS
+  -DDELAYIMP_INSECURE_WRITABLE_HOOKS
   /c /nologo /Zc:forScope /J /Zc:inline
   /Zc:dllexportInlines-
   -Xclang -mrecip=none
@@ -78,11 +78,11 @@ if $(ClangThreadSafety) = yes {
 }
 
 switch $(PlatformArch) {
-  case x86 :    _DEF_C_CMDLINE += /DWIN32 /D__IA32__=1 -D_TARGET_CPU_IA32=1 -m32 ;
-  case x86_64 : _DEF_C_CMDLINE += /DWIN64 -D_TARGET_64BIT=1 ;
-  case arm64 :  _DEF_C_CMDLINE = --target=aarch64-pc-windows-msvc [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(SSEVersion) ] -D_TARGET_SIMD_NEON /DWIN64 -D_TARGET_64BIT=1 -Wno-pointer-to-int-cast ;
+  case x86 :    _DEF_C_CMDLINE += -DWIN32 -D__IA32__ -D_TARGET_ARCH_X86 -m32 ;
+  case x86_64 : _DEF_C_CMDLINE += -DWIN64 -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 ;
+  case arm64 :  _DEF_C_CMDLINE =  -DWIN64 -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 --target=aarch64-pc-windows-msvc [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(SSEVersion) ] -D_TARGET_SIMD_NEON  -Wno-pointer-to-int-cast ;
 }
-if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : /D_USING_V110_SDK71_ ] --analyze -Werror ; }
+if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : -D_USING_V110_SDK71_ ] --analyze -Werror ; }
 
 if $(Sanitize) != disabled {
   _DEF_C_CMDLINE += -fsanitize=$(Sanitize) ;
@@ -93,13 +93,17 @@ if $(CLangVer) >= 15 { # Note: lex compare
   _DEF_C_CMDLINE += -Wno-deprecated-builtins ; # __has_trivial_constructor etc in EASTL. See also https://github.com/llvm/llvm-project/commit/0b89d1d59f82cf5b45c250cd5c3351e43ce35ef9
 }
 
+if $(CLangVer) >= 20 {
+  _DEF_C_CMDLINE += -Wno-nontrivial-memcall ;
+}
+
 if $(VCMathOption) = -fp:fast && $(CLangVer) >= 18 { # Note: lex compare
   _DEF_C_CMDLINE += -Wno-nan-infinity-disabled ;
 }
 
 if $(PlatformArch) = arm64 {
 } else if $(SSEVersion) = 4  {
-  _DEF_C_CMDLINE += -msse4.1 -mpopcnt ;
+  _DEF_C_CMDLINE += -msse4.1 -mpopcnt -mcx16 ;
 } else {
   _DEF_C_CMDLINE += -msse2 ;
 }
@@ -124,7 +128,7 @@ LINK_RESPONSE_MARKER = @@@ ;
 
 _C_COMPILER = $(_CLANG_DIR)/bin/clang-cl.exe $(GDK_C_CMDLINE) $(_DEF_C_CMDLINE) ;
 _CPP_COMPILER = $(_C_COMPILER) /std:c++$(CPPStd) ;
-_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
 _CVTRES_EXE   = $(_VC_DIR_BIN)/cvtres.exe /NOLOGO ;
 _RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
 _MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
@@ -135,7 +139,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x86 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win32 ;
     _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x86/ml.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN32 /D__IA32__=1 ;
+    _DEP_COMPILER += -D_TARGET_ARCH_X86 -DWIN32 -D__IA32__ ;
     _CVTRES_EXE   += /MACHINE:x86 ;
 
   case x86_64 :
@@ -143,7 +147,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x64 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
     _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x64/ml64.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN64 ;
+    _DEP_COMPILER += -D_TARGET_ARCH_X86_64 -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:x64 ;
 
   case arm64 :
@@ -152,7 +156,7 @@ switch $(PlatformArch) {
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f arm64 ;
     _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/arm64/ml64.exe -c -nologo ;
     _GAS_COMPILER = $(_CLANG_DIR)/bin/clang.exe --target=aarch64-pc-windows-msvc -g -c ;
-    _DEP_COMPILER += /DWIN64 ;
+    _DEP_COMPILER += -D_TARGET_ARCH_ARM64 -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:arm64 ;
 }
 

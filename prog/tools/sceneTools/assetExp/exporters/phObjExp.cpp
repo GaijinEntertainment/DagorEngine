@@ -32,14 +32,14 @@ static SimpleString appBlkFname;
 class PhysObjExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "physObj exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "physObj exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return PhysObjGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 8; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return PhysObjGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 8; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -49,9 +49,9 @@ public:
       files.push_back() = appBlkFname;
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     String fpath(a.getTargetFilePath());
     AScene scene;
@@ -80,7 +80,7 @@ public:
         const DataBlock *aRagdoll;
 
         RagdollCB(const DataBlock *ard) : aRagdoll(ard) {}
-        virtual int node(Node &c)
+        int node(Node &c) override
         {
           const DataBlock *nodeBlk = aRagdoll ? aRagdoll->getBlockByNameEx("name_full")->getBlockByName(c.name) : NULL;
           if (!nodeBlk && aRagdoll)
@@ -164,7 +164,7 @@ public:
       {
       public:
         CB(Tab<Node *> &t) : tab(t) {}
-        virtual int node(Node &c)
+        int node(Node &c) override
         {
           if (c.script.empty())
             return 0;
@@ -232,7 +232,7 @@ protected:
     {
     public:
       CB(Tab<PhysSysObject *> &t) : tab(t) {}
-      virtual int node(Node &c)
+      int node(Node &c) override
       {
         if (!(c.flags & NODEFLG_RCVSHADOW))
           return 0;
@@ -685,16 +685,15 @@ protected:
 class PhysObjRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "physObj refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "physObj refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
     static int dm_atype = -2;
     static int gn_atype = -2;
     if (dm_atype == -2)
@@ -702,14 +701,14 @@ public:
     if (gn_atype == -2)
       gn_atype = a.getMgr().getAssetTypeId("skeleton");
 
-    tmpRefs.clear();
+    refs.clear();
     if (dm_atype < 0)
-      return tmpRefs;
+      return;
 
     const char *dm_name = a.props.getStr("dynModel", "");
     DagorAsset *dm_a = a.getMgr().findAsset(dm_name, dm_atype);
 
-    IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+    IDagorAssetRefProvider::Ref &r = refs.push_back();
     r.flags = RFLG_EXTERNAL;
     if (!dm_a)
       r.setBrokenRef(String(64, "%s:dynModel", dm_name));
@@ -721,15 +720,13 @@ public:
     {
       DagorAsset *gn_a = a.getMgr().findAsset(gn_name, gn_atype);
 
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL | RFLG_OPTIONAL;
       if (!gn_a)
         r.setBrokenRef(String(64, "%s:skeleton", gn_name));
       else
         r.refAsset = gn_a;
     }
-
-    return tmpRefs;
   }
 };
 
@@ -737,7 +734,7 @@ public:
 class PhysObjExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     defRagdollBlk =
       *appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("physObj")->getBlockByNameEx("ragdoll");
@@ -745,15 +742,15 @@ public:
       appBlkFname = appblk.resolveFilename();
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   PhysObjExporter exp;

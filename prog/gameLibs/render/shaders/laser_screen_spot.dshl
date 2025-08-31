@@ -1,0 +1,142 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+buffer laser_screen_spots;
+texture perlin_noise3d;
+
+shader laser_screen_spot
+{
+  supports global_frame;
+
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+  blend_src = sa; blend_dst = isa;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation uint spotId : TEXCOORD0;
+      nointerpolation float4 color_intensity : TEXCOORD1;
+      float2 uv: TEXCOORD2;
+    };
+  }
+
+  INIT_READ_DEPTH_GBUFFER_BASE(vs)
+  USE_READ_DEPTH_GBUFFER_BASE(vs)
+
+  (vs) {
+    globtm@f44 = globtm;
+    aspect_ratio@f1 = (screen_pos_to_texcoord.x / screen_pos_to_texcoord.y);
+    laser_screen_spots@cbuf = laser_screen_spots hlsl {
+      cbuffer laser_screen_spots@cbuf
+      {
+        #include <laser_screen_spot_inc.hlsli>
+        LaserScreenSpot laser_screen_spots[MAX_LASER_SCREEN_SPOTS_COUNT];
+      };
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput apply_laser_screen_spots_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      uint spotId = vertexId / 6;
+      uint spotVertexId = vertexId % 6;
+      uint indices[6] =
+      {
+        0, 1, 2, 0, 2, 3
+      };
+
+      float3 vertices[4] =
+      {
+        float3(0, 0, 1),
+        float3(1, 0, 1),
+        float3(1, 1, 1),
+        float3(0, 1, 1),
+      };
+
+      output.spotId = spotId;
+      float3 spotWorldPos = laser_screen_spots[spotId].position;
+      float crownSize = laser_screen_spots[spotId].crownSize;
+
+      float4 projectedPos = mulPointTm(spotWorldPos, globtm);
+      projectedPos /= projectedPos.w;
+      float2 uv = projectedPos.xy * float2(0.5, -0.5) + 0.5;
+      float rawDepth = readGbufferDepth(uv);
+
+      if ((rawDepth - projectedPos.z) > 0.0001)
+      {
+        output.pos = NaN;
+        output.uv = float2(-1, -1);
+        return output;
+      }
+
+      float3 localPos = (vertices[indices[spotVertexId]] - 0.5f);
+      float4 pos = projectedPos - float4(localPos.xy * crownSize * float2(aspect_ratio, 1.0), 0.0, 0.0);
+
+      output.pos = pos;
+      output.uv = localPos.xy;
+      output.color_intensity = float4(laser_screen_spots[spotId].color.xyz, laser_screen_spots[spotId].intensity);
+      return output;
+    }
+  }
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  (ps) {
+    laser_screen_spots@cbuf = laser_screen_spots hlsl {
+      cbuffer laser_screen_spots@cbuf
+      {
+        #include <laser_screen_spot_inc.hlsli>
+        LaserScreenSpot laser_screen_spots[MAX_LASER_SCREEN_SPOTS_COUNT];
+      };
+    };
+    perlin_noise3d@smp3d = perlin_noise3d;
+    noiseTimeFactor@f1 = time_phase(0, 0);
+  }
+
+  hlsl(ps) {
+    half4 apply_laser_screen_spots_ps(VsOutput input) : SV_Target
+    {
+      int spotId = input.spotId;
+      float d1 = length(input.uv);
+      float4 spotColor = float4(0,0,0,0);
+
+      float laserFlare1 = smoothstep(0.0, 0.75, d1);
+      float laserFlare2 = smoothstep(0.0, 0.35, d1);
+
+      //flare part
+      float2 tc = input.uv;
+      float atan = atan2(tc.x, tc.y);
+      float flares1 = length(tc * cos(2.0 * atan));
+      float flares2 = length(tc * sin(2.0 * atan));
+      float blades1 = pow(1.-saturate(flares1), 12.);
+      float blades2 = pow(1.-saturate(flares2), 12.);
+      float4 bladesColor1 = float4((input.color_intensity.xyz) * blades1, (1.0 - laserFlare1) * blades1);
+      float4 bladesColor2 = float4((input.color_intensity.xyz) * blades2, (1.0 - laserFlare2) * blades2);
+      spotColor += bladesColor1 + bladesColor2;
+
+      //crownPart
+      float laserCrown = smoothstep(0.0, 0.5, d1);
+      spotColor.xyz += (input.color_intensity.xyz) * (1 - laserCrown);
+      spotColor.w += (1 - (laserCrown));
+
+      float3 noiseTc = 16.0 * float3(tc, d1) - noiseTimeFactor * float3(0.13, 2.0, 0.31);
+      float2 noise = tex3D(perlin_noise3d, noiseTc).xy - 0.5;
+      spotColor *= 1.0 - noise.x - noise.y;
+
+      // spot part
+      float laserSpot = smoothstep(0.0, 0.01, d1);
+      spotColor.xyz += (input.color_intensity.xyz ) + float3(0.25,0.25, 0.25) * (1 - laserSpot);
+      spotColor.w += (1 - laserSpot);
+
+      spotColor *= input.color_intensity.w;
+      return float4(pack_hdr(spotColor.xyz), spotColor.w);
+    }
+  }
+
+  compile("target_vs", "apply_laser_screen_spots_vs");
+  compile("target_ps", "apply_laser_screen_spots_ps");
+}

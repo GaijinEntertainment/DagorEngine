@@ -1,5 +1,6 @@
 require pathfinder
 require ecs
+options indenting = 2
 
 let
   INVALID_POLY_REF : dtPolyRef = 0ul
@@ -49,14 +50,14 @@ def find_random_point_around_circle(pos : float3; radius : float; var res : floa
 
 [generic]
 def check_path(start_pos, end_pos, extents : float3; horz_threshold, max_vert_dist : float; custom_nav : CustomNav const? const = null;
-               incl_flags : int = int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_JUMP) | int(PolyFlag POLYFLAG_LADDER) | int(PolyFlag POLYFLAG_OBSTACLE); excl_flags : int = int(PolyFlag POLYFLAG_BLOCKED)) : bool
+               incl_flags : int = int(PolyFlag.POLYFLAG_GROUND) | int(PolyFlag.POLYFLAG_JUMP) | int(PolyFlag.POLYFLAG_LADDER) | int(PolyFlag.POLYFLAG_OBSTACLE); excl_flags : int = int(PolyFlag.POLYFLAG_BLOCKED)) : bool
   return check_path(start_pos, end_pos, extents, horz_threshold, max_vert_dist, custom_nav,
                     incl_flags, excl_flags)
 
 
 [generic]
 def check_path_ex(nav_mesh_idx : int; start_pos, end_pos, extents : float3; horz_threshold, max_vert_dist : float; custom_nav : CustomNav const? const = null;
-                  incl_flags : int = int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_JUMP) | int(PolyFlag POLYFLAG_LADDER) | int(PolyFlag POLYFLAG_OBSTACLE); excl_flags : int = int(PolyFlag POLYFLAG_BLOCKED)) : bool
+                  incl_flags : int = int(PolyFlag.POLYFLAG_GROUND) | int(PolyFlag.POLYFLAG_JUMP) | int(PolyFlag.POLYFLAG_LADDER) | int(PolyFlag.POLYFLAG_OBSTACLE); excl_flags : int = int(PolyFlag.POLYFLAG_BLOCKED)) : bool
   return check_path_ex(nav_mesh_idx, start_pos, end_pos, extents, horz_threshold, max_vert_dist, custom_nav,
                     incl_flags, excl_flags)
 

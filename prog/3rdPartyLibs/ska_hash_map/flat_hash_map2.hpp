@@ -13,11 +13,14 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/initializer_list.h>
 #include <EASTL/memory.h>
-#if defined(_MSC_VER) && (EA_PROCESSOR_X86_64 || EA_PROCESSOR_X86 || EA_PROCESSOR_ARM64)
-#include <intrin.h>
-#endif
 
 #ifdef _MSC_VER
+extern "C" unsigned char _BitScanReverse(unsigned long *_Index, unsigned long _Mask);
+#pragma intrinsic(_BitScanReverse)
+#if EA_PLATFORM_WORD_SIZE >= 8
+extern "C" unsigned char _BitScanReverse64(unsigned long *_Index, unsigned __int64 _Mask);
+#pragma intrinsic(_BitScanReverse64)
+#endif
 #define SKA_NOINLINE(...) __declspec(noinline) __VA_ARGS__
 #pragma warning(push) // Save warning settings.
 #pragma warning(disable : 4582)
@@ -1144,7 +1147,7 @@ public:
     template <typename U>
     typename Table::iterator find_as(const U key)
     {
-      return find_as(key, eastl::hash<U>(), eastl::equal_to_2<const key_type, U>());
+      return find_as(key, eastl::hash<U>(), eastl::equal_to<>());
     }
     template <typename U>
     typename Table::const_iterator find_as(U key) const
@@ -1238,7 +1241,7 @@ public:
     template <typename U>
     typename Table::iterator find_as(U key)
     {
-      return find_as(key, eastl::hash<U>(), eastl::equal_to_2<const key_type, U>());
+      return find_as(key, eastl::hash<U>(), eastl::equal_to<>());
     }
     template <typename U>
     typename Table::const_iterator find_as(U key) const

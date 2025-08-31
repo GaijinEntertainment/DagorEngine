@@ -45,8 +45,11 @@ struct BoneInertialInfo
 // for the pose being transitioned from (src) as well
 // as the pose being transitioned to (dst) in their
 // own animation spaces.
-void inertialize_pose_transition(
-  BoneInertialInfo &offset, const BoneInertialInfo &current, const BoneInertialInfo &goal, const dag::Vector<float> &node_weights);
+void inertialize_pose_transition(BoneInertialInfo &offset,
+  const BoneInertialInfo &current,
+  const BoneInertialInfo &goal,
+  const dag::Vector<float> &node_weights,
+  const dag::Vector<float> &goal_node_mask);
 
 // This function updates the inertializer states. Here
 // it outputs the smoothed animation (input plus offset)

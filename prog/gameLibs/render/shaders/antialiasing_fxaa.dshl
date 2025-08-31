@@ -6,7 +6,7 @@ float4 fxaa_params = (0.5, 0.166, 0.0833, 0);    // fxaaQualitySubpix, fxaaQuali
 float4 fxaa_tc_scale_offset = float4(1.0, 1.0, 0.0, 0.0);
 
 int fxaa_quality = 29;
-interval fxaa_quality : 
+interval fxaa_quality :
   fxaa_quality_none < 0,
   fxaa_quality_low < 10,
   fxaa_quality_23 < 24, fxaa_quality_25 < 26, fxaa_quality_29 < 30,
@@ -25,7 +25,7 @@ interval luminance_from_alpha : luminance_from_alpha_off < 1, luminance_from_alp
 float4 adaptive_sharpen_quality = (0, 0, 16, 12);
 float4 fxaa_color_mul = (1, 1, 1, 1);
 
-float alphaInfluanceToColor = 0.0;
+float alpha_influence_over_color = 0.0;
 
 texture material_data;
 
@@ -63,7 +63,7 @@ shader antialiasing
     resolution@f4 = resolution;
     fxaa_params@f4 = fxaa_params;
     fxaa_color_mul@f4 = fxaa_color_mul;
-    alphaInfluanceToColor@f1 = alphaInfluanceToColor;
+    alpha_influence_over_color@f1 = alpha_influence_over_color;
   }
 
   if (in_cockpit == on && compatibility_mode == compatibility_mode_off)
@@ -135,15 +135,15 @@ shader antialiasing
         half2 grad;
         grad.x = ((lNE + lSE) - (lNW + lSW)) * 0.5;
         grad.y = ((lSW + lSE) - (lNW + lNE)) * 0.5;
-   
+
         half mag2 = clamp(grad.x * grad.x + grad.y * grad.y, 0.0, 1.0);
         half mag = sqrt(mag2);
-   
-        half str = adaptive_sharpen_quality.z * mag + adaptive_sharpen_quality.w * (1. - mag); 
-   
-        half Q1 = (17. + str) / (str + 1.); 
+
+        half str = adaptive_sharpen_quality.z * mag + adaptive_sharpen_quality.w * (1. - mag);
+
+        half Q1 = (17. + str) / (str + 1.);
         half Q2 = -4. / (str + 1.);
-   
+
         return C * Q1 + B * Q2;
       }
     }
@@ -166,7 +166,7 @@ shader antialiasing
     }
 
     hlsl(vs) {
-      VsOutput antialiasing_vs(uint vertex_id : SV_VertexID)
+      VsOutput antialiasing_fxaa_vs(uint vertex_id : SV_VertexID)
       {
         half2 pos = getPostfxVertexPositionById(vertex_id);
         VsOutput output;
@@ -191,7 +191,7 @@ shader antialiasing
       #define FxaaTexLod0(t, p) ((half4)tex2Dlod(t, float4(p, 0.0, 0.0)))
       #define FxaaTexOff(t, p, o, r) ((half4)tex2Dlod(t, float4(p + (o * r), 0, 0)))
 
-      float4 antialiasing_ps(VsOutput IN): SV_Target
+      float4 antialiasing_fxaa_ps(VsOutput IN): SV_Target
       {
         float4 posPos = IN.texcoord;
         float cockpitToolsWeight = 0;
@@ -219,7 +219,7 @@ shader antialiasing
         half4 rgbSW = FxaaTexOff(tex, posPos.zw, FxaaInt2(0,1), resolution.zw);
         half4 rgbSE = FxaaTexOff(tex, posPos.zw, FxaaInt2(1,1), resolution.zw);
         half4 rgbM  = FxaaTexLod0(tex, posPos.xy);
-    /*--------------------------------------------------------------------------*/      
+    /*--------------------------------------------------------------------------*/
 ##if luminance_from_alpha == luminance_from_alpha_on
         half lumaNW = rgbNW.w;
         half lumaNE = rgbNE.w;
@@ -238,7 +238,7 @@ shader antialiasing
         half lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
         half lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
     /*--------------------------------------------------------------------------*/
-        float2 dir; 
+        float2 dir;
         dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
         dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
     /*--------------------------------------------------------------------------*/
@@ -246,8 +246,8 @@ shader antialiasing
             (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
             FXAA_REDUCE_MIN);
         half rcpDirMin = 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);
-        dir = min(Fxaahalf2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX), 
-              max(Fxaahalf2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), 
+        dir = min(Fxaahalf2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX),
+              max(Fxaahalf2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
               dir * rcpDirMin)) * (half2)resolution.zw;
     /*--------------------------------------------------------------------------*/
         half4 rgbA = (1.0/2.0) * (
@@ -262,14 +262,14 @@ shader antialiasing
 ##else
         half lumaB = dot(rgbB.xyz, luma);
 ##endif
-        rgbA.rgb -= rgbA.rgb * ((1.0 -rgbA.a) * alphaInfluanceToColor);
-        rgbB.rgb -= rgbB.rgb * ((1.0 -rgbB.a) * alphaInfluanceToColor);
+        rgbA.rgb -= rgbA.rgb * ((1.0 -rgbA.a) * alpha_influence_over_color);
+        rgbB.rgb -= rgbB.rgb * ((1.0 -rgbB.a) * alpha_influence_over_color);
         if ((lumaB < lumaMin) || (lumaB > lumaMax))
           return lerp(rgbA, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
         return lerp(rgbB, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
       }
     }
-  
+
   } else {
     hlsl {
       struct VsOutput
@@ -280,7 +280,7 @@ shader antialiasing
     }
 
     hlsl(vs) {
-      VsOutput antialiasing_vs(uint vertex_id : SV_VertexID)
+      VsOutput antialiasing_fxaa_vs(uint vertex_id : SV_VertexID)
       {
         half2 pos = getPostfxVertexPositionById(vertex_id);
         VsOutput output;
@@ -361,7 +361,7 @@ shader antialiasing
         // Might want to lower the settings for both,
         //    fxaaConsoleEdgeThresholdMin
         //    fxaaQualityEdgeThresholdMin
-        // In order to insure AA does not get turned off on colors 
+        // In order to insure AA does not get turned off on colors
         // which contain a minor amount of green.
         //
         // 1 = On.
@@ -495,14 +495,14 @@ shader antialiasing
         //
         // Choose the quality preset.
         // This needs to be compiled into the shader as it effects code.
-        // Best option to include multiple presets is to 
+        // Best option to include multiple presets is to
         // in each shader define the preset, then include this file.
-        // 
+        //
         // OPTIONS
         // -----------------------------------------------------------------------
         // 10 to 15 - default medium dither (10=fastest, 15=highest quality)
         // 20 to 29 - less dither, more expensive (20=fastest, 29=highest quality)
-        // 39       - no dither, very expensive 
+        // 39       - no dither, very expensive
         //
         // NOTES
         // -----------------------------------------------------------------------
@@ -511,7 +511,7 @@ shader antialiasing
         // 23 = closest to FXAA 3.9 visually and performance wise
         //  _ = the lowest digit is directly related to performance
         // _  = the highest digit is directly related to style
-        // 
+        //
         //#define FXAA_QUALITY__PRESET 23
     //##endif
 
@@ -853,7 +853,7 @@ shader antialiasing
           // For 360, same texture, just alias with a 2nd sampler.
           // This sampler needs to have an exponent bias of -1.
           FxaaTex fxaaConsole360TexExpBiasNegOne,
-          // 
+          //
           // Only used on the optimized 360 version of FXAA Console.
           // For everything but 360, just use the same input here as for "tex".
           // For 360, same texture, just alias with a 3nd sampler.
@@ -872,28 +872,28 @@ shader antialiasing
           //   Where N ranges between,
           //     N = 0.50 (default)
           //     N = 0.33 (sharper)
-          // {x___} = -N/screenWidthInPixels  
+          // {x___} = -N/screenWidthInPixels
           // {_y__} = -N/screenHeightInPixels
-          // {__z_} =  N/screenWidthInPixels  
-          // {___w} =  N/screenHeightInPixels 
+          // {__z_} =  N/screenWidthInPixels
+          // {___w} =  N/screenHeightInPixels
           FxaaFloat4 fxaaConsoleRcpFrameOpt,
           //
           // Only used on FXAA Console.
           // Not used on 360, but used on PS3 and PC.
           // This must be from a constant/uniform.
-          // {x___} = -2.0/screenWidthInPixels  
+          // {x___} = -2.0/screenWidthInPixels
           // {_y__} = -2.0/screenHeightInPixels
-          // {__z_} =  2.0/screenWidthInPixels  
-          // {___w} =  2.0/screenHeightInPixels 
+          // {__z_} =  2.0/screenWidthInPixels
+          // {___w} =  2.0/screenHeightInPixels
           FxaaFloat4 fxaaConsoleRcpFrameOpt2,
           //
           // Only used on FXAA Console.
           // Only used on 360 in place of fxaaConsoleRcpFrameOpt2.
           // This must be from a constant/uniform.
-          // {x___} =  8.0/screenWidthInPixels  
+          // {x___} =  8.0/screenWidthInPixels
           // {_y__} =  8.0/screenHeightInPixels
-          // {__z_} = -4.0/screenWidthInPixels  
-          // {___w} = -4.0/screenHeightInPixels 
+          // {__z_} = -4.0/screenWidthInPixels
+          // {___w} = -4.0/screenHeightInPixels
           FxaaFloat4 fxaaConsole360RcpFrameOpt2,
           //
           // Only used on FXAA Quality.
@@ -915,7 +915,7 @@ shader antialiasing
           //   0.333 - too little (faster)
           //   0.250 - low quality
           //   0.166 - default
-          //   0.125 - high quality 
+          //   0.125 - high quality
           //   0.063 - overkill (slower)
           FxaaFloat fxaaQualityEdgeThreshold,
           //
@@ -933,7 +933,7 @@ shader antialiasing
           //   Tune by looking at mostly non-green content,
           //   then start at zero and increase until aliasing is a problem.
           FxaaFloat fxaaQualityEdgeThresholdMin,
-          // 
+          //
           // Only used on FXAA Console.
           // This used to be the FXAA_CONSOLE__EDGE_SHARPNESS define.
           // It is here now to allow easier tuning.
@@ -968,7 +968,7 @@ shader antialiasing
           // Trims the algorithm from processing darks.
           // The console setting has a different mapping than the quality setting.
           // This only applies when FXAA_EARLY_EXIT is 1.
-          // This does not apply to PS3, 
+          // This does not apply to PS3,
           // PS3 was simplified to avoid more shader instructions.
           //   0.06 - faster but more aliasing in darks
           //   0.05 - default
@@ -980,7 +980,7 @@ shader antialiasing
           //   Tune by looking at mostly non-green content,
           //   then start at zero and increase until aliasing is a problem.
           FxaaFloat fxaaConsoleEdgeThresholdMin,
-          //    
+          //
           // Extra constants for 360 FXAA Console only.
           // Use zeros or anything else for other platforms.
           // These must be in physical constant registers and NOT immedates.
@@ -1344,13 +1344,15 @@ shader antialiasing
           if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
           #if (FXAA_DISCARD == 1)
               return FxaaTexTop(tex, posM);
+          #elif (FXAA_FORCE_ALPHA_ONE == 1)
+              return FxaaFloat4(FxaaTexTop(tex, posM).xyz, 1);
           #else
               return FxaaFloat4(FxaaTexTop(tex, posM).xyz, lumaM);
           #endif
       }
       /*==========================================================================*/
 
-      float4 antialiasing_ps(VsOutput IN): SV_Target
+      float4 antialiasing_fxaa_ps(VsOutput IN): SV_Target
       {
         float2 pos = IN.texcoord;
         float cockpitToolsWeight = 0;
@@ -1404,28 +1406,28 @@ shader antialiasing
             //   Where N ranges between,
             //     N = 0.50 (default)
             //     N = 0.33 (sharper)
-            // {x___} = -N/screenWidthInPixels  
+            // {x___} = -N/screenWidthInPixels
             // {_y__} = -N/screenHeightInPixels
-            // {__z_} =  N/screenWidthInPixels  
-            // {___w} =  N/screenHeightInPixels 
+            // {__z_} =  N/screenWidthInPixels
+            // {___w} =  N/screenHeightInPixels
             resolution,
             //
             // Only used on FXAA Console.
             // Not used on 360, but used on PS3 and PC.
             // This must be from a constant/uniform.
-            // {x___} = -2.0/screenWidthInPixels  
+            // {x___} = -2.0/screenWidthInPixels
             // {_y__} = -2.0/screenHeightInPixels
-            // {__z_} =  2.0/screenWidthInPixels  
-            // {___w} =  2.0/screenHeightInPixels 
+            // {__z_} =  2.0/screenWidthInPixels
+            // {___w} =  2.0/screenHeightInPixels
             resolution,
             //
             // Only used on FXAA Console.
             // Only used on 360 in place of fxaaConsoleRcpFrameOpt2.
             // This must be from a constant/uniform.
-            // {x___} =  8.0/screenWidthInPixels  
+            // {x___} =  8.0/screenWidthInPixels
             // {_y__} =  8.0/screenHeightInPixels
-            // {__z_} = -4.0/screenWidthInPixels  
-            // {___w} = -4.0/screenHeightInPixels 
+            // {__z_} = -4.0/screenWidthInPixels
+            // {___w} = -4.0/screenHeightInPixels
             resolution,
             //
             // Only used on FXAA Quality.
@@ -1447,7 +1449,7 @@ shader antialiasing
             //   0.333 - too little (faster)
             //   0.250 - low quality
             //   0.166 - default
-            //   0.125 - high quality 
+            //   0.125 - high quality
             //   0.063 - overkill (slower)
             fxaa_params.y,      // 0.166
             //
@@ -1465,7 +1467,7 @@ shader antialiasing
             //   Tune by looking at mostly non-green content,
             //   then start at zero and increase until aliasing is a problem.
             fxaa_params.z,      // 0.0833
-            // 
+            //
             // Only used on FXAA Console.
             // This used to be the FXAA_CONSOLE__EDGE_SHARPNESS define.
             // It is here now to allow easier tuning.
@@ -1500,7 +1502,7 @@ shader antialiasing
             // Trims the algorithm from processing darks.
             // The console setting has a different mapping than the quality setting.
             // This only applies when FXAA_EARLY_EXIT is 1.
-            // This does not apply to PS3, 
+            // This does not apply to PS3,
             // PS3 was simplified to avoid more shader instructions.
             //   0.06 - faster but more aliasing in darks
             //   0.05 - default
@@ -1512,7 +1514,7 @@ shader antialiasing
             //   Tune by looking at mostly non-green content,
             //   then start at zero and increase until aliasing is a problem.
             0.05,
-            //    
+            //
             // Extra constants for 360 FXAA Console only.
             // Use zeros or anything else for other platforms.
             // These must be in physical constant registers and NOT immedates.
@@ -1525,6 +1527,6 @@ shader antialiasing
     }
   }
 
-  compile("target_ps", "antialiasing_ps");
-  compile("target_vs", "antialiasing_vs");
+  compile("target_ps", "antialiasing_fxaa_ps");
+  compile("target_vs", "antialiasing_fxaa_vs");
 }

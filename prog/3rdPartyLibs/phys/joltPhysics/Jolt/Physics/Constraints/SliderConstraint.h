@@ -15,9 +15,9 @@ JPH_NAMESPACE_BEGIN
 /// Slider constraint settings, used to create a slider constraint
 class JPH_EXPORT SliderConstraintSettings final : public TwoBodyConstraintSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, SliderConstraintSettings)
 
+public:
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 
@@ -123,7 +123,7 @@ public:
 	void						SetLimitsSpringSettings(const SpringSettings &inLimitsSpringSettings) { mLimitsSpringSettings = inLimitsSpringSettings; }
 
 	///@name Get Lagrange multiplier from last physics update (the linear/angular impulse applied to satisfy the constraint)
-	inline Vector<2> 			GetTotalLambdaPosition() const							{ return mPositionConstraintPart.GetTotalLambda(); }
+	inline Vector<2>			GetTotalLambdaPosition() const							{ return mPositionConstraintPart.GetTotalLambda(); }
 	inline float				GetTotalLambdaPositionLimits() const					{ return mPositionLimitsConstraintPart.GetTotalLambda(); }
 	inline Vec3					GetTotalLambdaRotation() const							{ return mRotationConstraintPart.GetTotalLambda(); }
 	inline float				GetTotalLambdaMotor() const								{ return mMotorConstraintPart.GetTotalLambda(); }

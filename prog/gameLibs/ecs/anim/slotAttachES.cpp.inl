@@ -20,13 +20,13 @@ ECS_REGISTER_EVENT_NS(anim, CmdInitSlotAttach);
 
 void anim::attach(int &slot_attach__slotId, ecs::EntityId eid, int slot_id, ecs::EntityId attach_eid)
 {
-  g_entity_mgr->set(attach_eid, ECS_HASH("slot_attach__attachedTo"), eid);
+  g_entity_mgr->set(attach_eid, ECS_HASH("animchar_attach__attachedTo"), eid);
   slot_attach__slotId = slot_id;
 }
 
 void anim::detach(int &slot_attach__slotId, ecs::EntityId attach_eid)
 {
-  ecs::EntityId &attachedTo = g_entity_mgr->getRW<ecs::EntityId>(attach_eid, ECS_HASH("slot_attach__attachedTo"));
+  ecs::EntityId &attachedTo = g_entity_mgr->getRW<ecs::EntityId>(attach_eid, ECS_HASH("animchar_attach__attachedTo"));
   slot_attach__slotId = -1;
   attachedTo = ecs::INVALID_ENTITY_ID;
 }

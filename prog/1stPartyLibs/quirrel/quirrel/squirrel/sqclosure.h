@@ -149,7 +149,7 @@ struct SQNativeClosure : public CHAINABLE_OBJ
 {
 private:
     SQNativeClosure(SQSharedState *ss,SQFUNCTION func) :
-      _typecheck(ss->_alloc_ctx)
+      _typecheck(ss->_alloc_ctx), _purefunction(false)
     {
       _function=func;INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); _env = NULL;
     }
@@ -161,6 +161,7 @@ public:
         new (nc) SQNativeClosure(ss,func);
         nc->_outervalues = (SQObjectPtr *)(nc + 1);
         nc->_noutervalues = nouters;
+        nc->_purefunction = false;
         _CONSTRUCT_VECTOR(SQObjectPtr,nc->_noutervalues,nc->_outervalues);
         return nc;
     }
@@ -170,10 +171,10 @@ public:
         ret->_env = _env;
         if(ret->_env) __ObjAddRef(ret->_env);
         ret->_name = _name;
-        ret->_docstring = _docstring;
         _COPY_VECTOR(ret->_outervalues,_outervalues,_noutervalues);
         ret->_typecheck.copy(_typecheck);
         ret->_nparamscheck = _nparamscheck;
+        ret->_purefunction = _purefunction;
         return ret;
     }
     ~SQNativeClosure()
@@ -195,13 +196,13 @@ public:
     SQObjectType GetType() {return OT_NATIVECLOSURE;}
 #endif
     SQInteger _nparamscheck;
+    SQUnsignedInteger32 _noutervalues;
+    bool _purefunction;
     SQIntVec _typecheck;
     SQObjectPtr *_outervalues;
-    SQUnsignedInteger _noutervalues;
     SQWeakRef *_env;
     SQFUNCTION _function;
     SQObjectPtr _name;
-    SQObjectPtr _docstring;
 };
 
 

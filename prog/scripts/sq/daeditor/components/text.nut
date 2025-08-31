@@ -25,7 +25,7 @@ function dtext(val, params={}, addchildren = null) {
     txt = val
   }
   if (type(val) == "instance" && isObservable(val)) {
-    txt = val.value
+    txt = val.get()
     watchedtext = true
   }
   let ret = {

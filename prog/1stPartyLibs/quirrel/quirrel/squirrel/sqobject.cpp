@@ -41,7 +41,7 @@ const SQChar *IdType2Name(SQObjectType type)
     }
 }
 
-const SQChar *GetTypeName(const SQObjectPtr &obj1)
+const SQChar *GetTypeName(const SQObject &obj1)
 {
     return IdType2Name(sq_type(obj1));
 }
@@ -440,6 +440,7 @@ SQFunctionProto::SQFunctionProto(SQSharedState *ss)
 {
     _stacksize=0;
     _bgenerator=false;
+    _purefunction=false;
     _hoistingLevel=0;
     INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
 }
@@ -455,6 +456,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     SQInteger noutervalues = _noutervalues,nlocalvarinfos = _nlocalvarinfos;
     SQInteger nlineinfos=_nlineinfos,ninstructions = _ninstructions,nfunctions=_nfunctions;
     SQInteger ndefaultparams = _ndefaultparams;
+    SQInteger nstaticmemos = _nstaticmemos;
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(WriteObject(v,up,write,_sourcename));
     _CHECK_IO(WriteObject(v,up,write,_name));
@@ -468,6 +470,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     _CHECK_IO(SafeWrite(v,write,up,&ndefaultparams,sizeof(ndefaultparams)));
     _CHECK_IO(SafeWrite(v,write,up,&ninstructions,sizeof(ninstructions)));
     _CHECK_IO(SafeWrite(v,write,up,&nfunctions,sizeof(nfunctions)));
+    _CHECK_IO(SafeWrite(v,write,up,&nstaticmemos,sizeof(nstaticmemos)));
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     for(i=0;i<nliterals;i++){
         _CHECK_IO(WriteObject(v,up,write,_literals[i]));
@@ -483,8 +486,8 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
         _CHECK_IO(SafeWrite(v,write,up,&_outervalues[i]._type,sizeof(SQUnsignedInteger)));
         _CHECK_IO(WriteObject(v,up,write,_outervalues[i]._src));
         _CHECK_IO(WriteObject(v,up,write,_outervalues[i]._name));
-        SQInteger assignable = _outervalues[i]._assignable;
-        _CHECK_IO(SafeWrite(v,write,up,&assignable,sizeof(SQInteger)));
+        SQInteger varFlags = _outervalues[i]._varFlags;
+        _CHECK_IO(SafeWrite(v,write,up,&varFlags,sizeof(SQInteger)));
     }
 
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
@@ -511,6 +514,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     }
     _CHECK_IO(SafeWrite(v,write,up,&_stacksize,sizeof(_stacksize)));
     _CHECK_IO(SafeWrite(v,write,up,&_bgenerator,sizeof(_bgenerator)));
+    _CHECK_IO(SafeWrite(v,write,up,&_purefunction,sizeof(_purefunction)));
     _CHECK_IO(SafeWrite(v,write,up,&_varparams,sizeof(_varparams)));
     return true;
 }
@@ -521,6 +525,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     SQUnsignedInteger langFeatures;
     SQInteger noutervalues ,nlocalvarinfos ;
     SQInteger nlineinfos,ninstructions ,nfunctions,ndefaultparams ;
+    SQInteger nstaticmemos;
     SQObjectPtr sourcename, name;
     SQObjectPtr o;
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
@@ -537,12 +542,13 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     _CHECK_IO(SafeRead(v,read,up, &ndefaultparams, sizeof(ndefaultparams)));
     _CHECK_IO(SafeRead(v,read,up, &ninstructions, sizeof(ninstructions)));
     _CHECK_IO(SafeRead(v,read,up, &nfunctions, sizeof(nfunctions)));
+    _CHECK_IO(SafeRead(v,read,up, &nstaticmemos, sizeof(nfunctions)));
 
 
     SQFunctionProto *f = SQFunctionProto::Create(_opt_ss(v), langFeatures,
             ninstructions,nliterals,nparameters,
-            nfunctions,noutervalues,nlineinfos,nlocalvarinfos,ndefaultparams);
-    SQObjectPtr proto = f; //gets a ref in case of failure
+            nfunctions,noutervalues,nlineinfos,nlocalvarinfos,ndefaultparams,nstaticmemos);
+    SQObjectPtr proto(f); //gets a ref in case of failure
     f->_sourcename = sourcename;
     f->_name = name;
 
@@ -563,12 +569,12 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     for(i = 0; i < noutervalues; i++){
         SQUnsignedInteger type;
         SQObjectPtr name;
-        SQInteger assignable;
+        SQInteger varFlags;
         _CHECK_IO(SafeRead(v,read,up, &type, sizeof(SQUnsignedInteger)));
         _CHECK_IO(ReadObject(v, up, read, o));
         _CHECK_IO(ReadObject(v, up, read, name));
-        _CHECK_IO(SafeRead(v, read, up, &assignable, sizeof(SQInteger)));
-        f->_outervalues[i] = SQOuterVar(name,o, (SQOuterType)type, assignable);
+        _CHECK_IO(SafeRead(v, read, up, &varFlags, sizeof(SQInteger)));
+        f->_outervalues[i] = SQOuterVar(name,o, (SQOuterType)type, varFlags);
     }
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
 
@@ -596,6 +602,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     }
     _CHECK_IO(SafeRead(v,read,up, &f->_stacksize, sizeof(f->_stacksize)));
     _CHECK_IO(SafeRead(v,read,up, &f->_bgenerator, sizeof(f->_bgenerator)));
+    _CHECK_IO(SafeRead(v,read,up, &f->_purefunction, sizeof(f->_purefunction)));
     _CHECK_IO(SafeRead(v,read,up, &f->_varparams, sizeof(f->_varparams)));
 
     ret = f;
@@ -694,6 +701,7 @@ void SQClosure::Mark(SQCollectable **chain)
         fp->Mark(chain);
         for(SQInteger i = 0; i < fp->_noutervalues; i++) SQSharedState::MarkObject(_outervalues[i], chain);
         for(SQInteger k = 0; k < fp->_ndefaultparams; k++) SQSharedState::MarkObject(_defaultparams[k], chain);
+        for(SQInteger j = 0; j < fp->_nstaticmemos; j++) SQSharedState::MarkObject(fp->_staticmemos[j], chain);
     END_MARK()
 }
 

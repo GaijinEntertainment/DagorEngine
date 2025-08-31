@@ -1,17 +1,17 @@
 from "%scripts/ui/ui_library.nut" import *
 
-let { showControlsMenu } = require("settings/input_settings.nut")
-let { showSettingsMenu } = require("settings/main_settings.nut")
-let { exit_game, isDisableMenu, switch_to_menu_scene, isInMainMenu } = require("app_state.nut")
-let { textBtn } = require("widgets/simpleComponents.nut")
-let { logout, userUid } = require("login.nut")
+let { showControlsMenu } = require("%scripts/ui/settings/input_settings.nut")
+let { showSettingsMenu } = require("%scripts/ui/settings/main_settings.nut")
+let { exit_game, isDisableMenu, switch_to_menu_scene, isInMainMenu } = require("%scripts/ui/app_state.nut")
+let { textBtn } = require("%scripts/ui/widgets/simpleComponents.nut")
+let { logout, userUid } = require("%scripts/ui/login.nut")
 
 let showGameMenu = mkWatched(persist, "showGameMenu", false)
 
 let closeMenu = @() showGameMenu.set(false)
 let gameMenu = @() {
   size = flex() rendObj = ROBJ_WORLD_BLUR fillColor = Color(0,0,0,220)
-  padding = [sh(30),0,0,sw(30)]
+  padding = static [sh(30),0,0,sw(30)]
   behavior = DngBhv.ActivateActionSet
   actionSet = "StopInput"
   hotkeys = [["@HUD.GameMenu", closeMenu]]

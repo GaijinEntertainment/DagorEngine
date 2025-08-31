@@ -7,9 +7,11 @@ static constexpr ecs::component_t ri_extra__isBeingReplaced_get_type();
 static ecs::LTComponentList ri_extra__isBeingReplaced_component(ECS_HASH("ri_extra__isBeingReplaced"), ri_extra__isBeingReplaced_get_type(), "prog/daNetGame/game/riDestrES.cpp.inl", "", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/game/riDestrES.cpp.inl", "players_ecs_query", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "riDestrES.cpp.inl"
 ECS_DEF_PULL_VAR(riDestr);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc rendinst_destr_es_event_handler_comps[] ={};
 static void rendinst_destr_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -79,7 +81,7 @@ template<typename Callable>
 inline ecs::QueryCbResult destroyed_ladder_ecs_query(Callable function)
 {
   return perform_query(g_entity_mgr, destroyed_ladder_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -90,7 +92,7 @@ inline ecs::QueryCbResult destroyed_ladder_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::ComponentDesc destroyable_ents_ecs_query_comps[] =
@@ -127,19 +129,20 @@ inline void destroyable_ents_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc riextra_eid_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 4 ro components at [0]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("ri_extra__destrFx"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("ri_extra__isBeingReplaced"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("ri_extra__destroyed"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [3]
+//start of 1 rq components at [4]
   {ECS_HASH("isRendinstDestr"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc riextra_eid_ecs_query_desc
 (
   "ridestr::riextra_eid_ecs_query",
   empty_span(),
-  make_span(riextra_eid_ecs_query_comps+0, 3)/*ro*/,
-  make_span(riextra_eid_ecs_query_comps+3, 1)/*rq*/,
+  make_span(riextra_eid_ecs_query_comps+0, 4)/*ro*/,
+  make_span(riextra_eid_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void ridestr::riextra_eid_ecs_query(ecs::EntityId eid, Callable function)
@@ -154,6 +157,7 @@ inline void ridestr::riextra_eid_ecs_query(ecs::EntityId eid, Callable function)
           function(
               ECS_RO_COMP(riextra_eid_ecs_query_comps, "transform", TMatrix)
             , ECS_RO_COMP_OR(riextra_eid_ecs_query_comps, "ri_extra__destrFx", bool(true))
+            , ECS_RO_COMP_OR(riextra_eid_ecs_query_comps, "ri_extra__isBeingReplaced", bool(false))
             );
 
         }

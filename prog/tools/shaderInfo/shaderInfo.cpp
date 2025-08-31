@@ -200,7 +200,7 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
   }
 
   debug("global vars (%d):", shBinDump().globVars.v.size());
-  shaderbindump::dumpVars(shBinDump().globVars);
+  shaderbindump::dumpVars(shBinDump().globVars, nullptr);
 
   debug("named state blocks(%d):", shBinDump().blockNameMap.size());
   for (int i = 0; i < shBinDump().blockNameMap.size(); i++)
@@ -291,25 +291,41 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
   }
   else
   {
-    eastl::vector<eastl::vector_set<eastl::string>> classesByStcode;
+    struct Record
+    {
+      eastl::vector_set<eastl::string> classes{};
+      bool isStatic = false;
+    };
+    eastl::vector<Record> classesByStcode;
     classesByStcode.resize(shBinDump().stcode.size());
     for (auto &sh_class : shBinDump().classes)
       for (auto &sh_code : sh_class.code)
         for (auto &pass : sh_code.passes)
+        {
           if (pass.rpass->stcodeId != 0xFFFF)
-            classesByStcode[pass.rpass->stcodeId].insert(eastl::string(sh_class.name.data()));
+          {
+            G_ASSERT(!classesByStcode[pass.rpass->stcodeId].isStatic);
+            classesByStcode[pass.rpass->stcodeId].classes.insert(eastl::string(sh_class.name.data()));
+          }
+          if (pass.rpass->stblkcodeId != 0xFFFF)
+          {
+            G_ASSERT(classesByStcode[pass.rpass->stblkcodeId].isStatic || classesByStcode[pass.rpass->stblkcodeId].classes.empty());
+            classesByStcode[pass.rpass->stblkcodeId].classes.insert(eastl::string(sh_class.name.data()));
+            classesByStcode[pass.rpass->stblkcodeId].isStatic = true;
+          }
+        }
 
     for (int i = 0; i < shBinDump().stcode.size(); i++)
     {
-      if (single_shader && classesByStcode[i].find(eastl::string(single_shader)) == classesByStcode[i].end())
+      if (single_shader && classesByStcode[i].classes.find(eastl::string(single_shader)) == classesByStcode[i].classes.end())
         continue;
 
-      debug("\n******* State code shader --s%d--", i);
+      debug("\n******* State code shader --s%d-- (%s)", i, classesByStcode[i].isStatic ? "static" : "dynamic");
       if (shBinDump().stcode[i].size())
       {
-        ShUtils::shcod_dump(shBinDump().stcode[i], &shBinDump().globVars, NULL, {}, false);
+        ShUtils::shcod_dump(shBinDump().stcode[i], &shBinDump().globVars, nullptr, nullptr, {}, false);
         debug("\nUsed by shaders:");
-        for (const eastl::string &name : classesByStcode[i])
+        for (const eastl::string &name : classesByStcode[i].classes)
           debug("  %s", name);
       }
     }

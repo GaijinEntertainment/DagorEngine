@@ -3,9 +3,12 @@ include "vtex.dshl"
 macro USE_FEEDBACK_PACKER(code)
   hlsl(code) {
     // It can be packed more efficiently but keeping it simple for alignining with TexTileFeedback fields.
-    static const uint4 FEEDBACK_BITS = uint4( 8, 8, 8, 8);
+    static const uint4 FEEDBACK_BITS = uint4( 8, 8, 8, 4);
+    static const uint  FEEDBACK_ORDER_PREFIX_BITS = 4;
+    static const uint  FEEDBACK_ORDER_PREFIX_MAX_VALUE = (1u << FEEDBACK_ORDER_PREFIX_BITS) - 1;
     static const uint4 FEEDBACK_SHIFT = uint4(0, FEEDBACK_BITS.x, FEEDBACK_BITS.x + FEEDBACK_BITS.y, FEEDBACK_BITS.x + FEEDBACK_BITS.y + FEEDBACK_BITS.z);
-    static const uint4 FEEDBACK_MASK = (1U << FEEDBACK_BITS) - 1U;
+    static const uint  FEEDBACK_ORDER_PREFIX_SHIFT = FEEDBACK_SHIFT.w + FEEDBACK_BITS.w;
+    static const uint4 FEEDBACK_MASK = ((1U << FEEDBACK_BITS) - 1U);
 
     // without dummy clear offset, do NOT use it during UAV feedback filling
     uint packFinalFeedbackInfo(uint2 pos, uint mip, uint ri_offset)
@@ -15,10 +18,14 @@ macro USE_FEEDBACK_PACKER(code)
       return uint(data.x | data.y | data.z | data.w);
     }
 
-    uint packFeedbackInfo(uint2 pos, uint mip, uint ri_offset)
+    uint packFeedbackInfo(uint2 pos, uint mip, uint ri_offset, uint order_prefix)
     {
       ++ri_offset; // ri_offset == 0 is a dummy clear value for feedback
-      return packFinalFeedbackInfo(pos, mip, ri_offset);
+      uint pack = packFinalFeedbackInfo(pos, mip, ri_offset);
+
+      ##assert(order_prefix <= FEEDBACK_ORDER_PREFIX_MAX_VALUE, "Clipmap: order_prefix= %i is greater than max value= %i", order_prefix, FEEDBACK_ORDER_PREFIX_MAX_VALUE);
+      pack = pack | (min(order_prefix, FEEDBACK_ORDER_PREFIX_MAX_VALUE) << FEEDBACK_ORDER_PREFIX_SHIFT);
+      return pack;
     }
 
     void unpackFeedbackInfo(uint pack, out uint2 pos, out uint mip, out uint ri_offset)

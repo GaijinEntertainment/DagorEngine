@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "shooterCameraES.cpp.inl"
 ECS_DEF_PULL_VAR(shooterCamera);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc shooter_cam_act_es_comps[] =
 {

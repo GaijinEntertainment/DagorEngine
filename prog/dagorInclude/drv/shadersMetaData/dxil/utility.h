@@ -27,6 +27,14 @@ inline void decode_special_constants(uint8_t special_constants_mask, T &clb)
   {
     clb.specialConstants(DRAW_ID_REGISTER_SPACE, SPECIAL_CONSTANTS_REGISTER_INDEX);
   }
+  if (special_constants_mask & SC_NVIDIA_EXTENSION)
+  {
+    clb.nvidiaExtension(extension::nvidia::register_space_index, extension::nvidia::register_index);
+  }
+  if (special_constants_mask & SC_AMD_EXTENSION)
+  {
+    clb.amdExtension(extension::amd::register_space_index, extension::amd::register_index);
+  }
 }
 
 template <typename T, typename F>
@@ -197,6 +205,8 @@ inline void decode_compute_root_signature(bool has_acceleration_structure, const
     clb.hasAccelerationStructure();
   clb.endFlags();
 
+  decode_special_constants(header.specialConstantsMask, clb);
+
   decode_root_constant_buffer(header, clb, []() {});
   decode_constant_buffers(header, header.bRegisterUseMask, clb, []() {});
   decode_samplers(header, header.sRegisterUseMask, clb, []() {});
@@ -212,7 +222,7 @@ inline void decode_compute_root_signature(bool has_acceleration_structure, const
 template <typename T>
 inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_acceleration_structure, const ShaderResourceUsageTable &vs,
   const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable &hs, const ShaderResourceUsageTable &ds,
-  const ShaderResourceUsageTable &gs, T &clb)
+  const ShaderResourceUsageTable &gs, bool has_stream_output, T &clb)
 {
   clb.begin();
 
@@ -231,6 +241,8 @@ inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_accelera
     clb.noDomainShaderResources();
   if (!any_registers_used(gs))
     clb.noGeometryShaderResources();
+  if (has_stream_output)
+    clb.hasStreamOutput();
   clb.endFlags();
 
   // Calling order is important, because in the end it will also be the order of root parameters.
@@ -297,7 +309,7 @@ inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_accelera
 // may be not optimal for mesh shader only pipelines.
 template <typename T>
 inline void decode_graphics_mesh_root_signature(bool has_acceleration_structure, const ShaderResourceUsageTable &ms,
-  const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable *as, T &clb)
+  const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable *as, bool has_stream_output, T &clb)
 {
   clb.begin();
 
@@ -312,6 +324,8 @@ inline void decode_graphics_mesh_root_signature(bool has_acceleration_structure,
     clb.noPixelShaderResources();
   if (!as || !any_registers_used(*as))
     clb.noAmplificationShaderResources();
+  if (has_stream_output)
+    clb.hasStreamOutput();
   clb.endFlags();
 
   // Calling order is important, because in the end it will also be the order of root parameters.

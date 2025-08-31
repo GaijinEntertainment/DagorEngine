@@ -20,6 +20,7 @@
 #include "execution_context.h"
 #include "device_context.h"
 #include "wrapped_command_buffer.h"
+#include "sampler_cache.h"
 
 using namespace drv3d_vulkan;
 
@@ -40,7 +41,8 @@ BindlessSetConfig bindlessSetConfigs[spirv::bindless::MAX_SETS] = {
 void BindlessManager::init()
 {
   auto &bindlessManagerBackend = Backend::bindless;
-  bindlessManagerBackend.init(Globals::VK::dev, Globals::cfg.bindlessSetLimits);
+  bindlessManagerBackend.init(Globals::cfg.bindlessSetLimits);
+  bindlessManagerBackend.resetSets();
   if (!Globals::VK::phy.hasBindless)
     return;
 
@@ -49,18 +51,36 @@ void BindlessManager::init()
 
   // default bindless sampler
   samplerTable.clear();
-  samplerTable.push_back(SamplerState::make_default());
+  samplerTable.push_back(Globals::samplers.getDefaultSampler());
   const uint32_t defaultBindlessSamplerIndex = 0;
-  Globals::ctx.updateBindlessSampler(defaultBindlessSamplerIndex, SamplerState::make_default());
+  Globals::ctx.updateBindlessSampler(defaultBindlessSamplerIndex, Globals::samplers.getDefaultSampler());
 }
 
-uint32_t BindlessManager::allocateBindlessResourceRange(uint32_t resourceType, uint32_t count)
+void BindlessManager::afterBackendFlush()
 {
-  auto range = free_list_allocate_smallest_fit<uint32_t>(freeSlotRanges[resTypeToSlotIdx(resourceType)], count);
+  {
+    WinAutoLock lock(rangeMutexes[SLOTS_TEX]);
+    for (const ValueRange<uint32_t> &i : pendingCleanups[SLOTS_TEX])
+      freeBindlessResourceRange(D3DResourceType::TEX, i.front(), i.size());
+    pendingCleanups[SLOTS_TEX].clear();
+  }
+  {
+    WinAutoLock lock(rangeMutexes[SLOTS_BUF]);
+    for (const ValueRange<uint32_t> &i : pendingCleanups[SLOTS_BUF])
+      freeBindlessResourceRange(D3DResourceType::SBUF, i.front(), i.size());
+    pendingCleanups[SLOTS_BUF].clear();
+  }
+}
+
+uint32_t BindlessManager::allocateBindlessResourceRange(D3DResourceType type, uint32_t count)
+{
+  uint32_t slotIdx = resTypeToSlotIdx(type);
+  WinAutoLock lock(rangeMutexes[slotIdx]);
+  auto range = free_list_allocate_smallest_fit<uint32_t>(freeSlotRanges[slotIdx], count);
   if (range.empty())
   {
-    auto r = size[resTypeToSlotIdx(resourceType)];
-    size[resTypeToSlotIdx(resourceType)] += count;
+    auto r = size[slotIdx];
+    size[slotIdx] += count;
     return r;
   }
   else
@@ -69,16 +89,17 @@ uint32_t BindlessManager::allocateBindlessResourceRange(uint32_t resourceType, u
   }
 }
 
-uint32_t BindlessManager::resizeBindlessResourceRange(uint32_t resourceType, uint32_t index, uint32_t currentCount, uint32_t newCount)
+uint32_t BindlessManager::resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t currentCount, uint32_t newCount)
 {
   if (newCount == currentCount)
   {
     return index;
   }
 
-  uint32_t slotIdx = resTypeToSlotIdx(resourceType);
-
+  uint32_t slotIdx = resTypeToSlotIdx(type);
   uint32_t rangeEnd = index + currentCount;
+
+  WinAutoLock lock(rangeMutexes[slotIdx]);
   if (rangeEnd == size[slotIdx])
   {
     // the range is in the end of the heap, so we just update the heap size
@@ -90,24 +111,36 @@ uint32_t BindlessManager::resizeBindlessResourceRange(uint32_t resourceType, uin
     return index;
   }
   // we are unable to expand the resource range, so we have to reallocate elsewhere and copy the existing descriptors :/
-  uint32_t newIndex = allocateBindlessResourceRange(resourceType, newCount);
-  Globals::ctx.copyBindlessDescriptors(resourceType, index, newIndex, currentCount);
-  freeBindlessResourceRange(resourceType, index, currentCount);
+  uint32_t newIndex = allocateBindlessResourceRange(type, newCount);
+  Globals::ctx.copyBindlessDescriptors(type, index, newIndex, currentCount);
+  // cleanup later to avoid mixing up old and new slot updates on same frame
+  queueFreeBindlessResourceRange(type, index, currentCount);
   return newIndex;
 }
 
-void BindlessManager::freeBindlessResourceRange(uint32_t resourceType, uint32_t index, uint32_t count)
+void BindlessManager::queueFreeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  uint32_t slotIdx = resTypeToSlotIdx(resourceType);
-  eastl::vector<ValueRange<uint32_t>> &freeSlotRangesRef = freeSlotRanges[slotIdx];
+  uint32_t slotIdx = resTypeToSlotIdx(type);
+  WinAutoLock lock(rangeMutexes[slotIdx]);
+  pendingCleanups[slotIdx].push_back(make_value_range(index, count));
+}
+
+void BindlessManager::freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
+{
+  uint32_t slotIdx = resTypeToSlotIdx(type);
+  dag::Vector<ValueRange<uint32_t>> &freeSlotRangesRef = freeSlotRanges[slotIdx];
   uint32_t &sizeRef = size[slotIdx];
 
-  G_ASSERTF_RETURN(index + count <= sizeRef, ,
+  D3D_CONTRACT_ASSERTF_RETURN(index + count <= sizeRef, ,
     "Vulkan: freeBindlessResourceRange tried to free out of range slots, range %u - "
     "%u, bindless count %u",
     index, index + count, sizeRef);
 
-  Globals::ctx.updateBindlessResourcesToNull(resourceType, index, count);
+  // already under front lock, safe to push directly
+  if (D3DResourceType::SBUF != type)
+    Frontend::replay->bindlessTexUpdates.push_back(BindlessTexUpdateInfo(index, count));
+  else
+    Frontend::replay->bindlessBufUpdates.push_back(BindlessBufUpdateInfo(index, count));
 
   if (index + count != sizeRef)
   {
@@ -122,22 +155,12 @@ void BindlessManager::freeBindlessResourceRange(uint32_t resourceType, uint32_t 
   }
 }
 
-uint32_t BindlessManager::registerBindlessSampler(BaseTex *texture)
+uint32_t BindlessManager::registerBindlessSampler(const SamplerResource *sampler)
 {
-  G_ASSERT_RETURN(nullptr != texture, 0);
-  return registerBindlessSampler(texture->samplerState);
-}
-
-uint32_t BindlessManager::registerBindlessSampler(SamplerResource *sampler)
-{
-  G_ASSERT_RETURN(nullptr != sampler, 0);
-  return registerBindlessSampler(sampler->getDescription().state);
-}
-
-uint32_t BindlessManager::registerBindlessSampler(SamplerState sampler)
-{
+  D3D_CONTRACT_ASSERT_RETURN(nullptr != sampler, 0);
   uint32_t newIndex;
   {
+    WinAutoLock lock(samplerTableMutex);
     auto ref = eastl::find(begin(samplerTable), end(samplerTable), sampler);
     if (ref != end(samplerTable))
     {
@@ -152,8 +175,24 @@ uint32_t BindlessManager::registerBindlessSampler(SamplerState sampler)
   return newIndex;
 }
 
-void BindlessManagerBackend::createBindlessLayout(const VulkanDevice &device, VkDescriptorType descriptorType,
-  uint32_t descriptorCount, VulkanDescriptorSetLayoutHandle &descriptorLayout)
+void BindlessManager::onDeviceReset() { Backend::bindless.destroyVkObjects(); }
+
+void BindlessManager::afterDeviceReset()
+{
+  auto &bindlessManagerBackend = Backend::bindless;
+  bindlessManagerBackend.init(Globals::cfg.bindlessSetLimits);
+  if (!Globals::VK::phy.hasBindless)
+    return;
+
+  PipelineBindlessConfig::bindlessSetCount = bindlessManagerBackend.getActiveBindlessSetCount();
+  bindlessManagerBackend.fillSetLayouts(PipelineBindlessConfig::bindlessSetLayouts);
+
+  for (size_t i = 0; i < samplerTable.size(); ++i)
+    Globals::ctx.updateBindlessSampler(i, samplerTable[i]);
+}
+
+void BindlessManagerBackend::createBindlessLayout(VkDescriptorType descriptorType, uint32_t descriptorCount,
+  VulkanDescriptorSetLayoutHandle &descriptorLayout)
 {
   // Create bindless global descriptor layout.
   VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
@@ -180,11 +219,12 @@ void BindlessManagerBackend::createBindlessLayout(const VulkanDevice &device, Vk
 
   layoutInfo.pNext = &extendedLayoutInfo;
 
-  VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorSetLayout(device.get(), &layoutInfo, nullptr, ptr(descriptorLayout)));
+  VULKAN_EXIT_ON_FAIL(
+    Globals::VK::dev.vkCreateDescriptorSetLayout(Globals::VK::dev.get(), &layoutInfo, nullptr, ptr(descriptorLayout)));
 }
 
-void BindlessManagerBackend::allocateBindlessSet(const VulkanDevice &device, uint32_t descriptorCount,
-  const VulkanDescriptorSetLayoutHandle descriptorLayout, VulkanDescriptorSetHandle &descriptorSet)
+void BindlessManagerBackend::allocateBindlessSet(uint32_t descriptorCount, const VulkanDescriptorSetLayoutHandle descriptorLayout,
+  VulkanDescriptorSetHandle &descriptorSet)
 {
   VkDescriptorSetAllocateInfo setAllocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
   setAllocateInfo.descriptorPool = descriptorPool;
@@ -198,7 +238,8 @@ void BindlessManagerBackend::allocateBindlessSet(const VulkanDevice &device, uin
   setAllocateCountInfo.pDescriptorCounts = &max_binding;
   setAllocateInfo.pNext = &setAllocateCountInfo;
 
-  VULKAN_EXIT_ON_FAIL(device.vkAllocateDescriptorSets(device.get(), &setAllocateInfo, ptr(descriptorSet)));
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkAllocateDescriptorSets(Globals::VK::dev.get(), &setAllocateInfo, ptr(descriptorSet)));
+  Globals::Dbg::naming.setDescriptorName(descriptorSet, "bindless descriptor set");
 }
 
 uint32_t BindlessManagerBackend::getActiveBindlessSetCount() const
@@ -206,7 +247,7 @@ uint32_t BindlessManagerBackend::getActiveBindlessSetCount() const
   return Globals::VK::phy.hasBindless ? spirv::bindless::MAX_SETS : 0;
 }
 
-void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits &limits)
+void BindlessManagerBackend::init(BindlessSetLimits &limits)
 {
   if (!Globals::VK::phy.hasBindless)
   {
@@ -229,11 +270,12 @@ void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits 
   poolCreateInfo.maxSets = maxSets;
   poolCreateInfo.poolSizeCount = bindlessPoolSizes.size();
   poolCreateInfo.pPoolSizes = bindlessPoolSizes.data();
-  VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorPool(device.get(), &poolCreateInfo, nullptr, ptr(descriptorPool)));
+  VULKAN_EXIT_ON_FAIL(
+    Globals::VK::dev.vkCreateDescriptorPool(Globals::VK::dev.get(), &poolCreateInfo, VKALLOC(descriptor_pool), ptr(descriptorPool)));
 
   for (int i = 0; i < spirv::bindless::MAX_SETS; ++i)
   {
-    createBindlessLayout(device, bindlessSetConfigs[i].type, limits[i].slots, layouts[i]);
+    createBindlessLayout(bindlessSetConfigs[i].type, limits[i].slots, layouts[i]);
     for (uint32_t j = 0; j < BUFFERED_SET_COUNT; j++)
     {
       if (!bindlessSetConfigs[i].buffered && j > 0)
@@ -241,11 +283,9 @@ void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits 
         bufferedSets[j][i].set = bufferedSets[0][i].set;
         continue;
       }
-      allocateBindlessSet(device, limits[i].slots, layouts[i], bufferedSets[j][i].set);
+      allocateBindlessSet(limits[i].slots, layouts[i], bufferedSets[j][i].set);
     }
   }
-
-  resetSets();
 
   enabled = true;
 }
@@ -257,7 +297,7 @@ void BindlessManagerBackend::resetSets()
     actualSetId = i;
     for (uint32_t j = 0; j < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]; j++)
     {
-      updateBindlessTexture(j, nullptr, {});
+      updateBindlessTexture(j, nullptr, {}, false, false);
     }
     for (uint32_t j = 0; j < setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]; j++)
     {
@@ -273,12 +313,17 @@ void BindlessManagerBackend::resetSets()
   actualSetId = 0;
 }
 
-void BindlessManagerBackend::shutdown(const VulkanDevice &vulkanDevice)
+void BindlessManagerBackend::destroyVkObjects()
 {
-  VULKAN_LOG_CALL(vulkanDevice.vkDestroyDescriptorPool(vulkanDevice.get(), descriptorPool, NULL));
+  VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyDescriptorPool(Globals::VK::dev.get(), descriptorPool, VKALLOC(descriptor_pool)));
 
   for (VulkanDescriptorSetLayoutHandle i : layouts)
-    VULKAN_LOG_CALL(vulkanDevice.vkDestroyDescriptorSetLayout(vulkanDevice.get(), i, NULL));
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyDescriptorSetLayout(Globals::VK::dev.get(), i, VKALLOC(descriptor_set_layout)));
+}
+
+void BindlessManagerBackend::shutdown()
+{
+  destroyVkObjects();
   imageSlots.clear();
   bufferSlots.clear();
 }
@@ -296,7 +341,30 @@ VkWriteDescriptorSet BindlessManagerBackend::initSetWrite(uint32_t set_idx, uint
   return descriptorWrite;
 }
 
-void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image)
+void BindlessManagerBackend::restoreBindlessTexture(uint32_t index, Image *image)
+{
+  G_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
+    "vulkan: updating bindless resource (%s) is out of range: id=%u, "
+    "setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
+    image->getDebugName(), index, setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]);
+
+  G_ASSERTF(imageSlots[index].img == image, "vulkan: trying to restore bindless slot (%u) for image %p:%s that does not own it!",
+    index, image, image->getDebugName());
+
+  VkDescriptorImageInfo descriptorImageInfo{};
+  descriptorImageInfo.imageView = image->getImageView(imageSlots[index].viewState);
+  descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  descriptorImageInfo.sampler = VK_NULL_HANDLE;
+
+  VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+  descriptorWrite.pImageInfo = &descriptorImageInfo;
+  auto &vulkanDevice = Globals::VK::dev;
+  vulkanDevice.vkUpdateDescriptorSets(vulkanDevice.get(), 1, &descriptorWrite, 0, nullptr);
+
+  markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+}
+
+void BindlessManagerBackend::evictBindlessTexture(uint32_t index, Image *image)
 {
   G_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
     "vulkan: updating bindless resource (%s) is out of range: id=%u, "
@@ -304,9 +372,8 @@ void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image
     image->getDebugName(), index, setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]);
   G_UNUSED(image);
 
-  G_ASSERTF(imageSlots[index] == image, "vulkan: trying to cleanup bindless slot (%u) for image %p:%s that does not own it!", index,
+  G_ASSERTF(imageSlots[index].img == image, "vulkan: trying to evict bindless slot (%u) for image %p:%s that does not own it!", index,
     image, image->getDebugName());
-  imageSlots[index] = nullptr;
 
   VkDescriptorImageInfo descriptorImageInfo{};
   const auto &dummyResourceTable = Globals::dummyResources.getTable();
@@ -322,25 +389,42 @@ void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image
   markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 }
 
-void BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view)
+void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image)
 {
   G_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
+    "vulkan: cleanup bindless resource (%s) is out of range: id=%u, "
+    "setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
+    image->getDebugName(), index, setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]);
+  G_UNUSED(image);
+
+  G_ASSERTF(imageSlots[index].img == image, "vulkan: trying to cleanup bindless slot (%u) for image %p:%s that does not own it!",
+    index, image, image->getDebugName());
+  imageSlots[index].img = nullptr;
+
+  VkDescriptorImageInfo descriptorImageInfo{};
+  const auto &dummyResourceTable = Globals::dummyResources.getTable();
+  descriptorImageInfo.imageView = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.imageView;
+  descriptorImageInfo.imageLayout = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.imageLayout;
+  descriptorImageInfo.sampler = VK_NULL_HANDLE;
+
+  VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+  descriptorWrite.pImageInfo = &descriptorImageInfo;
+  auto &vulkanDevice = Globals::VK::dev;
+  vulkanDevice.vkUpdateDescriptorSets(vulkanDevice.get(), 1, &descriptorWrite, 0, nullptr);
+
+  markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+}
+
+void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub)
+{
+  D3D_CONTRACT_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
     "vulkan: updating bindless resource (%s) is out of range: id=%u, "
     "setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
     image ? image->getDebugName() : "<nullptr>", index, setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]);
 
   VkDescriptorImageInfo descriptorImageInfo{};
 
-  auto iter = imageSlots.find(index);
-  Image *oldImage = iter != imageSlots.end() ? iter->second : nullptr;
-  if (oldImage != image)
-  {
-    if (oldImage)
-      oldImage->removeBindlessSlot(index);
-    if (image)
-      image->addBindlessSlot(index);
-    imageSlots[index] = image;
-  }
+  imageSlots[index] = {image, view, stub};
 
   if (image)
   {
@@ -368,9 +452,82 @@ void BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image,
   markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 }
 
-void BindlessManagerBackend::cleanupBindlessBuffer(uint32_t index, Buffer *buf)
+bool BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub, bool stub_swap)
+{
+  auto iter = imageSlots.find(index);
+  bool activeSlot = iter != imageSlots.end();
+
+  // if stub swap was queued for texture A and while it was loading slot was used for texture B
+  // we must filter stub swap logic for this slot
+  if (activeSlot && stub_swap && !iter->second.stub)
+    return false;
+
+  Image *oldImage = activeSlot ? iter->second.img : nullptr;
+  if (oldImage != image)
+  {
+    if (oldImage)
+      oldImage->removeBindlessSlot(index);
+    if (image)
+      image->addBindlessSlot(index);
+  }
+  else if (image && iter->second.viewState == view)
+    return false;
+
+  setBindlessTexture(index, image, view, stub);
+
+  return true;
+}
+
+void BindlessManagerBackend::restoreBindlessBuffer(uint32_t index, Buffer *buf)
 {
   G_ASSERTF(index < setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX],
+    "vulkan: updating bindless resource (%s) is out of range: id=%u, "
+    "setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
+    buf->getDebugName(), index, setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]);
+  G_UNUSED(buf);
+
+  G_ASSERTF(bufferSlots[index] == buf, "vulkan: trying to restore bindless slot (%u) for buffer %p:%s that does not own it!", index,
+    buf, buf->getDebugName());
+
+  // losts original discard index and range, should not be issue, but beware
+  VkDescriptorBufferInfo descriptorBufferInfo{};
+  descriptorBufferInfo.buffer = buf->getHandle();
+  descriptorBufferInfo.offset = buf->bufOffsetLoc(0);
+  descriptorBufferInfo.range = buf->getBlockSize();
+
+  VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+  descriptorWrite.pBufferInfo = &descriptorBufferInfo;
+  auto &vulkanDevice = Globals::VK::dev;
+  vulkanDevice.vkUpdateDescriptorSets(vulkanDevice.get(), 1, &descriptorWrite, 0, nullptr);
+
+  markDirtyRange(spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+}
+
+void BindlessManagerBackend::evictBindlessBuffer(uint32_t index, Buffer *buf)
+{
+  G_ASSERTF(index < setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX],
+    "vulkan: updating bindless resource (%s) is out of range: id=%u, "
+    "setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
+    buf->getDebugName(), index, setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]);
+  G_UNUSED(buf);
+
+  G_ASSERTF(bufferSlots[index] == buf, "vulkan: trying to evict bindless slot (%u) for buffer %p:%s that does not own it!", index, buf,
+    buf->getDebugName());
+
+  const auto &dummyResourceTable = Globals::dummyResources.getTable();
+  VkDescriptorBufferInfo descriptorBufferInfo = dummyResourceTable[spirv::MISSING_BUFFER_INDEX].descriptor.buffer;
+
+  VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+  descriptorWrite.pBufferInfo = &descriptorBufferInfo;
+  auto &vulkanDevice = Globals::VK::dev;
+  vulkanDevice.vkUpdateDescriptorSets(vulkanDevice.get(), 1, &descriptorWrite, 0, nullptr);
+
+  markDirtyRange(spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
+}
+
+void BindlessManagerBackend::cleanupBindlessBuffer(uint32_t index, Buffer *buf)
+{
+  D3D_CONTRACT_ASSERTF(index < setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX],
     "vulkan: updating bindless resource (%s) is out of range: id=%u, "
     "setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]=%u",
     buf->getDebugName(), index, setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]);
@@ -431,12 +588,12 @@ void BindlessManagerBackend::updateBindlessBuffer(uint32_t index, const BufferRe
   markDirtyRange(spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 }
 
-void BindlessManagerBackend::updateBindlessSampler(uint32_t index, SamplerInfo *samplerInfo)
+void BindlessManagerBackend::updateBindlessSampler(uint32_t index, const SamplerInfo *samplerInfo)
 {
   VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::SAMPLER_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 
   VkDescriptorImageInfo descriptorImageInfo;
-  descriptorImageInfo.sampler = samplerInfo->colorSampler();
+  descriptorImageInfo.sampler = samplerInfo->handle;
   descriptorImageInfo.imageView = VK_NULL_HANDLE;
   descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   descriptorWrite.pImageInfo = &descriptorImageInfo;
@@ -463,10 +620,57 @@ void BindlessManagerBackend::copyDescriptors(uint32_t set_idx, uint32_t ring_src
   vulkan_device.vkUpdateDescriptorSets(vulkan_device.get(), 0, nullptr, 1, &copyDescriptorSet);
 }
 
-void BindlessManagerBackend::copyBindlessDescriptors(uint32_t resource_type, uint32_t src, uint32_t dst, uint32_t count)
+void BindlessManagerBackend::copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count)
 {
-  uint32_t setIdx = resTypeToSetIdx(resource_type);
+  uint32_t setIdx = resTypeToSetIdx(type);
   copyDescriptors(setIdx, actualSetId, actualSetId, src, dst, count);
+
+  {
+    TIME_PROFILE(vulkan_copy_bindless_slots);
+    if (type != D3DResourceType::SBUF)
+    {
+      for (uint32_t i = 0; i < count; ++i)
+      {
+        auto srcSlot = imageSlots.find(src + i);
+        if (srcSlot == imageSlots.end())
+          continue;
+        auto dstSlot = imageSlots.find(dst + i);
+        if (dstSlot != imageSlots.end())
+        {
+          G_ASSERTF(!dstSlot->second.img,
+            "vulkan: bindless slot %u most be empty when used as dst for %u slot copy, src slot obj %p:%s, dst slot obj %p:%s",
+            dst + i, src + i, srcSlot->second.img, srcSlot->second.img ? srcSlot->second.img->getDebugName() : "<none>",
+            dstSlot->second.img, dstSlot->second.img ? dstSlot->second.img->getDebugName() : "<none>");
+        }
+        BindlessImageSlot srcSlotValue = srcSlot->second;
+        if (srcSlotValue.img)
+          srcSlotValue.img->addBindlessSlot(dst + i);
+        imageSlots[dst + i] = srcSlotValue;
+      }
+    }
+    else
+    {
+      for (uint32_t i = 0; i < count; ++i)
+      {
+        auto srcSlot = bufferSlots.find(src + i);
+        if (srcSlot == bufferSlots.end())
+          continue;
+        auto dstSlot = bufferSlots.find(dst + i);
+        if (dstSlot != bufferSlots.end())
+        {
+          G_ASSERTF(!dstSlot->second,
+            "vulkan: bindless slot %u most be empty when used as dst for %u slot copy, src slot obj %p:%s, dst slot obj %p:%s",
+            dst + i, src + i, srcSlot->second, srcSlot->second ? srcSlot->second->getDebugName() : "<none>", dstSlot->second,
+            dstSlot->second ? dstSlot->second->getDebugName() : "<none>");
+        }
+        Buffer *srcSlotValue = srcSlot->second;
+        if (srcSlotValue)
+          srcSlotValue->addBindlessSlot(dst + i);
+        bufferSlots[dst + i] = srcSlotValue;
+      }
+    }
+  }
+
   markDirtyRange(setIdx, dst, count);
 }
 

@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/frameGraphHelpers.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <render/viewVecs.h>
@@ -14,12 +14,12 @@ void set_up_debug_indoor_probes_on_screen_entity(bool render)
     return;
   ecs::ComponentsInitializer init;
   init[ECS_HASH("debugIndoorProbesOnScreenNode")] =
-    dabfg::register_node("debug_indoor_probes_on_screen", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    dafg::register_node("debug_indoor_probes_on_screen", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       registry.requestRenderPass().color({"frame_with_debug"});
       registry.requestState().setFrameBlock("global_frame");
       registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
-      registry.readTexture("depth_for_postfx").atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
-      read_gbuffer(registry, dabfg::Stage::PS, readgbuffer::NORMAL);
+      registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
+      read_gbuffer(registry, dafg::Stage::PS, readgbuffer::NORMAL);
       auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
       return [debugIndoorProbesOnScreen = PostFxRenderer("debug_indoor_probes_on_screen"), cameraHndl] {
         set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);

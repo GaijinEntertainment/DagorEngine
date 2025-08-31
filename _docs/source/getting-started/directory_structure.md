@@ -13,105 +13,105 @@ is organized into four main sections:
 Below is a tree of the general directory structure:
 
 ```text
-<engine_root>/
-├── <project_name>/
-│   ├── prog/
-│   │   ├── ui/
-│   │   ├── scripts/
-│   │   └── gameBase/
-│   ├── develop/
-│   │   ├── assets/
-│   │   ├── levels/
-│   │   ├── gui(ui)/
-│   │   └── gameBase/
-│   ├── game/
-│   ├── tools/
+<engine_root>
+├── <project_name>
+│   ├── prog
+│   │   ├── ui
+│   │   ├── scripts
+│   │   └── gameBase
+│   ├── develop
+│   │   ├── assets
+│   │   ├── levels
+│   │   ├── gui(ui)
+│   │   └── gameBase
+│   ├── game
+│   ├── tools
 │   └── application.blk
-├── prog/
-│   ├── _jBuild/
-│   ├── 1stPartyLibs/
-│   ├── 3rdPartyLibs/
-│   ├── dagorInclude/
-│   ├── engine/
-│   ├── tools/
-│   ├── scripts/
-│   ├── gameLibs/
-│   ├── daNetGame/
-│   ├── daNetGameLibs/
-│   └── samples/
-├── samples/
-└── _docs/
+├── prog
+│   ├── _jBuild
+│   ├── 1stPartyLibs
+│   ├── 3rdPartyLibs
+│   ├── dagorInclude
+│   ├── engine
+│   ├── tools
+│   ├── scripts
+│   ├── gameLibs
+│   ├── daNetGame
+│   ├── daNetGameLibs
+│   └── samples
+├── samples
+└── _docs
 ```
 
 ## Main Sources
 
-The main sources directory `prog/` contains several key parts, each serving a
+The main sources directory `prog` contains several key parts, each serving a
 specific purpose:
 
-### `_jBuild/`
+### `_jBuild`
 
 Contains common `.jam` file settings used to build code for different platforms.
 
-### `1stPartyLibs/`
+### `1stPartyLibs`
 
 Contains internal libraries. These libraries have no dependencies on the engine
-or other internal projects, except for `3rdPartyLibs/`, making them usable
+or other internal projects, except for `3rdPartyLibs`, making them usable
 outside of Dagor Engine projects.
 
-### `3rdPartyLibs/`
+### `3rdPartyLibs`
 
 Contains external libraries with no dependencies on Gaijin code. The code within
-`3rdPartyLibs/` is entirely independent.
+`3rdPartyLibs` is entirely independent.
 
-### `dagorInclude/`
+### `dagorInclude`
 
 Contains essential components and modules that form the core functionality,
 including 3D rendering, animation systems, debugging tools, device drivers,
 special effects, resource management, and much more. May have dependencies on
-`1stPartyLibs/` and `3rdPartyLibs/`.
+`1stPartyLibs` and `3rdPartyLibs`.
 
-### `engine/`
+### `engine`
 
 Contains the core components of the Dagor Engine, encompassing a broad range of
 functionalities critical for game development. This directory includes systems
 for console processing, device drivers, game resources, base GUI components,
 input/output systems, and so on. Most parts are optionally used across various
-applications. They may have dependencies on `1stPartyLibs/` and `3rdPartyLibs/`.
+applications. They may have dependencies on `1stPartyLibs` and `3rdPartyLibs`.
 
-### `tools/`
+### `tools`
 
 Contains the source code for various [Dagor Tools](../dagor-tools/index.rst).
 
-### `scripts/`
+### `scripts`
 
 Contains common scripts, primarily Quirrel, which is the main dynamic scripting
 language used in the Dagor Engine.
 
-### `gameLibs/`
+### `gameLibs`
 
 Contains libraries for game development. Most of these libraries are
-cross-platform. Dependencies are limited to `1stPartyLibs/`, `3rdPartyLibs/`,
-`engine/`, and other `gameLibs/`.
+cross-platform. Dependencies are limited to `1stPartyLibs`, `3rdPartyLibs`,
+`engine`, and other `gameLibs`.
 
-### `daNetGame/`
+### `daNetGame`
 
-Contains a Work-In-Progress (WIP) [Entity Component System
+Contains a Work-In-Progress (WIP) [Entity-Component-System
 (ECS)](../api-references/dagor-ecs/dagor_ecs.md) framework for building
 cross-platform network games. This codebase is subject to change, with specific
 components such as AI, weapons, player customization, and terrain expected to be
-moved to `daNetGameLibs/` and potentially rewritten using dascript and ECS
-principles. Dependencies should only include `1stPartyLibs/`, `3rdPartyLibs/`,
-`engine/`, `daECS/`, and some `gameLibs/`. The goal is to support a general
+moved to `daNetGameLibs` and potentially rewritten using dascript and ECS
+principles. Dependencies should only include `1stPartyLibs`, `3rdPartyLibs`,
+`engine`, `daECS`, and some `gameLibs`. The goal is to support a general
 networking solution for any physical game, with both dedicated and player-hosted
 servers (excluding peer-to-peer).
 
-### `daNetGameLibs/`
+### `daNetGameLibs`
 
 Contains libraries that assist in developing games using the daNetGame
-framework. Dependencies can include `1stPartyLibs/`, `3rdPartyLibs/`, `engine/`,
-`daNetGame/`, `daECS/`, and some `gameLibs/`.
+framework. Dependencies can include `1stPartyLibs`, `3rdPartyLibs`, `engine`,
+`daNetGame`, `daECS`, and some `gameLibs`.
 
-### `samples/`
+### `samples`
 
 Contains sample projects for both the core engine and game libraries are stored
 here.
@@ -127,7 +127,7 @@ Libraries should adhere to the **FIRS(T)** principles:
 - **Testable**: ensure libraries can be easily tested.
 
 Developers are encouraged to move code that meets these principles into
-`1stPartyLibs/` or `gameLibs/`, depending on the dependencies, rather than
+`1stPartyLibs` or `gameLibs`, depending on the dependencies, rather than
 keeping it within individual projects. This practice helps avoid code
 duplication and increases the likelihood of code review and improvement.
 
@@ -154,27 +154,27 @@ use to developers:
  └── application.blk
 ```
 
-### `prog/`
+### `prog`
 
 Contains the game's source code, C++ files, shaders, and often configuration
 files directly used by the game.
 
-### `ui/`
+### `ui`
 
 Contains scripts and configurations for the game's user interface, focusing on
 elements such as controls, layouts, and components.
 
-### `scripts/`
+### `scripts`
 
 Contains script files and related resources that define and manage various game
 behaviors, events, and logic.
 
-### `gameBase/`
+### `gameBase`
 
 Contains essential elements related to game content and virtual file system
 management for projects. This directory includes:
 
-- `content/`: a subdirectory where game assets and content files are stored.
+- `content`: a subdirectory where game assets and content files are stored.
   This typically includes various game resources such as textures, models, audio
   files, and other data required for the game.
 - `create_vfsroms.bat`: a batch script used to create virtual file system (VFS)
@@ -184,12 +184,12 @@ management for projects. This directory includes:
   specifying how files should be packaged and organized within the virtual file
   system.
 
-### `develop/`
+### `develop`
 
 Contains raw data, including the asset base, locations, images, and fonts for
 the interface.
 
-### `assets/`
+### `assets`
 
 Assets are the building blocks of the project, used to create locations and game
 objects. Key characteristics of an asset include: *name*, *type*, and
@@ -229,24 +229,24 @@ may contain a `.folder.blk` file that specifies:
 - `virtual_res_blk{}` blocks used to generate virtual assets for arbitrary files
   found in the directory.
 
-### `levels/`
+### `levels`
 
 Contains various game levels and their corresponding assets. Each subdirectory
 represents a distinct level, containing all necessary resources and
 configurations to render and manage that level effectively.
 
-### `gui(ui)/`
+### `gui(ui)`
 
 Contains resources and scripts for building and managing the graphical user
 interface (GUI). This directory is organized to handle font generation, UI
 skinning, input configurations, and overall UI structure.
 
-### `game/`
+### `game`
 
 The build output directory, including compiled code and assets. This is
 essentially what is delivered to the players.
 
-### `tools/`
+### `tools`
 
 Contains data for tools, including shaders used for asset building and running
 editors.
@@ -262,12 +262,12 @@ editors.
 
   ```{seealso}
   For more information, see
-  [vromfs](../dagor-tools/resource-building/vromfs.md).
+  [vromfs](../dagor-tools/building-resources/vromfs.md).
   ```
 
 - `daBuild-dev.exe`: tool for building raw asset data into game resources. It
-  takes data from the asset base (`develop/` directory) and after validation,
-  compiles it into a format suitable for loading by the game in the `game/`
+  takes data from the asset base (`develop` directory) and after validation,
+  compiles it into a format suitable for loading by the game in the `game`
   directory.
 - `impostorBaker-dev.exe`: tool for preparing special tree view textures, used
   in conjunction with daBuild, to optimize tree rendering in the game (when a
@@ -295,7 +295,7 @@ editors.
 - `daEditor3x-dev.exe`: location editor. Allows editing terrain, water areas,
   and placing assets manually, along splines (lines), and across areas
   (polygons). It can compile/export the edited location into a format suitable
-  for game loading (in the `game/` directory).
+  for game loading (in the `game` directory).
 
   ```{seealso}
   For more information, see
@@ -316,7 +316,7 @@ directories for the editor. In `application.blk`, can be defined:
   exporter plugins.
 - A list of root directories from which assets are scanned (the asset base).
 - A set of settings for where and how to compile assets into the game (the
-  `game/` directory).
+  `game` directory).
 
   ```{seealso}
   For more information, see

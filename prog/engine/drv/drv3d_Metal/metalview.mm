@@ -231,7 +231,7 @@ extern bool get_lowpower_mode();
     if (!savedBackTex || doUpdate)
     {
       if (savedBackTex)
-        drv3d_metal::render.queueTextureForDeletion(savedBackTex);
+        drv3d_metal::render.queueResourceForDeletion(savedBackTex);
       MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metalLayer.pixelFormat
                                                                                       width : backTex.width
                                                                                      height : backTex.height
@@ -297,8 +297,8 @@ extern bool get_lowpower_mode();
   [currentDrawable release];
   currentDrawable = NULL;
 
-  drv3d_metal::render.queueTextureForDeletion(backTex);
-  drv3d_metal::render.queueTextureForDeletion(SRGBTex);
+  drv3d_metal::render.queueResourceForDeletion(backTex);
+  drv3d_metal::render.queueResourceForDeletion(SRGBTex);
   backTex = NULL;
   SRGBTex = NULL;
 }
@@ -337,7 +337,7 @@ extern bool get_lowpower_mode();
     metalLayer.wantsExtendedDynamicRangeContent = YES;
 #endif
 
-#if _TARGET_IOS || MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_11_0
+#if _TARGET_IOS
     const CFStringRef name = kCGColorSpaceITUR_2020_PQ_EOTF;
 #else
     const CFStringRef name = kCGColorSpaceITUR_2100_PQ;

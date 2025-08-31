@@ -1,17 +1,23 @@
 include "vr_reprojection.dshl"
 
+int allow_vr_multiview = 0 always_referenced;
+interval allow_vr_multiview : no < 1, yes;
+assume_if_not_assumed allow_vr_multiview = no; // Multiview variants are disabled by default.
+                                               // To enable multiview support add allow_vr_multiview:i=1 assumption to game's shaders .blk.
+
 int use_vr_multiview = 0 always_referenced;
 interval use_vr_multiview : no < 1, yes;
 
 macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
-  if (hardware.dx12 || (hardware.ps5 && use_vr_multiview == yes && (enable)))
+  if (allow_vr_multiview == yes && (hardware.dx12 || (hardware.ps5 && use_vr_multiview == yes && (enable))))
   {
     if (use_dynstcode)
     {
       INIT_VR_REPROJECTION(vs)
     }
 
-    if (use_vr_multiview == yes && (enable))
+    bool multiview_enabled = use_vr_multiview == yes && (enable);
+    if (multiview_enabled)
     {
       view_instances = 2;
     }
@@ -21,6 +27,13 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
       hlsl {
         #define USE_VIEW_ID , uint viewId : SV_ViewID
         #define VR_MULTIVIEW_REPROJECT(pos) { if (viewId == 1) (pos) = mul((pos), vrReprojectionMatrix); }
+        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        { \
+          output.out_pos = output.pos; \
+          float4 prev_pos_reproj = (prev_pos); \
+          VR_MULTIVIEW_REPROJECT(prev_pos_reproj); \
+          output.out_pos_prev = prev_pos_reproj; \
+        }
       }
     }
     else if (hardware.ps5)
@@ -30,15 +43,31 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
 
         #define USE_VIEW_ID , out float pos2 : S_STEREO_POSITION
         #define VR_MULTIVIEW_REPROJECT(pos) { pos2 = mul((pos), vrReprojectionMatrix).x; }
+
+        // Right eye has a small error but insignificant since eyes Z-vectors are parallel.
+        // If we want to fix that error, we can pass an additional float VS->PS attribute with .x reprojection
+        // and swizzle according to view, or reproject out_pos/out_pos_prev on Pixel Shader.
+        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        { \
+          output.out_pos = output.pos; \
+          output.out_pos_prev = (prev_pos); \
+        }
       }
     }
 
   }
   else
   {
+    bool multiview_enabled = false;
+
     hlsl {
       #define USE_VIEW_ID
       #define VR_MULTIVIEW_REPROJECT(pos)
+      #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+      { \
+        output.out_pos = output.pos; \
+        output.out_pos_prev = (prev_pos); \
+      }
     }
   }
 endmacro

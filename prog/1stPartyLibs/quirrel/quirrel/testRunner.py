@@ -154,8 +154,10 @@ def runSATest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "Static Analyzer", '.diag.txt', ["-sa", "-diag-file"], False)
 
 def runExecuteTest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "Exec", '.out', [], True)
+    runTestGeneric(compiler, workingDir, dirname, name, "Exec", '.out', ["--check-stack"], True)
 
+def runParseTypesTest(compiler, workingDir, dirname, name):
+    runTestGeneric(compiler, workingDir, dirname, name, "Parse Types", '.out', ["--parse-types"], True)
 
 def runASTTest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "AST", '.opt.txt', ["-ast-dump"], False)
@@ -181,6 +183,8 @@ def runTestForData(filePath, compiler, workingDir, testMode):
             runDiagTest(compiler, workingDir, dirname, name)
         elif testMode == 'exec':
             runExecuteTest(compiler, workingDir, dirname, name)
+        elif testMode == 'types':
+            runParseTypesTest(compiler, workingDir, dirname, name)
         elif testMode == 'sa':
             runSATest(compiler, workingDir, dirname, name)
         else:
@@ -231,6 +235,7 @@ def main():
     walkDirectory(Path(computePath('testData', 'diagnostics')), 0, lambda a: runTestForData(a, compiler, workingDir, 'diag'))
     walkDirectory(Path(computePath('testData', 'ast')), 0, lambda a: runTestForData(a, compiler, workingDir, 'ast'))
     walkDirectory(Path(computePath('testData', 'static_analyzer')), 0, lambda a: runTestForData(a, compiler, workingDir, 'sa'))
+    walkDirectory(Path(computePath('testData', 'types')), 0, lambda a: runTestForData(a, compiler, workingDir, 'types'))
 
     if numOfFailedTests:
         xprint(f"Failed tests: {numOfFailedTests}", CBOLD + CRED)

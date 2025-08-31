@@ -10,6 +10,8 @@ using namespace drv3d_dx12::resource_manager;
 
 namespace
 {
+constexpr float usageSizeReportingThreshold = 0.05f;
+
 struct AlwaysConvertToTrueType
 {
   constexpr explicit operator bool() const { return true; }
@@ -134,14 +136,14 @@ void MemoryBudgetObserver::updateBudgetLevelStatus()
 {
   auto ref =
     eastl::find_if(eastl::begin(poolBudgetLevels[device_local_memory_pool]), eastl::end(poolBudgetLevels[device_local_memory_pool]),
-      [budged = getAvailablePoolBudget(device_local_memory_pool)](auto level) //
-      { return level >= budged; });
+      [budget = getAvailablePoolBudget(device_local_memory_pool)](auto level) //
+      { return level >= budget; });
   poolBudgetLevelstatus[device_local_memory_pool] =
     static_cast<BudgetPressureLevels>(ref - eastl::begin(poolBudgetLevels[device_local_memory_pool]));
 
   ref = eastl::find_if(eastl::begin(poolBudgetLevels[host_local_memory_pool]), eastl::end(poolBudgetLevels[host_local_memory_pool]),
-    [budged = getAvailablePoolBudget(host_local_memory_pool)](auto level) //
-    { return level >= budged; });
+    [budget = getAvailablePoolBudget(host_local_memory_pool)](auto level) //
+    { return level >= budget; });
   poolBudgetLevelstatus[host_local_memory_pool] =
     static_cast<BudgetPressureLevels>(ref - eastl::begin(poolBudgetLevels[host_local_memory_pool]));
 }
@@ -209,13 +211,41 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
 
 namespace
 {
-void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *name)
+bool is_memory_size_equal(uint64_t reported_size, uint64_t new_size, float threshold)
+{
+  auto reportedSizeUnits = size_to_unit_table(reported_size);
+  auto newSizeUnits = size_to_unit_table(new_size);
+  if (reportedSizeUnits != newSizeUnits)
+    return false;
+  if (fabsf(compute_unit_type_size(reported_size, reportedSizeUnits) - compute_unit_type_size(new_size, newSizeUnits)) > threshold)
+  {
+    return false;
+  }
+  return true;
+}
+
+bool is_video_memory_info_equal(const DXGI_QUERY_VIDEO_MEMORY_INFO &reported_info, const DXGI_QUERY_VIDEO_MEMORY_INFO &new_info,
+  float threshold)
+{
+  if (!is_memory_size_equal(reported_info.Budget, new_info.Budget, threshold))
+    return false;
+  if (!is_memory_size_equal(reported_info.CurrentUsage, new_info.CurrentUsage, threshold))
+    return false;
+  if (!is_memory_size_equal(reported_info.AvailableForReservation, new_info.AvailableForReservation, threshold))
+    return false;
+  if (!is_memory_size_equal(reported_info.CurrentReservation, new_info.CurrentReservation, threshold))
+    return false;
+  return true;
+}
+
+void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *name, const char *level)
 {
   logdbg("DX12: QueryVideoMemoryInfo of %s:", name);
   auto BudgetUnits = size_to_unit_table(info.Budget);
   logdbg("DX12: Budget %.2f %s", compute_unit_type_size(info.Budget, BudgetUnits), get_unit_name(BudgetUnits));
   auto CurrentUsageUnits = size_to_unit_table(info.CurrentUsage);
-  logdbg("DX12: CurrentUsage %.2f %s", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits), get_unit_name(CurrentUsageUnits));
+  logdbg("DX12: CurrentUsage %.2f %s (level: %s)", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits),
+    get_unit_name(CurrentUsageUnits), level);
   auto AvailableForReservationUnits = size_to_unit_table(info.AvailableForReservation);
   logdbg("DX12: AvailableForReservation %.2f %s", compute_unit_type_size(info.AvailableForReservation, AvailableForReservationUnits),
     get_unit_name(AvailableForReservationUnits));
@@ -224,13 +254,14 @@ void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *na
     get_unit_name(CurrentReservationUnits));
 }
 
-void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info, DXGI_MEMORY_SEGMENT_GROUP group, const char *name)
+void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info, DXGI_MEMORY_SEGMENT_GROUP group, const char *name,
+  bool should_print)
 {
   if (info.CurrentReservation != info.CurrentUsage)
   {
     auto nextReserve = min(info.CurrentUsage, info.AvailableForReservation);
     auto nextReserveUnits = size_to_unit_table(nextReserve);
-    if (info.CurrentUsage > info.AvailableForReservation)
+    if (info.CurrentUsage > info.AvailableForReservation && should_print)
     {
       auto usageUnits = size_to_unit_table(info.CurrentUsage);
       logwarn("DX12: %s memory usage %.2f %s is larger memory available for reservation %.2f %s", name,
@@ -239,8 +270,11 @@ void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info
     }
     if (nextReserve != info.CurrentReservation)
     {
-      logdbg("DX12: Adjusted %s memory reservation to %.2f %s", name, compute_unit_type_size(nextReserve, nextReserveUnits),
-        get_unit_name(nextReserveUnits));
+      if (should_print)
+      {
+        logdbg("DX12: Adjusted %s memory reservation to %.2f %s", name, compute_unit_type_size(nextReserve, nextReserveUnits),
+          get_unit_name(nextReserveUnits));
+      }
       adapter->SetVideoMemoryReservation(0, group, nextReserve);
       info.CurrentReservation = nextReserve;
     }
@@ -259,8 +293,13 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &poolStates[device_local_memory_pool]);
     behaviorStatus.set(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
 
-    report_budget_info(poolStates[device_local_memory_pool], "Device Local");
-    update_reservation(adapter, poolStates[device_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_LOCAL, "Device Local");
+    const bool isEqual = is_video_memory_info_equal(reportedPoolStates[device_local_memory_pool], poolStates[device_local_memory_pool],
+      usageSizeReportingThreshold);
+    if (!isEqual)
+      report_budget_info(poolStates[device_local_memory_pool], "Device Local", as_string(getDeviceLocalBudgetLevel()));
+    update_reservation(adapter, poolStates[device_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_LOCAL, "Device Local", !isEqual);
+    if (!isEqual)
+      reportedPoolStates[device_local_memory_pool] = poolStates[device_local_memory_pool];
   }
   if (!behaviorStatus.test(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY) && adapter)
   {
@@ -268,8 +307,13 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     behaviorStatus.set(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
     behaviorStatus.reset(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY);
 
-    report_budget_info(poolStates[host_local_memory_pool], "Host Local");
-    update_reservation(adapter, poolStates[host_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, "Host Local");
+    const bool isEqual = is_video_memory_info_equal(reportedPoolStates[host_local_memory_pool], poolStates[host_local_memory_pool],
+      usageSizeReportingThreshold);
+    if (!isEqual)
+      report_budget_info(poolStates[host_local_memory_pool], "Host Local", as_string(getHostLocalBudgetLevel()));
+    update_reservation(adapter, poolStates[host_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, "Host Local", !isEqual);
+    if (!isEqual)
+      reportedPoolStates[host_local_memory_pool] = poolStates[host_local_memory_pool];
   }
 
   if (!behaviorStatus.test(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY))
@@ -405,9 +449,9 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
 void MemoryBudgetObserver::updateBudgetLevelStatus()
 {
   auto ref = eastl::find_if(eastl::begin(poolBudgetLevels), eastl::end(poolBudgetLevels),
-    [budged = getDeviceLocalAvailablePoolBudget()](auto level) //
-    { return level >= budged; });
-  budgedPressureLevel = static_cast<BudgetPressureLevels>(ref - eastl::begin(poolBudgetLevels));
+    [budget = getDeviceLocalAvailablePoolBudget()](auto level) //
+    { return level >= budget; });
+  budgetPressureLevel = static_cast<BudgetPressureLevels>(ref - eastl::begin(poolBudgetLevels));
 }
 
 void MemoryBudgetObserver::setup(const SetupInfo &info)
@@ -416,9 +460,9 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
 
   size_t gameLimit = 0, gameUsed = 0;
   xbox_get_memory_status(gameUsed, gameLimit);
-  auto totalMemoryBudgedUnits = size_to_unit_table(gameLimit);
-  logdbg("DX12: Game memory budget is %.2f %s (%I64u bytes)", compute_unit_type_size(gameLimit, totalMemoryBudgedUnits),
-    get_unit_name(totalMemoryBudgedUnits), gameLimit);
+  auto totalMemoryBudgetUnits = size_to_unit_table(gameLimit);
+  logdbg("DX12: Game memory budget is %.2f %s (%I64u bytes)", compute_unit_type_size(gameLimit, totalMemoryBudgetUnits),
+    get_unit_name(totalMemoryBudgetUnits), gameLimit);
 
   memoryBudget = gameLimit;
   currentUsage = gameUsed;
@@ -447,10 +491,18 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     size_t gameLimit = 0, gameUsed = 0;
     xbox_get_memory_status(gameUsed, gameLimit);
     currentUsage = gameUsed;
-    auto currentUsageUnits = size_to_unit_table(currentUsage);
     behaviorStatus.set(BehaviorBits::DISABLE_MEMORY_STATUS_QUERY);
-    logdbg("DX12: Current memory budget usage is %u%% %.2f %s", gameUsed * 100 / gameLimit,
-      compute_unit_type_size(currentUsage, currentUsageUnits), get_unit_name(currentUsageUnits));
+    const auto currentUsageUnitsIndex = size_to_unit_table(currentUsage);
+    const auto currentUsageUnitsSize = compute_unit_type_size(currentUsage, currentUsageUnitsIndex);
+    const auto lastUsageUnitsIndex = size_to_unit_table(lastReportedUsage);
+    const auto lastUsageUnitsSize = compute_unit_type_size(lastReportedUsage, lastUsageUnitsIndex);
+    if (
+      fabsf(lastUsageUnitsSize - currentUsageUnitsSize) > usageSizeReportingThreshold || lastUsageUnitsIndex != currentUsageUnitsIndex)
+    {
+      logdbg("DX12: Current memory budget usage is %u%% %.2f %s (level: %s)", gameUsed * 100 / gameLimit, currentUsageUnitsSize,
+        get_unit_name(currentUsageUnitsIndex), as_string(getDeviceLocalBudgetLevel()));
+      lastReportedUsage = currentUsage;
+    }
   }
 
   auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
@@ -589,9 +641,6 @@ ResourceMemoryHeapProvider::ResourceHeapProperties ResourceMemoryHeapProvider::g
         result.setTextureMemory(canMixResources(), isUMASystem());
       }
       break;
-#if D3D_HAS_RAY_TRACING
-    case DeviceMemoryClass::DEVICE_RESIDENT_ACCELERATION_STRUCTURE:
-#endif
     case DeviceMemoryClass::DEVICE_RESIDENT_BUFFER: result.setBufferMemory(isUMASystem()); break;
     case DeviceMemoryClass::HOST_RESIDENT_HOST_READ_ONLY_BUFFER:
     case DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER:
@@ -683,6 +732,7 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
     G_ASSERT(newHeapDesc.SizeInBytes >= alloc_info.SizeInBytes);
     ResourceHeap newHeap;
     newHeap.totalSize = newHeapDesc.SizeInBytes;
+    newHeap.maxFreeRange = newHeapDesc.SizeInBytes;
     G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
     newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
 

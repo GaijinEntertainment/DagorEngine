@@ -1,7 +1,7 @@
 let sound = require_optional("sound")
 if (sound != null)
   return sound
-return {
+return freeze({
   apply_audio_settings = @(_changedfileds) null
   sound_get_output_devices = @() []
   sound_get_record_devices = @() []
@@ -13,7 +13,7 @@ return {
   sound_init_event = @(event, path) assert(type(event)=="string") && assert(type(path)=="string")
   sound_keyoff = @(_evh) null
   sound_set_volume = @(_eh, volume) assert(type(volume)=="float")
-  sound_play_one_shot = @(_evt) null
+  sound_play_oneshot = @(_evt) null
   sound_set_fixed_time_speed = @(_time) null
   sound_get_length = @(path) assert(type(path)=="string")
   sound_set_timeline_pos = @(_evh, pos) assert(type(pos)=="int")
@@ -31,4 +31,4 @@ return {
   SOUND_STREAM_STOPPED = 6
   SOUND_STREAM_PAUSED = 7
   SOUND_STREAM_PLAYING = 8
-}
+})

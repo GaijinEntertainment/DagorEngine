@@ -7,6 +7,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_viewScissor.h>
 #include <generic/dag_tab.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_vecMathCompatibility.h>
@@ -56,22 +57,21 @@ TiledLights::TiledLights(float max_lights_dist) : maxLightsDist(max_lights_dist)
   zBinningData.resize(Z_BINS_COUNT * 2);
 }
 
-void TiledLights::setResolution(uint32_t width, uint32_t height)
+void TiledLights::resizeTilesGrid(uint32_t width, uint32_t height)
 {
   tilesGridSize = IPoint2((width + TILE_EDGE - 1) / TILE_EDGE, (height + TILE_EDGE - 1) / TILE_EDGE);
-  tilesRT.close();
-  tilesRT.set(d3d::create_tex(nullptr, tilesGridSize.x, tilesGridSize.y, TEXFMT_L8 | TEXCF_RTARGET, 1, "tiled_lights_rt"),
-    "tiled_lights_rt");
+}
+
+void TiledLights::setResolution(uint32_t width, uint32_t height)
+{
+  resizeTilesGrid(width, height);
+
   lightsListBuf.close();
   lightsListBuf =
     dag::buffers::create_ua_sr_structured(sizeof(uint32_t), tilesGridSize.x * tilesGridSize.y * DWORDS_PER_TILE, "lights_list");
 }
 
-void TiledLights::changeResolution(uint32_t width, uint32_t height)
-{
-  tilesGridSize = IPoint2((width + TILE_EDGE - 1) / TILE_EDGE, (height + TILE_EDGE - 1) / TILE_EDGE);
-  tilesRT.resize(tilesGridSize.x, tilesGridSize.y);
-}
+void TiledLights::changeResolution(uint32_t width, uint32_t height) { resizeTilesGrid(width, height); }
 
 TiledLights::~TiledLights()
 {
@@ -88,20 +88,20 @@ void TiledLights::prepare(const Tab<vec4f> &omni_ligth_bounds, const Tab<vec4f> 
   spotLightCount = spot_light_bounds.size();
 }
 
-void TiledLights::computeTiledLigths()
+void TiledLights::computeTiledLigths(const bool clear_lights)
 {
+  if (clear_lights)
   {
     TIME_D3D_PROFILE(clear_tiled_lights);
-    uint32_t zeros[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(lightsListBuf.getBuf(), zeros);
+    d3d::zero_rwbufi(lightsListBuf.getBuf());
     d3d::resource_barrier({lightsListBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
   }
 
   {
     TIME_D3D_PROFILE(prepare_tile_lights);
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target();
-    d3d::set_render_target(0, tilesRT.getTex(), 0);
+    d3d::set_render_target({nullptr, 0, 0}, {}, {{nullptr, 0, 0}});
+    d3d::setview(0, 0, tilesGridSize.x, tilesGridSize.y, 0.0f, 1.0f);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, 1, VALUE), lightsListBuf.getBuf());
     shaders::overrides::set(conservativeOverrideId);
 

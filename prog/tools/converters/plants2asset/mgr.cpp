@@ -39,14 +39,14 @@ class TiffBitMaskImageMgr : public IBitMaskImageMgr
   };
 
 public:
-  virtual bool createImage32(BitmapMask &_img, int w, int h)
+  bool createImage32(BitmapMask &_img, int w, int h) override
   {
     PublicBitmapMask &img = (PublicBitmapMask &)_img;
     img.alloc(w, h, 32);
     memset(img.getBits(), 0, img.getBitsSize());
     return true;
   }
-  virtual bool createBitMask(BitmapMask &_img, int w, int h, int bpp)
+  bool createBitMask(BitmapMask &_img, int w, int h, int bpp) override
   {
     PublicBitmapMask &img = (PublicBitmapMask &)_img;
     if (bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8)
@@ -58,13 +58,13 @@ public:
     img.init();
     return false;
   }
-  virtual void destroyImage(BitmapMask &_img)
+  void destroyImage(BitmapMask &_img) override
   {
     PublicBitmapMask &img = (PublicBitmapMask &)_img;
     img.destroy();
   }
 
-  virtual bool saveImage(BitmapMask &img, const char *fname)
+  bool saveImage(BitmapMask &img, const char *fname) override
   {
     TIFF *image;
 

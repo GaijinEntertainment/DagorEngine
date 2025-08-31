@@ -1,5 +1,7 @@
+options gen2
 require _mod_a
 
-struct Bar
+struct Bar {
     a : int
+}
 

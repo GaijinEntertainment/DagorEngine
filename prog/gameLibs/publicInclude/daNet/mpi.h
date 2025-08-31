@@ -49,6 +49,8 @@ protected:
 public:
   ObjectExtUID mpiObjectExtUID = INVALID_OBJECT_EXT_UID;
 
+  IObject(const IObject &) = default;
+  IObject &operator=(const IObject &) = default;
   virtual ~IObject() {}
   IObject(ObjectID uid = INVALID_OBJECT_ID) : mpiObjectUID(uid) {}
   ObjectID getUID() const { return mpiObjectUID; }
@@ -57,31 +59,27 @@ public:
 };
 
 #define MPI_HEADER_SIZE (sizeof(mpi::ObjectID) + sizeof(mpi::MessageID) + sizeof(mpi::SystemID))
-#define SET_TRANSMISSION_TYPE(tt)                               \
-  virtual mpi::TransmissionType defaultTransmissionType() const \
-  {                                                             \
-    return tt;                                                  \
-  }
+#define SET_TRANSMISSION_TYPE(tt) \
+  virtual mpi::TransmissionType defaultTransmissionType() const { return tt; }
 
 inline void write_object_ext_uid(danet::BitStream &bs, ObjectID oid, ObjectExtUID ext)
 {
-  // Because MPI is only used in WT-based games we can abuse the fact, that oid is
-  // type and index packed, and this bit is not used. This way we can write normal
-  constexpr ObjectID EXT_BIT = ObjectID(1) << ObjectID(10);
+  // Because MPI lib is used only in WT-based games, first 11 bits are reserved for
+  // index. In case mpiObjectExtUID is set, we can ignore the index, so we set
+  // all 11 bits to 1
+  constexpr ObjectID EXT_MASK = ObjectID(0x7FFu);
   if (oid == mpi::INVALID_OBJECT_ID)
   {
     bs.Write(oid);
     return;
   }
-  G_ASSERT((oid & EXT_BIT) == 0);
   if (ext == INVALID_OBJECT_EXT_UID)
   {
-    oid &= ~EXT_BIT;
     bs.Write(oid);
   }
   else
   {
-    oid |= EXT_BIT;
+    oid |= EXT_MASK;
     bs.Write(oid);
     bs.WriteCompressed(ext);
   }
@@ -90,16 +88,15 @@ inline void write_object_ext_uid(danet::BitStream &bs, ObjectID oid, ObjectExtUI
 inline bool read_object_ext_uid(const danet::BitStream &bs, ObjectID &oid, ObjectExtUID &ext)
 {
   // see write_object_ext_uid
-  constexpr ObjectID EXT_BIT = ObjectID(1) << ObjectID(10);
+  constexpr ObjectID EXT_MASK = ObjectID(0x7FFu);
   ext = INVALID_OBJECT_EXT_UID;
   if (!bs.Read(oid))
   {
     oid = INVALID_OBJECT_ID;
     return false;
   }
-  if (bool(oid & EXT_BIT) && oid != INVALID_OBJECT_ID)
+  if ((oid & EXT_MASK) == EXT_MASK && oid != INVALID_OBJECT_ID)
   {
-    oid &= ~EXT_BIT;
     return bs.ReadCompressed(ext);
   }
   return true;
@@ -225,16 +222,13 @@ inline bool read_type_proxy(const danet::BitStream &bs, IObject *&t)
 }
 }; // namespace mpi
 
-#define MPI_REMAP_TYPE_AS(type, rtype)                              \
-  inline void write_type_proxy(danet::BitStream &bs, const type &t) \
-  {                                                                 \
-    bs.Write((rtype)t);                                             \
-  }                                                                 \
-  inline bool read_type_proxy(const danet::BitStream &bs, type &t)  \
-  {                                                                 \
-    rtype val;                                                      \
-    if (!bs.Read(val))                                              \
-      return false;                                                 \
-    t = (type)val;                                                  \
-    return true;                                                    \
+#define MPI_REMAP_TYPE_AS(type, rtype)                                                      \
+  inline void write_type_proxy(danet::BitStream &bs, const type &t) { bs.Write((rtype)t); } \
+  inline bool read_type_proxy(const danet::BitStream &bs, type &t)                          \
+  {                                                                                         \
+    rtype val;                                                                              \
+    if (!bs.Read(val))                                                                      \
+      return false;                                                                         \
+    t = (type)val;                                                                          \
+    return true;                                                                            \
   }

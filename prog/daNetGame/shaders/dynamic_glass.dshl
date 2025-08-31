@@ -5,8 +5,12 @@ include "csm.dshl"
 include "pbr.dshl"
 include "indoor_light_probes.dshl"
 include "gbuffer_to_temperature.dshl"
+include "glass_dual_source_blending_inc.dshl"
+include "glass_hole_mask.dshl"
+include "glass_gbuffer_inc.dshl"
+include "rt_glass_apply.dshl"
+include "glass_icon_render_inc.dshl"
 
-float4 glass_specular_color = (1, 1, 1, 0);
 float glass_specular_color_mul = 10;
 float glass_shadow_k = 0.5;
 float cockpit_radius = 0;
@@ -29,6 +33,13 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
   DYNAMIC_BLOCK_TRANS()
   render_trans;
 
+  INIT_AND_USE_GLASS_ICON_RENDER(ps)
+  if (render_to_icon == yes) {
+    if (special_vision != special_vision_off || dyn_model_render_pass != render_pass_normal || glass_normal_pass != no) {
+      dont_render;
+    }
+  }
+
   if (shader != dynamic_glass_chrome)
   {
     texture tex = material.texture.diffuse;
@@ -44,13 +55,26 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     else
     {
       z_write = false;
-      blend_src = sa; blend_dst = isa;
+      if (shader == dynamic_glass_chrome && use_glass_dual_source_blending == yes)
+      {
+        blend_src = one; blend_dst = sc1;
+        hlsl(ps) {
+          #define GLASS_DUAL_SOURCE_BLENDING_ENABLED 1
+        }
+      }
+      else
+      {
+        blend_src = sa; blend_dst = isa;
+      }
     }
+
+    INIT_GLASS_HOLE_MASK(ps)
+    RT_GLASS_APPLY(ps)
   }
 
   if (shader == dynamic_glass_chrome)
   {
-    static float opacity=0.2;
+    static float specular_multiplier = 1.0;
     float4 diff = material.diffuse;
     interval diff: set<1, default;
   }
@@ -172,21 +196,58 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     {
       if (diff == set)
       {
-        (ps) { material_diffuse_and_opacity@f4 = (pow(diff.x,2.2), pow(diff.y,2.2), pow(diff.z,2.2), opacity); }
+        (ps) { transmission@f3 = (pow(diff.x, 2.2), pow(diff.y, 2.2), pow(diff.z, 2.2)); }
       } else
       {
-        (ps) { material_diffuse_and_opacity@f4 = (0.06, 0.06, 0.06, opacity); }
+        (ps) { transmission@f3 = (0.8, 0.8, 0.8); }
       }
-      (ps) {
-        glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2) * glass_specular_color_mul,
-                                   pow(glass_specular_color.g, 2.2) * glass_specular_color_mul,
-                                   pow(glass_specular_color.b, 2.2) * glass_specular_color_mul);
+      local float4 glass_specular_color_linear =
+        (pow(glass_specular_color.r, 2.2), pow(glass_specular_color.g, 2.2), pow(glass_specular_color.b, 2.2), 1);
+      if (use_glass_dual_source_blending == yes && special_vision == special_vision_off)
+      {
+        (ps) { glass_specular_color@f3 = glass_specular_color_linear.rgb; }
       }
+      else
+      {
+        (ps) { glass_specular_color@f3 = glass_specular_color_linear.rgb * glass_specular_color_mul; }
+      }
+      (ps) { specular_multiplier@f1 = specular_multiplier; }
 
       hlsl(ps) {
-
-        float4 main_ps_dynamic_glass_chrome_passablend(VsOutput input INPUT_VFACE) : SV_Target
+        struct PsOutput
         {
+          ##if (glass_normal_pass == yes)
+            float4 normal : SV_Target0;
+          ##else
+            #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+              DUAL_SOURCE_BLEND_ATTACHMENTS(float4, addend, float4, multiplier);
+            #else
+              float4 color : SV_Target0;
+            #endif
+          ##endif
+        };
+
+        #include "glassEnviProbeSample.hlsl"
+
+        PsOutput main_ps_dynamic_glass_chrome_passablend(VsOutput input INPUT_VFACE)
+        {
+    #if ICON_RENDER
+          if (any(icon_silhouette_color.rgb != 0.0))
+          {
+      #if ICON_RENDER_HAS_SILHOUETTE_SHADOW
+            PsOutput res = (PsOutput)0;
+            float4 clr = get_glass_silhouette_color();
+        #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+            res.addend = clr;
+        #else
+            res.color = clr;
+        #endif
+            return res;
+      #else
+            discard;
+      #endif
+          }
+    #endif
 
           #if SET_UP_MULTIDRAW
             INIT_MULTIDRAW(input);
@@ -195,22 +256,49 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
 
           half3 worldNormal = normalize(input.normal);
           worldNormal = MUL_VFACE(worldNormal);
+
+        ##if (glass_normal_pass == yes)
+          PsOutput result;
+          result.normal = float4(worldNormal * 0.5 + 0.5, 1);
+          return result;
+        ##else
           const float insideSpecularFactor = 0.1f;
           float smoothness = 0.95;
           float glassSpecular = 0.04;
-          float3 diffuseColor = get_material_diffuse_and_opacity().rgb * get_material_diffuse_and_opacity().a;
+          #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+            // We assume that glass is smooth and fully obeys Snell's law. If we want to achieve scattering effect (e.g. translucent glass),
+            // we need to use diffuseColor below, since scattered light is similar to opaque objects' lighting.
+            float3 diffuseColor = 0;
+          #else
+            float3 diffuseColor = get_transmission();
+            // This doesn't have any physical meaning and was written to imitate the previous glass look as best as we can as a fallback for
+            // the devices that don't support dual source blending.
+            const float MAX_BASE_OPACITY = 0.3;
+            // This is needed to match the current logic, i.e. a transmission of (1, 1, 1) means a completely clear glass, which is 0
+            // opacity in old terms:
+            float opacity = MAX_BASE_OPACITY * (1 - luminance(diffuseColor));
+            diffuseColor *= opacity;
+          #endif
           #include <lightGlassInc.hlsl>
           float2 screenUV = input.clipPos.xy / input.clipPos.w*float2(0.5, -0.5) + 0.5;
 
           half3 pointToEyeDir = normalize(input.pointToEye.xyz);
 
-          half4 resultColor;
-
-          resultColor.a = saturate(get_material_diffuse_and_opacity().a + fresnel);
           float3 specularFactor = glass_specular_color.xyz;
           if (cockpit_radius > 0)
             specularFactor *= insideSpecularFactor;
-          resultColor.rgb = diffuseTerm + specularTerm * specularFactor;
+
+          PsOutput result;
+          #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+            result.multiplier = float4(get_transmission() * (1 - fresnel), 1);
+            result.addend = float4(specularTerm * specularFactor * get_specular_multiplier(), 1);
+          #else
+            result.color.rgb = diffuseTerm + specularTerm * specularFactor * get_specular_multiplier();
+            result.color.a = saturate(opacity + fresnel);
+            // A hack to prevent glowing glass in the dark:
+            float invExposure = saturate(get_exposure_inv());
+            result.color.rgb *= pow(invExposure, 1.5);
+          #endif
 
           ##if mobile_render == off && in_editor_assume == no
           #if APPLY_BRUNETON_FOG
@@ -223,29 +311,43 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
               input.fogMul,
               input.fogAdd);
           #endif
-          resultColor.rgb = resultColor.rgb * input.fogMul + input.fogAdd*resultColor.a;
+          #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+            result.multiplier.rgb *= input.fogMul;
+            result.addend.rgb = result.addend.rgb * input.fogMul + input.fogAdd;
+          #else
+            result.color.rgb = result.color.rgb * input.fogMul + input.fogAdd * result.color.a;
+          #endif
           ##endif
 
           ##if use_postfx == off
-            // we use premultiplied alpha here, so we have to get initial not multiplied rgb color
-            FLATTEN
-            if (resultColor.a >= 1.0 / 256.0)
-              resultColor.rgb = performLUTTonemap(resultColor.rgb / resultColor.a) * resultColor.a;
+            // Technically this is incorrect - LUT tonemapping is not a linear operator, so we should only apply it
+            // to the resulting image after blending, but we leave it as is because it produces adequate results:
+            #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+              result.addend.rgb = performLUTTonemap(result.addend.rgb);
+            #else
+              // we use premultiplied alpha here, so we have to get initial not multiplied rgb color
+              result.color.rgb = performLUTTonemap(result.color.rgb / max(result.color.a, 1e-4)) * result.color.a;
+            #endif
           ##endif
 
           ##if special_vision == thermal_vision
-            float diffuseAndOpacity_a = saturate(get_material_diffuse_and_opacity().a*2);
             const half glass_temperature = 20.0/255.0;
-            resultColor.r = getThermalSignature(get_material_diffuse_and_opacity().rgb* diffuseAndOpacity_a,glass_temperature) + glass_temperature;
-            resultColor.a = 1.0f;
-            resultColor.gb = 0;
+            // Thermal vision cameras see only reflected infrared radiation:
+            result.color.r = getThermalSignature(specularTerm, glass_temperature) + glass_temperature;
+            result.color.a = 1.0f;
+            result.color.gb = 0;
           ##endif
 
           ##if mobile_render == off
-            resultColor.rgb = pack_hdr(resultColor.rgb);
+            #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+              result.addend.rgb = pack_hdr(result.addend.rgb);
+            #else
+              result.color.rgb = pack_hdr(result.color.rgb);
+            #endif
           ##endif
 
-          return float4(resultColor);
+          return result;
+        ##endif
         }
       }
       compile("target_ps", "main_ps_dynamic_glass_chrome_passablend");
@@ -261,7 +363,6 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
       USE_PIXEL_TANGENT_SPACE()
 
       hlsl(ps) {
-
         float4 main_ps_dynamic_masked_glass_chrome(VsOutput input INPUT_VFACE) : SV_Target
         {
           #if SET_UP_MULTIDRAW
@@ -269,76 +370,96 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
             SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
           #endif
 
-          half3 pointToEyeDir = normalize(input.pointToEye.xyz);
-          half sunDot = saturate(dot(pointToEyeDir, from_sun_direction.xyz));
-
-          // Get diffuse.
-          half4 diffuseTex = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
-          half4 diffuseAndOpacity = lerp(get_material_diffuse_and_opacity(), half4(diffuseTex.a*diffuseTex.rgb, 1), diffuseTex.a);
-
-          input.normal = MUL_VFACE(input.normal);
-          float fresnel0 = 0.0;//not physicallly correct, but enhance visuals
-          half3 normal = normalize(input.normal);
-
-          half fresnel = saturate(pow5(1. - saturate(dot(pointToEyeDir, normal)))* (1-fresnel0) + fresnel0);
-          float csmShadow = get_csm_shadow(input.pointToEye.xyz).x;
-
-          half3 reflectionVector = reflect(-input.pointToEye.xyz, input.normal);
-          half4 reflectionColor = sample_envi_probe(half4(reflectionVector, 1));
-
-          half glassShadowTerm = lerp(1.0, csmShadow, glass_shadow_k);
-
-          ##if in_editor_assume == no
-            half cloudShadow = clouds_shadow(input.pointToEye.xyz);
+          ##if (glass_normal_pass == yes)
+            float3 worldNormal = normalize(input.normal.xyz);
+            worldNormal = normalize(MUL_VFACE(worldNormal));
+            return float4(worldNormal * 0.5 + 0.5, 1);
           ##else
-            const half cloudShadow = 1.f;
+            half3 pointToEyeDir = normalize(input.pointToEye.xyz);
+            half sunDot = saturate(dot(pointToEyeDir, from_sun_direction.xyz));
+
+            // Get diffuse.
+            half4 diffuseTex = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
+            half4 diffuseAndOpacity = lerp(get_material_diffuse_and_opacity(), half4(diffuseTex.a*diffuseTex.rgb, 1), diffuseTex.a);
+
+            input.normal = MUL_VFACE(input.normal);
+            float fresnel0 = 0.0;//not physicallly correct, but enhance visuals
+            #if HAS_RT_GLASS_FUNCTIONS
+              const half COCKPIT_GLASS_RT_MAX_REFLECTION = 0.2;
+              fresnel0 = COCKPIT_GLASS_RT_MAX_REFLECTION;          // Can't see anything in side windows otherwise.
+            #endif
+            half3 normal = normalize(input.normal);
+
+            half fresnel = saturate(pow5(1. - saturate(dot(pointToEyeDir, normal)))* (1-fresnel0) + fresnel0);
+            float csmShadow = get_csm_shadow(input.pointToEye.xyz).x;
+            half4 reflectionColor = 0.0;
+            #if HAS_RT_GLASS_FUNCTIONS
+              float2 rttc = input.pos.xy * inv_resolution;
+              float2 rtwMinMax = RTReflectionDepthRange(rttc);
+              if (input.pos.w >= rtwMinMax.x && input.pos.w <= rtwMinMax.y)
+              {
+                half3 rtReflectColor = AdaptiveSampleRTReflection(rttc);
+                reflectionColor = float4(rtReflectColor, 1.0);
+              }
+            #else
+              half3 reflectionVector = reflect(-input.pointToEye.xyz, input.normal);
+              reflectionColor = sample_envi_probe(half4(reflectionVector, 1));
+            #endif
+
+            half glassShadowTerm = lerp(1.0, csmShadow, glass_shadow_k);
+
+            ##if in_editor_assume == no
+              half cloudShadow = clouds_shadow(input.pointToEye.xyz);
+            ##else
+              const half cloudShadow = 1.f;
+            ##endif
+
+            // Mix.
+            half4 resultColor = reflectionColor * fresnel * glassShadowTerm;
+            half scratch = 0;
+
+            resultColor.rgb +=
+              diffuseAndOpacity.rgb
+              * diffuseAndOpacity.a
+              * input.lighting.rgb
+              * (1. - fresnel)
+              * glassShadowTerm
+              * cloudShadow;
+            {
+              half3 sunCross = cross(pointToEyeDir, from_sun_direction.xyz);
+
+              half3 packedScratchTex = h3tex2D(scratch_tex, scratch_params.x * input.diffuseTexcoord).rgb;
+              half3 scratchNormalMap = 2. * packedScratchTex - 1.;
+              float3 dU, dV;
+              get_du_dv(input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy, dU, dV);
+              half3 scratchDir = scratchNormalMap.x * dU + scratchNormalMap.y * dV;
+
+              half3 crossDir = normalize(sunCross);
+              scratch = saturate(abs(dot(scratchDir, crossDir)));
+              scratch *= scratch;
+              scratch *= pow(sunDot, scratch_params.z);
+              scratch = saturate(scratch * scratch_params.w);
+              scratch *= cloudShadow * csmShadow;//division by PI omitted intentionally, lightColor is divided by Pi
+
+              resultColor.rgb += scratch * sun_color_0;
+            }
+            ##if special_vision == thermal_vision
+              diffuseAndOpacity.a = saturate(diffuseAndOpacity.a*2 + scratch);
+              const half glass_temperature = 20.0/255.0;
+              resultColor.r = getThermalSignature(diffuseAndOpacity.rgb* diffuseAndOpacity.a, glass_temperature) + glass_temperature;
+              resultColor.a = 1.0f;
+              resultColor.gb = 0;
+            ##endif
+
+            resultColor.a = saturate(diffuseAndOpacity.a + fresnel + scratch_params.y * scratch);
+
+            // Output.
+            half3 fogMul, fogAdd;
+            get_fog(input.pointToEye.xyz, fogMul, fogAdd);
+            resultColor.rgb = resultColor.rgb*fogMul + fogAdd*resultColor.a;
+
+            return resultColor;
           ##endif
-
-          // Mix.
-          half4 resultColor = reflectionColor * fresnel * glassShadowTerm;
-          half scratch = 0;
-
-          resultColor.rgb +=
-            diffuseAndOpacity.rgb
-            * diffuseAndOpacity.a
-            * input.lighting.rgb
-            * (1. - fresnel)
-            * glassShadowTerm
-            * cloudShadow;
-          {
-            half3 sunCross = cross(pointToEyeDir, from_sun_direction.xyz);
-
-            half3 packedScratchTex = h3tex2D(scratch_tex, scratch_params.x * input.diffuseTexcoord).rgb;
-            half3 scratchNormalMap = 2. * packedScratchTex - 1.;
-            float3 dU, dV;
-            get_du_dv(input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy, dU, dV);
-            half3 scratchDir = scratchNormalMap.x * dU + scratchNormalMap.y * dV;
-
-            half3 crossDir = normalize(sunCross);
-            scratch = saturate(abs(dot(scratchDir, crossDir)));
-            scratch *= scratch;
-            scratch *= pow(sunDot, scratch_params.z);
-            scratch = saturate(scratch * scratch_params.w);
-            scratch *= cloudShadow * csmShadow;//division by PI omitted intentionally, lightColor is divided by Pi
-
-            resultColor.rgb += scratch * sun_color_0;
-          }
-          ##if special_vision == thermal_vision
-            diffuseAndOpacity.a = saturate(diffuseAndOpacity.a*2 + scratch);
-            const half glass_temperature = 20.0/255.0;
-            resultColor.r = getThermalSignature(diffuseAndOpacity.rgb* diffuseAndOpacity.a, glass_temperature) + glass_temperature;
-            resultColor.a = 1.0f;
-            resultColor.gb = 0;
-          ##endif
-
-          resultColor.a = saturate(diffuseAndOpacity.a + fresnel + scratch_params.y * scratch);
-
-          // Output.
-          half3 fogMul, fogAdd;
-          get_fog(input.pointToEye.xyz, fogMul, fogAdd);
-          resultColor.rgb = resultColor.rgb*fogMul + fogAdd*resultColor.a;
-
-          return resultColor;
         }
       }
       compile("target_ps", "main_ps_dynamic_masked_glass_chrome");

@@ -162,24 +162,24 @@ class BuildContext : public rcContext
 
 public:
   BuildContext() {} //-V730
-  virtual ~BuildContext() {}
+  ~BuildContext() override {}
 
 protected:
-  virtual void doResetLog() {}
-  virtual void doLog(const rcLogCategory category, const char *msg, const int /*len*/)
+  void doResetLog() override {}
+  void doLog(const rcLogCategory category, const char *msg, const int /*len*/) override
   {
     if (category >= RC_LOG_ERROR)
       DAEDITOR3.conError("%s", msg);
     else if (category >= RC_LOG_PROGRESS)
       debug(msg);
   }
-  virtual void doResetTimers()
+  void doResetTimers() override
   {
     for (int i = 0; i < RC_MAX_TIMERS; ++i)
       m_accTime[i] = -1;
   }
-  virtual void doStartTimer(const rcTimerLabel label) { m_startTime[label] = ref_time_ticks(); }
-  virtual void doStopTimer(const rcTimerLabel label)
+  void doStartTimer(const rcTimerLabel label) override { m_startTime[label] = ref_time_ticks(); }
+  void doStopTimer(const rcTimerLabel label) override
   {
     const int deltaTime = get_time_usec(m_startTime[label]);
     if (m_accTime[label] == -1)
@@ -187,7 +187,7 @@ protected:
     else
       m_accTime[label] += deltaTime;
   }
-  virtual int doGetAccumulatedTime(const rcTimerLabel label) const { return m_accTime[label]; }
+  int doGetAccumulatedTime(const rcTimerLabel label) const override { return m_accTime[label]; }
 };
 static BuildContext global_build_ctx;
 
@@ -265,6 +265,7 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
   nmParams.jlkParams.jumpoffMinLinkLength = blk.getReal("jumpLinksJumpoffMinLinkLength", 0.3f);
   nmParams.jlkParams.edgeMergeAngle = blk.getReal("jumpLinksEdgeMergeAngle", 10.0f);
   nmParams.jlkParams.edgeMergeDist = blk.getReal("jumpLinksEdgeMergeDist", 0.1f);
+  nmParams.jlkParams.edgeMergeDistV1 = blk.getReal("jumpLinksEdgeMergeDistV1", 99999.f);
   nmParams.jlkParams.jumpHeight = blk.getReal("jumpLinksHeight", 2.0f); // up + down
   if (nmParams.jlkParams.typeGen == recastbuild::JUMPLINKS_TYPEGEN_ORIGINAL)
     nmParams.jlkParams.jumpHeight *= 2.0f;
@@ -510,7 +511,7 @@ static void save_navmesh_bucket_format(const dtNavMesh *mesh, const NavMeshParam
     // Write navmesh data, compress the old way with zstd stream.
     uint32_t dataSize = sizeof(int) + bucket.dataSize;
     cwr.writeInt32e(dataSize);
-    BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+    BinDumpSaveCB dcwr(2 << 20, cwr);
     dcwr.writeInt32e((uint32_t)bucket.tileIds.size());
     for (int i : bucket.tileIds)
     {
@@ -572,7 +573,7 @@ static void save_navmesh(const dtNavMesh *mesh, const NavMeshParams &nav_mesh_pa
     dataSize += sizeof(int) + sizeof(uint32_t) * numObsResNameHashes;
   }
 
-  BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+  BinDumpSaveCB dcwr(2 << 20, cwr);
   dcwr.writeRaw(mesh->getParams(), sizeof(dtNavMeshParams));
   if (tc)
   {
@@ -633,7 +634,7 @@ static void save_navmesh(const dtNavMesh *mesh, const NavMeshParams &nav_mesh_pa
 
 static void save_covers(const Tab<covers::Cover> &covers, BinDumpSaveCB &cwr)
 {
-  BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+  BinDumpSaveCB dcwr(2 << 20, cwr);
 
   int dataSize = (int)covers.size() * (int)sizeof(covers::Cover);
   dcwr.writeRaw(covers.data(), dataSize);
@@ -650,7 +651,7 @@ static void save_covers(const Tab<covers::Cover> &covers, BinDumpSaveCB &cwr)
 
 static void save_debug_edges(const Tab<Tab<eastl::pair<Point3, Point3>>> &debugEdges, BinDumpSaveCB &cwr)
 {
-  BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+  BinDumpSaveCB dcwr(2 << 20, cwr);
 
   int dataSize = 0;
   int pairSize = (int)sizeof(eastl::pair<Point3, Point3>);
@@ -838,6 +839,17 @@ static bool finalize_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildCon
     params.walkableHeight = nav_mesh_params.agentHeight;
     params.walkableRadius = nav_mesh_params.agentRadius;
     params.walkableClimb = nav_mesh_params.agentClimbAfterGluingMeshes;
+
+    // Why:
+    // jl are culled based on detailed navmesh
+    // It is elevated by cellHeight for some reason: verts[j*3+1] += orig[1] + chf.ch;
+    // But later in the game jl will likely connect to crude navmesh
+    // (if geometry is simple and detailed mesh isn't required)
+    // jumpHeight * 0.5 is based on the heighest possible point of a double-jl
+    // params.walkableClimb inflates the culling bbox inside dtCreateNavMeshData, so this is a hack
+    params.walkableClimb += eastl::max(nav_mesh_params.cellHeight, nav_mesh_params.jlkParams.jumpHeight * 0.5f);
+    // Since walkableClimb is then assigned to header->walkableClimb, it will have to be modified separately
+
     params.tileX = tx;
     params.tileY = ty;
     params.tileLayer = 0;
@@ -855,6 +867,12 @@ static bool finalize_navmesh_tile(const NavMeshParams &nav_mesh_params, BuildCon
       tile_ctx.clearIntermediate(&tile_data);
       return false;
     }
+
+    // Surgically revert params.walkableClimb back
+    // This is needed to avoid modifying 3rd party code
+    dtMeshHeader *header = reinterpret_cast<dtMeshHeader *>(navData);
+    header->walkableClimb = nav_mesh_params.agentClimbAfterGluingMeshes;
+
     if (!save_tile_ctx_data)
       tile_ctx.clearIntermediate(&tile_data);
     recastnavmesh::BuildTileData td;
@@ -1129,11 +1147,14 @@ static dtNavMesh *generate_jumplinks_navmesh_tile(const NavMeshParams &nav_mesh_
   return navmesh;
 }
 
+static void rcMarkRotatedBoxArea(const TMatrix &boxTm, unsigned char areaId, rcCompactHeightfield &chf);
+
 static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_params, recastnavmesh::RecastTileContext &tile_ctx,
   dag::ConstSpan<Point3> vertices, dag::ConstSpan<int> indices, dag::ConstSpan<IPoint2> transparent,
   dag::ConstSpan<NavMeshObstacle> obstacles, const ska::flat_hash_map<uint32_t, uint32_t> &obstacle_flags_by_res_name_hash,
   const BBox3 &box, Tab<covers::Cover> &covers, Tab<eastl::pair<Point3, Point3>> &edges_out, int tx, int ty,
-  Tab<recastnavmesh::BuildTileData> &tileData, const Tab<recastbuild::CustomJumpLink> &customJumplinks, int gw = -1, int gh = -1)
+  Tab<recastnavmesh::BuildTileData> &tileData, const Tab<recastbuild::CustomJumpLink> &customJumplinks,
+  dag::ConstSpan<TMatrix> navmeshHoleCutters, int gw = -1, int gh = -1)
 {
   const bool needCov = covParams.enabled;
   const bool needJlkCov = nav_mesh_params.jlkParams.enabled || needCov;
@@ -1277,6 +1298,63 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     tile_ctx.solid = NULL;
   }
 
+
+  Tab<const TMatrix *> intersectingHoleCutters;
+  if (!navmeshHoleCutters.empty())
+  {
+    for (const TMatrix &cutter : navmeshHoleCutters)
+    {
+      BBox3 obb_aabb;
+      obb_aabb += cutter * Point3(-1.f, -1.f, -1.f);
+      obb_aabb += cutter * Point3(1.f, -1.f, -1.f);
+      obb_aabb += cutter * Point3(1.f, -1.f, 1.f);
+      obb_aabb += cutter * Point3(-1.f, -1.f, 1.f);
+      obb_aabb += cutter * Point3(-1.f, 1.f, -1.f);
+      obb_aabb += cutter * Point3(1.f, 1.f, -1.f);
+      obb_aabb += cutter * Point3(1.f, 1.f, 1.f);
+      obb_aabb += cutter * Point3(-1.f, 1.f, 1.f);
+
+      if (box & obb_aabb)
+        intersectingHoleCutters.push_back(&cutter);
+    }
+  }
+
+  if (!intersectingHoleCutters.empty())
+  {
+    // We need to undo the later stages of prepare_tile_context and then redo them manually
+    if (tile_ctx.chf && tile_ctx.cset)
+    {
+      ctx.log(RC_LOG_PROGRESS, "   - Original contours: %d", tile_ctx.cset->nconts);
+
+      rcFreeContourSet(tile_ctx.cset);
+      tile_ctx.cset = NULL;
+      for (int i = 0; i < tile_ctx.chf->spanCount; ++i)
+        tile_ctx.chf->spans[i].reg = 0;
+      tile_ctx.chf->maxRegions = 0;
+
+      // Mark unwalkable areas before the rest of the calculations
+      for (const TMatrix *blocker : intersectingHoleCutters)
+      {
+        rcMarkRotatedBoxArea(*blocker, RC_NULL_AREA, *tile_ctx.chf);
+      }
+      ctx.log(RC_LOG_PROGRESS, "   - Marked unwalkable areas for %d cutters.", (int)intersectingHoleCutters.size());
+
+      // Redo the later stages
+      if (!rcErodeWalkableArea(&ctx, cfg.walkableRadius, *tile_ctx.chf))
+        return false;
+      if (!rcBuildDistanceField(&ctx, *tile_ctx.chf))
+        return false;
+      if (!rcBuildRegions(&ctx, *tile_ctx.chf, cfg.borderSize, cfg.minRegionArea, cfg.mergeRegionArea))
+        return false;
+
+      tile_ctx.cset = rcAllocContourSet();
+      if (!rcBuildContours(&ctx, *tile_ctx.chf, cfg.maxSimplificationError, cfg.maxEdgeLen, *tile_ctx.cset))
+        return false;
+
+      ctx.log(RC_LOG_PROGRESS, "   - Rebuilt contours: %d", tile_ctx.cset->nconts);
+    }
+  }
+
   return finalize_navmesh_tile(nav_mesh_params, ctx, cfg, connStorage, tile_ctx, tx, ty, tileData, box, customJumplinks,
     crossObstacles, disableJLObstacles);
 }
@@ -1321,7 +1399,9 @@ public:
     int idx;
   };
 
-  virtual void doJob()
+  const char *getJobName(bool &) const override { return "SplitTileGeomJob"; }
+
+  void doJob() override
   {
     G_ASSERTF(outIndices.size() == th * tw, "Incorrect arrays %d expected, got %d", th * tw, outIndices.size());
 
@@ -1479,7 +1559,7 @@ public:
         outTileObstacles[i].push_back(tileObstacles[i][j]);
     }
   }
-  virtual void releaseJob() { delete this; }
+  void releaseJob() override { delete this; }
 };
 
 class DropDownTileJob : public cpujobs::IJob
@@ -1514,7 +1594,9 @@ public:
     }
   }
 
-  virtual void doJob()
+  const char *getJobName(bool &) const override { return "DropDownTileJob"; }
+
+  void doJob() override
   {
     const int tileVertsCount = tile->header->vertCount;
     vertexProcessed += tileVertsCount;
@@ -1526,7 +1608,7 @@ public:
       dropPointOnCollision(&tile->detailVerts[j * pointDimensionsCount]);
   }
 
-  virtual void releaseJob() { delete this; }
+  void releaseJob() override { delete this; }
 };
 
 class BuildTileJob : public cpujobs::IJob
@@ -1542,6 +1624,7 @@ class BuildTileJob : public cpujobs::IJob
   Tab<recastnavmesh::BuildTileData> tileData;
   const ska::flat_hash_map<uint32_t, uint32_t> obstacleFlags;
   const Tab<recastbuild::CustomJumpLink> &customJumpLinks;
+  dag::ConstSpan<TMatrix> navmeshHoleCutters;
 
 public:
   bool haveProblems = false;
@@ -1555,7 +1638,7 @@ public:
     dag::ConstSpan<int> in_indices, dag::ConstSpan<IPoint2> in_transparent, dag::ConstSpan<NavMeshObstacle> in_obstacles,
     const ska::flat_hash_map<uint32_t, uint32_t> &obstacle_flags_by_res_name_hash, Tab<BuildTileJob *> &finished_jobs,
     Tab<covers::Cover> &in_covers, Tab<eastl::pair<Point3, Point3>> &in_edges_out,
-    const Tab<recastbuild::CustomJumpLink> &customJumpLinks) :
+    const Tab<recastbuild::CustomJumpLink> &customJumpLinks, dag::ConstSpan<TMatrix> in_navmesh_hole_cutters) :
     x(in_x),
     y(in_y),
     tileBox(box),
@@ -1568,17 +1651,20 @@ public:
     covers(in_covers),
     edges_out(in_edges_out),
     obstacleFlags(obstacle_flags_by_res_name_hash),
-    customJumpLinks(customJumpLinks)
+    customJumpLinks(customJumpLinks),
+    navmeshHoleCutters(in_navmesh_hole_cutters)
   {}
 
-  virtual void doJob()
+  const char *getJobName(bool &) const override { return "BuildTileJob"; }
+
+  void doJob() override
   {
     haveProblems = !rasterize_and_build_navmesh_tile(nmParams, tileCtx, vertices, indices, transparent, obstacles, obstacleFlags,
-      tileBox, covers, edges_out, x, y, tileData, customJumpLinks);
+      tileBox, covers, edges_out, x, y, tileData, customJumpLinks, navmeshHoleCutters);
     WinAutoLock lock(buildJobCc);
     finishedJobs.push_back(this);
   }
-  virtual void releaseJob()
+  void releaseJob() override
   {
     for (const recastnavmesh::BuildTileData &td : tileData)
     {
@@ -1610,7 +1696,9 @@ public:
     range(range_in), covers(covers_in), unavailableCovers(unavailable_covers_in), navQuery(nullptr)
   {}
 
-  virtual void doJob()
+  const char *getJobName(bool &) const override { return "CheckCoversJob"; }
+
+  void doJob() override
   {
     if (!pathfinder::isLoaded())
       return;
@@ -1677,7 +1765,7 @@ public:
 
     dtFreeNavMeshQuery(navQuery);
   }
-  virtual void releaseJob()
+  void releaseJob() override
   {
     navQuery = NULL;
     delete this;
@@ -1783,14 +1871,16 @@ static bool is_tile_in_navmesh_area(const Tab<SplineObject *> &navmesh_areas, co
   return false;
 }
 
-bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh_idx)
+bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh_idx, bool final_export_to_game)
 {
   NavMeshParams &nmParams = navMeshParams[nav_mesh_idx];
   DataBlock &nmProps = navMeshProps[nav_mesh_idx];
   const char *navMeshKind = nmProps.getStr("kind", "");
   const bool needsDebugEdges = nav_mesh_idx == 0;
+  uint64_t tc_storage = 0;
+  const char *tc_str = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
 
-  if (!nmProps.getBool("export", false) && cwr.getTarget())
+  if (final_export_to_game && !nmProps.getBool("export", false))
     return true;
 
   init(nmProps, nav_mesh_idx);
@@ -1878,6 +1968,19 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
   const ska::flat_hash_map<uint32_t, uint32_t> *obstacleFlags = nullptr;
   const bool useDetailGeometry =
     nmParams.navmeshExportType == NavmeshExportType::GEOMETRY || nmParams.navmeshExportType == NavmeshExportType::WATER_AND_GEOMETRY;
+
+  Tab<TMatrix> navmeshHoleCutters;
+  for (int i = 0, plugin_cnt = IEditorCoreEngine::get()->getPluginCount(); i < plugin_cnt; ++i)
+  {
+    IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+    auto cuttersGatherer = plugin->queryInterface<IGatherNavmeshHoleCutters>();
+    if (!cuttersGatherer)
+      continue;
+    cuttersGatherer->gatherNavmeshHoleCutters(navmeshHoleCutters);
+    break;
+  }
+  debug("NavMesh: gathered %@ navmesh hole cutters", navmeshHoleCutters.size());
+
   if (useDetailGeometry)
   {
     int64_t refdet = ref_time_ticks_qpc();
@@ -2302,14 +2405,16 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
         if (!cores_count)
         {
           BuildTileJob job(x, y, tileBox, nav_mesh_idx, vertices, tileIndices[threadId], tileTransparent[threadId],
-            tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[0], debugEdgesLists[0], customJumpLinks);
+            tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[0], debugEdgesLists[0], customJumpLinks,
+            navmeshHoleCutters);
           job.doJob();
           haveProblems = job.haveProblems;
           job.releaseJob();
           continue;
         }
         BuildTileJob *job = new BuildTileJob(x, y, tileBox, nav_mesh_idx, vertices, tileIndices[threadId], tileTransparent[threadId],
-          tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[threadId], debugEdgesLists[threadId], customJumpLinks);
+          tileObstacles[threadId], *obstacleFlags, finishedJobs, coversLists[threadId], debugEdgesLists[threadId], customJumpLinks,
+          navmeshHoleCutters);
         tileJobs.push_back(job);
         threadpool::add(job);
       }
@@ -2342,7 +2447,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     reft = ref_time_ticks_qpc();
     int pos = cwr.tell();
 
-    BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+    BinDumpSaveCB dcwr(2 << 20, cwr);
 
     if (nmProps.getBool("dropNavmeshOnCollision", false))
     {
@@ -2543,7 +2648,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
     String fileName(tileCache ? "navMeshTiled3" : "navMeshTiled2");
     fileName += (nav_mesh_idx == 0 ? String(".") : String(50, "_%d.", nav_mesh_idx + 1));
-    fileName += mkbindump::get_target_str(dcwr.getTarget());
+    fileName += tc_str;
     fileName += ".bin";
     FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, fileName));
     fcwr.beginBlock();
@@ -2551,7 +2656,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     fcwr.endBlock();
     fcwr.close();
 
-    if (cwr.getTarget())
+    if (final_export_to_game)
     {
       cwr.beginTaggedBlock(tileCache ? _MAKE4C('Lnv3') : _MAKE4C('Lnv2'));
       dcwr.copyDataTo(cwr.getRawWriter());
@@ -2565,7 +2670,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     Tab<recastnavmesh::BuildTileData> tileData;
     recastnavmesh::RecastTileContext tctx;
     rasterize_and_build_navmesh_tile(nmParams, tctx, vertices, indices, transparent, obstacles, *obstacleFlags, landBBox,
-      coversLists[0], debugEdgesLists[0], 0, 0, tileData, customJumpLinks, gw, gh);
+      coversLists[0], debugEdgesLists[0], 0, 0, tileData, customJumpLinks, navmeshHoleCutters, gw, gh);
     if (!tileData.empty())
     {
       bool dtStatus = navMesh->init(tileData[0].navMeshData, tileData[0].navMeshDataSz, DT_TILE_FREE_DATA);
@@ -2579,7 +2684,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       reft = ref_time_ticks_qpc();
       int pos = cwr.tell();
 
-      BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+      BinDumpSaveCB dcwr(2 << 20, cwr);
       dcwr.writeInt32e(tileData[0].navMeshDataSz | (preferZstdPacking ? 0x40000000 : 0));
       InPlaceMemLoadCB crd(tileData[0].navMeshData, tileData[0].navMeshDataSz);
       if (preferZstdPacking)
@@ -2589,7 +2694,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
       String fileName("navMesh2");
       fileName += (nav_mesh_idx == 0 ? String(".") : String(50, "_%d.", nav_mesh_idx + 1));
-      fileName += mkbindump::get_target_str(dcwr.getTarget());
+      fileName += tc_str;
       fileName += ".bin";
       FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, fileName));
       fcwr.beginBlock();
@@ -2597,7 +2702,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       fcwr.endBlock();
       fcwr.close();
 
-      if (cwr.getTarget())
+      if (final_export_to_game)
       {
         cwr.beginTaggedBlock(_MAKE4C('Lnav'));
         dcwr.copyDataTo(cwr.getRawWriter());
@@ -2616,11 +2721,11 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
   if (needsDebugEdges)
   {
-    BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+    BinDumpSaveCB dcwr(2 << 20, cwr);
     save_debug_edges(debugEdgesLists, dcwr);
     String fileName("debug_edges");
     fileName += (nav_mesh_idx == 0 ? String(".") : String(50, "_%d.", nav_mesh_idx + 1)); // -V547
-    fileName += mkbindump::get_target_str(dcwr.getTarget());
+    fileName += tc_str;
     fileName += ".bin";
 
     FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, fileName));
@@ -2631,11 +2736,11 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
   }
 
   {
-    BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+    BinDumpSaveCB dcwr(2 << 20, cwr);
     save_debug_obstacles(obstacles, dcwr);
     String fileName("debug_obstacles");
     fileName += (nav_mesh_idx == 0 ? String(".") : String(50, "_%d.", nav_mesh_idx + 1));
-    fileName += mkbindump::get_target_str(dcwr.getTarget());
+    fileName += tc_str;
     fileName += ".bin";
 
     FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, fileName));
@@ -2720,16 +2825,16 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
     debug("Covers: final count %d, removed %d in %.2f sec", (int)covers.size(), numRemoved, coverTimeUsec / 1000000.0);
 
-    BinDumpSaveCB dcwr(2 << 20, cwr.getTarget() ? cwr.getTarget() : _MAKE4C('PC'), cwr.WRITE_BE);
+    BinDumpSaveCB dcwr(2 << 20, cwr);
     save_covers(covers, dcwr);
 
-    FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, "covers.") + mkbindump::get_target_str(dcwr.getTarget()) + ".bin");
+    FullFileSaveCB fcwr(DAGORED2->getPluginFilePath(this, "covers.") + tc_str + ".bin");
     fcwr.beginBlock();
     dcwr.copyDataTo(fcwr);
     fcwr.endBlock();
     fcwr.close();
 
-    if (cwr.getTarget())
+    if (final_export_to_game)
     {
       cwr.beginTaggedBlock(_MAKE4C('CVRS'));
       dcwr.copyDataTo(cwr.getRawWriter());
@@ -2763,19 +2868,21 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 
 bool HmapLandPlugin::buildAndWriteNavMesh(BinDumpSaveCB &cwr)
 {
-  if (!cwr.getTarget())
-    return true;
-
+  G_ASSERT_RETURN(cwr.getTarget(), true);
   bool success = true;
 
-  if (navMeshProps[0].getBool("export", false))
-    success = success && buildAndWriteSingleNavMesh(cwr, 0); // exporting main nav mesh separately
+  const char *const navMesh0Kind = navMeshProps[0].getStr("kind", "");
+  const bool exportNavMesh0Separately = navMesh0Kind == nullptr || *navMesh0Kind == '\0';
+  if (navMeshProps[0].getBool("export", false) && exportNavMesh0Separately)
+    success = success && buildAndWriteSingleNavMesh(cwr, 0); // exporting main nav mesh separately if it has empty kind
 
   unsigned int exportMask = 0;
   int exportedCount = 0;
 
-  for (int idx = 1; idx < MAX_NAVMESHES; ++idx) // -V1008
+  for (int idx = 0; idx < MAX_NAVMESHES; ++idx)
   {
+    if (idx == 0 && exportNavMesh0Separately)
+      continue;
     if (!navMeshProps[idx].getBool("export", false))
       continue;
     exportMask |= (1 << idx);
@@ -2790,8 +2897,10 @@ bool HmapLandPlugin::buildAndWriteNavMesh(BinDumpSaveCB &cwr)
   cwr.writeInt32e(fmt);
   cwr.writeInt32e(exportMask);
 
-  for (int idx = 1; idx < MAX_NAVMESHES; ++idx) // -V1008
+  for (int idx = 0; idx < MAX_NAVMESHES; ++idx)
   {
+    if (idx == 0 && exportNavMesh0Separately)
+      continue;
     if (exportMask & (1 << idx))
     {
       cwr.writeDwString(navMeshProps[idx].getStr("kind", ""));
@@ -3035,3 +3144,56 @@ void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR color)
   dagRender->addTriangleToVbuffer(*active_debug_lines_vbuf, p, color);
 }
 #endif
+
+static void rcMarkRotatedBoxArea(const TMatrix &boxTm, unsigned char areaId, rcCompactHeightfield &chf)
+{
+  TMatrix invBoxTm = inverse(boxTm);
+
+  BBox3 obb_aabb;
+  obb_aabb += boxTm * Point3(-1.f, -1.f, -1.f);
+  obb_aabb += boxTm * Point3(1.f, -1.f, -1.f);
+  obb_aabb += boxTm * Point3(1.f, -1.f, 1.f);
+  obb_aabb += boxTm * Point3(-1.f, -1.f, 1.f);
+  obb_aabb += boxTm * Point3(-1.f, 1.f, -1.f);
+  obb_aabb += boxTm * Point3(1.f, 1.f, -1.f);
+  obb_aabb += boxTm * Point3(1.f, 1.f, 1.f);
+  obb_aabb += boxTm * Point3(-1.f, 1.f, 1.f);
+
+  int minX = (int)((obb_aabb.lim[0].x - chf.bmin[0]) / chf.cs);
+  int minZ = (int)((obb_aabb.lim[0].z - chf.bmin[2]) / chf.cs);
+  int maxX = (int)((obb_aabb.lim[1].x - chf.bmin[0]) / chf.cs);
+  int maxZ = (int)((obb_aabb.lim[1].z - chf.bmin[2]) / chf.cs);
+
+  if (maxX < 0 || minX >= chf.width)
+    return;
+  if (maxZ < 0 || minZ >= chf.height)
+    return;
+
+  minX = max(0, minX);
+  minZ = max(0, minZ);
+  maxX = min(chf.width - 1, maxX);
+  maxZ = min(chf.height - 1, maxZ);
+
+  for (int z = minZ; z <= maxZ; ++z)
+  {
+    Point3 spanCenter;
+    spanCenter.z = chf.bmin[2] + (z + 0.5f) * chf.cs;
+    for (int x = minX; x <= maxX; ++x)
+    {
+      spanCenter.x = chf.bmin[0] + (x + 0.5f) * chf.cs;
+      const rcCompactCell &cell = chf.cells[x + z * chf.width];
+
+      for (int i = (int)cell.index, ni = (int)(cell.index + cell.count); i < ni; ++i)
+      {
+        if (chf.areas[i] == RC_NULL_AREA)
+          continue;
+
+        // Check that the bottom center of the span is inside the box
+        spanCenter.y = chf.bmin[1] + chf.spans[i].y * chf.ch;
+        Point3 localP = invBoxTm * spanCenter;
+        if (fabsf(localP.x) <= 1 && fabsf(localP.y) <= 1 && fabsf(localP.z) <= 1)
+          chf.areas[i] = areaId;
+      }
+    }
+  }
+}

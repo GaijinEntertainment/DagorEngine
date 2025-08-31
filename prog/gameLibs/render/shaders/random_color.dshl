@@ -1,0 +1,72 @@
+include "layered_inc.dshl"
+
+define_macro_if_not_defined RANDOM_COLOR_FROM_POS()
+hlsl(vs) {
+  float random_float_from_pos(float3 center_world_pos, uint seed)
+  {
+    if (seed)
+      return float(seed & 0x7F) / 127.0;
+    float2 colorPos = floor(center_world_pos.xz*0.2);
+    float4 rnd = colorPos.xyxy * float4(1, 1.618, 2.7183, 3.1415) + colorPos.xyxy*float4(2.7813, 3.1415, 1.1, 1.618);
+    return frac(dot(rnd, 1.0));
+  }
+  float4 random_color_from_rnd(float lerp_koef, float4 color_from, float4 color_to)
+  {
+    float4 color = lerp(color_from, color_to, lerp_koef);
+    color.rgb *= 2.0 * color.a;
+    color.a = 1.0;
+
+    color.rgb = pow(color.rgb * 2, 2.2);
+
+    return color;
+  }
+  float4 random_color_from_pos(float3 center_world_pos, uint seed, float4 color_from, float4 color_to)
+  {
+    return random_color_from_rnd(random_float_from_pos(center_world_pos, seed), color_from, color_to);
+  }
+}
+endmacro
+
+define_macro_if_not_defined USE_RANDOM_COLOR()
+
+RANDOM_COLOR_FROM_POS()
+
+hlsl(vs) {
+  #define get_random_color(center_world_pos, seed) random_color_from_pos(center_world_pos, seed, rendinst_color_from, rendinst_color_to)
+}
+
+endmacro
+
+macro INIT_RANDOMIZED_TC(stage)
+static float4 uv_offset_random = (0,0,0,0);//max_u_offset, max_v_offset, u_offset_step, v_offset_step
+endmacro
+
+macro USE_RANDOMIZED_TC(stage)
+RANDOM_UV_OFFSET(stage)
+(stage){
+  uv_offset_random@f4 = uv_offset_random;
+}
+hlsl (stage){
+  #define RANDOMIZE_TC 1
+
+  float2 uv_apply_random(float2 uv, float3 local_pos)
+  {
+    float2 rnd_uv = get_random_uv_offset(local_pos)*float2(get_uv_offset_random().x, get_uv_offset_random().y);
+
+    float u_step = get_uv_offset_random().z;
+    BRANCH
+    if (u_step > 0)
+      rnd_uv.x = int(rnd_uv.x/u_step)*u_step;
+    float u_new = uv.x + rnd_uv.x;
+
+    float v_step = get_uv_offset_random().w;
+    BRANCH
+    if (v_step > 0)
+      rnd_uv.y = int(rnd_uv.y/v_step)*v_step;
+    float v_new = uv.y + rnd_uv.y;
+
+    return float2(u_new, v_new);
+  }
+}
+
+endmacro

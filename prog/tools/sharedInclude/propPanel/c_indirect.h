@@ -111,7 +111,7 @@ private:
   String name, caption;
 
   int getId() const { return (int)(uintptr_t)this; }
-  friend class PropPanelScheme;
+  friend class PropPanel::PropPanelScheme;
 };
 } // namespace schemebasedpropertypanel
 

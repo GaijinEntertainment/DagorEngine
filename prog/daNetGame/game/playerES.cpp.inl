@@ -44,6 +44,9 @@ inline void players_search_ecs_query(Callable c);
 template <typename Callable>
 inline void players_search_by_platfrom_ecs_query(Callable c);
 
+template <typename Callable>
+inline void players_search_by_name_ecs_query(Callable c);
+
 namespace game
 {
 static ecs::EntityId localPlayerEid;
@@ -163,6 +166,20 @@ Player *find_player_by_platform_uid(const eastl::string &platform_uid)
   Player *result = nullptr;
   players_search_by_platfrom_ecs_query([&](game::Player &player, const eastl::string &platformUid) {
     if (!result && platformUid == platform_uid)
+    {
+      result = &player;
+      return ecs::QueryCbResult::Stop;
+    }
+    return ecs::QueryCbResult::Continue;
+  });
+  return result;
+}
+
+Player *find_player_by_name(const eastl::string &name_)
+{
+  Player *result = nullptr;
+  players_search_by_name_ecs_query([&](game::Player &player, const eastl::string &name) {
+    if (!result && name == name_)
     {
       result = &player;
       return ecs::QueryCbResult::Stop;

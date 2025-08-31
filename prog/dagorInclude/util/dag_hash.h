@@ -28,7 +28,7 @@ template <>
 struct FNV1Params<64>
 {
   typedef uint64_t HashVal;
-  static constexpr uint64_t offset_basis = 14695981039346656037LU;
+  static constexpr uint64_t offset_basis = UINT64_C(14695981039346656037);
   static constexpr uint64_t prime = 1099511628211;
 };
 
@@ -51,7 +51,7 @@ template <int HashBits>
 constexpr HashVal<HashBits> str_hash_fnv1(const char *s, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
 {
   HashVal<HashBits> c = 0;
-  while ((c = *s++) != 0)
+  while ((c = (uint8_t)*s++) != 0)
     result = (result * FNV1Params<HashBits>::prime) ^ c;
   return result;
 }
@@ -61,7 +61,7 @@ constexpr HashVal<HashBits> mem_hash_fnv1(const char *b, size_t len, HashVal<Has
 {
   for (size_t i = 0; i < len; ++i)
   {
-    HashVal<HashBits> c = b[i];
+    HashVal<HashBits> c = (uint8_t)b[i];
     result = (result * FNV1Params<HashBits>::prime) ^ c;
   }
   return result;
@@ -72,13 +72,17 @@ template <int HashBits>
 constexpr HashVal<HashBits> mem_hash_fnv1_recursive(const char *b, size_t len,
   HashVal<HashBits> h = FNV1Params<HashBits>::offset_basis)
 {
-  return len == 0 ? h : mem_hash_fnv1_recursive<HashBits>(b + 1, len - 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>(*b));
+  return len == 0
+           ? h
+           : mem_hash_fnv1_recursive<HashBits>(b + 1, len - 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>((uint8_t)*b));
 }
 
 template <int HashBits>
 constexpr HashVal<HashBits> str_hash_fnv1_recursive(const char *s, HashVal<HashBits> h = FNV1Params<HashBits>::offset_basis)
 {
-  return *s == 0 ? h : str_hash_fnv1_recursive<HashBits>(s + 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>(*s));
+  return *s == 0
+           ? h
+           : str_hash_fnv1_recursive<HashBits>(s + 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>((uint8_t)*s);
 }
 
 template <int HashBits>
@@ -110,7 +114,7 @@ inline uint32_t hash_int(uint32_t x)
   return x;
 }
 
-constexpr HashVal<32> operator"" _h(const char *str, size_t len) { return mem_hash_fnv1<32>(str, len); }
+constexpr HashVal<32> operator""_h(const char *str, size_t len) { return mem_hash_fnv1<32>(str, len); }
 
 template <class T>
 struct Hash;

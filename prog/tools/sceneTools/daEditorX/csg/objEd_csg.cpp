@@ -2,7 +2,7 @@
 
 #include "objEd_csg.h"
 #include "box_csg.h"
-#include "plugIn.h"
+#include "plugin.h"
 
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectCreator.h>
@@ -13,7 +13,6 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
 
-#include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -21,12 +20,13 @@
 #include <debug/dag_debug.h>
 
 using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagInput;
 using editorcore_extapi::dagRender;
 
 enum
 {
   CM_ = CM_PLUGIN_BASE + 1,
-  CM_CREATE_OCCLUDER_BOX
+  CM_CREATE_OCCLUDER_BOX,
 };
 
 
@@ -42,6 +42,14 @@ ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 ObjEd::~ObjEd() { dagRender->deleteDynRenderBuffer(ptDynBuf); }
 
 
+void ObjEd::registerViewportAccelerators(IWndManager &wndManager)
+{
+  ObjectEditor::registerViewportAccelerators(wndManager);
+
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, ImGuiKey_1);
+}
+
+
 void ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
@@ -51,8 +59,6 @@ void ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
   tb1->createSeparator();
 
   ObjectEditor::fillToolBar(toolbar);
-
-  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(0, "");
 }
 
 
@@ -270,7 +276,7 @@ bool ObjEd::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int
     last_inside = inside;
     last_wnd = wnd;
     // return objCreator->handleMouseMove(wnd, x, y, inside, buttons, key_modif^CTRL_PRESSED, true);
-    return objCreator->handleMouseMove(wnd, x, y, inside, buttons, !wingw::is_key_pressed(wingw::V_CONTROL), true);
+    return objCreator->handleMouseMove(wnd, x, y, inside, buttons, !dagInput->isCtrlKeyDown(), true);
   }
   return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
@@ -300,22 +306,6 @@ bool ObjEd::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, 
 }
 
 
-void ObjEd::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (!wingw::is_special_pressed())
-  {
-    if (wingw::is_key_pressed('1'))
-      onClick(CM_CREATE_OCCLUDER_BOX, NULL);
-    if (wingw::is_key_pressed(wingw::V_ESC) && objCreator)
-      onClick(CM_OBJED_MODE_SELECT, NULL);
-  }
-
-  ObjectEditor::handleKeyPress(wnd, vk, modif);
-}
-
-void ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) { ObjectEditor::handleKeyRelease(wnd, vk, modif); }
-
-
 void ObjEd::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   switch (pcb_id)
@@ -334,6 +324,16 @@ void ObjEd::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
       setEditMode(pcb_id);
       objCreator = dagGeom->newBoxCreator();
       last_wnd = NULL;
+      break;
+
+    case CM_OBJED_CANCEL_GIZMO_TRANSFORM:
+      // When the Escape key is pressed cancel the ongoing object creation or allow ObjectEditor::onClick() to cancel
+      // the gizmo operation.
+      if (objCreator)
+      {
+        onClick(CM_OBJED_MODE_SELECT, panel);
+        return;
+      }
       break;
   }
 

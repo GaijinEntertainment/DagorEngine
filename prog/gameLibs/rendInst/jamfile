@@ -23,6 +23,7 @@ Sources =
   rendInstGenLand.cpp
   rendInstGenCollision.cpp
   rendInstGenExtra.cpp
+  rendInstExtraAdditionalData.cpp
   rendInstGenExtraMaxHeight.cpp
   rendInstGenDebris.cpp
   rendInstGenGlobals.cpp
@@ -34,6 +35,7 @@ Sources =
   riGrid.cpp
   riGridDebug.cpp
   treeDestr.cpp
+  riexSync.cpp
 
   render/clipmapShadow.cpp
   render/gpuObjects.cpp
@@ -79,15 +81,25 @@ UseProgLibs =
   3rdPartyLibs/regExp
   gameLibs/gpuObjects
   gameLibs/gameMath # for read_interpolate_tab_float_p2() in treeDestr.cpp
+  gameLibs/landMesh/rendinstIntegration
+  gameLibs/resourcePool
 ;
 
-if $(Config) != rel
+UseDebugMeshLib ?= no ;
+if $(Config) != rel || $(UseDebugMeshLib) = yes
 {
   UseProgLibs += gameLibs/render/debugMesh ;
 }
 else
 {
   UseProgLibs += gameLibs/render/debugMesh/stub ;
+}
+
+if $(PlatformSpec) in gcc clang {
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  CPPopt += $(xclang)ffp-contract=off ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

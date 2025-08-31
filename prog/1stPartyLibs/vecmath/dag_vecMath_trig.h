@@ -53,12 +53,12 @@
 
 VECTORCALL VECMATH_FINLINE vec4f v_deg_to_rad(vec4f deg)
 {
-  return v_mul(deg, v_splats(float(M_PI / 180.0)));
+  return v_mul(deg, v_splats(float(/*M_PI*/ 3.14159265358979323846 / 180.0)));
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_rad_to_deg(vec4f rad)
 {
-  return v_mul(rad, v_splats(float(180.0 / M_PI)));
+  return v_mul(rad, v_splats(float(180.0 / /*M_PI*/ 3.14159265358979323846)));
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_norm_s_angle(vec4f angle)

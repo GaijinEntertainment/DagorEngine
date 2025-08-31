@@ -23,6 +23,7 @@ Sources =
   triangleBoxIntersection.cpp
   sHmath.cpp
   geomTree.cpp
+  geomTreeMap.cpp
   mesh.cpp
   mathUtils.cpp
   kaiserSimd.cpp

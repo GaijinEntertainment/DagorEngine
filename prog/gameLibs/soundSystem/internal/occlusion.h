@@ -25,7 +25,7 @@ void append(FMOD::Studio::EventInstance *instance, const FMOD::Studio::EventDesc
 
 bool release(FMOD::Studio::EventInstance *instance);
 
-void update(const Point3 &listener);
+void update(float cur_time, const Point3 &listener);
 
 typedef void (*debug_enum_sources_t)(FMOD::Studio::EventInstance *, group_id_t, const Point3 &, float, bool, bool, bool,
   const Point3 &);

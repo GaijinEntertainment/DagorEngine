@@ -33,7 +33,7 @@ bool dblk::are_approximately_equal(const DataBlock &lhs, const DataBlock &rhs, f
       const float *floatDataB = (const float *)rhs.getParamData(*param2);
 
       for (int j = 0; j < floatCount; ++j)
-        if (!is_equal_float(floatDataA[j], floatDataB[j], eps))
+        if (!::are_approximately_equal(floatDataA[j], floatDataB[j], eps))
         {
           return false; // if one of the floats is not equal, the whole two blocks aren't equal
         }

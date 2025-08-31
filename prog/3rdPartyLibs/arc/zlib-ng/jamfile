@@ -75,7 +75,7 @@ AllACLESources =
   insert_string_acle.c
 ;
 
-Copt += -DZLIB_COMPAT=1 ;
+Copt += -DZLIB_COMPAT ;
 
 if $(Platform) in windows linux xboxOne scarlett ps4 ps5 {
   if $(PlatformArch) in x86 x86_64 {

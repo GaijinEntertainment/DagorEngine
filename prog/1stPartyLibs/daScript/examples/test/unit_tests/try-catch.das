@@ -1,17 +1,21 @@
+options gen2
 // options plot=true,plotFile="../../test.dot"
 
 [export]
-def test:bool
+def test : bool {
     var a = 1
-    let b:int?
-    try
+    let b : int?
+    try {
         a = deref(b)
-    recover
+    } recover {
         a = 13
-    assert(a==13)
-    try
+    }
+    assert(a == 13)
+    try {
         panic("now panic")
-    recover
+    } recover {
         a = 14
-    assert(a==14)
+    }
+    assert(a == 14)
     return true
+}

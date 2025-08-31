@@ -246,9 +246,9 @@ public:
   void renameA2dFile(const char *old_name, const char *new_name);
 
   // IAsgGraphNodeManager interface
-  virtual AnimGraphState *getState(int state_id);
-  virtual int findState(const char *name);
-  virtual int getNodeId(int state_id);
+  AnimGraphState *getState(int state_id) override;
+  int findState(const char *name) override;
+  int getNodeId(int state_id) override;
 
   void getBnlsNeeded(NameMap &bnls, NameMap &a2d, NameMap &ctrls);
 

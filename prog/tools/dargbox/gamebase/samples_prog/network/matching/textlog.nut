@@ -8,7 +8,7 @@ function messageInLog(entry) {
     behavior = Behaviors.TextArea
     preformatted = FMT_NO_WRAP | FMT_KEEP_SPACES
     margin = fsh(0.5)
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
   }.__merge(entry)
 }
 function logContent(log_state, scrollHandler) {
@@ -22,12 +22,12 @@ function logContent(log_state, scrollHandler) {
   }
   return function() {
     return {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_VERTICAL
       behavior = Behaviors.RecalcHandler
-      children = log_state.value.map(messageInLog)
+      children = log_state.get().map(messageInLog)
       watch = log_state
-      onRecalcLayout = @(_initial) scroll(log_state.value)
+      onRecalcLayout = @(_initial) scroll(log_state.get())
     }
   }
 }
@@ -45,8 +45,8 @@ function textLog(log_state, options) {
     size
     color
     rendObj = ROBJ_FRAME
-    borderWidth = [hdpx(1), 0]
-    padding = [hdpx(1), 0]
+    borderWidth = static [hdpx(1), 0]
+    padding = static [hdpx(1), 0]
 
     children = [
       makeVertScroll(logContent(log_state, scrollHandler), {scrollHandler})

@@ -1,47 +1,55 @@
-let {editorIsActive, editorFreeCam, entitiesListUpdateTrigger, showTemplateSelect,
-     showPointAction, callPointActionCallback, resetPointActionMode,
-     handleEntityCreated, handleEntityRemoved, handleEntityMoved,
-     de4editMode, de4workMode} = require("state.nut")
+import "daEditorEmbedded" as daEditor
+from "eventbus" import eventbus_subscribe
 
-let daEditor = require("daEditorEmbedded")
-let entity_editor = require("entity_editor")
-
-let { eventbus_subscribe } = require("eventbus")
-
+let entity_editor = require_optional("entity_editor")
+let { editorIsActive, editorFreeCam, entitiesListUpdateTrigger, showTemplateSelect, showPointAction,
+  callPointActionCallback, resetPointActionMode, handleEntityCreated, handleEntityRemoved,
+  handleEntityMoved, de4editMode, de4workMode, gizmoBasisType, gizmoBasisTypeEditingDisabled,
+  canChangeGizmoBasisType, gizmoCenterType } = require("state.nut")
 let {DE4_MODE_POINT_ACTION, isFreeCamMode=null} = daEditor
 let {DE4_MODE_CREATE_ENTITY, get_point_action_op} = entity_editor
 
 
 eventbus_subscribe("daEditorEmbedded.onDeSetWorkMode", function onDeSetWorkMode(mode) {
-  de4workMode(mode)
+  de4workMode.set(mode)
 })
 
 eventbus_subscribe("daEditorEmbedded.onDeSetEditMode", function onDeSetEditMode(mode) {
-  de4editMode(mode)
-  showTemplateSelect(mode == DE4_MODE_CREATE_ENTITY)
+  de4editMode.set(mode)
+  showTemplateSelect.set(mode == DE4_MODE_CREATE_ENTITY)
 
-  showPointAction(mode == DE4_MODE_POINT_ACTION)
-  if (!showPointAction.value)
+  showPointAction.set(mode == DE4_MODE_POINT_ACTION)
+  if (!showPointAction.get())
     resetPointActionMode()
+
+  gizmoBasisTypeEditingDisabled.set(!canChangeGizmoBasisType())
+})
+
+eventbus_subscribe("daEditorEmbedded.onDeSetGizmoBasis", function onDeSetGizmoBasis(basis) {
+  gizmoBasisType.set(basis)
+})
+
+eventbus_subscribe("daEditorEmbedded.onDeSetGizmoCenterType", function onDeSetGizmoCenterType(center) {
+  gizmoCenterType.set(center)
 })
 
 eventbus_subscribe("entity_editor.onEditorActivated", function onEditorActivated(on) {
-  editorIsActive.update(on)
+  editorIsActive.set(on)
 })
 
 eventbus_subscribe("entity_editor.onEditorChanged", function onEditorChanged(_) {
-  editorFreeCam.update(isFreeCamMode?() ?? false)
+  editorFreeCam.set(isFreeCamMode?() ?? false)
 
   local paOp = get_point_action_op()
   if (paOp != "") {
-    let mod      = entity_editor.get_point_action_mod()
-    let has_pos  = entity_editor.get_point_action_has_pos()
-    let pos      = entity_editor.get_point_action_pos()
-    let ext_id   = entity_editor.get_point_action_ext_id()
-    let ext_name = entity_editor.get_point_action_ext_name()
-    let ext_mtx  = entity_editor.get_point_action_ext_mtx()
-    let ext_sph  = entity_editor.get_point_action_ext_sph()
-    let ext_eid  = entity_editor.get_point_action_ext_eid()
+    let mod      = entity_editor?.get_point_action_mod()
+    let has_pos  = entity_editor?.get_point_action_has_pos()
+    let pos      = entity_editor?.get_point_action_pos()
+    let ext_id   = entity_editor?.get_point_action_ext_id()
+    let ext_name = entity_editor?.get_point_action_ext_name()
+    let ext_mtx  = entity_editor?.get_point_action_ext_mtx()
+    let ext_sph  = entity_editor?.get_point_action_ext_sph()
+    let ext_eid  = entity_editor?.get_point_action_ext_eid()
     local ev = {
       op = paOp
       mod
@@ -57,11 +65,11 @@ eventbus_subscribe("entity_editor.onEditorChanged", function onEditorChanged(_) 
 })
 
 eventbus_subscribe("entity_editor.onEntityAdded", function onEntityAdded(_eid) {
-  entitiesListUpdateTrigger(entitiesListUpdateTrigger.value+1)
+  entitiesListUpdateTrigger.modify(@(v) v+1)
 })
 
 eventbus_subscribe("entity_editor.onEntityRemoved", function onEntityRemoved(eid) {
-  entitiesListUpdateTrigger(entitiesListUpdateTrigger.value+1)
+  entitiesListUpdateTrigger.modify(@(v) v+1)
   handleEntityRemoved(eid)
 })
 

@@ -6,18 +6,33 @@
 #include <util/dag_threadPool.h>
 #include <perfMon/dag_statDrv.h>
 
-void RiShadowCullBboxesLoaderJob::addTest(mat44f_cref cull_matrix, const ViewTransformData &transform, int ri_count)
+void RiShadowCullBboxesLoaderJob::addTest(mat44f_cref cull_matrix, const ViewTransformData &transform)
 {
   WinAutoLock lock(testsQueueMutex);
-  waitingTestsToPerform.push_back({cull_matrix, transform, ri_count});
+  waitingTestsToPerform.push_back({cull_matrix, transform});
 }
 
-void RiShadowCullBboxesLoaderJob::start()
+void RiShadowCullBboxesLoaderJob::removeOutsideShadowRegions(const ToroidalStaticShadows &static_shadows)
+{
+  WinAutoLock lock(testsQueueMutex);
+  TMatrix cascadeGlobTm = static_shadows.getLightViewProj(static_shadows.cascadesCount() - 1);
+  mat44f invCascadeGlobTm, tmpTm;
+  v_mat44_make_from_43cu(tmpTm, cascadeGlobTm.m[0]);
+  v_mat44_inverse43_to44(invCascadeGlobTm, tmpTm);
+  waitingTestsToPerform.erase(eastl::remove_if(waitingTestsToPerform.begin(), waitingTestsToPerform.end(),
+                                [&invCascadeGlobTm](const ShadowsOcclusionTestData &regionData) {
+                                  return !ToroidalStaticShadows::isRegionInsideCascade(invCascadeGlobTm, regionData.transform);
+                                }),
+    waitingTestsToPerform.end());
+}
+
+void RiShadowCullBboxesLoaderJob::start(const ToroidalStaticShadows &static_shadows)
 {
   if (!interlocked_acquire_load(this->done) || waitingTestsToPerform.empty())
     return;
-
-  threadpool::add(this);
+  removeOutsideShadowRegions(static_shadows);
+  if (!waitingTestsToPerform.empty())
+    threadpool::add(this);
 }
 
 void RiShadowCullBboxesLoaderJob::reset()
@@ -29,7 +44,8 @@ void RiShadowCullBboxesLoaderJob::reset()
 
 void RiShadowCullBboxesLoaderJob::doJob()
 {
-  TIME_PROFILE(ri_shadow_cull_bboxes_loader);
+  if (!shadowsManager.getVisibilityTestAvailableSpace())
+    return;
 
   dag::Vector<ShadowsOcclusionTestData> currentTestsToPerform;
   {
@@ -39,14 +55,8 @@ void RiShadowCullBboxesLoaderJob::doJob()
 
   for (auto &testData : currentTestsToPerform)
   {
-    int availableSpace = shadowsManager.getVisibilityTestAvailableSpace();
-    if (testData.riCount <= availableSpace)
-    {
-      int riLeftCount = shadowsManager.gatherAndTryAddRiForShadowsVisibilityTest(testData.cullMatrix, testData.transform);
-      if (riLeftCount > 0)
-        addTest(testData.cullMatrix, testData.transform, riLeftCount);
-    }
-    else
-      addTest(testData.cullMatrix, testData.transform, testData.riCount);
+    int riLeftCount = shadowsManager.gatherAndTryAddRiForShadowsVisibilityTest(testData.cullMatrix, testData.transform);
+    if (riLeftCount > 0)
+      addTest(testData.cullMatrix, testData.transform);
   }
 }

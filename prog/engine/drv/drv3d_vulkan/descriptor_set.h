@@ -6,7 +6,10 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/algorithm.h>
 #include "vulkan_device.h"
+#include "shader_module.h"
 #include "pipeline/descriptor_table.h"
+#include "vulkan_allocation_callbacks.h"
+#include "vk_to_string.h"
 
 namespace drv3d_vulkan
 {
@@ -26,8 +29,7 @@ private:
     eastl::fixed_vector<VulkanDescriptorSetHandle, POOL_SIZE, false> freeSets;
     VulkanDescriptorPoolHandle pool;
 
-    PoolInfo(VulkanDevice &device, dag::ConstSpan<VkDescriptorPoolSize> comp, VulkanDescriptorSetLayoutHandle layout,
-      uint32_t frame_index) :
+    PoolInfo(dag::ConstSpan<VkDescriptorPoolSize> comp, VulkanDescriptorSetLayoutHandle layout, uint32_t frame_index) :
       frameIndex(frame_index)
     {
       VkDescriptorPoolSize composition[spirv::SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
@@ -45,7 +47,7 @@ private:
       dpci.maxSets = POOL_SIZE;
       dpci.poolSizeCount = compositionCount;
       dpci.pPoolSizes = composition;
-      VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorPool(device.get(), &dpci, NULL, ptr(pool)));
+      VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateDescriptorPool(Globals::VK::dev.get(), &dpci, VKALLOC(descriptor_pool), ptr(pool)));
       // right away alloc all instances and manage them localy
       // need to create an array for each allocation
       VulkanDescriptorSetLayoutHandle layoutList[POOL_SIZE];
@@ -56,7 +58,7 @@ private:
       dsai.descriptorPool = pool;
       dsai.descriptorSetCount = POOL_SIZE;
       dsai.pSetLayouts = ary(layoutList);
-      VULKAN_EXIT_ON_FAIL(device.vkAllocateDescriptorSets(device.get(), &dsai, ary(freeSets.data())));
+      VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkAllocateDescriptorSets(Globals::VK::dev.get(), &dsai, ary(freeSets.data())));
     }
     VulkanDescriptorSetHandle allocate()
     {
@@ -64,9 +66,9 @@ private:
       freeSets.pop_back();
       return result;
     }
-    void shutdown(VulkanDevice &device)
+    void shutdown()
     {
-      VULKAN_LOG_CALL(device.vkDestroyDescriptorPool(device.get(), pool, NULL));
+      VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyDescriptorPool(Globals::VK::dev.get(), pool, VKALLOC(descriptor_pool)));
       freeSets.clear();
       pool = VulkanNullHandle();
     }
@@ -90,9 +92,9 @@ private:
   VulkanDescriptorUpdateTemplateKHRHandle updateTemplate;
 #endif
   VulkanDescriptorSetLayoutHandle layout;
-  eastl::vector<eastl::unique_ptr<PoolInfo>> pools;
-  eastl::vector<SetStorageEntry> sets;
-  eastl::vector<VulkanDescriptorSetHandle> setRings[GPU_TIMELINE_HISTORY_SIZE];
+  dag::Vector<eastl::unique_ptr<PoolInfo>> pools;
+  dag::Vector<SetStorageEntry> sets;
+  dag::Vector<VulkanDescriptorSetHandle> setRings[GPU_TIMELINE_HISTORY_SIZE];
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   VulkanDescriptorSetHandle lastUnnamedSet;
 #endif
@@ -196,10 +198,15 @@ public:
       }
     } while (++i < header.registerCount);
   }
-  void init(VulkanDevice &device, const spirv::HashValue &hsh, const spirv::ShaderHeader &cfg, VkShaderStageFlags stage_bits)
+  void init(const spirv::HashValue &hsh, const spirv::ShaderHeader &cfg, VkShaderStageFlags stage_bits)
   {
     hash = hsh;
     header = cfg;
+    // we don't know shader debug info here to make meaningfull message
+    // but shader compiler should NOT pass such shaders, so verify shader compiler code!
+    G_ASSERTF(header.registerCount <= spirv::REGISTER_ENTRIES,
+      "vulkan: too much registers in layout with stages %s max %u, encountered %u", formatShaderStageFlags(stage_bits),
+      spirv::REGISTER_ENTRIES, header.registerCount);
     VkDescriptorSetLayoutBinding bindingDefs[spirv::REGISTER_ENTRIES];
     for (uint32_t i = 0; i < header.registerCount; ++i)
     {
@@ -215,10 +222,11 @@ public:
       {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL, 0};
     dslci.bindingCount = header.registerCount;
     dslci.pBindings = bindingDefs;
-    VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorSetLayout(device.get(), &dslci, NULL, ptr(layout)));
+    VULKAN_EXIT_ON_FAIL(
+      Globals::VK::dev.vkCreateDescriptorSetLayout(Globals::VK::dev.get(), &dslci, VKALLOC(descriptor_set_layout), ptr(layout)));
   }
 
-  void initEmpty(VulkanDevice &device)
+  void initEmpty()
   {
     header.maxConstantCount = 0;
     header.bonesConstantsUsed = 0;
@@ -230,20 +238,21 @@ public:
     header.bufferCount = 0;
     header.bufferViewCount = 0;
     header.constBufferCount = 0;
-    header.accelerationStructursCount = 0;
+    header.accelerationStructureCount = 0;
     header.descriptorCountsCount = 0;
     header.registerCount = 0;
 
     VkDescriptorSetLayoutCreateInfo dslci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL, 0};
     dslci.bindingCount = 0;
     dslci.pBindings = nullptr;
-    VULKAN_EXIT_ON_FAIL(device.vkCreateDescriptorSetLayout(device.get(), &dslci, NULL, ptr(layout)));
+    VULKAN_EXIT_ON_FAIL(
+      Globals::VK::dev.vkCreateDescriptorSetLayout(Globals::VK::dev.get(), &dslci, VKALLOC(descriptor_set_layout), ptr(layout)));
   }
 
-  void initUpdateTemplate(VulkanDevice &device, VkPipelineBindPoint bind_point, VkPipelineLayout pipe_layout, uint32_t set_index)
+  void initUpdateTemplate(VkPipelineBindPoint bind_point, VkPipelineLayout pipe_layout, uint32_t set_index)
   {
 #if VK_KHR_descriptor_update_template
-    if (device.hasExtension<DescriptorUpdateTemplateKHR>() && (header.registerCount > 0))
+    if (Globals::VK::dev.hasExtension<DescriptorUpdateTemplateKHR>() && (header.registerCount > 0))
     {
       VkDescriptorUpdateTemplateEntryKHR entries[spirv::REGISTER_ENTRIES];
       VkDescriptorUpdateTemplateCreateInfoKHR dutci = //
@@ -267,35 +276,36 @@ public:
         target.stride = 0; // ignored, only used if descriptorCount > 1
       }
 
-      if (VULKAN_CHECK_FAIL(device.vkCreateDescriptorUpdateTemplateKHR(device.get(), &dutci, nullptr, ptr(updateTemplate))))
+      if (VULKAN_CHECK_FAIL(Globals::VK::dev.vkCreateDescriptorUpdateTemplateKHR(Globals::VK::dev.get(), &dutci,
+            VKALLOC(descriptor_update_template), ptr(updateTemplate))))
         // not fatal to fail here, just use default update method as fallback
         updateTemplate = VulkanNullHandle();
     }
 #else
-    G_UNUSED(device);
     G_UNUSED(bind_point);
     G_UNUSED(pipe_layout);
     G_UNUSED(pipe_layout);
     G_UNUSED(set_index);
 #endif
   }
-  void shutdown(VulkanDevice &device)
+  void shutdown()
   {
     // no need to delete them individually, if the pool is
     // erased all sets are erased too
     sets.clear();
     for (auto &&pool : pools)
-      pool->shutdown(device);
+      pool->shutdown();
     pools.clear();
     if (!is_null(layout))
     {
-      VULKAN_LOG_CALL(device.vkDestroyDescriptorSetLayout(device.get(), layout, NULL));
+      VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyDescriptorSetLayout(Globals::VK::dev.get(), layout, VKALLOC(descriptor_set_layout)));
       layout = VulkanNullHandle();
     }
 #if VK_KHR_descriptor_update_template
     if (!is_null(updateTemplate))
     {
-      VULKAN_LOG_CALL(device.vkDestroyDescriptorUpdateTemplateKHR(device.get(), updateTemplate, nullptr));
+      VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyDescriptorUpdateTemplateKHR(Globals::VK::dev.get(), updateTemplate,
+        VKALLOC(descriptor_update_template)));
       updateTemplate = VulkanNullHandle();
     }
 #endif
@@ -314,11 +324,11 @@ public:
       i.clear();
   }
 
-  void updateSet(VulkanDevice &device, const VkAnyDescriptorInfo *desc_array, VulkanDescriptorSetHandle set)
+  void updateSet(const VkAnyDescriptorInfo *desc_array, VulkanDescriptorSetHandle set)
   {
 #if VK_KHR_descriptor_update_template
     if (!is_null(updateTemplate))
-      VULKAN_LOG_CALL(device.vkUpdateDescriptorSetWithTemplateKHR(device.get(), set, updateTemplate, desc_array));
+      VULKAN_LOG_CALL(Globals::VK::dev.vkUpdateDescriptorSetWithTemplateKHR(Globals::VK::dev.get(), set, updateTemplate, desc_array));
     else
 #endif
     {
@@ -326,12 +336,13 @@ public:
       {
         SetWriteDataStore setWriteStore;
         writeSet(setWriteStore, desc_array, set);
-        VULKAN_LOG_CALL(device.vkUpdateDescriptorSets(device.get(), header.registerCount, setWriteStore.writeInfoSet, 0, NULL));
+        VULKAN_LOG_CALL(
+          Globals::VK::dev.vkUpdateDescriptorSets(Globals::VK::dev.get(), header.registerCount, setWriteStore.writeInfoSet, 0, NULL));
       }
     }
   }
 
-  VulkanDescriptorSetHandle getNewSet(VulkanDevice &device, uint32_t frame_index)
+  VulkanDescriptorSetHandle getNewSet(uint32_t frame_index)
   {
     PoolInfo *pool = nullptr;
     for (auto &&pp : pools)
@@ -348,7 +359,7 @@ public:
 
     if (!pool)
     {
-      pool = new PoolInfo(device, getPoolDescriptorSizes(), layout, frame_index);
+      pool = new PoolInfo(getPoolDescriptorSizes(), layout, frame_index);
       pools.emplace_back(pool);
     }
 
@@ -360,7 +371,7 @@ public:
     return set;
   }
 
-  VulkanDescriptorSetHandle getSet(VulkanDevice &device, size_t abs_frame_index, const VkAnyDescriptorInfo *desc_array)
+  VulkanDescriptorSetHandle getSet(size_t abs_frame_index, const VkAnyDescriptorInfo *desc_array)
   {
     G_ASSERTF(!is_null(layout), "vulkan: used uninitialized descriptor set");
 
@@ -384,12 +395,12 @@ public:
       ret = setRing[ringOffset];
     else
     {
-      ret = getNewSet(device, ringIndex);
+      ret = getNewSet(ringIndex);
       setRing.push_back(ret);
     }
     ++ringOffset;
 
-    updateSet(device, desc_array, ret);
+    updateSet(desc_array, ret);
     return ret;
   }
 };

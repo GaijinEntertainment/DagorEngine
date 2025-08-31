@@ -170,18 +170,18 @@ public:
     redoParams.getFrom(object);
   }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     if (save_redo)
       redoParams.getFrom(object);
     undoParams.setTo(object);
   }
 
-  virtual void redo() { redoParams.setTo(object); }
+  void redo() override { redoParams.setTo(object); }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoHmapLandObjectParams"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoHmapLandObjectParams"; }
 };
 
 

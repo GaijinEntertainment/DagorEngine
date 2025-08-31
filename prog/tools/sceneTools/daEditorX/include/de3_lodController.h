@@ -18,13 +18,6 @@ public:
   //! returns distance of visibility for @lod_n
   virtual real getLodRange(int lod_n) = 0;
 
-  //! returns number of TEX quality levels
-  virtual int getTexQLCount() const = 0;
-  //! sets currently texture quality level
-  virtual void setTexQL(int ql) = 0;
-  //! sets currently texture quality level
-  virtual int getTexQL() const = 0;
-
   //! returns number of named nodes
   virtual int getNamedNodeCount() = 0;
   //! returns name of node by index

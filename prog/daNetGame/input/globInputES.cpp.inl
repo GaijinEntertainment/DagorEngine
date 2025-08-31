@@ -7,7 +7,7 @@
 #include "render/screencap.h"
 #include "render/renderer.h"
 #include "main/editMode.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "main/app.h"
 #include "main/ecsUtils.h"
 #include "main/appProfile.h"
@@ -195,7 +195,7 @@ bool glob_input_process_controller(const HumanInput::IGenJoystick *joy)
 }
 
 static ecs::EntityId glob_input_eid = ecs::INVALID_ENTITY_ID;
-void init_glob_input() { glob_input_eid = create_simple_entity("glob_input"); }
+void init_glob_input() { glob_input_eid = create_simple_entity(*g_entity_mgr, "glob_input"); }
 
 void destroy_glob_input()
 {

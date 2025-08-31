@@ -50,7 +50,7 @@ void PostFxRenderer::drawInternal(int num_tiles) const
       float right = cvt((float)(tileNo + 1), 0.f, (float)num_tiles, -1.f, 1.f);
       float verts[8] = {left, -1.f, right, -1.f, left, 1.f, right, 1.f};
       d3d::draw_up(PRIM_TRISTRIP, 2, verts, stride);
-      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+      d3d::driver_command(Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS);
     }
   }
   else // draw triangle

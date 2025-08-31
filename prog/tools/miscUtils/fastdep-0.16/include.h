@@ -13,12 +13,12 @@ class Include : public Element
 public:
   Include(FileStructure *aStructure, const std::string &aFilename, const std::string &aFromFilename, bool aSystem);
   Include(const Include &anOther);
-  virtual ~Include();
+  ~Include() override;
 
   Include &operator=(const Include &anOther);
 
-  virtual Element *copy() const;
-  virtual void getDependencies(CompileState *aState);
+  Element *copy() const override;
+  void getDependencies(CompileState *aState) override;
 
 private:
   std::string Filename, FromFilename;

@@ -16,9 +16,9 @@ class OrientedBox;
 /// Base class settings to construct a compound shape
 class JPH_EXPORT CompoundShapeSettings : public ShapeSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_ABSTRACT(JPH_EXPORT, CompoundShapeSettings)
 
+public:
 	/// Constructor. Use AddShape to add the parts.
 									CompoundShapeSettings() = default;
 
@@ -36,7 +36,11 @@ public:
 		RefConst<Shape>				mShapePtr;												///< Sub shape (either this or mShape needs to be filled up)
 		Vec3						mPosition;												///< Position of the sub shape
 		Quat						mRotation;												///< Rotation of the sub shape
-		uint32						mUserData = 0;											///< User data value (can be used by the application for any purpose)
+
+		/// User data value (can be used by the application for any purpose).
+		/// Note this value can be retrieved through GetSubShape(...).mUserData, not through GetSubShapeUserData(...) as that returns Shape::GetUserData() of the leaf shape.
+		/// Use GetSubShapeIndexFromID get a shape index from a SubShapeID to pass to GetSubShape.
+		uint32						mUserData = 0;
 	};
 
 	using SubShapes = Array<SubShapeSettings>;
@@ -79,6 +83,9 @@ public:
 	// See Shape::GetMaterial
 	virtual const PhysicsMaterial *	GetMaterial(const SubShapeID &inSubShapeID) const override;
 
+	// See Shape::GetLeafShape
+	virtual const Shape *			GetLeafShape(const SubShapeID &inSubShapeID, SubShapeID &outRemainder) const override;
+
 	// See Shape::GetSubShapeUserData
 	virtual uint64					GetSubShapeUserData(const SubShapeID &inSubShapeID) const override;
 
@@ -106,7 +113,7 @@ public:
 #endif // JPH_DEBUG_RENDERER
 
 	// See: Shape::CollideSoftBodyVertices
-	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const override;
 
 	// See Shape::TransformShape
 	virtual void					TransformShape(Mat44Arg inCenterOfMassTransform, TransformedShapeCollector &ioCollector) const override;
@@ -298,6 +305,9 @@ public:
 	// See Shape::IsValidScale
 	virtual bool					IsValidScale(Vec3Arg inScale) const override;
 
+	// See Shape::MakeScaleValid
+	virtual Vec3					MakeScaleValid(Vec3Arg inScale) const override;
+
 	// Register shape functions with the registry
 	static void						sRegister();
 
@@ -332,7 +342,7 @@ protected:
 	}
 
 	Vec3							mCenterOfMass { Vec3::sZero() };						///< Center of mass of the compound
-	AABox							mLocalBounds;
+	AABox							mLocalBounds { Vec3::sZero(), Vec3::sZero() };
 	SubShapes						mSubShapes;
 	float							mInnerRadius = FLT_MAX;									///< Smallest radius of GetInnerRadius() of child shapes
 

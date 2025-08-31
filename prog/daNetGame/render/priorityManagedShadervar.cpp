@@ -1,4 +1,7 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 #include "priorityManagedShadervar.h"
+#include <math/dag_color.h>
 #include <limits.h>
 #include <render/world/wrDispatcher.h>
 

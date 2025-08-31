@@ -2,6 +2,7 @@
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_debug.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_skinned_vertices.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_heli_rotor_vertices.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_flag_vertices.dshl"

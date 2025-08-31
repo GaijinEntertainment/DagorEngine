@@ -11,6 +11,120 @@ bool is_dred_avilable()
   auto enablement = drv3d_dx12::get_application_DRED_enablement_from_registry();
   return D3D12_DRED_ENABLEMENT_FORCED_ON == enablement;
 }
+
+void set_name(ID3D12Resource *resource, eastl::string_view name)
+{
+  // lazy way of converting to wchar, this assumes name is not multi byte encoding
+  wchar_t wcharName[1024];
+  *eastl::copy(name.data(), min(name.data() + name.size(), name.data() + 1023), wcharName) = L'\0';
+  resource->SetName(wcharName);
+}
+
+const char *to_string(D3D12_DRED_ALLOCATION_TYPE type)
+{
+  switch (type)
+  {
+    default: return "<invalid>";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_QUEUE: return "COMMAND_QUEUE";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_ALLOCATOR: return "COMMAND_ALLOCATOR";
+    case D3D12_DRED_ALLOCATION_TYPE_PIPELINE_STATE: return "PIPELINE_STATE";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_LIST: return "COMMAND_LIST";
+    case D3D12_DRED_ALLOCATION_TYPE_FENCE: return "FENCE";
+    case D3D12_DRED_ALLOCATION_TYPE_DESCRIPTOR_HEAP: return "DESCRIPTOR_HEAP";
+    case D3D12_DRED_ALLOCATION_TYPE_HEAP: return "HEAP";
+    case D3D12_DRED_ALLOCATION_TYPE_QUERY_HEAP: return "QUERY_HEAP";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_SIGNATURE: return "COMMAND_SIGNATURE";
+    case D3D12_DRED_ALLOCATION_TYPE_PIPELINE_LIBRARY: return "PIPELINE_LIBRARY";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_DECODER: return "VIDEO_DECODER";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_PROCESSOR: return "VIDEO_PROCESSOR";
+    case D3D12_DRED_ALLOCATION_TYPE_RESOURCE: return "RESOURCE";
+    case D3D12_DRED_ALLOCATION_TYPE_PASS: return "PASS";
+    case D3D12_DRED_ALLOCATION_TYPE_CRYPTOSESSION: return "CRYPTOSESSION";
+    case D3D12_DRED_ALLOCATION_TYPE_CRYPTOSESSIONPOLICY: return "CRYPTOSESSIONPOLICY";
+    case D3D12_DRED_ALLOCATION_TYPE_PROTECTEDRESOURCESESSION: return "PROTECTEDRESOURCESESSION";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_DECODER_HEAP: return "VIDEO_DECODER_HEAP";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_POOL: return "COMMAND_POOL";
+    case D3D12_DRED_ALLOCATION_TYPE_COMMAND_RECORDER: return "COMMAND_RECORDER";
+    case D3D12_DRED_ALLOCATION_TYPE_STATE_OBJECT: return "STATE_OBJECT";
+    case D3D12_DRED_ALLOCATION_TYPE_METACOMMAND: return "METACOMMAND";
+    case D3D12_DRED_ALLOCATION_TYPE_SCHEDULINGGROUP: return "SCHEDULINGGROUP";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_MOTION_ESTIMATOR: return "VIDEO_MOTION_ESTIMATOR";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_MOTION_VECTOR_HEAP: return "VIDEO_MOTION_VECTOR_HEAP";
+    case D3D12_DRED_ALLOCATION_TYPE_VIDEO_EXTENSION_COMMAND: return "VIDEO_EXTENSION_COMMAND";
+  }
+}
+
+void report_alternate_name(const char *fmt, const char *a_str, const wchar_t *w_str)
+{
+  if (a_str)
+  {
+    logdbg(fmt, a_str);
+  }
+  else if (w_str)
+  {
+    char buf[1024];
+    uint32_t i;
+    for (i = 0; i < 1023 && w_str[i] != L'\0'; ++i)
+      buf[i] = static_cast<char>(w_str[i]);
+    buf[i] = '\0';
+    logdbg(fmt, buf);
+  }
+  else
+  {
+    logdbg(fmt, "NULL");
+  }
+}
+
+void report_allocation_info(const D3D12_DRED_ALLOCATION_NODE *node)
+{
+  if (!node)
+  {
+    logdbg("DX12: No allocation nodes found");
+  }
+  else
+  {
+    for (; node; node = node->pNext)
+    {
+      if (node->ObjectNameA)
+      {
+        logdbg("NODE: %s '%s'", to_string(node->AllocationType), node->ObjectNameA);
+      }
+      else if (node->ObjectNameW)
+      {
+        // TODO replace with proper wide to multi byte string conversion (not really needed?)
+        // simple squash wchar to char
+        char buf[1024];
+        uint32_t i;
+        for (i = 0; i < sizeof(buf) - 1 && node->ObjectNameW[i] != L'\0'; ++i)
+          buf[i] = node->ObjectNameW[i] > 127 ? '.' : node->ObjectNameW[i];
+        buf[i] = '\0';
+        logdbg("NODE: %s '%s'", to_string(node->AllocationType), buf);
+      }
+      else
+      {
+        logdbg("NODE: %s with no name", to_string(node->AllocationType));
+      }
+    }
+  }
+}
+
+void report_page_fault(ID3D12DeviceRemovedExtendedData *dred)
+{
+  logdbg("DX12: Acquiring page fault information from DRED...");
+  D3D12_DRED_PAGE_FAULT_OUTPUT pagefaultInfo = {};
+  if (FAILED(dred->GetPageFaultAllocationOutput(&pagefaultInfo)))
+  {
+    logdbg("DX12: ...failed, no page fault data available");
+    return;
+  }
+
+  logdbg("DX12: Page fault info (DRED):");
+  logdbg("DX12: GPU page fault address %016X", pagefaultInfo.PageFaultVA);
+  logdbg("DX12: Heap existing allocations:");
+  report_allocation_info(pagefaultInfo.pHeadExistingAllocationNode);
+  logdbg("DX12: Heap recently freed allocations:");
+  report_allocation_info(pagefaultInfo.pHeadRecentFreedAllocationNode);
+}
 } // namespace
 
 namespace drv3d_dx12::debug::gpu_postmortem::microsoft
@@ -62,191 +176,17 @@ bool DeviceRemovedExtendedData::try_load(const Configuration &config, const Dire
   return true;
 }
 
-void DeviceRemovedExtendedData::walkBreadcumbs(ID3D12DeviceRemovedExtendedData *dred, call_stack::Reporter &reporter)
-{
-  logdbg("DX12: Acquiring breadcrumb information from DRED...");
-  D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breacrumbInfo = {};
-  if (FAILED(dred->GetAutoBreadcrumbsOutput(&breacrumbInfo)))
-  {
-    logdbg("DX12: ...failed, no breadcrumb data available");
-    return;
-  }
-  walkBreadcumbs(breacrumbInfo.pHeadAutoBreadcrumbNode, reporter);
-}
+void DeviceRemovedExtendedData::beginCommandBuffer(D3DDevice *, D3DGraphicsCommandList *) {}
 
-void DeviceRemovedExtendedData::walkBreadcumbs(const D3D12_AUTO_BREADCRUMB_NODE *node, call_stack::Reporter &reporter)
-{
-  if (!node)
-  {
-    logdbg("No breadcrumb nodes found");
-  }
+void DeviceRemovedExtendedData::endCommandBuffer(D3DGraphicsCommandList *) {}
 
-  CommandListTraceBase::printLegend();
+void DeviceRemovedExtendedData::beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, const eastl::string &) {}
 
-  for (; node; node = node->pNext)
-  {
-    // simple check, if count is the same with last breadcrumb
-    // value, than the cmd buffer was executed completely
-    if (node->BreadcrumbCount == *node->pLastBreadcrumbValue)
-    {
-      logdbg("Command Buffer was executed without error");
-      logdbg("Command Buffer: %p", node->pCommandList);
-      report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      logdbg("Command Queue: %p", node->pCommandQueue);
-      report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
-    }
-    // if last breadcrumb value is 0, then this command buffer was probably never submitted
-    // we report the first command to be sure
-    else if (*node->pLastBreadcrumbValue == 0)
-    {
-      logdbg("Command Buffer execution was likely not started yet");
-      logdbg("Command Buffer: %p", node->pCommandList);
-      report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      logdbg("Command Queue: %p", node->pCommandQueue);
-      report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
-      logdbg("Breadcrumb count: %u", node->BreadcrumbCount);
-      logdbg("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
-      auto &listInfo = commandListTable.getList(node->pCommandList);
-      auto visitorContext = listInfo.beginVisitation();
-      listInfo.reportAsCompleted(visitorContext, node->pCommandHistory[0], reporter);
-    }
-    else
-    {
-      auto &listInfo = commandListTable.getList(node->pCommandList);
-      auto visitorContext = listInfo.beginVisitation();
-      G_UNUSED(listInfo);
+void DeviceRemovedExtendedData::endEvent(D3DGraphicsCommandList *, const eastl::string &) {}
 
-      logdbg("Command Buffer execution incomplete");
-      logdbg("Command Buffer: %p", node->pCommandList);
-      report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      logdbg("Command Queue: %p", node->pCommandQueue);
-      report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
-      logdbg("Breadcrumb count: %u", node->BreadcrumbCount);
-      logdbg("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
+void DeviceRemovedExtendedData::marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
 
-      auto lastValue = *node->pLastBreadcrumbValue;
-      for (uint32_t i = 0; i < lastValue; ++i)
-      {
-        listInfo.reportAsCompleted(visitorContext, node->pCommandHistory[i], reporter);
-      }
-
-      logdbg("~Last known good command~~");
-      listInfo.reportAsLastCompleted(visitorContext, node->pCommandHistory[lastValue], reporter);
-      logdbg("~First may be bad command~");
-
-      for (uint32_t i = lastValue + 1; i < node->BreadcrumbCount; ++i)
-      {
-        // Any of those commands could be the reason for the crash
-        listInfo.reportAsNotCompleted(visitorContext, node->pCommandHistory[i], reporter);
-      }
-    }
-  }
-}
-
-void DeviceRemovedExtendedData::beginCommandBuffer(ID3D12Device *, ID3D12GraphicsCommandList *cmd)
-{
-  commandListTable.beginList(cmd).beginTrace();
-}
-
-void DeviceRemovedExtendedData::endCommandBuffer(ID3D12GraphicsCommandList *cmd)
-{
-  commandListTable.getList(cmd).endTrace();
-  commandListTable.endList(cmd);
-}
-
-void DeviceRemovedExtendedData::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text,
-  const eastl::string &full_path)
-{
-  commandListTable.getList(cmd).beginEvent({}, text, full_path);
-}
-
-void DeviceRemovedExtendedData::endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
-{
-  commandListTable.getList(cmd).endEvent({}, full_path);
-}
-
-void DeviceRemovedExtendedData::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
-{
-  commandListTable.getList(cmd).marker({}, text);
-}
-
-void DeviceRemovedExtendedData::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
-{
-  commandListTable.getList(cmd).draw({}, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance,
-    topology);
-}
-
-void DeviceRemovedExtendedData::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
-  D3D12_PRIMITIVE_TOPOLOGY topology)
-{
-  commandListTable.getList(cmd).drawIndexed({}, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, index_start,
-    vertex_base, first_instance, topology);
-}
-
-void DeviceRemovedExtendedData::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  const BufferResourceReferenceAndOffset &buffer)
-{
-  commandListTable.getList(cmd).drawIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
-}
-
-void DeviceRemovedExtendedData::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  const BufferResourceReferenceAndOffset &buffer)
-{
-  commandListTable.getList(cmd).drawIndexedIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
-}
-
-void DeviceRemovedExtendedData::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
-{
-  commandListTable.getList(cmd).dispatchIndirect({}, debug_info, state, pipeline, buffer);
-}
-
-void DeviceRemovedExtendedData::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &stage, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
-{
-  commandListTable.getList(cmd).dispatch({}, debug_info, stage, pipeline, x, y, z);
-}
-
-void DeviceRemovedExtendedData::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  uint32_t x, uint32_t y, uint32_t z)
-{
-  commandListTable.getList(cmd).dispatchMesh({}, debug_info, vs, ps, pipeline_base, pipeline, x, y, z);
-}
-
-void DeviceRemovedExtendedData::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
-{
-  commandListTable.getList(cmd).dispatchMeshIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
-}
-
-void DeviceRemovedExtendedData::blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd)
-{
-  commandListTable.getList(cmd).blit({}, debug_info);
-}
-
-#if D3D_HAS_RAY_TRACING
-void DeviceRemovedExtendedData::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
-{
-  commandListTable.getList(cmd).dispatchRays({}, debug_info, dispatch_parameters, rbt, rdp);
-}
-
-void DeviceRemovedExtendedData::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
-{
-  commandListTable.getList(cmd).dispatchRaysIndirect({}, debug_info, dispatch_parameters, rbt, rdip);
-}
-#endif
-
-void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
+void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
@@ -261,10 +201,17 @@ void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reaso
     return;
   }
 
-  walkBreadcumbs(dred.Get(), reporter);
   report_page_fault(dred.Get());
 }
 
-void DeviceRemovedExtendedData::onDeviceShutdown() { commandListTable.reset(); }
+void DeviceRemovedExtendedData::onDeviceShutdown() {}
+
+void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+
+void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
+{
+  // technically not correct, when name is a sub-string...
+  resource->SetName(name.data());
+}
 
 } // namespace drv3d_dx12::debug::gpu_postmortem::microsoft

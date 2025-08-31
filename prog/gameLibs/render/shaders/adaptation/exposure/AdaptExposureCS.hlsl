@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 // The group size is 16x16, but one group iterates over an entire 16-wide column of pixels (384 pixels tall)
 // Assuming the total workspace is 640x384, there will be 40 thread groups computing the histogram in parallel.
@@ -142,6 +142,7 @@ void main( uint GI : SV_GroupIndex )
       Exposure[7] = RcpLogRange;
       Exposure[8] = 1.0 / max(0.0001f, smoothedLuminance); // Current exposure without extra factors.
       Exposure[9] = 1.0 / max(0.0001f, autoLuminance); // Target exposure wiithout extra factors.
+      Exposure[10] = currentLuminance;
 
       static const float midGray = 0.18;
       const float normalizationFactor = midGray / (currentLuminance * (1 - midGray) * exposureScale);

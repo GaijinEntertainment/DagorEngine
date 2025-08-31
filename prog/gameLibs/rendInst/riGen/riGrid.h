@@ -58,10 +58,22 @@ DAG_DECLARE_RELOCATABLE(LinearGridMainCell<RiGridObject>);
 
 VECTORCALL RiGridObject rigrid_find_in_box_by_pos(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_box_by_bounding(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred);
+VECTORCALL RiGridObject rigrid_find_in_box_by_bounding_min(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred,
+  float min_radius);
+VECTORCALL RiGridObject rigrid_find_in_box_by_bounding_max(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred,
+  float max_radius);
+VECTORCALL RiGridObject rigrid_find_in_box_by_bounding_pool(const RiGrid &grid_holder, bbox3f bbox, uint32_t pool,
+  const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_sphere_by_pos(const RiGrid &grid_holder, const Point3 &bsphere_c, float radius,
   const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_sphere_by_bounding(const RiGrid &grid_holder, const Point3 &bsphere_c, float radius,
   const RiGridObjPred &pred);
+VECTORCALL RiGridObject rigrid_find_in_sphere_by_bounding_min(const RiGrid &grid_holder, const Point3 &center, float radius,
+  const RiGridObjPred &pred, float min_radius);
+VECTORCALL RiGridObject rigrid_find_in_sphere_by_bounding_max(const RiGrid &grid_holder, const Point3 &center, float radius,
+  const RiGridObjPred &pred, float max_radius);
+VECTORCALL RiGridObject rigrid_find_in_sphere_by_bounding_pool(const RiGrid &grid_holder, const Point3 &bsphere_c, float radius,
+  uint32_t pool, const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_capsule_by_pos(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir, float len,
   float radius, const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_capsule_by_bounding(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir, float len,

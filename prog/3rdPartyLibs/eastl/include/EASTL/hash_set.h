@@ -94,7 +94,7 @@ namespace eastl
 	///
 	/// Example find_as usage (namespaces omitted for brevity):
 	///     hash_set<string> hashSet;
-	///     i = hashSet.find_as("hello", hash<char*>(), equal_to_2<string, char*>());
+	///     i = hashSet.find_as("hello", hash<char*>(), equal_to<>());
 	///
 	template <typename Value, typename Hash = eastl::hash<Value>, typename Predicate = eastl::equal_to<Value>, 
 			  typename Allocator = EASTLAllocatorType, bool bCacheHashCode = false>
@@ -117,8 +117,19 @@ namespace eastl
 		/// hash_set
 		///
 		/// Default constructor.
-		/// 
-		explicit hash_set(const allocator_type& allocator = EASTL_HASH_SET_DEFAULT_ALLOCATOR)
+		///
+		hash_set()
+			: this_type(EASTL_HASH_SET_DEFAULT_ALLOCATOR)
+		{
+			// Empty
+		}
+
+
+		/// hash_set
+		///
+		/// Constructor which creates an empty container with allocator.
+		///
+		explicit hash_set(const allocator_type& allocator)
 			: base_type(0, Hash(), mod_range_hashing(), default_ranged_hash(), Predicate(), eastl::use_self<Value>(), allocator)
 		{
 			// Empty
@@ -131,6 +142,7 @@ namespace eastl
 		/// We default to a small nBucketCount value, though the user really should manually 
 		/// specify an appropriate value in order to prevent memory from being reallocated.
 		///
+		/// note: difference in explicit keyword from the standard.
 		explicit hash_set(size_type nBucketCount, const Hash& hashFunction = Hash(), const Predicate& predicate = Predicate(), 
 						  const allocator_type& allocator = EASTL_HASH_SET_DEFAULT_ALLOCATOR)
 			: base_type(nBucketCount, hashFunction, mod_range_hashing(), default_ranged_hash(), predicate, eastl::use_self<Value>(), allocator)
@@ -138,11 +150,16 @@ namespace eastl
 			// Empty
 		}
 
+		// hash_set(size_type nBucketCount, const allocator_type& allocator)
+		// hash_set(size_type nBucketCount, const Hash& hashFunction, const allocator_type& allocator)
+
 
 		hash_set(const this_type& x)
 		  : base_type(x)
 		{
 		}
+
+		// hash_set(const this_type& x, const allocator_type& allocator)
 
 
 		hash_set(this_type&& x)
@@ -169,6 +186,17 @@ namespace eastl
 			// Empty
 		}
 
+		hash_set(std::initializer_list<value_type> ilist, const allocator_type& allocator)
+			: base_type(ilist.begin(), ilist.end(), 0, Hash(), mod_range_hashing(), default_ranged_hash(), Predicate(), eastl::use_self<Value>(), allocator)
+		{
+			// Empty
+		}
+
+		// hash_set(std::initializer_list<value_type> ilist, size_type nBucketCount, const allocator_type& allocator)
+
+		// hash_set(std::initializer_list<value_type> ilist, size_type nBucketCount, const Hash& hashFunction,
+		// 	const allocator_type& allocator)
+
 
 		/// hash_set
 		///
@@ -182,6 +210,12 @@ namespace eastl
 		{
 			// Empty
 		}
+
+		// template <typename ForwardIterator>
+		// hash_set(ForwardIterator first, ForwardIterator last, size_type nBucketCount, const allocator_type& allocator)
+
+		// template <typename ForwardIterator>
+		// hash_set(ForwardIterator first, ForwardIterator last, size_type nBucketCount, const Hash& hashFunction, const allocator_type& allocator)
 
 
 		this_type& operator=(const this_type& x)
@@ -207,8 +241,9 @@ namespace eastl
 	///
 	/// https://en.cppreference.com/w/cpp/container/unordered_set/erase_if
 	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode, typename UserPredicate>
-	void erase_if(eastl::hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
+	typename eastl::hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>::size_type erase_if(eastl::hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
 	{
+		auto oldSize = c.size();
 		// Erases all elements that satisfy the predicate pred from the container.
 		for (auto i = c.begin(), last = c.end(); i != last;)
 		{
@@ -221,6 +256,7 @@ namespace eastl
 				++i;
 			}
 		}
+		return oldSize - c.size();
 	}
 
 
@@ -265,6 +301,7 @@ namespace eastl
 		/// We default to a small nBucketCount value, though the user really should manually 
 		/// specify an appropriate value in order to prevent memory from being reallocated.
 		///
+		/// note: difference in explicit keyword from the standard.
 		explicit hash_multiset(size_type nBucketCount, const Hash& hashFunction = Hash(), 
 							   const Predicate& predicate = Predicate(), const allocator_type& allocator = EASTL_HASH_MULTISET_DEFAULT_ALLOCATOR)
 			: base_type(nBucketCount, hashFunction, mod_range_hashing(), default_ranged_hash(), predicate, eastl::use_self<Value>(), allocator)
@@ -272,11 +309,16 @@ namespace eastl
 			// Empty
 		}
 
+		// hash_multiset(size_type nBucketCount, const allocator_type& allocator)
+		// hash_multiset(size_type nBucketCount, const Hash& hashFunction, const allocator_type& allocator)
+
 
 		hash_multiset(const this_type& x)
 		  : base_type(x)
 		{
 		}
+
+		// hash_multiset(const this_type& x, const allocator_type& allocator)
 
 
 		hash_multiset(this_type&& x)
@@ -303,6 +345,17 @@ namespace eastl
 			// Empty
 		}
 
+		hash_multiset(std::initializer_list<value_type> ilist, const allocator_type& allocator)
+			: base_type(ilist.begin(), ilist.end(), 0, Hash(), mod_range_hashing(), default_ranged_hash(), Predicate(), eastl::use_self<Value>(), allocator)
+		{
+			// Empty
+		}
+
+		// hash_multiset(std::initializer_list<value_type> ilist, size_type nBucketCount, const allocator_type& allocator)
+
+		// hash_multiset(std::initializer_list<value_type> ilist, size_type nBucketCount, const Hash& hashFunction,
+		// 	const allocator_type& allocator)
+
 
 		/// hash_multiset
 		///
@@ -316,6 +369,12 @@ namespace eastl
 		{
 			// Empty
 		}
+
+		// template <typename ForwardIterator>
+		// hash_multiset(ForwardIterator first, ForwardIterator last, size_type nBucketCount, const allocator_type& allocator)
+
+		// template <typename ForwardIterator>
+		// hash_multiset(ForwardIterator first, ForwardIterator last, size_type nBucketCount, const Hash& hashFunction, const allocator_type& allocator)
 
 
 		this_type& operator=(const this_type& x)
@@ -341,8 +400,9 @@ namespace eastl
 	///
 	/// https://en.cppreference.com/w/cpp/container/unordered_multiset/erase_if
 	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode, typename UserPredicate>
-	void erase_if(eastl::hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
+	typename eastl::hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>::size_type erase_if(eastl::hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& c, UserPredicate predicate)
 	{
+		auto oldSize = c.size();
 		// Erases all elements that satisfy the predicate pred from the container.
 		for (auto i = c.begin(), last = c.end(); i != last;)
 		{
@@ -355,6 +415,7 @@ namespace eastl
 				++i;
 			}
 		}
+		return oldSize - c.size();
 	}
 
 
@@ -386,13 +447,14 @@ namespace eastl
 		return true;
 	}
 
+#if !defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
 	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode>
 	inline bool operator!=(const hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>& a, 
 						   const hash_set<Value, Hash, Predicate, Allocator, bCacheHashCode>& b)
 	{
 		return !(a == b);
 	}
-
+#endif
 
 	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode>
 	inline bool operator==(const hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& a, 
@@ -443,12 +505,14 @@ namespace eastl
 		return true;
 	}
 
+#if !defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
 	template <typename Value, typename Hash, typename Predicate, typename Allocator, bool bCacheHashCode>
 	inline bool operator!=(const hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& a, 
 						   const hash_multiset<Value, Hash, Predicate, Allocator, bCacheHashCode>& b)
 	{
 		return !(a == b);
 	}
+#endif
 
 } // namespace eastl
 

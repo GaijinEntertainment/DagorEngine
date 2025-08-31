@@ -1,10 +1,9 @@
-# .folder.blk
+# `.folder.blk`
 
-## .blk File Types
+## `.blk` File Types
 
 The [`.blk` files](../../dagor-tools/blk/blk.md#blk-file-format) interacting
-with *assets* (all types of resources in *Dagor Engine*) can be categorized
-into:
+with assets (all types of resources in Dagor Engine can be categorized into:
 
 - resource `.<className>.blk` file types – the `.blk` files that process the
   asset itself (extract collision, animation, create destruction, etc.) to
@@ -16,37 +15,38 @@ into:
 We will focus on `.<className>.blk` files in more detail.
 
 ```{seealso}
-For more information on composite files, see [.composit.blk](./composit_blk.md).
+For more information about composite files, see
+[.composit.blk](./composit_blk.md).
 ```
 
-After exporting from *3ds Max*, we usually obtain a `.dag` file or a `.tif` file
+After exporting from 3ds Max, we usually obtain a `.dag` file or a `.tif` file
 in the case of textures. These files are inert and cannot be used without the
 engine's tools, and the engine needs instructions on how to handle them.
 
 This is where `.<className>.blk` files come into play. They define the
 processing parameters for assets, turning them into "virtual" resources. From a
-single `.dag` file, we can generate an level of detail (LOD), collision,
+single `.dag` file, we can generate an Level of Detail (LOD), collision,
 skeleton, and more, provided the necessary objects and properties are included.
 
 The `.<className>.blk` files must be named according to the final resource name
-in the game (in the [*Asset
-Viewer*](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md)) and must
+in the game (in the [Asset
+Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md)) and must
 contain the asset type (`<className>`) in the filename, as it contains semantics
 that are used later in config interpretation.
 
 For example:
 
 - `hangar_watch_tower_d.rendinst.blk` – game resource `hangar_watch_tower_d`
-  (rendinst),
+  (rendinst).
 - `hangar_watch_tower_d.blk` – same as above, but it can be a rendinst or prefab
-  (defined within the file),
-- `hangar_watch_tower_d_collision.collision.blk` – game resource
-  `hangar_watch_tower_d_collision` (collision),
-- `airfield_workshop_a_overlay.tex.blk` – game resource
-  `airfield_workshop_a_overlay` (texture).
+  (defined within the file).
+- `hangar_watch_tower_d_collision.collision.blk` – game resource.
+  `hangar_watch_tower_d_collision` – collision.
+- `airfield_workshop_a_overlay.tex.blk` – game resource.
+  `airfield_workshop_a_overlay` – texture.
 
 To avoid manually creating a `.blk` file for every simple asset, such as `.dag`,
-textures, skeletons, animations, dynamic models, etc., *Dagor* supports a highly
+textures, skeletons, animations, dynamic models, etc., Dagor supports a highly
 flexible system for creating virtual assets.
 
 `.folder.blk` is a type of resource `.<className>.blk` files that process assets
@@ -63,7 +63,7 @@ resources are uniquely named within their type, but it is preferable to have a
 fully unique name.
 ```
 
-## Syntax of .folder.blk
+## Syntax of `.folder.blk`
 
 ### General Principles
 
@@ -83,18 +83,18 @@ for the nearest `.folder.blk` file up the hierarchy.
 
 ```{seealso}
 For more information, see
-[.blk File Format](../../dagor-tools/blk/blk.md#blk-file-format).
+[BLK File Format](../../dagor-tools/blk/blk.md#blk-file-format).
 ```
 
 ## Asset Scanning and Export Rules
 
 ### Basic parameters
 
-- `inherit_rules:b=true\false` – apply the rules from `.folder.blk` higher up
-  the hierarchy.
-- `scan_assets:b=true\false` – scan assets in this directory.
-- `scan_folders:b=true\false` – scan subdirectories in this directory.
-- `exported:b=true\false` – whether the content is exported to the game.
+- `inherit_rules:b=true\false`: apply the rules from `.folder.blk` higher up the
+  hierarchy.
+- `scan_assets:b=true\false`: scan assets in this directory.
+- `scan_folders:b=true\false`: scan subdirectories in this directory.
+- `exported:b=true\false`: whether the content is exported to the game.
 
   ```{important}
   It is highly recommended to use a special directory with checkboxes if you are
@@ -102,74 +102,74 @@ For more information, see
   not include for everyone.
   ```
 
-#### Export{} Block
+#### Export Block: `Export{}`
 
 The export parameters can be specified either directly through names or via
 [special keywords](#special-keywords).
 
 ##### Basic Parameters
 
-- `ddsxTexPack:t=""` – defines the name or texture packs for the current
+- `ddsxTexPack:t=""`: defines the name or texture packs for the current
    directory and all nested directories, unless overridden by another rule,
    possible values: <pack_name>, special keyword.
 
-- `gameResPack:t=""` – defines the name of resource packs for the current
+- `gameResPack:t=""`: defines the name of resource packs for the current
    directory and all nested directories, unless overridden by another rule,
    possible values: <pack_name>, special keyword.
 
-   **Examples:**
+   **Examples**:
 
-   ```
+   ```text
    ddsxTexPack:t="combat_suits.dxp.bin"
    gameResPack:t="combat_suits.grp"
    ```
 
-   ```
+   ```text
    ddsxTexPack:t="*name_src"
    gameResPack:t="*name_src"
    ```
 
 ##### Optional Parameters
 
-- `ddsxTexPackPrefix:t=""` or `gameResPackPrefix:t=""` – defines the prefix
+- `ddsxTexPackPrefix:t=""` or `gameResPackPrefix:t=""`: defines the prefix
   before the package name, possible values: prefix.
 
-  **Example:**
+  **Example**:
 
-   ```
+   ```text
    ddsxTexPackPrefix:t="aircrafts/"
    ```
 
-- `package:t=""` – defines the name of additional resource packs, possible
-  values: <pack_name> or `*` – means put in root pack (default value).
+- `package:t=""`: defines the name of additional resource packs, possible
+  values: <pack_name> or `*` means put in root pack (default value).
 
-  **Examples:**
+  **Examples**:
 
-   ```
+   ```text
    package:t="outer_space"
    ```
 
-   ```
+   ```text
    package:t="*"
    ```
 
 ##### Special Keywords
 
-- `*name_src` – the name of the directory containing the **asset** will be used
+- `*name_src`: the name of the directory containing the **asset** will be used
   as the pack name.
-- `*path_src` – the path to the directory containing the **asset** will be used
+- `*path_src`: the path to the directory containing the **asset** will be used
   as the pack name.
-- `*name` – the name of the directory containing the `.folder.blk` file will be
+- `*name`: the name of the directory containing the `.folder.blk` file will be
   used as the pack name.
-- `*path` – the path to the directory containing the `.folder.blk` file
-  will be used as the pack name.
-- `*parent` – the name of the parent directory will be used as the pack name.
+- `*path`: the path to the directory containing the `.folder.blk` file will be
+  used as the pack name.
+- `*parent`: the name of the parent directory will be used as the pack name.
 
 ##### Explanations
 
 1. For example, for this file structure:
 
-```
+```text
   dir_1
   ├── .folder.blk
   └── dir_2
@@ -230,15 +230,15 @@ The export parameters can be specified either directly through names or via
     }
 ```
 
-#### Virtual Resource Blocks (virtual_res{})
+#### Virtual Resource Block: `virtual_res{}`
 
-Virtual resource blocks (`virtual_res{}`) are used to create assets. They are
+Virtual resource blocks `virtual_res{}` are used to create assets. They are
 applied sequentially from top to bottom within a `.folder.blk` file, and then
 from `.folder.blk` files higher in the directory hierarchy, until a
 `stopProcessing:b=true` directive is encountered or all `.folder.blk` files in
 the hierarchy are processed.
 
-```
+```text
 virtual_res_blk{
   find:t="^(.*)\.dds$"
   exclude:t="^(.*_nm)\.dds$"
@@ -251,15 +251,15 @@ virtual_res_blk{
 
 ##### Key Parameters
 
-- **find**: A regular expression to locate files for which the virtual resource
+- `find`: A regular expression to locate files for which the virtual resource
   `.<className>.blk` will be created.
-- **exclude**: A regular expression for excluding files that match the `find`
+- `exclude`: A regular expression for excluding files that match the `find`
   pattern.
-- **className**: Specifies the type of asset in your project.
-- **name**: The asset's name. By default, this corresponds to the first
-  capturing group in the `find` pattern (`name:t="$1"`). You can construct the
-  name using values from capturing groups ($1 ... $9) and other characters.
-- **stopProcessing**: Defaults to `true`, meaning no further `virtual res blk`
+- `className`: Specifies the type of asset in your project.
+- `name`: The asset's name. By default, this corresponds to the first capturing
+  group in the `find` pattern (`name:t="$1"`). You can construct the name using
+  values from capturing groups ($1 ... $9) and other characters.
+- `stopProcessing`: Defaults to `true`, meaning no further `virtual res blk`
   rules will be applied to the matched file. Set to `false` if you want to
   create multiple assets (e.g., dynamic model, render instance, prefab,
   skeleton, character) from one texture/model.
@@ -267,7 +267,7 @@ virtual_res_blk{
 All other parameters are specified within the `contents{}` block and are
 typically specific to the asset type.
 
-#### Specialized Blocks: content{}, tag{}
+#### Specialized Blocks: `content{}`, `tag{}`
 
 Within the `contents{}` block, you can include specialization blocks based on
 *tags*. Tags are generated from all directory names in the full path to the file
@@ -277,7 +277,7 @@ For example, for `develop/assets/test/warthunder/model/abc.tif`, the tags would
 be `test`, `warthunder`, and `model`. Specialization block names follow the
 format `tag:TTT{}`, such as:
 
-```
+```text
 contents{
   hqMip:i=1
   //...
@@ -321,25 +321,25 @@ subdirectories, not external ones.
 ### Regular Expression Patterns
 
 1. **LOD Files**
-   ```
+   ```text
    find:t="^(.*)\.lod00\.dag$"
    ```
 2. **Texture and Mask Files**
-   ```
+   ```text
    find:t="^((.*_mask)|(.*_tex_m))\.tif$"
    ```
 
 ### Regular Expression Symbols Explained
 
-- `^` : Asserts the position at the start of the line.
-- `.` : Matches any single character except for line terminators.
-- `*` : Matches the preceding element zero or more times.
-- `\` : Escapes the following character, treating it as a literal.
-- `$` : Asserts the position at the end of the line.
+- `^`: Asserts the position at the start of the line.
+- `.`: Matches any single character except for line terminators.
+- `*`: Matches the preceding element zero or more times.
+- `\`: Escapes the following character, treating it as a literal.
+- `$`: Asserts the position at the end of the line.
 
 ### Processing Control
 
-- `stopProcessing:b=false` : Indicates whether to continue processing or
+- `stopProcessing:b=false`: Indicates whether to continue processing or
   reprocess the already found and processed items.
 
 ### Examples
@@ -349,7 +349,7 @@ subdirectories, not external ones.
 To generate renderings from `.lod00.dag` files and create prefabs from them,
 use:
 
-```
+```text
 find:t="^(.*)\.lod00\.dag$"
 ```
 
@@ -358,7 +358,7 @@ find:t="^(.*)\.lod00\.dag$"
 To find and process all files matching `"^(.*_n\.tif$"` and convert them to
 `.dds` format with swizzling, then process all remaining `.tif` files:
 
-```
+```text
 virtual_res_blk{
   find:t="^(.*_n(_dmg|_expl|_inside)?)\.tif$"
   swizzleARGB:t="RAG0"

@@ -150,10 +150,17 @@ static inline bool shader_pass_used(const shaderbindump::ShaderCode::Pass &p)
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
   auto &shOwner = shBinDumpOwner();
 
-  if (p.rpass)
-    if ((p.rpass->vprId == BAD || shOwner.vprId[p.rpass->vprId] >= 0) && (p.rpass->fshId == BAD || shOwner.fshId[p.rpass->fshId] >= 0))
-      return true;
-  return false;
+  if (!p.rpass)
+    return false;
+
+  if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] < 0)
+    return false;
+
+  // TODO: split off csh from fsh in bindump
+  if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] < 0 && shOwner.cshId[p.rpass->fshId] < 0)
+    return false;
+
+  return true;
 }
 
 static uint32_t shader_pass_size(const shaderbindump::ShaderCode::Pass &p)

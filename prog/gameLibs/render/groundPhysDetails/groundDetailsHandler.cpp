@@ -61,7 +61,6 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
   groundPhysDetailsTex.set(
     d3d::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex"),
     "ground_microdetails_tex");
-  groundPhysDetailsTex.getTex2D()->disableSampler();
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -72,6 +71,7 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
   GPUgroundPhysDetailsTex.set(
     d3d::create_tex(NULL, 2 * bufferSize, 2 * bufferSize, TEXCF_RTARGET | TEXFMT_R32F, 1, "GPUground_physdetails_tex"),
     "GPUground_physdetails_tex");
+  ShaderGlobal::set_sampler(::get_shader_variable_id("GPUground_physdetails_tex_samplerstate"), d3d::request_sampler({}));
 
   loadedDisplacement.resize(bufferSize * bufferSize);
   mem_set_0(loadedDisplacement);
@@ -324,7 +324,7 @@ void LandmeshPhysmatsCPU::init(int tex_size, float texel_size, float invalidatio
   worldToPhysmats = Point4(0, 0, 0, 0);
 
   ringTextures.init(bufferSize, bufferSize, 1, "CPU_physmats",
-    TEXFMT_L8 | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
+    TEXFMT_R8 | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
 
   loadedPhysmats.resize(bufferSize * bufferSize);
   mem_set_0(loadedPhysmats);

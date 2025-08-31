@@ -20,6 +20,7 @@ struct AnimationClipAnnotation final : das::ManagedStructureAnnotation<Animation
     addField<DAS_BIND_MANAGED_FIELD(duration)>("duration");
     addField<DAS_BIND_MANAGED_FIELD(tickDuration)>("tickDuration");
     addField<DAS_BIND_MANAGED_FIELD(looped)>("looped");
+    addField<DAS_BIND_MANAGED_FIELD(immediateAnimTreeTimerSync)>("immediateAnimTreeTimerSync");
     addField<DAS_BIND_MANAGED_FIELD(animTreeTimer)>("animTreeTimer");
     addField<DAS_BIND_MANAGED_FIELD(animTreeTimerCycle)>("animTreeTimerCycle");
     addFieldEx("rootMotion", "rootMotion", offsetof(AnimationClip, rootMotion), das::makeType<dag::Vector<RootMotion>>(ml));
@@ -37,6 +38,8 @@ struct AnimationDataBaseAnnotation final : das::ManagedStructureAnnotation<Anima
     addField<DAS_BIND_MANAGED_FIELD(nodeCount)>("nodeCount");
     addField<DAS_BIND_MANAGED_FIELD(trajectorySize)>("trajectorySize");
     addField<DAS_BIND_MANAGED_FIELD(featuresSize)>("featuresSize");
+    addFieldEx("footLockerNodes", "footLockerNodes", offsetof(AnimationDataBase, footLockerNodes),
+      das::makeType<dag::Vector<uint16_t>>(ml));
     addField<DAS_BIND_MANAGED_FIELD(footLockerParamId)>("footLockerParamId");
   }
 };
@@ -61,16 +64,21 @@ struct MotionMatchingControllerAnnotation final : das::ManagedStructureAnnotatio
     addField<DAS_BIND_MANAGED_FIELD(offset)>("offset");
     addField<DAS_BIND_MANAGED_FIELD(currentAnimation)>("currentAnimation");
     addField<DAS_BIND_MANAGED_FIELD(resultAnimation)>("resultAnimation");
+    addField<DAS_BIND_MANAGED_FIELD(perNodeWeights)>("perNodeWeights");
     addField<DAS_BIND_MANAGED_FIELD(currentTags)>("currentTags");
     addField<DAS_BIND_MANAGED_FIELD(useTagsFromAnimGraph)>("useTagsFromAnimGraph");
+    addField<DAS_BIND_MANAGED_FIELD(lastTransitionTime)>("lastTransitionTime");
+    addField<DAS_BIND_MANAGED_FIELD(transitionBlendTime)>("transitionBlendTime");
+    addField<DAS_BIND_MANAGED_FIELD(motionMatchingWeight)>("motionMatchingWeight");
     addField<DAS_BIND_MANAGED_FIELD(playSpeedMult)>("playSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(rootSynchronization)>("rootSynchronization");
     addField<DAS_BIND_MANAGED_FIELD(rootAdjustment)>("rootAdjustment");
+    addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentByFutureTrajectory)>("rootAdjustmentByFutureTrajectory");
     addField<DAS_BIND_MANAGED_FIELD(rootClamping)>("rootClamping");
     addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentVelocityRatio)>("rootAdjustmentVelocityRatio");
-    addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentPosTime)>("rootAdjustmentPosTime");
+    addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentPosHalfLife)>("rootAdjustmentPosHalfLife");
     addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentAngVelocityRatio)>("rootAdjustmentAngVelocityRatio");
-    addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentRotTime)>("rootAdjustmentRotTime");
+    addField<DAS_BIND_MANAGED_FIELD(rootAdjustmentRotHalfLife)>("rootAdjustmentRotHalfLife");
     addField<DAS_BIND_MANAGED_FIELD(rootClampingMaxDistance)>("rootClampingMaxDistance");
     addField<DAS_BIND_MANAGED_FIELD(rootClampingMaxAngle)>("rootClampingMaxAngle");
   }
@@ -81,7 +89,10 @@ struct BoneInertialInfoAnnotation final : das::ManagedStructureAnnotation<BoneIn
   BoneInertialInfoAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("BoneInertialInfo", ml, "BoneInertialInfo")
   {
     addFieldEx("position", "position", offsetof(BoneInertialInfo, position), das::makeType<dag::Vector<das::float4>>(ml));
+    addFieldEx("velocity", "velocity", offsetof(BoneInertialInfo, velocity), das::makeType<dag::Vector<das::float4>>(ml));
     addFieldEx("rotation", "rotation", offsetof(BoneInertialInfo, rotation), das::makeType<dag::Vector<das::float4>>(ml));
+    addFieldEx("angular_velocity", "angular_velocity", offsetof(BoneInertialInfo, angular_velocity),
+      das::makeType<dag::Vector<das::float4>>(ml));
   }
 };
 
@@ -127,6 +138,18 @@ struct FootLockerIKCtrlLegDataAnnotation final : das::ManagedStructureAnnotation
   bool canBePlacedInContainer() const override { return true; }
 };
 
+struct FrameFeaturesAnnotation final : das::ManagedStructureAnnotation<FrameFeatures, false, false>
+{
+  FrameFeaturesAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("FrameFeatures", ml, "FrameFeatures")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(nodeCount)>("nodeCount");
+    addField<DAS_BIND_MANAGED_FIELD(trajectoryPointCount)>("trajectoryPointCount");
+    addField<DAS_BIND_MANAGED_FIELD(featuresSizeInVec4f)>("featuresSizeInVec4f");
+    addField<DAS_BIND_MANAGED_FIELD(trajectorySizeInVec4f)>("trajectorySizeInVec4f");
+  }
+};
+
+
 namespace bind_dascript
 {
 class MotionMatchingModule final : public das::Module
@@ -144,6 +167,7 @@ public:
     addAnnotation(das::make_smart<BoneInertialInfoAnnotation>(lib));
     addAnnotation(das::make_smart<MotionMatchingControllerAnnotation>(lib));
     addAnnotation(das::make_smart<FootLockerIKCtrlLegDataAnnotation>(lib));
+    addAnnotation(das::make_smart<FrameFeaturesAnnotation>(lib));
 
     das::typeFactory<TagPresetVector>::make(lib);
 
@@ -165,6 +189,19 @@ public:
     using method_changePBCWeightOverride = DAS_CALL_MEMBER(AnimationDataBase::changePBCWeightOverride);
     das::addExtern<DAS_CALL_METHOD(method_changePBCWeightOverride)>(*this, lib, "changePBCWeightOverride",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(AnimationDataBase::changePBCWeightOverride));
+    using method_getNodePositionFeature = DAS_CALL_MEMBER(AnimationDataBase::getNodePositionFeature);
+    das::addExtern<DAS_CALL_METHOD(method_getNodePositionFeature)>(*this, lib, "getNodePositionFeature", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(AnimationDataBase::getNodePositionFeature));
+    using method_getNodeVelocityFeature = DAS_CALL_MEMBER(AnimationDataBase::getNodeVelocityFeature);
+    das::addExtern<DAS_CALL_METHOD(method_getNodeVelocityFeature)>(*this, lib, "getNodeVelocityFeature", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(AnimationDataBase::getNodeVelocityFeature));
+    using method_getTrajectoryPositionFeature = DAS_CALL_MEMBER(AnimationDataBase::getTrajectoryPositionFeature);
+    das::addExtern<DAS_CALL_METHOD(method_getTrajectoryPositionFeature)>(*this, lib, "getTrajectoryPositionFeature",
+      das::SideEffects::none, DAS_CALL_MEMBER_CPP(AnimationDataBase::getTrajectoryPositionFeature));
+    using method_getTrajectoryDirectionFeature = DAS_CALL_MEMBER(AnimationDataBase::getTrajectoryDirectionFeature);
+    das::addExtern<DAS_CALL_METHOD(method_getTrajectoryDirectionFeature)>(*this, lib, "getTrajectoryDirectionFeature",
+      das::SideEffects::none, DAS_CALL_MEMBER_CPP(AnimationDataBase::getTrajectoryDirectionFeature));
+
 
     using method_requireTag = DAS_CALL_MEMBER(AnimationFilterTags::requireTag);
     das::addExtern<DAS_CALL_METHOD(method_requireTag)>(*this, lib, "requireTag", das::SideEffects::modifyArgument,
@@ -185,6 +222,15 @@ public:
     using method_playAnimation = DAS_CALL_MEMBER(MotionMatchingController::playAnimation);
     das::addExtern<DAS_CALL_METHOD(method_playAnimation)>(*this, lib, "playAnimation", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(MotionMatchingController::playAnimation));
+    using method_updateAnimationProgress = DAS_CALL_MEMBER(MotionMatchingController::updateAnimationProgress);
+    das::addExtern<DAS_CALL_METHOD(method_updateAnimationProgress)>(*this, lib, "updateAnimationProgress",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(MotionMatchingController::updateAnimationProgress));
+    using method_updateNodeWeights = DAS_CALL_MEMBER(MotionMatchingController::updateNodeWeights);
+    das::addExtern<DAS_CALL_METHOD(method_updateNodeWeights)>(*this, lib, "updateNodeWeights", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(MotionMatchingController::updateNodeWeights));
+    using method_copyPoseFeaturesFromActiveAnimation = DAS_CALL_MEMBER(MotionMatchingController::copyPoseFeaturesFromActiveAnimation);
+    das::addExtern<DAS_CALL_METHOD(method_copyPoseFeaturesFromActiveAnimation)>(*this, lib, "copyPoseFeaturesFromActiveAnimation",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(MotionMatchingController::copyPoseFeaturesFromActiveAnimation));
     using method_getCurrentClip = DAS_CALL_MEMBER(MotionMatchingController::getCurrentClip);
     das::addExtern<DAS_CALL_METHOD(method_getCurrentClip)>(*this, lib, "getCurrentClip", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(MotionMatchingController::getCurrentClip));
@@ -205,6 +251,9 @@ public:
     das::addExtern<DAS_BIND_FUN(commit_feature_weights)>(*this, lib, "commit_feature_weights", das::SideEffects::modifyArgument,
       "commit_feature_weights");
     das::addExtern<DAS_BIND_FUN(get_features_sizes)>(*this, lib, "get_features_sizes", das::SideEffects::none, "get_features_sizes");
+    das::addExtern<DAS_BIND_FUN(motion_matching_update_anim_tree_foot_locker)>(*this, lib,
+      "motion_matching_update_anim_tree_foot_locker", das::SideEffects::modifyArgument,
+      "motion_matching_update_anim_tree_foot_locker");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::anim_state_holder_get_foot_locker_legs)>(*this, lib,
       "anim_state_holder_get_foot_locker_legs", das::SideEffects::worstDefault,
@@ -212,6 +261,8 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::anim_state_holder_iterate_foot_locker_legs_const)>(*this, lib,
       "anim_state_holder_iterate_foot_locker_legs_const", das::SideEffects::worstDefault,
       "bind_dascript::anim_state_holder_iterate_foot_locker_legs_const");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::animation_database_need_lock_foot)>(*this, lib, "animation_database_need_lock_foot",
+      das::SideEffects::none, "bind_dascript::animation_database_need_lock_foot");
     das::addExtern<DAS_BIND_FUN(bind_dascript::get_post_blend_controller_idx)>(*this, lib, "get_post_blend_controller_idx",
       das::SideEffects::none, "bind_dascript::get_post_blend_controller_idx");
     das::addExtern<DAS_BIND_FUN(bind_dascript::simple_spring_damper_exact_q)>(*this, lib, "simple_spring_damper_exact_q",
@@ -220,6 +271,7 @@ public:
     das::addConstant<int>(*this, "TRAJECTORY_DIMENSION", TRAJECTORY_DIMENSION);
     das::addConstant<int>(*this, "NODE_DIMENSION", NODE_DIMENSION);
     das::addConstant<das::float4>(*this, "FORWARD_DIRECTION", FORWARD_DIRECTION);
+    das::addConstant<float>(*this, "TICKS_PER_SECOND", TICKS_PER_SECOND);
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

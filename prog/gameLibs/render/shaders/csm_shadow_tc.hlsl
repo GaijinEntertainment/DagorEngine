@@ -6,7 +6,7 @@
   #define MIN_SHADOW_SIZE 512
 #endif
 
-#define HALF (float3(0.5-2./MIN_SHADOW_SIZE, 0.5-2./MIN_SHADOW_SIZE, 0.5))//0.5-2/512 (512 is our smallest cascade size)
+#define HALF (float3(0.5-2./MIN_SHADOW_SIZE, 0.5-2./MIN_SHADOW_SIZE, 0.5) - 1e-5)//0.5-2/512 (512 is our smallest cascade size)
 
 float3 get_csm_shadow_tc(float3 pointToEye, out uint cascade_id, out float shadowEffect)
 {
@@ -102,10 +102,11 @@ float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out floa
   t1 = (NUM_CASCADES==2) ? t1 + t1_o : t1;
   t2 = (NUM_CASCADES==3) ? t2 + t2_o : t2;
   t3 = (NUM_CASCADES==4) ? t3 + t3_o : t3;
-  bool b3 = NUM_CASCADES > 3 && all(abs(NUM_CASCADES == 4 ? t3 : t3_o + t3 * scale)<HALF);
-  bool b2 = NUM_CASCADES > 2 && all(abs(NUM_CASCADES == 3 ? t2 : t2_o + t2 * scale)<HALF);
-  bool b1 = NUM_CASCADES > 1 && all(abs(NUM_CASCADES == 2 ? t1 : t1_o + t1 * scale)<HALF);
-  bool b0 = NUM_CASCADES > 0 && all(abs(NUM_CASCADES == 1 ? t0 : t0_o + t0 * scale)<HALF);
+  float3 scale3 = float3(scale, scale, 1); // don't shrink frustum depth, it causes popping
+  bool b3 = NUM_CASCADES > 3 && all(abs(NUM_CASCADES == 4 ? t3 : t3_o + t3 * scale3)<HALF);
+  bool b2 = NUM_CASCADES > 2 && all(abs(NUM_CASCADES == 3 ? t2 : t2_o + t2 * scale3)<HALF);
+  bool b1 = NUM_CASCADES > 1 && all(abs(NUM_CASCADES == 2 ? t1 : t1_o + t1 * scale3)<HALF);
+  bool b0 = NUM_CASCADES > 0 && all(abs(NUM_CASCADES == 1 ? t0 : t0_o + t0 * scale3)<HALF);
   t0 = (NUM_CASCADES==1) ? t0 : t0 + t0_o;
   t1 = (NUM_CASCADES==2) ? t1 : t1 + t1_o;
   t2 = (NUM_CASCADES==3) ? t2 : t2 + t2_o;

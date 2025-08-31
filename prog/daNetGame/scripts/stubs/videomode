@@ -5,12 +5,16 @@ return {
   get_monitor_info = @(...) 0
   get_dlss_state = @() 0
   get_xess_state = @() 0
-  get_fsr_supported = @() 0
+  get_fsr2_state = @() 0
   get_low_latency_modes = @() 0
+  is_nvidia_gpu = @() false
+  is_amd_gpu = @() false
+  is_intel_gpu = @() false
   get_performance_display_mode_support = @(...) false
   get_current_window_resolution = @(...) false
   is_dlss_quality_available_at_resolution = @(...) false
   is_xess_quality_available_at_resolution = @(...) false
+  is_dlss_ray_reconstruction_available = @() false
   is_inline_rt_supported = @() false
   is_gui_driver_select_enabled = @() false
   is_dx12 = @() false
@@ -18,6 +22,7 @@ return {
   is_hdr_available = @(...) false
   is_hdr_enabled = @() false
   get_dlssg_support_state = @() false
+  get_dlssg_maximum_number_of_frames_generated = @() 0
   change_paper_white_nits = @(...) null
   change_gamma = @(...) null
   is_vrr_supported = @() false
@@ -27,4 +32,5 @@ return {
   is_only_low_gi_supported = @() false
   set_dlssg_suppressed = @(...) false
   is_hfr_supported = @() false
+  is_rt_supported = @() false
 }

@@ -31,10 +31,15 @@ struct WrapType<D3DRESID>
 {
   enum
   {
-    value = false
+    value = true
   };
   typedef unsigned type;
   typedef unsigned rettype;
+};
+template <>
+struct WrapArgType<D3DRESID>
+{
+  typedef unsigned type;
 };
 
 template <>

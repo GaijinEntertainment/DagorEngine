@@ -33,9 +33,9 @@ class MessagePipe final : public NullMsgPipe, public ILogWriter
 public:
   void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *, const char *asset_src_fpath) override
   {
-    G_STATIC_ASSERT(IDagorAssetMsgPipe::NOTE == ILogWriter::NOTE && IDagorAssetMsgPipe::REMARK == ILogWriter::REMARK &&
-                    IDagorAssetMsgPipe::WARNING == ILogWriter::WARNING && IDagorAssetMsgPipe::ERROR == ILogWriter::ERROR &&
-                    IDagorAssetMsgPipe::FATAL == ILogWriter::FATAL);
+    G_STATIC_ASSERT(IDagorAssetMsgPipe::NOTE == (int)ILogWriter::NOTE && IDagorAssetMsgPipe::REMARK == (int)ILogWriter::REMARK &&
+                    IDagorAssetMsgPipe::WARNING == (int)ILogWriter::WARNING && IDagorAssetMsgPipe::ERROR == (int)ILogWriter::ERROR &&
+                    IDagorAssetMsgPipe::FATAL == (int)ILogWriter::FATAL);
     MessageType msgType = (MessageType)msg_type;
     if (asset_src_fpath)
     {
@@ -211,10 +211,10 @@ void get_asset_dependencies(DagorAsset &asset, Tab<IDagorAssetRefProvider::Ref> 
   {
     if (IDagorAssetRefProvider *refProvider = assetMgr->getAssetRefProvider(asset.getType()))
     {
-      auto refsSrc = refProvider->getAssetRefs(asset);
-      for (const auto &ref : refsSrc)
-        if (ref.getAsset() || ref.getBrokenRef())
-          refs.push_back(ref);
+      refProvider->getAssetRefs(asset, refs);
+      for (int i = refs.size() - 1; i >= 0; i--)
+        if (!refs[i].getAsset() && !refs[i].getBrokenRef())
+          erase_items(refs, i, 1);
     }
   }
 }
@@ -353,6 +353,7 @@ static void track_animchar_assets_es(const AssetChangedEvent &evt,
   AnimV20::AnimcharBaseComponent &animchar,
   AnimV20::AnimcharRendComponent &animchar_render,
   const ecs::string &animchar__res,
+  AnimcharNodesMat44 *animchar_node_wtm,
   bool *animchar__animStateDirty)
 {
   const DagorAsset *changedAsset = evt.get<0>();
@@ -377,6 +378,9 @@ static void track_animchar_assets_es(const AssetChangedEvent &evt,
     animCharSource->baseComp().cloneTo(&animchar, true);
   if (dynModelChanged)
     animCharSource->rendComp().cloneTo(&animchar_render, true, animCharSource->getNodeTree());
+
+  if (animchar_node_wtm && animchar_node_wtm->nwtm.size() != animCharSource->getNodeTree().nodeCount())
+    animchar_node_wtm->onLoaded(*g_entity_mgr, eid);
 
   if (animchar__animStateDirty)
     *animchar__animStateDirty = true;

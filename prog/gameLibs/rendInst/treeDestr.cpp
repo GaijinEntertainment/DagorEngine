@@ -30,13 +30,24 @@ void rendinstdestr::tree_destr_load_from_blk(const DataBlock &blk)
   tree_destr.constraintLimitY = blk.getPoint2("constraintLimitY", Point2(0.f, 0.f));
   tree_destr.canopyLinearDamping = blk.getReal("canopyLinearDamping", 0.9f);
   tree_destr.canopyAngularDamping = blk.getReal("canopyAngularDamping", 0.9f);
+  tree_destr.canopyJointDamping = blk.getReal("canopyJointDamping", 0.5f);
+  tree_destr.treeFriction = blk.getReal("friction", 0.7f);
+  tree_destr.treeDampingLinear = blk.getReal("dampingLinear", 0.4f);
+  tree_destr.treeDampingAngular = blk.getReal("dampingAngular", 0.5f);
+  tree_destr.groundOffsetMul = blk.getReal("groundOffsetMul", 0.05f);
+  tree_destr.groundDamping = blk.getReal("groundDamping", 0.85f);
+  tree_destr.groundJointAngleLimitWhole = blk.getReal("groundJointAngleLimitWhole", tree_destr.groundJointAngleLimitWhole);
+  tree_destr.groundJointAngleLimitBottom = blk.getReal("groundJointAngleLimitBottom", tree_destr.groundJointAngleLimitBottom);
+  tree_destr.groundJointDamping = blk.getReal("groundJointDamping", tree_destr.groundJointDamping);
+  tree_destr.collisionDistLimit = blk.getReal("collisionDistLimit", tree_destr.collisionDistLimit);
+  tree_destr.collisionAngleLimit = blk.getReal("collisionAngleLimit", tree_destr.collisionAngleLimit);
   branch_destr_load_from_blk(tree_destr.branchDestrFromDamage, blk.getBlockByNameEx("branchDestr"));
   tree_destr.branchDestrOther = tree_destr.branchDestrFromDamage;
   branch_destr_load_from_blk(tree_destr.branchDestrOther, blk.getBlockByNameEx("branchDestrOther"));
   read_interpolate_tab_float_p2(tree_destr.radiusToImpulse, *blk.getBlockByNameEx("radiusToImpulse"));
 }
 
-void rendinstdestr::branch_destr_load_from_blk(TreeDestr::BranchDestr &target, const DataBlock *blk)
+void rendinstdestr::branch_destr_load_from_blk(rendinstdestr::BranchDestr &target, const DataBlock *blk)
 {
   if (!blk)
     return;
@@ -45,6 +56,9 @@ void rendinstdestr::branch_destr_load_from_blk(TreeDestr::BranchDestr &target, c
   bool loadingMultipliers = target.multiplierMode;
 
   target.enableBranchDestruction = blk->getBool("enable", loadingMultipliers ? true : target.enableBranchDestruction);
+  target.newPhysics = blk->getBool("newPhysics", loadingMultipliers ? true : target.newPhysics);
+  target.cutInHalfDamageThreshold =
+    blk->getReal("cutInHalfDamageThreshold", loadingMultipliers ? 1.0f : target.cutInHalfDamageThreshold);
   target.impulseMul = blk->getReal("impulseMul", loadingMultipliers ? 1.0f : target.impulseMul);
   target.impulseMin = blk->getReal("impulseMin", loadingMultipliers ? 1.0f : target.impulseMin);
   target.impulseMax = blk->getReal("impulseMax", loadingMultipliers ? 1.0f : target.impulseMax);
@@ -59,16 +73,20 @@ void rendinstdestr::branch_destr_load_from_blk(TreeDestr::BranchDestr &target, c
   target.fallingSpeedRnd = blk->getReal("fallingSpeedRnd", loadingMultipliers ? 1.0f : target.fallingSpeedRnd);
   target.horizontalSpeedMul = blk->getReal("horizontalSpeedMul", loadingMultipliers ? 1.0f : target.horizontalSpeedMul);
   target.maxVisibleDistance = blk->getReal("maxVisibleDistance", loadingMultipliers ? 1.0f : target.maxVisibleDistance);
+  target.fallThroughGroundIfBigger =
+    blk->getReal("fallThroughGroundIfBigger", loadingMultipliers ? 1.0f : target.fallThroughGroundIfBigger);
 }
 
 const rendinstdestr::TreeDestr &rendinstdestr::get_tree_destr() { return tree_destr; }
 rendinstdestr::TreeDestr &rendinstdestr::get_tree_destr_mutable() { return tree_destr; }
 
-void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
+void rendinstdestr::BranchDestr::apply(const BranchDestr &other)
 {
   if (other.multiplierMode)
   {
     enableBranchDestruction = enableBranchDestruction && other.enableBranchDestruction;
+    newPhysics = newPhysics && other.newPhysics;
+    cutInHalfDamageThreshold *= other.cutInHalfDamageThreshold;
     impulseMul *= other.impulseMul;
     impulseMin *= other.impulseMin;
     impulseMax *= other.impulseMax;
@@ -83,10 +101,13 @@ void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
     fallingSpeedRnd *= other.fallingSpeedRnd;
     horizontalSpeedMul *= other.horizontalSpeedMul;
     maxVisibleDistance *= other.maxVisibleDistance;
+    fallThroughGroundIfBigger *= other.fallThroughGroundIfBigger;
   }
   else
   {
     enableBranchDestruction = other.enableBranchDestruction;
+    newPhysics = other.newPhysics;
+    cutInHalfDamageThreshold = other.cutInHalfDamageThreshold;
     impulseMul = other.impulseMul;
     impulseMin = other.impulseMin;
     impulseMax = other.impulseMax;
@@ -101,5 +122,6 @@ void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
     fallingSpeedRnd = other.fallingSpeedRnd;
     horizontalSpeedMul = other.horizontalSpeedMul;
     maxVisibleDistance = other.maxVisibleDistance;
+    fallThroughGroundIfBigger = other.fallThroughGroundIfBigger;
   }
 }

@@ -6,9 +6,9 @@
 
 static void patch_cond_tokens(const char *stage, ShaderTerminal::bool_expr &e);
 
-bool_expr *parse_pp_condition(const char *stage, char *str, int len, const char *fname, int line)
+bool_expr *parse_pp_condition(const char *stage, char *str, int len, const char *fname, int line, shc::TargetContext &ctx)
 {
-  bool_expr *s = ShaderParser::parse_condition(str, len, fname, line);
+  bool_expr *s = ShaderParser::parse_condition(str, len, fname, line, ctx);
   if (!s)
     return nullptr;
 

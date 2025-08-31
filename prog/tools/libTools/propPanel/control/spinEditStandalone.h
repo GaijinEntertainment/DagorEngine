@@ -22,6 +22,9 @@ public:
   void setMinMaxStepValue(float in_min, float in_max, float in_step);
   void setPrecValue(int in_precision);
 
+  bool isTextInputFocused() const { return textInputFocused; }
+  void sendWcChangeIfVarChanged(WindowControlEventHandler &event_handler);
+
   // The size of the two spin buttons not including the space before it.
   static ImVec2 getSpinButtonsSize();
 
@@ -42,7 +45,6 @@ private:
   bool spinButtons(float &step_multiplier, const String *tooltip, const void *tooltip_owner);
   void setValueInternal(float value);
   float correctBounds(float value);
-  void sendWcChangeIfVarChanged(WindowControlEventHandler &event_handler);
   void onTextChanged();
 
   String textValue;

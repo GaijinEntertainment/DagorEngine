@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "heightmapDebugES.cpp.inl"
 ECS_DEF_PULL_VAR(heightmapDebug);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc heightmap_debug_invalidate_views_es_comps[] =
 {

@@ -96,22 +96,22 @@ static void do_init_indexes(dag::ConstSpan<MessageRouting> tx_routings)
 namespace event
 {
 
-void init_server()
+void init_server(ecs::EntityManager *mgr)
 {
   MessageRouting srvr = ROUTING_SERVER_TO_CLIENT;
   do_init_indexes(make_span_const(&srvr, 1));
   update_esd_event_set(make_span_const(&srvr, 1));
-  if (g_entity_mgr)
-    g_entity_mgr->resetEsOrder();
+  if (mgr)
+    mgr->resetEsOrder();
 }
 
-void init_client()
+void init_client(ecs::EntityManager *mgr)
 {
   MessageRouting clr[] = {ROUTING_CLIENT_TO_SERVER, ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER};
   do_init_indexes(make_span_const(clr));
   update_esd_event_set(make_span_const(clr));
-  if (g_entity_mgr)
-    g_entity_mgr->resetEsOrder();
+  if (mgr)
+    mgr->resetEsOrder();
 }
 
 void shutdown()

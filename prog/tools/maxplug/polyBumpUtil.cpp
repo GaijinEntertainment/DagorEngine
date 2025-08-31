@@ -47,9 +47,9 @@ public:
   bool selected_faces;
   int map_channel;
   PolyBumpUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
   void update_ui() { update_poly_ui(); }
   void update_vars() { update_poly_vars(); }
   void update_poly_dist_ui();
@@ -66,8 +66,8 @@ public:
 
   void build_normal_map();
   void build_normal_map(BitArray *facesel, Face *face, int numf, Point3 *vert, int numv, TVFace *tf, Point3 *tv, FaceNGr *facengr,
-    Point3 *vertnorm, Matrix3 &ltm, int wd, int ht, unsigned int *pixels, class Mesh &hm, Matrix3 &tm, real fordist, real backdist,
-    bool nearest, real backw, int expands, INode *high);
+    Point3 *vertnorm, const Matrix3 &ltm, int wd, int ht, unsigned int *pixels, class Mesh &hm, const Matrix3 &tm, real fordist,
+    real backdist, bool nearest, real backw, int expands, INode *high);
 
   // Compute per-vertex normal in 3dsMax way
   void select_highpoly_model();
@@ -80,16 +80,20 @@ static PolyBumpUtil util;
 class PolyBumpUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &util; }
-  const TCHAR *ClassName() { return GetString(IDS_POLYBUMPUTIL_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &util; }
+  const TCHAR *ClassName() override { return GetString(IDS_POLYBUMPUTIL_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return PolyBumpUtil_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return PolyBumpUtil_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
 };
 
 //== save bump params
@@ -811,9 +815,9 @@ bool PolyBumpUtil::BrowseOutFile(TSTR &file)
   ofn.lpstrFilter = fl;
   ofn.nFilterIndex = 1;
   ofn.lpstrTitle = cap_str;
-  ofn.lpstrFileTitle = _T("");
+  ofn.lpstrFileTitle = (PTCHAR) _T("");
   ofn.nMaxFileTitle = 0;
-  ofn.lpstrInitialDir = _T("");
+  ofn.lpstrInitialDir = (PTCHAR) _T("");
   ofn.Flags = OFN_HIDEREADONLY;
   // ofn.lpstrDefExt=_T("tga");
 
@@ -1269,35 +1273,35 @@ public:
     norm = normal;
     view = orgview;
   }
-  BOOL InMtlEditor() { return TRUE; }
-  int Antialias() { return TRUE; }
-  int ProjType() { return 0; }
-  LightDesc *Light(int n) { return NULL; }
-  TimeValue CurTime() { return curtime; }
-  INode *Node() { return node; }
-  Object *GetEvalObject()
+  BOOL InMtlEditor() override { return TRUE; }
+  int Antialias() override { return TRUE; }
+  int ProjType() override { return 0; }
+  LightDesc *Light(int n) override { return NULL; }
+  TimeValue CurTime() override { return curtime; }
+  INode *Node() override { return node; }
+  Object *GetEvalObject() override
   {
     if (!node)
       return NULL;
     return node->EvalWorldState(curtime).obj;
   }
-  Point3 BarycentricCoords() { return bary; }
-  int FaceNumber() { return face; }
-  Point3 Normal() { return norm; }
-  void SetNormal(Point3 p) { norm = p; }
-  Point3 OrigNormal() { return normal; }
-  float Curve() { return curve; }
-  Point3 GNormal() { return facenorm; }
-  Point3 CamPos() { return Point3(0, 0, 0); }
-  Point3 V() { return view; }
-  void SetView(Point3 p) { view = p; }
-  Point3 OrigView() { return orgview; }
-  Point3 ReflectVector()
+  Point3 BarycentricCoords() override { return bary; }
+  int FaceNumber() override { return face; }
+  Point3 Normal() override { return norm; }
+  void SetNormal(Point3 p) override { norm = p; }
+  Point3 OrigNormal() override { return normal; }
+  float Curve() override { return curve; }
+  Point3 GNormal() override { return facenorm; }
+  Point3 CamPos() override { return Point3(0, 0, 0); }
+  Point3 V() override { return view; }
+  void SetView(Point3 p) override { view = p; }
+  Point3 OrigView() override { return orgview; }
+  Point3 ReflectVector() override
   {
     float VN = -DotProd(view, norm);
     return Normalize(2.0f * VN * norm + view);
   }
-  Point3 RefractVector(float ior)
+  Point3 RefractVector(float ior) override
   {
     Point3 N = Normal();
     float VN, nur, k;
@@ -1317,21 +1321,21 @@ public:
       return (nur * VN - sqrtf(k)) * N + nur * view;
     }
   }
-  Point3 P() { return pt; }
-  Point3 DP() { return dpt; }
-  void DP(Point3 &dx, Point3 &dy)
+  Point3 P() override { return pt; }
+  Point3 DP() override { return dpt; }
+  void DP(Point3 &dx, Point3 &dy) override
   {
     dx = dpt_dx;
     dy = dpt_dy;
   }
-  Point3 PObj() { return pt; } // *cam2obj
-  Point3 DPObj()
+  Point3 PObj() override { return pt; } // *cam2obj
+  Point3 DPObj() override
   {
     // return VectorTransform(dpt,cam2obj);
     return dpt;
   }
-  Box3 ObjectBox() { return objbox; }
-  Point3 PObjRelBox()
+  Box3 ObjectBox() override { return objbox; }
+  Point3 PObjRelBox() override
   {
     Point3 w = objbox.Width() * .5f, c = objbox.Center();
     Point3 p = PObj();
@@ -1340,7 +1344,7 @@ public:
     p.z = (p.z - c.z) / w.z;
     return p;
   }
-  Point3 DPObjRelBox()
+  Point3 DPObjRelBox() override
   {
     Point3 w = objbox.Width() * .5f;
     Point3 p = DPObj();
@@ -1349,26 +1353,26 @@ public:
     p.z = (p.z) / w.z;
     return p;
   }
-  void ScreenUV(Point2 &uv, Point2 &duv)
+  void ScreenUV(Point2 &uv, Point2 &duv) override
   {
     uv = Point2(0.f, 0.f);
     duv = Point2(0.f, 0.f);
   }
-  IPoint2 ScreenCoord() { return IPoint2(0, 0); }
-  Point3 UVW(int ch)
+  IPoint2 ScreenCoord() override { return IPoint2(0, 0); }
+  Point3 UVW(int ch) override
   {
     gettv(ch);
     return tv[ch][0] * bary[0] + tv[ch][1] * bary[1] + tv[ch][2] * bary[2];
   }
-  Point3 DUVW(int ch)
+  Point3 DUVW(int ch) override
   {
     gettv(ch);
     return (pabs(tv[ch][1] - tv[ch][0]) + pabs(tv[ch][2] - tv[ch][0])) * .5f * sz_ratio;
   }
-  int BumpBasisVectors(Point3 dP[2], int axis, int channel) { return 0; }
-  Point3 UVWNormal(int channel = 0) { return 0; }
+  int BumpBasisVectors(Point3 dP[2], int axis, int channel) override { return 0; }
+  Point3 UVWNormal(int channel = 0) override { return 0; }
 
-  void DPdUVW(Point3 dP[3], int ch)
+  void DPdUVW(Point3 dP[3], int ch) override
   {
     gettv(ch);
     Point3 bvec[3];
@@ -1376,12 +1380,12 @@ public:
     for (int i = 0; i < 3; ++i)
       dP[i] = Normalize(bvec[i]);
   }
-  void GetBGColor(Color &co, Color &tr, int fogBG)
+  void GetBGColor(Color &co, Color &tr, int fogBG) override
   {
     co.Black();
     tr.Black();
   }
-  Point3 PointTo(const Point3 &p, RefFrame ito)
+  Point3 PointTo(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -1393,7 +1397,7 @@ public:
     }
     return p;
   }
-  Point3 PointFrom(const Point3 &p, RefFrame ito)
+  Point3 PointFrom(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -1405,7 +1409,7 @@ public:
     }
     return p;
   }
-  Point3 VectorTo(const Point3 &p, RefFrame ito)
+  Point3 VectorTo(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -1417,7 +1421,7 @@ public:
     }
     return p;
   }
-  Point3 VectorFrom(const Point3 &p, RefFrame ito)
+  Point3 VectorFrom(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -1435,8 +1439,8 @@ public:
 
 
 void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Point3 *vert, int numv, TVFace *tf, Point3 *tv,
-  FaceNGr *facengr, Point3 *vertnorm, Matrix3 &lowtm, int reswd, int resht, unsigned int *respixels, class Mesh &hm,
-  class Matrix3 &htm, real fordist, real backdist, bool nearest, real backw, int expands, INode *high)
+  FaceNGr *facengr, Point3 *vertnorm, const Matrix3 &lowtm, int reswd, int resht, unsigned int *respixels, class Mesh &hm,
+  const Matrix3 &htm, real fordist, real backdist, bool nearest, real backw, int expands, INode *high)
 {
 
   Point3 lowtm_scale(Length(lowtm.GetRow(0)), Length(lowtm.GetRow(1)), Length(lowtm.GetRow(2)));
@@ -1776,7 +1780,8 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
   TimeValue time = ip->GetTime();
   if (mtl)
   {
-    mtl->Update(time, FOREVER);
+    Interval lv_FOREVER = FOREVER;
+    mtl->Update(time, lv_FOREVER);
     if (mtl->IsMultiMtl())
     {
       for (int i = 0; i < mtl->NumSubMtls(); ++i)
@@ -1784,14 +1789,14 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
         Mtl *submtl = mtl->GetSubMtl(i);
         if (!submtl)
           continue;
-        submtl->Update(time, FOREVER);
+        submtl->Update(time, lv_FOREVER);
         Class_ID cid = submtl->ClassID();
         if (cid == Class_ID(DMTL_CLASS_ID, 0) && !((StdMat *)submtl)->MapEnabled(ID_BU))
         {
           continue;
         }
         Texmap *btex = submtl->GetSubTexmap(ID_BU);
-        btex->Update(time, FOREVER);
+        btex->Update(time, lv_FOREVER);
         btex->LoadMapFiles(time);
       }
     }
@@ -1801,7 +1806,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
       if (cid != Class_ID(DMTL_CLASS_ID, 0) || ((StdMat *)mtl)->MapEnabled(ID_BU))
       {
         Texmap *btex = mtl->GetSubTexmap(ID_BU);
-        btex->Update(time, FOREVER);
+        btex->Update(time, lv_FOREVER);
         btex->LoadMapFiles(time);
       }
     }

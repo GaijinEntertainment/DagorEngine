@@ -123,8 +123,15 @@ public:
     ftFlags = 0;
     clear_and_shrink(data);
   }
-  bool resizeFont(int ht, bool force_auto_hint)
+  bool resizeFont(int ht, bool force_auto_hint, DagorFontBinDump *f = nullptr, int ttf_nid = -1)
   {
+    if (!face)
+    {
+      G_ASSERTF(f && ttf_nid >= 0, "f=%p ttf_nid=%d", f, ttf_nid);
+      openTTF(String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttf_nid)), true);
+      f->appendFontHt(ht, this, /*read_locked*/ true);
+    }
+
     ftFlags = force_auto_hint ? FT_LOAD_FORCE_AUTOHINT : 0;
     if (ht == curHt)
     {
@@ -214,6 +221,15 @@ int DagorFontBinDump::dynFontTexSize = 1;
 static Tab<DagorFreeTypeFontRec> ttfRec;
 bool DagorFontBinDump::reqCharGenChanged = false, DagorFontBinDump::reqCharGenReset = false;
 
+static dag::Vector<bool> ttfRecLoadAtInit; // filled with zeroes by default
+static void setTtfLoadAtInit(int ttf_nid)
+{
+  if (ttfRecLoadAtInit.size() <= ttf_nid)
+    ttfRecLoadAtInit.resize(ttf_nid + 1);
+  ttfRecLoadAtInit[ttf_nid] = true;
+}
+static bool getTtfLoadAtInit(int ttf_nid) { return ttf_nid < ttfRecLoadAtInit.size() ? ttfRecLoadAtInit[ttf_nid] : false; }
+
 void DagorFontBinDump::reqCharGen(wchar_t ch, unsigned font_ht)
 {
   if (!dynGrp.size() && !isFullyDynamicFont())
@@ -263,7 +279,7 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
   uint8_t *dest = NULL;
   int dest_stride = 0;
   Tab<DynamicAtlasTexUpdater::CopyRec> copy_rects(framemem_ptr());
-  bool useRUB = d3d::get_driver_code().is(d3d::vulkan);
+  bool useRUB = d3d::get_driver_code().is(d3d::vulkan || d3d::dx12);
   if (!useRUB)
     copy_rects.reserve(list.size());
 
@@ -771,11 +787,14 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
   return true;
 }
 
+static constexpr uint16_t MSK_SUBDIV = 0x10000u / 64u;
+static constexpr uint16_t RNG_SUBDIV = 0x10000u / DagorFontBinDump::FontData::AFR_SUBDIV_CNT;
 inline uint16_t *DagorFontBinDump::FontData::getEffFontIdxPtr(wchar_t c) const
 {
-  if ((addFontMask >> (c / 0x400)) & 1)
+  if ((addFontMask >> (c / MSK_SUBDIV)) & 1)
   {
-    for (uint16_t *r = wcRangePair.data() + addFontRange[0], *r_e = wcRangePair.data() + addFontRange[1]; r < r_e; r += 2)
+    for (uint16_t *r = wcRangePair.data() + addFontRange[c / RNG_SUBDIV], *r_e = wcRangePair.data() + addFontRange[AFR_SUBDIV_CNT];
+         r < r_e; r += 2)
       if (c < r[0])
         break;
       else if (c <= r[1])
@@ -812,6 +831,9 @@ DagorFontBinDump::ScopeHBuf::~ScopeHBuf() DAG_TS_RELEASE_SHARED(DagorFontBinDump
 void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int font_ht, const wchar_t *str, int len, int *out_fgidx)
   DAG_TS_REQUIRES_SHARED(DagorFontBinDump::fontRwLock)
 {
+  DagorFreeTypeFontRec &ttf = ttfRec[dfont.ttfNid];
+  ttf.resizeFont(font_ht, dfont.forceAutoHint, this, dfont.ttfNid); // this can load font if it was not loaded on init (lazy-load)
+
   hb_buffer_set_length(buf, 0);
 #if (WCHAR_MAX + 0) == 0xffff || (WCHAR_MAX + 0) == 0x7fff // sizeof(wchar_t) == 2
   G_STATIC_ASSERT(sizeof(wchar_t) == sizeof(uint16_t));
@@ -823,8 +845,6 @@ void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int
 #error dynfont_prepare_str() unsupported wchar_t implementation!
 #endif
 
-  DagorFreeTypeFontRec &ttf = ttfRec[dfont.ttfNid];
-  ttf.resizeFont(font_ht, dfont.forceAutoHint);
   {
     TIME_PROFILE_DEV(harfbuzz_shape);
     hb_shape(ttf.font, buf, NULL, 0);
@@ -1126,6 +1146,14 @@ int DagorFontBinDump::appendFontHt(unsigned ht, DagorFreeTypeFontRec *ttf, bool 
     idx = append_items(dfont.fontGlyphs, 1);
     dfont.fontHt.push_back(ht);
     ttf->fillFontMetrics(dfont.fontMx.push_back());
+    if (dfont.fontHt.size() == 1) // first init
+    {
+      fontHt = dfont.fontHt[0];
+      fontCapsHt = dfont.fontMx[0].capsHt;
+      ascent = dfont.fontMx[0].ascent;
+      descent = dfont.fontMx[0].descent;
+      lineSpacing = dfont.fontMx[0].lineSpacing;
+    }
   }
 
   if (read_locked) // re-lock
@@ -1139,8 +1167,7 @@ void DagorFontBinDump::DynamicFontAtlas::prepareTex(int idx)
 {
   if (tex)
     return;
-  tex = (Texture *)d3d::create_tex(NULL, hist.size(), hist.size(), TEXFMT_L8 | TEXCF_MAYBELOST | TEXCF_UPDATE_DESTINATION, 1,
-    "dynFontAtlas");
+  tex = (Texture *)d3d::create_tex(NULL, hist.size(), hist.size(), TEXFMT_R8 | TEXCF_UPDATE_DESTINATION, 1, "dynFontAtlas");
   texId = register_managed_tex(String(0, "dynFontAtlas%d", idx), tex);
   if (d3d::is_stub_driver()) // we don't want doing useless concurrent lock along with gen_sys_tex
     return;
@@ -1155,6 +1182,10 @@ void DagorFontBinDump::DynamicFontAtlas::prepareTex(int idx)
     tex->unlockimg();
   }
 }
+
+extern "C" void (*freetype_logerr)(const char *);
+void freetype_logerr_impl(const char *err) { logwarn("freetype error: '%s'", err); }
+
 void DagorFontBinDump::initDynFonts(int tex_cnt, int tex_sz, const char *path_prefix)
 {
   dynFontTexSize = tex_sz;
@@ -1165,6 +1196,7 @@ void DagorFontBinDump::initDynFonts(int tex_cnt, int tex_sz, const char *path_pr
     mem_set_0(dynFontTex[i].hist);
   }
 
+  freetype_logerr = freetype_logerr_impl;
   FT_Init_FreeType(&ft_lib);
   ttf_path_prefix = path_prefix;
   DagorFreeTypeFontRec::hb_lang = hb_language_from_string("ru", -1);
@@ -1180,6 +1212,7 @@ void DagorFontBinDump::termDynFonts()
   clear_and_shrink(add_font);
   clear_and_shrink(dynFontTex);
   clear_and_shrink(ttfRec);
+  clear_and_shrink(ttfRecLoadAtInit);
   ttfNames.clear();
   ttfNames.shrink_to_fit();
   hb_buffer_destroy(DagorFreeTypeFontRec::main_hb_buf);
@@ -1233,7 +1266,7 @@ void DagorFontBinDump::InscriptionsAtlas::init(const DataBlock &b)
     }
   }
 
-  DynamicAtlasTex::init(sz, b.getInt("inscriptionsCountReserve", 1024), -2, "inscriptionsAtlas", TEXFMT_L8 | TEXCF_UPDATE_DESTINATION);
+  DynamicAtlasTex::init(sz, b.getInt("inscriptionsCountReserve", 1024), -2, "inscriptionsAtlas", TEXFMT_R8 | TEXCF_UPDATE_DESTINATION);
 
   if (!inscr_atlas.isInited())
     return;
@@ -1242,7 +1275,7 @@ void DagorFontBinDump::InscriptionsAtlas::init(const DataBlock &b)
   new (&ctx(), _NEW_INPLACE) StdGuiRender::GuiContext();
   if (blurShader.init("gui_blur_gui", false))
   {
-    texBlurred.set(d3d::create_tex(NULL, texSz.x / 4, texSz.y / 4, TEXFMT_L8 | TEXCF_RTARGET, 1, "inscriptionsAtlasBlurred"),
+    texBlurred.set(d3d::create_tex(NULL, texSz.x / 4, texSz.y / 4, TEXFMT_R8 | TEXCF_RTARGET, 1, "inscriptionsAtlasBlurred"),
       "$inscriptionsAtlasBlurred");
     texBlurredSampler = d3d::request_sampler({});
     ctx().createBuffer(0, &blurShader, qpf_max, 0, "inscr.buf.blur");
@@ -1392,8 +1425,9 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
 
   ttfNid = ttfNames.addNameId(desc.getStr("baseFont"));
   forceAutoHint = desc.getBool("forceAutoHint", true);
-  addFontRange[0] = addFontRange[1] = 0;
+  memset(addFontRange, 0, sizeof(addFontRange));
   addFontMask = 0;
+  setTtfLoadAtInit(ttfNid);
 
   for (int i = 0, add_idx = 0, nid_addFont = desc.getNameId("addFont"); i < desc.blockCount(); i++)
     if (desc.getBlock(i)->getBlockNameId() == nid_addFont)
@@ -1444,6 +1478,8 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
         bin.dfont.pixHt = 0;
         bin.dfont.initialPixHt = 0;
         G_ASSERTF((add_font_idx & WCRFI_FONT_MASK) == add_font_idx, "add_font_idx=%d", add_font_idx);
+        if (!b2.getBool("lazyLoad", false))
+          setTtfLoadAtInit(bin.dfont.ttfNid);
       }
       G_ASSERTF((add_idx << WCRFI_ADDIDX_SHR) < 0x10000, "add_idx=%d", add_idx);
       add_font_idx |= (add_idx << WCRFI_ADDIDX_SHR);
@@ -1488,24 +1524,39 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
         mem_eq(tmp_fs, wcRangeFontScl.data() + k / 2))
     {
       addFontRange[0] = k;
-      addFontRange[1] = k + tmp_r.size();
+      addFontRange[AFR_SUBDIV_CNT] = k + tmp_r.size();
       break;
     }
-  if (tmp_r.size() && !addFontRange[1])
+  if (tmp_r.size() && !addFontRange[AFR_SUBDIV_CNT])
   {
     addFontRange[0] = append_items(wcRangePair, tmp_r.size(), tmp_r.data());
-    addFontRange[1] = wcRangePair.size();
+    addFontRange[AFR_SUBDIV_CNT] = wcRangePair.size();
     append_items(wcRangeFontIdx, tmp_fi.size(), tmp_fi.data());
     append_items(wcRangeFontScl, tmp_fs.size(), tmp_fs.data());
   }
 
-  for (int i = addFontRange[0]; i < addFontRange[1]; i += 2)
+  for (unsigned i = 1, e = addFontRange[AFR_SUBDIV_CNT]; i < AFR_SUBDIV_CNT; i++)
+    addFontRange[i] = e;
+  for (unsigned i = addFontRange[0], ie = addFontRange[AFR_SUBDIV_CNT]; i < ie; i += 2)
   {
     static const uint64_t ff = ~uint64_t(0);
-    addFontMask |= (ff << (wcRangePair[i + 0] / 0x400)) & (ff >> (63 - wcRangePair[i + 1] / 0x400));
+    addFontMask |= (ff << (wcRangePair[i + 0] / MSK_SUBDIV)) & (ff >> (63 - wcRangePair[i + 1] / MSK_SUBDIV));
     // debug("range[%2d]=%04X..%04X -> %16llx  fontIdx=%4X  scale=%.1f", i, wcRangePair[i+0], wcRangePair[i+1],
-    //   (ff << (wcRangePair[i+0]/0x400)) & (ff >> (63-wcRangePair[i+1]/0x400)), wcRangeFontIdx[i/2], wcRangeFontScl[i/2]);
+    //   (ff << (wcRangePair[i+0]/MSK_SUBDIV)) & (ff >> (63-wcRangePair[i+1]/MSK_SUBDIV)), wcRangeFontIdx[i/2], wcRangeFontScl[i/2]);
+    for (unsigned p = wcRangePair[i + 0] / RNG_SUBDIV, pe = wcRangePair[i + 1] / RNG_SUBDIV; p <= pe; p++)
+      if (addFontRange[p] > i)
+        addFontRange[p] = i;
   }
+  /*
+  debug("font(%s): addFontMask=0x%08X%08X (addFontRange=%d..%d, %d pairs)", desc.getStr("baseFont"), //
+    uint32_t(addFontMask >> 32), uint32_t(addFontMask), addFontRange[0], addFontRange[AFR_SUBDIV_CNT],
+    (addFontRange[AFR_SUBDIV_CNT] - addFontRange[0]) / 2);
+  if (addFontMask)
+    for (unsigned i = 0; i < AFR_SUBDIV_CNT; i++)
+      if (addFontRange[i] < addFontRange[AFR_SUBDIV_CNT])
+        debug("  ofs: %d: [0x%04x..0x%04x] 0x%04x", addFontRange[i], wcRangePair[addFontRange[i]], wcRangePair[addFontRange[i] + 1],
+          i * RNG_SUBDIV);
+  */
 }
 void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int scr_ht)
 {
@@ -1575,6 +1626,8 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
     if (frec.curHt < 0)
     {
       int ttfNid = &frec - ttfRec.data();
+      if (!getTtfLoadAtInit(ttfNid))
+        continue;
       String fn;
 #if _TARGET_PC_WIN
       const char *fname = ttfNames.getName(ttfNid);
@@ -1620,11 +1673,6 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
   {
     DagorFontBinDump &bin = fonts[i];
     bin.appendFontHt(bin.dfont.pixHt);
-    bin.fontHt = bin.dfont.fontHt[0];
-    bin.fontCapsHt = bin.dfont.fontMx[0].capsHt;
-    bin.ascent = bin.dfont.fontMx[0].ascent;
-    bin.descent = bin.dfont.fontMx[0].descent;
-    bin.lineSpacing = bin.dfont.fontMx[0].lineSpacing;
     // debug("%d: ht=%d ascent=%d descent=%d linesp=%d capsHt=%d spaceWd=%d baseFontData[%d].dynGrp.count=%d",
     //   bin.name.get(), bin.fontHt, bin.ascent, bin.descent, bin.lineSpacing, bin.fontCapsHt, bin.dfont.fontMx[0].spaceWd,
     //   bin.dfont.bfDataIdx, baseFontData[bin.dfont.bfDataIdx].dynGrp.size());
@@ -1634,17 +1682,14 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
   for (int i = prev_add_fonts_count; i < add_font.size(); i++)
   {
     DagorFontBinDump &bin = add_font[i];
-    bin.appendFontHt(bin.dfont.initialPixHt = bin.dfont.pixHt = 32);
-    bin.fontHt = bin.dfont.fontHt[0];
-    bin.fontCapsHt = bin.dfont.fontMx[0].capsHt;
-    bin.ascent = bin.dfont.fontMx[0].ascent;
-    bin.descent = bin.dfont.fontMx[0].descent;
-    bin.lineSpacing = bin.dfont.fontMx[0].lineSpacing;
-
     // clear font height array
     bin.dfont.fontGlyphs.clear();
     bin.dfont.fontHt.clear();
     bin.dfont.fontMx.clear();
+
+    if (!ttfRec[bin.dfont.ttfNid].face) // skip additional fonts that marked as lazy-load
+      continue;
+    bin.appendFontHt(bin.dfont.initialPixHt = bin.dfont.pixHt = 32);
   }
   strboxcache::priCache.bb.reserve(strboxcache::DEF_CACHE_SIZE - strboxcache::priCache.bb.size());
   DEBUG_DUMP_VAR(strboxcache::priCache.bb.capacity());

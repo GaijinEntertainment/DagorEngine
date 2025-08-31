@@ -21,8 +21,11 @@ THE SOFTWARE.
 ****************************************************************************/
 #include "TIN.h"
 #include "Util.h"
+#include <cmath>
 #include <map>
 #include <set>
+
+using std::abs;
 
 namespace ctl {
 

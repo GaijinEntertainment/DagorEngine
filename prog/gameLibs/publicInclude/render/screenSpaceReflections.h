@@ -6,7 +6,7 @@
 
 #include <shaders/dag_postFxRenderer.h>
 #include <math/dag_TMatrix4.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <render/viewDependentResource.h>
 #include <render/subFrameSample.h>
 #include <generic/dag_carray.h>
@@ -62,6 +62,7 @@ protected:
   SSRQuality quality;
   bool ownTextures;
   bool denoiser;
+  bool isHistoryValid = true;
 
   void updateSamplers() const;
 
@@ -85,6 +86,7 @@ public:
   void enablePrevTarget(int num_views);
   void disablePrevTarget();
   void updatePrevTarget();
+  void setHistoryValid(bool valid);
 
   SSRQuality getQuality() const { return quality; }
   void changeDynamicResolution(int new_width, int new_height);

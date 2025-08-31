@@ -1,13 +1,11 @@
+import "utf8" as utf8
 from "%darg/ui_imports.nut" import *
 from "math" import min, max
-
-let utf8 = require("utf8")
-
 let mkAnimation = function(delay) {
   let trigger = {}
   let totalD = delay+0.3
   return [
-    { prop=AnimProp.translate, from=[0,-sh(30)], to=[0,0], duration=0.2, easing=InCubic, play=true, delay}
+    { prop=AnimProp.translate, from=static [0,-sh(30)], to=static [0,0], duration=0.2, easing=InCubic, play=true, delay}
 //    { prop=AnimProp.opacity, from=0, to=1, duration=0.3, easing=InCubic, trigger}
     { prop=AnimProp.opacity, from=0, to=1, duration=totalD, easing=function(t) {
         let ct = t*totalD
@@ -18,7 +16,7 @@ let mkAnimation = function(delay) {
         return s*s
       }, play=true, onFinish = trigger}
 
-    { prop=AnimProp.translate, from=[0,0], to=[0,sh(20)], duration=0.2, easing=InCubic, playFadeOut=true, delay=delay/2}
+    { prop=AnimProp.translate, from=static [0,0], to=static [0,sh(20)], duration=0.2, easing=InCubic, playFadeOut=true, delay=delay/2}
     { prop=AnimProp.opacity, from=1, to=0, duration=0.18, easing=InCubic, playFadeOut=true, delay=delay/2}
   //  { prop=AnimProp.opacity, from=1, to=1, duration=delay/2, easing=OutCubic, playFadeOut=true}
   ]
@@ -39,13 +37,13 @@ let show = Watched(true)
 function mkAnimText(txt) {
   let ut = utf8(txt)
   let chars = []
-  for(local i=1; i <= ut.charCount(); i++){
+  for (local i=1; i <= ut.charCount(); i++){
     chars.append(ut.slice(i-1, i))
   }
   return @(){
     flow  = FLOW_HORIZONTAL
     watch = show
-    children = show.value ? chars.map(mkAnim) : null
+    children = show.get() ? chars.map(mkAnim) : null
   }
 }
 
@@ -56,7 +54,7 @@ function root() {
     flow = FLOW_VERTICAL
     size=flex()
     behavior = Behaviors.Button
-    onClick = @() dlog(show.value) ?? show(!show.value)
+    onClick = @() dlog(show.get()) ?? show.modify(@(v) !v)
     children = mkAnimText("Выживи. Убей. Прославься!")
   }
 }

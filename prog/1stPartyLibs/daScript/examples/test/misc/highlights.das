@@ -1,4 +1,5 @@
-def main()
+options gen2
+def main() {
     foobar
     foobar()
     /*
@@ -13,14 +14,16 @@ def main()
     let there = "
         multi line string
     "
-    for t in range("a")
+    for (t in range("a")) {
         let a =     foobar()
         let b =     foobar()
         let c =     foobar()
         let d =     foobar()
+    }
     // let t <- {{ "one" => 1 }}
     // find(t,"one") <| $ ( __a )
     //  pass
+}
 //  .   .   .   .   .   .   .   .   .   .
 
 

@@ -74,7 +74,6 @@ static void imgui(GlobalManager &globalManager, HeightmapManager &self)
           ImGui::BulletText("Tile world size: %f", grid.tileWorldSize);
           ImGui::BulletText("Grid world range: %f", grid.tileWorldSize * xMax);
           ImGui::BulletText("Lower level: %d", grid.lowerLevel);
-          ImGui::BulletText("Use dynamic allocation: %s", grid.useDynamicAllocation ? "yes" : "no");
           for (const auto [variantIndex, variant] : enumerate(grid.variants))
             if (ImGui::TreeNode(reinterpret_cast<void *>(variantIndex), "Variant #%zu", variantIndex))
             {
@@ -103,7 +102,8 @@ static void imgui(GlobalManager &globalManager, HeightmapManager &self)
                       showMD("Yaw", placeable.params.yawRadiansMidDev);
                       showMD("Pitch", placeable.params.pitchRadiansMidDev);
                       showMD("Roll", placeable.params.rollRadiansMidDev);
-                      ImGui::BulletText("Slope factor: %f", placeable.params.slopeFactor);
+                      ImGui::BulletText("Slope start: %f", placeable.params.slopeMin);
+                      ImGui::BulletText("Slope end: %f", placeable.params.slopeMax);
                       for (const auto [rangeIndex, range] : enumerate(placeable.ranges))
                         if (ImGui::TreeNode(reinterpret_cast<void *>(rangeIndex), "Range #%zu: D=%f rID=%" PRIu32, rangeIndex,
                               range.baseDrawDistance, range.rId))

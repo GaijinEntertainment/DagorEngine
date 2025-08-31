@@ -49,6 +49,9 @@ typedef const class GameResourceDummyHandleType *GameResHandle;
 
 void set_no_gameres_factory_fatal(bool no_factory_fatal);
 
+// Set log level for "undefined res" case in addReqResListReferences
+void set_gameres_undefined_res_loglevel(int8_t level);
+
 // Get resource (load if not loaded), increment its reference counter.
 GameResource *get_game_resource(GameResHandle handle);
 GameResource *get_game_resource(GameResHandle handle, bool no_factory_fatal);

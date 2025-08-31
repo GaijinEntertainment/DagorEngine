@@ -14,6 +14,7 @@
 #if _TARGET_APPLE
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include <mach/machine.h>
 #elif _TARGET_PC_LINUX
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -217,6 +218,110 @@ TargetPlatform get_platform_id_by_string(const char *name)
 
 const char *get_platform_string_id() { return get_platform_string_by_id(get_platform_id()); }
 
+const char *get_host_platform_string()
+{
+#if _TARGET_PC_WIN
+  return "windows";
+#elif _TARGET_PC_LINUX
+  return "linux";
+#elif _TARGET_PC_MACOSX
+  return "macOS";
+#elif _TARGET_IOS
+  return "iOS";
+#elif _TARGET_TVOS
+  return "tvOS";
+#elif _TARGET_ANDROID
+  return "android";
+#elif _TARGET_XBOXONE
+  return "xboxOne";
+#elif _TARGET_SCARLETT
+  return "scarlett";
+#elif _TARGET_C1
+
+#elif _TARGET_C2
+
+#elif _TARGET_C3
+
+#else
+  return "?";
+#endif
+}
+const char *get_host_arch_string()
+{
+#if _TARGET_PC_WIN
+  OSVERSIONINFOEXW osvi;
+  ZeroMemory(&osvi, sizeof(osvi));
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+
+  SYSTEM_INFO si;
+  GetNativeSystemInfo(&si);
+  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64)
+    return "arm64";
+
+  static BOOL(WINAPI * is_wow64_process2)(HANDLE hProcess, USHORT * pProcessMachine, USHORT * pNativeMachine) = nullptr;
+  if (!is_wow64_process2)
+    reinterpret_cast<FARPROC &>(is_wow64_process2) = GetProcAddress(GetModuleHandleA("kernel32"), "IsWow64Process2");
+
+  USHORT procMach = 0, nativeMach = 0;
+  if (is_wow64_process2 && is_wow64_process2(GetCurrentProcess(), &procMach, &nativeMach))
+  {
+    if (nativeMach == 0xAA64)
+      return "arm64";
+    if (nativeMach == 0x8664)
+      return "x86_64";
+  }
+
+  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+    return "x86_64";
+  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
+    return "x86";
+
+#elif _TARGET_PC_LINUX
+#if __e2k__
+  return "e2k";
+#elif defined(__x86_64__) || defined(_M_X64)
+  return "x86_64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+  return "arm64";
+#elif defined(__arm__) || defined(_M_ARM)
+  return "arm";
+#elif defined(__i386__) || defined(_M_IX86)
+  return "x86";
+#endif
+
+#elif _TARGET_PC_MACOSX
+  uint32_t cputype = 0;
+  size_t size = sizeof(cputype);
+  if (sysctlbyname("hw.cputype", &cputype, &size, NULL, 0) == 0)
+  {
+    if (cputype == (CPU_ARCH_ABI64 | CPU_TYPE_ARM))
+      return "arm64";
+
+    uint32_t proc_translated = 0;
+    size = sizeof(proc_translated);
+    if (sysctlbyname("sysctl.proc_translated", &proc_translated, &size, NULL, 0) != 0)
+      proc_translated = 0;
+
+    if (cputype == CPU_TYPE_X86 && proc_translated)
+      return "arm64";
+
+    return "x86_64";
+  }
+
+#else
+#if _TARGET_64BIT && _TARGET_SIMD_SSE
+  return "x86_64";
+#elif _TARGET_64BIT && _TARGET_SIMD_NEON
+  return "arm64";
+#elif !_TARGET_64BIT && _TARGET_SIMD_SSE
+  return "x86";
+#elif !_TARGET_64BIT && _TARGET_SIMD_NEON
+  return "armv7";
+#endif
+#endif
+  return "?";
+}
+
 void *get_console_window_handle()
 {
 #if _TARGET_PC_WIN
@@ -308,9 +413,8 @@ bool is_debugger_present()
   }
   return false;
 #elif _TARGET_APPLE
-                                               // kinfo_proc structure is conditionalized by _APPLE_API_UNSTABLE,
-                                               // so we should restrict use it to debug build only
 #if DAGOR_DBGLEVEL > 0
+  // kinfo_proc structure is conditionalized by _APPLE_API_UNSTABLE, so we should restrict use it to debug build only
   int junk;
   int mib[4];
   struct kinfo_proc info;

@@ -5,14 +5,12 @@
 #include <util/dag_multicastEvent.h>
 #include <EASTL/fixed_function.h>
 #include <vecmath/dag_vecMathDecl.h>
-#include <dag/dag_vectorMap.h>
-#include <render/daBfg/bfg.h>
-#include <render/dynamicShadowRenderExtensions.h>
+#include <render/daFrameGraph/daFG.h>
 
 class DynamicShadowRenderExtender
 {
 public:
-  using DeclarationCallback = void(dabfg::Registry registry);
+  using DeclarationCallback = void(dafg::Registry registry);
   using ExecutionCallback = void(int updateIndex, int viewIndex);
 
   struct Extension
@@ -43,7 +41,7 @@ public:
   };
 
   [[nodiscard]] Handle registerExtension(Extension &&extension);
-  void declareAll(dabfg::Registry registry);
+  void declareAll(dafg::Registry registry);
   void executeAll(int updateIndex, int viewIndex);
 
   using OnInvalidate = void();

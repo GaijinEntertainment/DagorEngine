@@ -32,6 +32,19 @@ struct IsSpan<eastl::span<T>> : eastl::true_type
 
 namespace drv3d_dx12::debug
 {
+
+class CommandListSizeTracker
+{
+  bool empty = true;
+
+protected:
+  void markCmdListAsFilled() { empty = false; }
+  void markCmdListAsEmpty() { empty = true; }
+
+public:
+  bool isEmpty() const { return empty; }
+};
+
 enum class DX12_COMMAND_LOG_ITEM_TYPE : uint32_t
 {
 #define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) TYPE,
@@ -139,8 +152,7 @@ private:
     switch (cmd_type)
     {
 #define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) \
-  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE:               \
-    return COMMAND_NAME;
+  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE: return COMMAND_NAME;
 #include <command_list_cmd.inc.h>
 #undef DX12_HARDWARE_COMMAND
       default: D3D_ERROR("Unknown command type %d", (int)cmd_type); return "Unknown";
@@ -349,7 +361,18 @@ private:
   template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
   static AnyCommandItemType decode_command(const unsigned char *args)
   {
-    return CommandLogItem<command_type, ARG_TYPE...>(decode_argument<ARG_TYPE>(args)...);
+    eastl::tuple<ARG_TYPE...> decodedArgs;
+    // Use outer lambda to create <0, 1, 2, ... sizeof...(ARG_TYPE) - 1> list L
+    [&]<size_t... Is>(eastl::index_sequence<Is...>) {
+      // Use inner lambda to call decode_argument for each element in L
+      // Use operator , in lambda to ensure that decode_argument is called from left to right.
+      ([&]() { eastl::get<Is>(decodedArgs) = decode_argument<ARG_TYPE>(args); }(), ...);
+    }(eastl::make_index_sequence<sizeof...(ARG_TYPE)>{});
+
+    // unwrap decodedArgs to create CommandLogItem
+    return eastl::apply(
+      [](ARG_TYPE &&...decoded_args) { return CommandLogItem<command_type, ARG_TYPE...>(eastl::forward<ARG_TYPE>(decoded_args)...); },
+      eastl::move(decodedArgs));
   }
 
   static AnyCommandItemType decode_command(const unsigned char *ptr)
@@ -359,8 +382,7 @@ private:
     switch (cmdType)
     {
 #define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) \
-  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE:               \
-    return decode_command<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>(args);
+  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE: return decode_command<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>(args);
 #include <command_list_cmd.inc.h>
 #undef DX12_HARDWARE_COMMAND
       default:
@@ -370,7 +392,7 @@ private:
   }
 };
 
-class CommandLogStorage
+class CommandLogStorage : public CommandListSizeTracker
 {
 public:
   eastl::optional<eastl::span<const unsigned char>> getCommands() const
@@ -380,17 +402,22 @@ public:
 
 protected:
   template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
-  auto logCommand(ARG_TYPE... args)
-    -> decltype(AnyCommandItemType{eastl::declval<CommandLogItem<command_type, ARG_TYPE...>>()}, void())
+  auto logCommand(ARG_TYPE... args) -> decltype(AnyCommandItemType{eastl::declval<CommandLogItem<command_type, ARG_TYPE...>>()},
+                                      void())
   {
     const uint32_t commandSize = full_log_item_size<command_type>(args...);
     uint32_t offset = commandsLogs.size();
     commandsLogs.resize(offset + commandSize);
     writeToByteStream(command_type, offset);
     (writeToByteStream(args, offset), ...);
+    markCmdListAsFilled();
   }
 
-  void reset() { commandsLogs.clear(); }
+  void reset()
+  {
+    commandsLogs.clear();
+    markCmdListAsEmpty();
+  }
 
 private:
   template <class ARG_TYPE>
@@ -422,16 +449,18 @@ public:
   static constexpr void dump_commands_to_log(const eastl::optional<eastl::span<const unsigned char>> &) {}
 };
 
-class CommandLogStorage
+class CommandLogStorage : public CommandListSizeTracker
 {
 public:
   eastl::optional<eastl::span<const unsigned char>> getCommands() const { return {}; }
 
 protected:
   template <DX12_COMMAND_LOG_ITEM_TYPE, class... ARG_TYPE>
-  constexpr void logCommand(ARG_TYPE...)
-  {}
-  constexpr void reset() {}
+  void logCommand(ARG_TYPE...)
+  {
+    markCmdListAsFilled();
+  }
+  void reset() { markCmdListAsEmpty(); }
 };
 
 } // namespace null
@@ -647,6 +676,11 @@ public:
   void iaSetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *view)
   {
     logCommand<DX12_COMMAND_LOG_ITEM_TYPE::IA_SET_INDEX_BUFFER>(view ? eastl::optional{*view} : eastl::nullopt);
+  }
+
+  void soSetTargets(UINT start_slot, UINT num_views, const D3D12_STREAM_OUTPUT_BUFFER_VIEW * /*views*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::SO_SET_TARGETS>(start_slot, num_views /*, views*/);
   }
 
 #if !_TARGET_XBOXONE

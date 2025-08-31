@@ -393,6 +393,22 @@ void EntityObj::recreateObject(ObjectEditor *objEd)
   removedEntComps.reset();
 }
 
+bool EntityObj::canTransformFreely() const
+{
+  const ecs::EntityId *parentEid = g_entity_mgr->getNullable<ecs::EntityId>(getEid(), ECS_HASH("hierarchy_parent"));
+  return !parentEid || !*parentEid || g_entity_mgr->has(getEid(), ECS_HASH("hierarchy_parent_last_transform"));
+}
+
+EntityObj *EntityObj::getParentObject()
+{
+  const ecs::EntityId *parentEid = g_entity_mgr->getNullable<ecs::EntityId>(getEid(), ECS_HASH("hierarchy_parent"));
+  if (!parentEid || !*parentEid)
+    return nullptr;
+
+  EditableObject *parentObject = static_cast<EntityObjEditor *>(getObjEditor())->getObjectByEid(*parentEid);
+  return RTTI_cast<EntityObj>(parentObject);
+}
+
 RendInstObj::RendInstObj(const rendinst::RendInstDesc &d) : riDesc(d)
 {
   setWtm(rendinst::getRIGenMatrix(riDesc)); //-V1053

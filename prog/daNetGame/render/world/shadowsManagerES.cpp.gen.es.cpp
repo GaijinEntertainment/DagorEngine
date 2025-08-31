@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "shadowsManagerES.cpp.inl"
 ECS_DEF_PULL_VAR(shadowsManager);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc shadows_settings_tracking_es_comps[] =
 {
@@ -28,7 +30,8 @@ static ecs::EntitySystemDesc shadows_settings_tracking_es_es_desc
   make_span(shadows_settings_tracking_es_comps+0, 1)/*ro*/,
   make_span(shadows_settings_tracking_es_comps+1, 3)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  ecs::EventSetBuilder<ChangeRenderFeatures,
+                       OnRenderSettingsReady>::build(),
   0
 ,nullptr,"render_settings__combinedShadows,render_settings__forwardRendering,render_settings__ssssQuality,render_settings__waterQuality",nullptr,"ssss_settings_tracking_es");
 static constexpr ecs::ComponentDesc update_world_bbox_es_comps[] =
@@ -64,7 +67,8 @@ static ecs::EntitySystemDesc update_world_bbox_es_es_desc
 ,nullptr,nullptr,nullptr,"rendinst_move_es,rendinst_with_handle_move_es");
 static constexpr ecs::ComponentDesc init_shadows_es_comps[] =
 {
-//start of 1 rq components at [0]
+//start of 2 rq components at [0]
+  {ECS_HASH("render_settings__enableRTSM"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("render_settings__shadowsQuality"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void init_shadows_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -80,11 +84,34 @@ static ecs::EntitySystemDesc init_shadows_es_es_desc
   ecs::EntitySystemOps(nullptr, init_shadows_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(init_shadows_es_comps+0, 1)/*rq*/,
+  make_span(init_shadows_es_comps+0, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__shadowsQuality");
+,"render","render_settings__enableRTSM,render_settings__shadowsQuality",nullptr,"bvh_render_settings_changed_es");
+static constexpr ecs::ComponentDesc init_vsm_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("render_settings__enableRTSM"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void init_vsm_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  init_vsm_es(evt
+        );
+}
+static ecs::EntitySystemDesc init_vsm_es_es_desc
+(
+  "init_vsm_es",
+  "prog/daNetGame/render/world/shadowsManagerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, init_vsm_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(init_vsm_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render","render_settings__enableRTSM",nullptr,"bvh_render_settings_changed_es");
 static constexpr ecs::ComponentDesc use_rgba_fmt_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]

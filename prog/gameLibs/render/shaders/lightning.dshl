@@ -42,6 +42,7 @@ macro INIT_LIGHTNING()
 endmacro
 
 macro LIGHTNING_VS()
+  USE_UNPACK_UNIT_VECTOR_VS()
   hlsl(vs) {
     #include "noise/Value1D.hlsl"
 
@@ -61,7 +62,7 @@ macro LIGHTNING_VS()
       float3 worldDu;
       float3 worldDv;
       float3 worldNormal;
-      float3 localNormal = input.normal.xyz;
+      float3 localNormal = unpack_unit_vector(input.normal.xyz);
 
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       instance_skinning(

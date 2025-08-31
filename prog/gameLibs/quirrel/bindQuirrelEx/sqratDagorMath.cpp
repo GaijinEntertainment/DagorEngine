@@ -2,6 +2,7 @@
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqModules/sqModules.h>
+#include <sqext.h>
 
 #include <sqrat.h>
 
@@ -12,7 +13,7 @@
 #include <math/integer/dag_IPoint4.h>
 #include <3d/dag_render.h>
 #include <memory/dag_framemem.h>
-
+#include <math/dag_catmullRom.h>
 
 inline Point3 sq_matrix_to_euler(const TMatrix &tm)
 {
@@ -343,6 +344,116 @@ static SQInteger tmatrix_ctor(HSQUIRRELVM vm)
 }
 
 
+template <typename T>
+static SQInteger raw_float_setstate(HSQUIRRELVM vm)
+{
+  G_STATIC_ASSERT(sizeof(T) % sizeof(float) == 0);
+
+  SQInteger top = sq_gettop(vm);
+  if (top != 2 && top != 3)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 1 or 2 expected", top - 1);
+
+  if (!Sqrat::check_signature<T *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<T *> obj(vm, 1);
+  Sqrat::Var<Sqrat::Array> arr(vm, 2);
+  SQInteger arrSize = sq_getsize(vm, 2);
+
+  const int count = sizeof(T) / sizeof(float);
+  if (count != arrSize)
+    return sqstd_throwerrorf(vm, "raw_float_setstate: invalid data size = %d bytes, expected %d", int(arrSize * sizeof(float)),
+      int(sizeof(T)));
+
+  float *ptr = (float *)obj.value;
+
+  for (int i = 0; i < count; i++)
+    ptr[i] = arr.value.GetValue<float>(i);
+
+  return 0;
+}
+
+template <typename T>
+static SQInteger raw_float_getstate(HSQUIRRELVM vm)
+{
+  G_STATIC_ASSERT(sizeof(T) % sizeof(float) == 0);
+
+  SQInteger top = sq_gettop(vm);
+  if (top != 1 && top != 2)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 1 or 2 expected", top - 1);
+
+  if (!Sqrat::check_signature<T *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<T *> obj(vm, 1);
+  float *ptr = (float *)obj.value;
+
+  const int count = sizeof(T) / sizeof(float);
+  Sqrat::Array result(vm, count);
+
+  for (int i = 0; i < count; i++)
+    result.SetValue(i, SQFloat(ptr[i]));
+
+  Sqrat::PushVar(vm, result);
+  return 1;
+}
+
+
+template <typename T>
+static SQInteger raw_int32_setstate(HSQUIRRELVM vm)
+{
+  G_STATIC_ASSERT(sizeof(T) % sizeof(int32_t) == 0);
+
+  SQInteger top = sq_gettop(vm);
+  if (top != 2 && top != 3)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 1 or 2 expected", top - 1);
+
+  if (!Sqrat::check_signature<T *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<T *> obj(vm, 1);
+  Sqrat::Var<Sqrat::Array> arr(vm, 2);
+  SQInteger arrSize = sq_getsize(vm, 2);
+
+  const int count = sizeof(T) / sizeof(int32_t);
+  if (count != arrSize)
+    return sqstd_throwerrorf(vm, "raw_int32_setstate: invalid data size = %d bytes, expected %d", int(arrSize * sizeof(int32_t)),
+      int(sizeof(T)));
+
+  int32_t *ptr = (int32_t *)obj.value;
+
+  for (int i = 0; i < count; i++)
+    ptr[i] = arr.value.GetValue<int32_t>(i);
+
+  return 0;
+}
+
+template <typename T>
+static SQInteger raw_int32_getstate(HSQUIRRELVM vm)
+{
+  G_STATIC_ASSERT(sizeof(T) % sizeof(int32_t) == 0);
+
+  SQInteger top = sq_gettop(vm);
+  if (top != 1 && top != 2)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 1 or 2 expected", top - 1);
+
+  if (!Sqrat::check_signature<T *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<T *> obj(vm, 1);
+  int32_t *ptr = (int32_t *)obj.value;
+
+  const int count = sizeof(T) / sizeof(int32_t);
+  Sqrat::Array result(vm, count);
+
+  for (int i = 0; i < count; i++)
+    result.SetValue(i, ptr[i]);
+
+  Sqrat::PushVar(vm, result);
+  return 1;
+}
+
+
 static SQInteger quat_ctor(HSQUIRRELVM vm)
 {
   SQInteger top = sq_gettop(vm);
@@ -462,6 +573,54 @@ static SQInteger color4_ctor(HSQUIRRELVM vm)
   return 0;
 }
 
+static SQInteger catmull_rom_2d_ctor(HSQUIRRELVM vm)
+{
+  SQInteger top = sq_gettop(vm);
+  if (top != 1)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 0 expected", top - 1);
+
+  CatmullRomSplineBuilder2D *obj = new CatmullRomSplineBuilder2D();
+  Sqrat::ClassType<CatmullRomSplineBuilder2D>::SetManagedInstance(vm, 1, obj);
+  return 0;
+}
+
+static SQInteger catmull_rom_2d_build(HSQUIRRELVM vm)
+{
+  SQInteger top = sq_gettop(vm);
+  // arguments: this, points, [is_closed, tension]
+  if (top < 2 || top > 4)
+    return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 1..3 expected", top - 1);
+
+  if (!Sqrat::check_signature<CatmullRomSplineBuilder2D *>(vm))
+    return SQ_ERROR;
+
+  CatmullRomSplineBuilder2D *obj = Sqrat::Var<CatmullRomSplineBuilder2D *>(vm, 1).value;
+
+  SQBool isClosed = false;
+  if (top >= 3)
+    G_VERIFY(SQ_SUCCEEDED(sq_getbool(vm, 3, &isClosed)));
+
+  float tension = 0.0f;
+  if (top >= 4)
+    G_VERIFY(SQ_SUCCEEDED(sq_getfloat(vm, 4, &tension)));
+
+  Sqrat::Var<Sqrat::Array> sqPoints(vm, 2);
+  SQInteger nPts = sq_getsize(vm, 2) / 2;
+
+  Tab<Point2> keyPoints(framemem_ptr());
+  keyPoints.resize(nPts);
+
+  if (sq_ext_get_array_floats(sqPoints.value.GetObject(), 0, nPts * 2, &keyPoints[0].x) != SQ_OK)
+    return sq_throwerror(vm, "Failed to parse points");
+
+  if (nPts < 2)
+    return sq_throwerror(vm, "At least 2 points are required");
+
+  bool result = obj->build(keyPoints, isClosed, tension);
+  sq_pushbool(vm, result);
+  return 1;
+}
+
 
 void sqrat_bind_dagor_math(SqModules *module_mgr)
 {
@@ -482,6 +641,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_sub", op_sub<Point2>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Point2>, 2, "xx|n")
     .SquirrelFunc("_unm", op_unm<Point2>, 1, "x")
+    .SquirrelFunc("__setstate", raw_float_setstate<Point2>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Point2>, -1, "x.")
     /**/;
 
   /// @class Point3
@@ -499,6 +660,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_mul", op_mul<Point3>, 2, "xx|n")
     .SquirrelFunc("_modulo", op_cross<Point3>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<Point3>, 1, "x")
+    .SquirrelFunc("__setstate", raw_float_setstate<Point3>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Point3>, -1, "x.")
     /**/;
 
   /// @class DPoint3
@@ -511,6 +674,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Func("lengthSq", &DPoint3::lengthSq)
     .Func("length", &DPoint3::length)
     .Func("normalize", &DPoint3::normalize)
+    .SquirrelFunc("__setstate", raw_int32_setstate<DPoint3>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_int32_getstate<DPoint3>, -1, "x.")
     /**/;
 
   /// @class Point4
@@ -528,6 +693,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_mul", op_mul<Point4>, 2, "xx|n")
     .SquirrelFunc("_modulo", op_cross<Point4>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<Point4>, 1, "x")
+    .SquirrelFunc("__setstate", raw_float_setstate<Point4>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Point4>, -1, "x.")
     /**/;
 
   /// @class TMatrix
@@ -545,6 +712,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .GlobalFunc("inverse", (TMatrix(*)(const TMatrix &))inverse)
     .SquirrelFunc("_get", tm_getcol, 2, "x")
     .SquirrelFunc("getcol", tm_getcol, 2, "x")
+    .SquirrelFunc("__setstate", raw_float_setstate<TMatrix>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<TMatrix>, -1, "x.")
     /**/;
 
   /// @class Quat
@@ -559,6 +728,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_mul", op_mul_tm<Quat, Point3>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<Quat>, 1, "x")
     .Func("normalize", &Quat::normalize)
+    .SquirrelFunc("__setstate", raw_float_setstate<Quat>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Quat>, -1, "x.")
     /**/;
 
   /// @class IPoint2
@@ -570,6 +741,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_add", op_add<IPoint2>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<IPoint2>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<IPoint2>, 1, "x")
+    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint2>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint2>, -1, "x.")
     /**/;
 
   /// @class IPoint3
@@ -582,6 +755,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_add", op_add<IPoint3>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<IPoint3>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<IPoint3>, 1, "x")
+    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint3>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint3>, -1, "x.")
     /**/;
 
   /// @class IPoint4
@@ -595,6 +770,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_add", op_add<IPoint4>, 2, "xx")
     .SquirrelFunc("_sub", op_sub<IPoint4>, 2, "xx")
     .SquirrelFunc("_unm", op_unm<IPoint4>, 1, "x")
+    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint4>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint4>, -1, "x.")
     /**/;
 
   /// @class E3DCOLOR
@@ -606,6 +783,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Var("b", &E3DCOLOR::b)
     .Var("a", &E3DCOLOR::a)
     .Var("u", &E3DCOLOR::u)
+    .SquirrelFunc("__setstate", raw_int32_setstate<E3DCOLOR>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_int32_getstate<E3DCOLOR>, -1, "x.")
     /**/;
 
   /// @class Color3
@@ -619,6 +798,8 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_sub", op_sub<Color3>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Color3, Color3>, 2, "xx|n")
     .SquirrelFunc("set", c3_set, 3, "nnn")
+    .SquirrelFunc("__setstate", raw_float_setstate<Color3>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Color3>, -1, "x.")
     /**/;
 
   /// @class Color4
@@ -633,6 +814,20 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFunc("_sub", op_sub<Color4>, 2, "xx")
     .SquirrelFunc("_mul", op_mul<Color4, Color4>, 2, "xx|n")
     .SquirrelFunc("set", c4_set, 4, "nnnn")
+    .SquirrelFunc("__setstate", raw_float_setstate<Color4>, -1, "x.")
+    .SquirrelFunc("__getstate", raw_float_getstate<Color4>, -1, "x.")
+    /**/;
+
+  /// @class CatmullRomSplineBuilder2D
+  Sqrat::Class<CatmullRomSplineBuilder2D> sqCatmullRomSplineBuilder2D(vm, "CatmullRomSplineBuilder2D");
+  sqCatmullRomSplineBuilder2D //
+    .SquirrelCtor(catmull_rom_2d_ctor, 0, ".")
+    .SquirrelFunc("build", catmull_rom_2d_build, -2, "xabn")
+    .Func("getTotalSplineLength", &CatmullRomSplineBuilder2D::getTotalSplineLength)
+    .Func("getMonotonicPoint", &CatmullRomSplineBuilder2D::getMonotonicPoint)
+    .Func("getRawPoint", &CatmullRomSplineBuilder2D::getRawPoint)
+    .Func("getMonotonicNormal", &CatmullRomSplineBuilder2D::getMonotonicPoint)
+    .Func("getRawNormal", &CatmullRomSplineBuilder2D::getRawPoint)
     /**/;
 
   Sqrat::Table nsTbl(vm);
@@ -649,6 +844,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Func("cvt", cvt)
     .Func("make_tm_quat", (TMatrix(*)(const Quat &))makeTM)
     .Func("make_tm_axis", (TMatrix(*)(const Point3 &, float))makeTM)
+    .Func("norm_s_ang", norm_s_ang)
     /**/;
 
 #define BIND(cn) nsTbl.Bind(#cn, sq##cn);
@@ -664,6 +860,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
   BIND(Color3);
   BIND(Color4);
   BIND(Quat);
+  BIND(CatmullRomSplineBuilder2D);
 #undef BIND
 
   module_mgr->addNativeModule("dagor.math", nsTbl);

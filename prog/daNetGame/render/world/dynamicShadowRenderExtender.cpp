@@ -16,7 +16,7 @@ Handle DynamicShadowRenderExtender::registerExtension(Extension &&extension)
   return result;
 }
 
-void DynamicShadowRenderExtender::declareAll(dabfg::Registry registry) { declarations.fire(registry); }
+void DynamicShadowRenderExtender::declareAll(dafg::Registry registry) { declarations.fire(registry); }
 
 void DynamicShadowRenderExtender::executeAll(int updateIndex, int viewIndex) { executions.fire(updateIndex, viewIndex); }
 

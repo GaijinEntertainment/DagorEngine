@@ -69,7 +69,7 @@ shader land_mesh_clipmap // aka prefab_clipmap
     from_sun_direction@f3 = from_sun_direction;
     wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
     wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
-    shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+    shore_params1@f4 = (max_wave_height, scroll_time, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
     lightmap_tex@smp2d = lightmap_tex;
   }
 
@@ -101,6 +101,7 @@ shader land_mesh_clipmap // aka prefab_clipmap
   BASE_LAND_MESH_BLOCK()
   NO_VERTICAL_TEX_USE()
 
+  ENABLE_ASSERT(ps)
   USE_CLIPMAP_NORMAL()
   USE_RAW_RENDERING_FEEDBACK()
   USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
@@ -111,7 +112,7 @@ shader land_mesh_clipmap // aka prefab_clipmap
   DETECT_LAND_SELFILLUM()
   USE_WETNESS_BASE()
   HEIGHTMAP_CALCULATIONS()
-  USE_AND_CALCULATE_PUDDLES()
+  INIT_AND_USE_AND_CALCULATE_PUDDLES()
   USE_SPARKLES()
 
   USE_CLIPMAP_VS(VsInput, VsOutput, false)

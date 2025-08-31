@@ -53,7 +53,7 @@ void bind_statsd(SqModules *module_mgr)
   ///@module statsd
 
   ns
-    /**
+    /* qdox
       @function send_counter
       @param metric_name s
       @param value i
@@ -69,7 +69,7 @@ void bind_statsd(SqModules *module_mgr)
         return 1;
       },
       -3, ".sit")
-    /**
+    /* qdox
       @function send_gauge
       @param metric_name s
       @param value i
@@ -85,7 +85,7 @@ void bind_statsd(SqModules *module_mgr)
         return 1;
       },
       -3, ".sit")
-    /**
+    /* qdox
       @function send_gauge_dec decrement gauge
       @param metric_name s
       @param value i
@@ -101,7 +101,7 @@ void bind_statsd(SqModules *module_mgr)
         return 1;
       },
       -3, ".sit")
-    /**
+    /* qdox
       @function send_gauge_inc increment gauge
       @param metric_name s
       @param value f
@@ -117,7 +117,7 @@ void bind_statsd(SqModules *module_mgr)
         return 1;
       },
       -3, ".sft")
-    /**
+    /* qdox
       @function send_profile
       @param metric_name s
       @param value i
@@ -133,7 +133,7 @@ void bind_statsd(SqModules *module_mgr)
         return 1;
       },
       -3, ".sit")
-    /**
+    /* qdox
       @function send_histogram
       @param metric_name s
       @param value i

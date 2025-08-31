@@ -32,7 +32,7 @@ class PixelPerfectSelectionService : public IPixelPerfectSelectionService
     return rendinst::addRIGenExtraResIdx(asset->getName(), -1, -1, {});
   }
 
-  virtual bool initializeHit(Hit &hit, IObjEntity &entity) override
+  bool initializeHit(Hit &hit, IObjEntity &entity) override
   {
     const int rendInstExtraResourceIndex = getEntityRendInstExtraResourceIndex(entity);
     RenderableInstanceLodsResource *riLodResource = nullptr;
@@ -64,7 +64,7 @@ class PixelPerfectSelectionService : public IPixelPerfectSelectionService
     return true;
   }
 
-  virtual void getHits(IGenViewportWnd &wnd, int x, int y, dag::Vector<Hit> &hits) override
+  void getHits(IGenViewportWnd &wnd, int x, int y, dag::Vector<Hit> &hits) override
   {
     pixelPerfectSelection.getHitsAt(wnd, x, y, hits);
   }

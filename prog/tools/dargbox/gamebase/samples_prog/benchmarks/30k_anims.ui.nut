@@ -10,7 +10,7 @@ let animations = [
   { prop=AnimProp.scale, from=[1,1] to= [1.1,0.9], duration = 1, easing=Linear, play=true, loop=true }
 ]
 let white =Color(255,255,255)
-let size = [hdpx(10), hdpx(10)]
+let size = hdpx(10)
 function mkRect(i){
   let x = i%maxX*size[0]*1.4
   let y = i/maxX*size[0]*1.4
@@ -30,7 +30,7 @@ let isStarted = Watched(false)
 
 function root() {
   local children
-  if (isStarted.value)
+  if (isStarted.get())
     children = array(30000).map(@(_,i) mkRect(i))
   else {
     children = {

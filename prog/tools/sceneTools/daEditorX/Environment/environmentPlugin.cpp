@@ -7,7 +7,6 @@
 #include "shGV_panel.h"
 #include "hdrSettingsDlg.h"
 
-#include <sepGui/wndPublic.h>
 #include <propPanel/commonWindow/color_correction_info.h>
 #include <propPanel/commonWindow/curveColorDialog.h>
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -37,6 +36,7 @@
 
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_colors.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <libTools/dagFileRW/dagUtil.h>
 #include <libTools/util/makeBindump.h>
@@ -72,11 +72,15 @@
 
 #include <libTools/renderViewports/cachedViewports.h>
 #include "../de_appwnd.h"
-#include <sepGui/wndGlobal.h>
 
-#include <winsock2.h>
 #include <ioSys/dag_memIo.h>
+
+#if _TARGET_PC_WIN
+#include <winsock2.h>
 #undef ERROR
+#else
+#include <arpa/inet.h>
+#endif
 
 #define METRIC_MAX_FACES            50
 #define METRIC_ZNEAR_MIN            0.05
@@ -143,6 +147,7 @@ ISceneLightService *EnvironmentPlugin::ltService = NULL;
 ISkiesService *EnvironmentPlugin::skiesSrv = NULL;
 IWindService *EnvironmentPlugin::windSrv = NULL;
 bool EnvironmentPlugin::needSkiesUpdate = true;
+bool EnvironmentPlugin::recreatePlugin = false;
 
 bool EnvironmentPlugin::prepareRequiredServices()
 {
@@ -160,7 +165,6 @@ EnvironmentPlugin::EnvironmentPlugin() :
   doResetEnvi(false),
   isHdr(false),
   isLdr(true),
-  lastTypeList(tmpmem),
   skyScaleVarId(-1),
   skyWorldXVarId(VariableMap::BAD_ID),
   skyWorldYVarId(VariableMap::BAD_ID),
@@ -182,6 +186,7 @@ EnvironmentPlugin::EnvironmentPlugin() :
   DataBlock app_blk(DAGORED2->getWorkspace().getAppPath());
   const DataBlock &envi_def = *app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("envi");
 
+  memset(&envParams, 0, sizeof(envParams));
   envParams.znzfScale = 1;
   const char *type = envi_def.getStr("type", "classic");
   skiesSrv = NULL;
@@ -217,9 +222,13 @@ EnvironmentPlugin::EnvironmentPlugin() :
   prepareColorTex(channel, channel, channel);
   ccInfo = new PropPanel::ColorCorrectionInfo();
 
+#if _TARGET_PC_WIN // TODO: tools Linux porting: WSAStartup
   WSADATA wsaData;
   if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
     debug("WSAStartup failed");
+#else
+  LOGERR_CTX("TODO: tools Linux porting: WSAStartup");
+#endif
 }
 
 
@@ -234,7 +243,11 @@ EnvironmentPlugin::~EnvironmentPlugin()
 
   del_it(ccInfo);
 
+#if _TARGET_PC_WIN // TODO: tools Linux porting: WSACleanup
   WSACleanup();
+#else
+  LOGERR_CTX("TODO: tools Linux porting: WSACleanup");
+#endif
 }
 
 
@@ -267,8 +280,8 @@ void EnvironmentPlugin::registered()
 
 void EnvironmentPlugin::unregistered()
 {
-  clearObjects();
-  clear_and_shrink(lastTypeList);
+  if (windSrv)
+    windSrv->term();
   if (isAcesPlugin)
     DAGORED2->getConsole().unregisterCommand("envi.set", this);
   DAGORED2->getConsole().unregisterCommand("envi.sun_from_time", this);
@@ -300,11 +313,11 @@ void EnvironmentPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_SHOW_PANEL, 'P');
-  wndManager.addViewportAccelerator(CM_RESET_GIZMO, wingw::V_DELETE);
+  wndManager.addViewportAccelerator(CM_SHOW_PANEL, ImGuiKey_P);
+  wndManager.addViewportAccelerator(CM_RESET_GIZMO, ImGuiKey_Delete);
 
   if (!isAcesPlugin)
-    wndManager.addViewportAccelerator(CM_IMPORT, 'O', true);
+    wndManager.addViewportAccelerator(CM_IMPORT, ImGuiMod_Ctrl | ImGuiKey_O);
 }
 
 
@@ -451,21 +464,12 @@ void EnvironmentPlugin::resetEnvi()
   clear_and_shrink(dagFileName);
 
   dd_erase(DAGORED2->getPluginFilePath(this, ENVI_DAG));
-  alefind_t ff;
-  bool ok;
-  String mask(DAGORED2->getPluginFilePath(this, "*.dtx"));
 
-  for (ok = dd_find_first(mask, DA_FILE, &ff); ok; ok = dd_find_next(&ff))
-    dd_erase(DAGORED2->getPluginFilePath(this, ff.name));
+  for (const alefind_t &ff : dd_find_iterator(DAGORED2->getPluginFilePath(this, "*.dtx"), DA_FILE))
+    ::dd_erase(DAGORED2->getPluginFilePath(this, ff.name));
 
-  ::dd_find_close(&ff);
-
-  mask = DAGORED2->getPluginFilePath(this, "*.dds");
-
-  for (ok = dd_find_first(mask, DA_FILE, &ff); ok; ok = dd_find_next(&ff))
-    dd_erase(DAGORED2->getPluginFilePath(this, ff.name));
-
-  dd_find_close(&ff);
+  for (const alefind_t &ff : dd_find_iterator(DAGORED2->getPluginFilePath(this, "*.dds"), DA_FILE))
+    ::dd_erase(DAGORED2->getPluginFilePath(this, ff.name));
 
   DAGORED2->repaint();
   doResetEnvi = false;
@@ -572,12 +576,12 @@ bool EnvironmentPlugin::onPluginMenuClickInternal(unsigned id, PropPanel::Contai
 
     case CM_ERASE_ENVI:
       if (wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Erase geometry", "Erase environment and fog capsules?") ==
-          wingw::MBS_OK)
+          wingw::MB_ID_OK)
       {
         geom.clear();
         clear_and_shrink(dagFileName);
-        doResetEnvi = true;
         clearObjects();
+        doResetEnvi = true;
         DAGORED2->repaint();
       }
       return true;
@@ -625,27 +629,22 @@ bool EnvironmentPlugin::onPluginMenuClick(unsigned id) { return onPluginMenuClic
 //==============================================================================
 void EnvironmentPlugin::clearObjects()
 {
-  envParams.znzfScale = 1;
-  ets.setDef();
+  if (recreatePlugin)
+  {
+    unregistered();
+    this->~EnvironmentPlugin();
+    new (this) EnvironmentPlugin;
+    registered();
+  }
+
+  needSkiesUpdate = true;
+
   if (!isAcesPlugin)
   {
-    setFogDefaults();
     envParams.exportEnviScene = true;
-
-    geom.clear();
-    clear_and_shrink(dagFileName);
-
     previewFog = true;
   }
-  else
-  {
-    clear_and_shrink(environmentNamesList);
-    selectedEnvironmentNo = -1;
 
-    selectedWeatherPreset = selectedWeatherType = -1;
-    clear_and_shrink(weatherPresetsList);
-    clear_and_shrink(weatherTypesList);
-  }
   if (skiesSrv)
   {
     skiesSrv->term();
@@ -653,6 +652,8 @@ void EnvironmentPlugin::clearObjects()
   }
   if (windSrv)
     windSrv->term();
+
+  recreatePlugin = true;
 }
 
 
@@ -1031,9 +1032,6 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
 
     EDITORCORE->queryEditorInterface<IDynRenderService>()->restartPostfx(postfxBlk);
 
-    clearObjects();
-    setFogDefaults();
-
     lastImportedEnvi = local_data.getStr("lastImported", lastImportedEnvi);
 
     // isHdr = blk.getBool("hdrScene", true);
@@ -1103,7 +1101,6 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
   }
   else
   {
-    clearObjects();
     selectedEnvironmentNo = -1;
     clear_and_shrink(environmentNamesList);
     selectedWeatherPreset = selectedWeatherType = -1;
@@ -2436,6 +2433,7 @@ void EnvironmentPlugin::hdrViewSettings()
 
 void EnvironmentPlugin::flushDataBlocksToGame()
 {
+#if _TARGET_PC_WIN                       // TODO: tools Linux porting: EnvironmentPlugin::flushDataBlocksToGame()
   if (gameHttpServerAddr == INADDR_NONE) // not connected
     return;
 
@@ -2482,10 +2480,14 @@ update_envi_fail:
     closesocket(s);
   DAGORED2->getConsole().addMessage(ILogWriter::ERROR, "update envi on game http server failed...");
   gameHttpServerAddr = INADDR_NONE;
+#else
+  LOGERR_CTX("TODO: tools Linux porting: EnvironmentPlugin::flushDataBlocksToGame()");
+#endif
 }
 
 void EnvironmentPlugin::connectToGameHttpServer()
 {
+#if _TARGET_PC_WIN // TODO: tools Linux porting: EnvironmentPlugin::connectToGameHttpServer()
   eastl::unique_ptr<PropPanel::DialogWindow> dlg(
     DAGORED2->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(120), "Connect To Game Http Server"));
   PropPanel::ContainerPropertyControl *panel = dlg->getPanel();
@@ -2494,15 +2496,21 @@ void EnvironmentPlugin::connectToGameHttpServer()
     return;
 
   SOCKET s = INVALID_SOCKET;
-
   SimpleString txtAddr = panel->getText(337);
   gameHttpServerAddr = inet_addr(txtAddr.str());
+  auto fail = [&] {
+    if (s != INVALID_SOCKET)
+      closesocket(s);
+    DAGORED2->getConsole().addMessage(ILogWriter::ERROR, "connect to http server at '%s' failed...", txtAddr.str());
+    gameHttpServerAddr = INADDR_NONE;
+    ::MessageBox(0, "Connect to Game Http Server Failed", "Connect Failed", MB_OK | MB_ICONERROR);
+  };
   if (gameHttpServerAddr == INADDR_NONE || gameHttpServerAddr == INADDR_ANY)
-    goto fail;
+    return fail();
 
   s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s == INVALID_SOCKET)
-    goto fail;
+    return fail();
 
   sockaddr_in sin;
   sin.sin_family = AF_INET;
@@ -2511,36 +2519,29 @@ void EnvironmentPlugin::connectToGameHttpServer()
 
   int ret = connect(s, (sockaddr *)&sin, sizeof(sin));
   if (ret != 0)
-    goto fail;
+    return fail();
 
   const char *req = "GET / HTTP/1.0\r\n\r\n";
   ret = send(s, req, i_strlen(req), 0);
   if (ret == SOCKET_ERROR)
-    goto fail;
+    return fail();
 
   char reply[21];
   memset(reply, 0, sizeof(reply));
 
   ret = recv(s, reply, sizeof(reply) - 1, 0);
   if (ret == SOCKET_ERROR || ret == 0)
-    goto fail;
+    return fail();
 
   if (!strstr(reply, "200 OK"))
-    goto fail;
+    return fail();
 
   DAGORED2->getConsole().addMessage(ILogWriter::NOTE, "successfully connected to %s:%d", txtAddr.str(), HTTP_SERVER_PORT);
 
   closesocket(s);
-
-  return;
-
-fail:
-
-  if (s != INVALID_SOCKET)
-    closesocket(s);
-  DAGORED2->getConsole().addMessage(ILogWriter::ERROR, "connect to http server at '%s' failed...", txtAddr.str());
-  gameHttpServerAddr = INADDR_NONE;
-  ::MessageBox(0, "Connect to Game Http Server Failed", "Connect Failed", MB_OK | MB_ICONERROR);
+#else
+  LOGERR_CTX("TODO: tools Linux porting: EnvironmentPlugin::connectToGameHttpServer()");
+#endif
 }
 
 

@@ -25,7 +25,7 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
   int featureSize = dataBase.featuresSize;
 
   G_ASSERT(featureSize == weights.featureWeights.size());
-  G_ASSERT(featureSize * dataBase.normalizationGroupsCount == current_feature.size());
+  G_ASSERT(featureSize * dataBase.featuresNormalizationGroups.nameCount() == current_feature.size());
   const vec4f *featureWeightsPtr = weights.featureWeights.data();
 
   int cur_clip = current_state.clip;
@@ -44,6 +44,7 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
     const auto &largeBoundsMax = nextClip.boundsLargeMax;
     int featuresOffset = nextClip.featuresNormalizationGroup * featureSize;
     const vec3f *goalFeaturePtr = current_feature.data() + featuresOffset;
+    float costBias = cur_clip == next_clip ? 0.0f : nextClip.featuresCostBias;
 
     G_ASSERT(nextClip.features.data.size() == nextClip.tickDuration * featureSize);
 
@@ -69,7 +70,7 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
         while (i < searchEnd)
         {
           if (is_transition_allowed(cur_clip, next_clip, cur_frame, i) &&
-              feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, featureSize))
+              feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, costBias, featureSize))
           {
             best_clip = next_clip;
             best_frame = i;
@@ -87,7 +88,8 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
           int largeBoundIdxNext = (largeBoundIdx + 1) * BOUNDS_LARGE_SIZE;
           const vec4f *minBounds = largeBoundsMin.data() + largeBoundIdx * featureSize;
           const vec4f *maxBounds = largeBoundsMax.data() + largeBoundIdx * featureSize;
-          if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, featureSize))
+          if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, costBias,
+                featureSize))
           {
             i = largeBoundIdxNext;
             nextFeaturePtr = nextClip.features.data.data() + i * featureSize;
@@ -99,7 +101,8 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
             int smallBoundIdxNext = (smallBoundIdx + 1) * BOUNDS_SMALL_SIZE;
             const vec4f *minBounds = smallBoundsMin.data() + smallBoundIdx * featureSize;
             const vec4f *maxBounds = smallBoundsMax.data() + smallBoundIdx * featureSize;
-            if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, featureSize))
+            if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, costBias,
+                  featureSize))
             {
               i = smallBoundIdxNext;
               nextFeaturePtr = nextClip.features.data.data() + i * featureSize;
@@ -107,7 +110,7 @@ static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataB
             }
 
             if (is_transition_allowed(cur_clip, next_clip, cur_frame, i) &&
-                feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, featureSize))
+                feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, costBias, featureSize))
             {
               best_clip = next_clip;
               best_frame = i;

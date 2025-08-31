@@ -6,10 +6,10 @@
 #include <de3_dynRenderService.h>
 #include <osApiWrappers/dag_direct.h>
 #include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <propPanel/control/panelWindow.h>
 #include <propPanel/c_indirect.h>
-#include <sepGui/wndGlobal.h>
 #include <libTools/util/strUtil.h>
 
 

@@ -69,9 +69,6 @@ macro USE_READ_IMPOSTOR_GBUF_TEXTURES()
     Texture2D impostor_gbuf_a : register(t13);
     Texture2D impostor_gbuf_b : register(t14);
     Texture2D impostor_gbuf_c : register(t15);
-    SamplerState impostor_gbuf_a_samplerstate : register(s13);
-    SamplerState impostor_gbuf_b_samplerstate : register(s14);
-    SamplerState impostor_gbuf_c_samplerstate : register(s15);
 
     ImpostorParameters read_impostor_params_from_gbuf(uint2 tc)
     {

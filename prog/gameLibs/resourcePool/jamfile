@@ -1,0 +1,26 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/resourcePool ;
+
+TargetType  = lib ;
+Target      = gameLibs/resourcePool.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  aliasableTex.cpp
+  resourcePool.cpp
+;
+
+UseProgLibs +=
+  engine/lib3d
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

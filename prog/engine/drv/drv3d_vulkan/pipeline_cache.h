@@ -28,6 +28,7 @@ public:
   VulkanPipelineCacheHandle getHandle() const { return handle; }
   WinCritSec *getMutex();
 
+  void onDeviceReset();
   void shutdown();
   void load(PipelineCacheFile &src);
   void store(PipelineCacheFile &dst);

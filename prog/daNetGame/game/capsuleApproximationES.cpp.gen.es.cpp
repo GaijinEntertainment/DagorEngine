@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "capsuleApproximationES.cpp.inl"
 ECS_DEF_PULL_VAR(capsuleApproximation);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc debug_draw_capsule_approximation_es_comps[] ={};
 static void debug_draw_capsule_approximation_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)

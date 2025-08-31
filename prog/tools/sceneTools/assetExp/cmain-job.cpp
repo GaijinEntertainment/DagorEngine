@@ -43,7 +43,7 @@ public:
   String impWarn;
   int impWarnCnt;
 
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
     if (type == REMARK || type < level)
       return;
@@ -78,9 +78,9 @@ public:
       errCount++;
   }
 
-  virtual void startLog() { errCount = 0; }
-  virtual void endLog() {}
-  virtual bool hasErrors() const { return errCount > 0; }
+  void startLog() override { errCount = 0; }
+  void endLog() override {}
+  bool hasErrors() const override { return errCount > 0; }
 
   MessageType level;
   int errCount;
@@ -90,7 +90,7 @@ class ConsoleMsgPipe : public NullMsgPipe
 {
 public:
   ConsoleMsgPipe(ConsoleLogWriterEx &l) : log(l) {}
-  virtual void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath)
+  void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath) override
   {
     updateErrCount(msg_t);
     if (msg_t == REMARK)
@@ -318,6 +318,7 @@ static int do_main(bool debugmode)
   dabuild_prepare_out_blk(out_blk, mgr, build_blk);
   while (jobMem->pid != 0xFFFFFFFFU)
   {
+    uint64_t tc_storage = 0;
     int gen = jobMem->cmdGen;
     if (get_time_msec() > last_flush_time + 2000)
     {
@@ -372,8 +373,7 @@ static int do_main(bool debugmode)
         ctx.szChangedTotal = stat_changed_tex_total_sz = 0;
         int pkid = ctx.pkgId;
         int targetCode = ctx.targetCode;
-        char target_str[6];
-        strcpy(target_str, mkbindump::get_target_str(targetCode));
+        const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
         char profile[34];
         strcpy(profile, (const char *)ctx.profileName);
         bool write_be = dagor_target_code_be(targetCode);
@@ -428,8 +428,7 @@ static int do_main(bool debugmode)
         ctx.szChangedTotal = stat_changed_grp_total_sz = 0;
         int pkid = ctx.pkgId;
         int targetCode = ctx.targetCode;
-        char target_str[6];
-        strcpy(target_str, mkbindump::get_target_str(targetCode));
+        const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
         char profile[34];
         strcpy(profile, (const char *)ctx.profileName);
         bool write_be = dagor_target_code_be(targetCode);
@@ -489,8 +488,7 @@ static int do_main(bool debugmode)
         jobMem->changeCtxState(ctx, 2);
       prepare_packs:
         AssetExportCache::sharedDataRemoveRebuildType(mgr.getTexAssetTypeId());
-        char target_str[6];
-        strcpy(target_str, mkbindump::get_target_str(ctx.targetCode));
+        const char *target_str = mkbindump::get_target_str(ctx.targetCode, tc_storage);
         preparePacks(mgr, mgr.getAssets(), expTypesMask, exp_blk, tex_pack, grp_pack, addPackages, log, jobMem->expTex, jobMem->expRes,
           target_str, (const char *)ctx.profileName);
         debug("=== prepared packs: %d (tex) and %d (res)", tex_pack.size(), grp_pack.size());

@@ -32,7 +32,66 @@
 class SvgLoadImageFactory : public ILoadImageFactory
 {
 public:
-  virtual TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  bool readImageDimensions(const char *fn, const char *fn_ext, int &out_w, int &out_h, bool &out_may_have_alpha) override
+  {
+    bool keep_ar, premul;
+    if (!decodeSvgSuffix(fn_ext, out_w, out_h, keep_ar, premul))
+      return false;
+
+    out_may_have_alpha = true;
+    if (out_w && out_h && !keep_ar)
+      return true;
+
+    char svg_buf[512];
+    fn_ext = dd_get_fname_ext(fn);
+    file_ptr_t filePtr =
+      df_open(dd_strnicmp(fn_ext, ".svg:", 5) == 0 ? String(0, "%.*s", fn_ext + 4 - fn, fn) : fn, DF_READ | DF_IGNORE_MISSING);
+    if (!filePtr)
+      return false;
+    svg_buf[df_read(filePtr, svg_buf, sizeof(svg_buf) - 1)] = '\0';
+    df_close(filePtr);
+
+    float w = 0.f, h = 0.f;
+    if (NSVGimage *image = nsvgParse(svg_buf, "px", 96.0f))
+    {
+      w = image->width;
+      h = image->height;
+      nsvgDelete(image);
+    }
+    if (w > 0 && h > 0)
+    {
+      int pic_w = out_w, pic_h = out_h;
+
+      float src_aspect = w / h;
+      if (pic_w > 0 && pic_h > 0)
+      {
+        w = pic_w;
+        h = pic_h;
+        if (keep_ar) // special case dimensions are set, but we request keep aspect ratio
+        {
+          float w_from_h = h * src_aspect;
+          float h_from_w = w / src_aspect;
+          if (w_from_h < w)
+            w = w_from_h;
+          else if (h_from_w < h)
+            h = h_from_w;
+        }
+      }
+      else if (pic_w > 0)
+        pic_set_dim(w, h, pic_w, 1.0f / src_aspect, keep_ar);
+      else if (pic_h > 0)
+        pic_set_dim(h, w, pic_h, src_aspect, keep_ar);
+
+      if (pic_w < 0)
+        pic_adjust_dim(w, h, -pic_w, 1.0f / src_aspect, keep_ar);
+      if (pic_h < 0)
+        pic_adjust_dim(h, w, -pic_h, src_aspect, keep_ar);
+      out_w = max(1, (int)floorf(w + 0.5f));
+      out_h = max(1, (int)floorf(h + 0.5f));
+    }
+    return true;
+  }
+  TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
     int w, h;
     bool keep_ar, premul;
@@ -56,7 +115,7 @@ public:
       *out_used_alpha = true;
     return rasterize_svg(make_span(svg), mem, w, h, keep_ar, premul, fn);
   }
-  virtual TexImage32 *loadImage(IGenLoad &crd, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  TexImage32 *loadImage(IGenLoad &crd, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
     int w, h;
     bool keep_ar, premul;
@@ -78,8 +137,8 @@ public:
       *out_used_alpha = true;
     return rasterize_svg(make_span(svg), mem, w, h, keep_ar, premul, crd.getTargetName());
   }
-  virtual bool supportLoadImage2() { return false; }
-  virtual void *loadImage2(const char *, IAllocImg &, const char *) { return NULL; }
+  bool supportLoadImage2() override { return false; }
+  void *loadImage2(const char *, IAllocImg &, const char *) override { return nullptr; }
 
   static bool decodeSvgSuffix(const char *fn_ext, int &out_w, int &out_h, bool &out_keep_ar, bool &out_premul)
   {

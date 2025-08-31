@@ -84,7 +84,7 @@ static bool can_break(unsigned int first, unsigned int second)
   return false;
 }
 
-unsigned int read_utf8(const char *&ptr)
+unsigned int read_utf8(const dag_char8_t *&ptr)
 {
   unsigned int ret = 0;
   unsigned char c = *ptr++;
@@ -155,7 +155,7 @@ SimpleString process_japanese_string(const char *str, wchar_t sep_char)
     strcpy(out, str);
     return out;
   }
-  const char *src = str;
+  auto src = (const dag_char8_t *)str;
   char *dst = out.str();
   unsigned first = read_utf8(src);
   unsigned second = 0;

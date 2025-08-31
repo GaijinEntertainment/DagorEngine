@@ -51,14 +51,14 @@ struct E3DCOLOR
 #define E3DCOLOR_GETA(rgb)                ((rgb) >> 24)
 #define E3DCOLOR_GETR(rgb)                (((rgb) >> 16) & 0xff)
 #define E3DCOLOR_GETG(rgb)                (((rgb) >> 8) & 0xff)
-#define E3DCOLOR_GETB(rgb)                ((rgb)&0xff)
+#define E3DCOLOR_GETB(rgb)                ((rgb) & 0xff)
 #define E3DCOLOR_MAKE(r, g, b, a)         ((E3DCOLOR)(((a) << 24) | ((r) << 16) | ((g) << 8) | (b)))
 #define E3DCOLOR_MAKE_SWAPPED(r, g, b, a) ((E3DCOLOR)(((a) << 24) | ((b) << 16) | ((g) << 8) | (r)))
 
-#define E3DCOLOR_SETA(rgb, v) ((rgb) = ((rgb)&0x00FFFFFF) | ((v) << 24))
-#define E3DCOLOR_SETR(rgb, v) ((rgb) = ((rgb)&0xFF00FFFF) | ((v) << 16))
-#define E3DCOLOR_SETG(rgb, v) ((rgb) = ((rgb)&0xFFFF00FF) | ((v) << 8))
-#define E3DCOLOR_SETB(rgb, v) ((rgb) = ((rgb)&0xFFFFFF00) | ((v)))
+#define E3DCOLOR_SETA(rgb, v) ((rgb) = ((rgb) & 0x00FFFFFF) | ((v) << 24))
+#define E3DCOLOR_SETR(rgb, v) ((rgb) = ((rgb) & 0xFF00FFFF) | ((v) << 16))
+#define E3DCOLOR_SETG(rgb, v) ((rgb) = ((rgb) & 0xFFFF00FF) | ((v) << 8))
+#define E3DCOLOR_SETB(rgb, v) ((rgb) = ((rgb) & 0xFFFFFF00) | ((v)))
 
 #ifdef __Dagor_Script__
 

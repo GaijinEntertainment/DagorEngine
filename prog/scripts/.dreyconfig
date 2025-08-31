@@ -102,7 +102,9 @@
     ,"call-from-root"
     ,"lambda-param-hides-ident"
   ],
-  "__disabled_checks":[],
+  "__disabled_checks":[
+    "not-a-const"
+  ],
   "dirs_to_skip":[],
   "files_to_skip":[],
   "enabled":true

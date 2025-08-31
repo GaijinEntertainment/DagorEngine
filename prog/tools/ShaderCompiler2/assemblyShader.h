@@ -7,15 +7,22 @@
 
 #include "shsem.h"
 #include "shsyn.h"
+#include "shlexterm.h"
 #include "shcode.h"
 #include "shSemCode.h"
+#include "shVariantContext.h"
+#include "hwSemantic.h"
+#include "variantSemantic.h"
 #include "globalConfig.h"
 #include "shExprParser.h"
 #include "namedConst.h"
 #include "nameMap.h"
+#include "hlslStage.h"
 #include "variablesMerger.h"
+#include "shErrorReporting.h"
 #include "fast_isalnum.h"
 #include <EASTL/vector_map.h>
+#include "defer.h"
 
 /************************************************************************/
 /* forwards
@@ -32,50 +39,65 @@ namespace ShaderParser
  * class AssembleShaderEvalCB
  *
  *********************************/
-class AssembleShaderEvalCB : public ShaderEvalCB, public ShaderBoolEvalCB
+class AssembleShaderEvalCB : public ShaderEvalCB, public semantic::VariantBoolExprEvalCB
 {
 public:
   struct HlslCompile
   {
-    String profile, entry, defaultTarget;
-    hlsl_compile_class *compile = nullptr;
-    const char *shaderType;
+    eastl::optional<semantic::HlslCompileDirective> compile{};
+    hlsl_compile_class *symbol = nullptr;
+    const char *stageName;
+    String defaultTarget;
 
-    void reset() { compile = nullptr; }
+    void reset() { compile = {}; }
+    bool hasCompilation() const { return compile.has_value(); }
   };
 
-  ShaderSyntaxParser &parser;
+  struct PreshaderStat
+  {
+    state_block_stat *stat;
+    ShaderStage stage;
+    semantic::VariableType vt;
+  };
+
+  shc::VariantContext &ctx;
+
+  // Cached refs from ctx
+  ShaderClass &sclass; // @TODO: this should be const
   ShaderSemCode &code;
-  ShaderClass &sclass;
-  ShaderSemCode::Pass *curpass;
   ShaderSemCode::PassTab *curvariant;
+  SemanticShaderPass *curpass;
+  StcodeBytecodeAccumulator &stBytecodeAccum;
+  StcodePass &stCppcodeAccum;
+  NamedConstBlock &shConst;
+  Parser &parser;
+  const ExpressionParser exprParser; // Isn't a ref, but is actually a pair of refs to ctx and parser with behaviour
   const ShaderVariant::TypeTable &allRefStaticVars;
-  Terminal *shname_token;
+
   bool dont_render = false;
   Terminal *no_dynstcode = nullptr;
   Tab<Terminal *> stcode_vars;
   const ShaderVariant::VariantInfo &variant;
-  const ShHardwareOptions &opt;
-  int maxregsize;
 
-  int last_reg_ind;
+  PerHlslStage<HlslCompile> hlsls{};
 
-  HlslCompile hlslPs, hlslVs, hlslHs, hlslDs, hlslGs, hlslCs, hlslMs, hlslAs;
-  NamedConstBlock shConst;
-  int shBlockLev;
-  StaticCbuf supportsStaticCbuf = StaticCbuf::NONE;
-  String evalExprErrStr;
+  Tab<eastl::variant<PreshaderStat, local_var_decl *>> preshaderScalarStats{};
+  Tab<PreshaderStat> preshaderStaticTextureStats{};
+  Tab<PreshaderStat> preshaderDynamicResourceStats{};
+  Tab<PreshaderStat> preshaderHardcodedStats{};
 
   // For multidraw validation
   bool hasDynStcodeRelyingOnMaterialParams = false;
   Symbol *exprWithDynamicAndMaterialTerms = nullptr;
 
-  // shadervar id, opcode -> register
-  eastl::vector_map<eastl::pair<int, int>, Register> stVarToReg;
-  eastl::array<int, 256> usedRegs{};
+  eastl::vector_map<eastl::string_view, Symbol *> uavGlobalShadervarRefs{}, srvGlobalShadervarRefs{}, uavLocalShadervarRefs{},
+    srvLocalShadervarRefs{};
 
   VariablesMerger varMerger;
   friend class VariablesMerger;
+
+  Tab<uintptr_t> usedPreshaderStatements{};
+  Tab<eastl::pair<uintptr_t, ShVarBool>> boolElementsEvaluationResults{};
 
 private:
   enum BlockPipelineType
@@ -93,34 +115,14 @@ public:
   /************************************************************************/
   /* AssemblyShader.cpp
   /************************************************************************/
-  static bool compareShader(Terminal *shname_token, bool_value &e);
-  static bool compareHWToken(int hw_token, const ShHardwareOptions &opt);
-  static bool compareHW(bool_value &e, const ShHardwareOptions &opt) { return compareHWToken(e.hw->var->num, opt); }
+  explicit AssembleShaderEvalCB(shc::VariantContext &ctx);
 
-  static void buildHwDefines(const ShHardwareOptions &opt);
-  static const String &getBuiltHwDefines();
-
-  AssembleShaderEvalCB(ShaderSemCode &sc, ShaderSyntaxParser &p, ShaderClass &cls, Terminal *shname,
-    const ShaderVariant::VariantInfo &variant, const ShHardwareOptions &_opt, const ShaderVariant::TypeTable &all_ref_static_vars);
-
-  inline class Register _add_reg_word32(int sz, bool aligned);
-  inline Register add_vec_reg(int num = 1);
-  inline Register add_reg();
-  inline Register add_resource_reg();
-
-  Register add_reg(int type);
-
-  void error(const char *msg, const Symbol *const s);
-  inline void warning(const char *msg, const Symbol *const s);
-
-  void eval_static(static_var_decl &s);
-  void eval_interval_decl(interval &interv) {}
+  void eval_static(static_var_decl &s) override;
+  void eval_interval_decl(interval &interv) override {}
   void eval_bool_decl(bool_decl &) override;
-  void decl_bool_alias(const char *name, bool_expr &expr) override;
   void eval_init_stat(SHTOK_ident *var, shader_init_value &v);
-  void eval_channel_decl(channel_decl &s, int stream_id = 0);
+  void eval_channel_decl(channel_decl &s, int stream_id = 0) override;
 
-  int get_state_var(const Terminal &s, int &vt, bool &is_global, bool allow_not_found = false);
   int get_blend_k(const Terminal &s);
   int get_blend_op_k(const Terminal &s);
   int get_stencil_cmpf_k(const Terminal &s);
@@ -128,233 +130,97 @@ public:
   int get_bool_const(const Terminal &s);
   void get_depth_cmpf_k(const Terminal &s, int &cmpf);
 
-  void eval_state(state_stat &s);
-  void eval_zbias_state(zbias_state_stat &s);
-  void eval_external_block(external_state_block &);
-  void eval_external_block_stat(state_block_stat &, ShaderStage stage);
-  void handle_external_block_stat(state_block_stat &, ShaderStage stage);
+  void eval_state(state_stat &s) override;
+  void eval_zbias_state(zbias_state_stat &s) override;
+  void eval_external_block(external_state_block &) override;
   void eval(immediate_const_block &) override {}
   void eval_error_stat(error_stat &) override;
-  void eval_render_stage(render_stage_stat &s);
+  void eval_render_stage(render_stage_stat &s) override;
   void eval_assume_stat(assume_stat &s) override {}
-  void eval_command(shader_directive &s);
-  void eval_supports(supports_stat &);
+  void eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &s) override {}
+  void eval_command(shader_directive &s) override;
+  void eval_supports(supports_stat &) override;
   enum class BlendValueType
   {
     Factor,
     BlendFunc
   };
   void eval_blend_value(const Terminal &blend_func_tok, const SHTOK_intnum *const index,
-    ShaderSemCode::Pass::BlendValues &blend_factors, const BlendValueType type);
+    SemanticShaderPass::BlendValues &blend_factors, const BlendValueType type);
 
-  inline int eval_if(bool_expr &e);
-  void eval_else(bool_expr &) {}
-  void eval_endif(bool_expr &) {}
+  inline int eval_if(bool_expr &e) override;
+  void eval_else(bool_expr &) override {}
+  void eval_endif(bool_expr &) override {}
 
-  virtual ShVarBool eval_expr(bool_expr &e);
-  virtual ShVarBool eval_bool_value(bool_value &e);
-  virtual int eval_interval_value(const char *ival_name);
+  ShVarBool eval_expr(bool_expr &e) override
+  {
+    auto res = semantic::VariantBoolExprEvalCB::eval_expr(e);
+    if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+      boolElementsEvaluationResults.emplace_back(uintptr_t(&e), res);
+    return res;
+  }
+  ShVarBool eval_bool_value(bool_value &val) override
+  {
+    auto res = semantic::VariantBoolExprEvalCB::eval_bool_value(val);
+    if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+      boolElementsEvaluationResults.emplace_back(uintptr_t(&val), res);
+    return res;
+  }
 
-  void end_pass(Terminal *terminal);
+  void compilePreshader();
+  void end_pass();
 
   void end_eval(shader_decl &sh);
 
-  virtual void eval_shader_locdecl(local_var_decl &s);
+  void eval_hlsl_compile(hlsl_compile_class &hlsl_compile) override;
+  void eval_hlsl_decl(hlsl_local_decl_class &hlsl_decl) override;
 
-  virtual void eval_hlsl_compile(hlsl_compile_class &hlsl_compile);
-  virtual void eval_hlsl_decl(hlsl_local_decl_class &hlsl_decl);
+  void hlsl_compile(HlslCompilationStage stage);
 
-  void hlsl_compile(HlslCompile &hlsl);
+  // Cache in main pass
+  void eval_external_block_stat(state_block_stat &s, ShaderStage stage);
+  void eval_shader_locdecl(local_var_decl &s) override { preshaderScalarStats.emplace_back(&s); }
+
+  void process_external_block_stat(const PreshaderStat &stat);
+  void process_shader_locdecl(local_var_decl &s);
+
+  void decl_bool_alias(const char *name, bool_expr &expr) override;
+  int is_debug_mode_enabled() override { return ctx.shCtx().isDebugModeEnabled(); }
+
+  void compile_external_block_stat(const PreshaderStat &stat);
 
 private:
   void addBlockType(const char *name, const Terminal *t);
   bool hasDeclaredGraphicsBlocks();
   bool hasDeclaredMeshPipelineBlocks();
 
-  void manuallyReleaseRegister(int reg);
-
-  bool buildArrayOfStructsHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var, int reg_count);
-  bool buildResourceArrayHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var, int reg_count);
+  bool isCompute() const { return hlsls.fields.cs.hasCompilation(); }
+  bool isMesh() const { return hlsls.fields.ms.hasCompilation() || hlsls.fields.as.hasCompilation(); }
+  bool isGraphics() const
+  {
+    return hlsls.fields.ps.hasCompilation() || hlsls.fields.vs.hasCompilation() || hlsls.fields.hs.hasCompilation() ||
+           hlsls.fields.ds.hasCompilation() || hlsls.fields.gs.hasCompilation();
+  }
 
   void evalHlslCompileClass(HlslCompile *comp);
+
+  void reserveSpecialCbufferAt(HlslSlotSemantic cbuffer_sem, int reg);
 
   bool validateDynamicConstsForMultidraw();
 }; // class AssembleShaderEvalCB
 
-class Register
-{
-  int startReg = -1;
-  int count = 0;
-  int currentReg = -1;
-  AssembleShaderEvalCB *owner = nullptr;
-  friend class AssembleShaderEvalCB;
-
-  void acquireRegs(int r, int num)
-  {
-    startReg = r;
-    count = num;
-    currentReg = r;
-    for (int i = startReg; i < startReg + count; i++)
-      owner->usedRegs[i]++;
-  }
-  void releaseRegs()
-  {
-    for (int i = startReg; i < startReg + count; i++)
-    {
-      G_ASSERT(owner->usedRegs[i] > 0);
-      owner->usedRegs[i]--;
-    }
-    eastl::move(*this).release();
-  }
-
-  Register(int reg, AssembleShaderEvalCB &owner) : startReg(reg), count(4), currentReg(reg), owner(&owner) {}
-
-  Register(int num, bool aligned, AssembleShaderEvalCB &owner) : count(num), owner(&owner)
-  {
-    for (int i = 0; i <= owner.usedRegs.size() - num; i += (aligned ? 4 : 1))
-    {
-      if (eastl::all_of(&owner.usedRegs[i], &owner.usedRegs[i + num], [](int used) { return used == 0; }))
-      {
-        acquireRegs(i, num);
-        return;
-      }
-    }
-    owner.error("Unable to allocate registers", nullptr);
-  }
-
-  void swap(Register &r)
-  {
-    eastl::swap(startReg, r.startReg);
-    eastl::swap(currentReg, r.currentReg);
-    eastl::swap(count, r.count);
-    eastl::swap(owner, r.owner);
-  }
-
-public:
-  Register() = default;
-  Register(const Register &r) : owner(r.owner)
-  {
-    acquireRegs(r.startReg, r.count);
-    currentReg = r.currentReg;
-  }
-  Register &operator=(const Register &r)
-  {
-    Register re(r);
-    re.swap(*this);
-    return *this;
-  }
-  Register(Register &&r) noexcept { r.swap(*this); }
-  Register &operator=(Register &&r) noexcept
-  {
-    Register re(eastl::move(r));
-    re.swap(*this);
-    return *this;
-  }
-  ~Register() { releaseRegs(); }
-
-  int release() &&
-  {
-    int r = currentReg;
-    startReg = -1;
-    currentReg = -1;
-    count = 0;
-    return r;
-  }
-
-  void reset(int r, int num)
-  {
-    releaseRegs();
-    G_ASSERT(eastl::all_of(&owner->usedRegs[r], &owner->usedRegs[r + num], [](int used) { return used > 0; }));
-    acquireRegs(r, num);
-  }
-
-  explicit operator int() const
-  {
-    G_ASSERT(startReg != -1 && count > 0 && currentReg != -1);
-    return currentReg;
-  }
-};
-
-inline Register AssembleShaderEvalCB::_add_reg_word32(int num, bool aligned)
-{
-  Register reg(num, aligned, *this);
-  if (maxregsize < int(reg) + num)
-    maxregsize = int(reg) + num;
-  return reg;
-}
-
-inline Register AssembleShaderEvalCB::add_vec_reg(int num) { return _add_reg_word32(4 * num, true); }
-inline Register AssembleShaderEvalCB::add_reg() { return _add_reg_word32(1, false); }
-inline Register AssembleShaderEvalCB::add_resource_reg() { return _add_reg_word32(2, false); }
-
-inline void AssembleShaderEvalCB::warning(const char *msg, const Symbol *const s)
-{
-  G_ASSERT(s);
-  parser.get_lex_parser().set_warning(s->file_start, s->line_start, s->col_start, msg);
-}
-
 inline int AssembleShaderEvalCB::eval_if(bool_expr &e) { return eval_expr(e).value ? IF_TRUE : IF_FALSE; }
 
-
-void resolve_pending_shaders_from_cache();
 
 // clear caches
 void clear_per_file_caches();
 
-extern CodeSourceBlocks *curVsCode, *curHsCode, *curDsCode, *curGsCode, *curPsCode, *curCsCode, *curMsCode, *curAsCode;
-
-static inline CodeSourceBlocks *getSourceBlocks(const char *profile)
+inline CodeSourceBlocks *getSourceBlocks(const char *profile)
 {
-  switch (profile[0])
-  {
-    case 'v': return ShaderParser::curVsCode;
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-
-#endif
-    case 'h': return ShaderParser::curHsCode;
-    case 'd': return ShaderParser::curDsCode;
-    case 'g': return ShaderParser::curGsCode;
-    case 'p': return ShaderParser::curPsCode;
-    case 'c': return ShaderParser::curCsCode;
-    case 'm': return ShaderParser::curMsCode;
-    case 'a': return ShaderParser::curAsCode;
-  }
-  return NULL;
+  extern PerHlslStage<CodeSourceBlocks *> curHlslBlks;
+  return *curHlslBlks.validProfileSwitch(profile);
 }
 
 extern SCFastNameMap renderStageToIdxMap;
 
-inline bool validate_hardcoded_regs_in_hlsl_block(const SHTOK_hlsl_text *hlsl)
-{
-  if (!shc::config().disallowHlslHardcodedRegs)
-    return true;
-
-  if (!hlsl || !hlsl->text)
-    return true;
-
-  constexpr char regToken[] = "register";
-  constexpr size_t tokLen = sizeof(regToken) - 1;
-  for (const char *p = strstr(hlsl->text, regToken); p; p = strstr(p, regToken))
-  {
-    const bool isStartOfToken = (p == hlsl->text) || !fast_isalnum_or_(p[-1]); // neg index is ok because p != text beginning
-    const bool isSeparateToken = isStartOfToken && !fast_isalnum_or_(p[tokLen]);
-    if (isSeparateToken)
-    {
-      const char *begin = p, *end = p + tokLen;
-      while (begin != hlsl->text && begin[-1] != '\n')
-        --begin;
-      while (*end && *end != '\n')
-        ++end;
-      const String targetLine{begin, static_cast<int>(end - begin)};
-      sh_debug(SHLOG_FATAL, "Old-style raw hardcoded registers are disallowed, please use the stcode version:\n%s",
-        targetLine.c_str());
-      return false;
-    }
-
-    p += tokLen;
-  }
-
-  return true;
-}
 } // namespace ShaderParser

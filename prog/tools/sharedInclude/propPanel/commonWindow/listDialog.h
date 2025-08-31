@@ -21,7 +21,7 @@ public:
   void setSelectedIndex(int index);
 
 protected:
-  virtual void onDoubleClick(int pcb_id, ContainerPropertyControl *panel) override;
+  void onDoubleClick(int pcb_id, ContainerPropertyControl *panel) override;
 
 private:
   SimpleString lastSelectText;

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "box_csg.h"
-#include "plugIn.h"
+#include "plugin.h"
 
 #include <libTools/renderUtil/dynRenderBuf.h>
 #include <EditorCore/ec_IEditorCore.h>
@@ -252,13 +252,6 @@ void BoxCSG::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropert
 
 
 void BoxCSG::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects) {}
-
-
-// bool BoxCSG::onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
-//     dag::ConstSpan<RenderableEditableObject*> objects)
-//{
-//   return true;
-// }
 
 
 void BoxCSG::load(const DataBlock &blk)

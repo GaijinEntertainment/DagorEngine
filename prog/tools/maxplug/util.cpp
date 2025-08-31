@@ -14,7 +14,6 @@
 
 #include <vector>
 #include <string>
-#include <map>
 #include <sstream>
 #include <memory>
 
@@ -27,6 +26,9 @@
 #include "mathAng.h"
 #include "dag_auto_ptr.h"
 
+#include "layout.h"
+#include "common.h"
+
 
 #define ERRMSG_DELAY 3000
 
@@ -36,39 +38,6 @@ static Tab<char *> dagpath;
 
 char dagor_path[256] = "";
 void debug(char *s, ...);
-
-M_STD_STRING strToWide(const char *sz)
-{
-#ifdef _UNICODE
-  size_t n = strlen(sz) + 1;
-  TCHAR *sw = new TCHAR[n];
-  mbstowcs(sw, sz, n);
-
-  M_STD_STRING res(sw);
-  delete[] sw;
-#else
-  M_STD_STRING res(sz);
-#endif
-  return res;
-}
-
-
-std::string wideToStr(const TCHAR *sw)
-{
-#ifdef _UNICODE
-  size_t n = _tcslen(sw) * 3 + 1;
-  char *sz = new char[n];
-  _locale_t locale = _create_locale(LC_ALL, "ru-RU");
-  _wcstombs_l(sz, sw, n, locale);
-  _free_locale(locale);
-  std::string res(sz);
-  delete[] sz;
-#else
-  std::string res(sw);
-#endif
-  return res;
-}
-
 
 void import_milkshape_anim(Interface *ip, HWND hpanel);
 
@@ -101,7 +70,7 @@ public:
     }
   }
 
-  ~Dag2DagnewCB() {}
+  ~Dag2DagnewCB() override {}
 
   Mtl *conv_mat(Mtl *&m)
   {
@@ -164,7 +133,7 @@ public:
     return NULL;
   }
 
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -366,9 +335,9 @@ protected:
 
 public:
   DagUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
   void update_ui();
   void update_vars();
 
@@ -439,16 +408,20 @@ void ComputeVertexNormals(Mesh *mesh, Tab<Point3> &vnrm, Tab<FaceNGr> &fngr, Poi
 class DagUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &util; }
-  const TCHAR *ClassName() { return GetString(IDS_DAGUTIL_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &util; }
+  const TCHAR *ClassName() override { return GetString(IDS_DAGUTIL_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return DagUtil_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return DagUtil_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
 };
 
 //== save grass params
@@ -829,11 +802,10 @@ BOOL DagUtil::selection_brightness_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, 
         float move = PI / 2 / (float)steps;
         for (int i = 0; i < steps; i++)
         {
-          float x = (float)i * move;
-          float y = 1;
+          Point2 xy((float)i * move, 1.f);
           for (int j = 0; j < d; j++)
-            y *= cos(x);
-          fp.Append(1, &Point2(x, y));
+            xy.y *= cos(xy.x);
+          fp.Append(1, &xy);
         }
         POINT ip[steps];
         for (int i = 0; i < steps; i++)
@@ -1368,19 +1340,12 @@ void DagUtil::BeginEditParams(Interface *ip, IUtil *iu)
   this->ip = ip;
   this->iu = iu;
 
-  dagorUtilRoll = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGUTIL), ::dagor_util_dlg_proc, GetString(IDS_DAGUTIL_ROLL), 0);
-
-  materialsRoll = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_MATERIALS), ::materials_dlg_proc, GetString(IDS_MATERIALS_ROLL), 0,
-    APPENDROLL_CLOSED);
-
-  uvUtilsRoll = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_UV_UTILS), ::uv_util_dlg_proc, GetString(IDS_UV_UTILS_ROLL), 0,
-    APPENDROLL_CLOSED);
-
-  splinesAndSmoothRoll = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_SPLINES_AND_SMOOTH), ::spline_and_smooth_dlg_proc,
+  dagorUtilRoll = add_rollup_page(ip, IDD_DAGUTIL, ::dagor_util_dlg_proc, GetString(IDS_DAGUTIL_ROLL));
+  materialsRoll = add_rollup_page(ip, IDD_MATERIALS, ::materials_dlg_proc, GetString(IDS_MATERIALS_ROLL), 0, APPENDROLL_CLOSED);
+  uvUtilsRoll = add_rollup_page(ip, IDD_UV_UTILS, ::uv_util_dlg_proc, GetString(IDS_UV_UTILS_ROLL), 0, APPENDROLL_CLOSED);
+  splinesAndSmoothRoll = add_rollup_page(ip, IDD_SPLINES_AND_SMOOTH, ::spline_and_smooth_dlg_proc,
     GetString(IDS_SPLINES_AND_SMOOTH_ROLL), 0, APPENDROLL_CLOSED);
-
-  scatterRoll =
-    ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_SCATTER), ::scatter_dlg_proc, GetString(IDS_SCATTER_ROLL), 0, APPENDROLL_CLOSED);
+  scatterRoll = add_rollup_page(ip, IDD_SCATTER, ::scatter_dlg_proc, GetString(IDS_SCATTER_ROLL), 0, APPENDROLL_CLOSED);
 }
 
 void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
@@ -1388,21 +1353,12 @@ void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
   this->iu = NULL;
   this->ip = NULL;
 
-  if (dagorUtilRoll)
-    ip->DeleteRollupPage(dagorUtilRoll);
-  dagorUtilRoll = NULL;
-  if (materialsRoll)
-    ip->DeleteRollupPage(materialsRoll);
-  materialsRoll = NULL;
-  if (uvUtilsRoll)
-    ip->DeleteRollupPage(uvUtilsRoll);
-  uvUtilsRoll = NULL;
-  if (splinesAndSmoothRoll)
-    ip->DeleteRollupPage(splinesAndSmoothRoll);
-  splinesAndSmoothRoll = NULL;
-  if (scatterRoll)
-    ip->DeleteRollupPage(scatterRoll);
-  scatterRoll = NULL;
+  delete_rollup_page(ip, &dagorUtilRoll);
+  delete_rollup_page(ip, &materialsRoll);
+  delete_rollup_page(ip, &uvUtilsRoll);
+  delete_rollup_page(ip, &splinesAndSmoothRoll);
+  delete_rollup_page(ip, &scatterRoll);
+
   if (hBrightness)
   {
     EndDialog(hBrightness, FALSE);
@@ -1628,7 +1584,7 @@ public:
     if (tex)
       ip->ActivateTexture(tex, topm, sub);
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -1680,7 +1636,7 @@ public:
     if (tex)
       ip->DeActivateTexture(tex, topm, sub);
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -1754,7 +1710,7 @@ public:
       IDagorMat *d = (IDagorMat *)dm->GetInterface(I_DAGORMAT);
       assert(d);
       dm->SetName(sm->GetName());
-      d->set_2sided(sm->GetTwoSided());
+      d->set_2sided(sm->GetTwoSided() ? IDagorMat::Sides::DoubleSided : IDagorMat::Sides::OneSided);
       float si = sm->GetSelfIllum(time);
       d->set_amb(sm->GetAmbient(time) * (1 - si));
       Color diff = sm->GetDiffuse(time);
@@ -1780,7 +1736,7 @@ public:
     }
     return 0;
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -1858,7 +1814,7 @@ public:
       assert(d);
 
       sm->SetName(m->GetName());
-      sm->SetTwoSided(d->get_2sided());
+      sm->SetTwoSided(d->get_2sided() == IDagorMat::Sides::DoubleSided);
       Color c = d->get_emis();
       float si = (c.r + c.g + c.b) / 3;
       sm->SetSelfIllum(si, time);
@@ -1894,7 +1850,7 @@ public:
     }
     return 0;
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -1983,7 +1939,7 @@ public:
     time = ip->GetTime();
   }
 
-  ~Dag2EnumeratorCB() {}
+  ~Dag2EnumeratorCB() override {}
 
   int enumerate(Mtl *&m)
   {
@@ -2047,12 +2003,11 @@ public:
     return 0;
   }
 
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
     Mtl *m = n->GetMtl();
-    char cnv = 0;
     if (m)
     {
       if (m->IsMultiMtl())
@@ -2092,7 +2047,7 @@ public:
     time = ip->GetTime();
   }
 
-  ~Dag2UniqueCB() {}
+  ~Dag2UniqueCB() override {}
 
   Mtl *unique_mat(Mtl *mf)
   {
@@ -2146,7 +2101,7 @@ public:
     return NULL;
   }
 
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -2237,7 +2192,7 @@ public:
     }
   }
 
-  ~Dag2DagCB() { delete cfg; }
+  ~Dag2DagCB() override { delete cfg; }
 
   int conv_mat(Mtl *&m)
   {
@@ -2271,7 +2226,7 @@ public:
     return 0;
   }
 
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -2639,7 +2594,7 @@ void DagUtil::convertSpacesRecursive(INode *node)
 
   if (node != ip->GetRootNode()) // 'Scene Root' shouldn't be exported anyway.
   {
-    TCHAR newName[10000];
+    static TCHAR newName[10000];
     _tcscpy(newName, node->GetName());
     spaces_to_underscores(newName);
     if (_tcscmp(node->GetName(), newName))
@@ -2700,17 +2655,17 @@ class GeometryTopologyAdapter : public TopologyAdapter
 public:
   GeometryTopologyAdapter(Mesh *in_mesh) : TopologyAdapter(in_mesh) {}
 
-  unsigned int getNumVerts() { return mesh->getNumVerts(); }
+  unsigned int getNumVerts() override { return mesh->getNumVerts(); }
 
-  void setNumVerts(unsigned int num_verts) { mesh->setNumVerts(num_verts, TRUE, TRUE); }
+  void setNumVerts(unsigned int num_verts) override { mesh->setNumVerts(num_verts, TRUE, TRUE); }
 
-  unsigned int getIndex(unsigned int face_no, unsigned int index_no) { return mesh->faces[face_no].v[index_no]; }
+  unsigned int getIndex(unsigned int face_no, unsigned int index_no) override { return mesh->faces[face_no].v[index_no]; }
 
-  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) { mesh->faces[face_no].v[index_no] = index; }
+  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) override { mesh->faces[face_no].v[index_no] = index; }
 
-  void copyVertex(unsigned int from, unsigned int to) { mesh->verts[to] = mesh->verts[from]; }
+  void copyVertex(unsigned int from, unsigned int to) override { mesh->verts[to] = mesh->verts[from]; }
 
-  bool countRemovedVertices() { return true; }
+  bool countRemovedVertices() override { return true; }
 };
 
 
@@ -2721,25 +2676,25 @@ class TextureTopologyAdapter : public TopologyAdapter
 public:
   TextureTopologyAdapter(Mesh *in_mesh, int ch) : TopologyAdapter(in_mesh), channel(ch) {}
 
-  unsigned int getNumVerts() { return mesh->getNumMapVerts(channel); }
+  unsigned int getNumVerts() override { return mesh->getNumMapVerts(channel); }
 
-  void setNumVerts(unsigned int num_verts) { mesh->setNumMapVerts(channel, num_verts, TRUE); }
+  void setNumVerts(unsigned int num_verts) override { mesh->setNumMapVerts(channel, num_verts, TRUE); }
 
-  unsigned int getIndex(unsigned int face_no, unsigned int index_no)
+  unsigned int getIndex(unsigned int face_no, unsigned int index_no) override
   {
     TVFace *tvFace = mesh->mapFaces(channel);
     assert(tvFace);
     return tvFace[face_no].t[index_no];
   }
 
-  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index)
+  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) override
   {
     TVFace *tvFace = mesh->mapFaces(channel);
     assert(tvFace);
     tvFace[face_no].t[index_no] = index;
   }
 
-  void copyVertex(unsigned int from, unsigned int to)
+  void copyVertex(unsigned int from, unsigned int to) override
   {
     TVFace *tvFace = mesh->mapFaces(channel);
     assert(tvFace);
@@ -2753,15 +2708,18 @@ class ColorTopologyAdapter : public TopologyAdapter
 public:
   ColorTopologyAdapter(Mesh *in_mesh) : TopologyAdapter(in_mesh) {}
 
-  unsigned int getNumVerts() { return mesh->getNumVertCol(); }
+  unsigned int getNumVerts() override { return mesh->getNumVertCol(); }
 
-  void setNumVerts(unsigned int num_verts) { mesh->setNumVertCol(num_verts, TRUE); }
+  void setNumVerts(unsigned int num_verts) override { mesh->setNumVertCol(num_verts, TRUE); }
 
-  unsigned int getIndex(unsigned int face_no, unsigned int index_no) { return mesh->vcFace[face_no].t[index_no]; }
+  unsigned int getIndex(unsigned int face_no, unsigned int index_no) override { return mesh->vcFace[face_no].t[index_no]; }
 
-  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) { mesh->vcFace[face_no].t[index_no] = index; }
+  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) override
+  {
+    mesh->vcFace[face_no].t[index_no] = index;
+  }
 
-  void copyVertex(unsigned int from, unsigned int to) { mesh->vertCol[to] = mesh->vertCol[from]; }
+  void copyVertex(unsigned int from, unsigned int to) override { mesh->vertCol[to] = mesh->vertCol[from]; }
 };
 
 
@@ -2851,7 +2809,10 @@ void DagUtil::removeDegeneratesRecursive(INode *node)
 
       // Remove isolated vertices.
 
-      removeIsolatedVertices(GeometryTopologyAdapter(mesh));
+      {
+        GeometryTopologyAdapter gta(mesh);
+        removeIsolatedVertices(gta);
+      }
 
       /*  for ( int ch = 0; ch < MAX_MESHMAPS; ++ch )
         {
@@ -2861,7 +2822,10 @@ void DagUtil::removeDegeneratesRecursive(INode *node)
         }*/
 
       if (mesh->vertCol)
-        removeIsolatedVertices(ColorTopologyAdapter(mesh));
+      {
+        ColorTopologyAdapter cta(mesh);
+        removeIsolatedVertices(cta);
+      }
 
 
       // Updates.
@@ -3281,7 +3245,7 @@ public:
     idm.IdentityMatrix();
     resn->SetNodeTM(0, idm);
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -3870,8 +3834,8 @@ public:
     affectSpecular = FALSE;
     ambientOnly = FALSE;
   }
-  void DeleteThis() {}
-  BOOL Illuminate(ShadeContext &sc, Point3 &normal, Color &color, Point3 &dir, float &dot_nl, float &diffuseCoef)
+  void DeleteThis() override {}
+  BOOL Illuminate(ShadeContext &sc, Point3 &normal, Color &color, Point3 &dir, float &dot_nl, float &diffuseCoef) override
   {
     color.White();
     dir = normal;
@@ -3943,7 +3907,7 @@ public:
   Tab<ObjLightDesc *> &light;
 
   GetLightsCB(TimeValue t, Tab<ObjLightDesc *> &lt) : light(lt) { time = t; }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -3954,7 +3918,8 @@ public:
       return ECB_CONT;
     LightObject *lo = ((LightObject *)o);
     LightState lst;
-    lo->EvalLightState(time, FOREVER, &lst);
+    Interval lv_FOREVER = FOREVER;
+    lo->EvalLightState(time, lv_FOREVER, &lst);
     ObjLightDesc *l = lo->CreateLightDesc(n);
     if (!l)
       return ECB_CONT;
@@ -3966,15 +3931,16 @@ public:
 
 static void get_lights(TimeValue time, Interface *ip, Tab<ObjLightDesc *> &light)
 {
+  Interval lv_FOREVER = FOREVER;
   GetLightsCB cb(time, light);
   enum_nodes(ip->GetRootNode(), &cb);
   class MyRC : public RendContext
   {
   public:
     Color gll;
-    Color GlobalLightLevel() const { return gll; }
+    Color GlobalLightLevel() const override { return gll; }
   } rc;
-  rc.gll = ip->GetLightTint(time, FOREVER) * ip->GetLightLevel(time, FOREVER);
+  rc.gll = ip->GetLightTint(time, lv_FOREVER) * ip->GetLightLevel(time, lv_FOREVER);
   for (int i = 0; i < light.Count(); ++i)
   {
     light[i]->Update(time, rc, NULL, TRUE, TRUE);
@@ -4004,6 +3970,7 @@ public:
 
   RenderMapSC(TimeValue t, char lt, Interface *ip)
   {
+    Interval lv_FOREVER = FOREVER;
     curtime = t;
     doMaps = TRUE;
     filterMaps = TRUE;
@@ -4014,7 +3981,7 @@ public:
     lighting = lt;
     if (lighting)
     {
-      ambientLight = ip->GetAmbient(t, FOREVER);
+      ambientLight = ip->GetAmbient(t, lv_FOREVER);
       get_lights(t, ip, light);
       nLights = light.Count();
     }
@@ -4025,7 +3992,7 @@ public:
       light[0] = &superlight;
       nLights = 1;
     }
-    back_color = ip->GetBackGround(t, FOREVER);
+    back_color = ip->GetBackGround(t, lv_FOREVER);
   }
   void setnode(INode *n)
   {
@@ -4128,35 +4095,35 @@ public:
     norm = normal;
     view = orgview;
   }
-  BOOL InMtlEditor() { return FALSE; }
-  int Antialias() { return TRUE; }
-  int ProjType() { return 0; }
-  LightDesc *Light(int n) { return light[n]; }
-  TimeValue CurTime() { return curtime; }
-  INode *Node() { return node; }
-  Object *GetEvalObject()
+  BOOL InMtlEditor() override { return FALSE; }
+  int Antialias() override { return TRUE; }
+  int ProjType() override { return 0; }
+  LightDesc *Light(int n) override { return light[n]; }
+  TimeValue CurTime() override { return curtime; }
+  INode *Node() override { return node; }
+  Object *GetEvalObject() override
   {
     if (!node)
       return NULL;
     return node->EvalWorldState(curtime).obj;
   }
-  Point3 BarycentricCoords() { return bary; }
-  int FaceNumber() { return face; }
-  Point3 Normal() { return norm; }
-  void SetNormal(Point3 p) { norm = p; }
-  Point3 OrigNormal() { return normal; }
-  float Curve() { return curve; }
-  Point3 GNormal() { return facenorm; }
-  Point3 CamPos() { return Point3(0, 0, 0); }
-  Point3 V() { return view; }
-  void SetView(Point3 p) { view = p; }
-  Point3 OrigView() { return orgview; }
-  Point3 ReflectVector()
+  Point3 BarycentricCoords() override { return bary; }
+  int FaceNumber() override { return face; }
+  Point3 Normal() override { return norm; }
+  void SetNormal(Point3 p) override { norm = p; }
+  Point3 OrigNormal() override { return normal; }
+  float Curve() override { return curve; }
+  Point3 GNormal() override { return facenorm; }
+  Point3 CamPos() override { return Point3(0, 0, 0); }
+  Point3 V() override { return view; }
+  void SetView(Point3 p) override { view = p; }
+  Point3 OrigView() override { return orgview; }
+  Point3 ReflectVector() override
   {
     float VN = -DotProd(view, norm);
     return Normalize(2.0f * VN * norm + view);
   }
-  Point3 RefractVector(float ior)
+  Point3 RefractVector(float ior) override
   {
     Point3 N = Normal();
     float VN, nur, k;
@@ -4176,17 +4143,17 @@ public:
       return (nur * VN - sqrtf(k)) * N + nur * view;
     }
   }
-  Point3 P() { return pt; }
-  Point3 DP() { return dpt; }
-  void DP(Point3 &dx, Point3 &dy)
+  Point3 P() override { return pt; }
+  Point3 DP() override { return dpt; }
+  void DP(Point3 &dx, Point3 &dy) override
   {
     dx = dpt_dx;
     dy = dpt_dy;
   }
-  Point3 PObj() { return pt * cam2obj; }
-  Point3 DPObj() { return VectorTransform(dpt, cam2obj); }
-  Box3 ObjectBox() { return objbox; }
-  Point3 PObjRelBox()
+  Point3 PObj() override { return pt * cam2obj; }
+  Point3 DPObj() override { return VectorTransform(dpt, cam2obj); }
+  Box3 ObjectBox() override { return objbox; }
+  Point3 PObjRelBox() override
   {
     Point3 w = objbox.Width() * .5f, c = objbox.Center();
     Point3 p = PObj();
@@ -4195,7 +4162,7 @@ public:
     p.z = (p.z - c.z) / w.z;
     return p;
   }
-  Point3 DPObjRelBox()
+  Point3 DPObjRelBox() override
   {
     Point3 w = objbox.Width() * .5f;
     Point3 p = DPObj();
@@ -4204,23 +4171,23 @@ public:
     p.z = (p.z) / w.z;
     return p;
   }
-  void ScreenUV(Point2 &uv, Point2 &duv)
+  void ScreenUV(Point2 &uv, Point2 &duv) override
   {
     uv = Point2(0.f, 0.f);
     duv = Point2(0.f, 0.f);
   }
-  IPoint2 ScreenCoord() { return IPoint2(0, 0); }
-  Point3 UVW(int ch)
+  IPoint2 ScreenCoord() override { return IPoint2(0, 0); }
+  Point3 UVW(int ch) override
   {
     gettv(ch);
     return tv[ch][0] * bary[0] + tv[ch][1] * bary[1] + tv[ch][2] * bary[2];
   }
-  Point3 DUVW(int ch)
+  Point3 DUVW(int ch) override
   {
     gettv(ch);
     return (pabs(tv[ch][1] - tv[ch][0]) + pabs(tv[ch][2] - tv[ch][0])) * .5f * sz_ratio;
   }
-  void DPdUVW(Point3 dP[3], int ch)
+  void DPdUVW(Point3 dP[3], int ch) override
   {
     gettv(ch);
     Point3 bvec[3];
@@ -4228,12 +4195,12 @@ public:
     for (int i = 0; i < 3; ++i)
       dP[i] = Normalize(bvec[i]);
   }
-  void GetBGColor(Color &co, Color &tr, int fogBG)
+  void GetBGColor(Color &co, Color &tr, int fogBG) override
   {
     co = back_color;
     tr.Black();
   }
-  Point3 PointTo(const Point3 &p, RefFrame ito)
+  Point3 PointTo(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -4243,7 +4210,7 @@ public:
     }
     return p;
   }
-  Point3 PointFrom(const Point3 &p, RefFrame ito)
+  Point3 PointFrom(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -4253,7 +4220,7 @@ public:
     }
     return p;
   }
-  Point3 VectorTo(const Point3 &p, RefFrame ito)
+  Point3 VectorTo(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -4263,7 +4230,7 @@ public:
     }
     return p;
   }
-  Point3 VectorFrom(const Point3 &p, RefFrame ito)
+  Point3 VectorFrom(const Point3 &p, RefFrame ito) override
   {
     switch (ito)
     {
@@ -4907,7 +4874,7 @@ struct TQuad
   TVFace tf[MESHSMOOTHMAPS_SUPPORT][2];
   int v2v1[3], v2v2[3];
   // int t2t1[3],t2t2[3];
-  TQuad(){};
+  TQuad() {}
   TQuad(int vr[4], int fc1, int fc2, Mesh &m)
   {
     //,AdjEdgeList &ae,int ed1,int ed2//int tr[4],

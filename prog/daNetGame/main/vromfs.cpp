@@ -24,6 +24,7 @@
 #include <osApiWrappers/dag_pathDelim.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_fatal.h>
+#include "gameProjConfig.h"
 
 struct VromfsDataRemover
 {
@@ -47,6 +48,7 @@ struct MountVromfsRec
   VromHash hash;
   SimpleString path;
   SimpleString mount;
+  SimpleString stripPrefixes;
   eastl::unique_ptr<VirtualRomFsData, VromfsDataRemover> vromfsData;
   eastl::unique_ptr<VirtualRomFsPack, VromfsPackRemover> vromfsPack;
   MountVromfsRec(const char *pth, const char *mnt) : path(pth), mount(mnt) {}
@@ -192,7 +194,7 @@ static void load_vrom_list_blk(const DataBlock &blk, const F &cb)
     const char *path = vromBlk->getStr("path", NULL);
     G_ASSERT_CONTINUE(path && *path);
     const char *mnt = vromBlk->getStr("mnt", "");
-    cb(path, mnt, isPack, vromBlk->getBool("optional", false));
+    cb(path, mnt, vromBlk->getStr("vrom_strip_prefixes", ""), isPack, vromBlk->getBool("optional", false));
   }
 }
 
@@ -201,8 +203,8 @@ void apply_vrom_list_difference(const DataBlock &blk, dag::ConstSpan<VromLoadInf
 {
   Tab<VromLoadInfo> vrom_list(framemem_ptr());
   vrom_list.reserve(blk.blockCount() + extra_list.size());
-  load_vrom_list_blk(blk, [&vrom_list](const char *path, const char *mount, bool is_pack, bool opt) {
-    vrom_list.push_back(VromLoadInfo{path, mount, is_pack, opt});
+  load_vrom_list_blk(blk, [&vrom_list](const char *path, const char *mount, const char *strip_prefixes, bool is_pack, bool opt) {
+    vrom_list.push_back(VromLoadInfo{path, mount, strip_prefixes, is_pack, opt});
   });
   for (auto &vi : extra_list)
     vrom_list.push_back(vi);
@@ -221,8 +223,41 @@ void apply_vrom_list_difference(const DataBlock &blk, dag::ConstSpan<VromLoadInf
 
   // load new
   for (auto &vi : vrom_list)
-    if (mnt_vromfs.find_as(vi.path, eastl::less_2<MountVromfsRec, const char *>()) == mnt_vromfs.end()) // not exist already
-      mount_vrom(vi.path, vi.mount, vi.isPack, vi.optional, vi.reqSign);
+  {
+    auto mounted_vi = mnt_vromfs.find_as(vi.path, eastl::less<>());
+    if (mounted_vi != mnt_vromfs.end())
+    {
+      if (VirtualRomFsData *vrom = mounted_vi->vromfsData ? mounted_vi->vromfsData.get() : mounted_vi->vromfsPack.get())
+      {
+        // remount if needed
+        if (strcmp(mounted_vi->mount, vi.mount) != 0)
+        {
+          debug("remount %s: %s -> %s", vi.path, mounted_vi->mount, vi.mount);
+          mounted_vi->mount = vi.mount;
+          set_vromfs_mount_path(vrom, mounted_vi->mount.str());
+        }
+        // update strip prefixes if needed
+        if (strcmp(mounted_vi->stripPrefixes, vi.stripPrefixes) != 0)
+        {
+          debug("%s: update strip prefixes \"%s\" -> \"%s\"", vi.path, mounted_vi->stripPrefixes, vi.stripPrefixes);
+          mounted_vi->stripPrefixes = vi.stripPrefixes;
+          if (!vi.stripPrefixes || !*vi.stripPrefixes)
+            set_vromfs_strip_prefixes_str(vrom, "");
+          else if (!set_vromfs_strip_prefixes_str(vrom, vi.stripPrefixes))
+            logerr("%s: failed to set strip prefixes \"%s\"", vi.path, vi.stripPrefixes);
+        }
+      }
+      continue;
+    }
+
+    VirtualRomFsData *vrom = mount_vrom(vi.path, vi.mount, vi.isPack, vi.optional, vi.reqSign);
+    if ((mounted_vi = mnt_vromfs.find_as(vi.path, eastl::less<>())) != mnt_vromfs.end())
+    {
+      mounted_vi->stripPrefixes = vi.stripPrefixes;
+      if (vi.stripPrefixes && *vi.stripPrefixes && set_vromfs_strip_prefixes_str(vrom, vi.stripPrefixes))
+        debug("%s: using strip prefixes \"%s\"", vi.path, vi.stripPrefixes);
+    }
+  }
 }
 
 RAIIVrom::RAIIVrom(const char *vname, bool ignore_missing, IMemAlloc *alloc, bool insert_fist, char *mnt, bool req_sign) :
@@ -262,8 +297,7 @@ RAIIVrom::~RAIIVrom()
 
 updater::Version get_game_build_version()
 {
-  const updater::Version gameVersion{
-    get_vromfs_dump_version(String(0, "content/%s/%s-game.vromfs.bin", get_game_name(), get_game_name()))};
+  const updater::Version gameVersion{get_vromfs_dump_version(gameproj::main_vromfs_fpath())};
   const updater::Version exeVersion{get_exe_version32()};
   return max(gameVersion, exeVersion);
 }
@@ -509,8 +543,7 @@ const eastl::string &updater::binarycache::get_cache_folder()
   if (cacheFolder)
     return *cacheFolder;
 
-  cacheFolder.reset(new eastl::string{
-    eastl::string::CtorSprintf{}, "%s%cupdate-%s", folders::get_downloads_dir().c_str(), PATH_DELIM, ::get_game_name()});
+  cacheFolder.reset(new eastl::string{eastl::string::CtorSprintf{}, "%s%cupdate", folders::get_downloads_dir().c_str(), PATH_DELIM});
   *cacheFolder = fs::normalize_path(cacheFolder->c_str());
 
   debug("Init cache folder: %s", cacheFolder->c_str());

@@ -17,22 +17,22 @@ public:
   void selectByTreeDataNode(const CompositeEditorTreeDataNode *treeDataNodeToSelect);
 
 private:
-  virtual long onWcKeyDown(WindowBase *source, unsigned v_key) override;
+  long onWcKeyDown(WindowBase *source, unsigned v_key) override;
 
-  TEXTUREID getImageId(CompositeEditorTreeDataNode &treeDataNode) const;
+  PropPanel::IconId getImageId(CompositeEditorTreeDataNode &treeDataNode) const;
 
   void fillInternal(CompositeEditorTreeDataNode &treeDataNode, PropPanel::TLeafHandle parent,
     CompositeEditorTreeDataNode *treeDataNodeToSelect, eastl::hash_map<const void *, bool> &closedNodes);
 
   void getClosedNodes(eastl::hash_map<const void *, bool> &closedNodes);
 
-  TEXTUREID animCharImageId;
-  TEXTUREID compositImageId;
-  TEXTUREID dynModelImageId;
-  TEXTUREID efxImageId;
-  TEXTUREID folderImageId;
-  TEXTUREID fxImageId;
-  TEXTUREID gameObjImageId;
-  TEXTUREID prefabImageId;
-  TEXTUREID rendinstImageId;
+  PropPanel::IconId animCharImageId;
+  PropPanel::IconId compositImageId;
+  PropPanel::IconId dynModelImageId;
+  PropPanel::IconId efxImageId;
+  PropPanel::IconId folderImageId;
+  PropPanel::IconId fxImageId;
+  PropPanel::IconId gameObjImageId;
+  PropPanel::IconId prefabImageId;
+  PropPanel::IconId rendinstImageId;
 };

@@ -3,6 +3,7 @@ include "pbr.dshl"
 include "gbuffer.dshl"
 include "monteCarlo.dshl"
 include "roughToMip.dshl"
+include "camera_in_camera.dshl"
 
 include "ssr_use.dshl"
 include "ssr_inc.dshl"
@@ -25,7 +26,42 @@ texture perlin_noise3d;
 float4 depth_bounds = float4(0, 1, 0, 0);
 float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
 
+float fake_underwater_attenuation = 0.1;
+
+macro INIT_DAGI_IRRADIANCE_GRID(code)
+  hlsl {
+    #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+  }
+  DAGI_IRRADIANCE_GRID_SAMPLE(code)
+  DAGI_RAD_GRID_SAMPLE(code)
+
+  hlsl(code){
+    bool sample_dagi_irradiance_grid(float dist, float3 worldPos, float3 enviLightingNormal, float3 view,
+      float3 normal, float2 viewPixcoord, float3 roughR, inout half3 ambient, inout half3 giSpecular)
+    {
+      float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
+      float3 filteredWorldPos = worldPos + view*ofs;
+      dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, enviLightingNormal, view, max(0, dist-ofs), normal, interleavedGradientNoise( viewPixcoord.xy ), ambient);
+
+      bool hasSpecular = 0;
+      uint radGridCascade = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1);
+      if (radGridCascade < DAGI_MAX_RAD_GRID_CLIPS)
+      {
+        float probeSize = dagi_rad_grid_probe_size(radGridCascade);
+        float ofs = 0.5*sqrt(3)*probeSize;
+        float vOfs = min(dist, ofs);
+        float3 filtWorldPos = worldPos.xyz + ofs*normal + view*vOfs;
+        giSpecular = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridCascade, roughR, filtWorldPos);
+        hasSpecular = 1;
+      }
+
+      return hasSpecular;
+    }
+  }
+endmacro
+
 macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(code)
   INIT_ZNZFAR_STAGE(code)
   USE_ROUGH_TO_MIP()
 
@@ -54,6 +90,12 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 
   (code) {
     hero_cockpit_camera_to_point@f3 = hero_cockpit_camera_to_point;
+    water_level@f1 = water_level;
+    fake_underwater_attenuation@f1 = fake_underwater_attenuation;
+  }
+
+  hlsl(code) {
+    #include <interleavedGradientNoise.hlsl>
   }
 
   if (gi_quality != off)
@@ -63,19 +105,16 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
       DAGI_SKY_VIS_SAMPLE(code)
     } else if (gi_quality == colored)
     {
-      hlsl {
-        #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
-      }
-      DAGI_IRRADIANCE_GRID_SAMPLE(code)
-      DAGI_RAD_GRID_SAMPLE(code)
+      INIT_DAGI_IRRADIANCE_GRID(code)
     } else
     {
+      if (use_camera_in_camera == yes)
+      {
+        INIT_DAGI_IRRADIANCE_GRID(code)
+      }
+
       SAMPLE_IRRADIANCE_SPECULAR_SP(code)
       REPROJECT_GI(code)
-    }
-
-    hlsl(code) {
-      #include <interleavedGradientNoise.hlsl>
     }
   }
 
@@ -88,7 +127,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 ##endif
 
       void ComputeDeferredLight(ProcessedGbuffer gbuffer, float3 worldPos, float rawDepth, float2 viewTexcoord, float2 viewPixcoord,
-                                float3 pointToEye, out float3 outSpecular, out float3 outAmbient, out uint outPixelAge)
+                                float3 pointToEye, out float3 outSpecular, out float3 outAmbient, out float outPixelAge)
       {
         ##if gi_quality != screen_probes
         // this is incorrect even with other GI algorithms.
@@ -146,30 +185,24 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             ambient = enviLight;
             //fixme: to be measured! we probably should not sample enviProbes at all if smoothness is < threshold (since we don't use it!)
             ##if gi_quality == screen_probes
+            bool HAS_SPECULAR = true;
             {
-              sample_bilinear_specular_irradiance_with_normal(roughR, enviLightingNormal, linearize_z(rawDepth, zn_zfar.zw), worldPos, gbuffer.normal, viewPixcoord.xy, giSpecular, ambient);
-              #define HAS_SPECULAR 1
+              BRANCH
+              if (is_main_camera_view_postfx())
+                sample_bilinear_specular_irradiance_with_normal(roughR, enviLightingNormal, linearize_z(rawDepth, zn_zfar.zw), worldPos, gbuffer.normal, viewPixcoord.xy, giSpecular, ambient);
+            ##if use_camera_in_camera == yes
+              else
+                HAS_SPECULAR = sample_dagi_irradiance_grid(dist, worldPos, enviLightingNormal, view,
+                                                           gbuffer.normal, viewPixcoord, roughR, ambient, giSpecular);
+            ##endif
               #define HAS_CONST_SPECULAR 1
               #define HACK_SPECULAR_BRIGHTNESS 1
               #define HACK_SPECULAR_BRIGHTNESS_LIMITED 1
               #define HACK_ROUGH_SPECULAR_TO_IRRADIANCE 1
             }
             ##elif (gi_quality == colored)
-              float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
-              float3 filteredWorldPos = worldPos + view*ofs;
-              dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, enviLightingNormal, view, max(0, dist-ofs), gbuffer.normal, interleavedGradientNoise( viewPixcoord.xy ), ambient);
-
-              bool HAS_SPECULAR = 0;
-              uint radGridCascade = dagi_rad_grid_get_best_enclosing_clip_border(worldPos, 0, 1);
-              if (radGridCascade < DAGI_MAX_RAD_GRID_CLIPS)
-              {
-                float probeSize = dagi_rad_grid_probe_size(radGridCascade);
-                float ofs = 0.5*sqrt(3)*probeSize;
-                float vOfs = min(dist, ofs);
-                float3 filtWorldPos = worldPos.xyz + ofs*gbuffer.normal + view*vOfs;
-                giSpecular = dagi_trilinear_sample_radiance_grid_cascade_unsafe(radGridCascade, roughR, filtWorldPos);
-                HAS_SPECULAR = 1;
-              }
+              bool HAS_SPECULAR = sample_dagi_irradiance_grid(dist, worldPos, enviLightingNormal, view,
+                                                              gbuffer.normal, viewPixcoord, roughR, ambient, giSpecular);
               #define HAS_CONST_SPECULAR 1
               #define HACK_SPECULAR_BRIGHTNESS 1
               #define HACK_ROUGH_SPECULAR_TO_IRRADIANCE 1
@@ -286,6 +319,9 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
           -pointToEye, viewTexcoord, rawDepth, linearize_z(rawDepth, zn_zfar.zw), outAmbient, roughSpecular, outPixelAge);
         outSpecular = lerp(roughSpecular, outSpecular, saturate(1 - 2*gbuffer.linearRoughness)*0.9);
         ##endif
+        float attenuation = worldPos.y < water_level ? fake_underwater_attenuation : 1.;
+        outAmbient *= attenuation;
+        outSpecular *= attenuation;
         outAmbient = pack_hdr(outAmbient);
         outSpecular = pack_hdr(outSpecular);
       }

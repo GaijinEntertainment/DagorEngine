@@ -22,6 +22,7 @@
 #include <util/dag_watchdog.h>
 
 #include "render.h"
+#include "drv_assert_defs.h"
 #include "textureloader.h"
 
 #include <osApiWrappers/dag_critSec.h>
@@ -55,7 +56,7 @@ namespace drv3d_metal
     h = img->h;
   }
 
-  drv3d_metal::Texture* texture = new drv3d_metal::Texture(w, h, levels, 1, RES3D_TEX, flg, flg &TEXFMT_MASK, name, false, true);
+  drv3d_metal::Texture* texture = new drv3d_metal::Texture(w, h, levels, 1, D3DResourceType::TEX, flg, flg &TEXFMT_MASK, name, false, true);
 
   if (texture->metal_format != MTLPixelFormatDepth32Float &&
       texture->metal_format != MTLPixelFormatDepth32Float_Stencil8)
@@ -65,7 +66,7 @@ namespace drv3d_metal
       int nBytes = 0;
       int widBytes = 0;
 
-      void* image = texture->lock(widBytes, nBytes, 0, 0, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_DELSYSMEMCOPY);
+      void* image = texture->lock(widBytes, nBytes, 0, 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY);
       memcpy(image, img->getPixels(), nBytes);
 
       texture->unlock();
@@ -111,16 +112,16 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
     debug("invalid DDSx format");
     return NULL;
   }
-  G_ASSERT((fmt & TEXCF_RTARGET) == 0);
+  D3D_CONTRACT_ASSERT((fmt & TEXCF_RTARGET) == 0);
   fmt |= (hdr.flags & hdr.FLG_GAMMA_EQ_1) ? 0 : TEXCF_SRGBREAD;
 
-  int type = RES3D_TEX;
+  auto type = D3DResourceType::TEX;
   if (hdr.flags & ddsx::Header::FLG_CUBTEX)
-    type = RES3D_CUBETEX;
+    type = D3DResourceType::CUBETEX;
   else if (hdr.flags & ddsx::Header::FLG_VOLTEX)
-    type = RES3D_VOLTEX;
+    type = D3DResourceType::VOLTEX;
   else if (hdr.flags & ddsx::Header::FLG_ARRTEX)
-    type = RES3D_ARRTEX;
+    type = D3DResourceType::ARRTEX;
 
   drv3d_metal::Texture* tex = new drv3d_metal::Texture(hdr.w, hdr.h, hdr.levels, hdr.depth, type, fmt, fmt & TEXFMT_MASK, name, false, false);
 
@@ -148,28 +149,26 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
 
 CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *name)
 {
-  return new drv3d_metal::Texture(size, size, levels, 1, RES3D_CUBETEX, flg, flg &TEXFMT_MASK, name, false, true);
+  return new drv3d_metal::Texture(size, size, levels, 1, D3DResourceType::CUBETEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char* name)
 {
-  return new drv3d_metal::Texture(w, h, levels, d, RES3D_VOLTEX, flg, flg &TEXFMT_MASK, name, false, true);
+  return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::VOLTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 ArrayTexture *d3d::create_cube_array_tex(int size, int d, int flg, int levels, const char *name)
 {
-  return new drv3d_metal::Texture(size, size, levels, d, RES3D_CUBEARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
+  return new drv3d_metal::Texture(size, size, levels, d, D3DResourceType::CUBEARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char* name)
 {
-  return new drv3d_metal::Texture(w, h, levels, d, RES3D_ARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
+  return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::ARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
-static bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler, uint32_t face, uint32_t mip_level, bool is_rw, bool as_uint)
+static bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip_level, bool is_rw, bool as_uint)
 {
-  G_ASSERT(face == 0 && "setting face is not supported by metal yet");
-
   int slot_offset = 0;
 
   if (is_rw)
@@ -179,26 +178,26 @@ static bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool
 
   if (!tex)
   {
-    render.setTexture(shader_stage, slot + slot_offset, 0, use_sampler, mip_level, false);
+    render.setTexture(shader_stage, slot + slot_offset, 0, mip_level, face, false);
     return true;
   }
 
   drv3d_metal::Texture* tx = (drv3d_metal::Texture*)tex;
-  render.setTexture(shader_stage, slot + slot_offset, tx, use_sampler, mip_level, as_uint);
+  render.setTexture(shader_stage, slot + slot_offset, tx, mip_level, face, as_uint);
 
   return true;
 }
 
-bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler)
+bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex)
 {
-  set_tex(shader_stage, slot, tex, use_sampler, 0, 0, false, false);
+  set_tex(shader_stage, slot, tex, 0, 0, false, false);
 
   return true;
 }
 
 bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint)
 {
-  set_tex(shader_stage, slot, tex, false, face, mip_level, true, as_uint);
+  set_tex(shader_stage, slot, tex, face, mip_level, true, as_uint);
 
   return true;
 }
@@ -264,12 +263,14 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   return true;
 }
 
+bool d3d::discard_tex(BaseTexture *) { return false; }
+
 bool d3d::issame_texformat(int cflg1, int cflg2)
 {
   return drv3d_metal::Texture::isSameFormat(cflg1, cflg2);
 }
 
-static bool supportsCompressedTexture(int restype)
+static bool supportsCompressedTexture(D3DResourceType type)
 {
 #if _TARGET_IOS | _TARGET_TVOS
   return false;
@@ -278,16 +279,45 @@ static bool supportsCompressedTexture(int restype)
 #endif
 }
 
-unsigned d3d::get_texformat_usage(int cflg, int restype)
+static bool isReadWriteTier1Format(int fmt)
+{
+  switch (fmt)
+  {
+    case TEXFMT_R32F:
+    case TEXFMT_R32UI:
+    case TEXFMT_R32SI:
+      return true;
+  }
+  return false;
+}
+
+static bool isReadWriteTier2Format(int fmt)
+{
+  switch (fmt)
+  {
+    case TEXFMT_A32B32G32R32F:
+    case TEXFMT_A32B32G32R32UI:
+    case TEXFMT_A16B16G16R16F:
+    case TEXFMT_A16B16G16R16UI:
+    case TEXFMT_R8G8B8A8:
+    case TEXFMT_R16F:
+    case TEXFMT_R16UI:
+    case TEXFMT_R8:
+    case TEXFMT_R8UI:
+      return true;
+  }
+  return false;
+}
+
+unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
 {
   int fmt = cflg & TEXFMT_MASK;
 
   unsigned ret = 0;
-  if (render.caps.readWriteTextureTier2 ||
-      (render.caps.readWriteTextureTier1 && (fmt == TEXFMT_R32F || fmt == TEXFMT_R32UI || fmt == TEXFMT_R32SI)))
-  {
+  if (render.caps.readWriteTextureTier1 && isReadWriteTier1Format(fmt))
     ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
-  }
+  if (render.caps.readWriteTextureTier2 && isReadWriteTier2Format(fmt))
+    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
 
   switch (fmt)
   {
@@ -322,41 +352,24 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
     case TEXFMT_DEPTH32:
     case TEXFMT_DEPTH32_S8:  return USAGE_DEPTH | USAGE_TEXTURE | ret;
 
+    case TEXFMT_ASTC4:
     case TEXFMT_ETC2_RGBA:
-#if _TARGET_IOS | _TARGET_TVOS
-      if (@available(iOS 13, macOS 11.0, *))
-      {
-        return USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | ret;
-      }
-      else
-#endif
-      {
-        return 0;
-      }
+      return USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | ret;
     case TEXFMT_ETC2_RG:
-#if _TARGET_IOS | _TARGET_TVOS
-      if (@available(iOS 13, macOS 11.0, *))
-      {
-        return USAGE_TEXTURE | USAGE_FILTER | ret;
-      }
-      else
-#endif
-      {
-        return 0;
-      }
+      return USAGE_TEXTURE | USAGE_FILTER | ret;
     case TEXFMT_ATI1N:
     case TEXFMT_ATI2N:
     case TEXFMT_DXT1:
     case TEXFMT_DXT3:
-    case TEXFMT_DXT5:      return (supportsCompressedTexture(restype) ? (USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD) : 0) | ret;
+    case TEXFMT_DXT5:      return (supportsCompressedTexture(type) ? (USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD) : 0) | ret;
     default:
         return USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_BLEND | USAGE_VERTEXTEXTURE | ret;
   }
 }
 
-bool check_texformat(int cflg, int resType)
+bool check_texformat(int cflg, D3DResourceType type)
 {
-  unsigned flags = d3d::get_texformat_usage(cflg, resType);
+  unsigned flags = d3d::get_texformat_usage(cflg, type);
   unsigned mask = d3d::USAGE_TEXTURE;
   if (is_depth_format_flg(cflg))
     mask |= d3d::USAGE_DEPTH;
@@ -373,7 +386,7 @@ bool check_texformat(int cflg, int resType)
 // Texture management
 bool d3d::check_texformat(int cflg)
 {
-  return check_texformat(cflg, RES3D_TEX);
+  return check_texformat(cflg, D3DResourceType::TEX);
 }
 
 int d3d::get_max_sample_count(int cflg)
@@ -391,14 +404,14 @@ int d3d::get_max_sample_count(int cflg)
 /// returns false if cube texture of the specified format can't be created
 bool d3d::check_cubetexformat(int cflg)
 {
-  return check_texformat(cflg, RES3D_CUBETEX);
+  return check_texformat(cflg, D3DResourceType::CUBETEX);
 }
 
 /// check whether this volume texture format is available
 /// returns false if cube texture of the specified format can't be created
 bool d3d::check_voltexformat(int cflg)
 {
-  return check_texformat(cflg, RES3D_VOLTEX);
+  return check_texformat(cflg, D3DResourceType::VOLTEX);
 }
 
 BaseTexture *d3d::alias_tex(BaseTexture *baseTexture, TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
@@ -425,3 +438,112 @@ ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *baseTexture, int side, int
 {
   return nullptr;
 }
+
+#if _TARGET_PC_MACOSX
+
+#include <drv/3d/dag_platform_pc.h>
+
+struct WindowData
+{
+  CAMetalLayer *layer = nullptr;
+  id<MTLTexture> backbuffer = nil;
+  id<CAMetalDrawable> drawable = nil;
+  drv3d_metal::Texture *backbuffer_texture = nullptr;
+};
+eastl::unordered_map<void *, WindowData> g_windows;
+
+void destroy_cached_window_data(void *window)
+{
+  auto it = g_windows.find(window);
+  if (it != g_windows.end())
+  {
+    WindowData &data = it->second;
+    if (data.drawable)
+    {
+      [data.drawable release];
+      drv3d_metal::render.queueResourceForDeletion(data.backbuffer_texture->apiTex->texture);
+    }
+    data.backbuffer_texture->destroy();
+    g_windows.erase(it);
+  }
+}
+
+bool d3d::pcwin::can_render_to_window()
+{
+  return true;
+}
+
+BaseTexture *d3d::pcwin::get_swapchain_for_window(void *window)
+{
+  NSWindow *mac_window = (NSWindow *)window;
+  if (g_windows.find(window) == g_windows.end())
+  {
+    auto metal_texture = new drv3d_metal::Texture(nil, TEXFMT_A8R8G8B8, "backbuffer_for_window");
+
+    CAMetalLayer* layer = [CAMetalLayer layer];
+    layer.device = drv3d_metal::render.device;
+    layer.framebufferOnly = YES;
+    layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+    mac_window.contentView.layer = layer;
+    mac_window.contentView.wantsLayer = YES;
+
+    g_windows[window] =
+    {
+      .layer = layer,
+      .backbuffer = nil,
+      .drawable = nil,
+      .backbuffer_texture = metal_texture
+    };
+  }
+  WindowData &data = g_windows[window];
+  if (data.layer == nullptr)
+    return nullptr;
+
+  float dpi_scale = (float)mac_window.backingScaleFactor;
+  float scaled_width = mac_window.frame.size.width /* dpi_scale */;
+  float scaled_height = mac_window.frame.size.height /* dpi_scale */;
+  if (data.layer.contentsScale != dpi_scale || data.layer.drawableSize.width != scaled_width || data.layer.drawableSize.height != scaled_height)
+  {
+    data.layer.contentsScale = dpi_scale;
+    data.layer.drawableSize = CGSizeMake(scaled_width, scaled_height);
+  }
+
+  @autoreleasepool
+  {
+    data.drawable = [[data.layer nextDrawable] retain];
+    while (!data.drawable)
+    {
+      cpu_yield();
+      data.drawable = [[data.layer nextDrawable] retain];
+    }
+
+    data.backbuffer = [data.drawable.texture retain];
+    data.backbuffer_texture->width = data.backbuffer.width;
+    data.backbuffer_texture->height = data.backbuffer.height;
+    data.backbuffer_texture->apiTex->rt_texture = data.backbuffer;
+    data.backbuffer_texture->apiTex->texture = data.backbuffer;
+  }
+
+  return data.backbuffer_texture;
+}
+
+void d3d::pcwin::present_to_window(void *window)
+{
+  if (g_windows.find(window) == g_windows.end())
+    return;
+
+  WindowData &data = g_windows[window];
+  if (data.layer == nullptr)
+    return;
+
+  drv3d_metal::render.command_encoder.write(drv3d_metal::Render::CommandType::PresentDrawable).write(data.drawable);
+
+  data.drawable = nullptr;
+
+  drv3d_metal::render.queueResourceForDeletion(data.backbuffer_texture->apiTex->texture);
+
+  data.backbuffer_texture->apiTex->rt_texture = nil;
+  data.backbuffer_texture->apiTex->texture = nil;
+}
+#endif

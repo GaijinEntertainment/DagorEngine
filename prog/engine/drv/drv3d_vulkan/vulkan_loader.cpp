@@ -7,9 +7,9 @@
 
 using namespace drv3d_vulkan;
 
-eastl::vector<VkLayerProperties> VulkanLoader::getLayers()
+dag::Vector<VkLayerProperties> VulkanLoader::getLayers()
 {
-  eastl::vector<VkLayerProperties> result;
+  dag::Vector<VkLayerProperties> result;
   uint32_t count = 0;
   // have to loop until the second call reports an error or success
   // in theory it can return incomplete if new layers where added inbetween calls
@@ -28,9 +28,9 @@ eastl::vector<VkLayerProperties> VulkanLoader::getLayers()
   return result;
 }
 
-eastl::vector<VkExtensionProperties> VulkanLoader::getExtensions()
+dag::Vector<VkExtensionProperties> VulkanLoader::getExtensions()
 {
-  eastl::vector<VkExtensionProperties> result;
+  dag::Vector<VkExtensionProperties> result;
   uint32_t count = 0;
   // have to loop until the second call reports an error or success
   // in theory it can return incomplete if new extensions where added inbetween calls
@@ -71,13 +71,51 @@ eastl::vector<VkExtensionProperties> VulkanLoader::getExtensions()
   return result;
 }
 
+#if USE_STREAMLINE_FOR_DLSS
+bool VulkanLoader::initStreamlineAdapter()
+{
+  if (streamlineInterposer)
+  {
+    StreamlineAdapter::SupportOverrideMap supportOverride;
+    if (!StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::Vulkan, supportOverride))
+    {
+      streamlineInterposer.reset();
+      return false;
+    }
+    else
+    {
+      // old device or non NV device, unload interposer and adapter to avoid hooking issues
+      // as we can't control code executed in hooked methods
+      bool noSupport = streamlineAdapter->isDlssSupported() != nv::SupportState::Supported ||
+                       streamlineAdapter->isReflexSupported() != nv::SupportState::Supported;
+      if (noSupport)
+      {
+        streamlineAdapter.reset();
+        streamlineInterposer.reset();
+        return false;
+      }
+      else
+        return true;
+    }
+  }
+  return false;
+}
+#endif
+
 bool VulkanLoader::load(const char *name, bool validate)
 {
 #if !_TARGET_C3
-  libHandle = os_dll_load(name);
+#if USE_STREAMLINE_FOR_DLSS
+  streamlineInterposer = StreamlineAdapter::loadInterposer();
+  if (initStreamlineAdapter())
+    libHandle = streamlineInterposer.get();
+#endif
   if (!libHandle)
-    return false;
-
+  {
+    libHandle = os_dll_load(name);
+    if (!libHandle)
+      return false;
+  }
 #if VULKAN_DO_SIGN_CHECK
   // on windows the lib is digitaly signed to make
   // sure we get a std conformant loader
@@ -114,6 +152,13 @@ bool VulkanLoader::load(const char *name, bool validate)
 void VulkanLoader::unload()
 {
 #if !_TARGET_C3
+#if USE_STREAMLINE_FOR_DLSS
+  if (streamlineInterposer)
+  {
+    streamlineInterposer.reset();
+    libHandle = nullptr;
+  }
+#endif
   if (libHandle)
   {
     os_dll_close(libHandle);

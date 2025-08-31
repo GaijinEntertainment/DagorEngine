@@ -93,7 +93,8 @@ public:
   {
     BASIS_none,
     BASIS_world = 0x0001,
-    BASIS_local = 0x0002
+    BASIS_local = 0x0002,
+    BASIS_parent = 0x0004,
   };
   enum CenterType
   {
@@ -102,12 +103,10 @@ public:
     CENTER_sel = 0x020000,
     CENTER_coord = 0x040000
   };
-  enum
-  {
-    GIZMO_MASK_Mode = 0xFF00,
-    GIZMO_MASK_Basis = 0x00FF,
-    GIZMO_MASK_CENTER = 0xFF0000
-  };
+
+  static constexpr int GIZMO_MASK_Mode = 0xFF00;
+  static constexpr int GIZMO_MASK_Basis = 0x00FF;
+  static constexpr int GIZMO_MASK_CENTER = 0xFF0000;
 
   virtual void setGizmo(IGizmoClient *gc, ModeType type, EditableObject *ex) = 0;
   virtual void startGizmo(int x, int y, bool inside, int buttons, int key_modif) = 0;
@@ -163,6 +162,9 @@ public:
   virtual bool getRot(Point3 &p) = 0;
   virtual bool getScl(Point3 &p) = 0;
   virtual bool getAxes(Point3 &ax, Point3 &ay, Point3 &az) = 0;
+
+  // Return true to make changed() calls receive total delta since startGizmo().
+  virtual bool shouldComputeDeltaFromStartPos() { return false; }
 
   virtual void changed(const Point3 &delta) = 0;
   virtual void gizmoStarted() = 0;

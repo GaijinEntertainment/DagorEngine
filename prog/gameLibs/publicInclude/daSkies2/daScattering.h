@@ -172,7 +172,7 @@ protected:
     bool need_rayleigh) const;
   void initMsApproximation();
   void initCommon();
-  bool finishGpuReadback();
+  bool finishGpuReadback(bool force_sync_readback = false);
   void startGpuReadback();
   void invalidateCPUData();
   void updateCPUIrradiance(const uint16_t *, int stride); // read halves

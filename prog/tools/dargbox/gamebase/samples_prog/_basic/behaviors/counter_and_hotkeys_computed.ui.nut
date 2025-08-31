@@ -11,7 +11,7 @@ from "%darg/ui_imports.nut" import *
 
   If component is a function AND have not empty watch property with observables - if will be called if observable changes.
 
-  So darg is build around MVC - MODEL is all observables, VIEW is function that is called on model changes and returns a view, and you can CONTROL model with observable.update() on Events (like mouse clicks or hotkeys)
+  So darg is build around MVC - MODEL is all observables, VIEW is function that is called on model changes and returns a view, and you can CONTROL model with observable.set() on Events (like mouse clicks or hotkeys)
   You can also subscribe to observable changes manually (see below)
   Thats all!
 */
@@ -19,10 +19,10 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let counter = mkWatched(persist, "counter", 0) //or model
 
-let counter2x = Computed(@() counter.value*2)
-let counter4x = Computed(@() counter2x.value*2)
-let counter5x = Computed(@() counter.value*5)
-let counter20xAbs = Computed(@() counter4x.value*counter5x.value)
+let counter2x = Computed(@() counter.get()*2)
+let counter4x = Computed(@() counter2x.get()*2)
+let counter5x = Computed(@() counter.get()*5)
+let counter20xAbs = Computed(@() counter4x.get()*counter5x.get())
 
 counter2x.subscribe(@(x) vlog($"2x = {x}"))
 counter4x.subscribe(@(x) vlog($"4x = {x}"))
@@ -37,7 +37,7 @@ function button(params) {
   return watchElemState(function(sf) {
     return{
       rendObj = ROBJ_BOX
-      size = [sh(20),SIZE_TO_CONTENT]
+      size = static [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
       borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -53,7 +53,7 @@ function button(params) {
 
 
 //how to subscribe to observables without component
-local prev_val = counter.value
+local prev_val = counter.get()
 counter.subscribe(function(new_val) {
   if (new_val == 0 && prev_val < 0) {
     vlog("Was negative and now zero")
@@ -62,10 +62,10 @@ counter.subscribe(function(new_val) {
 })
 
 function increment() {
-  counter(counter.value + 1)
+  counter.modify(@(v) v + 1)
 }
 function decrement() {
-  counter(counter.value - 1)
+  counter.modify(@(v) v - 1)
 }
 
 return {
@@ -81,8 +81,8 @@ return {
     {rendObj=ROBJ_TEXT text="Click with Any Mouse Button on '+' to increment counter or on '-' to decrement"}
     {rendObj=ROBJ_TEXT text="You can also press hotkey - 'd' for Decrement counter, and 'i' for Increment"}
     button({text="Increment", onClick = increment, hotkeys=[["^I", increment]]})
-    @() {rendObj = ROBJ_TEXT text=$"Counter value = {counter.value}" watch=counter }
-    @() {rendObj = ROBJ_TEXT text=$"2x = {counter2x.value}, |20x| = {counter20xAbs.value}", watch=[counter2x, counter20xAbs]}
+    @() {rendObj = ROBJ_TEXT text=$"Counter value = {counter.get()}" watch=counter }
+    @() {rendObj = ROBJ_TEXT text=$"2x = {counter2x.get()}, |20x| = {counter20xAbs.get()}", watch=[counter2x, counter20xAbs]}
     button({text="Decrement", onClick=decrement, hotkeys=[["^D", decrement]] }) //you can also make a callback here, it can be useful for manipulating data of object
   ]
 }

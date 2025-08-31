@@ -35,6 +35,7 @@ struct VromLoadInfo // -V730
 {
   const char *path;
   const char *mount;
+  const char *stripPrefixes;
   bool isPack, optional;
   ReqVromSign reqSign = ReqVromSign::Yes;
 };

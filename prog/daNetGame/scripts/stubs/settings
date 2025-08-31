@@ -33,7 +33,7 @@ function set_setting_by_blk_path(path, val) {
   let pathLeaf = pathsplitted.len()>1 ? pathsplitted[pathsplitted.len()-1] : pathsplitted[0]
   let pathTree = pathsplitted.len()>1 ? pathsplitted.slice(0, pathsplitted.len()-1) : []
   foreach (p in pathTree) {
-    if (p not in settings)
+    if (p not in res)
       res[p] <- DataBlock()
     res = res[p]
   }

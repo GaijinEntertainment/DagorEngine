@@ -3,12 +3,18 @@
 
 #import "Metal/Metal.h"
 
+#include <EASTL/vector.h>
+#include <memory/dag_framemem.h>
+
+namespace drv3d_metal
+{
+class Buffer;
+}
+
 namespace acceleration_structure_descriptors
 {
-API_AVAILABLE(ios(15.0), macos(11.0))
 MTLInstanceAccelerationStructureDescriptor *getTLASDescriptor(uint32_t elements, RaytraceBuildFlags flags);
 
-API_AVAILABLE(ios(15.0), macos(11.0))
 MTLPrimitiveAccelerationStructureDescriptor *getBLASDescriptor(const RaytraceGeometryDescription *desc, uint32_t count,
-  RaytraceBuildFlags flags);
+  RaytraceBuildFlags flags, eastl::vector<drv3d_metal::Buffer *, framemem_allocator> *resources = nullptr);
 } // namespace acceleration_structure_descriptors

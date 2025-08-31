@@ -25,6 +25,14 @@ struct RaytraceAccelerationStructure
   uint16_t asHeapIdx = {};
 };
 
+struct RayTraceAccelerationStructurePool
+{
+  ComPtr<ID3D12Resource> poolResource;
+  D3D12_GPU_VIRTUAL_ADDRESS baseAddress = {};
+  uint32_t sizeInBytes = 0;
+  ObjectPool<RaytraceAccelerationStructure> subStructures;
+};
+
 } // namespace drv3d_dx12
 
 #endif

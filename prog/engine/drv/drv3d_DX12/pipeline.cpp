@@ -6,6 +6,7 @@
 
 #include <EASTL/functional.h>
 #include <ioSys/dag_memIo.h>
+#include <osApiWrappers/dag_files.h>
 
 
 using namespace drv3d_dx12;
@@ -71,7 +72,7 @@ static bool has_acceleration_structure(const backend::PixelShaderModuleRefStore 
 bool PipelineVariant::calculateColorWriteMask(const eastl::string &pipeline_name, const BasePipeline &base,
   const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, uint32_t &color_write_mask) const
 {
-  // Rules for render target, shader output and color write mask iteraction:
+  // Rules for render target, shader output and color write mask interaction:
   // - If a render target is not set, the slot is turned off
   // - If a shader does not output a slot at all, the slot is turned off
   // - For all left on slots the color write mask is applied
@@ -82,7 +83,7 @@ bool PipelineVariant::calculateColorWriteMask(const eastl::string &pipeline_name
   // 0x000000FF as the target 0 and 1 are enabled.
   uint32_t basicShaderTargetMask =
     spread_color_chanel_mask_to_render_target_color_channel_mask(base.psModule.header.header.inOutSemanticMask);
-  // The mask from the framebuffers active slots and thier formats is masked off by the written
+  // The mask from the framebuffers active slots and their formats is masked off by the written
   // slots by the shader implicitly.
   uint32_t fbColorWriteMask = fb_layout.getColorWriteMask();
   color_write_mask = fbColorWriteMask & basicShaderTargetMask;
@@ -169,6 +170,40 @@ bool PipelineVariant::generateInputLayoutDescription(const InputLayout &input_la
   return true;
 }
 
+D3D12_SO_DECLARATION_ENTRY PipelineVariant::generateStreamOutputItemDesc(const dxil::StreamOutputComponentInfo &stream_output_entry,
+  uint8_t start_component, uint8_t component_count) const
+{
+  return D3D12_SO_DECLARATION_ENTRY{.Stream = 0,
+    .SemanticName = stream_output_entry.semanticName,
+    .SemanticIndex = stream_output_entry.semanticIndex,
+    .StartComponent = start_component,
+    .ComponentCount = component_count,
+    .OutputSlot = stream_output_entry.slot};
+}
+
+uint32_t PipelineVariant::generateStreamOutputDescription(eastl::span<dxil::StreamOutputComponentInfo> stream_output_desc,
+  eastl::span<UINT, MAX_STREAM_OUTPUT_BUFFERS> strides,
+  eastl::span<D3D12_SO_DECLARATION_ENTRY, MAX_STREAM_OUTPUT_ATTRIBUTES> entries) const
+{
+  if (stream_output_desc.empty())
+    return 0;
+  G_ASSERT(stream_output_desc.size() < MAX_STREAM_OUTPUT_ATTRIBUTES);
+  uint32_t soCount = 0;
+  eastl::fill(strides.begin(), strides.end(), 0);
+  for (const auto &soElem : stream_output_desc)
+  {
+    const uint8_t startComponent = __bsf(soElem.mask);
+    const uint8_t componentCount = __popcount(soElem.mask);
+    G_ASSERTF(soElem.mask == (((1 << componentCount) - 1) << startComponent),
+      "DX12: Only consecutive components are supported for streamout (due to Xbox limitations)");
+    G_ASSERT(componentCount + startComponent <= 4);
+    entries[soCount++] = generateStreamOutputItemDesc(soElem, startComponent, componentCount);
+    strides[soElem.slot] += componentCount * 4; // 4 bytes per component
+  }
+  G_ASSERT(soCount > 0);
+  return soCount;
+}
+
 bool PipelineVariant::generateRasterDescription(const RenderStateSystem::StaticState &static_state, bool is_wire_frame,
   GraphicsPipelineCreateInfoData &target) const
 {
@@ -184,9 +219,9 @@ bool PipelineVariant::generateRasterDescription(const RenderStateSystem::StaticS
   return true;
 }
 
-bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
+bool PipelineVariant::create(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
   backend::PipelineNameGenerator &name_generator)
 {
   bool succeeded = true;
@@ -229,6 +264,14 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
     funcProfiler.fmt = nullptr;
 #endif
     return false;
+  }
+
+  const auto soCount =
+    generateStreamOutputDescription(base.vsModule.header.streamOutputDesc, gpci.streamOutputBufferStrides, gpci.streamOutputStore);
+  if (soCount > 0)
+  {
+    gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_STREAM_OUTPUT, D3D12_STREAM_OUTPUT_DESC>(gpci.streamOutputStore, soCount,
+      gpci.streamOutputBufferStrides, MAX_STREAM_OUTPUT_BUFFERS, 0u);
   }
 
   bool outputOK = generateOutputMergerDescriptions(name, base, static_state, fb_layout, gpci);
@@ -314,6 +357,18 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
   desc.InputLayout.NumElements = inputCount;
   desc.InputLayout.pInputElementDescs = elemDesc;
 
+  UINT soStrides[MAX_STREAM_OUTPUT_BUFFERS] = {};
+  D3D12_SO_DECLARATION_ENTRY soEntries[MAX_STREAM_OUTPUT_ATTRIBUTES] = {};
+  const auto soCount = generateStreamOutputDescription(base.vsModule.header.streamOutputDesc, soStrides, soEntries);
+  if (soCount > 0)
+  {
+    desc.StreamOutput.pSODeclaration = soEntries;
+    desc.StreamOutput.NumEntries = soCount;
+    desc.StreamOutput.pBufferStrides = soStrides;
+    desc.StreamOutput.NumStrides = MAX_STREAM_OUTPUT_BUFFERS;
+    desc.StreamOutput.RasterizedStream = 0;
+  }
+
   desc.RasterizerState = static_state.getRasterizerDesc(is_wire_frame ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID);
   desc.DepthStencilState = static_state.getDepthStencilDesc();
 
@@ -351,17 +406,18 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
   if (!pipeline)
   {
 #if _TARGET_PC_WIN
-    auto result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
+    auto result = device.getDevice()->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
     if (FAILED(result) && cacheTarget.CachedBlobSizeInBytes > 0)
     {
       logdbg("DX12: CreatePipelineState failed with attached cache blob, retrying without");
       cacheTarget.pCachedBlob = nullptr;
       cacheTarget.CachedBlobSizeInBytes = 0;
-      result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
+      result = device.getDevice()->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
     }
 #else
     G_UNUSED(pipe_cache);
-    auto result = DX12_CHECK_RESULT(xbox_create_graphics_pipeline(device, desc, !static_state.enableDepthBounds, pipeline));
+    auto result =
+      DX12_CHECK_RESULT(xbox_create_graphics_pipeline(device.getDevice(), desc, !static_state.enableDepthBounds, pipeline));
 #endif
     // Special handling as on PC we may have to retry if cache blob reload failed
     if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
@@ -458,17 +514,10 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
 #endif
   }
 
-#if DX12_DOES_SET_DEBUG_NAMES
-  if (pipeline && give_name && !name.empty())
+  if (pipeline && !name.empty())
   {
-    shorten_name_for_pix(name);
-    dag::Vector<wchar_t> nameBuf;
-    nameBuf.resize(name.length() + 1);
-    DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
+    device.nameObject(pipeline.Get(), name);
   }
-#else
-  G_UNUSED(give_name);
-#endif
   return succeeded;
 }
 
@@ -489,11 +538,10 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
       continue;
     if (blend_desc.RenderTarget[i].BlendEnable)
     {
-      const auto supports = get_device().getFormatFeatures(fb_layout.colorFormats[i]);
-      if ((supports.Support1 & D3D12_FORMAT_SUPPORT1_BLENDABLE) == 0)
+      if (!fb_layout.colorFormats[i].isSupportedBlendable())
       {
         isOk = false;
-        logerr("DX12: Blend enabled for render target %u with format %s that does not support blending", i,
+        D3D_ERROR("DX12: Blend enabled for render target %u with format %s that does not support blending", i,
           fb_layout.colorFormats[i].getNameString());
       }
     }
@@ -505,7 +553,7 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
       // D3D12_COLOR_WRITE_ENABLE_ALL. Partial updates to some component is not supported. While 999E5 does not support alpha writing,
       // setting COLOR_WRITE_ENABLE_ALPHA is required for the exponent component to be written.
       isOk = false;
-      logerr(
+      D3D_ERROR(
         "DX12: Write mask 0x%x for render target %u with format TEXFMT_R9G9B9E5 (partial updates to some component is not supported)",
         blend_desc.RenderTarget[i].RenderTargetWriteMask, i);
     }
@@ -515,10 +563,9 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
 }
 
 #if !_TARGET_XBOXONE
-bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
+bool PipelineVariant::createMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name,
-  backend::PipelineNameGenerator &name_generator)
+  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator)
 {
   bool succeeded = true;
   auto name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
@@ -575,14 +622,14 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
 
   if (!pipeline)
   {
-    auto result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
+    auto result = device.getDevice()->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
 #if _TARGET_PC_WIN
     if (FAILED(result) && cacheTarget.CachedBlobSizeInBytes > 0)
     {
       logdbg("DX12: CreatePipelineState failed with attached cache blob, retrying without");
       cacheTarget.pCachedBlob = nullptr;
       cacheTarget.CachedBlobSizeInBytes = 0;
-      result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
+      result = device.getDevice()->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
     }
 #endif
     // Special handling as on PC we may have to retry if cache blob reload failed
@@ -643,25 +690,18 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
 #endif
   }
 
-#if DX12_DOES_SET_DEBUG_NAMES
-  if (pipeline && give_name && !name.empty())
+  if (pipeline && !name.empty())
   {
-    shorten_name_for_pix(name);
-    dag::Vector<wchar_t> nameBuf;
-    nameBuf.resize(name.length() + 1);
-    DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
+    device.nameObject(pipeline.Get(), name);
   }
-#else
-  G_UNUSED(give_name);
-#endif
   return succeeded;
 }
 #endif
 
 
-bool PipelineVariant::load(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
+bool PipelineVariant::load(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
   backend::PipelineNameGenerator &name_generator)
 {
   if (pipeline)
@@ -671,21 +711,19 @@ bool PipelineVariant::load(ID3D12Device2 *device, backend::ShaderModuleManager &
   G_ASSERT(!base.isMesh());
 #endif
   return create(device, shader_bytecodes, base, pipe_cache, input_layout, is_wire_frame, static_state, fb_layout, top, on_error,
-    give_name, name_generator);
+    name_generator);
 }
 
-bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
+bool PipelineVariant::loadMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name,
-  backend::PipelineNameGenerator &name_generator)
+  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator)
 {
   if (pipeline)
     return true;
   dynamicMask = static_state.getDynamicStateMask();
 #if !_TARGET_XBOXONE
   G_ASSERT(base.isMesh());
-  return createMesh(device, shader_bytecodes, base, pipe_cache, is_wire_frame, static_state, fb_layout, on_error, give_name,
-    name_generator);
+  return createMesh(device, shader_bytecodes, base, pipe_cache, is_wire_frame, static_state, fb_layout, on_error, name_generator);
 #else
   G_UNUSED(device);
   G_UNUSED(shader_bytecodes);
@@ -695,7 +733,6 @@ bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManag
   G_UNUSED(static_state);
   G_UNUSED(fb_layout);
   G_UNUSED(on_error);
-  G_UNUSED(give_name);
   G_UNUSED(name_generator);
   return false;
 #endif
@@ -703,7 +740,7 @@ bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManag
 
 void PipelineManager::init(const SetupParameters &params)
 {
-  ShaderDeviceRequirementChecker::init(params.device);
+  ShaderDeviceRequirementChecker::init(params.device, params.hlslVendorExtension);
   backend::InputLayoutManager::init();
 
   D3D12SerializeRootSignature = params.serializeRootSignature;
@@ -957,7 +994,7 @@ static auto createSimplePipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, Com
 #endif
 }
 
-ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+ID3D12PipelineState *PipelineManager::createBlitPipeline(Device &device, DXGI_FORMAT out_fmt)
 {
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
@@ -971,22 +1008,25 @@ ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, 
 #endif
 
   FormatPipeline newBlitPipe{nullptr, out_fmt};
-  auto result =
-    createSimplePipeline(device, out_fmt, newBlitPipe.pipeline, blitSignature.Get(), blit_vertex_shader, blit_pixel_shader);
+  auto result = createSimplePipeline(device.getDevice(), out_fmt, newBlitPipe.pipeline, blitSignature.Get(), blit_vertex_shader,
+    blit_pixel_shader);
 
   if (FAILED(result))
   {
-    DAG_FATAL("Failed to create blit pipeline");
+    if (device.isInErrorState())
+      D3D_ERROR("DX12: Failed to create blit pipeline, because device is in error state");
+    else
+      DAG_FATAL("DX12: Failed to create blit pipeline");
+
     return nullptr;
   }
 
-  if (give_name)
-    DX12_SET_DEBUG_OBJ_NAME(newBlitPipe.pipeline, L"BlitPipeline");
+  device.nameObject(newBlitPipe.pipeline.Get(), L"BlitPipeline");
 
   return blitPipelines.emplace_back(eastl::move(newBlitPipe)).pipeline.Get();
 }
 
-ID3D12PipelineState *PipelineManager::createClearPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+ID3D12PipelineState *PipelineManager::createClearPipeline(Device &device, DXGI_FORMAT out_fmt)
 {
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
@@ -1000,17 +1040,20 @@ ID3D12PipelineState *PipelineManager::createClearPipeline(ID3D12Device2 *device,
 #endif
 
   FormatPipeline newClearPipe{nullptr, out_fmt};
-  auto result =
-    createSimplePipeline(device, out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader, clear_pixel_shader);
+  auto result = createSimplePipeline(device.getDevice(), out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader,
+    clear_pixel_shader);
 
   if (FAILED(result))
   {
-    DAG_FATAL("Failed to create clear pipeline");
+    if (device.isInErrorState())
+      D3D_ERROR("DX12: Failed to create clear pipeline, because device is in error state");
+    else
+      DAG_FATAL("DX12: Failed to create clear pipeline");
+
     return nullptr;
   }
 
-  if (give_name)
-    DX12_SET_DEBUG_OBJ_NAME(newClearPipe.pipeline, L"ClearPipeline");
+  device.nameObject(newClearPipe.pipeline.Get(), L"ClearPipeline");
 
   return clearPipelines.emplace_back(eastl::move(newClearPipe)).pipeline.Get();
 }
@@ -1035,6 +1078,7 @@ struct BasicGraphicsRootSignatureGenerator
   uint32_t rangeSize = 0;
   uint32_t signatureCost = 0;
   D3D12_SHADER_VISIBILITY currentVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  uint32_t vendorExtensionLocation = 0;
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   bool useConstantBufferRootDescriptors = false;
   bool shouldUseConstantBufferRootDescriptors() const { return useConstantBufferRootDescriptors; }
@@ -1047,6 +1091,30 @@ struct BasicGraphicsRootSignatureGenerator
     desc.pStaticSamplers = nullptr;
     desc.pParameters = params;
   }
+  void end()
+  {
+#if _TARGET_PC_WIN
+    if (vendorExtensionLocation)
+    {
+      rangePosition->RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+      rangePosition->NumDescriptors = 1;
+      rangePosition->BaseShaderRegister = 0;
+      rangePosition->RegisterSpace = vendorExtensionLocation;
+      rangePosition->OffsetInDescriptorsFromTableStart = 0;
+
+      auto &pTarget = params[desc.NumParameters++];
+      pTarget.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      pTarget.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+      pTarget.DescriptorTable.NumDescriptorRanges = 1;
+      pTarget.DescriptorTable.pDescriptorRanges = rangePosition;
+
+      ++rangePosition;
+      G_ASSERT(rangePosition <= eastl::end(ranges));
+
+      signatureCost += 1; // offset into active descriptor heap
+    }
+#endif
+  }
   void hasAccelerationStructure()
   {
 #if _TARGET_SCARLETT
@@ -1054,6 +1122,7 @@ struct BasicGraphicsRootSignatureGenerator
 #endif
   }
   void noPixelShaderResources() { desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS; }
+  void hasStreamOutput() { desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT; }
   void setVisibilityPixelShader() { currentVisibility = D3D12_SHADER_VISIBILITY_PIXEL; }
   void addRootParameterConstantExplicit(uint32_t space, uint32_t index, uint32_t dwords, D3D12_SHADER_VISIBILITY vis)
   {
@@ -1080,6 +1149,16 @@ struct BasicGraphicsRootSignatureGenerator
   void specialConstants(uint32_t space, uint32_t index)
   {
     addRootParameterConstantExplicit(space, index, 1, D3D12_SHADER_VISIBILITY_ALL);
+  }
+  void nvidiaExtension(uint32_t space, uint32_t index)
+  {
+    G_UNUSED(index);
+    vendorExtensionLocation = space;
+  }
+  void amdExtension(uint32_t space, uint32_t index)
+  {
+    G_UNUSED(index);
+    vendorExtensionLocation = space;
   }
   void beginConstantBuffers()
   {
@@ -1340,7 +1419,7 @@ struct GraphicsRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<5, G
     BaseType::begin();
     desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
   }
-  void end() {}
+  void end() { BaseType::end(); }
   void beginFlags() {}
   void endFlags() {}
   void hasVertexInputs() { desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; }
@@ -1383,7 +1462,7 @@ struct GraphicsMeshRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<
     desc.Flags |= ROOT_SIGNATURE_FLAG_FORCE_MEMORY_BASED_ABI;
 #endif
   }
-  void end() {}
+  void end() { BaseType::begin(); }
   void beginFlags() {}
   void endFlags() {}
   void noMeshShaderResources() { desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS; }
@@ -1403,7 +1482,7 @@ struct GraphicsMeshRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<
 // know when a buffer / image change, need metadata from shader for this)
 // - sampler - descriptor static
 GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12Device *device, PipelineCache &cache,
-  bool has_vertex_input, bool has_acceleration_structure, const dxil::ShaderResourceUsageTable &vs_header,
+  bool has_vertex_input, bool has_acceleration_structure, bool has_stream_output, const dxil::ShaderResourceUsageTable &vs_header,
   const dxil::ShaderResourceUsageTable &ps_header, const dxil::ShaderResourceUsageTable *gs_header,
   const dxil::ShaderResourceUsageTable *hs_header, const dxil::ShaderResourceUsageTable *ds_header)
 {
@@ -1420,7 +1499,8 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
     {
       return (gps->def.vertexShaderRegisters == vs_header) && (gps->def.pixelShaderRegisters == ps_header) &&
              (gps->def.geometryShaderRegisters == *gs_header) && (gps->def.hullShaderRegisters == *hs_header) &&
-             (gps->def.domainShaderRegisters == *ds_header) && (gps->def.hasVertexInputs == has_vertex_input)
+             (gps->def.domainShaderRegisters == *ds_header) && (gps->def.hasVertexInputs == has_vertex_input) &&
+             (gps->def.hasStreamOutput == has_stream_output)
 #if _TARGET_SCARLETT
              && (gps->def.hasAccelerationStructure == has_acceleration_structure)
 #endif
@@ -1434,6 +1514,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
 #endif
     auto newSign = eastl::make_unique<GraphicsPipelineSignature>();
     newSign->def.hasVertexInputs = has_vertex_input;
+    newSign->def.hasStreamOutput = has_stream_output;
 #if _TARGET_SCARLETT
     newSign->def.hasAccelerationStructure = has_acceleration_structure;
 #endif
@@ -1450,7 +1531,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
     generator.useConstantBufferRootDescriptors = !rootSignaturesUsesCBVDescriptorRanges;
 #endif
     decode_graphics_root_signature(has_vertex_input, has_acceleration_structure, vs_header, ps_header, *hs_header, *ds_header,
-      *gs_header, generator);
+      *gs_header, has_stream_output, generator);
 
     G_ASSERTF(generator.signatureCost < 64, "Too many root signature parameters, the limit is 64 but this one needs %u",
       generator.signatureCost);
@@ -1482,8 +1563,8 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
 
 #if !_TARGET_XBOXONE
 GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3D12Device *device, PipelineCache &cache,
-  bool has_acceleration_structure, const dxil::ShaderResourceUsageTable &ms_header, const dxil::ShaderResourceUsageTable &ps_header,
-  const dxil::ShaderResourceUsageTable *as_header)
+  bool has_acceleration_structure, bool has_stream_output, const dxil::ShaderResourceUsageTable &ms_header,
+  const dxil::ShaderResourceUsageTable &ps_header, const dxil::ShaderResourceUsageTable *as_header)
 {
   dxil::ShaderResourceUsageTable defaultHeader = {};
   auto &safeAsHeader = as_header ? *as_header : defaultHeader;
@@ -1492,7 +1573,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
     [=, &safeAsHeader, &ms_header, &ps_header](const eastl::unique_ptr<GraphicsPipelineSignature> &gps) //
     {
       return (gps->def.vertexShaderRegisters == ms_header) && (gps->def.pixelShaderRegisters == ps_header) &&
-             (gps->def.geometryShaderRegisters == safeAsHeader)
+             (gps->def.geometryShaderRegisters == safeAsHeader) && (gps->def.hasStreamOutput == has_stream_output)
 #if _TARGET_SCARLETT
              && (gps->def.hasAccelerationStructure == has_acceleration_structure)
 #endif
@@ -1506,6 +1587,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
 #endif
     auto newSign = eastl::make_unique<GraphicsPipelineSignature>();
     newSign->def.hasVertexInputs = false;
+    newSign->def.hasStreamOutput = has_stream_output;
 #if _TARGET_SCARLETT
     newSign->def.hasAccelerationStructure = has_acceleration_structure;
 #endif
@@ -1519,7 +1601,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
     generator.useConstantBufferRootDescriptors = !rootSignaturesUsesCBVDescriptorRanges;
 #endif
-    decode_graphics_mesh_root_signature(has_acceleration_structure, ms_header, ps_header, as_header, generator);
+    decode_graphics_mesh_root_signature(has_acceleration_structure, ms_header, ps_header, as_header, has_stream_output, generator);
 
     G_ASSERTF(generator.signatureCost < 64, "Too many root signature parameters, the limit is 64 but this one needs %u",
       generator.signatureCost);
@@ -1578,6 +1660,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       D3D12_ROOT_PARAMETER *bindlessSRVRootParam = nullptr;
       uint32_t rangeSize = 0;
       uint32_t signatureCost = 0;
+      uint32_t vendorExtensionLocation = 0;
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
       bool useConstantBufferRootDescriptors = false;
       bool shouldUseConstantBufferRootDescriptors() const { return useConstantBufferRootDescriptors; }
@@ -1591,7 +1674,30 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
         desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
         desc.pParameters = params;
       }
-      void end() {}
+      void end()
+      {
+#if _TARGET_PC_WIN
+        if (vendorExtensionLocation)
+        {
+          rangePosition->RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+          rangePosition->NumDescriptors = 1;
+          rangePosition->BaseShaderRegister = 0;
+          rangePosition->RegisterSpace = vendorExtensionLocation;
+          rangePosition->OffsetInDescriptorsFromTableStart = 0;
+
+          auto &pTarget = params[desc.NumParameters++];
+          pTarget.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+          pTarget.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+          pTarget.DescriptorTable.NumDescriptorRanges = 1;
+          pTarget.DescriptorTable.pDescriptorRanges = rangePosition;
+
+          ++rangePosition;
+          G_ASSERT(rangePosition <= eastl::end(ranges));
+
+          signatureCost += 1; // offset into active descriptor heap
+        }
+#endif
+      }
       void beginFlags() {}
       void endFlags() {}
       void hasAccelerationStructure()
@@ -1600,11 +1706,9 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
         desc.Flags |= ROOT_SIGNATURE_FLAG_RAYTRACING;
 #endif
       }
-      void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
+      void addRootParameterConstant(uint32_t space, uint32_t index, uint32_t dwords)
       {
         G_ASSERT(desc.NumParameters < countof(params));
-
-        signature->def.csLayout.rootConstantsParamIndex = desc.NumParameters;
 
         auto &target = params[desc.NumParameters++];
         target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -1614,6 +1718,25 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
         target.Constants.Num32BitValues = dwords;
 
         signatureCost += dwords;
+      }
+      void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
+      {
+        G_ASSERT(desc.NumParameters < countof(params));
+
+        signature->def.csLayout.rootConstantsParamIndex = desc.NumParameters;
+
+        addRootParameterConstant(space, index, dwords);
+      }
+      void specialConstants(uint32_t space, uint32_t index) { addRootParameterConstant(space, index, 1); }
+      void nvidiaExtension(uint32_t space, uint32_t index)
+      {
+        G_UNUSED(index);
+        vendorExtensionLocation = space;
+      }
+      void amdExtension(uint32_t space, uint32_t index)
+      {
+        G_UNUSED(index);
+        vendorExtensionLocation = space;
       }
       void beginConstantBuffers()
       {
@@ -1862,8 +1985,8 @@ BasePipeline *PipelineManager::getGraphics(GraphicsProgramID program)
   return pipelineGroup[index].get();
 }
 
-void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, ProgramID id, ComputeShaderModule shader,
-  RecoverablePipelineCompileBehavior on_error, bool give_name, CSPreloaded preloaded)
+void PipelineManager::addCompute(Device &device, PipelineCache &cache, ProgramID id, ComputeShaderModule shader,
+  RecoverablePipelineCompileBehavior on_error, CSPreloaded preloaded)
 {
   G_ASSERTF(id.isCompute(), "addCompute called for a non compute program!");
   uint32_t index = id.getIndex();
@@ -1874,9 +1997,8 @@ void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, Pr
   if (pipelineGroup[index])
     return;
 
-  if (!isCompatible(shader))
+  if (!isCompatibleAndReport(shader))
   {
-    logdbg("DX12: ...a compute shader requires features that the device can not provide, ignoring...");
     return;
   }
 #if _TARGET_SCARLETT
@@ -1884,17 +2006,17 @@ void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, Pr
 #else
   bool hasAccelerationStructure = false;
 #endif
-  if (auto signature = getComputePipelineSignature(device, cache, hasAccelerationStructure, shader.header.resourceUsageTable))
+  if (auto signature =
+        getComputePipelineSignature(device.getDevice(), cache, hasAccelerationStructure, shader.header.resourceUsageTable))
   {
     if (preloaded == CSPreloaded::Yes && hasFeatureSetInCache)
       needToUpdateCache = true;
-    pipelineGroup[index] =
-      eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, give_name, *this);
+    pipelineGroup[index] = eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, *this);
   }
 }
 
-void PipelineManager::addGraphics(ID3D12Device2 *device, PipelineCache &cache, FramebufferLayoutManager &fbs,
-  GraphicsProgramID program, ShaderID vs, ShaderID ps, RecoverablePipelineCompileBehavior on_error, bool give_name)
+void PipelineManager::addGraphics(Device &device, PipelineCache &cache, FramebufferLayoutManager &fbs, GraphicsProgramID program,
+  ShaderID vs, ShaderID ps, RecoverablePipelineCompileBehavior on_error)
 {
   uint32_t index = program.getIndex();
   auto &pipelineGroup = graphicsPipelines[program.getGroup()];
@@ -1921,14 +2043,12 @@ void PipelineManager::addGraphics(ID3D12Device2 *device, PipelineCache &cache, F
   {
     auto vertexShader = getVertexShader(vs);
     auto pixelShader = getPixelShader(ps);
-    if (!isCompatible(vertexShader) || !isCompatible(pixelShader))
+    if (!isCompatibleAndReport(vertexShader, pixelShader))
     {
-      logdbg("DX12: ...a shader (%u) requires features that the device can not provide, ignoring...",
-        (isCompatible(vertexShader) ? 1 : 0) | (isCompatible(pixelShader) ? 2 : 0));
       return;
     }
 
-    target = createGraphics(device, cache, fbs, vertexShader, pixelShader, on_error, give_name);
+    target = createGraphics(device, cache, fbs, vertexShader, pixelShader, on_error);
     if (target && hasFeatureSetInCache)
       needToUpdateCache = true;
   }
@@ -1938,9 +2058,9 @@ void PipelineManager::addGraphics(ID3D12Device2 *device, PipelineCache &cache, F
   }
 }
 
-eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *device, PipelineCache &cache,
-  FramebufferLayoutManager &fbs, backend::VertexShaderModuleRefStore vertexShader, backend::PixelShaderModuleRefStore pixelShader,
-  RecoverablePipelineCompileBehavior on_error, bool give_name)
+eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(Device &device, PipelineCache &cache, FramebufferLayoutManager &fbs,
+  backend::VertexShaderModuleRefStore vertexShader, backend::PixelShaderModuleRefStore pixelShader,
+  RecoverablePipelineCompileBehavior on_error)
 {
 #if _TARGET_SCARLETT
   bool hasAccelerationStructure = has_acceleration_structure(vertexShader);
@@ -1965,21 +2085,23 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *d
     auto &msHeader = vertexShader.header.header.resourceUsageTable;
     auto as = get_as(vertexShader);
     auto asHeader = as ? &as->resourceUsageTable : nullptr;
-    signature = getGraphicsMeshPipelineSignature(device, cache, hasAccelerationStructure, msHeader, psHeader, asHeader);
+    signature = getGraphicsMeshPipelineSignature(device.getDevice(), cache, hasAccelerationStructure,
+      !vertexShader.header.streamOutputDesc.empty(), msHeader, psHeader, asHeader);
   }
   else
 #endif
   {
     bool hasVertexInputs = 0 != vertexShader.header.header.inOutSemanticMask;
     auto &vsHeader = vertexShader.header.header.resourceUsageTable;
+    bool hasStreamOutput = !vertexShader.header.streamOutputDesc.empty();
     auto gs = get_gs(vertexShader);
     auto gsHeader = gs ? &gs->resourceUsageTable : nullptr;
     auto hs = get_hs(vertexShader);
     auto hsHeader = hs ? &hs->resourceUsageTable : nullptr;
     auto ds = get_ds(vertexShader);
     auto dsHeader = ds ? &ds->resourceUsageTable : nullptr;
-    signature = getGraphicsPipelineSignature(device, cache, hasVertexInputs, hasAccelerationStructure, vsHeader, psHeader, gsHeader,
-      hsHeader, dsHeader);
+    signature = getGraphicsPipelineSignature(device.getDevice(), cache, hasVertexInputs, hasAccelerationStructure, hasStreamOutput,
+      vsHeader, psHeader, gsHeader, hsHeader, dsHeader);
   }
   if (!signature)
   {
@@ -1987,7 +2109,7 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *d
   }
   return eastl::make_unique<BasePipeline>(device, *signature, cache, static_cast<backend::ShaderModuleManager &>(*this),
     static_cast<backend::InputLayoutManager &>(*this), static_cast<backend::StaticRenderStateManager &>(*this), fbs, vertexShader,
-    pixelShader, on_error, give_name, static_cast<backend::PipelineNameGenerator &>(*this));
+    pixelShader, on_error, static_cast<backend::PipelineNameGenerator &>(*this));
 }
 
 void PipelineManager::unloadAll()
@@ -2010,6 +2132,9 @@ void PipelineManager::unloadAll()
   }
 
   graphicsSignatures.clear();
+#if !_TARGET_XBOXONE
+  graphicsMeshSignatures.clear();
+#endif
 
   for (auto &group : computePipelines)
     group.clear();
@@ -2177,15 +2302,15 @@ bool PipelineManager::recover(ID3D12Device2 *device, PipelineCache &cache)
   for (auto &&gs : graphicsSignatures)
   {
     gs->signature.Reset();
-    getGraphicsPipelineSignature(device, cache, gs->def.hasVertexInputs, false, gs->def.vertexShaderRegisters,
+    getGraphicsPipelineSignature(device, cache, gs->def.hasVertexInputs, false, gs->def.hasStreamOutput, gs->def.vertexShaderRegisters,
       gs->def.pixelShaderRegisters, &gs->def.geometryShaderRegisters, &gs->def.hullShaderRegisters, &gs->def.domainShaderRegisters);
   }
 
   for (auto &&gs : graphicsMeshSignatures)
   {
     gs->signature.Reset();
-    getGraphicsMeshPipelineSignature(device, cache, false, gs->def.vertexShaderRegisters, gs->def.pixelShaderRegisters,
-      &gs->def.geometryShaderRegisters);
+    getGraphicsMeshPipelineSignature(device, cache, false, gs->def.hasStreamOutput, gs->def.vertexShaderRegisters,
+      gs->def.pixelShaderRegisters, &gs->def.geometryShaderRegisters);
   }
 
   // just drop all variants and lets reload them on next draw call that uses the variants
@@ -2284,7 +2409,10 @@ static bool dump_has_zero_timestamps(ScriptedShadersBinDumpOwner *dump)
   auto v1 = dump->getDump();
   for (auto &c : v1->classes)
     if (c.getTimestamp() == 0)
+    {
+      logdbg("DX12: Dump has zero timestamp for class %s", c.name.data());
       return true;
+    }
   return false;
 }
 
@@ -2701,12 +2829,34 @@ struct PipelineInfoCollector
 };
 } // namespace
 
+void PipelineManager::addShaderGroup(Device &device, PipelineCache *pipelineCache, FramebufferLayoutManager *fbs, uint32_t group,
+  ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader, eastl::string_view name)
+{
+  auto v2 = dump->getDumpV2();
+  bool cacheIsOk = pipelineCache->onBindumpLoad(device.getDevice(), {v2->shaderHashes.begin(), v2->shaderHashes.end()});
+  if (!cacheIsOk)
+  {
+    onCacheInvalidated(*pipelineCache, *this, *this, *fbs);
+  }
+  ScriptedShaderBinDumpInspector inspector;
+  inspector.group = group;
+  inspector.nullPixelShader = null_pixel_shader;
+  inspector.target = this;
+  inspector.owner = dump;
+  inspector.device = &device;
+  inspector.pipelineCache = pipelineCache;
+  inspector.frameBufferLayoutManager = fbs;
+  setDumpOfGroup(group, dump, name);
+  inspect_scripted_shader_bin_dump(dump, inspector);
+}
+
 #if _TARGET_PC_WIN
 void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t group)
 {
   auto dump = getDump(group);
   if (!dump || !dump->getDump())
   {
+    logdbg("DX12: Cannot write PSO cache for group %d, no dump found", group);
     return;
   }
   if (dump_has_zero_timestamps(dump))
@@ -2774,7 +2924,36 @@ void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t gro
   }
   info.generateBlk(*this, *this, fblm, outBlock);
 
-  outBlock.saveToTextFile("cache/dx12_cache_new.blk");
+  const char *cachePath = "cache/dx12_cache_new.blk";
+  outBlock.saveToTextFile(cachePath);
+  DagorStat localCacheStat;
+  if (::df_stat(cachePath, &localCacheStat) != -1)
+    logdbg("Local PSO cache file '%s' saved, size: %lld bytes", cachePath, localCacheStat.size);
+  logdbg("PSO cache info. Input layouts count: %d", outBlock.getBlockByNameEx("input_layouts")->blockCount());
+  logdbg("PSO cache info. Render states count: %d", outBlock.getBlockByNameEx("render_states")->blockCount());
+  logdbg("PSO cache info. Framebuffer layouts count: %d", outBlock.getBlockByNameEx("framebuffer_layouts")->blockCount());
+  logdbg("PSO cache info. Compute set count: %d", outBlock.getBlockByNameEx("compute")->blockCount());
+  auto getUsagesCount = [](const DataBlock *set) -> uint32_t {
+    if (!set)
+      return 0;
+    const uint32_t setCount = set->blockCount();
+    uint32_t usagesCount = 0;
+    for (uint32_t i = 0; i < setCount; ++i)
+    {
+      const DataBlock &variant = *set->getBlock(i);
+      const uint32_t shadersCount = variant.blockCount();
+      for (uint32_t j = 0; j < shadersCount; ++j)
+        usagesCount += variant.getBlock(j)->paramCount();
+    }
+    return usagesCount;
+  };
+  logdbg("PSO cache info. Compute set usages: %d", getUsagesCount(outBlock.getBlockByNameEx("compute")));
+  logdbg("PSO cache info. Graphics set variants: %d", outBlock.getBlockByNameEx("graphics")->blockCount());
+  logdbg("PSO cache info. Graphics set usages: %d", getUsagesCount(outBlock.getBlockByNameEx("graphics")));
+  logdbg("PSO cache info. Graphics null pixel override set count: %d",
+    outBlock.getBlockByNameEx("graphicsNullOverride")->blockCount());
+  logdbg("PSO cache info. Graphics null pixel override set usages: %d",
+    getUsagesCount(outBlock.getBlockByNameEx("graphicsNullOverride")));
 
   if (get_device().netManager)
     get_device().netManager->sendPsoCacheBlkSync(outBlock);
@@ -2883,6 +3062,7 @@ void PipelineStageStateBase::setConstBuffer(uint32_t unit, const ConstBufferSetu
 
   bRegisters[unit].BufferLocation = info.buffer.gpuPointer;
   bRegisters[unit].SizeInBytes = info.buffer.size;
+  G_ASSERT(bRegisters[unit].SizeInBytes % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
   bRegisterBuffers[unit] = info;
 }
 
@@ -3031,7 +3211,7 @@ void PipelineStageStateBase::flushResourceStates(uint32_t b_register_mask, uint3
 }
 
 #if _TARGET_PC_WIN
-void ShaderDeviceRequirementChecker::init(ID3D12Device *device)
+void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendorExtensions &hlsl_vendor_extension)
 {
   auto op0 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS>(device);
   auto op1 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(device);
@@ -3054,10 +3234,8 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device)
   combinedFlags |= D3D_SHADER_REQUIRES_UAVS_AT_EVERY_STAGE;
   combinedFlags |= D3D_SHADER_REQUIRES_64_UAVS;
 
-  if (op0.MinPrecisionSupport)
-  {
-    combinedFlags |= D3D_SHADER_REQUIRES_MINIMUM_PRECISION;
-  }
+  // should be uniformly supported, have to simply test and see, otherwsie we have to check op0.MinPrecisionSupport
+  combinedFlags |= D3D_SHADER_REQUIRES_MINIMUM_PRECISION;
 
   if (op0.DoublePrecisionFloatShaderOps)
   {
@@ -3171,6 +3349,138 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device)
   supportedRequirement.shaderFeatureFlagsLow = static_cast<uint32_t>(combinedFlags);
   supportedRequirement.shaderFeatureFlagsHigh = static_cast<uint32_t>(combinedFlags >> 32);
 
+  supportedRequirement.extensionVendor = hlsl_vendor_extension.vendor;
+  supportedRequirement.vendorExtensionMask = hlsl_vendor_extension.vendorExtensionMask;
+
   to_debuglog(supportedRequirement);
 }
 #endif
+
+bool ComputePipeline::load(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error, bool from_cache_only,
+  backend::PipelineNameGenerator &name_generator)
+{
+  if (pipeline)
+    return true;
+  auto name = name_generator.generateComputePipelineName(shaderModule);
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+  eastl::string profilerMsg;
+  profilerMsg.sprintf("ComputePipeline(\"%s\")::load: took %%dus", name.c_str());
+  AutoFuncProf funcProfiler{profilerMsg.c_str()};
+#endif
+  TIME_PROFILE_DEV(ComputePipeline_load);
+  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(name.c_str());
+
+#if _TARGET_PC_WIN
+  if (!signature.signature)
+  {
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+    // turns off reporting of the profile, we don't want to know how long it took to _not_
+    // load a pipeline
+    funcProfiler.fmt = nullptr;
+#endif
+    logdbg("DX12: Rootsignature for %s was null, skipping creating compute pipeline", name);
+    return true;
+  }
+
+  ComputePipelineCreateInfoData cpci;
+
+  cpci.append<CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE>(signature.signature.Get());
+  cpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_CS, CD3DX12_SHADER_BYTECODE>(shaderModule.byteCode.get(), shaderModule.byteCodeSize);
+  D3D12_CACHED_PIPELINE_STATE &cacheTarget = cpci.append<CD3DX12_PIPELINE_STATE_STREAM_CACHED_PSO>();
+
+  D3D12_PIPELINE_STATE_STREAM_DESC cpciDesc = {cpci.rootSize(), cpci.root()};
+  pipeline = cache.loadCompute(shaderModule.ident.shaderHash, cpciDesc, cacheTarget);
+  if (pipeline)
+  {
+    device.nameObject(pipeline.Get(), name);
+    return true;
+  }
+
+  // if we only want to load from cache and loadCompute on the cache did not load it
+  // and we don't have a pso blob for creation, we don't have a cache entry for this
+  // pipeline yet.
+  if (from_cache_only && !cacheTarget.CachedBlobSizeInBytes)
+  {
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+    // turns off reporting of the profile, we don't want to know how long it took to _not_
+    // load a pipeline
+    funcProfiler.fmt = nullptr;
+#endif
+    return true;
+  }
+#else
+  // console has no cache so we load only when the shader is needed the first time
+  if (from_cache_only)
+    return true;
+
+  G_UNUSED(cache);
+  D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {0};
+  desc.pRootSignature = signature.signature.Get();
+  desc.CS.pShaderBytecode = shaderModule.byteCode.get();
+  desc.CS.BytecodeLength = shaderModule.byteCodeSize;
+  desc.NodeMask = 0;
+  desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+#endif
+  if (!pipeline)
+  {
+#if _TARGET_PC_WIN
+    auto result = DX12_CHECK_RESULT(device.getDevice()->CreatePipelineState(&cpciDesc, COM_ARGS(&pipeline)));
+
+    // if we use cache blob and it fails, try again without blob, it might not be compatible
+    if (FAILED(result) && cacheTarget.CachedBlobSizeInBytes > 0)
+    {
+      // with cache only, we stop here
+      if (from_cache_only)
+      {
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+        // turns off reporting of the profile, we don't want to know how long it took to _not_
+        // load a pipeline
+        funcProfiler.fmt = nullptr;
+#endif
+        return true;
+      }
+
+      logdbg("DX12: Retrying to create compute pipeline without cache");
+      cacheTarget.pCachedBlob = nullptr;
+      cacheTarget.CachedBlobSizeInBytes = 0;
+      result = DX12_CHECK_RESULT(device.getDevice()->CreatePipelineState(&cpciDesc, COM_ARGS(&pipeline)));
+    }
+#else
+    auto result = DX12_CHECK_RESULT(device.getDevice()->CreateComputePipelineState(&desc, COM_ARGS(&pipeline)));
+#endif
+    // if it still fails then something else is not ok
+    if (FAILED(result))
+    {
+      if (is_recoverable_error(result))
+      {
+        switch (on_error)
+        {
+          case RecoverablePipelineCompileBehavior::FATAL_ERROR: return false; break;
+          case RecoverablePipelineCompileBehavior::REPORT_ERROR:
+            // DX12_CHECK_RESULT reports the error already
+            break;
+          case RecoverablePipelineCompileBehavior::ASSERT_FAIL:
+            G_ASSERT(!"CreatePipelineState failed, "
+                      "see error log for details");
+        }
+      }
+      else
+      {
+        return false;
+      }
+    }
+#if _TARGET_PC_WIN
+    // only write back cache if none exists yet (or is invalid)
+    else if (0 == cacheTarget.CachedBlobSizeInBytes)
+    {
+      cache.addCompute(shaderModule.ident.shaderHash, pipeline.Get());
+    }
+#endif
+  }
+
+  if (pipeline && !name.empty())
+  {
+    device.nameObject(pipeline.Get(), name);
+  }
+  return true;
+}

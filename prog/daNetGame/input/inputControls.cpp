@@ -35,6 +35,7 @@
 #include <folders/folders.h>
 #include "main/onlineStorageBlk.h"
 #include "inputControls.h"
+#include "inputEventsEx.h"
 
 #include "uiInput.h"
 #include "main/settings.h"
@@ -45,6 +46,10 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
+
+#define DEF_INPUT_EVENT ECS_REGISTER_EVENT
+DEF_INPUT_EVENTS_EX
+#undef DEF_INPUT_EVENT
 
 namespace dainput
 {
@@ -59,26 +64,6 @@ static String user_setup_fname;
 static bool input_controls_were_reset = false;
 static bool controls_were_reset() { return input_controls_were_reset; }
 static void clear_controls_were_reset() { input_controls_were_reset = false; }
-
-SensScale sens_scale;
-
-void SensScale::writeTo(DataBlock &blk)
-{
-  blk.setReal("humanAiming", humanAiming);
-  blk.setReal("humanTpsCam", humanTpsCam);
-  blk.setReal("humanFpsCam", humanFpsCam);
-  blk.setReal("vehicleCam", vehicleCam);
-  blk.setReal("planeCam", planeCam);
-}
-
-void SensScale::readFrom(const DataBlock &blk)
-{
-  humanAiming = blk.getReal("humanAiming", 1.0);
-  humanTpsCam = blk.getReal("humanTpsCam", 1.0);
-  humanFpsCam = blk.getReal("humanFpsCam", 1.0);
-  vehicleCam = blk.getReal("vehicleCam", 1.0);
-  planeCam = blk.getReal("planeCam", 1.0);
-}
 
 class OnlineStorageControlsExchange : public online_storage::DataExchangeBLK
 {
@@ -123,7 +108,15 @@ void init_drivers()
   int hidDriversInit = inputBlk->getInt("hidDriversInit", ecs::InitDeviceType::Default);
   if (hidDriversInit <= 0)
     hidDriversInit = int(ecs::InitDeviceType::All) + hidDriversInit;
-  execute_delayed_action_on_main_thread(make_delayed_action([&]() { ecs::init_hid_drivers(pollThreadDelayMsec, hidDriversInit); }));
+  bool reportUsedDevForAllDrivers = inputBlk->getBool("reportUsedDevForAllDrivers", false);
+  execute_delayed_action_on_main_thread(make_delayed_action([&]() {
+    ecs::init_hid_drivers(pollThreadDelayMsec, hidDriversInit);
+    if (reportUsedDevForAllDrivers)
+    {
+      dainput::enable_reports_for_devices(true);
+      debug("dainput: enabled reports for devices");
+    }
+  }));
   if (global_cls_drv_pnt)
   {
     // fixme: should be window
@@ -136,16 +129,16 @@ void init_drivers()
 
 void destroy() { ecs::term_input(); }
 
-static bool load_config(const char *game)
+static bool load_config()
 {
 #if _TARGET_PC
-  user_setup_fname = String(260, "user/%s.setup.blk", game);
+  user_setup_fname = String(260, "user/controls.setup.blk");
 #else
 #if _TARGET_C1 | _TARGET_C2
 
 
 #else
-  user_setup_fname = String(260, "%s/%s.setup.blk", folders::get_gamedata_dir(), game);
+  user_setup_fname = String(260, "%s/controls.setup.blk", folders::get_gamedata_dir());
 #endif
 #endif
 
@@ -153,8 +146,14 @@ static bool load_config(const char *game)
   DataBlock cfg;
   if (dd_file_exists(user_setup_fname))
     cfg.load(user_setup_fname);
+  if (const char *preset_fn = cfg.getStr("preset", nullptr))
+    if (!dd_file_exists(String(0, "%s.c0.preset.blk", preset_fn)))
+    {
+      logwarn("InputControls: replacing missing preset=<%s> with <%s>", preset_fn, dainput::get_default_preset_prefix());
+      cfg.setStr("preset", dainput::get_default_preset_prefix());
+    }
   dainput::load_user_config(cfg);
-  sens_scale.readFrom(dainput::get_user_props());
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
   return dainput::get_actions_binding_columns() > 0;
 }
 
@@ -163,7 +162,7 @@ static void save_config()
   debug("InputControls: save input config");
 
   OnlineStorageControlsExchange::loadedConfigOnInit.clearData();
-  sens_scale.writeTo(dainput::get_user_props());
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsSaveConfig{&dainput::get_user_props()});
   dainput::save_user_config(OnlineStorageControlsExchange::loadedConfigOnInit);
 
   bool save_success = false;
@@ -177,7 +176,7 @@ static void save_config()
 #endif
 
     DataBlock cfg;
-    sens_scale.writeTo(dainput::get_user_props());
+    g_entity_mgr->broadcastEventImmediate(OnInputControlsSaveConfig{&dainput::get_user_props()});
     dainput::save_user_config(cfg);
     dd_mkpath(user_setup_fname);
     cfg.saveToTextFile(user_setup_fname);
@@ -188,7 +187,7 @@ static void save_config()
 static void reset_to_default()
 {
   dainput::reset_user_config_to_currest_preset();
-  sens_scale.readFrom(dainput::get_user_props());
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
 }
 
 static void restore_saved_config()
@@ -201,7 +200,7 @@ static void restore_saved_config()
   }
 
   debug("InputControls: Restore saved input config from legacy file");
-  load_config(get_game_name());
+  load_config();
 }
 
 
@@ -215,11 +214,6 @@ bool OnlineStorageControlsExchange::applyGeneralBlk(const DataBlock &container) 
   // compatibility for previous layout
   if (!loadedConfigOnInit.paramExists("preset"))
     loadedConfigOnInit.setStr("preset", dainput::get_default_preset_prefix());
-  if (const DataBlock *b2 = container.getBlockByName("sens_scale"))
-  {
-    loadedConfigOnInit.removeBlock("sens_scale");
-    loadedConfigOnInit.addNewBlock(b2, "props");
-  }
 
   loadConfig();
   return true;
@@ -232,23 +226,34 @@ bool OnlineStorageControlsExchange::fillGeneralBlk(DataBlock &container) const
 
 void OnlineStorageControlsExchange::loadConfig()
 {
+  if (const char *preset_fn = loadedConfigOnInit.getStr("preset", nullptr))
+    if (!dd_file_exists(String(0, "%s.c0.preset.blk", preset_fn)))
+    {
+      logwarn("InputControls: replacing missing online storage preset=<%s> with <%s>", preset_fn,
+        dainput::get_default_preset_prefix());
+      loadedConfigOnInit.setStr("preset", dainput::get_default_preset_prefix());
+    }
   dainput::load_user_config(loadedConfigOnInit);
-  sens_scale.readFrom(dainput::get_user_props());
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
 }
 
 
-void init_control(const char *game, const char *user_game_mode_input_cfg_fn)
+void init_control(const char *user_game_mode_input_cfg_fn)
 {
-  String gameControlsPath(0, "content/%s/config/controlsConfig.blk", game);
-  String platformControlsPath(0, "content/%s/config/controlsConfig~%s.blk", game, get_platform_string_id());
+  const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
+  const char *controls_config_prefix = inputBlk->getStr("controlsConfigPrefix", "config/controlsConfig");
+  const char *controls_preset_base_prefix = inputBlk->getStr("controlsPresetBasePrefix", "config/");
+
+  String gameControlsPath(0, "%s.blk", controls_config_prefix);
+  String platformControlsPath(0, "%s~%s.blk", controls_config_prefix, get_platform_string_id());
   if (dd_file_exists(platformControlsPath))
     gameControlsPath = platformControlsPath;
   else if (!dd_file_exists(gameControlsPath))
     gameControlsPath = "config/controlsConfig.blk";
   if (!dd_file_exists(gameControlsPath))
   {
-    logwarn("input controls config not found: content/%s/config/controlsConfig.blk or %s or %s", game, platformControlsPath,
-      gameControlsPath);
+    logwarn("input controls config not found: %s.blk or %s or %s, recheck %s:t in settings", controls_config_prefix,
+      platformControlsPath, gameControlsPath, "controlsConfigPrefix");
     return;
   }
   debug("reading input config: %s", gameControlsPath);
@@ -280,24 +285,26 @@ void init_control(const char *game, const char *user_game_mode_input_cfg_fn)
   ecs::init_input(gameControlsBlk);
   dainput::dump_action_sets();
 
-  String gameDefaultPresetPrefix = String(0, "content/%s/config/%s.default", game, game);
+  String gameDefaultPresetPrefix = String(0, "%sdefault", controls_preset_base_prefix);
 
   if (dd_file_exists(String(0, "%s.c0.preset.blk", gameDefaultPresetPrefix)))
     dainput::set_default_preset_prefix(gameDefaultPresetPrefix);
   else
+  {
+    logwarn("preset %s.c0.preset.blk not found, recheck %s:t in settings", gameDefaultPresetPrefix, "controlsPresetBasePrefix");
     dainput::set_default_preset_prefix("config/default");
+  }
 
   String platformSpecificPresetPrefix = String(0, "%s~%s", dainput::get_default_preset_prefix(), get_platform_string_id());
 
   if (dd_file_exists(String(0, "%s.c0.preset.blk", platformSpecificPresetPrefix)))
     dainput::set_default_preset_prefix(String(0, "%s", platformSpecificPresetPrefix));
 
-  const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
   bool enableGyroByDefault = inputBlk->getBool("enableGyroByDefault", false);
 
   if (enableGyroByDefault)
   {
-    String gyroPresetPrefix = String(0, "content/%s/config/%s.gyro~%s", game, game, get_platform_string_id());
+    String gyroPresetPrefix = String(0, "%sgyro~%s", controls_preset_base_prefix, get_platform_string_id());
     if (dd_file_exists(String(0, "%s.c0.preset.blk", gyroPresetPrefix)))
       dainput::set_default_preset_prefix(String(0, "%s", gyroPresetPrefix));
   }
@@ -308,7 +315,7 @@ void init_control(const char *game, const char *user_game_mode_input_cfg_fn)
   if (OnlineStorageControlsExchange::loadedConfigOnInit.isEmpty())
   {
     debug("InputControls: Loading input config from legacy file");
-    load_config(game);
+    load_config();
   }
   else
   {
@@ -316,10 +323,8 @@ void init_control(const char *game, const char *user_game_mode_input_cfg_fn)
     OnlineStorageControlsExchange::loadConfig();
   }
 
-  dainput::activate_action_set(dainput::get_action_set_handle("BackgroundHUD"));
-  dainput::activate_action_set(dainput::get_action_set_handle("Globals"));
-  dainput::activate_action_set(dainput::get_action_set_handle("HUDBase"));
-  dainput::activate_action_set(dainput::get_action_set_handle("Human"));
+  dblk::iterate_child_blocks(*gameControlsBlk.getBlockByNameEx("activateActionSetsOnInit"),
+    [](const DataBlock &b) { dainput::activate_action_set(dainput::get_action_set_handle(b.getBlockName())); });
   // dainput::dump_action_bindings();
 }
 
@@ -360,16 +365,6 @@ void bind_script_api(SqModules *moduleMgr)
 {
   dainput::bind_sq_api(moduleMgr);
 
-  ///@class control/SensScale
-  Sqrat::Class<SensScale> sqSensScale(moduleMgr->getVM(), "SensScale");
-  sqSensScale //
-    .Var("humanAiming", &SensScale::humanAiming)
-    .Var("humanTpsCam", &SensScale::humanTpsCam)
-    .Var("humanFpsCam", &SensScale::humanFpsCam)
-    .Var("vehicleCam", &SensScale::vehicleCam)
-    .Var("planeCam", &SensScale::planeCam)
-    /**/;
-
   ///@module control
   Sqrat::Table controlTable(moduleMgr->getVM());
   controlTable //
@@ -378,8 +373,8 @@ void bind_script_api(SqModules *moduleMgr)
     .Func("restore_saved_config", restore_saved_config)
     .Func("controls_were_reset", controls_were_reset)
     .Func("clear_controls_were_reset", clear_controls_were_reset)
-    .Func("get_sens_scale", [] { return &sens_scale; })
     /**/;
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsBindSq{moduleMgr, &controlTable});
   moduleMgr->addNativeModule("control", controlTable);
 }
 } // namespace controls

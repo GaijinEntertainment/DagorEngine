@@ -8,6 +8,13 @@ Target      = engine/drv/drv3d_vulkan.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
+if $(Platform) in windows linux && $(PlatformArch) in x86_64 {
+  if ! $(UseDlss) && ! [ GLOB $(_DEVTOOL) : ngx-dlss-* ] { UseDlss = no ; }
+  UseDlss ?= yes ;
+} else {
+  UseDlss = no ;
+}
+
 if $(Platform) = linux && $(KernelLinkage) != dynamic && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
 
 Sources =
@@ -42,6 +49,7 @@ Sources =
   d3d/state.cpp
   d3d/sync.cpp
   d3d/transfer.cpp
+  d3d/ddsx_texture.cpp
   init_d3di.cpp
   buffer.cpp
   buffer_locktransfer.cpp
@@ -78,6 +86,7 @@ Sources =
   execution_sync_acceleration_structure.cpp
   device_execution_tracker.cpp
   wrapped_command_buffer.cpp
+  resource_readbacks.cpp
 
   #shader
   shader/program.cpp
@@ -85,6 +94,7 @@ Sources =
   shader/program_database.cpp
   shader/spirv_extractor.cpp
   shader/debug_program.cpp
+  shader/rotate_program.cpp
   shader/shader_info.cpp
   shader/module.cpp
 
@@ -125,6 +135,7 @@ Sources =
   debug_ui_sync.cpp
   debug_naming.cpp
   debug_callbacks.cpp
+  vulkan_allocation_callbacks.cpp
 
   #state
   graphics_state.cpp
@@ -156,14 +167,14 @@ Sources =
   buffer_alignment.cpp
 
   #uncat
-  timestamp_queries.cpp
+  queries.cpp
   query_pools.cpp
   render_pass.cpp
   descriptor_set.cpp
   device_memory_report.cpp
-  raytrace_scratch_buffer.cpp
   predicted_latency_waiter.cpp
   resource_upload_limit.cpp
+  copy_info.cpp
 ;
 
 if $(Platform) in nswitch {
@@ -174,6 +185,7 @@ if $(Platform) in nswitch {
 
 CPPopt = -DINSIDE_DRIVER ;
 if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/streamline : * ] { CPPopt += -DHAS_STREAMLINE ; }
 
 if $(Platform) in android windows linux && $(Config) != rel {
   Sources += renderDoc_capture_module.cpp ;
@@ -193,14 +205,16 @@ if $(Platform) in windows {
   Sources +=
     os_linux.cpp
   ;
-  AddLibs += -lX11 ;
+  AddLibs +=
+    -lX11
+  ;
 } else if $(Platform) in nswitch {
   Sources +=
     os_nswitch.cpp
   ;
 
   if $(UseNxProfiler) = yes && $(UseNxMemoryTracker) = yes {
-    CPPopt += -DUSE_NX_MEMORY_TRACKER=1 ;
+    CPPopt += -DUSE_NX_MEMORY_TRACKER ;
     Target = $(Target:S=~nmp.lib) ;
   }
 } else if $(Platform) in android {
@@ -248,6 +262,22 @@ AddIncludes +=
   $(Root)/prog/3rdPartyLibs/imgui
   $(Root)/prog/3rdPartyLibs/imgui-node-editor
 ;
+
+if $(UseDlss) = yes {
+  DlssVersion ?= 310.3.0 ;
+  if ! [ GLOB $(_DEVTOOL)/ngx-dlss-$(DlssVersion) : * ] { exit FATAL\: \"$(_DEVTOOL)/ngx-dlss-$(DlssVersion)\" not found!  Please, update DEVTOOLS ; }
+
+  AddIncludes += $(_DEVTOOL)/ngx-dlss-$(DlssVersion)/include ;
+  Sources += dlss.cpp ;
+
+  if $(Platform) in windows {
+    AddLibs += $(_DEVTOOL)/ngx-dlss-$(DlssVersion)/lib/Windows_x86_64/nvsdk_ngx_s.lib ;
+  } else if $(Platform) in linux {
+    AddLibs += $(_DEVTOOL)/ngx-dlss-$(DlssVersion)/lib/Linux_x86_64/libnvsdk_ngx.a ;
+  }
+} else {
+  Sources += dlss_stub.cpp ;
+}
 
 UseProgLibs +=
   engine/drv/drv3d_commonCode

@@ -48,7 +48,7 @@ shader bvh_process_skinned_vertices
     pos_mul@f4 = bvh_process_skinned_vertices_pos_mul;
     pos_ofs@f4 = bvh_process_skinned_vertices_pos_ofs;
 
-    per_chunk_render_data@buf = instance_data_buffer hlsl { Buffer<float4> per_chunk_render_data@buf; }
+    instance_data_buffer@buf = instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
     inv_wtm@f44 = bvh_process_skinned_vertices_inv_wtm;
     source@buf : register(bvh_process_skinned_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
     output@uav : register(bvh_process_skinned_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
@@ -72,9 +72,17 @@ shader bvh_process_skinned_vertices
   hlsl(cs) {
     #pragma wave32
 
+    static const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
     float3 mul_bone(float3 p3, bone_t m)
     {
       return float3(dot(m.r0, float4(p3,1)), dot(m.r1, float4(p3,1)), dot(m.r2, float4(p3,1)));
+    }
+
+    uint pack_normal4(float4 normal)
+    {
+      uint4 p4 = uint4((normal.xyz * .5f + .5f) * 0xff, normal.w * 0xff) << INPUT_ENCODING_OFFSET;
+      return p4.x | p4.y | p4.z | p4.w;
     }
 
     [numthreads( 32, 1, 1 )]
@@ -96,7 +104,7 @@ shader bvh_process_skinned_vertices
       input.pos = float4(posI / 32767.0, 1);
 
       // Skinning part
-      const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
+
 
       uint packedNormal  = loadBuffer(source, vertexStart + normal_offset);
       uint packedIndices = loadBuffer(source, vertexStart + skin_indices_offset);
@@ -132,8 +140,11 @@ shader bvh_process_skinned_vertices
         offset += 8;
       ##endif
 
-      // TODO: transform normal
-      storeBuffer(output, target_offset + vertexId * processed_vertex_stride + offset, loadBuffer(source, vertexStart + normal_offset));
+      // Seems inverse-transpose skinnedTm not used elsewhere for normals, so I assume non-uniform scaling is not an issue
+      float3 worldNormal = mul_bone3(input.normal.xyz * 2.f - 1.f, skinnedTm);
+      float4 modelNormal = float4(normalize(mul(worldNormal, float3x3(inv_wtm[0].xyz, inv_wtm[1].xyz, inv_wtm[2].xyz))), input.normal.w);
+
+      storeBuffer(output, target_offset + vertexId * processed_vertex_stride + offset, pack_normal4(modelNormal));
       offset += 4;
 
       ##if bvh_process_skinned_vertices_color_offset == yes

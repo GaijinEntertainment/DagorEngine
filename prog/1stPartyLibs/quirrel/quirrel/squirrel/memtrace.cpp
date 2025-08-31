@@ -8,8 +8,6 @@
 #include "sqfuncproto.h"
 #include "sqclosure.h"
 #include "squserdata.h"
-#include "sqcompiler.h"
-#include "sqfuncstate.h"
 #include "sqclass.h"
 #include <squirrel.h>
 #include <sqstdaux.h>
@@ -291,7 +289,7 @@ namespace sqmemtrace
         SQClosure *clo = _closure(obj);
         SQFunctionProto *func = clo->_function;
         size_t size = sizeof(SQClosure) + _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions,
-          func->_noutervalues, func->_nlineinfos, func->_nlocalvarinfos, func->_ndefaultparams);
+          func->_noutervalues, func->_nlineinfos, func->_nlocalvarinfos, func->_ndefaultparams, func->_nstaticmemos);
 
         if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
         {
@@ -313,7 +311,7 @@ namespace sqmemtrace
         hist.typeCountHistogram["funcproto"]++;
         SQFunctionProto *func = _funcproto(obj);
         size_t size = _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions,
-          func->_noutervalues, func->_nlineinfos, func->_nlocalvarinfos, func->_ndefaultparams);
+          func->_noutervalues, func->_nlineinfos, func->_nlocalvarinfos, func->_ndefaultparams, func->_nstaticmemos);
 
         if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
         {

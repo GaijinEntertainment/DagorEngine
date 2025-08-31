@@ -332,7 +332,7 @@ Operators precedence
     pair: Operators precedence; Operators
 
 +---------------------------------------+-----------+
-| ``-, ~, !, typeof , ++, --``          | highest   |
+| ``-, ~, !, typeof, static, ++, --,``  | highest   |
 +---------------------------------------+-----------+
 | ``/, *, %``                           | ...       |
 +---------------------------------------+-----------+
@@ -467,6 +467,49 @@ After the new object is ready the "_cloned" meta method is called (see :ref:`Met
 When a class instance is cloned the constructor is not invoked(initializations must rely on ```_cloned``` instead
 
 Note: Usage of this operator could be prohibited with ``#forbid-clone-operator``.
+
+------------------------------------------
+Static Memoization Operator (static)
+------------------------------------------
+
+The ``static`` operator allows you to evaluate an expression once and cache the result for reuse every time that part of the script is executed again. This can improve performance and ensure result immutability.
+
+.. index::
+    single: static
+
+::
+
+    exp := static exp
+
+Behavior:
+
+- The expression after ``static`` is evaluated only once on the first execution.
+- The resulting value is cached and reused on all subsequent executions at the same code location.
+- All data types are supported.
+- If the result of the expression is an object of one of the following types: "array", "table", "instance", "class", "userdata", it will be frozen (made immutable), as if passed to ``freeze()``, and cannot be modified.
+- Nested constant expressions are allowed but redundant, the outer ``static`` already handles caching.
+- Operator precedence is the same as for unary operators such as ``unary -``, ``typeof``, ``clone``.
+
+Examples:
+::
+
+    local x = static(expensiveCalculation()) // expensiveCalculation() is called only once
+
+    local frozenTable = static { a = 1, b = 2 } // table will be frozen
+    frozenTable.a = 42 // Error: attempt to modify a frozen object
+
+Resetting Cached Values:
+
+To clear all previously cached results, call ``reset_static_memos()``:
+::
+
+    let modules = require("modules")
+    ...
+    modules.reset_static_memos()
+
+This will cause all static memo expressions to be re-evaluated the next time they are executed.
+
+``reset_static_memos()`` is not a real-time operation. It is intended to be called infrequently, for example, when scripts are reloaded or the screen resolution changes.
 
 -----------------
 Array contructor

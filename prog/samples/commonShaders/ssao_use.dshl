@@ -8,8 +8,14 @@ float upscale_edge_cutoff_far = 0.025;
 float upscale_edge_cutoff_near_dist = 0.0003;
 texture ssao_tex;
 
+// For gtao to be reusable with this ssao_use file version
+int use_contact_shadows = 1;
+interval use_contact_shadows: no_shadows < 1, use_shadows;
+assume use_contact_shadows = use_shadows;
+bool ssao_contact_shadows = use_contact_shadows != no_shadows;
+
 hlsl {
-  //#define SSAO_CONTACT_SHADOWS 1
+  #define SSAO_CONTACT_SHADOWS 1
   #if SSAO_CONTACT_SHADOWS
     #define SSAO_TYPE half2
     #define SSAO_ATTRS xy
@@ -30,7 +36,7 @@ macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
       SSAO_TYPE ao = 1;
       ao.x = dot(ssaoValue, weights);
       #if SSAO_HAS_GREEN
-      float4 contactShadowValue = ssao_tex.GATHER_SHADOW(_samplerstate, ssaotc);
+      float4 contactShadowValue = ssao_tex.GatherGreen(_samplerstate, ssaotc);
       ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
       #endif
       return ao;

@@ -16,7 +16,7 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  gameLibs/render/daBfg
+  gameLibs/render/daFrameGraph
   gameLibs/rendInst
 ;
 

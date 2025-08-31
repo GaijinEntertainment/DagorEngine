@@ -1,7 +1,9 @@
+# levels.deps
+
 ## Overview
 
-The *levels.deps* tool provides two logs that are essential for tracking asset
-and texture dependencies:
+The levels.deps tool provides two logs that are essential for tracking asset and
+texture dependencies:
 
 1. **Texture-to-Asset Dependency Log**. This log shows which assets are using
    specific textures. With this information, you can precisely identify which
@@ -149,9 +151,9 @@ If you encounter any errors while using the tool, it's essential to check the
 configuration files.
 
 The `game_env.blk` file defines the "working directories" and, crucially, the
-[packages](../resource-building/resource_building.md#what-is-a-package) required
-for the map to function correctly. Therefore, if the tool doesn't process your
-map, don't worry. Check that all packages the map depends on are listed in the
-configuration file and read the error logs carefully.
+[packages](../building-resources/building_resources.md#what-is-a-package)
+required for the map to function correctly. Therefore, if the tool doesn't
+process your map, don't worry. Check that all packages the map depends on are
+listed in the configuration file and read the error logs carefully.
 
 

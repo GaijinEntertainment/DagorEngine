@@ -7,7 +7,6 @@
 #include <propPanel/control/filteredTreeTypes.h>
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/c_window_event_handler.h>
-#include <drv/3d/dag_resId.h>
 #include <libTools/util/hdpiUtil.h>
 #include <util/dag_simpleString.h>
 
@@ -25,16 +24,18 @@ class ListBoxControlStandalone;
 class ContainerPropertyControl;
 class TreeBaseWindow;
 
+enum class IconId : int;
+
 class ITreeViewEventHandler
 {
 public:
   virtual void onTvSelectionChange(TreeBaseWindow &tree, TLeafHandle new_sel) = 0;
-  virtual void onTvDClick(TreeBaseWindow &tree, TLeafHandle node) {}
-  virtual void onTvListSelection(TreeBaseWindow &tree, int index) {}
-  virtual void onTvListDClick(TreeBaseWindow &tree, int index) {}
-  virtual void onTvAssetTypeChange(TreeBaseWindow &tree, const Tab<String> &vals) {}
-  virtual bool onTvContextMenu(TreeBaseWindow &tree_base_window, ITreeInterface &tree) = 0;
-  virtual bool onTvListContextMenu(TreeBaseWindow &tree, IListBoxInterface &list_box) { return false; }
+  virtual void onTvDClick([[maybe_unused]] TreeBaseWindow &tree, [[maybe_unused]] TLeafHandle node) {}
+  virtual void onTvListSelection([[maybe_unused]] TreeBaseWindow &tree, [[maybe_unused]] int index) {}
+  virtual void onTvListDClick([[maybe_unused]] TreeBaseWindow &tree, [[maybe_unused]] int index) {}
+  virtual void onTvAssetTypeChange([[maybe_unused]] TreeBaseWindow &tree, [[maybe_unused]] const Tab<String> &vals) {}
+  virtual bool onTvContextMenu([[maybe_unused]] TreeBaseWindow &tree_base_window, [[maybe_unused]] ITreeInterface &tree) = 0;
+  virtual bool onTvListContextMenu([[maybe_unused]] TreeBaseWindow &tree, [[maybe_unused]] IListBoxInterface &list) { return false; }
 };
 
 class TreeBaseWindow : public WindowControlEventHandler
@@ -43,11 +44,11 @@ public:
   TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char *caption,
     bool icons_show, bool state_icons_show = false);
 
-  virtual ~TreeBaseWindow();
+  ~TreeBaseWindow() override;
 
-  TLeafHandle addItem(const char *name, TEXTUREID icon, TLeafHandle parent = NULL, void *user_data = nullptr);
+  TLeafHandle addItem(const char *name, IconId icon, TLeafHandle parent = NULL, void *user_data = nullptr);
   TLeafHandle addItem(const char *name, const char *icon_name, TLeafHandle parent = NULL, void *user_data = nullptr);
-  TLeafHandle addItemAsFirst(const char *name, TEXTUREID icon, TLeafHandle parent = NULL, void *user_data = nullptr);
+  TLeafHandle addItemAsFirst(const char *name, IconId icon, TLeafHandle parent = NULL, void *user_data = nullptr);
   TLeafHandle addItemAsFirst(const char *name, const char *icon_name, TLeafHandle parent = NULL, void *user_data = nullptr);
   void removeItem(TLeafHandle item);
 
@@ -57,10 +58,10 @@ public:
 
   TLeafHandle getNextNode(TLeafHandle item, bool forward) const;
 
-  TEXTUREID addImage(const char *filename);
+  IconId addImage(const char *filename);
 
-  void changeItemImage(TLeafHandle item, TEXTUREID new_id);
-  void changeItemStateImage(TLeafHandle item, TEXTUREID new_id);
+  void changeItemImage(TLeafHandle item, IconId new_id);
+  void changeItemStateImage(TLeafHandle item, IconId new_id);
 
   String getItemName(TLeafHandle item) const;
   void *getItemData(TLeafHandle item) const;
@@ -75,18 +76,29 @@ public:
   void setSelectedItem(TLeafHandle item);
   TLeafHandle getRoot() const;
 
+  // Get the unfiltered internal root node.
+  // Unlike getRoot() this returns with the internal root node which is never visible, and not with the first child of
+  // the root node.
+  const TTreeNode &getUnfilteredRootNode() const;
+
   void clear();
   TLeafHandle search(const char *text, TLeafHandle first, bool forward, bool use_wildcard_search = false);
 
   void collapse(TLeafHandle item);
   void expand(TLeafHandle item);
   void expandRecursive(TLeafHandle leaf, bool open = true);
+  void expandTillRoot(TLeafHandle leaf, bool open = true);
   void ensureVisible(TLeafHandle item);
+
+  // Gets the expansion state from the filtered tree, and apply it to the unfiltered tree.
+  // This is only needed to be callled if TTreeNode::isExpand is used directly. (For example by using
+  // getUnfilteredRootNode() and walking its children.)
+  void updateUnfilteredExpansionStateFromFilteredTree();
 
   void setFocus();
   void setMessage(const char *in_message);
 
-  virtual bool handleNodeFilter(const TTreeNode &node) { return true; }
+  virtual bool handleNodeFilter([[maybe_unused]] const TTreeNode &node) { return true; }
 
   // If control_height is 0 then it will use the entire available height.
   virtual void updateImgui(float control_height = 0.0f);
@@ -94,13 +106,13 @@ public:
 protected:
   typedef bool (*TTreeNodeFilterFunc)(void *param, TTreeNode &node);
 
-  TLeafHandle addItemInternal(const char *name, TEXTUREID icon, TLeafHandle parent, void *user_data, bool as_first);
+  TLeafHandle addItemInternal(const char *name, IconId icon, TLeafHandle parent, void *user_data, bool as_first);
   void startFilter();
 
   // WindowControlEventHandler
-  virtual void onWcChange(WindowBase *source) override;
-  virtual void onWcRightClick(WindowBase *source) override;
-  virtual void onWcDoubleClick(WindowBase *source) override;
+  void onWcChange(WindowBase *source) override;
+  void onWcRightClick(WindowBase *source) override;
+  void onWcDoubleClick(WindowBase *source) override;
 
   ITreeViewEventHandler *mEventHandler;
   WindowBase *treeWindowBase; // Just for identification.
@@ -125,7 +137,7 @@ class TreeListWindow : public TreeViewWindow
 public:
   TreeListWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char *caption);
 
-  ~TreeListWindow();
+  ~TreeListWindow() override;
 
   int getListSelIndex() const;
   void setListSelIndex(int index);
@@ -136,20 +148,20 @@ public:
   SimpleString getFilterStr() const;
 
   // If control_height is 0 then it will use the entire available height.
-  virtual void updateImgui(float control_height = 0.0f) override;
+  void updateImgui(float control_height = 0.0f) override;
 
 protected:
   // WindowControlEventHandler
-  virtual void onWcChange(WindowBase *source) override;
-  virtual void onWcDoubleClick(WindowBase *source) override;
-  virtual void onWcRightClick(WindowBase *source) override;
+  void onWcChange(WindowBase *source) override;
+  void onWcDoubleClick(WindowBase *source) override;
+  void onWcRightClick(WindowBase *source) override;
 
   // ControlEventHandler
-  virtual void onChange(int pid, ContainerPropertyControl *panel) override;
-  virtual void onClick(int pid, ContainerPropertyControl *panel) override;
-  virtual long onKeyDown(int pcb_id, ContainerPropertyControl *panel, unsigned v_key) override;
+  void onChange(int pid, ContainerPropertyControl *panel) override;
+  void onClick(int pid, ContainerPropertyControl *panel) override;
+  long onKeyDown(int pcb_id, ContainerPropertyControl *panel, unsigned v_key) override;
 
-  virtual bool handleNodeFilter(const TTreeNode &node) override;
+  bool handleNodeFilter(const TTreeNode &node) override;
 
   void searchNext(const char *text, bool forward);
   void setCaptionFilterButton();

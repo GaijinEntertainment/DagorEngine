@@ -1,3 +1,7 @@
+include_optional "trace_inline_ps5.dshl"
+include "heightmap_common.dshl"
+include_optional "rt/rt_underwater_fade.dshl"
+
 buffer bvh_meta;
 buffer bvh_per_instance_data;
 buffer bvh_particle_data;
@@ -6,20 +10,54 @@ tlas bvh_main;
 tlas bvh_terrain;
 tlas bvh_particles;
 
+int bvh_main_valid;
+int bvh_terrain_valid;
+int bvh_particles_valid;
+
 int bvh_textures_range_start = 0;
+int bvh_cube_textures_range_start = 0;
 int bvh_buffers_range_start = 0;
 int bvh_samplers_range_start = 0;
+int bvh_meta_count = 0;
 
 float4 bvh_origin;
 
 float bvh_mip_range;
 float bvh_mip_scale;
 float bvh_mip_bias;
-
-float bvh_max_water_distance;
-float bvh_water_fade_power;
+float bvh_additional_impostor_mip_bias = 0;
+float bvh_tan_pixel_angular_radius = 0.0;
+float bvh_smoothness_coef = 0.7;
+float bvh_foliage_bias = 0.02;
 
 int bvh_debug_value = 0;
+int bvh_max_ahs_calls = 1000;
+
+int bvh_impostor_start_offset = 0;
+int bvh_impostor_end_offset = 0;
+
+int bvh_terrain_has_holes = 0;
+interval bvh_terrain_has_holes: no < 1, yes;
+
+// Needed for dissolving
+texture perlin_noise3d;
+
+macro INIT_BVH_DISSOLVE(stage)
+  (stage) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
+endmacro
+
+macro USE_BVH_DISSOLVE(stage)
+  hlsl (stage) {
+    float get_dissolve_value_from_world_position(float3 world_pos)
+    {
+      return tex3Dlod(perlin_noise3d, float4(frac(world_pos * 10), 0)).x;
+    }
+
+    #define BVH_SUPPORT_DISSOLVE 1
+  }
+endmacro
 
 hlsl
 {
@@ -27,54 +65,71 @@ hlsl
 }
 
 macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
+  if (hardware.ps5)
+  {
+    INIT_PS5_INLINE_RT(stage)
+  }
+
+  if (bvh_terrain_has_holes == yes)
+  {
+    INIT_HMAP_HOLES(stage)
+  }
+
   (stage)
   {
     bvh_debug_value@i1 = bvh_debug_value;
     bvh_textures_range_start@i1 = bvh_textures_range_start;
+    bvh_cube_textures_range_start@i1 = bvh_cube_textures_range_start;
     bvh_buffers_range_start@i1 = bvh_buffers_range_start;
+    bvh_meta_count@i1 = bvh_meta_count;
     bvh_origin@f3 = bvh_origin;
     bvh_mip_range@f1 = bvh_mip_range;
     bvh_mip_scale@f1 = bvh_mip_scale;
     bvh_mip_bias@f1 = bvh_mip_bias;
+    bvh_additional_impostor_mip_bias@f1 = bvh_additional_impostor_mip_bias;
+    bvh_tan_pixel_angular_radius@f1 = bvh_tan_pixel_angular_radius;
+    bvh_smoothness_coef@f1 = bvh_smoothness_coef;
+    bvh_foliage_bias@f1 = bvh_foliage_bias;
+    bvh_max_ahs_calls@i1 = bvh_max_ahs_calls;
+    bvh_impostor_begin_end@u2 = (bvh_impostor_start_offset, bvh_impostor_end_offset);
     bvh_meta@buf = bvh_meta hlsl
     {
-      struct BVHMeta
-      {
-        float4 materialData1;
-        float4 materialData2;
-        uint4 layerData;
-        uint materialType;
-        uint indexBitAndTexcoordFormat;
-        uint texcoordNormalColorOffsetAndVertexStride;
-        uint indexAndVertexBufferIndex;
-        uint albedoTextureAndSamplerIndex;
-        uint alphaTextureAndSamplerIndex;
-        uint normalTextureAndSamplerIndex;
-        uint extraTextureAndSamplerIndex;
-        uint startIndex;
-        uint startVertex;
-        float texcoordScale;
-        uint atlasTileSize;
-        uint atlasFirstLastTile;
-        uint vertexOffset;
-        uint pad1;
-        uint pad2;
-      };
+      #include "bvh_mesh_meta.hlsli"
       StructuredBuffer<BVHMeta> bvh_meta@buf;
     }
     bvh_per_instance_data@buf = bvh_per_instance_data hlsl
     {
-      StructuredBuffer<float4> bvh_per_instance_data@buf;
+      StructuredBuffer<uint2> bvh_per_instance_data@buf;
     }
 
-    bvhMain@tlas = bvh_main;
+    bvhMainValid@u1 = bvh_main_valid;
+  }
+  // ps5 currently doesn't support shadervar tlas binding
+  if (!hardware.ps5)
+  {
+    (stage) { bvhMain@tlas = bvh_main; }
+  }
+  else
+  {
+    hlsl (stage) { DECLARE_BVH_VAR(bvhMain, BVH_MAIN_INDEX); }
+    if (thirty_two_waves)
+    {
+      USE_PS5_WAVE32_MODE()
+    }
   }
 
   hlsl(stage) {
-    BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
-    BINDLESS_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
-    BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
-    BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
+    ##if !hardware.ps5
+      BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+      BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
+    ##else
+      BINDLESS_NON_UNIFORM_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_NON_UNIFORM_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+      BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
+    ##endif
 
     #pragma hlsl2021
 
@@ -93,25 +148,43 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
       #if coherent_rays
         #include "XDXRStandaloneTraverseHT.hlsli"
       #else
-        #include "XDXRStandaloneTraverseShortStackNoMultibox.hlsli"
+        #include "XDXRStandaloneTraverseLongStack.hlsli"
       #endif
+    ##elif hardware.ps5
+      ##if thirty_two_waves
+        #define RT_GROUP_SIZE [numthreads(8, 4, 1)]
+      ##else
+        #define RT_GROUP_SIZE [numthreads(8, 8, 1)]
+      ##endif
+      #define AHSLambda
     ##else
       #define RT_GROUP_SIZE [numthreads(16, 8, 1)]
       #define AHSLambda
       #define GenericRayQuery(flags, lambda) RayQuery<flags>
     ##endif
 
-    #define AHSArgs float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace
-    #define ForwardAHSParams ray_origin, ray_direction, ray_t, triangleIx, instanceId, instanceContributionToHitGroupIndex, barycentrics2, to_world, isFrontFace
-    #define PassAHSParams query.WorldRayOrigin(),                               \
-                          query.WorldRayDirection(),                            \
-                          query.CandidateTriangleRayT(),                        \
-                          query.CandidatePrimitiveIndex(),                      \
-                          query.CandidateInstanceID(),                          \
-                          query.CandidateInstanceContributionToHitGroupIndex(), \
-                          query.CandidateTriangleBarycentrics(),                \
-                          query.CandidateObjectToWorld3x4(),                    \
-                          query.CandidateTriangleFrontFace()
+    // Metal doesn't support CandidateInstanceContributionToHitGroupIndex / CommittedInstanceContributionToHitGroupIndex
+    ##if hardware.metal
+      #define CANDIDATE_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX (ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_INSTANCE_INDEX)
+      #define COMMITTED_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX (ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_INSTANCE_INDEX)
+    ##elif !hardware.ps5
+      #define CANDIDATE_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX (query.CandidateInstanceContributionToHitGroupIndex())
+      #define COMMITTED_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX (query.CommittedInstanceContributionToHitGroupIndex())
+    ##endif
+
+    #define AHSArgs float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, uint icthgi, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex
+    #define ForwardAHSParams ray_origin, ray_direction, ray_t, triangleIx, instanceId, geometryIndex, icthgi, barycentrics2, to_world, isFrontFace, instanceIndex
+    #define PassAHSParams query.WorldRayOrigin(),                             \
+                          query.WorldRayDirection(),                          \
+                          query.CandidateTriangleRayT(),                      \
+                          query.CandidatePrimitiveIndex(),                    \
+                          query.CandidateInstanceID(),                        \
+                          query.CandidateGeometryIndex(),                     \
+                          CANDIDATE_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX, \
+                          query.CandidateTriangleBarycentrics(),              \
+                          query.CandidateObjectToWorld3x4(),                  \
+                          query.CandidateTriangleFrontFace(),                 \
+                          query.CandidateInstanceIndex()
   }
 endmacro
 
@@ -124,8 +197,25 @@ macro INIT_BVH(stage, coherent_rays, thirty_two_waves)
       #include "modfx/modfx_bvh.hlsli"
       StructuredBuffer<ModfxBVHParticleData> bvh_particle_data@buf;
     }
-    bvhTerrain@tlas = bvh_terrain;
-    bvhParticles@tlas = bvh_particles;
+
+    bvhTerrainValid@u1 = bvh_terrain_valid;
+    bvhParticlesValid@u1 = bvh_particles_valid;
+  }
+
+  if (!hardware.ps5)
+  {
+    (stage)
+    {
+      bvhTerrain@tlas = bvh_terrain;
+      bvhParticles@tlas = bvh_particles;
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      DECLARE_BVH_VAR(bvhTerrain, BVH_TERRAIN_INDEX);
+      DECLARE_BVH_VAR(bvhParticles, BVH_PARTICLES_INDEX);
+    }
   }
 endmacro
 
@@ -173,28 +263,33 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
           break;
         case bvhAttributeShort2TC:
           {
-            uint packed = loadBuffer(vb, attributeBase);
-            attribute.x = ShortToIntLow(packed) / 4096.0;
-            attribute.y = ShortToIntHigh(packed) / 4096.0;
+            uint packd = loadBuffer(vb, attributeBase); // note: packed is a keyword in PSSL
+            attribute.x = ShortToIntLow(packd) / 4096.0;
+            attribute.y = ShortToIntHigh(packd) / 4096.0;
             break;
           }
           break;
         case bvhAttributeShort2N:
           {
-            uint packed = loadBuffer(vb, attributeBase);
-            attribute.x = ShortToIntLow(packed);
-            attribute.y = ShortToIntHigh(packed);
+            uint packd = loadBuffer(vb, attributeBase);
+            attribute.x = ShortToIntLow(packd);
+            attribute.y = ShortToIntHigh(packd);
             attribute = (attribute - 32767) / 32767.0;
             break;
           }
           break;
         case bvhAttributeUShort2N:
           {
-            uint packed = loadBuffer(vb, attributeBase);
-            attribute = float2(packed & 0xFFFF, packed >> 16) / 65535.0;
+            uint packd = loadBuffer(vb, attributeBase);
+            attribute = float2(packd & 0xFFFF, packd >> 16) / 65535.0;
             break;
           }
           break;
+       ##if DEBUG
+        default:
+          ##assert(false, "LoadAttribute (out float2): Bad attribute: %i", attributeFormat);
+          break;
+       ##endif
       }
     }
 
@@ -206,14 +301,19 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
           {
             const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
 
-            uint packed = loadBuffer(vb, attributeBase);
-            attribute = ((packed >> INPUT_ENCODING_OFFSET).xyz & 255) / 255.0;
+            uint packd = loadBuffer(vb, attributeBase);
+            attribute = ((packd >> INPUT_ENCODING_OFFSET).xyz & 255) / 255.0;
             break;
           }
           break;
         case bvhAttributeFloat3:
           attribute = asfloat(loadBuffer3(vb, attributeBase));
           break;
+       ##if DEBUG
+        default:
+          ##assert(false, "LoadAttribute (out float3): Bad attribute: %i", attributeFormat);
+          break;
+       ##endif
       }
     }
   }
@@ -221,12 +321,18 @@ endmacro
 
 macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
   USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
+  if (bvh_terrain_has_holes == yes)
+  {
+    USE_HMAP_HOLES(stage)
+  }
+
   hlsl(stage)
   {
     static const uint bvhMaterialTerrain  = 0;
     static const uint bvhMaterialRendinst = 1;
     static const uint bvhMaterialInterior = 2;
     static const uint bvhMaterialParticle = 3;
+    static const uint bvhMaterialCable    = 4;
 
     static const uint bvhMaterialAlphaTest = 1 << 16;
     static const uint bvhMaterialPainted = 1 << 17;
@@ -237,6 +343,11 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     static const uint bvhMaterialLayered = 1 << 22;
     static const uint bvhMaterialGrass = 1 << 23;
     static const uint bvhMaterialEmissive = 1 << 24;
+    static const uint bvhMaterialMFD = 1 << 25;
+    static const uint bvhMaterialTexcoordAdd = 1 << 26;
+    static const uint bvhMaterialPerlinLayered = 1 << 27;
+    static const uint bvhMaterialAlphaInRed = 1 << 28;
+    static const uint bvhMaterialEye = 1 << 29;
 
     static const uint bvhMaterialTypeMask = (1 << 16) - 1;
 
@@ -254,6 +365,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     static const uint bvhGroupSoftShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupNoShadow;
     static const uint bvhGroupHardShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupGrass & ~bvhGroupNoShadow;
     static const uint bvhGroupAO         = bvhGroupAll;
+    static const uint bvhGroupGI         = bvhGroupAll & ~bvhGroupGrass;
+    static const uint bvhGroupProbe      = bvhGroupAll & ~bvhGroupGrass & ~bvhGroupDynrend;
 
     struct LayerData
     {
@@ -283,9 +396,29 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     {
       return material & bvhMaterialCamo;
     }
+    bool is_mfd(uint material)
+    {
+      return material & bvhMaterialMFD;
+    }
+    bool need_texcoord_add(uint material)
+    {
+      return material & bvhMaterialTexcoordAdd;
+    }
     bool is_layered(uint material)
     {
       return material & bvhMaterialLayered;
+    }
+    bool is_perlin_layered(uint material)
+    {
+      return material & bvhMaterialPerlinLayered;
+    }
+    bool is_eye(uint material)
+    {
+      return material & bvhMaterialEye;
+    }
+    bool is_alpha_in_red(uint material)
+    {
+      return material & bvhMaterialAlphaInRed;
     }
     bool is_grass(uint material)
     {
@@ -297,7 +430,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     }
     bool has_second_texcoord(uint material)
     {
-      return is_camo(material) || is_layered(material);
+      return is_camo(material) || (is_layered(material) && is_atlas(material));
     }
     bool has_instance_color(uint material)
     {
@@ -309,7 +442,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     }
     uint get_texcoord_offset(BVHMeta meta)
     {
-      return meta.texcoordNormalColorOffsetAndVertexStride >> 24;
+      return meta.texcoordOffset;
     }
     uint get_sec_texcoord_offset(BVHMeta meta)
     {
@@ -317,53 +450,61 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     }
     uint get_texcoord_format(BVHMeta meta)
     {
-      return meta.indexBitAndTexcoordFormat & 0x7FFFFFFFU;
+      return meta.texcoordFormat;
     }
     uint get_normal_offset(BVHMeta meta)
     {
-      return (meta.texcoordNormalColorOffsetAndVertexStride >> 16) & 0xFF;
+      return meta.normalOffset;
     }
     uint get_color_offset(BVHMeta meta)
     {
-      return (meta.texcoordNormalColorOffsetAndVertexStride >> 8) & 0xFF;
+      return meta.colorOffset;
     }
     uint get_vertex_stride(BVHMeta meta)
     {
-      return meta.texcoordNormalColorOffsetAndVertexStride & 255;
+      return meta.vertexStride;
     }
     uint get_index_buffer_index(BVHMeta meta)
     {
-      return meta.indexAndVertexBufferIndex >> 16;
+      return meta.indexBufferIndex;
     }
     uint get_vertex_buffer_index(BVHMeta meta)
     {
-      return meta.indexAndVertexBufferIndex & 0xFFFF;
+      return meta.vertexBufferIndexLow | (meta.vertexBufferIndexHigh << 16);
+    }
+    uint get_ahs_vertex_buffer_index(BVHMeta meta)
+    {
+      return meta.ahsVertexBufferIndex;
     }
     uint get_index_format(BVHMeta meta)
     {
       // 2 or 4 if the MSB is set
-      return (meta.indexBitAndTexcoordFormat >> 31) * 2 + 2;
+      return meta.indexBit * 2 + 2;
     }
-    uint get_texture_index(uint packed, out uint sampler_index)
+    uint get_texture_index(uint packd, out uint sampler_index)
     {
-      sampler_index = packed & 0xFFFF;
-      return packed >> 16;
+      sampler_index = packd & 0xFFFF;
+      return packd >> 16;
     }
     uint get_albedo_texture_index(BVHMeta meta, out uint sampler_index)
     {
-      return get_texture_index(meta.albedoTextureAndSamplerIndex, sampler_index);
+      sampler_index = meta.albedoAndNormalSamplerIndex;
+      return meta.albedoTextureIndex;
     }
     uint get_alpha_texture_index(BVHMeta meta, out uint sampler_index)
     {
-      return get_texture_index(meta.alphaTextureAndSamplerIndex, sampler_index);
+      sampler_index = meta.alphaSamplerIndex;
+      return meta.alphaTextureIndex;
     }
     uint get_normal_texture_index(BVHMeta meta, out uint sampler_index)
     {
-      return get_texture_index(meta.normalTextureAndSamplerIndex, sampler_index);
+      sampler_index = meta.albedoAndNormalSamplerIndex;
+      return meta.normalTextureIndex;
     }
     uint get_extra_texture_index(BVHMeta meta, out uint sampler_index)
     {
-      return get_texture_index(meta.extraTextureAndSamplerIndex, sampler_index);
+      sampler_index = meta.extraSamplerIndex;
+      return meta.extraTextureIndex;
     }
     float get_texcoord_scale(BVHMeta meta)
     {
@@ -396,8 +537,6 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
     struct HitInfo
     {
-      bool dissolved;
-
       float t;
 
       float3 centerWorldPos;
@@ -406,7 +545,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       float2 texcoord;
       float2 secTexcoord;
       half3 normal;
-      half3 color;
+      half3 vertexColor;
+      half3 instanceColor;
 
       uint material;
 
@@ -415,7 +555,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       float4 materialData1;
       float4 materialData2;
 
-      float4 perInstanceData;
+      uint2 perInstanceDataCompressed;
 
       uint albedoTextureIndex;
       uint alphaTextureIndex;
@@ -427,15 +567,20 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       uint normalSamplerIndex;
       uint extraSamplerIndex;
 
-      uint hashVal;
-
       bool isImpostor;
       bool isCamo;
+      bool isMFD;
       bool isLayered;
       bool isGrass;
       bool isEmissive;
+      bool isPerlinLayered;
+      bool isEye;
 
       uint4 rawLayerData;
+      uint rawAtlasTileSize;
+      uint rawAtlasFirstLastTile;
+
+      uint perInstanceDataIndex;
 
       LayerData layerData;
     };
@@ -446,9 +591,9 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       [branch]
       if (hit_info.alphaTextureIndex == 0xFFFF)
-        alpha = bvh_textures[bvh_textures_range_start + hit_info.albedoTextureIndex].SampleLevel(bvh_samplers[hit_info.albedoSamplerIndex], hit_info.texcoord, mip_level).a;
+        alpha = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hit_info.albedoTextureIndex)].SampleLevel(bvh_samplers[NonUniformResourceIndex(hit_info.albedoSamplerIndex)], hit_info.texcoord, mip_level).a;
       else
-        alpha = bvh_textures[bvh_textures_range_start + hit_info.alphaTextureIndex].SampleLevel(bvh_samplers[hit_info.alphaSamplerIndex], hit_info.texcoord, mip_level).r;
+        alpha = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hit_info.alphaTextureIndex)].SampleLevel(bvh_samplers[NonUniformResourceIndex(hit_info.alphaSamplerIndex)], hit_info.texcoord, mip_level).r;
 
       return alpha > treshold;
     }
@@ -487,25 +632,164 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     {
       float3 positions[ 3 ];
 
-      uint2 packed;
-      packed = loadBuffer2(vb, vb_base + indices.x * stride);
-      positions[ 0 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
-      packed = loadBuffer2(vb, vb_base + indices.y * stride);
-      positions[ 1 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
-      packed = loadBuffer2(vb, vb_base + indices.z * stride);
-      positions[ 2 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
+      uint2 packd;
+      packd = loadBuffer2(vb, vb_base + indices.x * stride);
+      positions[ 0 ] = float3(f16tof32(packd.x), f16tof32(packd.x >> 16), f16tof32(packd.y));
+      packd = loadBuffer2(vb, vb_base + indices.y * stride);
+      positions[ 1 ] = float3(f16tof32(packd.x), f16tof32(packd.x >> 16), f16tof32(packd.y));
+      packd = loadBuffer2(vb, vb_base + indices.z * stride);
+      positions[ 2 ] = float3(f16tof32(packd.x), f16tof32(packd.x >> 16), f16tof32(packd.y));
 
       float3 e1 = positions[ 1 ] - positions[ 0 ];
       float3 e2 = positions[ 2 ] - positions[ 0 ];
       return normalize(cross(e1, e2));
     }
 
-    float calc_mip_level(float d, bool for_atest = false)
+    float get_cone_angle_from_smoothness(float smoothness)
     {
-      return bvh_mip_bias + saturate(sqrt(d / bvh_mip_range)) * bvh_mip_scale * (for_atest ? 0.5 : 1);
+      float tanConeAngle = 1.0 - smoothness * smoothness * bvh_smoothness_coef;
+      return max(saturate(tanConeAngle), bvh_tan_pixel_angular_radius);
     }
 
-    HitInfo CalcHitInfo(float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, half3 defaultColor)
+    float calc_mip_level(float d, bool is_impostor, bool for_atest = false)
+    {
+      float bias = bvh_mip_bias + (is_impostor ? bvh_additional_impostor_mip_bias : 0); // Since impostors are meant to be viewed from a distance
+      return bias + saturate(sqrt(d / bvh_mip_range)) * bvh_mip_scale * (for_atest ? 0.5 : 1);
+    }
+
+    bool need_clip_impostor(float2 clipping_info)
+    {
+      return abs(clipping_info.x) > abs(clipping_info.y);
+    }
+
+    float2 unpack_ahs_tc(uint packd)
+    {
+      return float2(f16tof32(packd), f16tof32(packd >> 16));
+    }
+
+    void decode_instance_id(uint instance_id, out float translucency, out uint meta_region_index)
+    {
+      // The instance ID is 24 bits.
+      // The most significant bit tells if the instance has translucency.
+      // If it has, the next 8 bits are the translucency value
+      bool hasTranslucency = instance_id >> 23;
+      uint translucencyI = hasTranslucency ? ((instance_id >> 15) & 0xFF) : 0;
+      translucency = translucencyI / 255.0;
+
+      meta_region_index = hasTranslucency ? (instance_id & 0x7FFF) : instance_id;
+    }
+
+    typedef uint AHSResult;
+    static const AHSResult AHS_Hit    = 0;
+    static const AHSResult AHS_Miss   = 1;
+    static const AHSResult AHS_NoData = 2;
+
+    AHSResult hmap_holes_ahs(float3 ray_origin, float3 ray_direction, float primary_t, float ray_t, uint instanceId)
+    {
+      ##if bvh_terrain_has_holes == yes && heightmap_holes_support_assume == on
+        ##assert(instanceId < bvh_meta_count, "hmap hole meta %d but max is %d", instanceId, bvh_meta_count);
+        BVHMeta meta = structuredBufferAt(bvh_meta, instanceId);
+        if (get_material_type(meta.materialType) != bvhMaterialTerrain)
+          return AHS_NoData;
+        float3 worldPos = bvh_origin + ray_origin + ray_direction * ray_t;
+        bool hole = false;
+        hole = hole || checkHeightmapHoles(worldPos + float3(+hmap_holes_sampling_step_dist, 0, +hmap_holes_sampling_step_dist), 0);
+        hole = hole || checkHeightmapHoles(worldPos + float3(+hmap_holes_sampling_step_dist, 0, -hmap_holes_sampling_step_dist), 0);
+        hole = hole || checkHeightmapHoles(worldPos + float3(-hmap_holes_sampling_step_dist, 0, +hmap_holes_sampling_step_dist), 0);
+        hole = hole || checkHeightmapHoles(worldPos + float3(-hmap_holes_sampling_step_dist, 0, -hmap_holes_sampling_step_dist), 0);
+        if (hole)
+          return AHS_Miss;
+        return AHS_Hit;
+      ##else
+        return AHS_NoData;
+      ##endif
+    }
+
+    AHSResult alpha_test_ahs(float3 ray_origin, float3 ray_direction, float primary_t, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, uint instanceIndex, float alpha_treshold)
+    {
+      static const uint ahsVertexStride = 4;
+
+      float translucency;
+      uint metaRegionIndex;
+      decode_instance_id(instanceId, translucency, metaRegionIndex);
+      bool isImpostor = instanceIndex >= bvh_impostor_begin_end.x && instanceIndex < bvh_impostor_begin_end.y;
+      uint bhvMetaIndex = metaRegionIndex + (isImpostor ? 0 : geometryIndex);
+
+      #if BVH_SUPPORT_DISSOLVE
+        [branch]
+        if (translucency > 0)
+        {
+          float3 hitPosition = ray_origin + ray_direction * ray_t;
+          float dissolveAlpha = get_dissolve_value_from_world_position(hitPosition + bvh_origin);
+
+          [branch]
+          if (translucency > dissolveAlpha)
+            return AHS_Miss;
+        }
+      #endif
+
+      ##assert(bhvMetaIndex < bvh_meta_count, "alpha_test_ahs meta %d but max is %d", bhvMetaIndex, bvh_meta_count);
+      BVHMeta meta = structuredBufferAt(bvh_meta, bhvMetaIndex);
+
+      uint vbSlotIndex = get_ahs_vertex_buffer_index(meta);
+      [branch]
+      if (vbSlotIndex == BVH_BINDLESS_BUFFER_MAX)
+        return AHS_NoData;
+
+      ByteAddressBuffer vb = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + vbSlotIndex)];
+
+      uint3 indices;
+      indices.x = triangleIx * 3 + 0;
+      indices.y = triangleIx * 3 + 1;
+      indices.z = triangleIx * 3 + 2;
+
+      uint vertexCount = meta.indexCount;
+      ##assert(indices.x < vertexCount, "Can't load vertex %i, max is %i, triangle %i, meta %i, t is %.f", indices.x, vertexCount, triangleIx, bhvMetaIndex, ray_t);
+      ##assert(indices.y < vertexCount, "Can't load vertex %i, max is %i, triangle %i, meta %i, t is %.f", indices.y, vertexCount, triangleIx, bhvMetaIndex, ray_t);
+      ##assert(indices.z < vertexCount, "Can't load vertex %i, max is %i, triangle %i, meta %i, t is %.f", indices.z, vertexCount, triangleIx, bhvMetaIndex, ray_t);
+
+      float2 tc1 = unpack_ahs_tc(loadBuffer(vb, indices.x * ahsVertexStride));
+      float2 tc2 = unpack_ahs_tc(loadBuffer(vb, indices.y * ahsVertexStride));
+      float2 tc3 = unpack_ahs_tc(loadBuffer(vb, indices.z * ahsVertexStride));
+
+      float3 barycentrics = float3(1.0 - barycentrics2.x - barycentrics2.y, barycentrics2.x, barycentrics2.y);
+
+      float2 tc = tc1 * barycentrics.x + tc2 * barycentrics.y + tc3 * barycentrics.z;
+
+      if (need_texcoord_add(meta.materialType))
+        tc += f16tof32(meta.texcoordAdd.xx >> uint2(0, 16));
+
+      [branch]
+      if (is_impostor(meta.materialType))
+      {
+        [branch]
+        if (any(or(tc < 0, tc > 1)))
+          return AHS_Miss;
+
+        uint vertexCount = meta.indexCount;
+
+        float2 sd1 = unpack_ahs_tc(loadBuffer(vb, (indices.x + vertexCount) * ahsVertexStride));
+        float2 sd2 = unpack_ahs_tc(loadBuffer(vb, (indices.y + vertexCount) * ahsVertexStride));
+        float2 sd3 = unpack_ahs_tc(loadBuffer(vb, (indices.z + vertexCount) * ahsVertexStride));
+
+        float2 sliceData = sd1 * barycentrics.x + sd2 * barycentrics.y + sd3 * barycentrics.z;
+
+        [branch]
+        if (need_clip_impostor(sliceData))
+          return AHS_Miss;
+      }
+
+      uint alphaSamplerIndex;
+      uint alphaTextureIndex = get_alpha_texture_index(meta, alphaSamplerIndex);
+
+      float mipLevel = calc_mip_level(primary_t + ray_t, is_impostor(meta.materialType), true);
+      float4 smp = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + alphaTextureIndex)].SampleLevel(bvh_samplers[NonUniformResourceIndex(alphaSamplerIndex)], tc, mipLevel);
+      float alpha = is_alpha_in_red(meta.materialType) ? smp.r : smp.a;
+
+      return alpha > alpha_treshold ? AHS_Hit : AHS_Miss;
+    }
+
+    HitInfo CalcHitInfo(float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, uint icthgi, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex, half3 defaultColor)
     {
       HitInfo hitInfo = (HitInfo)0;
 
@@ -514,32 +798,18 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       hitInfo.centerWorldPos = to_world._14_24_34 + bvh_origin;
 
-      // The instance ID is 24 bits.
-      // The most significant bit tells if the instance has translucency.
-      // If it has, the next 8 bits are the translucency value
-      bool hasTranslucency = instanceId >> 23;
-      uint translucencyI = hasTranslucency ? ((instanceId >> 15) & 0xFF) : 0;
-      float translucency = translucencyI / 255.0;
+      float translucency;
+      uint metaRegionIndex;
+      decode_instance_id(instanceId, translucency, metaRegionIndex);
 
-      #if BVH_TRANSLUCENCY_IS_DISSOLVE
-        [branch]
-        if (translucency > 0)
-        {
-          float dissolveAlpha = get_dissolve_value_from_world_position(hitInfo.position + bvh_origin);
-          [branch]
-          if (translucency > dissolveAlpha)
-          {
-            hitInfo.dissolved = true;
-            return hitInfo;
-          }
-        }
-      #endif
+      uint icthgiFlags = icthgi & ICTHGI_MASK;
+      uint icthgiData = (icthgi >> 3) & 0x001FFFFFu;
+      bool hasPerInstanceData = icthgiFlags == ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_INSTANCE_INDEX || icthgiFlags == ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_ICTHGI_INDEX;
+      uint instanceDataIndex = icthgiFlags == ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_ICTHGI_INDEX ? icthgiData : instanceIndex;
 
-      instanceId = hasTranslucency ? (instanceId & 0x7FFF) : instanceId;
-
-      bool hasPerInstanceData = instanceContributionToHitGroupIndex != 0xFFFFFFU;
-
-      BVHMeta meta = structuredBufferAt(bvh_meta, instanceId);
+      bool isImpostor = instanceIndex >= bvh_impostor_begin_end.x && instanceIndex < bvh_impostor_begin_end.y;
+      uint bhvMetaIndex = metaRegionIndex + (isImpostor ? 0 : geometryIndex);
+      BVHMeta meta = structuredBufferAt(bvh_meta, bhvMetaIndex);
       hitInfo.material = meta.materialType;
       hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
       hitInfo.alphaTextureIndex = get_alpha_texture_index(meta, hitInfo.alphaSamplerIndex);
@@ -550,22 +820,30 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       hitInfo.materialData2 = meta.materialData2;
       hitInfo.isImpostor = is_impostor(meta.materialType);
       hitInfo.isCamo = is_camo(meta.materialType);
+      hitInfo.isMFD = is_mfd(meta.materialType);
       hitInfo.isLayered = is_layered(meta.materialType);
       hitInfo.isGrass = is_grass(meta.materialType);
       hitInfo.isEmissive = is_emissive(meta.materialType);
-      hitInfo.perInstanceData = hasPerInstanceData ? structuredBufferAt(bvh_per_instance_data, instanceContributionToHitGroupIndex) : 0;
+      hitInfo.isPerlinLayered = is_perlin_layered(meta.materialType);
+      hitInfo.isEye = is_eye(meta.materialType);
+      hitInfo.perInstanceDataCompressed = hasPerInstanceData ? structuredBufferAt(bvh_per_instance_data, instanceDataIndex) : (icthgiFlags == ICTHGI_USE_AS_HASH_VALUE ? uint2(icthgiData, 0) : 0);
       hitInfo.rawLayerData = meta.layerData;
+      hitInfo.rawAtlasTileSize = meta.atlasTileSize;
+      hitInfo.rawAtlasFirstLastTile = meta.atlasFirstLastTile;
+      hitInfo.vertexColor = defaultColor;
+      hitInfo.instanceColor = 1;
 
       if (hitInfo.isLayered)
         hitInfo.layerData = get_layer_data(meta, to_world);
 
-      if (instanceContributionToHitGroupIndex && all(hitInfo.perInstanceData.yzw == float3(80, 7, 14)))
-        hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceData.x), hitInfo.albedoSamplerIndex);
+      if (icthgiFlags == ICTHGI_REPLACE_ALBEDO_TEXTURE)
+        hitInfo.albedoTextureIndex = icthgiData;
+      else if (hitInfo.perInstanceDataCompressed.x == 0xA1B3D0U)
+        hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceDataCompressed.y), hitInfo.albedoSamplerIndex);
 
       if (get_material_type(meta.materialType) == bvhMaterialTerrain)
       {
         hitInfo.texcoord = 0;
-        hitInfo.color = 1;
 
         #if terrain_has_normal
           float3 normals[3];
@@ -573,8 +851,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
           uint ibSlotIndex = get_index_buffer_index(meta);
           uint vbSlotIndex = get_vertex_buffer_index(meta);
 
-          ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
-          ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+          ByteAddressBuffer vb = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + vbSlotIndex)];
+          ByteAddressBuffer ib = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + ibSlotIndex)];
 
           uint vertexStride = 16; // float3 + uint
 
@@ -601,21 +879,22 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         uint ibSlotIndex = get_index_buffer_index(meta);
         uint vbSlotIndex = get_vertex_buffer_index(meta);
 
-        ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
+        ByteAddressBuffer vb = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + vbSlotIndex)];
 
         uint vertexStride = get_vertex_stride(meta);
 
         uint3 indices;
 
+        /* This branch is removed for performance reasons. If it is really needed, lets discuss it.
         if (ibSlotIndex == 0xFFFF)
         {
           indices.x = triangleIx * 3 + 0;
           indices.y = triangleIx * 3 + 1;
           indices.z = triangleIx * 3 + 2;
         }
-        else
+        else*/
         {
-          ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+          ByteAddressBuffer ib = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + ibSlotIndex)];
           uint indexFormat = get_index_format(meta);
           uint ibBase = (meta.startIndex + triangleIx * 3) * indexFormat;
 
@@ -639,6 +918,9 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
                              + texcoords[ 2 ] * barycentrics.z;
             hitInfo.texcoord *= get_texcoord_scale(meta);
 
+            if (need_texcoord_add(meta.materialType))
+              hitInfo.texcoord += f16tof32(meta.texcoordAdd.xx >> uint2(0, 16));
+
             if (is_atlas(meta.materialType))
             {
               float4 atlasParams = float4(f16tof32(meta.atlasTileSize), f16tof32(meta.atlasTileSize >> 16), meta.atlasFirstLastTile & 0xFFFFU, meta.atlasFirstLastTile >> 16);
@@ -653,6 +935,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
             if (has_second_texcoord(meta.materialType))
             {
+              ##assert(get_sec_texcoord_offset(meta) < 255, "CalcHitInfo: second texcoord offset is invalid.");
               uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_sec_texcoord_offset(meta);
               LoadAttribute(vb, vbBase + indices.x * vertexStride, texcoordFormat, texcoords[0]);
               LoadAttribute(vb, vbBase + indices.y * vertexStride, texcoordFormat, texcoords[1]);
@@ -704,7 +987,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
           }
         #endif
 
-        if ((need_color || hitInfo.isImpostor) && get_color_offset(meta) != 255)
+        if ((need_color || get_material_type(hitInfo.material) == bvhMaterialCable) && get_color_offset(meta) != 255)
         {
           float3 colors[3];
           uint vbBase = get_vertex_offset(meta) + meta.startVertex * vertexStride + get_color_offset(meta);
@@ -713,72 +996,49 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
           LoadAttribute(vb, vbBase + indices.y * vertexStride, colorFormat, colors[1]);
           LoadAttribute(vb, vbBase + indices.z * vertexStride, colorFormat, colors[2]);
 
-          hitInfo.color = half3( colors[ 0 ] * barycentrics.x
-                               + colors[ 1 ] * barycentrics.y
-                               + colors[ 2 ] * barycentrics.z );
-
-          if (hitInfo.isImpostor)
-          {
-            hitInfo.materialData1.rgb = hitInfo.color;
-            hitInfo.color = defaultColor;
-          }
+          hitInfo.vertexColor = half3( colors[ 0 ] * barycentrics.x
+                                     + colors[ 1 ] * barycentrics.y
+                                     + colors[ 2 ] * barycentrics.z );
 
         }
-        else
-          hitInfo.color = defaultColor;
 
-        if (has_instance_color(hitInfo.material))
+        if (icthgiFlags == ICTHGI_USE_AS_777_ISTANCE_COLOR)
         {
-          hitInfo.color = half3(hitInfo.perInstanceData.rgb);
-          hitInfo.color = pow(hitInfo.color * 4, 2.2);
+          hitInfo.instanceColor = half3((icthgiData.rrr >> uint3(0, 7, 14)).zyx & 127) / 127.0h;
+          hitInfo.instanceColor = pow(hitInfo.instanceColor * 4, 2.2);
         }
+        ##if hardware.metal
+        else if (has_instance_color(hitInfo.material))
+        {
+          hitInfo.instanceColor = half3((hitInfo.perInstanceDataCompressed.rrr >> uint3(0, 8, 16)).zyx & 255) / 255.0h; // E3DCOLOR
+          hitInfo.instanceColor = pow(hitInfo.instanceColor * 4, 2.2);
+        }
+        ##endif
       }
 
       return hitInfo;
     }
 
-    bool need_clip_impostor(float2 uv, float4 slice_lines)
-    {
-      if (any(or(uv.xy < 0, uv.xy > 1)))
-        return true;
-
-      float2 xClipping = slice_lines.xy * uv.y + slice_lines.zw;
-      float2 clippingInfo = float2(2 * uv.x - (xClipping.y + xClipping.x), xClipping.y - xClipping.x);
-
-      return abs(clippingInfo.x) > abs(clippingInfo.y);
-    }
-
-    bool need_clip_impostor(float2 clipping_info)
-    {
-      return abs(clipping_info.x) > abs(clipping_info.y);
-    }
-
-    bool need_clip_impostor(HitInfo hitInfo)
-    {
-      if (!hitInfo.isImpostor)
-        return false;
-
-      float4 sliceData = float4(hitInfo.texcoord, hitInfo.materialData1.rg);
-      return need_clip_impostor(sliceData.zw) || any(or(sliceData.xy < 0, sliceData.xy > 1));
-    }
-
+##if !hardware.ps5
     struct IsObstructedAHSLambda AHSLambda
     {
       float primaryT;
       half3 defaultColor;
+      int callCounter;
 
       bool InlineAHSImpl(AHSArgs)
       {
-        HitInfo hitInfo = CalcHitInfo(ForwardAHSParams, defaultColor);
+        callCounter++;
+        if (callCounter >= bvh_max_ahs_calls)
+          return true; // Giving up finding the correct hit
 
-        [branch]
-        if (need_clip_impostor(hitInfo))
-          return false;
-
-        [branch]
-        if (IsAlphaGreaterThan(hitInfo, calc_mip_level(primaryT + hitInfo.t, true), 0.5))
-          return true;
-
+        AHSResult hmapResult = hmap_holes_ahs(ray_origin, ray_direction, primaryT, ray_t, instanceId);
+        if (hmapResult != AHS_NoData)
+          return hmapResult == AHS_Hit;
+        #if handle_translucent
+          AHSResult ahsResult = alpha_test_ahs(ray_origin, ray_direction, primaryT, ray_t, triangleIx, instanceId, geometryIndex, barycentrics2, instanceIndex, 0.5);
+          return ahsResult == AHS_Hit;
+        #endif
         return false;
       }
 
@@ -791,7 +1051,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       ##endif
     };
 
-    bool is_obstructed(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, half3 defaultColor = 1)
+    bool is_obstructed(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, half3 defaultColor = 1, uint extra_flags = 0)
     {
       const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
 
@@ -803,11 +1063,12 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       ray.TMin      = ray_min;
       ray.TMax      = ray_max;
 
-      query.TraceRayInline(bvh, flags, group_mask, ray);
+      query.TraceRayInline(bvh, flags | extra_flags, group_mask, ray);
 
       IsObstructedAHSLambda lambda;
       lambda.primaryT = primaryT;
       lambda.defaultColor = defaultColor;
+      lambda.callCounter = 0;
 
       ##if hardware.scarlett
         query.Proceed(lambda);
@@ -822,44 +1083,101 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       return query.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
     }
+##else // hardware.ps5
+    HitInfo CalcHitInfoPS(float3 ray_origin, float3 ray_dir, sce::Psr::Hit hit, half3 default_color)
+    {
+      float m[12] = hit.m_instance->m_objectToWorld3x4; // row-major
 
+      float3x4 objToWorld = {
+        m[0], m[1], m[2], m[3],
+        m[4], m[5], m[6], m[7],
+        m[8], m[9], m[10],m[11]
+      };
+
+      return CalcHitInfo(ray_origin, // no info in psHit
+        ray_dir,
+        hit.m_depth,
+        hit.m_primitiveIndex,
+        hit.m_instanceID,
+        hit.m_geometryIndex,
+        hit.m_shaderTableContribution,
+        float2(hit.m_u, hit.m_v),
+        objToWorld,
+        hit.m_hitKind == sce::Psr::HitKind::kTriangleFrontFace,
+        hit.m_instanceIndex,
+        default_color);
+    }
+
+    bool is_obstructed(RaytracingAccelerationStructure bvh,
+        float3 ray_origin,
+        float3 ray_direction,
+        float ray_min,
+        float ray_max,
+        float primaryT,
+        uint group_mask,
+        half3 default_color = 1,
+        uint extra_flags = 0)
+    {
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+
+      sce::Psr::Ray const ray = {
+        .m_org = ray_origin,
+        .m_tmin = ray_min,
+        .m_dir = ray_direction,
+        .m_tmax = ray_max
+      };
+
+      sce::Psr::RayFlags rayFlags = sce::Psr::RayFlags::kCullBackFacingTriangles;
+
+      auto const noIntersection = sce::Psr::NoIntersection{};
+      auto const noAABBInstance = sce::Psr::NoAABBInstance {bvh.m_bvh};
+
+      int callCounter = 0;
+
+      auto lambda = [&](float3 object_space_org, float3 object_space_dir, sce::Psr::Hit hit)
+      {
+        callCounter++;
+        if (callCounter >= bvh_max_ahs_calls)
+          return true; // Giving up finding the correct hit
+
+        AHSResult hmapResult = hmap_holes_ahs(ray_origin, ray_direction, primaryT, hit.m_depth, hit.m_instanceID);
+        if (hmapResult != AHS_NoData)
+          return hmapResult == AHS_Hit;
+      #if handle_translucent
+        AHSResult ahsResult = alpha_test_ahs(ray_origin, ray_direction, primaryT,
+          hit.m_depth, hit.m_primitiveIndex, hit.m_instanceID, hit.m_geometryIndex, float2(hit.m_u, hit.m_v), hit.m_instanceIndex, 0.5);
+        return ahsResult == AHS_Hit;
+      #endif
+        return false;
+      };
+
+      auto psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags,
+        group_mask, ray, lambda, noIntersection, noAABBInstance);
+      return psHit.isHit();
+    }
+##endif
+
+##if !hardware.ps5
     struct TraceRayAHSLambda AHSLambda
     {
       float primaryT;
       half3 rayColor;
       half3 defaultColor;
       float translucentT;
+      int callCounter;
 
       bool InlineAHSImpl(AHSArgs)
       {
+        callCounter++;
+        if (callCounter >= bvh_max_ahs_calls)
+          return true; // Giving up finding the correct hit
+
+        AHSResult hmapResult = hmap_holes_ahs(ray_origin, ray_direction, primaryT, ray_t, instanceId);
+        if (hmapResult != AHS_NoData)
+          return hmapResult == AHS_Hit;
         #if handle_translucent
-          HitInfo hitInfo = CalcHitInfo(ForwardAHSParams, defaultColor);
-
-          #if BVH_TRANSLUCENCY_IS_DISSOLVE
-            [branch]
-            if (hitInfo.dissolved)
-              return false;
-          #endif
-
-          [branch]
-          if (need_clip_impostor(hitInfo))
-            return false;
-
-          [branch]
-          if (IsAlphaGreaterThan(hitInfo, calc_mip_level(primaryT + hitInfo.t, true), 0.5))
-          {
-            #if BVH_TRANSLUCENCY_IS_DISSOLVE
-              return true;
-            #else
-              if (hitInfo.translucency > 0)
-              {
-                translucentT = max(translucentT, ray_t);
-                rayColor = lerp(0, rayColor, hitInfo.translucency);
-              }
-              else
-                return true;
-            #endif
-          }
+          AHSResult ahsResult = alpha_test_ahs(ray_origin, ray_direction, primaryT, ray_t, triangleIx, instanceId, geometryIndex, barycentrics2, instanceIndex, 0.5);
+          return ahsResult == AHS_Hit;
         #endif
         return false;
       }
@@ -904,6 +1222,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       lambda.rayColor = ray_color;
       lambda.translucentT = translucent_t;
       lambda.defaultColor = defaultColor;
+      lambda.callCounter = 0;
       ##if hardware.scarlett
         query.Proceed(lambda);
       ##else
@@ -925,10 +1244,12 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
                                query.CommittedRayT(),
                                query.CommittedPrimitiveIndex(),
                                query.CommittedInstanceID(),
-                               query.CommittedInstanceContributionToHitGroupIndex(),
+                               query.CommittedGeometryIndex(),
+                               COMMITTED_INSTANCE_CONTRIBUTION_TO_HIT_GROUP_INDEX,
                                query.CommittedTriangleBarycentrics(),
                                query.CommittedObjectToWorld3x4(),
                                query.CommittedTriangleFrontFace(),
+                               query.CommittedInstanceIndex(),
                                defaultColor);
         ray_color = 0;
         return true;
@@ -937,12 +1258,88 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       hit_info.t = INF;
       return false;
     }
+##else // hardware.ps5
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT,
+      uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, half3 default_color = 1, uint extra_flags = 0)
+    {
+      hit_info = HitInfo();
 
-    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, half3 defaultColor = 1)
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+
+      sce::Psr::Ray const ray = {
+        .m_org = ray_origin,
+        .m_tmin = ray_min,
+        .m_dir = ray_direction,
+        .m_tmax = ray_max
+      };
+
+      translucent_t = 0;
+      ray_color = 1;
+
+      sce::Psr::RayFlags rayFlags =
+        (handle_translucent ? sce::Psr::RayFlags::kNone : sce::Psr::RayFlags::kForceOpaque) |
+        (first_hit ? sce::Psr::RayFlags::kAcceptFirstHitAndEndSearch : sce::Psr::RayFlags::kNone) |
+        (cull_back_face? sce::Psr::RayFlags::kCullBackFacingTriangles  : sce::Psr::RayFlags::kNone);
+
+      sce::Psr::RayFlags psExtraFlags = remap_DX12_ray_flags(extra_flags);
+      rayFlags = rayFlags | psExtraFlags;
+
+    #ifdef TRACE_RAY_EXTRA_FLAGS
+      rayFlags |= remap_DX12_ray_flags(TRACE_RAY_EXTRA_FLAGS);
+    #endif
+
+      auto const noIntersection = sce::Psr::NoIntersection{};
+      auto const noAABBInstance = sce::Psr::NoAABBInstance {bvh.m_bvh};
+
+      int callCounter = 0;
+
+      auto inlineLambda = [&](float3 object_space_org, float3 object_space_dir, sce::Psr::Hit hit)
+      {
+        callCounter++;
+        if (callCounter >= bvh_max_ahs_calls)
+          return true; // Giving up finding the correct hit
+
+        AHSResult hmapResult = hmap_holes_ahs(ray_origin, ray_direction, primaryT, hit.m_depth, hit.m_instanceID);
+        if (hmapResult != AHS_NoData)
+          return hmapResult == AHS_Hit;
+      #if handle_translucent
+        AHSResult ahsResult = alpha_test_ahs(ray_origin, ray_direction, primaryT,
+            hit.m_depth, hit.m_primitiveIndex, hit.m_instanceID, hit.m_geometryIndex, float2(hit.m_u, hit.m_v), hit.m_instanceIndex, 0.5);
+        return ahsResult == AHS_Hit;
+      #endif
+        return false;
+      };
+
+    sce::Psr::Hit psHit;
+    #if handle_translucent
+      if (rayFlags & sce::Psr::RayFlags::kAcceptFirstHitAndEndSearch)
+        psHit = sce::Psr::Occluded<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray, inlineLambda, noIntersection, noAABBInstance);
+      else
+        psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray, inlineLambda, noIntersection, noAABBInstance);
+    #else
+      if (rayFlags & sce::Psr::RayFlags::kAcceptFirstHitAndEndSearch)
+        psHit = sce::Psr::Occluded<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray);
+      else
+        psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray);
+    #endif
+
+      if (psHit.isHit())
+      {
+        hit_info  = CalcHitInfoPS(ray_origin, ray_direction, psHit, default_color);
+        ray_color = 0;
+        return true;
+      }
+
+      hit_info.t = INF;
+      return false;
+    }
+##endif
+
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, half3 defaultColor = 1, uint extra_flags = 0)
     {
       half3 rayColor;
       float translucentT;
-      return trace_ray(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, defaultColor);
+      return trace_ray(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, defaultColor, extra_flags);
     }
   }
 endmacro
@@ -950,7 +1347,7 @@ endmacro
 macro USE_PARTICLE_BVH(stage)
   hlsl(stage)
   {
-    HitInfo CalcParticleHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace )
+    HitInfo CalcParticleHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, int icthgi, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex )
     {
       HitInfo hitInfo = (HitInfo)0;
 
@@ -963,18 +1360,18 @@ macro USE_PARTICLE_BVH(stage)
       hitInfo.material = meta.materialType;
       hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
 
-      // For particles, the instanceContributionToHitGroupIndex is the particle data index
-      hitInfo.normalSamplerIndex = instanceContributionToHitGroupIndex;
-      ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, instanceContributionToHitGroupIndex);
+      // For particles, the instance index is the particle data index
+      hitInfo.perInstanceDataIndex = instanceIndex;
+      ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, instanceIndex);
 
-      hitInfo.color = half3(pd.color.xyz);
+      hitInfo.instanceColor = half3(pd.color.xyz);
       hitInfo.translucency = half(1 - pd.color.w);
 
       uint ibSlotIndex = get_index_buffer_index(meta);
       uint vbSlotIndex = get_vertex_buffer_index(meta);
 
-      ByteAddressBuffer vb = bvh_geometry[bvh_buffers_range_start + vbSlotIndex];
-      ByteAddressBuffer ib = bvh_geometry[bvh_buffers_range_start + ibSlotIndex];
+      ByteAddressBuffer vb = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + vbSlotIndex)];
+      ByteAddressBuffer ib = bvh_geometry[NonUniformResourceIndex(bvh_buffers_range_start + ibSlotIndex)];
 
       uint indexFormat = get_index_format(meta);
       uint ibBase = (meta.startIndex + triangleIx * 3) * indexFormat;
@@ -985,6 +1382,7 @@ macro USE_PARTICLE_BVH(stage)
 
       uint vertexStride = get_vertex_stride(meta);
 
+      ##assert(get_texcoord_offset(meta) < 255, "CalcParticleHitInfo: texcoord offset is invalid.");
       float2 texcoords[3];
       uint texcoordFormat = get_texcoord_format(meta);
       uint vbBase = meta.startVertex * vertexStride + get_texcoord_offset(meta);
@@ -1022,6 +1420,21 @@ endmacro
 
 macro USE_BVH_FX_RENDER(stage)
   hlsl(stage) {
+
+    #include "dafx_def.hlsli"
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "modfx/modfx_curve_inc.hlsli"
+
+    bool use_atmophere_for_fx()
+    {
+      ##if shader == bvh_debug
+        return bvh_debug_use_atmosphere;
+      ##else
+        return true;
+      ##endif
+    }
+
     float wboit_weight(float z, float a)
     {
       // https://jcgt.org/published/0002/02/09/paper.pdf
@@ -1038,27 +1451,58 @@ macro USE_BVH_FX_RENDER(stage)
 
       half3 emissive_part;
       half3 lighting_part;
-      if (pd.flags & UseColorMatrix)
+      if (pd.flags & BVH_MODFX_RMOD_TEX_COLOR_MATRIX)
       {
         float4 c;
-        c.r = dot(texel, pd.color_matrix_r);
-        c.g = dot(texel, pd.color_matrix_g);
-        c.b = dot(texel, pd.color_matrix_b);
-        c.a = dot(texel, pd.color_matrix_a);
+        c.r = dot(texel, unpack_e3dcolor_to_n4f(pd.colorMatrix.x));
+        c.g = dot(texel, unpack_e3dcolor_to_n4f(pd.colorMatrix.y));
+        c.b = dot(texel, unpack_e3dcolor_to_n4f(pd.colorMatrix.z));
+        c.a = dot(texel, unpack_e3dcolor_to_n4f(pd.colorMatrix.w));
 
         texel = half4(saturate(c));
       }
 
-      if (pd.flags & UseColorRemap)
+      if (pd.flags & BVH_MODFX_RMOD_TEX_COLOR_REMAP)
       {
-        // TODO: color remap
-        half3 c = texel.ggg * hit_info.color;
-        emissive_part = c * half(pd.emission.g);
-        lighting_part = half(saturate(1.f - pd.emission.g)) * c;
+        float grad_offset = 0;
+        float grad_scale_rcp = 1;
+        if ( pd.flags & BVH_MODFX_RMOD_TEX_COLOR_REMAP_DYNAMIC )
+        {
+          grad_offset = pd.lifeNorm;
+          grad_scale_rcp = pd.gradScaleRcp;
+        }
+
+        float life_k = saturate( texel.r * grad_scale_rcp + grad_offset );
+        ##assert(pd.colorRemapStepCnt <= MODFX_PREBAKE_GRAD_STEPS_LIMIT, "pd.colorRemapStepCnt (%f) out of bounds", pd.colorRemapStepCnt);
+        pd.colorRemapStepCnt = min(pd.colorRemapStepCnt, MODFX_PREBAKE_GRAD_STEPS_LIMIT);
+        float3 first = modfx_get_e3dcolor_grad_raw( pd.colorRemapArr, pd.colorRemapStepCnt, life_k ).rgb;
+
+        if ( pd.flags & BVH_MODFX_RFLAG_TEX_COLOR_REMAP_APPLY_BASE_COLOR )
+        {
+          first *= hit_info.instanceColor.xyz;
+        }
+
+        emissive_part = first.xyz * pd.emission.r;
+        lighting_part = saturate( 1.f - pd.emission.r ) * first.rgb;
+
+        if ( pd.flags & BVH_MODFX_RFLAG_TEX_COLOR_REMAP_SECOND_MASK )
+        {
+          float3 second = texel.ggg;
+          if ( pd.flags & BVH_MODFX_RFLAG_TEX_COLOR_REMAP_SECOND_MASK_APPLY_BASE_COLOR )
+          {
+            second *= hit_info.instanceColor.xyz;
+          }
+
+          float3 second_emissive = second.rgb * pd.emission.g;
+          float3 second_lighting = saturate( 1.f - pd.emission.g ) * second.rgb;
+
+          emissive_part = lerp( second_emissive, emissive_part, texel.b );
+          lighting_part = lerp( second_lighting, lighting_part, texel.b );
+        }
       }
       else
       {
-        half3 c = texel.rgb * hit_info.color;
+        half3 c = texel.rgb * hit_info.instanceColor;
         emissive_part = c * half3(pd.emission.rgb);
         lighting_part = c;
       }
@@ -1066,7 +1510,7 @@ macro USE_BVH_FX_RENDER(stage)
       lighting_part *= vol_alpha;
       emissive_part *= vol_alpha;
 
-      if (pd.flags & UseLighting)
+      if (pd.flags & BVH_MODFX_RMOD_LIGHTING_INIT)
       {
         half3 fwd_dir = half3(cross(pd.upDir, pd.rightDir));
 
@@ -1118,7 +1562,6 @@ macro USE_BVH_FX_RENDER(stage)
     {
       static const uint maxColorCount = 8;
 
-      bool clipColor;
       float primaryT;
       float rayMax;
       float alphas[maxColorCount];
@@ -1128,35 +1571,41 @@ macro USE_BVH_FX_RENDER(stage)
       float4 resultColor;
       float3 defaultColor;
       float resultAlpha;
+      float smoothness;
 
-      void InlineAHSImpl(AHSArgs)
+      float InlineAHSImpl(AHSArgs)
       {
         // This can only be a particle
         if (ray_t >= rayMax)
-          return;
+          return 0;
 
         HitInfo hitInfo = CalcParticleHitInfo(ForwardAHSParams);
 
-        ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, hitInfo.normalSamplerIndex);
+        ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, hitInfo.perInstanceDataIndex);
 
-        float mipLevel = calc_mip_level(primaryT + hitInfo.t);
+        float smoothBias = get_cone_angle_from_smoothness(smoothness);
+        float mipLevel = calc_mip_level(primaryT + hitInfo.t, false);
+        mipLevel *= smoothBias;
 
-        float4 texel1 = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_samplers[hitInfo.albedoSamplerIndex], hitInfo.texcoord, mipLevel);
-        float4 texel2 = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_samplers[hitInfo.albedoSamplerIndex], hitInfo.materialData1.xy, mipLevel);
+        float4 texel1 = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.albedoTextureIndex)].SampleLevel(bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)], hitInfo.texcoord, mipLevel);
+        float4 texel2 = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.albedoTextureIndex)].SampleLevel(bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)], hitInfo.materialData1.xy, mipLevel);
         half4 texel = half4(lerp(texel1, texel2, pd.frameBlend));
         half alpha = texel.a * (1.0 - hitInfo.translucency);
-        if (pd.flags & UseAlphaTreshold)
+        if (pd.flags & BVH_MODFX_RFLAG_COLOR_USE_ALPHA_THRESHOLD)
           alpha = saturate(texel.a - hitInfo.translucency);
 
         half volAlpha = half(saturate(hitInfo.t) * saturate(rayMax - hitInfo.t));
 
         alpha *= volAlpha;
 
+        if (pd.flags & BVH_MODFX_RFLAG_BLEND_ADD)
+          alpha *= dot(texel.xyz, 1.0/3);
+
         if (alpha > 0)
         {
           half3 color = calc_particle_color(texel, hitInfo, pd, alpha, volAlpha);
-          if (clipColor)
-            color = saturate(color);
+          if (use_atmophere_for_fx())
+            color = color * pd.atmosphereLoss + pd.atmosphereInscatter;
 
           // Pick the maxColorCount hits with the meanest alpha
           if (cursor < maxColorCount)
@@ -1180,24 +1629,35 @@ macro USE_BVH_FX_RENDER(stage)
             }
           }
 
+          if (pd.flags & BVH_MODFX_RFLAG_BLEND_ABLEND)
+            color *= alpha;
+
           // WBOIT borrowed from the particle system
-          float t = max(hitInfo.t - pd.radius, 0.001);
+          float t = hitInfo.t;
           resultColor.xyz += color * wboit_weight(t, alpha);
           resultColor.w *= (1.0 - alpha);
           resultAlpha += alpha * wboit_weight(t, alpha);
         }
+
+        return alpha;
       }
 
       ##if hardware.scarlett
         void InlineAHS(inout XboxRayQueryProxy query)
         {
-          InlineAHSImpl(PassAHSParams);
+          if (InlineAHSImpl(PassAHSParams) > 0.99)
+            query.CommitNonOpaqueTriangleHit();
         }
       ##endif
     };
 
-    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float3 defaultColor = 1, bool clip_color = false)
+  ##if !hardware.ps5
+    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0, float3 defaultColor = 1)
     {
+      [branch]
+      if (!bvhParticlesValid)
+        return;
+
       // Translucent tracing is done after the opaque tracing, because this is the only way to
       // ignore translucent hits that are behind opaque ones.
 
@@ -1214,13 +1674,13 @@ macro USE_BVH_FX_RENDER(stage)
       query.TraceRayInline(bvhParticles, flags, bvhGroupAll, ray);
 
       TraceRayFxTranslucentAHSLambda lambda;
-      lambda.clipColor = clip_color;
       lambda.primaryT = primaryT;
       lambda.rayMax = ray_max;
       lambda.cursor = 0;
       lambda.resultColor = float4(0, 0, 0, 1);
       lambda.defaultColor = defaultColor;
       lambda.resultAlpha = 0;
+      lambda.smoothness = smoothness;
 
       ##if hardware.scarlett
         query.Proceed(lambda);
@@ -1228,7 +1688,8 @@ macro USE_BVH_FX_RENDER(stage)
         while (query.Proceed())
         {
           // Can only be a particle
-          lambda.InlineAHSImpl(PassAHSParams);
+          if (lambda.InlineAHSImpl(PassAHSParams) > 0.99)
+            query.CommitNonOpaqueTriangleHit();
         }
       ##endif
 
@@ -1244,36 +1705,140 @@ macro USE_BVH_FX_RENDER(stage)
         color_inout.rgb = color_inout.rgb * (1 - blend.a) + blend.rgb;
       }
     }
+  ##else
+    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0, float3 defaultColor = 1)
+    {
+      [branch]
+      if (!bvhParticlesValid)
+        return;
+
+      TraceRayFxTranslucentAHSLambda lambda;
+      lambda.primaryT = primaryT;
+      lambda.rayMax = ray_max;
+      lambda.cursor = 0;
+      lambda.resultColor = float4(0, 0, 0, 1);
+      lambda.defaultColor = defaultColor;
+      lambda.resultAlpha = 0;
+      lambda.smoothness = smoothness;
+
+      auto inlineLambda = [&](float3 object_space_org, float3 object_space_dir, sce::Psr::Hit hit)
+      {
+        float m[12] = hit.m_instance->m_objectToWorld3x4; // row-major
+
+        float3x4 to_world = {
+          m[0], m[1], m[2], m[3],
+          m[4], m[5], m[6], m[7],
+          m[8], m[9], m[10],m[11]
+        };
+
+        float ray_t = hit.m_depth;
+        uint triangleIx = hit.m_primitiveIndex;
+        uint instanceId = hit.m_instanceID;
+        int icthgi = hit.m_shaderTableContribution;
+        uint instanceIndex = hit.m_instanceIndex;
+        uint geometryIndex = hit.m_geometryIndex;
+        float2 barycentrics2 = float2(hit.m_u, hit.m_v);
+        bool isFrontFace = hit.m_hitKind == sce::Psr::HitKind::kTriangleFrontFace;
+
+        lambda.InlineAHSImpl(ForwardAHSParams);
+
+        if (lambda.cursor >= 4) // PS5 has performance issues with effects. For now tracing is limited to 4 closest effects
+          return true;
+
+        return false;
+      };
+
+      sce::Psr::Ray const ray = {
+        .m_org = ray_origin,
+        .m_tmin = ray_min,
+        .m_dir = ray_direction,
+        .m_tmax = ray_max
+      };
+
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+      sce::Psr::RayFlags rayFlags = sce::Psr::RayFlags::kNone;
+      auto const noIntersection = sce::Psr::NoIntersection{};
+      auto const noAABBInstance = sce::Psr::NoAABBInstance {bvhParticles.m_bvh};
+
+      sce::Psr::Closest<optimizedFlags>(bvhParticles.m_bvh, rayFlags, bvhGroupAll, ray, inlineLambda, noIntersection, noAABBInstance);
+
+      // WBOIT borrowed from the particle system
+      for (uint k = 0; k < lambda.cursor; k++)
+      {
+        translucent_t = max(translucent_t, lambda.distances[k]);
+
+        float3 col = lambda.resultColor.rgb / clamp(lambda.resultAlpha, 0.0000001, 1000);
+        float a = 1 - lambda.resultColor.a;
+        float4 blend = float4(col * a, a) * lambda.alphas[k] * a;
+
+        color_inout.rgb = color_inout.rgb * (1 - blend.a) + blend.rgb;
+      }
+    }
+  ##endif
+
   }
 endmacro
 
 macro USE_BVH_FOR_RENDER(stage)
-  USE_BVH(stage, 1, 1, 1, 1, 1, 0, 0, 0)
+  USE_BVH(stage, 1, 1, 0, 1, 1, 0, 0, 0)
 endmacro
 
 macro USE_BVH_FOR_SHADOW(stage)
-  USE_BVH(stage, 1, 0, 1, 1, 1, 0, 0, 0)
+  USE_MAIN_BVH(stage, 0, 0, 0, 0, 1, 0, 0, 0)
+endmacro
+
+macro USE_BVH_FOR_DYNAMIC_SHADOW(stage)
+  USE_MAIN_BVH(stage, 0, 0, 0, 1, 1, 0, 0, 0)
 endmacro
 
 macro USE_BVH_FOR_AO(stage)
-  USE_BVH(stage, 1, 0, 0, 1, 1, 0, 0, 0)
+  USE_MAIN_BVH(stage, 0, 0, 0, 1, 1, 0, 0, 0)
 endmacro
 
 macro USE_BVH_FOR_REFLECTION(stage)
   USE_BVH(stage, 1, 1, 0, 1, 1, 0, 0, 0)
 endmacro
 
+macro USE_BVH_FOR_GI(stage)
+  USE_MAIN_BVH(stage, 1, 1, 0, 1, 1, 0, 0, 0)
+endmacro
+
+macro USE_BVH_FOR_REFLECTION_PROBE(stage)
+  USE_MAIN_BVH(stage, 1, 1, 0, 1, 0, 0, 0, 0)
+endmacro
+
+macro USE_ADAPTIVE_RAY_OFFSET(stage)
+  hlsl (stage)
+  {
+    // For details see ray tracing gems, chapter 6.2
+    // This function estimates the error of ray intersection testing
+    // and offsets the origin along the (preferrably geometric) normal accordingly
+    float3 applyAdaptiveRayOffset(const float3 rayOrigin, const float3 normal)
+    {
+      const float int_scale = 1U << 12;       // float32 mantissa (23bits) -> float16 mantissa (10bits)
+                                              // in practice 12bits work just as well (rounding conversion perhaps?)
+      const float float_scale = 1.f/65536.f;  // our minimum offset to avoid issues around 0 (that's ~0.01mm)
+      const float origin = 1.f/32.f;          // with int_scale being 1 << 12 we reach float_scale at this distance
+
+      int3 of_i = int3(int_scale * normal);
+      int3 p_int = asint(rayOrigin) + select(rayOrigin < 0, -of_i, of_i);
+      float3 p_i = asfloat(p_int);
+
+      return lerp(p_i, rayOrigin + float_scale * normal, step(abs(rayOrigin), origin));
+    }
+  }
+endmacro
+
 macro USE_CALC_CAMERA_RELATIVE_POS(stage)
-  hlsl(stage) {
+  hlsl (stage)
+  {
     float3 calc_camera_relative_pos(uint2 dtid, float w, float2 inv_resolution)
     {
       float2 pixelCenter = float2(dtid) + 0.5;
       float2 uv = pixelCenter * inv_resolution;
       float3 viewVect = lerp_view_vec(uv);
 
-      float3 cameraToPoint = viewVect * w;
-      float3 pointToEye = -cameraToPoint;
-      return 0 - pointToEye;
+      return viewVect * w;
     }
   }
 endmacro
@@ -1293,26 +1858,18 @@ macro USE_CALC_WORLD_POS(stage)
   }
 endmacro
 
-macro USE_CALC_GEOMETRY_NORMAL(stage)
-  USE_CALC_CAMERA_RELATIVE_POS(stage)
+macro INIT_HALF_RES_DEPTH_TEX(stage)
+  BEGIN_ONCE(half_res_depth_tex_included)
   (stage) {
     half_res_depth_tex@tex2d = downsampled_close_depth_tex;
   }
+  END_ONCE()
+endmacro
+
+macro USE_CALC_GEOMETRY_NORMAL_BASE(stage)
+  USE_CALC_CAMERA_RELATIVE_POS(stage)
+
   hlsl (stage) {
-    float3 getHalfDepth(uint2 tci)
-    {
-      return float3(texture2DAt(half_res_depth_tex, tci).r,
-        texture2DAt(half_res_depth_tex, tci + uint2(1, 0)).r,
-        texture2DAt(half_res_depth_tex, tci + uint2(0, 1)).r);
-    }
-
-    float3 getDepth(uint2 tci)
-    {
-      return float3(loadGbufferDepth(tci + uint2(0, 0)),
-        loadGbufferDepth(tci + uint2(1, 0)),
-        loadGbufferDepth(tci + uint2(0, 1)));
-    }
-
     half3 calc_geometry_normal_depth(uint2 tci, float2 inv_resolution, float3 depth)
     {
       float3 wm = calc_camera_relative_pos(tci + uint2(0, 0), linearize_z(depth.x, zn_zfar.zw), inv_resolution);
@@ -1325,11 +1882,19 @@ macro USE_CALC_GEOMETRY_NORMAL(stage)
       float3 worldNormal = normalize(cross(dx, dy));
       return (half3)worldNormal;
     }
+  }
+endmacro
 
-    half3 calc_geometry_normal(uint2 tci, float2 inv_resolution, uint2 resolution)
+macro USE_CALC_GEOMETRY_NORMAL_HALF(stage)
+  USE_CALC_GEOMETRY_NORMAL_BASE(stage)
+
+  INIT_HALF_RES_DEPTH_TEX(stage)
+  hlsl (stage) {
+    float3 getHalfDepth(uint2 tci)
     {
-      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
-      return calc_geometry_normal_depth(tci, inv_resolution, getDepth(tci));
+      return float3(texture2DAt(half_res_depth_tex, tci).r,
+        texture2DAt(half_res_depth_tex, tci + uint2(1, 0)).r,
+        texture2DAt(half_res_depth_tex, tci + uint2(0, 1)).r);
     }
 
     half3 calc_geometry_normal_half(uint2 tci, float2 inv_resolution, uint2 resolution)
@@ -1340,27 +1905,36 @@ macro USE_CALC_GEOMETRY_NORMAL(stage)
   }
 endmacro
 
-macro INIT_BVH_WATER_FADE(stage)
-  (stage) {
-    water_level@f1 = water_level;
-    bvh_max_water_distance@f1 = bvh_max_water_distance;
-    bvh_water_fade_power@f1 = bvh_water_fade_power;
+macro USE_CALC_GEOMETRY_NORMAL(stage)
+  USE_CALC_GEOMETRY_NORMAL_BASE(stage)
+
+  hlsl (stage) {
+    float3 getDepth(uint2 tci)
+    {
+      return float3(loadGbufferDepth(tci + uint2(0, 0)),
+        loadGbufferDepth(tci + uint2(1, 0)),
+        loadGbufferDepth(tci + uint2(0, 1)));
+    }
+
+    half3 calc_geometry_normal(uint2 tci, float2 inv_resolution, uint2 resolution)
+    {
+      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
+      return calc_geometry_normal_depth(tci, inv_resolution, getDepth(tci));
+    }
   }
 endmacro
 
-macro USE_BVH_WATER_FADE(stage)
-  USE_CALC_WORLD_POS(stage)
+// For sample compatibility
+define_macro_if_not_defined INIT_BVH_WATER_FADE(stage)
+endmacro
+define_macro_if_not_defined INIT_PS5_INLINE_RT(stage)
+endmacro
+
+define_macro_if_not_defined USE_BVH_WATER_FADE(stage)
   hlsl(stage) {
     half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
     {
-      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
-      float depth = worldPos.y - water_level;
-      if (depth >= 0)
-        return 1;
-
-      float rate = dot(normalize(view_pos - worldPos), float3(0, 1, 0));
-      half fade = 1.h - half(min(-depth / pow(rate, bvh_water_fade_power), bvh_max_water_distance) / bvh_max_water_distance);
-      return fade;
+      return 1;
     }
   }
 endmacro

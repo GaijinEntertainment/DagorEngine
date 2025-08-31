@@ -12,9 +12,9 @@ JPH_NAMESPACE_BEGIN
 /// Class that constructs a BoxShape
 class JPH_EXPORT BoxShapeSettings final : public ConvexShapeSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, BoxShapeSettings)
 
+public:
 	/// Default constructor for deserialization
 							BoxShapeSettings() = default;
 
@@ -44,7 +44,7 @@ public:
 							BoxShape(Vec3Arg inHalfExtent, float inConvexRadius = cDefaultConvexRadius, const PhysicsMaterial *inMaterial = nullptr) : ConvexShape(EShapeSubType::Box, inMaterial), mHalfExtent(inHalfExtent), mConvexRadius(inConvexRadius) { JPH_ASSERT(inConvexRadius >= 0.0f); JPH_ASSERT(inHalfExtent.ReduceMin() >= inConvexRadius); }
 
 	/// Get half extent of box
-	Vec3		 			GetHalfExtent() const										{ return mHalfExtent; }
+	Vec3					GetHalfExtent() const										{ return mHalfExtent; }
 
 	// See Shape::GetLocalBounds
 	virtual AABox			GetLocalBounds() const override								{ return AABox(-mHalfExtent, mHalfExtent); }
@@ -77,7 +77,7 @@ public:
 	virtual void			CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
 
 	// See: Shape::CollideSoftBodyVertices
-	virtual void			CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
+	virtual void			CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const override;
 
 	// See Shape::GetTrianglesStart
 	virtual void			GetTrianglesStart(GetTrianglesContext &ioContext, const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale) const override;

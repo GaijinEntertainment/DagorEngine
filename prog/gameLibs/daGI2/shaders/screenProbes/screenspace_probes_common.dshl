@@ -1,5 +1,4 @@
 texture screenprobes_current_radiance;
-texture screenprobes_current_radiance_distance;
 texture screenspace_irradiance;
 
 buffer screenspace_probe_pos;
@@ -21,6 +20,8 @@ float4 sp_view_vecLT;
 float4 sp_view_vecRT;
 float4 sp_view_vecLB;
 float4 sp_view_vecRB;
+int4 dagi_screenspace_probe_trace_res;
+float4 dagi_sp_oct_to_trace_radiance_atlas_clamp;
 
 
 hlsl {
@@ -51,10 +52,6 @@ macro SP_VIEW_VEC_OPTIMIZED(code)
   }
 endmacro
 
-macro SP_HIT_DISTANCE_ENCODE(code)
-  (code) { sp_hit_distance_decode@f3 = (0.5*sp_zn_zfar.y, 4*0.5, 128*0.5);}
-endmacro
-
 macro SREENSPACE_PROBES_OCTAHEDRAL(code)
   hlsl(code) {
     #include <screen_probes_octahedral_common.hlsl>
@@ -74,9 +71,9 @@ int4 screenspace_probes_count__added__total;
 
 macro INIT_SCREENSPACE_PROBES_RES(code)
   (code) {
-    screenspace_probe_res@i4 = screenspace_probe_res;
-    screenspace_probes_count__added__total@i4 = screenspace_probes_count__added__total;
-    sp_probe_pos_allocated_ofs@i4 = sp_probe_pos_allocated_ofs;
+    screenspace_probe_res@u4 = screenspace_probe_res;
+    screenspace_probes_count__added__total@u4 = screenspace_probes_count__added__total;
+    sp_probe_pos_allocated_ofs@u4 = sp_probe_pos_allocated_ofs;
   }
   hlsl(code) {
     uint sp_additionalProbesByteAt() {return sp_probe_pos_allocated_ofs.w;}
@@ -234,13 +231,16 @@ endmacro
 float4 dagi_sp_oct_to_radiance_atlas;
 float4 dagi_sp_oct_to_radiance_atlas_clamp;
 
-macro SAMPLE_JUST_RADIANCE_SP(code)
+macro SAMPLE_JUST_RADIANCE_SP_CODE(code)
   (code) {
     screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
     dagi_sp_oct_to_radiance_atlas@f2 = dagi_sp_oct_to_radiance_atlas;
     dagi_sp_oct_to_radiance_atlas_clamp@f4 = dagi_sp_oct_to_radiance_atlas_clamp;
   }
+endmacro
 
+macro SAMPLE_JUST_RADIANCE_SP(code)
+  SAMPLE_JUST_RADIANCE_SP_CODE(code)
   hlsl(code) {
     void sample_bilinear_radiance_weights(inout float3 final_radiance, float3 direction, float4 weights, uint2 probe_coords[4])
     {

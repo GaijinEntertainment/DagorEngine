@@ -64,8 +64,13 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
   volmap = dag::create_voltex(GI_25D_RESOLUTION_X, GI_25D_RESOLUTION_Z, GI_25D_RESOLUTION_Y * 6, sceneFmt | TEXCF_UNORDERED, 1,
     "gi_25d_volmap");
   d3d::clear_rwtexf(volmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
-  volmap->texaddr(TEXADDR_WRAP);
-  volmap->texaddrw(TEXADDR_CLAMP);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
+    smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("gi_25d_volmap_samplerstate", true), smp);
+  }
   d3d::resource_barrier({volmap.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   // resetting gi_25d_volmap_tc, to not sample based on tc from previous scene

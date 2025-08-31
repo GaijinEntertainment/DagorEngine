@@ -34,6 +34,7 @@
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_platform_pc.h>
 #include <3d/dag_render.h>
+#include <3d/dag_texMgrTags.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_info.h>
 #include <render/dag_cur_view.h>
@@ -72,7 +73,7 @@
 #include <ctype.h>
 #include <debug/dag_debug3d.h>
 #include <render/toroidalHeightmap.h>
-#include <render/toroidalPuddlemap.h>
+#include <render/toroidalPuddleMap.h>
 #include <3d/dag_resPtr.h>
 #include <de3_editorEvents.h>
 #include <de3_splineGenSrv.h>
@@ -118,34 +119,9 @@ static int hmap_stor_mismatch_cnt = 0;
 
 static RenderDecalMaterialsWithRT<256, 256> decalRenderer;
 
-enum
-{
-  RENDERING_LANDMESH = 0,
-  RENDERING_CLIPMAP,
-  RENDERING_SPOT, // obsolete
-  GRASS_COLOR,    // obsolete
-  GRASS_MASK,
-  SPOT_TO_GRASS_MASK, // obsolete
-  RENDERING_HEIGHTMAP,
-  RENDER_DEPTH,
-  RENDERING_VSM,
-  RENDERING_REFLECTION,
-  RENDERING_FEEDBACK,
-  LMESH_MAX
-};
 static int render_with_normalmapVarId = -1;
 static int should_use_clipmapVarId = -1, bake_landmesh_combineVarId = -1;
-static int lmesh_rendering_mode_glob_varId = -1;
 static int global_frame_blockid = -1;
-static int lmesh_rendering_mode = RENDERING_LANDMESH;
-static int set_lmesh_rendering_mode(int mode)
-{
-  G_ASSERT(mode < LMESH_MAX);
-  int old = lmesh_rendering_mode;
-  lmesh_rendering_mode = mode;
-  ShaderGlobal::set_int_fast(lmesh_rendering_mode_glob_varId, mode);
-  return old;
-}
 
 static void get_clipmap_rendering_services(IRenderingService *&hmap, Tab<IRenderingService *> &rend_srv)
 {
@@ -240,7 +216,14 @@ class GenericHeightMapService : public IHmapService
   template <class T>
   class SubMapStorageImpl : public SubMapStorage<T>
   {
+    using SubMapStorage<T>::mapSizeX;
+    using SubMapStorage<T>::mapSizeY;
+    using SubMapStorage<T>::elemSize;
+    using SubMapStorage<T>::elems;
+    using Element = typename SubMapStorage<T>::Element;
+
   public:
+    using SubMapStorage<T>::defaultValue;
     SubMapStorageImpl(int sx, int sy, int esz, const T &defval)
     {
       modifications = 0;
@@ -249,9 +232,9 @@ class GenericHeightMapService : public IHmapService
       elemSize = esz;
       fileHandle = NULL;
       defaultValue = defval;
-      reset(sx, sy, esz, defaultValue);
+      SubMapStorage<T>::reset(sx, sy, esz, defaultValue);
     }
-    virtual ~SubMapStorageImpl()
+    ~SubMapStorageImpl() override
     {
       closeFile();
       dd_erase(workFn);
@@ -330,7 +313,7 @@ class GenericHeightMapService : public IHmapService
       fileHandle = ::df_open(workFn, DF_RDWR);
       if (!fileHandle)
       {
-        resetElems();
+        SubMapStorage<T>::resetElems();
         return true;
       }
 
@@ -367,12 +350,12 @@ class GenericHeightMapService : public IHmapService
         return false;
       }
 
-      resetElems();
+      SubMapStorage<T>::resetElems();
 
       return true;
     }
 
-    virtual void closeFile(bool finalize = false)
+    void closeFile(bool finalize = false) override
     {
       if (fileHandle)
         ::df_close(fileHandle);
@@ -407,10 +390,7 @@ class GenericHeightMapService : public IHmapService
       clear_and_shrink(elems);
     }
 
-    virtual const char *getFileName() const { return mainFn; }
-    virtual bool isFileOpened() const { return fileHandle != NULL; }
-
-    virtual bool flushData()
+    bool flushData() override
     {
       if (!fileHandle)
       {
@@ -452,7 +432,7 @@ class GenericHeightMapService : public IHmapService
       return ret;
     }
 
-    virtual Element *loadElement(int index)
+    Element *loadElement(int index) override
     {
       if (!fileHandle)
         return NULL;
@@ -531,6 +511,7 @@ class GenericHeightMapService : public IHmapService
       cwr.close();
 
       modifications = 0;
+      debug("compressed changed data: %s -> %s", workFn, mainFn);
       return true;
     }
     bool decompressToWorkfile()
@@ -668,7 +649,7 @@ class GenericHeightMapService : public IHmapService
         return false;
       }
 
-      resetElems();
+      SubMapStorage<T>::resetElems();
 
       return true;
     }
@@ -684,6 +665,15 @@ class GenericHeightMapService : public IHmapService
   template <class T>
   class MapStorageImpl : public MapStorage<T>
   {
+    using MapStorage<T>::SUBMAP_SZ;
+    using MapStorage<T>::ELEM_SZ;
+    using MapStorage<T>::mapSizeX;
+    using MapStorage<T>::mapSizeY;
+    using MapStorage<T>::numSubMapsX;
+    using MapStorage<T>::numSubMapsY;
+    using MapStorage<T>::defaultValue;
+    using MapStorage<T>::subMaps;
+
   public:
     typedef SubMapStorageImpl<T> SubMapImpl;
 
@@ -692,11 +682,11 @@ class GenericHeightMapService : public IHmapService
       mapSizeX = (sx + ELEM_SZ - 1) / ELEM_SZ * ELEM_SZ;
       mapSizeY = (sy + ELEM_SZ - 1) / ELEM_SZ * ELEM_SZ;
       defaultValue = defval;
-      reset(sx, sy, defaultValue);
+      MapStorage<T>::reset(sx, sy, defaultValue);
     }
-    virtual ~MapStorageImpl() { closeFile(); }
+    ~MapStorageImpl() override { closeFile(); }
 
-    virtual bool createFile(const char *file_name)
+    bool createFile(const char *file_name) override
     {
       if (!buildPathes(file_name))
         return false;
@@ -716,7 +706,7 @@ class GenericHeightMapService : public IHmapService
       return true;
     }
 
-    virtual bool openFile(const char *file_name)
+    bool openFile(const char *file_name) override
     {
       if (!buildPathes(file_name))
         return false;
@@ -734,16 +724,16 @@ class GenericHeightMapService : public IHmapService
         }
 
         dd_mkdir(path + "../.work");
-        reset(e->getMapSizeX(), e->getMapSizeY(), e->defaultValue);
+        MapStorage<T>::reset(e->getMapSizeX(), e->getMapSizeY(), e->defaultValue);
         for (int y = 0, ye = e->getMapSizeY(); y < ye; y++)
           for (int x = 0, xe = e->getMapSizeX(); x < xe; x++)
-            setData(x, y, e->getData(x, y));
+            MapStorage<T>::setData(x, y, e->getData(x, y));
         e->closeFile(true);
         delete e;
 
         if (!createFile(file_name))
           return false;
-        flushData();
+        MapStorage<T>::flushData();
         dd_erase(file_name);
 
         for (int i = 0; i < subMaps.size(); i++)
@@ -759,11 +749,11 @@ class GenericHeightMapService : public IHmapService
         return false;
 
       int64_t dv = blk.getInt64("defVal");
-      reset(blk.getInt("w"), blk.getInt("h"), *(T *)&dv);
+      MapStorage<T>::reset(blk.getInt("w"), blk.getInt("h"), *(T *)&dv);
       return true;
     }
 
-    virtual void closeFile(bool finalize = false)
+    void closeFile(bool finalize = false) override
     {
       for (int i = 0; i < subMaps.size(); i++)
         if (subMaps[i])
@@ -776,7 +766,7 @@ class GenericHeightMapService : public IHmapService
       }
     }
 
-    virtual void eraseFile()
+    void eraseFile() override
     {
       for (int i = 0; i < subMaps.size(); i++)
         if (subMaps[i])
@@ -791,9 +781,9 @@ class GenericHeightMapService : public IHmapService
       fname = "";
     }
 
-    virtual const char *getFileName() const { return path; }
-    virtual bool isFileOpened() const { return !fname.empty(); }
-    virtual bool canBeReverted() const
+    const char *getFileName() const override { return path; }
+    bool isFileOpened() const override { return !fname.empty(); }
+    bool canBeReverted() const override
     {
       int changes = 0;
       for (int i = 0; i < subMaps.size(); i++)
@@ -801,7 +791,7 @@ class GenericHeightMapService : public IHmapService
           changes += subMap(i)->getModifications();
       return changes > 0;
     }
-    virtual bool revertChanges()
+    bool revertChanges() override
     {
       for (int i = 0; i < subMaps.size(); i++)
         if (subMaps[i] && subMap(i)->getModifications())
@@ -809,7 +799,7 @@ class GenericHeightMapService : public IHmapService
       return true;
     }
 
-    virtual typename MapStorage<T>::SubMap *createSubMap(int ex, int ey)
+    typename MapStorage<T>::SubMap *createSubMap(int ex, int ey) override
     {
       SubMapImpl *e = new SubMapImpl(calcSubMapSizeX(ex), calcSubMapSizeY(ey), ELEM_SZ, defaultValue);
       if (!e->createFile(path, getSubMapPath(ex, ey)))
@@ -819,7 +809,7 @@ class GenericHeightMapService : public IHmapService
       }
       return subMaps[ey * numSubMapsX + ex] = e;
     }
-    virtual typename MapStorage<T>::SubMap *loadSubMap(int index)
+    typename MapStorage<T>::SubMap *loadSubMap(int index) override
     {
       if (fname.empty())
         return NULL;
@@ -999,6 +989,10 @@ class GenericHeightMapService : public IHmapService
   int biomeQuery = -1;
   int biomeQueryResult = -1;
 
+  int desiredHmapUpscale = 1;
+  int hmapUpscale = 1;
+  int hmapUpscaleAlgo = 0; // BICUBIC / LANCZOS / HERMITE
+
 public:
   GenericHeightMapService()
   {
@@ -1022,8 +1016,6 @@ public:
     shouldUseClipmap = appblk.getBlockByName("clipmap") != NULL;
     clipmap = NULL;
 
-    lmesh_rendering_mode = RENDERING_LANDMESH;
-    lmesh_rendering_mode_glob_varId = ::get_shader_glob_var_id("lmesh_rendering_mode", true);
     should_use_clipmapVarId = ::get_shader_glob_var_id("should_use_clipmap", true);
     bake_landmesh_combineVarId = ::get_shader_glob_var_id("bake_landmesh_combine", true);
     render_with_normalmapVarId = ::get_shader_glob_var_id("render_with_normalmap", true);
@@ -1162,7 +1154,7 @@ public:
     microDetails.setBool("__not_inited", true);
   }
 
-  virtual bool mapStorageFileExists(const char *fname) const
+  bool mapStorageFileExists(const char *fname) const override
   {
     const char *fn = dd_get_fname(fname);
     const char *ext = dd_get_fname_ext(fname);
@@ -1175,64 +1167,64 @@ public:
     return dd_file_exist(fname);
   }
 
-  virtual bool createStorage(HeightMapStorage &_hm, int sx, int sy, bool sep_final)
+  bool createStorage(HeightMapStorage &_hm, int sx, int sy, bool sep_final) override
   {
     HmapStorage &hm = (HmapStorage &)_hm;
     hm.alloc(sx, sy, sep_final);
     return true;
   }
-  virtual void destroyStorage(HeightMapStorage &_hm)
+  void destroyStorage(HeightMapStorage &_hm) override
   {
     HmapStorage &hm = (HmapStorage &)_hm;
     hm.destroy();
   }
 
-  virtual FloatMapStorage *createFloatMapStorage(int sx, int sy, float defval) { return new MapStorageImpl<float>(sx, sy, defval); }
-  virtual Uint64MapStorage *createUint64MapStorage(int sx, int sy, uint64_t defval)
+  FloatMapStorage *createFloatMapStorage(int sx, int sy, float defval) override { return new MapStorageImpl<float>(sx, sy, defval); }
+  Uint64MapStorage *createUint64MapStorage(int sx, int sy, uint64_t defval) override
   {
     return new MapStorageImpl<uint64_t>(sx, sy, defval);
   }
-  virtual Uint32MapStorage *createUint32MapStorage(int sx, int sy, unsigned defval)
+  Uint32MapStorage *createUint32MapStorage(int sx, int sy, unsigned defval) override
   {
     return new MapStorageImpl<uint32_t>(sx, sy, defval);
   }
-  virtual Uint16MapStorage *createUint16MapStorage(int sx, int sy, unsigned defval)
+  Uint16MapStorage *createUint16MapStorage(int sx, int sy, unsigned defval) override
   {
     return new MapStorageImpl<uint16_t>(sx, sy, defval);
   }
-  virtual ColorMapStorage *createColorMapStorage(int sx, int sy, E3DCOLOR defval)
+  ColorMapStorage *createColorMapStorage(int sx, int sy, E3DCOLOR defval) override
   {
     return new MapStorageImpl<E3DCOLOR>(sx, sy, defval);
   }
 
 
-  virtual void *createBitLayersList(const DataBlock &desc) { return new (midmem) BitLayersList(desc); }
-  virtual void destroyBitLayersList(void *handle)
+  void *createBitLayersList(const DataBlock &desc) override { return new (midmem) BitLayersList(desc); }
+  void destroyBitLayersList(void *handle) override
   {
     BitLayersList *bll = (BitLayersList *)handle;
     del_it(bll);
   }
-  virtual dag::Span<HmapBitLayerDesc> getBitLayersList(void *handle)
+  dag::Span<HmapBitLayerDesc> getBitLayersList(void *handle) override
   {
     BitLayersList *bll = (BitLayersList *)handle;
     return bll ? make_span(bll->layers) : dag::Span<HmapBitLayerDesc>();
   }
-  virtual int getBitLayerIndexByName(void *handle, const char *layer_name)
+  int getBitLayerIndexByName(void *handle, const char *layer_name) override
   {
     const BitLayersList *bll = (BitLayersList *)handle;
     return bll ? bll->layerNames.getNameId(layer_name) : -1;
   }
-  virtual const char *getBitLayerName(void *handle, int layer_idx)
+  const char *getBitLayerName(void *handle, int layer_idx) override
   {
     const BitLayersList *bll = (BitLayersList *)handle;
     return bll ? bll->layerNames.getName(layer_idx) : NULL;
   }
-  virtual int getBitLayerAttrId(void *handle, const char *attr_name)
+  int getBitLayerAttrId(void *handle, const char *attr_name) override
   {
     const BitLayersList *bll = (BitLayersList *)handle;
     return bll ? bll->attrNames.getNameId(attr_name) : -1;
   }
-  virtual bool testBitLayerAttr(void *handle, int layer_idx, int attr_id)
+  bool testBitLayerAttr(void *handle, int layer_idx, int attr_id) override
   {
     if (!handle || layer_idx < 0 || attr_id < 0 || attr_id >= 32)
       return false;
@@ -1240,7 +1232,7 @@ public:
     const BitLayersList *bll = (BitLayersList *)handle;
     return (bll->layerAttr[layer_idx] & (1U << attr_id)) ? true : false;
   }
-  virtual int findBitLayerByAttr(void *handle, int attr_id, int start_with_layer)
+  int findBitLayerByAttr(void *handle, int attr_id, int start_with_layer) override
   {
     if (!handle || start_with_layer < 0 || attr_id < 0 || attr_id >= 32)
       return -1;
@@ -1253,7 +1245,7 @@ public:
     return -1;
   }
 
-  /*virtual void createDetLayerClassList(const DataBlock &blk)
+  /*void createDetLayerClassList(const DataBlock &blk) override
   {
     static VSDTYPE dcl[] = { VSD_STREAM(0), VSD_REG(VSDR_POS, VSDT_FLOAT2), VSD_END };
 
@@ -1432,22 +1424,15 @@ public:
         DAEDITOR3.conNote("DetLayer[%d] %s: (%d,%d,%d)->%d", detLayers.size(), dl.name, dl.vs, dl.ps, dl.vd, dl.prog);
       }
   }
-  virtual dag::Span<HmapDetLayerProps> getDetLayerClassList()
-  {
-    return make_span(detLayers);
-  }
-  virtual int resolveDetLayerClassName(const char *nm)
-  {
-    return detLayersMap.getNameId(nm);
-  }
-
-  virtual void *createDetailRenderData(const DataBlock &layers, LandClassDetailInfo *detTex)
+  dag::Span<HmapDetLayerProps> getDetLayerClassList() override { return make_span(detLayers); }
+  int resolveDetLayerClassName(const char *nm) override { return detLayersMap.getNameId(nm); }
+  void *createDetailRenderData(const DataBlock &layers, LandClassDetailInfo *detTex) override
   {
     void *h = new DetailRenderData(layers, detTex, detLayers);
     updateDetailRenderData(h, layers);
     return h;
   }
-  virtual void destroyDetailRenderData(void *handle)
+  void destroyDetailRenderData(void *handle) override
   {
     if (handle)
     {
@@ -1455,7 +1440,7 @@ public:
       delete (DetailRenderData*)handle;
     }
   }
-  virtual void updateDetailRenderData(void *handle, const DataBlock &layers)
+  void updateDetailRenderData(void *handle, const DataBlock &layers) override
   {
     if (handle)
     {
@@ -1474,28 +1459,54 @@ public:
     }
   }
 
-  virtual Texture *getDetailRenderDataMaskTex(void *handle, const char *name)
+  Texture *getDetailRenderDataMaskTex(void *handle, const char *name) override
   {
     return handle ? ((DetailRenderData*)handle)->getMaskTex(name) : NULL;
   }
-  virtual TEXTUREID getDetailRenderDataTex(void *handle, const char *name)
+  TEXTUREID getDetailRenderDataTex(void *handle, const char *name) override
   {
     return handle ? ((DetailRenderData*)handle)->getAuxTex(name) : BAD_TEXTUREID;
   }
-  virtual void storeDetailRenderData(void *handle, const char *prefix, bool store_cmap, bool store_smap)
+  void storeDetailRenderData(void *handle, const char *prefix, bool store_cmap, bool store_smap) override
   {
     if (handle)
       ((DetailRenderData*)handle)->storeData(prefix, store_cmap, store_smap);
   }
   */
 
-  virtual const char *getLandPhysMatName(int pmatId) { return pmatId >= 0 ? PhysMat::getMaterial(pmatId).name.str() : NULL; }
+  const char *getLandPhysMatName(int pmatId) override { return pmatId >= 0 ? PhysMat::getMaterial(pmatId).name.str() : NULL; }
 
-  virtual int getPhysMatId(const char *name) { return PhysMat::getMaterialId(name); }
+  int getPhysMatId(const char *name) override { return PhysMat::getMaterialId(name); }
 
-  virtual void beforeRender() { biome_query::update(); }
+  void beforeRender() override
+  {
+    biome_query::update();
 
-  virtual int getBiomeIndices(const Point3 &p)
+    if (is_managed_textures_streaming_load_on_demand())
+    {
+      static int land_gen = 0, clipmap_gen = 0;
+      const auto &info0 = textag_get_info(TEXTAG_LAND);
+      const auto &info1 = textag_get_info(TEXTAG_USER_START + 0);
+      int cur_land_gen = interlocked_relaxed_load(info0.loadGeneration);
+      int cur_clipmap_gen = interlocked_relaxed_load(info1.loadGeneration);
+
+      if (land_gen != cur_land_gen)
+        debug("some of %d land textures updated (gen=%d -> %d), invalidate clipmap", interlocked_relaxed_load(info0.texCount),
+          land_gen, cur_land_gen);
+      if (clipmap_gen != cur_clipmap_gen)
+        debug("some of %d clipmap textures updated (gen=%d -> %d), invalidate clipmap", interlocked_relaxed_load(info1.texCount),
+          clipmap_gen, cur_clipmap_gen);
+
+      if (land_gen != cur_land_gen || clipmap_gen != cur_clipmap_gen)
+      {
+        land_gen = cur_land_gen;
+        clipmap_gen = cur_clipmap_gen;
+        invalidateClipmap(true, true);
+      }
+    }
+  }
+
+  int getBiomeIndices(const Point3 &p) override
   {
     d3d::GpuAutoLock lock;
     if (biomeQuery == -1)
@@ -1515,15 +1526,27 @@ public:
     return biomeQueryResult;
   }
 
-  virtual bool getIsSolidByPhysMatName(const char *name)
+  bool getIsSolidByPhysMatName(const char *name) override
   {
     int pmatId = PhysMat::getMaterialId(name);
     return pmatId >= 0 ? PhysMat::getMaterial(pmatId).isSolid : false;
   }
 
-  virtual GenHmapData *registerGenHmap(const char *name, HeightMapStorage *hm, Uint32MapStorage *landclsmap,
+  void setDesiredHmapUpscale(int scale) override { desiredHmapUpscale = scale; }
+
+  int getDesiredHmapUpscale() const override { return desiredHmapUpscale; }
+
+  void setHmapUpscale(int scale) override { hmapUpscale = scale; }
+
+  int getHmapUpscale() const override { return hmapUpscale; }
+
+  void setHmapUpscaleAlgo(int algo) override { hmapUpscaleAlgo = algo; }
+
+  int getHmapUpscaleAlgo() const override { return hmapUpscaleAlgo; }
+
+  GenHmapData *registerGenHmap(const char *name, HeightMapStorage *hm, Uint32MapStorage *landclsmap,
     dag::ConstSpan<HmapBitLayerDesc> lndclass_layers, ColorMapStorage *colormap, Uint32MapStorage *ltmap, const Point2 &hmap_ofs,
-    float cell_size)
+    float cell_size) override
   {
     int id = genHmapNames.getNameId(name);
     if (id != -1 && (genHmapReg & (1 << id)))
@@ -1550,7 +1573,7 @@ public:
 
     return &ghd;
   }
-  virtual bool unregisterGenHmap(const char *name)
+  bool unregisterGenHmap(const char *name) override
   {
     int id = genHmapNames.getNameId(name);
     if (id == -1 || !(genHmapReg & (1 << id)))
@@ -1562,13 +1585,13 @@ public:
       genHmapNames.reset();
     return true;
   }
-  virtual GenHmapData *findGenHmap(const char *name)
+  GenHmapData *findGenHmap(const char *name) override
   {
     int id = genHmapNames.getNameId(name);
     return (id != -1 && (genHmapReg & (1 << id))) ? &genHmap[id] : NULL;
   }
 
-  virtual void initLodGridHm2(const DataBlock &blk)
+  void initLodGridHm2(const DataBlock &blk) override
   {
     static const int MAX_LOD_CNT = 16;
     int nid = blk.getNameId("lodRad");
@@ -1579,14 +1602,24 @@ public:
     hm2.lodGrid.init(lod_cnt, lod0Rad, tesselation, lodRadMul);
     DAEDITOR3.conNote("initLodGridHm2(%d, %d, %d, %d)", lod_cnt, lod0Rad, tesselation, lodRadMul);
   }
-  virtual void setupRenderHm2(float sx, float sy, float ax, float ay, Texture *htTexMain, TEXTUREID htTexIdMain, float mx0, float my0,
-    float mw, float mh, Texture *htTexDet, TEXTUREID htTexIdDet, float dx0, float dy0, float dw, float dh)
+  void setupRenderHm2(float sx, float sy, float ax, float ay, Texture *htTexMain, TEXTUREID htTexIdMain, float mx0, float my0,
+    float mw, float mh, Texture *htTexDet, TEXTUREID htTexIdDet, float dx0, float dy0, float dw, float dh) override
   {
     static int w2hm_main_gvid = ::get_shader_glob_var_id("world_to_hmap_low", true);
     static int w2hm_det_gvid = ::get_shader_glob_var_id("world_to_hmap_high", true);
     static int tex_main_gvid = ::get_shader_glob_var_id("tex_hmap_low", true);
+    static int tex_main_samplerstate_gvid = ::get_shader_glob_var_id("tex_hmap_low_samplerstate", true);
     static int tex_det_gvid = ::get_shader_glob_var_id("tex_hmap_high", true);
+    static int tex_det_samplerstate_gvid = ::get_shader_glob_var_id("tex_hmap_high_samplerstate", true);
     static int tex_hmap_inv_sizes_gvid = ::get_shader_glob_var_id("tex_hmap_inv_sizes", true);
+
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+      ShaderGlobal::set_sampler(tex_main_samplerstate_gvid, smp);
+      ShaderGlobal::set_sampler(tex_det_samplerstate_gvid, smp);
+    }
 
     hm2.sx = sx;
     hm2.sy = sy;
@@ -1646,38 +1679,38 @@ public:
     ShaderGlobal::set_color4_fast(tex_hmap_inv_sizes_gvid, tisz);
   }
 
-  virtual void startUAVFeedback() const
+  void startUAVFeedback() const override
   {
-    if (clipmap && lmesh_rendering_mode == RENDERING_LANDMESH)
+    if (clipmap)
       clipmap->startUAVFeedback();
   }
 
-  virtual void endUAVFeedback() const
+  void endUAVFeedback() const override
   {
-    if (clipmap && lmesh_rendering_mode == RENDERING_LANDMESH)
+    if (clipmap)
     {
       clipmap->endUAVFeedback();
       clipmap->copyUAVFeedback();
     }
   }
 
-  virtual int setLod0SubDiv(int lod)
+  int setLod0SubDiv(int lod) override
   {
     int old = hm2.lodGrid.lod0SubDiv;
     hm2.lodGrid.lod0SubDiv = lod;
     return old;
   }
 
-  virtual BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const override { return p.getBBoxWithHMapWBBox(); }
+  BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const override { return p.getBBoxWithHMapWBBox(); }
 
-  virtual void renderHm2(const Point3 &vpos, bool infinite, bool render_hm) const
+  void renderHm2(LandMeshRenderer &r, const Point3 &vpos, bool infinite, bool render_hm) const override
   {
     if (hm2.texMainId == BAD_TEXTUREID && hm2.texDetId == BAD_TEXTUREID)
       return;
 
-    int oldMode;
+    LMeshRenderingMode oldMode;
     if (render_hm)
-      oldMode = set_lmesh_rendering_mode(RENDERING_HEIGHTMAP);
+      oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
 
     d3d::settm(TM_WORLD, TMatrix::IDENT);
 
@@ -1706,19 +1739,19 @@ public:
     hm2.rend.render(hm2.lodGrid, cullData);
 
     if (render_hm)
-      set_lmesh_rendering_mode(oldMode);
+      r.setLMeshRenderingMode(oldMode);
     cullData.frustum.reset();
   }
-  virtual void renderHm2VSM(const Point3 &vpos) const
+  void renderHm2VSM(LandMeshRenderer &r, const Point3 &vpos) const override
   {
     if (hm2.texMainId == BAD_TEXTUREID && hm2.texDetId == BAD_TEXTUREID)
       return;
-    int oldMode = set_lmesh_rendering_mode(RENDERING_VSM);
-    renderHm2(vpos, true, false);
-    set_lmesh_rendering_mode(oldMode);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
+    renderHm2(r, vpos, true, false);
+    r.setLMeshRenderingMode(oldMode);
   }
 
-  static bool renderHm2ToFeedback();
+  static bool renderHm2ToFeedback(LandMeshRenderer &r);
 
   class HeightmapPatchesRenderer
   {
@@ -1731,16 +1764,27 @@ public:
 
     struct HmapPatchesCallback
     {
+      LandMeshManager &provider;
+      LandMeshRenderer &renderer;
       ViewProjMatrixContainer oviewproj;
       float texelSize;
       int texSize;
       IPoint2 newOrigin;
       float minZ, maxZ;
-      int prevLandmeshRenderingMode;
+      LMeshRenderingMode prevLandmeshRenderingMode;
       Tab<IRenderingService *> rendSrv;
 
-      HmapPatchesCallback(float texel, const IPoint2 &new_origin, int tex_size, float minz, float maxz) :
-        oviewproj(), texelSize(texel), texSize(tex_size), newOrigin(new_origin), minZ(minz), maxZ(maxz), prevLandmeshRenderingMode(0)
+      HmapPatchesCallback(float texel, LandMeshRenderer &lm_renderer, LandMeshManager &lm_mgr, const IPoint2 &new_origin, int tex_size,
+        float minz, float maxz) :
+        renderer(lm_renderer),
+        provider(lm_mgr),
+        oviewproj(),
+        texelSize(texel),
+        texSize(tex_size),
+        newOrigin(new_origin),
+        minZ(minz),
+        maxZ(maxz),
+        prevLandmeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH)
       {
         int plugin_cnt = IEditorCoreEngine::get()->getPluginCount();
         for (int i = 0; i < plugin_cnt; ++i)
@@ -1764,7 +1808,7 @@ public:
         d3d::settm(TM_VIEW, &vtm);
         ShaderGlobal::set_color4(get_shader_variable_id("hmap_patches_min_max_z", true), minZ, maxZ, 0.0, 1.0);
         filter_class_name = "land_mesh";
-        prevLandmeshRenderingMode = ::set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+        prevLandmeshRenderingMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
         static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
         ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
         shaders::OverrideState flipCullState;
@@ -1803,7 +1847,7 @@ public:
       {
         d3d_set_view_proj(oviewproj);
         ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-        ::set_lmesh_rendering_mode(prevLandmeshRenderingMode);
+        renderer.setLMeshRenderingMode(prevLandmeshRenderingMode);
         filter_class_name = NULL;
         shaders::overrides::reset();
       }
@@ -1813,11 +1857,19 @@ public:
     explicit HeightmapPatchesRenderer(int resolution) : texSize(resolution)
     {
       hmapPatchesDepthTex = dag::create_tex(NULL, texSize, texSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "hmap_patches_depth_tex");
-      hmapPatchesDepthTex->texaddr(TEXADDR_WRAP);
-      hmapPatchesDepthTex->texfilter(TEXFILTER_POINT);
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        ShaderGlobal::set_sampler(get_shader_variable_id("hmap_patches_depth_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+      }
       hmapPatchesTex = dag::create_tex(NULL, texSize, texSize, TEXCF_RTARGET | TEXFMT_L16, 1, "hmap_patches_tex");
-      hmapPatchesTex->texaddr(TEXADDR_WRAP);
-      hmapPatchesTex->texfilter(TEXFILTER_LINEAR);
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+        smpInfo.filter_mode = d3d::FilterMode::Linear;
+        ShaderGlobal::set_sampler(get_shader_variable_id("hmap_patches_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+      }
       processHmapPatchesDepth.init("process_hmap_patches_depth");
       hmapPatchesData.curOrigin = IPoint2(-1000000, 1000000);
       hmapPatchesData.texSize = texSize;
@@ -1825,7 +1877,7 @@ public:
       world_to_hmap_patches_ofsVarId = ::get_shader_glob_var_id("world_to_hmap_patches_ofs", true);
     }
     void invalidate() { hmapPatchesData.curOrigin = IPoint2(-1000000, 1000000); }
-    void render(const LandMeshManager &provider, const Point3 &origin, float distance)
+    void render(LandMeshManager &provider, LandMeshRenderer &renderer, const Point3 &origin, float distance)
     {
       Point2 alignedOrigin = Point2::xz(origin);
       float fullDistance = 2 * distance;
@@ -1853,7 +1905,7 @@ public:
         BBox3 landBox = provider.getBBox();
         float minZ = landBox[0].y - 100;
         float maxZ = landBox[1].y + 500;
-        HmapPatchesCallback patchCb(texelSize, newTexelsOrigin, hmapPatchesData.texSize, minZ, maxZ);
+        HmapPatchesCallback patchCb(texelSize, renderer, provider, newTexelsOrigin, hmapPatchesData.texSize, minZ, maxZ);
         toroidal_update(newTexelsOrigin, hmapPatchesData, fullUpdateThresholdTexels, patchCb);
 
         d3d::resource_barrier({hmapPatchesDepthTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -1880,7 +1932,7 @@ public:
     IRenderingService *hmap;
     float minZ, maxZ;
     float hRel;
-    int omode;
+    LMeshRenderingMode omode;
     TMatrix4 ovtm, oproj;
     bool perspvalid;
     Driver3dPerspective persp;
@@ -1889,7 +1941,7 @@ public:
     shaders::OverrideStateId flipCullStateId;
 
     LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) :
-      rendSrv(tmpmem), renderer(r), provider(p), hmap(0), omode(0), old_st_mask(0), new_st_mask(0)
+      rendSrv(tmpmem), renderer(r), provider(p), hmap(0), omode(LMeshRenderingMode::RENDERING_LANDMESH), old_st_mask(0), new_st_mask(0)
     {
       shaders::OverrideState flipCullState;
       flipCullState.set(shaders::OverrideState::FLIP_CULL);
@@ -1897,14 +1949,14 @@ public:
     }
     void startRender() { get_clipmap_rendering_services(hmap, rendSrv); }
 
-    virtual void startRenderTiles(const Point2 &center)
+    void startRenderTiles(const Point2 &center) override
     {
       Point3 pos(center.x, hRel, center.y);
       BBox3 landBox = provider.getBBox();
       minZ = landBox[0].y - 100;
       maxZ = landBox[1].y + 500;
 
-      omode = ::set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+      omode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
       static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
       ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
       renderer.prepare(provider, pos, pos.y);
@@ -1922,11 +1974,11 @@ public:
 
       get_subtype_mask_for_clipmap_rendering(old_st_mask, new_st_mask);
     }
-    virtual void endRenderTiles()
+    void endRenderTiles() override
     {
       renderer.setRenderInBBox(BBox3());
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-      ::set_lmesh_rendering_mode(omode);
+      renderer.setLMeshRenderingMode(omode);
       d3d::settm(TM_VIEW, &ovtm);
       d3d::settm(TM_PROJ, &oproj);
       if (perspvalid)
@@ -1934,7 +1986,7 @@ public:
       shaders::overrides::reset();
     }
 
-    virtual void renderTile(const BBox2 &region)
+    void renderTile(const BBox2 &region) override
     {
       d3d::settm(TM_WORLD, TMatrix::IDENT);
       d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
@@ -1969,12 +2021,12 @@ public:
         d3d::stretch_rect(decalRenderer.getRT(), curRt.getColor(0).tex, NULL, &destRect);
       }
     }
-    virtual void renderFeedback(const TMatrix4 &globtm)
+    void renderFeedback(const TMatrix4 &globtm) override
     {
       d3d::settm(TM_WORLD, TMatrix::IDENT);
 
-      int oldMode = set_lmesh_rendering_mode(RENDERING_FEEDBACK);
-      if (!renderHm2ToFeedback())
+      LMeshRenderingMode oldMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_FEEDBACK);
+      if (!renderHm2ToFeedback(renderer))
         renderer.render(provider, renderer.RENDER_DEPTH, ::grs_cur_view.pos);
 
       static int land_mesh_render_depth_blockid = ShaderGlobal::getBlockId("land_mesh_render_depth");
@@ -1991,7 +2043,7 @@ public:
       DAEDITOR3.setEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, old_st_mask);
 
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-      set_lmesh_rendering_mode(oldMode);
+      renderer.setLMeshRenderingMode(oldMode);
     }
   };
 
@@ -2004,7 +2056,7 @@ public:
   shaders::UniqueOverrideStateId blendOpMaxStateId;
   shaders::UniqueOverrideStateId disableDepthClipStateId;
 
-  virtual LandMeshManager *createLandMeshManager(IGenLoad &crd)
+  LandMeshManager *createLandMeshManager(IGenLoad &crd) override
   {
     LandMeshManager *p = new LandMeshManager(true);
     p->setGrassMaskBlk(grassBlk);
@@ -2015,16 +2067,17 @@ public:
     return NULL;
   }
 
-  virtual PhysMap *loadPhysMap(LandMeshManager *landMeshManager, IGenLoad &crd) { return landMeshManager->loadPhysMap(crd, true); }
+  PhysMap *loadPhysMap(LandMeshManager *landMeshManager, IGenLoad &crd) override { return landMeshManager->loadPhysMap(crd, true); }
 
-  virtual void destroyLandMeshManager(LandMeshManager *&p) const
+  void destroyLandMeshManager(LandMeshManager *&p) const override
   {
     if (!p)
       return;
+    biome_query::close();
     del_it(p);
   }
 
-  virtual LandMeshRenderer *createLandMeshRenderer(LandMeshManager &p)
+  LandMeshRenderer *createLandMeshRenderer(LandMeshManager &p) override
   {
     Ptr<ShaderMaterial> mat = new_shader_material_by_name("land_mesh", NULL);
     if (!mat.get())
@@ -2036,18 +2089,18 @@ public:
     return (LandMeshRenderer *)r;
   }
 
-  virtual void destroyLandMeshRenderer(LandMeshRenderer *&r) const
+  void destroyLandMeshRenderer(LandMeshRenderer *&r) const override
   {
     if (!r)
       return;
     del_it(r);
   }
 
-  virtual BBox3 getBBoxWithHMapWBBox(LandMeshManager &p) const { return p.getBBoxWithHMapWBBox(); }
+  BBox3 getBBoxWithHMapWBBox(LandMeshManager &p) const override { return p.getBBoxWithHMapWBBox(); }
 
-  virtual void prepareLandMesh(LandMeshRenderer &r, LandMeshManager &p, const Point3 &pos) const { r.prepare(p, pos, pos.y); }
+  void prepareLandMesh(LandMeshRenderer &r, LandMeshManager &p, const Point3 &pos) const override { r.prepare(p, pos, pos.y); }
 
-  virtual void invalidateClipmap(bool force_redraw, bool rebuild_last_clip)
+  void invalidateClipmap(bool force_redraw, bool rebuild_last_clip) override
   {
     if (!clipmap)
       return;
@@ -2062,7 +2115,7 @@ public:
     if (heightmapPatchesRenderer)
       heightmapPatchesRenderer->invalidate();
   }
-  virtual void prepareClipmap(LandMeshRenderer &r, LandMeshManager &p, float ht_rel)
+  void prepareClipmap(LandMeshRenderer &r, LandMeshManager &p, float ht_rel) override
   {
     if (!clipmap)
     {
@@ -2125,7 +2178,7 @@ public:
       ShaderGlobal::set_int_fast(heightmap_puddlesVarId, 1);
     }
 
-    heightmapPatchesRenderer->render(p, ::grs_cur_view.pos, 16.0f);
+    heightmapPatchesRenderer->render(p, r, ::grs_cur_view.pos, 16.0f);
 
     preparingClipmap = false;
 
@@ -2140,11 +2193,6 @@ public:
       debug("prepareClipmap in %dus", get_time_usec(reft));
   }
 
-  static void start_rendering_clipmap_cb()
-  {
-    ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
-    ::set_lmesh_rendering_mode(RENDERING_CLIPMAP);
-  }
   static void render_decals_cb(const BBox3 &)
   {
     Tab<IRenderingService *> rendSrv(tmpmem);
@@ -2167,15 +2215,15 @@ public:
     data.lmeshRenderer = lmRend;
     data.texture_size = texture_size;
     data.use_dxt = false; // true;
-    data.start_render = start_rendering_clipmap_cb;
     data.decals_cb = render_decals_cb;
     data.global_frame_id = ShaderGlobal::getBlockId("global_frame");
     data.flipCullStateId = flipCullStateId.get();
-    int oldm = ShaderGlobal::get_int_fast(lmesh_rendering_mode_glob_varId);
+    data.land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
+    LMeshRenderingMode oldm = lmRend->getLMeshRenderingMode();
     ShaderGlobal::enableAutoBlockChange(false);
 
     prepare_fixed_clip(last_clip, last_clip_sampler, data, false, ::grs_cur_view.pos);
-    ::set_lmesh_rendering_mode(oldm);
+    lmRend->setLMeshRenderingMode(oldm);
     ShaderGlobal::enableAutoBlockChange(true);
 
     if (get_time_usec(reft) > 20000)
@@ -2186,7 +2234,7 @@ public:
 
   void closeFixedClip() { last_clip.close(); }
 
-  virtual void renderLandMesh(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMesh(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     if (preparingClipmap) // avoid invalid render landmesh
       return;
@@ -2197,46 +2245,46 @@ public:
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
-  virtual void renderLandMeshClipmap(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMeshClipmap(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     DagorCurView savedView = ::grs_cur_view;
     d3d::settm(TM_WORLD, TMatrix::IDENT);
-    int oldMode = set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 1);
     r.render(p, r.RENDER_CLIPMAP, ::grs_cur_view.pos);
     render_decals_cb(BBox3());
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 2);
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
   }
 
-  virtual void renderLandMeshVSM(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMeshVSM(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     DagorCurView savedView = ::grs_cur_view;
     r.forceLowQuality(true);
-    int oldMode = set_lmesh_rendering_mode(RENDERING_VSM);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
     r.render(p, r.RENDER_ONE_SHADER, ::grs_cur_view.pos);
     r.forceLowQuality(false);
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
   }
-  virtual void renderLandMeshDepth(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMeshDepth(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     DagorCurView savedView = ::grs_cur_view;
-    int oldMode = set_lmesh_rendering_mode(RENDER_DEPTH);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_DEPTH);
     r.render(p, r.RENDER_DEPTH, ::grs_cur_view.pos);
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
 
-  virtual void renderLandMeshHeight(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMeshHeight(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     DagorCurView savedView = ::grs_cur_view;
-    int oldMode = set_lmesh_rendering_mode(RENDERING_HEIGHTMAP);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
     BBox3 landBox;
     landBox[0].x = p.getCellOrigin().x * p.getLandCellSize() + p.getOffset().x;
     landBox[0].y = -8192;
@@ -2250,7 +2298,7 @@ public:
     r.setInvGeomLodDist(0.5 / landBox.width().length());
     shaders::overrides::set(blendOpMaxStateId.get());
     r.render(p, r.RENDER_ONE_SHADER, ::grs_cur_view.pos);
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     shaders::overrides::reset();
@@ -2258,7 +2306,7 @@ public:
     r.setInvGeomLodDist(oldInvGeomDist);
   }
 
-  virtual void renderDecals(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderDecals(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     BBox3 levelBox = BBox3();
 
@@ -2271,37 +2319,37 @@ public:
 
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
-    int omode = ::set_lmesh_rendering_mode(RENDERING_LANDMESH);
+    LMeshRenderingMode omode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, globtm, false);
-    ::set_lmesh_rendering_mode(omode);
+    r.setLMeshRenderingMode(omode);
 
     r.setRenderInBBox(BBox3());
   }
 
-  virtual int setGrassMaskRenderingMode()
+  LMeshRenderingMode setGrassMaskRenderingMode(LandMeshRenderer &r) override
   {
-    int oldMode = set_lmesh_rendering_mode(GRASS_MASK);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
     return oldMode;
   }
 
-  virtual void restoreRenderingMode(int oldMode)
+  void restoreRenderingMode(LandMeshRenderer &r, LMeshRenderingMode oldMode) override
   {
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
-  virtual void renderLandMeshGrassMask(LandMeshRenderer &r, LandMeshManager &p) const
+  void renderLandMeshGrassMask(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     DagorCurView savedView = ::grs_cur_view;
-    int oldMode = set_lmesh_rendering_mode(GRASS_MASK);
+    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
     r.render(p, r.RENDER_GRASS_MASK, ::grs_cur_view.pos, LandMeshRenderer::RENDER_FOR_GRASS);
-    set_lmesh_rendering_mode(oldMode);
+    r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
-  virtual void updateGrassTranslucency(LandMeshRenderer &r, LandMeshManager &p) const
+  void updateGrassTranslucency(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     if (!grassTranslucency)
       return;
@@ -2311,34 +2359,34 @@ public:
     public:
       LandMeshRenderer &r;
       LandMeshManager &p;
-      int omode;
+      LMeshRenderingMode omode;
       uint32_t oldflags;
 
       MyGrassTranlucencyCB(LandMeshRenderer &lmr, LandMeshManager &lmp) : r(lmr), p(lmp) {}
-      void start(const BBox3 &box)
+      void start(const BBox3 &box) override
       {
         if (::grs_draw_wire)
           d3d::setwire(0);
         oldflags = LandMeshRenderer::lmesh_render_flags;
-        omode = set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+        omode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
         r.setRenderInBBox(box);
       }
-      void renderTranslucencyColor()
+      void renderTranslucencyColor() override
       {
         LandMeshRenderer::lmesh_render_flags &= ~(LandMeshRenderer::RENDER_DECALS | LandMeshRenderer::RENDER_COMBINED);
-        set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+        r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
         r.render(p, LandMeshRenderer::RENDER_CLIPMAP, ::grs_cur_view.pos);
       }
-      void renderTranslucencyMask()
+      void renderTranslucencyMask() override
       {
         LandMeshRenderer::lmesh_render_flags = oldflags;
-        set_lmesh_rendering_mode(GRASS_MASK);
+        r.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
         r.render(p, LandMeshRenderer::RENDER_GRASS_MASK, ::grs_cur_view.pos);
       }
-      void finish()
+      void finish() override
       {
         LandMeshRenderer::lmesh_render_flags = oldflags;
-        set_lmesh_rendering_mode(omode);
+        r.setLMeshRenderingMode(omode);
         r.setRenderInBBox(BBox3());
         d3d::setwire(::grs_draw_wire);
       }
@@ -2350,7 +2398,7 @@ public:
     grassTranslucency->update(::grs_cur_view.pos, grassTranslucencyHalfSize, cb);
   }
 
-  virtual void updatePropertiesFromLevelBlk(const DataBlock &level_blk)
+  void updatePropertiesFromLevelBlk(const DataBlock &level_blk) override
   {
     if (grassTranslucency)
     {
@@ -2372,17 +2420,17 @@ public:
     puddlesSeed = level_blk.getReal("puddlesSeed", 0.0f);
   }
 
-  virtual void getPuddlesParams(float &power_scale, float &seed, float &noise_influence)
+  void getPuddlesParams(float &power_scale, float &seed, float &noise_influence) override
   {
     power_scale = puddlesPowerScale;
     seed = puddlesSeed;
     noise_influence = puddlesNoiseInfluence;
   }
 
-  virtual void resetTexturesLandMesh(LandMeshRenderer &r) const { r.resetTextures(); }
+  void resetTexturesLandMesh(LandMeshRenderer &r) const override { r.resetTextures(); }
 
-  virtual bool exportToGameLandMesh(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<landmesh::Cell> cells,
-    dag::ConstSpan<MaterialData> materials, int lod1TrisDensity, bool tools_internal) const
+  bool exportToGameLandMesh(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<landmesh::Cell> cells,
+    dag::ConstSpan<MaterialData> materials, int lod1TrisDensity, bool tools_internal) const override
   {
     enum
     {
@@ -2393,9 +2441,6 @@ public:
     ShaderMaterialsSaver matSaver;
     ShaderTexturesSaver texSaver;
     CoolConsole &con = DAGORED2->getConsole();
-    bool old_no_pack = ShaderMeshData::fastNoPacking;
-    if (tools_internal)
-      ShaderMeshData::fastNoPacking = true;
 
     ShaderMeshData::buildForTargetCode = cwr.getTarget();
     int objSzpos, lmCatPos, obj_sz;
@@ -2441,7 +2486,6 @@ public:
         DAEDITOR3.conError("Cannot create landmesh shader material: %s, shader <%s>", materials[i].matName.str(),
           materials[i].className.str());
         ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
-        ShaderMeshData::fastNoPacking = old_no_pack;
         return false;
       }
       G_ASSERT(m);
@@ -2509,7 +2553,6 @@ public:
         DAEDITOR3.conError("cell %d lod wasn't made", i);
         debug_flush(false);
         ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
-        ShaderMeshData::fastNoPacking = old_no_pack;
         return false;
       }
 
@@ -2720,12 +2763,11 @@ public:
     clear_and_shrink(lodobjects);
     DAEDITOR3.conRemark("data saved in %g", (dagTools->getTimeMsec() - time0) / 1000.0);
     ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
-    ShaderMeshData::fastNoPacking = old_no_pack;
     return retval;
   }
 
-  virtual bool exportGeomToShaderMesh(mkbindump::BinDumpSaveCB &cwr, StaticGeometryContainer &geom, const char *tmp_lms_fn,
-    const ITextureNumerator &tn) const
+  bool exportGeomToShaderMesh(mkbindump::BinDumpSaveCB &cwr, StaticGeometryContainer &geom, const char *tmp_lms_fn,
+    const ITextureNumerator &tn) const override
   {
     CoolConsole &con = DAGORED2->getConsole();
     con.startProgress();
@@ -2768,10 +2810,10 @@ public:
     return false;
   }
 
-  virtual bool exportLoftMasks(const char *fn_mask, const char *fn_id, const char *fn_ht, const char *fn_dir, int tex_sz,
-    const Point3 &w0, const Point3 &w1, GeomObject *obj)
+  bool exportLoftMasks(const char *fn_mask, const char *fn_id, const char *fn_ht, const char *fn_dir, int tex_sz, const Point3 &w0,
+    const Point3 &w1, GeomObject *obj) override
   {
-    Texture *texM = d3d::create_tex(NULL, tex_sz, tex_sz, TEXFMT_L8 | TEXCF_RTARGET, 1);
+    Texture *texM = d3d::create_tex(NULL, tex_sz, tex_sz, TEXFMT_R8 | TEXCF_RTARGET, 1);
     Texture *texD = d3d::create_tex(NULL, tex_sz, tex_sz, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1);
     Texture *texF = 0;
     Texture *texId = 0;
@@ -2782,7 +2824,6 @@ public:
     G_ASSERTF(texM && texD, "tex_sz=%d", tex_sz);
     if (!texM || !texD)
       return false;
-    texD->texfilter(TEXFILTER_POINT);
 
     {
       d3d::GpuAutoLock gpuLock;
@@ -2851,7 +2892,7 @@ public:
     return true;
   }
 
-  virtual void prepare(LandMeshRenderer &r, LandMeshManager &p, const Point3 &center_pos, const BBox3 &box) override
+  void prepare(LandMeshRenderer &r, LandMeshManager &p, const Point3 &center_pos, const BBox3 &box) override
   {
     r.prepare(p, center_pos, 2.f);
     r.setRenderInBBox(box);
@@ -2867,23 +2908,31 @@ static void optimizeMesh(Mesh &m)
 }
 
 
-static GenericHeightMapService srv;
+static eastl::unique_ptr<GenericHeightMapService> srv;
+static bool srv_released = false;
 
-bool GenericHeightMapService::renderHm2ToFeedback()
+bool GenericHeightMapService::renderHm2ToFeedback(LandMeshRenderer &r)
 {
-  if (srv.hm2.texMainId == BAD_TEXTUREID && srv.hm2.texDetId == BAD_TEXTUREID)
+  if (srv->hm2.texMainId == BAD_TEXTUREID && srv->hm2.texDetId == BAD_TEXTUREID)
     return false;
-  srv.renderHm2(grs_cur_view.pos, false, false);
+  srv->renderHm2(r, grs_cur_view.pos, false, false);
   return true;
 }
 
 void *get_generic_hmap_service()
 {
-  static bool inited = false;
-  if (!inited)
+  if (!srv)
   {
-    srv.init();
-    inited = true;
+    G_ASSERT(!srv_released);
+    srv.reset(new GenericHeightMapService());
+    srv->init();
   }
-  return &srv;
+  return srv.get();
+}
+
+void release_generic_hmap_service()
+{
+  G_ASSERT(!srv_released);
+  srv_released = true;
+  srv.reset();
 }

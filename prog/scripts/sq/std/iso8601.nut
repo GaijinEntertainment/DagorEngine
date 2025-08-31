@@ -1,5 +1,4 @@
-
-let numbers = "012345678"
+const numbers = "012345678"
 
 let marks = {
   P = {
@@ -46,6 +45,6 @@ function parse_duration(str) {
   return res
 }
 
-return {
+return freeze({
   parse_duration
-}
+})

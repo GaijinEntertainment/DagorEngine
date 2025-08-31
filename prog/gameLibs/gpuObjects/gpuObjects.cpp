@@ -87,6 +87,9 @@ int biom_indexes_const_no = -1;
 int gpu_objects_indirect_params_const_no = -1;
 int gpu_objects_lod_offsets_buffer_const_no = -1;
 int gpu_objects_generation_params_const_no = -1;
+int gpu_objects_targetBuffer_reg_no = -1;
+int gpu_objects_offsets_reg_no = -1;
+int gpu_objects_matrices_reg_no = -1;
 
 const uint32_t DISPATCH_THREAD_AXIS = 4;
 
@@ -161,6 +164,9 @@ ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_til
     ShaderGlobal::get_int_fast(get_shader_variable_id("gpu_objects_lod_offsets_buffer_const_no"));
   gpu_objects_generation_params_const_no =
     ShaderGlobal::get_int_fast(get_shader_variable_id("gpu_objects_generation_params_const_no"));
+  gpu_objects_targetBuffer_reg_no = ShaderGlobal::get_int_fast(get_shader_variable_id("gpu_objects_targetBuffer_reg_no"));
+  gpu_objects_offsets_reg_no = ShaderGlobal::get_int_fast(get_shader_variable_id("gpu_objects_offsets_reg_no"));
+  gpu_objects_matrices_reg_no = ShaderGlobal::get_int_fast(get_shader_variable_id("gpu_objects_matrices_reg_no"));
 }
 
 ObjectManager::ObjectManager(ObjectManager &&) = default;
@@ -450,9 +456,9 @@ void ObjectManager::copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, c
   if (cells_to_copy.size() > 0 && matricessInCell > 0)
   {
     matricesOffsetsBuffer->updateData(0, sizeof(uint32_t) * matricesOffsets.size(), matricesOffsets.data(), 0);
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), dst_buffer);
-    STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, 0, VALUE), matricesOffsetsBuffer.get());
-    STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, 1, VALUE), src_buffer);
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, gpu_objects_targetBuffer_reg_no, VALUE), dst_buffer);
+    STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, gpu_objects_offsets_reg_no, VALUE), matricesOffsetsBuffer.get());
+    STATE_GUARD_NULLPTR(d3d::set_buffer(STAGE_CS, gpu_objects_matrices_reg_no, VALUE), src_buffer);
 
     ShaderGlobal::set_int(gpu_objects_max_count_in_cellVarId, max_in_cell);
     ShaderGlobal::set_int(gpu_objects_gather_target_offsetVarId, dst_offset_rows);
@@ -1124,7 +1130,6 @@ void GpuObjects::GatherBuffersJob::doJob()
 {
   if (threadIx == 0) // First one wakes the rest
     threadpool::wake_up_all();
-  TIME_PROFILE(GatherBuffersJob);
   for (int i = threadIx; i < thiz->objects.size(); i += countof(GpuObjects::gatherBuffersJobs))
     thiz->objects[i].gatherBuffers();
 }

@@ -16,7 +16,7 @@ static void initDagor(const char *base_path);
 class PassTextureNameResolver : public ITextureNameResolver
 {
 public:
-  virtual bool resolveTextureName(const char *src_name, String &out_str) { return false; }
+  bool resolveTextureName(const char *src_name, String &out_str) override { return false; }
 };
 
 int DagorWinMain(bool debugmode)

@@ -1,84 +1,60 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shaderPropSeparators.h"
-#include <Windows.h>
-#include <ioSys/dag_DataBlock.h>
-#include <dag/dag_vector.h>
+#include <ioSys/dag_dataBlock.h>
+#include <obsolete/dag_cfg.h>
 
 #define SEPARATOR_PREFIX "//!"
 constexpr int SEPARATOR_LENGTH = sizeof SEPARATOR_PREFIX - 1;
 
-static dag::Vector<eastl::string> getSectionNames(const eastl::string &path)
+static const char *get_separator_for_line(const CfgDiv &section, int line)
 {
-  dag::Vector<eastl::string> result;
+  for (int i = section.comm.size() - 1; i >= 0; --i)
+  {
+    const CfgComm &comment = section.comm[i];
+    if (line >= comment.ln && strncmp(comment.text, SEPARATOR_PREFIX, SEPARATOR_LENGTH) == 0)
+      return comment.text + SEPARATOR_LENGTH;
+  }
 
-  constexpr int MAX_BUF_FOR_SEC_NAMES = 8192;
-  TCHAR buff[MAX_BUF_FOR_SEC_NAMES];
-  DWORD size = ::GetPrivateProfileSectionNames(buff, MAX_BUF_FOR_SEC_NAMES, path.c_str()); // size not including the terminating null
-                                                                                           // character
-  eastl::string section;
-  for (int i = 0, start = 0; i <= size; i++)
-    if (buff[i] == '\0' && i > start + 1)
-    {
-      result.emplace_back(buff + start, buff + i);
-      start = i + 1;
-    }
-  return result;
+  return "";
 }
 
-
-static ShaderSeparatorToPropsType getSeparators(const eastl::string &path, const eastl::string &section)
+static ska::flat_hash_map<eastl::string, ShaderSeparatorToPropsType> parse_dagors_shader_cfg(const char *path)
 {
-  ShaderSeparatorToPropsType result;
+  CfgReader cfgReader;
+  if (cfgReader.readfile(path, /*clear = */ true, /*read_comments = */ true) == 0)
+    return {};
 
-  constexpr int MAX_CFG_DATA = 2048;
-  TCHAR buff[MAX_CFG_DATA];
-  DWORD size = ::GetPrivateProfileSection(section.c_str(), buff, MAX_CFG_DATA, path.c_str()); // size not including the terminating
-                                                                                              // null character
+  ska::flat_hash_map<eastl::string, ShaderSeparatorToPropsType> parameterSeperators;
+  ShaderSeparatorToPropsType separators;
 
-  eastl::string separator;
-
-  for (int i = 0, start = 0; i <= size; i++)
-    if (buff[i] == '\0' && i > start + 1)
+  for (const CfgDiv &section : cfgReader.div)
+  {
+    separators.clear();
+    for (const CfgVar &variable : section.var)
     {
-      eastl::string data(buff + start, buff + i);
-      eastl_size_t pos = data.find(SEPARATOR_PREFIX);
-      if (pos != eastl::string::npos)
-      {
-        separator = eastl::string(eastl::begin(data) + pos + SEPARATOR_LENGTH, eastl::end(data));
-        start = i + 1;
-        continue;
-      }
-      pos = data.find('=');
-      if (pos != eastl::string::npos)
-        result[separator].insert(data.substr(0, pos));
-      start = i + 1;
+      const char *separator = get_separator_for_line(section, variable.ln);
+      separators[separator].insert(variable.id);
     }
 
-  return result;
+    if (!separators.empty())
+      parameterSeperators.insert({section.id, separators});
+  }
+
+  return parameterSeperators;
 }
 
 ska::flat_hash_map<eastl::string, ShaderSeparatorToPropsType> gatherParameterSeparators(const DataBlock &appBlk, const char *appDir)
 {
-  ska::flat_hash_map<eastl::string, ShaderSeparatorToPropsType> result;
-
   const DataBlock *avBlock = appBlk.getBlockByName("asset_viewer");
   if (!avBlock)
-    return result;
+    return {};
 
   DataBlock::string_t relPath = avBlock->getStr("dagorShaderCfgLocation");
   if (!relPath)
-    return result;
+    return {};
 
   eastl::string path(appDir);
   path += relPath;
-
-  dag::Vector<eastl::string> sections = getSectionNames(path);
-  for (const eastl::string &section : sections)
-  {
-    ShaderSeparatorToPropsType separators = getSeparators(path, section);
-    if (!separators.empty())
-      result.emplace(section, eastl::move(separators));
-  }
-  return result;
+  return parse_dagors_shader_cfg(path.c_str());
 }

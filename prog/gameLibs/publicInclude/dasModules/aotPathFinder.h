@@ -41,6 +41,7 @@ namespace bind_dascript
 inline void find_path_common(Tab<Point3> &path, const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
+  path.reserve(path.size() + 1);
   das::Array arr;
   arr.data = (char *)path.data();
   arr.size = uint32_t(path.size());
@@ -79,6 +80,29 @@ inline pathfinder::FindPathResult find_path(const Point3 &start_pos, const Point
   find_path_common(path, block, context, at);
   return res;
 }
+inline pathfinder::FindPathResult find_any_path(const Point3 &start_pos, const Point3 &end_pos, const Point3 extents, float step_size,
+  float slop, const pathfinder::CustomNav *custom_nav,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> path(framemem_ptr());
+  const int inclFlags = POLYFLAGS_WALK | pathfinder::POLYFLAG_JUMP | pathfinder::POLYFLAG_LADDER | pathfinder::POLYFLAG_BLOCKED;
+  const pathfinder::FindPathResult res =
+    pathfinder::findPath(start_pos, end_pos, path, extents, step_size, slop, custom_nav, inclFlags, 0);
+
+  find_path_common(path, block, context, at);
+  return res;
+}
+inline pathfinder::FindPathResult find_path_with_flags(const Point3 &start_pos, const Point3 &end_pos, const Point3 extents,
+  float step_size, float slop, const pathfinder::CustomNav *custom_nav, int incl_flags,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> path(framemem_ptr());
+  const pathfinder::FindPathResult res =
+    pathfinder::findPath(start_pos, end_pos, path, extents, step_size, slop, custom_nav, incl_flags, 0);
+
+  find_path_common(path, block, context, at);
+  return res;
+}
 inline bool check_path_req(pathfinder::FindRequest &req, float horz_threshold, float max_vert_dist)
 {
   return pathfinder::check_path(req, horz_threshold, max_vert_dist);
@@ -113,6 +137,10 @@ inline bool project_to_nearest_navmesh_point_3d(das::float3 &pos, Point3 extents
 inline bool project_to_nearest_navmesh_point_no_obstacles_3d(das::float3 &pos, Point3 extents)
 {
   return pathfinder::project_to_nearest_navmesh_point_no_obstacles(reinterpret_cast<Point3 &>(pos), extents);
+}
+inline bool project_to_nearest_navmesh_point_no_obstacles_3d_ex(int nav_mesh_idx, das::float3 &pos, Point3 extents)
+{
+  return pathfinder::project_to_nearest_navmesh_point_no_obstacles_ex(nav_mesh_idx, reinterpret_cast<Point3 &>(pos), extents);
 }
 inline bool project_to_nearest_navmesh_point(das::float3 &pos, float horz_extents, pathfinder::CustomNav *custom_nav)
 {
@@ -235,6 +263,7 @@ inline void das_find_corridor_corners(dtPathCorridor &corridor, int num,
   const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   Tab<Point3> corners(framemem_ptr());
+  corners.reserve(num + 1);
   pathfinder::find_corridor_corners(corridor, corners, num);
   das::Array arr;
   arr.data = (char *)corners.data();
@@ -246,11 +275,12 @@ inline void das_find_corridor_corners(dtPathCorridor &corridor, int num,
   context->invoke(block, &arg, nullptr, at);
 }
 inline void das_find_corridor_corners_result(dtPathCorridor &corridor, int num,
-  const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>, das::TTemporary<pathfinder::FindCornersResult>>
+  const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>, const das::TTemporary<pathfinder::FindCornersResult>>
     &block,
   das::Context *context, das::LineInfoArg *at)
 {
   Tab<Point3> corners(framemem_ptr());
+  corners.reserve(num + 1);
   pathfinder::FindCornersResult res = pathfinder::find_corridor_corners(corridor, corners, num);
   das::Array arr;
   arr.data = (char *)corners.data();
@@ -284,6 +314,7 @@ inline int das_move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, cons
 {
   Tab<Point3> corners(framemem_ptr());
   const int result = pathfinder::move_over_offmesh_link_in_corridor(corridor, pos, extents, ctx, corners, over_link, out_from, out_to);
+  corners.reserve(corners.size() + 1);
   das::Array arr;
   arr.data = (char *)corners.data();
   arr.size = uint32_t(corners.size());

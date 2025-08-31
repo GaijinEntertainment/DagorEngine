@@ -164,6 +164,18 @@ void do_ui_blur_impl(const Tab<BBox2> &boxes)
   }
 }
 
+/* qdox @const daRg/ROBJ_WORLD_BLUR
+  Render object that blurs 'world' and use it as image of render object
+  Uses 'color' property, that change color of blurred scene
+  Uses 'fillColor' property, that added as color above blurred scene
+*/
+
+/* qdox @const daRg/ROBJ_WORLD_BLUR_PANEL
+  Render object that blurs 'world' and ui and use it as image of render object
+  Uses 'color' property, that change color of blurred scene
+  Uses 'fillColor' property, that added as color above blurred scene
+*/
+
 void register_blur_rendobj_factories(bool wt_compatibility_mode)
 {
   G_ASSERT(rendobj_world_blur_id < 0);

@@ -434,7 +434,7 @@ void GeomObject::setDefNodeVis()
 //==============================================================================
 void GeomObject::setNodeVis(const Bitarray &from)
 {
-  for (int i = 0; i < __min(from.size(), nodeVis.size()); ++i)
+  for (int i = 0; i < ::min(from.size(), nodeVis.size()); ++i)
     nodeVis.set(i, from[i]);
 }
 

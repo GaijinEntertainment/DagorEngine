@@ -29,13 +29,16 @@ ECS_DECLARE_RELOCATABLE_TYPE(AnimV20::AnimcharRendComponent);
 ECS_DECLARE_RELOCATABLE_TYPE(AnimcharNodesMat44);
 
 #if DAECS_EXTENSIVE_CHECKS
-#define ANIMCHAR_VERIFY_NODE_POS_S(pos, nidx, animchar)                                                        \
-  G_ASSERTF(!check_nan(pos) && (pos).lengthSq() < 1e10f, "Bad node %d(%s) pos=%@ of animchar '%s'", (int)nidx, \
-    (animchar).getNodeTree().getNodeName(dag::Index16(nidx)), pos, (animchar).getCreateInfo()->resName)
-#define ANIMCHAR_VERIFY_NODE_POS(vpos, nidx, animchar)                                                                      \
-  G_ASSERTF(!check_nan(as_point3(&vpos)) && v_extract_x(v_length3_sq_x(vpos)) < 1e10f,                                      \
-    "Bad node %d(%s) pos=(%f,%f,%f) of animchar '%s'", (int)nidx, (animchar).getNodeTree().getNodeName(dag::Index16(nidx)), \
-    v_extract_x(vpos), v_extract_y(vpos), v_extract_z(vpos), (animchar).getCreateInfo()->resName)
+#define ANIMCHAR_VERIFY_NODE_POS_S(pos, nidx, animchar)                                                                          \
+  G_ASSERTF(!check_nan(pos) && (pos).lengthSq() < 1e10f, "Bad node %d(%s) pos=%@ of animchar '%s' wtmOfs=(%f,%f,%f)", (int)nidx, \
+    (animchar).getNodeTree().getNodeName(dag::Index16(nidx)), pos, (animchar).getCreateInfo()->resName,                          \
+    v_extract_x((animchar).getWtmOfs()), v_extract_y((animchar).getWtmOfs()), v_extract_z((animchar).getWtmOfs()))
+#define ANIMCHAR_VERIFY_NODE_POS(vpos, nidx, animchar)                                                                 \
+  G_ASSERTF(!check_nan(as_point3(&vpos)) && v_extract_x(v_length3_sq_x(vpos)) < 1e10f,                                 \
+    "Bad node %d(%s) pos=(%f,%f,%f) of animchar '%s' wtmOfs=(%f,%f,%f)", (int)nidx,                                    \
+    (animchar).getNodeTree().getNodeName(dag::Index16(nidx)), v_extract_x(vpos), v_extract_y(vpos), v_extract_z(vpos), \
+    (animchar).getCreateInfo()->resName, v_extract_x((animchar).getWtmOfs()), v_extract_y((animchar).getWtmOfs()),     \
+    v_extract_z((animchar).getWtmOfs()))
 #else
 #define ANIMCHAR_VERIFY_NODE_POS_S(vpos, nidx, animchar) ((void)0)
 #define ANIMCHAR_VERIFY_NODE_POS(vpos, nidx, animchar)   ((void)0)

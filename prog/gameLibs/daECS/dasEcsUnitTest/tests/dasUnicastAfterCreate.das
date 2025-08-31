@@ -15,7 +15,7 @@ var
 def sendDasEmptyUnicastEvent(counter : int)
   if counter != 0
     let eid = createEntity("unicastAfterCreateEntity")
-    sendEvent(eid, [[UnicastAfterCreateTestEvent counter = counter]])
+    sendEvent(eid, UnicastAfterCreateTestEvent(counter = counter))
     debug("Sending UnicastAfterCreateTestEvent event to {int(uint(eid))}")
     sent++
 

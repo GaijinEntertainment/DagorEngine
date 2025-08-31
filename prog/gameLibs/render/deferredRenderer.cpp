@@ -130,6 +130,7 @@ void ShadingResolver::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm
       ShaderGlobal::set_int(tiledInvocationVarId, 1);
 
       const int permutationsCount = (1 << resolvePermutations.varCount);
+      d3d::driver_command(Drv3dCommand::DELAY_SYNC);
       for (int i = 0; i < permutationsCount; ++i)
       {
         if (i > 0)
@@ -150,6 +151,7 @@ void ShadingResolver::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm
         ShaderGlobal::set_buffer(tileCoordinatesVarId, tileBufs[i]);
         resolveShadingCS->dispatch_indirect(indirectArguments.getBuf(), i * 3 * sizeof(uint32_t));
       }
+      d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
     }
 
     // Restore saved state
@@ -227,7 +229,7 @@ void ShadingResolver::recreateTileBuffersIfNeeded(const int w, const int h)
   tiles_w = new_tiles_w;
   tiles_h = new_tiles_h;
 
-  d3d::clear_rwbufi(tileCounters.getBuf(), ZERO_PTR<unsigned>());
+  d3d::zero_rwbufi(tileCounters.getBuf());
 }
 
 void ShadingResolver::debugTiles(BaseTexture *resolveTarget)
@@ -264,7 +266,7 @@ DeferredRenderTarget::~DeferredRenderTarget() = default;
 void DeferredRenderTarget::resourceBarrier(ResourceBarrier barrier)
 {
   for (int i = 0; i < renderTargets.getRtNum(); ++i)
-    if (Texture *rt = renderTargets.getRt(i))
+    if (Texture *rt = renderTargets.getRt(i, true))
       d3d::resource_barrier({rt, barrier, 0, 0});
   if (Texture *ds = renderTargets.getDepth())
     d3d::resource_barrier({ds, barrier, 0, 0});

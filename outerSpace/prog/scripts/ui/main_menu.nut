@@ -1,29 +1,29 @@
 from "%darg/ui_imports.nut" import *
-from "widgets/simpleComponents.nut" import mkCombo, menuBtn, normalCursor, headerTxt
+from "%scripts/ui/widgets/simpleComponents.nut" import mkCombo, menuBtn, normalCursor, headerTxt
 from "json" import parse_json, object_to_json_string
 
 from "%sqstd/functools.nut" import tryCatch
 from "%sqstd/string.nut" import tostring_r
 from "string" import format
-from "widgets/msgbox.nut" import showWarning, showMsgbox
-from "http_task.nut" import HttpPostTask, mkJsonHttpReq
-from "backend_api.nut" import get_master_server_url
+from "%scripts/ui/widgets/msgbox.nut" import showWarning, showMsgbox
+from "%scripts/ui/http_task.nut" import HttpPostTask, mkJsonHttpReq
+from "%scripts/ui/backend_api.nut" import get_master_server_url
 from "dagor.workcycle" import defer
 from "dagor.time" import unixtime_to_local_timetbl, get_local_unixtime
 let DngBhv = require("dng.behaviors")
-let { setOfflineSessionParams, isInMainMenu, ulog, launch_network_session } = require("app_state.nut")
+let { setOfflineSessionParams, isInMainMenu, ulog, launch_network_session, launch_internal_dedicated_server } = require("%scripts/ui/app_state.nut")
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
-let { mainLogin, userUid, isOfflineMode, desiredUserName, userName, reloginUI, logout } = require("login.nut")
-let { showGameMenu, gameMenu } = require("game_menu.nut")
+let { mainLogin, userUid, isOfflineMode, desiredUserName, userName, reloginUI, logout } = require("%scripts/ui/login.nut")
+let { showGameMenu, gameMenu } = require("%scripts/ui/game_menu.nut")
 //let {get_user_system_info=@() null} = require_optional("sysinfo")
 
 let unused = @(...) null
 
 let mkRoomInfo = kwarg(@(roomId, scene=null, sessionId=null,
     users=null, hostIp = null, hostPort=null, params=null, timeCreated=null,
-    owner_uid=null, creater_nick=null, lastTimeUsed=null, timeSessionStarted=null, authKey=null, encKey=null
+    owner_uid=null, creater_nick=null, lastTimeUsed=null, timeSessionStarted=null, authKey=null, encKey=null, cmd_args=null
   )
-    unused(lastTimeUsed, timeSessionStarted) ?? freeze({roomId, scene, sessionId, users, hostPort, hostIp, timeCreated, params, creater_nick, owner_uid, encKey, authKey})
+    unused(lastTimeUsed, timeSessionStarted) ?? freeze({roomId, scene, sessionId, users, hostPort, hostIp, timeCreated, params, creater_nick, owner_uid, encKey, authKey, cmd_args})
 )
 
 let scenes = [{value = "gamedata/scenes/planet_orbit.blk", text = "Planet Orbit"}, {value = "gamedata/scenes/gaija_planet.blk", text = "Planet Surface"}]
@@ -226,10 +226,22 @@ function mkRoomsUi() {
     function(res) {
       let startedRoomInfo = mkRoomInfo(res)
       ulog("onRequestStart", startedRoomInfo)
-      joinedRoomInfo.set(startedRoomInfo)
+
+      let connectTo = startedRoomInfo?.hostPort ? $"{startedRoomInfo.hostIp}:{startedRoomInfo.hostPort}" : startedRoomInfo.hostIp
+      let sessionParams = {sessionId=startedRoomInfo?.sessionId ?? 0, host_urls = [connectTo]}
+      if (startedRoomInfo?.authKey)
+        sessionParams.authKey <- startedRoomInfo?.authKey
+      if (startedRoomInfo?.encKey)
+        sessionParams.encKey <- startedRoomInfo?.encKey
+      sessionParams.cmd_args <- startedRoomInfo?.cmd_args
+
+      if(res.cmd_args != "")
+        launch_internal_dedicated_server(sessionParams)
+      res.cmd_args = null
+      joinedRoomInfo.set(mkRoomInfo(res))
     }
   )
-  function startSession() {
+  function startSession(isLocal, isLan) {
     let scene = joinedRoomInfo.get()["scene"]
     ulog("Start", scene, $"offline: {offlineSession.get()}")
 //    isInMainMenu.set(false)
@@ -248,21 +260,35 @@ function mkRoomsUi() {
         showWarning("Not logged in")
         return
       }
-      requestStartSession({userid, roomId})
+      if(isLocal) {
+        let hostIp = "127.0.0.1"
+        let hostPort = 20000
+        if(isLan)
+          requestStartSession({userid, roomId, hostIp, hostPort, isLan})
+        else
+          requestStartSession({userid, roomId, hostIp, hostPort})
+      }
+      else {
+        requestStartSession({userid, roomId})
+      }
+
     }
   }
 
-  function startAction(){
+  function startAction(isLocal,isLan){
     if (isOfflineMode.get()) {
-      startSession()
+      startSession(false,false)
       return
     }
-    showMsgbox({text = "Start session?", buttons= [
-      {text = "Start", onClick = startSession, customStyle={hotkeys = [["Enter"]]}}
+
+    showMsgbox({text = $"Start session? (isLocal:{isLocal} isLan:{isLan})", buttons= [
+      {text = "Start", onClick = @() startSession(isLocal, isLan), customStyle={hotkeys = [["Enter"]]}}
       {text = "Wait", onClick = @() null, customStyle={hotkeys = [["Esc"]]}}
     ]})
   }
-  let startSessionBtn = menuBtn("Start", startAction)
+  let startLocalLanSessionBtn = menuBtn("Start local LAN", @() startAction(true, true))
+  let startLocalSessionBtn = menuBtn("Start local", @() startAction(true, false))
+  let startSessionBtn = menuBtn("Start on dedic", @() startAction(false, false))
 
   function mkRoomStateUi(panel, buttons, header=null) {
     let headerUi = header!=null ? {children = headerTxt(header) animations = headerAnimations key = header transform = {}} : null
@@ -282,7 +308,7 @@ function mkRoomsUi() {
       animations = boxAnimations
       transform = {}
       children = [
-        {size = [sw(50), sh(50)] children = panel, clipChildren=true}
+        {size = static [sw(50), sh(50)] children = panel, clipChildren=true}
         buttons
       ]
     }
@@ -299,7 +325,7 @@ function mkRoomsUi() {
     if (isOfflineMode.get())
       hotkeys.append(["^Esc", leaveRoomAction], ["^Enter", startAction])
     else if (curStatus.get()==READY_STATUS){
-      hotkeys.append(["^Esc", setNotReady], ["^Enter", startAction])
+      hotkeys.append(["^Esc", setNotReady], ["^Enter", @() startAction(true, false)])
     }
     else if (curStatus.get()==NOT_READY_STATUS){
       hotkeys.append(["^Esc", leaveRoomAction], ["^Enter", setReady])
@@ -319,6 +345,8 @@ function mkRoomsUi() {
       children = [
         leaveRoomsBtn,
         joinedRoomInfoError.get()!=null || isOfflineMode.get() ? null : (curStatus.get()==READY_STATUS ? notReadyBtn : readyBtn),
+        joinedRoomInfoError.get() ==null ? startLocalLanSessionBtn : null,
+        joinedRoomInfoError.get() ==null ? startLocalSessionBtn : null,
         joinedRoomInfoError.get() ==null ? startSessionBtn : null,
         hotkeysRoomHandler
       ]
@@ -499,7 +527,7 @@ function mkRoomsUi() {
   function roomDbgInfoTxt(){
     return {
       watch = joinedRoomInfo
-      size = [flex(), sh(40)]
+      size = static [flex(), sh(40)]
       rendObj = ROBJ_TEXTAREA
       behavior = [Behaviors.TextArea,Behaviors.WheelScroll]
       preformatted = true
@@ -517,8 +545,8 @@ function mkRoomsUi() {
     ]}
   }
   let playersInfoTitle = freeze({
-    halign = ALIGN_CENTER margin = [0, 0, hdpx(10), 0]
-    size = [flex(), SIZE_TO_CONTENT]
+    halign = ALIGN_CENTER margin = static [0, 0, hdpx(10), 0]
+    size = FLEX_H
     children = {rendObj = ROBJ_TEXT text = "Players" fontSize=hdpx(30)}
   })
 
@@ -530,7 +558,7 @@ function mkRoomsUi() {
       children.append({
         flow = FLOW_HORIZONTAL
         gap = hdpx(10)
-        size = [flex(), SIZE_TO_CONTENT]
+        size = FLEX_H
         children = [
           {rendObj = ROBJ_TEXT text = user?.nick}
           {rendObj = ROBJ_TEXT text = status color = status==READY_STATUS
@@ -610,6 +638,7 @@ function mkRoomsUi() {
         sessionParams.authKey <- room_info?.authKey
       if (room_info?.encKey)
         sessionParams.encKey <- room_info?.encKey
+      sessionParams.cmd_args <- room_info?.cmd_args
       launch_network_session(sessionParams)
     }
   }
@@ -629,10 +658,10 @@ function mkRoomsUi() {
 
 let mainMenu = function() {
   let children = [background]
-   if (showGameMenu.get())
-     children.append(gameMenu)
-   else
-     children.append(userUid.get()!=null ? mkRoomsUi() : mainLogin)
+  if (showGameMenu.get())
+    children.append(gameMenu)
+  else
+    children.append(userUid.get()!=null ? mkRoomsUi() : mainLogin)
   children.append(menuBtn("Menu", @() showGameMenu.set(true)))
   return {
     watch = [userUid, showGameMenu]

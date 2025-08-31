@@ -146,7 +146,6 @@ void RenderableEditableObject::setWtm(const TMatrix &wtm)
 }
 
 
-// virtual Point3 getPos();
 Point3 RenderableEditableObject::getSize() const
 {
   return Point3(matrix.getcol(0).length(), matrix.getcol(1).length(), matrix.getcol(2).length());
@@ -253,7 +252,10 @@ void RenderableEditableObject::scaleObject(const Point3 &delta, const Point3 &or
 
   if (basis == IEditorCoreEngine::BASIS_Local)
   {
-    setMatrix(getMatrix() * dtm);
+    const Matrix3 newMatrix = getMatrix() * dtm;
+    if (newMatrix.det() <= 1e-12)
+      return;
+    setMatrix(newMatrix);
 
     if (objEditor && IEditorCoreEngine::get()->getGizmoCenterType() == IEditorCoreEngine::CENTER_Selection)
     {
@@ -265,10 +267,13 @@ void RenderableEditableObject::scaleObject(const Point3 &delta, const Point3 &or
   else
   {
     float wtm_det = getWtm().det();
-    if (fabsf(wtm_det) < 1e-12)
+    if (fabsf(wtm_det) <= 1e-12)
       return;
     Point3 lorg = inverse(getWtm(), wtm_det) * origin;
-    setMatrix(dtm * getMatrix());
+    const Matrix3 newMatrix = dtm * getMatrix();
+    if (newMatrix.det() <= 1e-12)
+      return;
+    setMatrix(newMatrix);
     setPos(getPos() + origin - getWtm() * lorg);
   }
 }

@@ -11,40 +11,21 @@
 
 #define APP_EVENT_HANDLER_VOID(command)                                                               \
   if (main.gizmoEH->getGizmoClient() && main.gizmoEH->getGizmoType() != IEditorCoreEngine::MODE_None) \
-    main.gizmoEH->##command;                                                                          \
+    main.gizmoEH->command;                                                                            \
   else if (main.ged.curEH)                                                                            \
-    main.ged.curEH->##command;
+    main.ged.curEH->command;
 
 #define APP_EVENT_HANDLER_BOOL(command)                                                                    \
   if (main.brushEH->isActive())                                                                            \
   {                                                                                                        \
-    if (!main.brushEH->##command && main.ged.curEH)                                                        \
-      return main.ged.curEH->##command;                                                                    \
+    if (!main.brushEH->command && main.ged.curEH)                                                          \
+      return main.ged.curEH->command;                                                                      \
   }                                                                                                        \
   else if (main.gizmoEH->getGizmoClient() && main.gizmoEH->getGizmoType() != IEditorCoreEngine::MODE_None) \
-    return main.gizmoEH->##command;                                                                        \
+    return main.gizmoEH->command;                                                                          \
   else if (main.ged.curEH)                                                                                 \
-    return main.ged.curEH->##command;                                                                      \
+    return main.ged.curEH->command;                                                                        \
   return false;
-
-
-//==============================================================================
-void GenericEditorAppWindow::AppEventHandler::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  const bool isFly = wnd && wnd->isFlyMode();
-
-  if (!isFly)
-  {
-    APP_EVENT_HANDLER_VOID(handleKeyPress(wnd, vk, modif));
-  }
-}
-
-
-//==============================================================================
-void GenericEditorAppWindow::AppEventHandler::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-{
-  APP_EVENT_HANDLER_VOID(handleKeyRelease(wnd, vk, modif));
-}
 
 
 //==============================================================================

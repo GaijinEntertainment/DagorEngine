@@ -3,17 +3,16 @@ texture wounds_decal_array;
 texture burned_cloth;
 texture burned_flesh;
 
-float blood_wound_meat_smoothness = 0.8;
-float blood_wound_meat_reflectance = 0.21;
-float blood_wound_meat_intensity_border = 0.2;
-float blood_wound_meat_edge_scale = 0.3;
-float4 blood_wound_meat_color_high_intensity = (0.007, 0, 0, 1);
-float4 blood_wound_meat_color_low_intensity = (0.002, 0, 0, 1);
-float4 blood_wound_skin_meat_color_high_intensity = (0.007, 0, 0, 1);
-float4 blood_wound_skin_meat_color_low_intensity = (0.002, 0, 0, 1);
+float blood_wound_flesh_smoothness = 0.8;
+float blood_wound_flesh_reflectance = 0.21;
+float blood_wound_flesh_intensity_border = 0.2;
+float blood_wound_flesh_edge_scale = 0.3;
+float4 blood_wound_flesh_color_high_intensity = (0.007, 0, 0, 1);
+float4 blood_wound_flesh_color_low_intensity = (0.002, 0, 0, 1);
+float4 blood_wound_skin_flesh_color_high_intensity = (0.007, 0, 0, 1);
+float4 blood_wound_skin_flesh_color_low_intensity = (0.002, 0, 0, 1);
 
-float4 blood_wound_angle_dist_fadeoff_range = (-0.25, 1.25, 0.25, 1.0);
-float blood_wound_angle_free_zone = 0.85;
+float4 blood_wound_angle_dist_fadeoff_range = (0.0, 0.9, 1.0, 0.55);
 
 float blood_wound_dark_albedo_compensation_factor = 0.04;
 float blood_wound_low_porosity_reflectance = 0.3;
@@ -47,21 +46,21 @@ macro INIT_PROJECTIVE_WOUNDS()
   blood_brightness@f1 = blood_brightness;
 }
 
-local float blood_wound_puddle_begin_thickness = 1.0 - blood_wound_meat_intensity_border;
-local float blood_wound_puddle_edge_thickness_width = blood_wound_puddle_begin_thickness*blood_wound_meat_edge_scale;
+local float blood_wound_flesh_begin_thickness = 1.0 - blood_wound_flesh_intensity_border;
+local float blood_wound_flesh_edge_thickness_width = blood_wound_flesh_begin_thickness*blood_wound_flesh_edge_scale;
 
 (ps) {
-  blood_wound_meat_smoothness@f1 = blood_wound_meat_smoothness;
-  blood_wound_meat_reflectance@f1 = blood_wound_meat_reflectance;
-  blood_wound_puddle_begin_thickness@f1 = blood_wound_puddle_begin_thickness;
-  blood_wound_meat_edge_scale@f1 = blood_wound_meat_edge_scale;
-  blood_wound_puddle_edge_thickness_width@f1 = blood_wound_puddle_edge_thickness_width;
-  blood_wound_puddle_edge_ending_thickness@f1 = (blood_wound_puddle_begin_thickness + blood_wound_puddle_edge_thickness_width);
-  blood_wound_meat_color_high_intensity@f3 = blood_wound_meat_color_high_intensity.xyz;
-  blood_wound_meat_color_low_intensity@f3 = blood_wound_meat_color_low_intensity.xyz;
-  blood_wound_skin_meat_color_high_intensity@f3 = blood_wound_skin_meat_color_high_intensity.xyz;
-  blood_wound_skin_meat_color_low_intensity@f3 = blood_wound_skin_meat_color_low_intensity.xyz;
-  one_minus_blood_puddle_begin_thickness@f1 = (1.0 - blood_wound_puddle_begin_thickness);
+  blood_wound_flesh_smoothness@f1 = blood_wound_flesh_smoothness;
+  blood_wound_flesh_reflectance@f1 = blood_wound_flesh_reflectance;
+  blood_wound_flesh_begin_thickness@f1 = blood_wound_flesh_begin_thickness;
+  blood_wound_flesh_edge_scale@f1 = blood_wound_flesh_edge_scale;
+  blood_wound_flesh_edge_thickness_width@f1 = blood_wound_flesh_edge_thickness_width;
+  blood_wound_flesh_edge_ending_thickness@f1 = (blood_wound_flesh_begin_thickness + blood_wound_flesh_edge_thickness_width);
+  blood_wound_flesh_color_high_intensity@f3 = blood_wound_flesh_color_high_intensity.xyz;
+  blood_wound_flesh_color_low_intensity@f3 = blood_wound_flesh_color_low_intensity.xyz;
+  blood_wound_skin_flesh_color_high_intensity@f3 = blood_wound_skin_flesh_color_high_intensity.xyz;
+  blood_wound_skin_flesh_color_low_intensity@f3 = blood_wound_skin_flesh_color_low_intensity.xyz;
+  one_minus_flesh_puddle_begin_thickness@f1 = (1.0 - blood_wound_flesh_begin_thickness);
 
   blood_wound_dark_albedo_compensation_factor@f1 = blood_wound_dark_albedo_compensation_factor;
   blood_wound_low_porosity_reflectance@f1 = blood_wound_low_porosity_reflectance;
@@ -73,7 +72,6 @@ local float blood_wound_puddle_edge_thickness_width = blood_wound_puddle_begin_t
 
   blood_wound_angle_fadeoff_range@f2 = blood_wound_angle_dist_fadeoff_range.xy;
   blood_wound_dist_fadeoff_range@f2 = blood_wound_angle_dist_fadeoff_range.zw;
-  blood_wound_angle_free_zone@f1 = blood_wound_angle_free_zone;
 }
 
 endmacro

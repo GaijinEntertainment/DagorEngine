@@ -23,7 +23,7 @@ CONSOLE_BOOL_VAL("gi", gi_media_scene_update_from_gbuf, true);
   VAR(dagi_media_scene_atlas_decode)      \
   VAR(dagi_media_scene_samplerstate)
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -65,6 +65,11 @@ void DaGIMediaScene::initVars()
 
 void DaGIMediaScene::init(uint32_t w, uint32_t d, uint32_t media_scene_clips, float voxel0)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
   media_scene_clips = max<int>(media_scene_clips, 1);
   if (w == clipW && d == clipD && clipmap.size() == media_scene_clips && voxel0 == voxelSize0)
     return;
@@ -78,7 +83,6 @@ void DaGIMediaScene::init(uint32_t w, uint32_t d, uint32_t media_scene_clips, fl
   dagi_media_scene.close();
   // TEXFMT_R11G11B10F
   dagi_media_scene = dag::create_voltex(clipW, clipW, fullAtlasResD, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "dagi_media_scene");
-  dagi_media_scene->disableSampler();
   dagi_media_scene_samplerstateVarId.set_sampler(d3d::request_sampler({}));
   ShaderGlobal::set_int4(dagi_media_scene_clipmap_sizeiVarId, clipW, clipD, clipmap.size(), clipD + 2);
 
@@ -170,13 +174,18 @@ void DaGIMediaScene::updatePos(const Point3 &world_pos, bool update_all)
   d3d::resource_barrier({dagi_media_scene.getVolTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | stageAll, 0, 0});
 }
 
-void DaGIMediaScene::afterReset()
+void DaGIMediaScene::resetHistoryAge()
 {
   for (int i = 0, ie = clipmap.size(); i < ie; ++i)
   {
     clipmap[i] = Clip();
     setClipVars(i);
   }
+}
+
+void DaGIMediaScene::afterReset()
+{
+  resetHistoryAge();
   cleared = false;
 }
 

@@ -77,10 +77,15 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
       if (tex)
       {
         tex->getinfo(info, (int)ARG1);
-        switch (info.resType)
+        switch (info.type)
         {
-          case RES3D_ARRTEX: info.d = info.a; break;
-          case RES3D_CUBEARRTEX: info.d = info.a / 6; break;
+          case D3DResourceType::ARRTEX: info.d = info.a; break;
+          case D3DResourceType::CUBEARRTEX: info.d = info.a / 6; break;
+
+          case D3DResourceType::TEX:
+          case D3DResourceType::CUBETEX:
+          case D3DResourceType::VOLTEX:
+          case D3DResourceType::SBUF: break;
         }
       }
       else
@@ -137,7 +142,7 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
         in_regs[0]);
       G_ASSERTF_BREAK(dump->globVars.getType(in_regs[0]) == SHVT_SAMPLER,
         "Invalid sampler var id %d type used for call 'request_sampler' intrinsic", in_regs[0]);
-      auto &smp = dump->globVars.get<d3d::SamplerHandle>(in_regs[0]);
+      auto &smp = shBinDumpOwner().globVarsState.get<d3d::SamplerHandle>(in_regs[0]);
       smp = d3d::request_sampler(info);
 
       stcode::dbg::record_request_sampler(stcode::dbg::RecordType::REFERENCE, info);

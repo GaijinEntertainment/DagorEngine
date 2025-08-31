@@ -13,10 +13,9 @@
 #include <rendInst/rendInstGen.h>
 #include <gui/dag_visualLog.h>
 #include "main/level.h"
-#include "../helpers.h"
+#include <groundHolesCore/helpers.h>
 
 ECS_ON_EVENT(EventLevelLoaded)
-ECS_REQUIRE(Point4 ground_holes_scale_offset, int ground_holes_main_tex_size)
 static void ground_holes_on_level_loaded_es(const ecs::Event &, uint8_t &ground_holes_gen)
 {
   if (hasGroundHoleManager())
@@ -47,10 +46,12 @@ template <typename Callable>
 static void gather_holes_ecs_query(Callable c);
 
 ECS_TRACK(ground_holes_gen)
-static void ground_holes_update_coll_es(const ecs::Event &, uint8_t &ground_holes_gen)
+ECS_ON_EVENT(on_appear)
+static void ground_holes_update_coll_es(const ecs::Event &, uint8_t &ground_holes_gen, bool *should_render_ground_holes)
 {
   LandMeshManager *lmeshMgr = getLmeshMgr();
-  G_ASSERT_RETURN(lmeshMgr, ); // `ground_holes_gen` shall not be changed without groundHolesMgr
+  if (!lmeshMgr)
+    return;
   // To consider: may be wait for gameObjects's creation before starting to prepare rendInsts?
   if (DAGOR_UNLIKELY(!rendinst::isRIGenPrepareFinished()))
   {
@@ -66,4 +67,6 @@ static void ground_holes_update_coll_es(const ecs::Event &, uint8_t &ground_hole
   });
 
   lmeshMgr->clearAndAddHoles(holes);
+  if (should_render_ground_holes)
+    *should_render_ground_holes = true;
 }

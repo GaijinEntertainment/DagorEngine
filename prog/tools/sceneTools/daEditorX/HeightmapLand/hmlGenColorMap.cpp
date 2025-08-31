@@ -25,9 +25,14 @@
 #include <util/dag_oaHashNameMap.h>
 #include <debug/dag_debug.h>
 #include <stdio.h>
+
+#if _TARGET_PC_WIN
 #include <windows.h>
 #include <tchar.h>
 #undef ERROR
+#else
+#define _T(X) "" X
+#endif
 
 using editorcore_extapi::dagGeom;
 using editorcore_extapi::dagRender;
@@ -134,24 +139,24 @@ public:
 
   ScriptParamInt(const char *name, int val) : ScriptParam(name), value(val), paramPid(-1) {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     paramPid = pid++;
     panel.createEditInt(paramPid, paramName, value);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid != paramPid)
       return;
     value = panel.getInt(pid);
   }
 
-  virtual void save(DataBlock &blk) { blk.setInt(paramName, value); }
+  void save(DataBlock &blk) override { blk.setInt(paramName, value); }
 
-  virtual void load(const DataBlock &blk) { value = blk.getInt(paramName, value); }
+  void load(const DataBlock &blk) override { value = blk.getInt(paramName, value); }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -170,24 +175,24 @@ public:
 
   ScriptParamReal(const char *name, real val) : ScriptParam(name), value(val), paramPid(-1) {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     paramPid = pid++;
     panel.createEditFloat(paramPid, paramName, value);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid != paramPid)
       return;
     value = panel.getFloat(pid);
   }
 
-  virtual void save(DataBlock &blk) { blk.setReal(paramName, value); }
+  void save(DataBlock &blk) override { blk.setReal(paramName, value); }
 
-  virtual void load(const DataBlock &blk) { value = blk.getReal(paramName, value); }
+  void load(const DataBlock &blk) override { value = blk.getReal(paramName, value); }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -206,24 +211,24 @@ public:
 
   ScriptParamColor(const char *name, E3DCOLOR val) : ScriptParam(name), value(val), paramPid(-1) {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     paramPid = pid++;
     panel.createColorBox(paramPid, paramName, value);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid != paramPid)
       return;
     value = panel.getColor(pid);
   }
 
-  virtual void save(DataBlock &blk) { blk.setE3dcolor(paramName, value); }
+  void save(DataBlock &blk) override { blk.setE3dcolor(paramName, value); }
 
-  virtual void load(const DataBlock &blk) { value = blk.getE3dcolor(paramName, value); }
+  void load(const DataBlock &blk) override { value = blk.getE3dcolor(paramName, value); }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -253,9 +258,9 @@ public:
     imageIndex = HmapLandPlugin::self->getScriptImage(paramName, divisor, bpp); // preload image
   }
 
-  virtual void *get_interface(int id) { return id == 'Mask' ? this : NULL; }
+  void *get_interface(int id) override { return id == 'Mask' ? this : NULL; }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     bool isEditImage = HmapLandPlugin::self->getEditedScriptImage() == this;
     buttonPid = pid++;
@@ -268,9 +273,9 @@ public:
     panel.createButton(editButtonPid, isEditImage ? "Done" : "Edit", true, false);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) {}
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == buttonPid)
     {
@@ -292,11 +297,11 @@ public:
     }
   }
 
-  virtual void save(DataBlock &main_blk) {}
+  void save(DataBlock &main_blk) override {}
 
-  virtual void load(const DataBlock &main_blk) {}
+  void load(const DataBlock &main_blk) override {}
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -382,9 +387,9 @@ public:
     channel(IHmapBrushImage::CHANNEL_RGB)
   {}
 
-  virtual void *get_interface(int id) { return (id == 'Mask' || id == 'Img') ? this : NULL; }
+  void *get_interface(int id) override { return (id == 'Mask' || id == 'Img') ? this : NULL; }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
 
     PropPanel::ContainerPropertyControl *op = panel.createGroup(pid++, paramName);
@@ -437,7 +442,7 @@ public:
     op->setBoolValue(true);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == detailTypePid)
       detailType = panel.getInt(detailTypePid);
@@ -463,7 +468,7 @@ public:
       showMask = panel.getBool(pid);
   }
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == buttonPid)
     {
@@ -487,7 +492,7 @@ public:
     }
   }
 
-  virtual void save(DataBlock &main_blk)
+  void save(DataBlock &main_blk) override
   {
     DataBlock &blk = *main_blk.addBlock(paramName);
 
@@ -505,7 +510,7 @@ public:
     blk.setBool("showMask", showMask);
   }
 
-  virtual void load(const DataBlock &main_blk)
+  void load(const DataBlock &main_blk) override
   {
     const DataBlock &blk = *main_blk.getBlockByNameEx(paramName);
     const char *name = blk.getStr("name", NULL);
@@ -524,7 +529,7 @@ public:
     showMask = blk.getBool("showMask", true);
   }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -533,7 +538,7 @@ public:
     sq_pop(vm, 1);
   }
 
-  virtual void finishEdit(PropPanel::ContainerPropertyControl &panel)
+  void finishEdit(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setCaption(editButtonPid, "Edit");
     panel.setEnabledById(channelsComboPid, true);
@@ -565,7 +570,7 @@ public:
   E3DCOLOR sampleImagePixelTrueAlpha();
   void paintImage(E3DCOLOR color);
 
-  E3DCOLOR ScriptParamImage::sampleImageAt(real u, real v)
+  E3DCOLOR sampleImageAt(real u, real v)
   {
     flipAndSwapUV(u, v);
 
@@ -606,13 +611,13 @@ public:
     registerAsset();
     LandClassSlotsManager::subscribeLandClassUpdateNotify(this);
   }
-  ~ScriptParamLandClass()
+  ~ScriptParamLandClass() override
   {
     unregisterAsset();
     LandClassSlotsManager::unsubscribeLandClassUpdateNotify(this);
   }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     buttonPid = pid;
     panel.createIndent();
@@ -624,9 +629,9 @@ public:
     pid += 2;
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) {}
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == buttonPid)
     {
@@ -649,14 +654,14 @@ public:
     }
   }
 
-  virtual void save(DataBlock &main_blk)
+  void save(DataBlock &main_blk) override
   {
     DataBlock &blk = *main_blk.addBlock(paramName);
 
     blk.setStr("asset", asset);
   }
 
-  virtual void load(const DataBlock &main_blk)
+  void load(const DataBlock &main_blk) override
   {
     const DataBlock &blk = *main_blk.getBlockByNameEx(paramName);
     const char *name = blk.getStr("asset", NULL);
@@ -665,7 +670,7 @@ public:
     registerAsset();
   }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     int det_layer_id = HmapLandPlugin::self->getDetLayerIdx();
     sq_pushroottable(vm);
@@ -744,7 +749,7 @@ public:
   }
 
   // IAssetUpdateNotify interface
-  virtual void onLandClassAssetChanged(landclass::AssetData *data)
+  void onLandClassAssetChanged(landclass::AssetData *data) override
   {
     if (assetData == data)
     {
@@ -753,8 +758,8 @@ public:
       HmapLandPlugin::self->getLandClassMgr().regenerateObjects(HmapLandPlugin::self->getlandClassMap());
     }
   }
-  virtual void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
-  virtual void onSplineClassAssetChanged(splineclass::AssetData *data) {}
+  void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
+  void onSplineClassAssetChanged(splineclass::AssetData *data) override {}
 };
 
 
@@ -778,7 +783,7 @@ public:
   int basePid;
 
   ScriptParamDetailTex(const char *name, const DefParams &def) : ScriptParam(name), p(def), basePid(-1) { registerDetTex(); }
-  ~ScriptParamDetailTex() { unregisterDetTex(); }
+  ~ScriptParamDetailTex() override { unregisterDetTex(); }
 
   static bool prepareName(String &out, const char *in)
   {
@@ -798,7 +803,7 @@ public:
     return ::dd_file_exist(in);
   }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &panel, int &pid) override
   {
     String btn_name;
     PropPanel::ContainerPropertyControl *op = panel.createGroup(pid++, String(64, "%s: slot %d", (char *)paramName, p.detailSlot));
@@ -813,9 +818,9 @@ public:
     op->setBoolValue(true);
   }
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) {}
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid >= basePid + IPID_LANDCLASS && pid < basePid + IPID__NUM)
     {
@@ -845,13 +850,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &main_blk)
+  void save(DataBlock &main_blk) override
   {
     DataBlock &blk = *main_blk.addBlock(paramName);
     blk.setStr("asset", p.blkName);
   }
 
-  virtual void load(const DataBlock &main_blk)
+  void load(const DataBlock &main_blk) override
   {
     const DataBlock &blk = *main_blk.getBlockByNameEx(paramName);
     const char *asset = blk.getStr("asset", NULL);
@@ -861,7 +866,7 @@ public:
     registerDetTex();
   }
 
-  virtual void setToScript(HSQUIRRELVM vm)
+  void setToScript(HSQUIRRELVM vm) override
   {
     sq_pushroottable(vm);
     sq_pushstring(vm, paramName, -1);
@@ -998,7 +1003,7 @@ public:
       dlg->setCloseHandler(this);
       dlg->showButtonPanel(false);
     }
-    ~PropsDlg()
+    ~PropsDlg() override
     {
       EDITORCORE->deleteDialog(dlg);
       dlg = NULL;
@@ -1166,7 +1171,7 @@ public:
       dlg->setCaption(String(0, gl.paramName.empty() ? "Layer #%d" : "Layer #%d: %s", gl.slotIdx + 1, gl.paramName));
     }
 
-    virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel)
+    void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override
     {
       if (pid == PID_LAYER_SUMWT)
         gl.sumWeights = panel->getBool(pid);
@@ -1282,7 +1287,7 @@ public:
         }
       }
     }
-    virtual void onClick(int pid, PropPanel::ContainerPropertyControl *panel)
+    void onClick(int pid, PropPanel::ContainerPropertyControl *panel) override
     {
       if (pid == -PropPanel::DIALOG_ID_CLOSE)
       {
@@ -1473,8 +1478,8 @@ public:
         }
       }
     }
-    virtual void onDoubleClick(int pid, PropPanel::ContainerPropertyControl *panel) {}
-    virtual void onPostEvent(int pid, PropPanel::ContainerPropertyControl *panel)
+    void onDoubleClick(int pid, PropPanel::ContainerPropertyControl *panel) override {}
+    void onPostEvent(int pid, PropPanel::ContainerPropertyControl *panel) override
     {
       if (pid == 1)
         refillPanel();
@@ -1515,7 +1520,7 @@ public:
     LandClassSlotsManager::subscribeLandClassUpdateNotify(this);
     dlg = new PropsDlg(*this);
   }
-  ~PostScriptParamLandLayer()
+  ~PostScriptParamLandLayer() override
   {
     HmapLandPlugin::hmlService->destroyDetailRenderData(drdHandle);
     unregisterAsset(lc1);
@@ -1523,9 +1528,9 @@ public:
     LandClassSlotsManager::unsubscribeLandClassUpdateNotify(this);
     del_it(dlg);
   }
-  virtual void *get_interface(int id) { return id == 'Layr' ? this : NULL; }
+  void *get_interface(int id) override { return id == 'Layr' ? this : NULL; }
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &_panel, int &pid)
+  void fillParams(PropPanel::ContainerPropertyControl &_panel, int &pid) override
   {
     pidBase = pid;
     PropPanel::ContainerPropertyControl &panel = *_panel.createExtGroup(pidBase + PID_LAYER_CAPTION,
@@ -1619,13 +1624,13 @@ public:
   void updateDrdTex() {}
 
 
-  virtual void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == pidBase + PID_LAYER_ENABLED)
       enabled = panel.getBool(pid);
   }
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == pidBase + PID_SEL_LC1)
     {
@@ -1843,7 +1848,7 @@ public:
         HmapLandPlugin::self->setSelectMode();
     }
   }
-  virtual bool onPPChangeEx(int pid, PropPanel::ContainerPropertyControl &p)
+  bool onPPChangeEx(int pid, PropPanel::ContainerPropertyControl &p) override
   {
     if (pid < pidBase || pid >= pidBase + PID__COUNT)
       return false;
@@ -1851,7 +1856,7 @@ public:
     ;
     return true;
   }
-  virtual bool onPPBtnPressedEx(int pid, PropPanel::ContainerPropertyControl &p)
+  bool onPPBtnPressedEx(int pid, PropPanel::ContainerPropertyControl &p) override
   {
     if (pid < pidBase || pid >= pidBase + PID__COUNT)
       return false;
@@ -1871,7 +1876,7 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     blk.setStr("name", paramName);
     if (!enabled)
@@ -1936,7 +1941,7 @@ public:
         blk.addNewBlock(elcLayers.getBlock(i));
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     paramName = blk.getStr("name", "");
     enabled = blk.getBool("enabled", true);
@@ -1980,7 +1985,7 @@ public:
     dlg->updateTitle();
   }
 
-  virtual void setToScript(HSQUIRRELVM vm) {}
+  void setToScript(HSQUIRRELVM vm) override {}
 
   void registerAssets()
   {
@@ -2071,7 +2076,7 @@ public:
   }
 
   // IAssetUpdateNotify interface
-  virtual void onLandClassAssetChanged(landclass::AssetData *data)
+  void onLandClassAssetChanged(landclass::AssetData *data) override
   {
     bool changed = lc1.assetData == data || lc2.assetData == data;
     if (lc1.assetData == data)
@@ -2088,8 +2093,8 @@ public:
     if (changed)
       HmapLandPlugin::self->getLandClassMgr().regenerateObjects(HmapLandPlugin::self->getlandClassMap());
   }
-  virtual void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
-  virtual void onSplineClassAssetChanged(splineclass::AssetData *data) {}
+  void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
+  void onSplineClassAssetChanged(splineclass::AssetData *data) override {}
 
 
   inline float getMask(float fx, float fy) const;
@@ -3686,8 +3691,7 @@ void HmapLandPlugin::updateGenerationMask(const IBBox2 *rect)
       x0 = y0 = 0, x1 = ti.w - 1, y1 = ti.h - 1;
 
     // fill mask texture
-    unsigned texLockFlags = TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK;
-    if (tex->lockimg((void **)&imgPtr, stride, 0, texLockFlags))
+    if (tex->lockimg((void **)&imgPtr, stride, 0, TEXLOCK_READWRITE))
     {
       imgPtr += stride * y0 + x0;
       int use_stride = stride - (x1 - x0 + 1);
@@ -3733,7 +3737,7 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
   }
   if (!bluewhiteTex)
   {
-    bluewhiteTex = d3d::create_tex(NULL, esiGridW, esiGridH, TEXFMT_L8 | TEXCF_READABLE | TEXCF_DYNAMIC, 1, "blueWhite");
+    bluewhiteTex = d3d::create_tex(NULL, esiGridW, esiGridH, TEXFMT_R8 | TEXCF_READABLE | TEXCF_DYNAMIC, 1, "blueWhite");
     G_ASSERT(bluewhiteTex);
 
     bluewhiteTexId = dagRender->registerManagedTex("bluewhiteTex", bluewhiteTex);
@@ -3757,8 +3761,7 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
   int stride;
 
   // fill color texture
-  unsigned texLockFlags = TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK;
-  if (bluewhiteTex->lockimg((void **)&imgPtr, stride, 0, texLockFlags))
+  if (bluewhiteTex->lockimg((void **)&imgPtr, stride, 0, TEXLOCK_READWRITE))
   {
     if (stride < x1 - x0 + 1)
     {

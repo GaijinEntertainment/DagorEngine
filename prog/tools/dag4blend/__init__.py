@@ -11,7 +11,7 @@ from .colprops          import colprops
 from .importer          import importer
 from .importer          import import_panel
 
-from .cmp               import cmp_panels,cmp_import,cmp_export
+from .cmp               import cmp_panels,cmp_import,cmp_export, node_properties
 from .smooth_groups     import smooth_groups
 
 modules=[settings,
@@ -24,6 +24,7 @@ modules=[settings,
         bake_panel,
         mesh_tools_panel,
         dagormat,
+        node_properties,
         cmp_import,
         cmp_export,
         cmp_panels,
@@ -34,8 +35,8 @@ modules=[settings,
 bl_info = {"name": "dag4blend",
            "description": "Tools for editing dag files",
            "author": "Gaijin Entertainment",
-           "version": (2, 7, 0),#2025.05.15
-           "blender": (4, 4, 0),
+           "version": (2, 8, 1,  # 2025.07.30
+           "blender": (4, 4, 0),  # 4.5LTS works too
            "location": "File > Export",
            "wiki_url": "",
            "tracker_url": "",

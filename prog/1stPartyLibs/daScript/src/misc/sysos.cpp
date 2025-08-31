@@ -567,6 +567,13 @@ namespace das {
                 } else {
                     g_dasRoot = get_prefix(ep);     // remove bin
                 }
+                #ifdef DAS_INSTALL_BINDIR
+                if ( ep == DAS_INSTALL_BINDIR ) {
+                    g_dasRoot = DAS_INSTALL_DATADIR;
+                }
+                #endif
+                // make paths consistent on UNIX and Windows
+                replace(g_dasRoot.begin(), g_dasRoot.end(), '\\', '/');
             } else {
                 g_dasRoot = ".";
             }

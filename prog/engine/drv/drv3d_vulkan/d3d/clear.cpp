@@ -21,7 +21,7 @@ bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, u
 {
   CAST_AND_RETURN_IF_NULL(texture, tex, cast_to_texture_base, BaseTex *);
 
-  Image *image = texture->getDeviceImage();
+  Image *image = texture->image;
   VkClearColorValue ccv;
   memcpy(&ccv, val, sizeof(ccv));
   VkImageSubresourceRange area = makeImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, mip_level, 1, face, 1);
@@ -33,7 +33,7 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
 {
   CAST_AND_RETURN_IF_NULL(texture, tex, cast_to_texture_base, BaseTex *);
 
-  Image *image = texture->getDeviceImage();
+  Image *image = texture->image;
   VkClearColorValue ccv;
   memcpy(&ccv, val, sizeof(ccv));
   VkImageSubresourceRange area = makeImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, mip_level, 1, face, 1);
@@ -41,24 +41,12 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
   return true;
 }
 
-bool d3d::clear_rwbufi(Sbuffer *buffer, const unsigned values[4])
+bool d3d::zero_rwbufi(Sbuffer *buffer)
 {
   CAST_AND_RETURN_IF_NULL(vbuf, buffer, (GenericBufferInterface *), GenericBufferInterface *);
-  G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
 
-  CmdClearBufferInt cmd{vbuf->getBufferRef()};
-  memcpy(cmd.values, values, sizeof(cmd.values));
-  Globals::ctx.dispatchCommand(cmd);
-  return true;
-}
-
-bool d3d::clear_rwbuff(Sbuffer *buffer, const float values[4])
-{
-  CAST_AND_RETURN_IF_NULL(vbuf, buffer, (GenericBufferInterface *), GenericBufferInterface *);
-  G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
-
-  CmdClearBufferFloat cmd{vbuf->getBufferRef()};
-  memcpy(cmd.values, values, sizeof(cmd.values));
+  CmdFillBuffer cmd{vbuf->getBufferRef(), 0};
   Globals::ctx.dispatchCommand(cmd);
   return true;
 }
@@ -67,7 +55,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
 {
   CAST_AND_RETURN_IF_NULL(texture, rt.tex, cast_to_texture_base, BaseTex *);
 
-  Image *image = texture->getDeviceImage();
+  Image *image = texture->image;
   VkImageAspectFlags imgAspect = texture->getFormat().getAspektFlags();
   VkImageSubresourceRange area = makeImageSubresourceRange(imgAspect, rt.mip_level, 1, rt.layer, 1);
 
@@ -78,7 +66,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
     cdsv.stencil = clear_val.asStencil;
     Globals::ctx.clearDepthStencilImage(image, area, cdsv);
   }
-  else if (texture->cflg & TEXCF_RTARGET)
+  else if (texture->pars.flg & TEXCF_RTARGET)
   {
     VkClearColorValue ccv;
     memcpy(&ccv, &clear_val, sizeof(clear_val));
@@ -86,7 +74,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   }
   else
   {
-    D3D_ERROR("Non RenderTarget texture for clear_rt, %p <%s>", rt.tex, rt.tex->getResName());
+    D3D_CONTRACT_ERROR("vulkan: non RenderTarget texture for clear_rt, %p <%s>", rt.tex, rt.tex->getName());
   }
   return true;
 }

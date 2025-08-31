@@ -1,3 +1,4 @@
+options indenting = 2
 module ang shared
 require math
 require %dasGameLibs.math.base

@@ -4,7 +4,9 @@
 //
 #pragma once
 
+#include <gameRes/dag_collResDecl.h>
 #include <generic/dag_DObject.h>
+#include <gameRes/dag_stdGameResId.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_index16.h>
 #include <math/dag_TMatrix.h>
@@ -21,7 +23,6 @@
 #include <EASTL/fixed_function.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/bitvector.h>
-#include <gameRes/dag_collisionResourceClassId.h>
 #include <sceneRay/dag_sceneRayDecl.h>
 #include <dag/dag_vector.h>
 
@@ -42,9 +43,20 @@ struct CollisionTrace
   float t;             // in/out
   float capsuleRadius; // in
   int outMatId;        // out
+  int outNodeId;       // out
   bool isectBounding;  // internal
   bool isHit;          // out
 };
+
+inline CollisionTrace make_collision_trace(const Point3 &from, const Point3 &dir, float t, float radius = 0.f)
+{
+  CollisionTrace tr{};
+  tr.vFrom = v_ldu(&from.x);
+  tr.vDir = v_ldu(&dir.x);
+  tr.t = t;
+  tr.capsuleRadius = radius;
+  return tr;
+}
 
 struct IntersectedNode
 {
@@ -73,10 +85,7 @@ struct MultirayIntersectedNode : IntersectedNode
   }
 };
 
-typedef dag::RelocatableFixedVector<IntersectedNode, 64, /*bEnableOverflow*/ true, framemem_allocator> CollResIntersectionsType;
-typedef dag::RelocatableFixedVector<MultirayIntersectedNode, 256, /*bEnableOverflow*/ true, framemem_allocator>
-  MultirayCollResIntersectionsType;
-typedef dag::RelocatableFixedVector<vec4f, 8, true, framemem_allocator> all_nodes_ret_t;
+typedef dag::RelocatableFixedVector<vec4f, 8, true, framemem_allocator> all_collres_nodes_t;
 typedef dag::RelocatableFixedVector<int, 32, /*bEnableOverflow*/ true, framemem_allocator> CollResHitNodesType;
 
 enum CollisionResourceNodeType : uint8_t
@@ -102,35 +111,22 @@ enum CollisionResourceFlags : uint32_t
   COLLISION_RES_FLAG_HAS_COLL_FRT = 1 << 6,
 };
 
-struct CollisionUserData;
-
-typedef eastl::fixed_function<64, bool(int)> CollisionNodeFilter;
-using CollisionNodeMask = eastl::bitvector<framemem_allocator>;
-
-struct CollisionTrace;
-struct ProfileStats;
-
 struct CollisionNode
 {
-  struct UserData
-  {
-    virtual ~UserData() {}
-    virtual CollisionUserData *isCollisionUserData() { return NULL; };
-  };
-
   // Be careful using that flags since entity tm might be scaled too and in most cases will be faster to assume that instance_tm*nodeTm
   // is always scaled See also cachedMaxTmScale member if you anyway want use it
-  enum TransformType : uint8_t
+  enum NodeFlag : uint8_t
   {
+    NONE = 0,
+
+    // TransformType
     IDENT = 1,           // Identity tm with zero offset
     TRANSLATE = 2,       // Identity tm with offset
     ORTHONORMALIZED = 4, // Unscaled
     ORTHOUNIFORM = 8,    // With uniform scale
-  };
-  enum NodeFlag : uint8_t
-  {
-    FLAG_VERTICES_ARE_REFS = 0x40,
-    FLAG_INDICES_ARE_REFS = 0x80,
+
+    FLAG_VERTICES_ARE_REFS = 64,
+    FLAG_INDICES_ARE_REFS = 128,
   };
 
   enum BehaviorFlag : uint16_t
@@ -150,8 +146,8 @@ struct CollisionNode
   };
 
   uint16_t behaviorFlags = TRACEABLE | PHYS_COLLIDABLE | FLAG_ALLOW_HOLE | FLAG_DAMAGE_REQUIRED;
-  uint8_t flags = 0;
-  uint8_t type = 0;
+  eastl::underlying_type_t<NodeFlag> flags = NodeFlag::NONE;
+  CollisionResourceNodeType type = COLLISION_NODE_TYPE_MESH;
   dag::Index16 geomNodeId;
   int16_t physMatId = -1;
   CollisionNode *nextNode = nullptr;
@@ -170,16 +166,12 @@ struct CollisionNode
 
   SimpleString name;
 
-private:
-  UserData *userData = nullptr;
-
 public:
   CollisionNode() = default;
   explicit CollisionNode(const CollisionNode &n) : CollisionNode() { operator=(n); }
-  CollisionNode(CollisionNode &&n) : CollisionNode() { operator=((CollisionNode &&) n); }
+  CollisionNode(CollisionNode &&n) : CollisionNode() { operator=((CollisionNode &&)n); }
   ~CollisionNode()
   {
-    setUserData(nullptr);
     resetVertices();
     resetIndices();
   }
@@ -199,22 +191,12 @@ public:
     indices.set(new_val);
   }
 
-  const UserData *getUserData() const { return userData; }
-  UserData *getUserData() { return userData; }
   int getNodeIdAsInt() const { return (int)geomNodeId; }
 
   // If you got crash here with (this == nullptr), it's compiler error. Try to make node iterator simpler.
   bool checkBehaviorFlags(uint16_t f) const { return (behaviorFlags & f) == f; }
   bool isBehaviorFlagsInFilter(uint16_t f) const { return (behaviorFlags | f) == f; }
 
-  void setUserData(UserData *data)
-  {
-    if (userData == data)
-      return;
-    if (userData)
-      del_it(userData);
-    userData = data;
-  }
   TMatrix getInverseTmFlags() const
   {
     TMatrix ret;
@@ -272,9 +254,9 @@ public:
   dag::ConstSpan<CollisionNode> getAllNodes() const { return allNodesList; }
 
   static CollisionResource *loadResource(IGenLoad & crd, int res_id);
-  virtual void load(IGenLoad & cb, int res_id);
+  void load(IGenLoad & cb, int res_id);
 
-  void collapseAndOptimize(bool need_frt = false, bool frt_build_fast = true);
+  void collapseAndOptimize(const char *res_name, bool need_frt = false, bool frt_build_fast = true);
 
   CollisionNode *getNode(uint32_t index);
   const CollisionNode *getNode(uint32_t index) const;
@@ -328,8 +310,11 @@ public:
     const CollisionNodeMask *collision_node_mask = nullptr, bool force_no_cull = false) const;
 
   bool traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
-    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, float bsphere_scale, const CollisionNodeFilter &filter,
-    TraceCollisionResourceStats *out_stats = nullptr, const CollisionNodeMask *collision_node_mask = nullptr) const;
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeFilter &filter) const;
+
+  bool traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+    TraceCollisionResourceStats *out_stats) const;
 
   bool traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
     float &in_out_t, float radius, Point3 &out_normal, Point3 &out_pos, int &out_mat_id) const;
@@ -345,7 +330,7 @@ public:
   bool capsuleHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
     float radius, CollResHitNodesType &nodes_hit) const;
 
-  bool multiRayHit(const TMatrix &instance_tm, dag::Span<CollisionTrace> traces) const;
+  bool multiRayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> traces) const;
 
   bool traceMultiRay(const mat44f &tm, dag::Span<CollisionTrace> traces, int ray_mat_id = -1,
     uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
@@ -356,20 +341,19 @@ public:
     TraceCollisionResourceStats *out_stats = nullptr) const;
 
   // Don't use it! It's should not be external.
-  VECTORCALL bool traceRayMeshNodeLocal(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir, float &in_out_t,
+  bool traceRayMeshNodeLocal(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t,
     vec4f *out_norm) const;
 
-  VECTORCALL bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const Point3 &from, const Point3 &dir, float in_t,
+  bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const Point3 &from, const Point3 &dir, float in_t,
     CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, bool force_no_cull = false) const;
 
-  VECTORCALL bool rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id, int &out_mat_id,
+  bool rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id, int &out_mat_id,
     uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
 
-  VECTORCALL bool rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
-    float in_t, float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;
+  bool rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
+    float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;
 
-  VECTORCALL bool traceQuad(const CollisionNodeFilter &filter, vec3f a00, vec3f a01, vec3f a10, vec3f a11, Point3 &out_point,
-    int &out_node_index) const;
+  VECTORCALL bool traceQuad(vec3f a00, vec3f a01, vec3f a10, vec3f a11, Point3 & out_point, int &out_node_index) const;
 
   struct DebugDrawData
   {
@@ -422,7 +406,7 @@ public:
     const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree = NULL, Point3 *res_pos = nullptr) const;
 
   bool testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm, Point3 &out_norm,
-    float &out_depth) const;
+    float &out_depth, int &out_node_id) const;
   bool testCapsuleNodeIntersection(const Point3 &p0, const Point3 &p1, float radius) const;
 
   void initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree);
@@ -527,29 +511,29 @@ private:
     TraceCollisionResourceStats *out_stats, bool force_no_cull) const;
 
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
-  VECTORCALL DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
+  DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
     float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const;
 
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_nodes_ret_t &ret_array);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
+    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array);
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_nodes_ret_t &ret_array);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array);
 
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t);
+  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
+    float in_t);
   template <bool check_bounding>
-  VECTORCALL DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t);
 
-  VECTORCALL DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
+  DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
     float in_t, float radius) const;
 
   __forceinline mat44f getMeshNodeTmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,
@@ -572,7 +556,7 @@ protected:
 
   int getNodeIndexByFaceId(int face_id, uint8_t behavior_filter) const;
   static DAGOR_NOINLINE void addTracesProfileTag(dag::Span<CollisionTrace> traces);
-  static DAGOR_NOINLINE void addMeshNodesProfileTag(const ProfileStats &profile_stats);
+  static DAGOR_NOINLINE void addMeshNodesProfileTag(const struct CollResProfileStats &profile_stats);
 
   Tab<CollisionNode> allNodesList;
   Tab<TMatrix> relGeomNodeTms; // parallel to allNodesList

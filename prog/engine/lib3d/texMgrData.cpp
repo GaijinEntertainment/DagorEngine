@@ -42,6 +42,8 @@ DECL_RESMGR_PRIVATE_DATA(texUsedSz);
 DECL_RESMGR_PRIVATE_DATA(maxReqLevelPrev);
 DECL_RESMGR_PRIVATE_DATA(texImportance);
 DECL_RESMGR_PRIVATE_DATA(texSamplers);
+DECL_RESMGR_PRIVATE_DATA(texSamplerInfo);
+DECL_RESMGR_PRIVATE_DATA(texStreamingGeneration);
 #undef DECL_RESMGR_PRIVATE_DATA
 using texmgr_internal::RMGR;
 
@@ -86,6 +88,8 @@ void texmgr_internal::D3dResMgrDataFinal::init(int max_res_entry_count)
   ALLOC_DATA_Z(maxReqLevelPrev);
   ALLOC_DATA_Z(texImportance);
   ALLOC_DATA_V(texSamplers, d3d::INVALID_SAMPLER_HANDLE);
+  ALLOC_DATA_V(texSamplerInfo, d3d::SamplerInfo{});
+  ALLOC_DATA_Z(texStreamingGeneration);
 #undef ALLOC_DATA
 #undef ALLOC_DATA_0
 #undef ALLOC_DATA_V
@@ -137,6 +141,8 @@ void texmgr_internal::D3dResMgrDataFinal::term()
   RELEASE_DATA(maxReqLevelPrev);
   RELEASE_DATA(texImportance);
   RELEASE_DATA(texSamplers);
+  RELEASE_DATA(texSamplerInfo);
+  RELEASE_DATA(texStreamingGeneration);
 #undef RELEASE_DATA
   maxTotalIndexCount = 0;
   indexCount = 0;
@@ -159,9 +165,10 @@ int texmgr_internal::D3dResMgrDataFinal::onEntryOverflow(int idx)
     return idx;
   }
 
-  G_ASSERTF(idx < maxTotalIndexCount,
-    "res entries overflow idx=%d maxTotalIndexCount=%d indexCount=%d, [freeListRdPos=%d]=%d freeListWrPos=%d ", idx,
-    maxTotalIndexCount, indexCount, freeListRdPos, freeListIdx[freeListRdPos], freeListWrPos);
+  G_ASSERT_LOG(idx < maxTotalIndexCount,
+    "res entries overflow idx=%d maxTotalIndexCount=%d indexCount=%d, [freeListRdPos=%d]=%d freeListWrPos=%d"
+    ", should call enable_tex_mgr_mt with bigger count",
+    idx, maxTotalIndexCount, indexCount, freeListRdPos, freeListIdx[freeListRdPos], freeListWrPos);
   interlocked_decrement(indexCount);
   return -1;
 }
@@ -199,6 +206,7 @@ int dbg_texq_load_sleep_ms = 0;
 bool dbg_texq_only_stubs = false;
 volatile int drv_res_updates_flush_count = 0;
 bool enable_cur_ql_mismatch_assert = true;
+int always_release_threshold_tex_size_kb = -1;
 
 static bool always_should_release_tex(BaseTexture *) { return true; }
 bool (*should_release_tex)(BaseTexture *b) = &always_should_release_tex;
@@ -238,6 +246,7 @@ void (*tql::on_frame_finished)() = NULL;
 unsigned (*tql::get_tex_lfu)(TEXTUREID texId) = &no_tex_lfu;
 TexQL (*tql::get_tex_cur_ql)(TEXTUREID texId) = &no_tex_cur_ql;
 bool (*tql::check_texture_id_valid)(TEXTUREID texId) = &texture_id_always_valid;
+void (*tql::reset_texture_from_shader_vars)(TEXTUREID tid) = nullptr;
 
 static const char *return_tex_info(TEXTUREID texId, bool /*verbose*/, String &tmp_stor)
 {
@@ -364,12 +373,10 @@ void texmgr_internal::apply_mip_bias_rules(BaseTexture *tex, const char *name)
     }
   }
   TextureMetaData tmd;
-  tmd.decode(name);
-  if (tex->isSamplerEnabled())
-    tex->texlod(tmd.lodBias / 1000.0f + additionalMipBias);
+  tmd.decodeData(name);
   if (get_texture_separate_sampler(tex->getTID()) != d3d::INVALID_SAMPLER_HANDLE)
   {
-    auto samplerInfo = get_sampler_info(tmd);
+    auto samplerInfo = RMGR.texSamplerInfo[tex->getTID().index()];
     samplerInfo.mip_map_bias = tmd.lodBias / 1000.0f + additionalMipBias;
     set_texture_separate_sampler(tex->getTID(), samplerInfo);
   }

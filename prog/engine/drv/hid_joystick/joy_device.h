@@ -34,6 +34,8 @@ public:
     ordId = id;
     userId = user_id;
   }
+  void markAsGamepad(bool is_gamepad) { isActualGamepad = is_gamepad; }
+  bool isGamepad() { return isActualGamepad; }
 
   void addAxis(AxisType axis_type, int di_type, const char *name);
   void addButton(const char *name);
@@ -104,7 +106,8 @@ protected:
   Tab<IGenJoyFfEffect *> fxList;
 
   int ordId, userId;
-  bool mustPoll, remapAsX360;
+  bool mustPoll, remapAsX360, isActualGamepad;
+  bool shouldRemapAsX360() const { return remapAsX360 && isActualGamepad; }
 
   struct AxisData
   {

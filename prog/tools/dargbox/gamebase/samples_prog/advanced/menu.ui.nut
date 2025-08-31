@@ -17,7 +17,7 @@ let defButtonStyle = {
     normal = {
       borderWidth = 0
       fillColor = Color(50,50,50)
-      padding = [hdpx(2), hdpx(5)]
+      padding = static [hdpx(2), hdpx(5)]
       margin = hdpx(2)
     }
   }
@@ -31,9 +31,9 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
   let textNormal = textStyle?.normal ?? defButtonStyle.text.normal
   let boxNormal = boxStyle?.normal ?? defButtonStyle.box.normal
   return function(){
-    let s = stateFlags.value
+    let s = stateFlags.get()
     local state = "normal"
-    if (disabled?.value)
+    if (disabled?.get())
       state = "disabled"
     if (s & S_HOVER)
       state = "hover"
@@ -47,7 +47,7 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
       children = {rendObj = ROBJ_TEXT text}.__update(textNormal, textS)
     }.__update(boxNormal, boxS, {
       watch = [stateFlags, disabled]
-      onElemState = @(sf) stateFlags(sf)
+      onElemState = @(sf) stateFlags.set(sf)
       behavior = Behaviors.Button
       onClick = handler
     })
@@ -87,11 +87,11 @@ let menuState = {
 let backButton = {
   text = "Back",
   action = function() {
-    let curBreadCrumps = menuState.breadCrumps.value
+    let curBreadCrumps = menuState.breadCrumps.get()
     if (curBreadCrumps.len() > 1) {
       let m = curBreadCrumps?[curBreadCrumps.len()-2].menu ?? curBreadCrumps[0]?.menu
-      menuState.curMenuItems.update(m)
-      menuState.breadCrumps.update(curBreadCrumps.slice(0,-1))
+      menuState.curMenuItems.set(m)
+      menuState.breadCrumps.set(curBreadCrumps.slice(0,-1))
     }
   }
 }
@@ -106,15 +106,15 @@ function menuhandler(menuItemId, params = {leaveAction=null, action=null, submen
       let nextMenu = []
       nextMenu.extend(submenu)
       nextMenu.append(backButton)
-      menuState.curMenuItems.update(nextMenu)
+      menuState.curMenuItems.set(nextMenu)
     }
     if (submenu || leaveAction != null) {
-      let curBreadCrumps = menuState.breadCrumps.value
-      curBreadCrumps.append({text=menuItemId menu=menuState.curMenuItems.value})
-      menuState.breadCrumps.update(curBreadCrumps)
+      let curBreadCrumps = menuState.breadCrumps.get()
+      curBreadCrumps.append({text=menuItemId menu=menuState.curMenuItems.get()})
+      menuState.breadCrumps.set(curBreadCrumps)
     }
     if (leaveAction != null) {
-      menuState.showMenu.update(false)
+      menuState.showMenu.set(false)
       leaveAction()
     }
   }
@@ -122,7 +122,7 @@ function menuhandler(menuItemId, params = {leaveAction=null, action=null, submen
 
 function buildmenu(_params={addBackBtn=false}) {
   let children = []
-  foreach (item in menuState.curMenuItems.value) {
+  foreach (item in menuState.curMenuItems.get()) {
     if (item?.isAvailable == null || item?.isAvailable())
       children.append(textButton(
         item.text,
@@ -138,7 +138,7 @@ function buildmenu(_params={addBackBtn=false}) {
 
 function breadcrumps(){
   let children  = []
-  let curBreadCrumps = menuState.breadCrumps.value
+  let curBreadCrumps = menuState.breadCrumps.get()
   for(local i=0; i<curBreadCrumps.len(); i++) { //map
     let bc = curBreadCrumps[i]
     let menu=bc.menu
@@ -148,13 +148,13 @@ function breadcrumps(){
     if (i < len-1)
       child = textButton(bc.text,
         function() {
-          menuState.curMenuItems.update(menu)
-          menuState.breadCrumps.update(curBreadCrumps.slice(0, idx+1))
-          menuState.showMenu.update(true)
+          menuState.curMenuItems.set(menu)
+          menuState.breadCrumps.set(curBreadCrumps.slice(0, idx+1))
+          menuState.showMenu.set(true)
         }
       )
     else
-      child = { margin = sh(1) children = {rendObj=ROBJ_TEXT text=bc.text fontSize = hdpx(40) margin=[sh(1), sh(3)]} key=bc.text}
+      child = { margin = sh(1) children = {rendObj=ROBJ_TEXT text=bc.text fontSize = hdpx(40) margin=static [sh(1), sh(3)]} key=bc.text}
     children.append(child)
   }
   return {
@@ -188,14 +188,14 @@ let menuItems = [
   {text= "Exit", action=exitgame}
 ]
 
-menuState.curMenuItems.update(menuItems)
-menuState.breadCrumps.update([{text="Main Menu", menu = menuItems}])
+menuState.curMenuItems.set(menuItems)
+menuState.breadCrumps.set([{text="Main Menu", menu = menuItems}])
 
 
 return function() {
   let children = [breadcrumps]
-  if (menuState.showMenu.value)
-    children.append({size=flex() padding=[sh(20),sh(20)] children = buildmenu})
+  if (menuState.showMenu.get())
+    children.append({size=flex() padding=sh(20) children = buildmenu})
   return {
     halign = ALIGN_LEFT
     valign = ALIGN_TOP

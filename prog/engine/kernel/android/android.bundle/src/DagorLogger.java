@@ -4,47 +4,34 @@ import android.util.Log;
 
 public class DagorLogger {
 
-  private static boolean mInited = true;
-
-  private static final String TAG = "Dagor";
+  private static final String TAG = "DagorLogger";
 
   private static native void nativeDebug(String msg);
   private static native void nativeWarning(String msg);
   private static native void nativeError(String msg);
 
   public static void logError(String msg) {
-    if (mInited) {
-      try {
-        nativeError(msg);
-        return;
-      } catch (Throwable e) {
-        mInited = false;
-      }
+    try {
+      nativeError(msg);
+    } catch (Throwable e) {
+      Log.e(TAG, msg);
     }
-    Log.e(TAG, msg);
   }
 
   public static void logDebug(String msg) {
-    if (mInited) {
-      try {
-        nativeDebug(msg);
-        return;
-      } catch (Throwable e) {
-        mInited = false;
-      }
+    try {
+      nativeDebug(msg);
+    } catch (Throwable e) {
+      Log.d(TAG, msg);
     }
-    Log.d(TAG, msg);
   }
 
   public static void logWarning(String msg) {
-    if (mInited) {
-      try {
-        nativeWarning(msg);
-        return;
-      } catch (Throwable e) {
-        mInited = false;
-      }
+    try {
+      nativeWarning(msg);
+    } catch (Throwable e) {
+      Log.w(TAG, msg);
     }
-    Log.w(TAG, msg);
   }
+
 }

@@ -3,7 +3,7 @@
 
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/render_debug/"
   dest_path:t="danetlibs/render_debug/"
   scan_folder:b=true
@@ -14,7 +14,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/cables/"
   dest_path:t="danetlibs/cables/"
   scan_folder:b=true
@@ -24,7 +24,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/imgui_daeditor/"
   dest_path:t="danetlibs/imgui_daeditor/"
   scan_folder:b=true
@@ -34,7 +34,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/screen_vhs/"
   dest_path:t="danetlibs/screen_vhs/"
   scan_folder:b=true
@@ -44,7 +44,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/console_commands/"
   dest_path:t="danetlibs/console_commands/"
   scan_folder:b=true
@@ -54,7 +54,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/native_dasevents/"
   dest_path:t="danetlibs/native_dasevents/"
   scan_folder:b=true
@@ -64,7 +64,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/dascript_base/"
   dest_path:t="danetlibs/dascript_base/"
   scan_folder:b=true
@@ -75,7 +75,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/renderer/"
   dest_path:t="danetlibs/renderer/"
   scan_folder:b=true
@@ -86,7 +86,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/frame_graph_renderer/"
   dest_path:t="danetlibs/frame_graph_renderer/"
   scan_folder:b=true
@@ -97,7 +97,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/ground_holes/"
   dest_path:t="danetlibs/ground_holes/"
   scan_folder:b=true
@@ -107,7 +107,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/flash_blind/"
   dest_path:t="danetlibs/flash_blind/"
   scan_folder:b=true
@@ -118,7 +118,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/light_flicker/"
   dest_path:t="danetlibs/light_flicker/"
   scan_folder:b=true
@@ -129,17 +129,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
-  path:t="../../../prog/daNetGameLibs/outdated_effects/"
-  dest_path:t="danetlibs/outdated_effects/"
-  scan_folder:b=true
-  scan_subfolders:b=true
-  wildcard:t="*.blk"
-
-}
-
-folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/underwater_postfx/"
   dest_path:t="danetlibs/underwater_postfx/"
   scan_folder:b=true
@@ -149,7 +139,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/projectors/"
   dest_path:t="danetlibs/projectors/"
   scan_folder:b=true
@@ -159,7 +149,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/semi_trans_render/"
   dest_path:t="danetlibs/semi_trans_render/"
   scan_folder:b=true
@@ -169,7 +159,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/distant_haze/"
   dest_path:t="danetlibs/distant_haze/"
   scan_folder:b=true
@@ -179,7 +169,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/bloom/"
   dest_path:t="danetlibs/bloom/"
   scan_folder:b=true
@@ -189,7 +179,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/latency_input_event_listener/"
   dest_path:t="danetlibs/latency_input_event_listener/"
   scan_folder:b=true
@@ -199,7 +189,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/puddles_manager/"
   dest_path:t="danetlibs/puddles_manager/"
   scan_folder:b=true
@@ -210,7 +200,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/blurred_ui/"
   dest_path:t="danetlibs/blurred_ui/"
   scan_folder:b=true
@@ -220,7 +210,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/caustics/"
   dest_path:t="danetlibs/caustics/"
   scan_folder:b=true
@@ -230,7 +220,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/water_ripples/"
   dest_path:t="danetlibs/water_ripples/"
   scan_folder:b=true
@@ -240,7 +230,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/adaptation/"
   dest_path:t="danetlibs/adaptation/"
   scan_folder:b=true
@@ -250,7 +240,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/water_effects/"
   dest_path:t="danetlibs/water_effects/"
   scan_folder:b=true
@@ -260,7 +250,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/heat_haze/"
   dest_path:t="danetlibs/heat_haze/"
   scan_folder:b=true
@@ -270,7 +260,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/water_flowmap_obstacles/"
   dest_path:t="danetlibs/water_flowmap_obstacles/"
   scan_folder:b=true
@@ -280,7 +270,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/puddle_query/"
   dest_path:t="danetlibs/puddle_query/"
   scan_folder:b=true
@@ -290,7 +280,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/dynamic_details/"
   dest_path:t="danetlibs/dynamic_details/"
   scan_folder:b=true
@@ -300,7 +290,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/screen_droplets/"
   dest_path:t="danetlibs/screen_droplets/"
   scan_folder:b=true
@@ -310,7 +300,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/effect_area/"
   dest_path:t="danetlibs/effect_area/"
   scan_folder:b=true
@@ -320,7 +310,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/storm/"
   dest_path:t="danetlibs/storm/"
   scan_folder:b=true
@@ -330,7 +320,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/dust/"
   dest_path:t="danetlibs/dust/"
   scan_folder:b=true
@@ -340,7 +330,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/timelapse_screener/"
   dest_path:t="danetlibs/timelapse_screener/"
   scan_folder:b=true
@@ -350,7 +340,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/daGdp/"
   dest_path:t="danetlibs/daGdp/"
   scan_folder:b=true
@@ -360,7 +350,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/custom_envi_probe/"
   dest_path:t="danetlibs/custom_envi_probe/"
   scan_folder:b=true
@@ -370,7 +360,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/local_tone_mapping/"
   dest_path:t="danetlibs/local_tone_mapping/"
   scan_folder:b=true
@@ -381,7 +371,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/paint_color/"
   dest_path:t="danetlibs/paint_color/"
   scan_folder:b=true
@@ -391,7 +381,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/lens_flare/"
   dest_path:t="danetlibs/lens_flare/"
   scan_folder:b=true
@@ -401,7 +391,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/object_motion_blur/"
   dest_path:t="danetlibs/object_motion_blur/"
   scan_folder:b=true
@@ -411,7 +401,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/screen_snowflakes/"
   dest_path:t="danetlibs/screen_snowflakes/"
   scan_folder:b=true
@@ -421,7 +411,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/sound/common_sounds/"
   dest_path:t="danetlibs/sound/common_sounds/"
   scan_folder:b=true
@@ -432,7 +422,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/sound/environment_sounds/"
   dest_path:t="danetlibs/sound/environment_sounds/"
   scan_folder:b=true
@@ -443,7 +433,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/sound/sound_utils/"
   dest_path:t="danetlibs/sound/sound_utils/"
   scan_folder:b=true
@@ -454,7 +444,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/daNetGameLibs/sound/sound_utils_net/"
   dest_path:t="danetlibs/sound/sound_utils_net/"
   scan_folder:b=true

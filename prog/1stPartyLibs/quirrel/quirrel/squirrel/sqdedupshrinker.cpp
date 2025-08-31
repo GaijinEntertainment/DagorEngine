@@ -74,7 +74,7 @@ public:
 
         for (int i = 0; i < allocatedNodes; i++)
         {
-          if (sq_type(nodes[i].key) != OT_NULL)
+          if (sq_type(nodes[i].key) != SQ_FREE_KEY_TYPE)
           {
             if (!sq_isstring(nodes[i].key) || (!sq_isnull(nodes[i].val) && !sq_isstring(nodes[i].val) && !sq_isinteger(nodes[i].val) && !sq_isfloat(nodes[i].val) && !sq_isbool(nodes[i].val)))
               simpleTypes = false;

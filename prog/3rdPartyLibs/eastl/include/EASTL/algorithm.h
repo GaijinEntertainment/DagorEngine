@@ -49,7 +49,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Optimizations
 //
-// There are a number of opportunities for opptimizations that we take here
+// There are a number of opportunities for optimizations that we take here
 // in this library. The most obvious kinds are those that subsitute memcpy
 // in the place of a conventional loop for data types with which this is
 // possible. The algorithms here are optimized to a higher level than currently
@@ -62,7 +62,7 @@
 // The various things we look to take advantage of in order to implement
 // optimizations include:
 //    - Taking advantage of random access iterators.
-//    - Taking advantage of POD (plain old data) data types.
+//    - Taking advantage of trivially copyable data types (types for which it is safe to memcpy or memmove).
 //    - Taking advantage of type_traits in general.
 //    - Reducing branching and taking advantage of likely branch predictions.
 //    - Taking advantage of issues related to pointer and reference aliasing.
@@ -128,6 +128,7 @@
 //      iter_swap
 //      lexicographical_compare
 //      lexicographical_compare<Compare>
+//      lexicographical_compare_three_way
 //      lower_bound
 //      lower_bound<Compare>
 //      make_heap                                   Found in heap.h
@@ -163,6 +164,8 @@
 //      random_shuffle<Random>
 //      remove
 //      remove_if
+//     +apply_and_remove
+//     +apply_and_remove_if
 //      remove_copy
 //      remove_copy_if
 //     +remove_heap                                 Found in heap.h
@@ -197,6 +200,8 @@
 //      sort_heap<Compare>                          Found in heap.h
 //      stable_sort                                 Found in sort.h
 //      stable_sort<Compare>                        Found in sort.h
+//      partition                                   Found in sort.h
+//      stable_partition                            Found in sort.h
 //      swap
 //      swap_ranges
 //      transform
@@ -209,6 +214,8 @@
 //      is_permutation<Predicate>
 //      next_permutation
 //      next_permutation<Compare>
+//      is_partitioned
+//      partition_point
 //
 // Algorithms from the C++ standard that we don't implement are listed here.
 // Most of these items are absent because they aren't used very often.
@@ -221,11 +228,9 @@
 //      inplace_merge<Compare>
 //      partial_sort_copy
 //      partial_sort_copy<Compare>
-//      paritition
 //      prev_permutation
 //      prev_permutation<Compare>
 //      search_n<Compare>
-//      stable_partition
 //      unique_copy
 //      unique_copy<Compare>
 //
@@ -245,14 +250,10 @@
 #include <EASTL/iterator.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
-#include <EASTL/internal/generic_iterator.h>
 #include <EASTL/random.h>
+#include <EASTL/compare.h>
 
 EA_DISABLE_ALL_VC_WARNINGS();
-
-	#if defined(EA_COMPILER_MSVC) && (defined(EA_PROCESSOR_X86) || defined(EA_PROCESSOR_X86_64))
-		#include <intrin.h>
-	#endif
 
 	#include <stddef.h>
 	#include <string.h> // memcpy, memcmp, memmove
@@ -1070,8 +1071,14 @@ namespace eastl
 		// as it turns out that the latter results in unequal distribution probabilities.
 		// http://www.cigital.com/papers/download/developer_gambling.php
 
-		for(RandomAccessIterator i = first + 1; i < last; ++i)
+		const difference_type swapMax = eastl::distance(first, last);
+
+		// deliberately start at 1.
+		for (difference_type swapIter = 1; swapIter < swapMax; ++swapIter)
+		{
+			RandomAccessIterator i = first + swapIter;
 			iter_swap(i, first + (difference_type)rng((eastl_size_t)((i - first) + 1)));
+		}
 	}
 
 
@@ -1250,8 +1257,12 @@ namespace eastl
 		template <typename T>
 		static T* move_or_copy_backward(const T* first, const T* last, T* resultEnd)
 		{
-			return (T*)memmove(resultEnd - (last - first), first, (size_t)((uintptr_t)last - (uintptr_t)first));
+			const size_t n = (size_t)((uintptr_t)last - (uintptr_t)first);
 			// We could use memcpy here if there's no range overlap, but memcpy is rarely much faster than memmove.
+			if (n > 0)
+				return (T*)memmove(resultEnd - (last - first), first, n);
+			else
+				return resultEnd;
 		}
 	};
 
@@ -1259,24 +1270,19 @@ namespace eastl
 	inline BidirectionalIterator2 move_and_copy_backward_chooser(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 resultEnd)
 	{
 		typedef typename eastl::iterator_traits<BidirectionalIterator1>::iterator_category IIC;
-		typedef typename eastl::iterator_traits<BidirectionalIterator2>::iterator_category OIC;
-		typedef typename eastl::iterator_traits<BidirectionalIterator1>::value_type        value_type_input;
-		typedef typename eastl::iterator_traits<BidirectionalIterator2>::value_type        value_type_output;
 
-		const bool canBeMemmoved = eastl::is_trivially_copyable<value_type_output>::value &&
-								   eastl::is_same<value_type_input, value_type_output>::value &&
-								  (eastl::is_pointer<BidirectionalIterator1>::value || eastl::is_same<IIC, eastl::contiguous_iterator_tag>::value) &&
-								  (eastl::is_pointer<BidirectionalIterator2>::value || eastl::is_same<OIC, eastl::contiguous_iterator_tag>::value);
+		const bool canBeMemmoved = internal::can_be_memmoved_helper<BidirectionalIterator1, BidirectionalIterator2>::value;
 
 		return eastl::move_and_copy_backward_helper<IIC, isMove, canBeMemmoved>::move_or_copy_backward(first, last, resultEnd); // Need to chose based on the input iterator tag and not the output iterator tag, because containers accept input ranges of iterator types different than self.
 	}
 
 
-	// We have a second layer of unwrap_iterator calls because the original iterator might be something like move_iterator<generic_iterator<int*> > (i.e. doubly-wrapped).
 	template <bool isMove, typename BidirectionalIterator1, typename BidirectionalIterator2>
-	inline BidirectionalIterator2 move_and_copy_backward_unwrapper(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 resultEnd)
+	EASTL_REMOVE_AT_2024_SEPT inline BidirectionalIterator2 move_and_copy_backward_unwrapper(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 resultEnd)
 	{
+		EASTL_INTERNAL_DISABLE_DEPRECATED() // 'unwrap_iterator': was declared deprecated
 		return BidirectionalIterator2(eastl::move_and_copy_backward_chooser<isMove>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), eastl::unwrap_iterator(resultEnd))); // Have to convert to BidirectionalIterator2 because result.base() could be a T*
+		EASTL_INTERNAL_RESTORE_DEPRECATED()
 	}
 
 
@@ -1304,7 +1310,7 @@ namespace eastl
 	template <typename BidirectionalIterator1, typename BidirectionalIterator2>
 	inline BidirectionalIterator2 move_backward(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 resultEnd)
 	{
-		return eastl::move_and_copy_backward_unwrapper<true>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), resultEnd);
+		return eastl::move_and_copy_backward_chooser<true>(first, last, resultEnd);
 	}
 
 
@@ -1325,9 +1331,7 @@ namespace eastl
 	template <typename BidirectionalIterator1, typename BidirectionalIterator2>
 	inline BidirectionalIterator2 copy_backward(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 resultEnd)
 	{
-		const bool isMove = eastl::is_move_iterator<BidirectionalIterator1>::value; EA_UNUSED(isMove);
-
-		return eastl::move_and_copy_backward_unwrapper<isMove>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), resultEnd);
+		return eastl::move_and_copy_backward_chooser<false>(first, last, resultEnd);
 	}
 
 
@@ -1609,7 +1613,7 @@ namespace eastl
 
 		for(; first1 != last1; ++first1)
 		{
-			if(eastl::find_if(first2, last2, eastl::bind1st<BinaryPredicate, value_type>(predicate, *first1)) == last2)
+			if(eastl::find_if(first2, last2, [&predicate, first1](value_type& rhs) { return predicate(*first1, rhs); }) == last2)
 				break;
 		}
 
@@ -1649,10 +1653,10 @@ namespace eastl
 		{
 			BidirectionalIterator1 it1(last1);
 
-			while((--it1 != first1) && (eastl::find_if(first2, last2, eastl::bind1st<BinaryPredicate, value_type>(predicate, *it1)) == last2))
+			while((--it1 != first1) && (eastl::find_if(first2, last2, [&predicate, it1](value_type& rhs) { return predicate(*it1, rhs); }) == last2))
 				; // Do nothing
 
-			if((it1 != first1) || (eastl::find_if(first2, last2, eastl::bind1st<BinaryPredicate, value_type>(predicate, *it1)) != last2))
+			if((it1 != first1) || (eastl::find_if(first2, last2, [&predicate, it1](value_type& rhs) { return predicate(*it1, rhs); }) != last2))
 				return it1;
 		}
 
@@ -1692,10 +1696,10 @@ namespace eastl
 		{
 			BidirectionalIterator1 it1(last1);
 
-			while((--it1 != first1) && (eastl::find_if(first2, last2, eastl::bind1st<BinaryPredicate, value_type>(predicate, *it1)) != last2))
+			while((--it1 != first1) && (eastl::find_if(first2, last2, [&predicate, it1](value_type& rhs) { return predicate(*it1, rhs); }) != last2))
 				; // Do nothing
 
-			if((it1 != first1) || (eastl::find_if(first2, last2, eastl::bind1st<BinaryPredicate, value_type>(predicate, *it1))) != last2)
+			if((it1 != first1) || (eastl::find_if(first2, last2, [&predicate, it1](value_type& rhs) { return predicate(*it1, rhs); })) != last2)
 				return it1;
 		}
 
@@ -2010,7 +2014,10 @@ namespace eastl
 	lexicographical_compare(const char* first1, const char* last1, const char* first2, const char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2018,7 +2025,10 @@ namespace eastl
 	lexicographical_compare(char* first1, char* last1, char* first2, char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2026,7 +2036,10 @@ namespace eastl
 	lexicographical_compare(const unsigned char* first1, const unsigned char* last1, const unsigned char* first2, const unsigned char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2034,7 +2047,10 @@ namespace eastl
 	lexicographical_compare(unsigned char* first1, unsigned char* last1, unsigned char* first2, unsigned char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2042,7 +2058,10 @@ namespace eastl
 	lexicographical_compare(const signed char* first1, const signed char* last1, const signed char* first2, const signed char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2050,7 +2069,10 @@ namespace eastl
 	lexicographical_compare(signed char* first1, signed char* last1, signed char* first2, signed char* last2)
 	{
 		const ptrdiff_t n1(last1 - first1), n2(last2 - first2);
-		const int result = memcmp(first1, first2, (size_t)eastl::min_alt(n1, n2));
+		const size_t n = (size_t)eastl::min_alt(n1, n2);
+		if (n == 0) // don't call memcmp with n == 0
+			return false;
+		const int result = memcmp(first1, first2, n);
 		return result ? (result < 0) : (n1 < n2);
 	}
 
@@ -2113,6 +2135,42 @@ namespace eastl
 		return (first1 == last1) && (first2 != last2);
 	}
 
+
+#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+
+	/// lexicographical_compare_three_way
+	///
+	/// Returns: The comparison category ordering between both ranges. For the first non-equivalent pair in the ranges,
+	/// the comparison will be returned. Else if the first range is a subset (superset) of the second range, then the
+	/// less (greater) ordering will be returned.
+	///
+	/// Complexity: At most N iterations, where N = min(last1-first1, last2-first2) of the applications
+	/// of the corresponding comparison.
+	///
+	/// Note: If two sequences have the same number of elements and their
+	/// corresponding elements are equivalent, then neither sequence is
+	/// lexicographically less than the other. If one sequence is a prefix
+	/// of the other, then the shorter sequence is lexicographically less
+	/// than the longer sequence. Otherwise, the lexicographical comparison
+	/// of the sequences yields the same result as the comparison of the first
+	/// corresponding pair of elements that are not equivalent.
+	///
+	template <typename InputIterator1, typename InputIterator2, typename Compare>
+	constexpr auto lexicographical_compare_three_way(InputIterator1 first1, InputIterator1 last1,
+	                                                 InputIterator2 first2, InputIterator2 last2,
+	                                                 Compare compare) -> decltype(compare(*first1, *first2))
+	{
+		for (; (first1 != last1) && (first2 != last2); ++first1, ++first2)
+		{
+			if (auto c = compare(*first1, *first2); c != 0)
+				return c;
+		}
+
+		return (first1 != last1) ? std::strong_ordering::greater :
+		       (first2 != last2) ? std::strong_ordering::less :
+				std::strong_ordering::equal;
+	}
+#endif
 
 	/// mismatch
 	///
@@ -2623,6 +2681,94 @@ namespace eastl
 		{
 			ForwardIterator i(first);
 			return eastl::remove_copy_if<ForwardIterator, ForwardIterator, Predicate>(++i, last, first, predicate);
+		}
+		return first;
+	}
+
+
+	/// apply_and_remove_if
+	///
+	/// Calls the Function function for all elements referred to  my iterator i in the range
+	/// [first, last) for which the following corresponding condition holds:
+	/// predicate(*i) == true
+	/// and then left shift moves potential non-matching elements over it.
+	///
+	/// Returns: a past-the-end iterator for the new end of the range.
+	///
+	/// Complexity: Exactly 'last - first' applications of the corresponding predicate + applies
+	/// function once for every time the condition holds.
+	///
+	/// Note: Since removing is done by shifting (by means of copy move assignment) the elements
+	/// in the range in such a way that the elements that are not to be removed appear in the
+	/// beginning of the range doesn't actually remove it from the given container, the user must call
+	/// the container erase function if the user wants to erase the element
+	/// from the container. I.e. in the same they as for remove_if the excess elements
+	/// are left in a valid but possibly moved from state.
+	///
+	template <typename ForwardIterator, typename Function, typename Predicate>
+	inline ForwardIterator apply_and_remove_if(ForwardIterator first,
+	                                           ForwardIterator last,
+	                                           Function function,
+	                                           Predicate predicate)
+	{
+		first = eastl::find_if(first, last, predicate);
+		if (first != last)
+		{
+			function(*first);
+			for (auto i = next(first); i != last; ++i)
+			{
+				if (predicate(*i))
+				{
+					function(*i);
+					continue;
+				}
+				*first = eastl::move(*i);
+				++first;
+			}
+		}
+		return first;
+	}
+
+
+	/// apply_and_remove
+	///
+	/// Calls the Function function for all elements referred to my iterator i in the range
+	/// [first, last) for which the following corresponding condition holds:
+	/// value == *i
+	/// and then left shift moves potential non-matching elements over it.
+	///
+	/// Returns: a past-the-end iterator for the new end of the range.
+	///
+	/// Complexity: Exactly 'last - first' applications of the corresponding equality test
+	/// + applies function once for every time the condition holds.
+	///
+	/// Note: Since removing is done by shifting (by means of copy move assignment) the elements
+	/// in the range in such a way that the elements that are not to be removed appear in the
+	/// beginning of the range doesn't actually remove it from the given container, the user must call
+	/// the container erase function if the user wants to erase the element
+	/// from the container. I.e. in the same they as for remove_if the excess elements
+	/// are left in a valid but possibly moved from state.
+	///
+	template <typename ForwardIterator, typename Function, typename T>
+	inline ForwardIterator apply_and_remove(ForwardIterator first,
+	                                        ForwardIterator last,
+	                                        Function function,
+	                                        const T& value)
+	{
+		first = eastl::find(first, last, value);
+		if (first != last)
+		{
+			function(*first);
+			for (auto i = next(first); i != last; ++i)
+			{
+				if (value == *i)
+				{
+					function(*i);
+					continue;
+				}
+				*first = eastl::move(*i);
+				++first;
+			}
 		}
 		return first;
 	}
@@ -3915,7 +4061,7 @@ namespace eastl
 	///     - There's a basic ForwardIterator implementation (rotate_general_impl) which is
 	///       a fallback implementation that's not as fast as others but works for all cases.
 	///     - There's a slightly better BidirectionalIterator implementation.
-	///     - We have specialized versions for rotating elements that are is_trivially_move_assignable.
+	///     - We have specialized versions for rotating elements that are trivially copyable.
 	///       These versions will use memmove for when we have a RandomAccessIterator.
 	///     - We have a specialized version for rotating by only a single position, as that allows us
 	///       (with any iterator type) to avoid a lot of logic involved with algorithms like "flipping hands"
@@ -3962,7 +4108,7 @@ namespace eastl
 
 			value_type temp(eastl::move(*first));
 			ForwardIterator result = eastl::move(eastl::next(first), last, first); // Note that while our template type is BidirectionalIterator, if the actual
-			*result = eastl::move(temp);                                           // iterator is a RandomAccessIterator then this move will be a memmove for trivial types.
+			*result = eastl::move(temp);                                           // iterator is a RandomAccessIterator then this move will be a memmove for trivially copyable types.
 
 			return result; // result points to the final element in the range.
 		}
@@ -3976,12 +4122,12 @@ namespace eastl
 			BidirectionalIterator beforeLast = eastl::prev(last);
 			value_type temp(eastl::move(*beforeLast));
 			BidirectionalIterator result = eastl::move_backward(first, beforeLast, last); // Note that while our template type is BidirectionalIterator, if the actual
-			*first = eastl::move(temp);                                                   // iterator is a RandomAccessIterator then this move will be a memmove for trivial types.
+			*first = eastl::move(temp);                                                   // iterator is a RandomAccessIterator then this move will be a memmove for trivially copyable types.
 
 			return result; // result points to the first element in the range.
 		}
 
-		template <typename /*IteratorCategory*/, bool /*is_trivially_move_assignable*/>
+		template <typename /*IteratorCategory*/, bool /*is_trivially_copyable*/>
 		struct rotate_helper
 		{
 			template <typename ForwardIterator>
@@ -4150,10 +4296,10 @@ namespace eastl
 				typedef typename eastl::iterator_traits<ForwardIterator>::iterator_category IC;
 				typedef typename eastl::iterator_traits<ForwardIterator>::value_type        value_type;
 
-				return Internal::rotate_helper<IC, eastl::is_trivially_move_assignable<value_type>::value || // This is the best way of telling if we can move types via memmove, but without a conforming C++11 compiler it usually returns false.
-												   eastl::is_pod<value_type>::value                       || // This is a more conservative way of telling if we can move types via memmove, and most compilers support it, but it doesn't have as full of coverage as is_trivially_move_assignable.
-												   eastl::is_scalar<value_type>::value>                      // This is the most conservative means and works with all compilers, but works only for scalars.
-											   ::rotate_impl(first, middle, last);
+				// the implementations for is_trivially_copyable types simply check whether we have a single element to rotate and if so,
+				// defer to either move_rotate_left_by_one or move_rotate_right_by_one, which are optimized for trivially copyable types.
+				// otherwise, use the same implementation as non-trivially copyable types.
+				return Internal::rotate_helper<IC, eastl::is_trivially_copyable<value_type>::value>::rotate_impl(first, middle, last);
 			}
 
 			return first;
@@ -4187,9 +4333,8 @@ namespace eastl
 	template <class T, class Compare>
 	EA_CONSTEXPR const T& clamp(const T& v, const T& lo, const T& hi, Compare comp)
 	{
-		// code collapsed to a single line due to constexpr requirements
-		return [&] { EASTL_ASSERT(!comp(hi, lo)); }(),
-			   comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+		EASTL_ASSERT(!comp(hi, lo));
+		return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 	}
 
 	template <class T>
@@ -4199,23 +4344,69 @@ namespace eastl
 	}
 
 
+	/// is_partitioned
+	///
+	/// Returns true if all the elements in the range [first, last) is empty, or is
+	/// partitioned by predicate. Being partitioned means that all elements v for which
+	/// predicate(v) evaluates to true appear before any elements for which predicate(v)
+	/// is false.
+	///
+	template <class InputIterator, class UnaryPredicate>
+	EA_CONSTEXPR bool is_partitioned(InputIterator first, InputIterator last, UnaryPredicate predicate)
+	{
+		for (; first != last; ++first)
+		{
+			if (!predicate(*first))
+			{
+				// advance the iterator, we don't need to call the predicate on this item
+				// again in the "false" loop below.
+				++first;
+				break;
+			}
+		}
+		for (; first != last; ++first)
+		{
+			if (predicate(*first))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/// partition_point
+	///
+	/// Precondition: for this function to work correctly the input range [first, last)
+	/// must be partitioned by the predicate. i.e. all values for which predicate(v) is
+	/// true should precede any value in the range for which predicate(v) is false.
+	///
+	/// Returns: the iterator past the end of the first partition within [first, last) or
+	/// last if all elements satisfy the predicate.
+	///
+	/// Note: this is a more general version of lower_bound.
+	template <class ForwardIterator, class UnaryPredicate>
+	EA_CONSTEXPR ForwardIterator partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate predicate)
+	{
+		// Just binary chop our way to the first one where predicate(x) is false
+		for (auto length = eastl::distance(first, last); 0 < length;)
+		{
+			const auto half = length / 2;
+			const auto middle = eastl::next(first, half);
+			if (predicate(*middle))
+			{
+				first = eastl::next(middle);
+				length -= (half + 1);
+			}
+			else
+			{
+				length = half;
+			}
+		}
+
+		return first;
+	}
 
 } // namespace eastl
 
 
 #endif // Header include guard
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

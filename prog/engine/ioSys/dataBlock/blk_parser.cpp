@@ -9,10 +9,12 @@
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_dataBlockCommentsDef.h>
 #include <util/le2be.h>
 #include <util/dag_string.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -21,7 +23,6 @@
 #pragma warning(disable : 4577)
 #endif
 #include <fast_float/fast_float.h>
-#include "blk_comments_def.h"
 
 static DataBlock::IIncludeFileResolver *fresolve = NULL;
 class GenericRootIncludeFileResolver : public DataBlock::IIncludeFileResolver
@@ -130,7 +131,7 @@ public:
 
   __forceinline bool endOfText() { return curp >= textend; }
 
-  bool skipWhite(bool allow_crlf = true, bool track_newline_after_param = false);
+  bool skipWhite(bool allow_crlf = true, bool track_newline_after_param = false, bool parse_comments = true);
   bool getIdent(TempString &);
   bool getValue(TempString &);
   bool parse(DataBlock &, bool isTop);
@@ -152,7 +153,7 @@ private:
 };
 
 
-bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param)
+bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param, bool parse_comments)
 {
   for (;;)
   {
@@ -203,7 +204,7 @@ bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param)
       if (!endOfText())
       {
         char nc = *curp++;
-        if (nc == '/')
+        if (nc == '/' && parse_comments)
         {
           const char *cpp_comment_start = curp;
           while (!endOfText())
@@ -223,7 +224,7 @@ bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param)
           }
           continue;
         }
-        else if (nc == '*')
+        else if (nc == '*' && parse_comments)
         {
           const char *c_comment_start = curp;
           int cnt = 1;
@@ -477,7 +478,8 @@ bool DataBlockParser::getValue(TempString &value)
       if (c == qc && !multi_line_str)
       {
         ++curp;
-        if (!skipWhite())
+        // Disable allow_crlf because after getValue we want try track new line after param
+        if (!skipWhite(/*allow_crlf*/ false, /*track_newline_after_param*/ false, /*parse_comments*/ false))
           return false;
         if (*curp == ';')
           ++curp;
@@ -888,6 +890,10 @@ int DataBlock::addParam(const char *name, int type, const char *value, const cha
       if (!parse_point(value, eof, *(IPoint3 *)buf))
         VALUE_SYNTAX_ERROR();
       break;
+    case TYPE_IPOINT4:
+      if (!parse_point(value, eof, *(IPoint4 *)buf))
+        VALUE_SYNTAX_ERROR();
+      break;
     case TYPE_BOOL:
     {
       if (
@@ -1170,6 +1176,8 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
               type = DataBlock::TYPE_IPOINT2;
             else if (typeName[2] == '3')
               type = DataBlock::TYPE_IPOINT3;
+            else if (typeName[2] == '4')
+              type = DataBlock::TYPE_IPOINT4;
             else
               SYNTAX_ERROR("unknown type");
           }

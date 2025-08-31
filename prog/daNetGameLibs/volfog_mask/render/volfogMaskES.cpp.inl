@@ -44,12 +44,11 @@ VARS
   if (recreate)
   {
     tex_holder.close();
-    tex_holder = dag::create_tex(nullptr, tex_size, tex_size, TEXCF_DYNAMIC | TEXFMT_L8, 1, "volfog_mask_tex");
+    tex_holder = dag::create_tex(nullptr, tex_size, tex_size, TEXCF_DYNAMIC | TEXFMT_R8, 1, "volfog_mask_tex");
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
     ShaderGlobal::set_sampler(get_shader_variable_id("volfog_mask_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-    tex_holder->disableSampler();
     NodeBasedShaderManager::clearAllCachedResources();
   }
 

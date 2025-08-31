@@ -1,0 +1,20 @@
+macro SETUP_CHARACTER_PAINT_COLOR()
+  texture paintColorMask = material.texture[7];
+  static float4 paint_color = (1, 1, 1, 0);
+endmacro
+
+macro USE_CHARACTER_PAINT_COLOR()
+  (ps){
+    paintColorMask@static = paintColorMask;
+    paint_color@f4 = paint_color;
+  }
+  hlsl(ps) {
+    void apply_character_paint_color(inout float3 diffuseColor, float2 uv)
+    {
+    ##if paintColorMask != NULL
+      float coloringMask = tex2DBindless(get_paintColorMask(), uv).r;
+      diffuseColor.rgb = lerp(diffuseColor.rgb, get_paint_color().rgb, coloringMask * get_paint_color().a);
+    ##endif
+    }
+  }
+endmacro

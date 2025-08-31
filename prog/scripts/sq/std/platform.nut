@@ -1,5 +1,5 @@
-let {dgs_get_settings, DBGLEVEL, get_arg_value_by_name} = require("dagor.system")
-let platform = require("platform")
+import "platform" as platform
+from "dagor.system" import dgs_get_settings, DBGLEVEL, get_arg_value_by_name
 let {get_platform_string_id, get_console_model, get_console_model_revision, is_gdk_used} = platform
 let { is_running_on_steam_deck = @() false } = require_optional("steam")
 
@@ -10,6 +10,7 @@ let oneOf = @(...) vargv.contains(platformId)
 let consoleModel = get_console_model()
 let isModel = @(model) consoleModel == model
 let consoleRevision = get_console_model_revision(consoleModel)
+let pcPlatforms = ["win32", "win64", "macosx", "linux64"]
 
 let is_pc = oneOf("win32", "win64", "macosx", "linux64")
 let is_sony = oneOf("ps4", "ps5")
@@ -44,10 +45,19 @@ let aliases = {
 }
 let platformAlias = is_sony ? "sony"
   : is_xbox ? "xbox"
+  : is_pc && is_gdk ? "xbox"
   : is_mobile ? "mobile"
   : is_pc ? "pc"
   : is_android ? "android"
   : platformId
+
+function getPlatformAlias(pl) {
+  return isPlatformXbox(pl) ? "xbox"
+    : isPlatformSony(pl) ? "sony"
+    : pcPlatforms.contains(pl) ? "pc"
+    : ["iOS", "android"].contains(pl) ? "mobile"
+    : pl
+}
 
 enum SCE_REGION {
   SCEE = "scee"
@@ -55,7 +65,7 @@ enum SCE_REGION {
   SCEJ = "scej"
 }
 
-return {
+return freeze({
   platformId
   consoleRevision
   platformAlias
@@ -98,4 +108,6 @@ return {
 
   isPlatformXbox
   isPlatformSony
-}
+
+  getPlatformAlias
+})

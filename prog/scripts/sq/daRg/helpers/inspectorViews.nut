@@ -48,4 +48,4 @@ let fieldsMap = {
   imageHalign = fieldsMapHorAlign
 }
 
-return fieldsMap
+return freeze(fieldsMap)

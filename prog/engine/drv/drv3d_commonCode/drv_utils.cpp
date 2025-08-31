@@ -207,6 +207,8 @@ void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_
   out_def_height = rect.bottom - rect.top;
 }
 
+bool is_current_main_window_maximized() { return IsZoomed((HWND)win32_get_main_wnd()); }
+
 void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *cb)
 {
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
@@ -246,7 +248,8 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
                                  // window.
   }
 
-  if (windowMode == WindowMode::WINDOWED_FULLSCREEN)
+  if (windowMode == WindowMode::WINDOWED_FULLSCREEN ||
+      (windowMode == WindowMode::FULLSCREEN_EXCLUSIVE && d3d::get_driver_code().is(d3d::dx12)))
   {
     const char *displayName = get_monitor_name_from_settings();
 
@@ -259,7 +262,6 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
       base_scr_top = monitorRect.top;
     }
 
-    scr_wdt = min(scr_hgt * base_scr_wdt / base_scr_hgt, base_scr_wdt);
     wr.left = base_scr_left;
     wr.top = base_scr_top;
     wr.right = base_scr_left + base_scr_wdt;
@@ -309,6 +311,14 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
       wr.bottom += max(-wr.top, 0L);
       wr.left = max(wr.left, 0L);
       wr.top = max(wr.top, 0L);
+    }
+
+    if (blk_video.getBool("windowResolutionDivisibleByTwo", false))
+    {
+      wr.right -= scr_wdt & 1;
+      scr_wdt &= ~1;
+      wr.bottom -= scr_hgt & 1;
+      scr_hgt &= ~1;
     }
 
     if (force_window_caption_visible && wr.top < -3)
@@ -403,7 +413,6 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
 
           SetWindowPos((HWND)p.hwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft + addW,
             s.winRectBottom - s.winRectTop + addH, SWP_SHOWWINDOW);
-          set_window_size_has_been_changed_programmatically(true);
         }
       }
     }
@@ -414,7 +423,6 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
     SetWindowLong((HWND)p.rwnd, GWL_STYLE, s.winStyle);
     SetWindowPos((HWND)p.rwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft, s.winRectBottom - s.winRectTop,
       isVisible ? SWP_SHOWWINDOW : 0); // don't change visibility for hidden windows
-    set_window_size_has_been_changed_programmatically(true);
   }
 
   return true;

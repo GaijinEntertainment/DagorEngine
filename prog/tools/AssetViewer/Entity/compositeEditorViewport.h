@@ -18,10 +18,10 @@ public:
   void handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity);
   IObjEntity *getHitSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity &entity);
   bool getSelectionBox(IObjEntity *entity, BBox3 &box) const;
-  void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif, IObjEntity *entity);
   void handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity);
   void renderObjects(IGenViewportWnd &wnd, IObjEntity *entity);
   void renderTransObjects(IObjEntity *entity);
+  void invalidateCache();
 
   static IObjEntity *getSelectedSubEntity(IObjEntity *entity);
 
@@ -38,13 +38,16 @@ private:
   static unsigned getEntityDataBlockId(IObjEntity &entity);
   static IObjEntity *getSubEntityByDataBlockId(IObjEntity &entity, unsigned dataBlockId);
   static int getEntityRendInstExtraResourceIndex(IObjEntity &entity);
-  static void fillRenderElements(IObjEntity &entity, dag::Vector<OutlineRenderer::RenderElement> &renderElements);
+  static void fillRenderElements(IObjEntity &entity, OutlineRenderer::RIElementsCache &renderElements,
+    dag::Vector<DynamicRenderableSceneInstance *> &dynmodelElements);
 
   static void fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &pixelPerfectSelectionService, IObjEntity &entity,
     IObjEntity *entityForSelection, const Point3 &rayOrigin, const Point3 &rayDirection,
     dag::Vector<IPixelPerfectSelectionService::Hit> &hits);
 
   OutlineRenderer outlineRenderer;
-  dag::Vector<OutlineRenderer::RenderElement> renderElementsCache;
+  OutlineRenderer::RIElementsCache riElementsCache;
+  dag::Vector<DynamicRenderableSceneInstance *> dynmodelElementsCache;
   dag::Vector<IPixelPerfectSelectionService::Hit> pixelPerfectSelectionHitsCache;
+  IObjEntity *cachedSelectedSubEntity = nullptr;
 };

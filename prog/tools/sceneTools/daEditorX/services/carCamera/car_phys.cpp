@@ -20,8 +20,8 @@
 #include <math/dag_rayIntersectBox.h>
 #include <phys/dag_physResource.h>
 
-#include "../Clipping/clippingPlugin.h"
-#include "../Clipping/clippingCm.h"
+#include "../Collision/collisionPlugin.h"
+#include "../Collision/collisionCm.h"
 
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/binDumpUtil.h>
@@ -78,6 +78,8 @@ int getDefaultPhys()
   const char *collision = DAGORED2->getWorkspace().getCollisionName();
   if ((stricmp(collision, "bullet") == 0) || (stricmp(collision, "DagorBullet") == 0))
     return PHYS_BULLET;
+  else if (stricmp(collision, "jolt") == 0)
+    return PHYS_JOLT;
   else
   {
     CoolConsole &log = DAGORED2->getConsole();
@@ -126,7 +128,7 @@ bool buildCollisions(mkbindump::BinDumpSaveCB &cwr, unsigned target_code)
   if (collisionBuilder)
   {
     if (wingw::message_box(wingw::MBS_OKCANCEL, "Collision build", "Rebuild collisions?") == wingw::MB_ID_OK)
-      plug->onPluginMenuClick(CM_COMPILE_GAME_CLIPPING);
+      plug->onPluginMenuClick(CM_COMPILE_GAME_COLLISION);
 
     TextureRemapHelper trh(target_code);
     DAEDITOR3.conNote("+++ Exporting ...");

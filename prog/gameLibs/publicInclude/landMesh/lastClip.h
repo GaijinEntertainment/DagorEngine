@@ -20,27 +20,29 @@ struct LandMeshData
   LandMeshManager *lmeshMgr;
   LandMeshRenderer *lmeshRenderer;
   shaders::OverrideStateId flipCullStateId;
-  void (*start_render)();
   void (*decals_cb)(const BBox3 &landPart);
   int global_frame_id;
   int texture_size;
   uint32_t texflags; // TEXCF_SYSTEXCOPY|TEXCF_LOADONCE
   bool use_dxt;
   float texelSize;
+  int land_mesh_prepare_clipmap_blockid;
   LandMeshData() :
     lmeshMgr(NULL),
     lmeshRenderer(NULL),
-    start_render(NULL),
     decals_cb(NULL),
     texflags(0),
     use_dxt(false),
     global_frame_id(-1),
     texture_size(1024),
-    texelSize(0)
+    texelSize(0),
+    land_mesh_prepare_clipmap_blockid(-1)
   {}
 };
 
 void apply_last_clip_anisotropy(d3d::SamplerInfo &last_clip_sampler);
+void configure_last_clip_sampler(d3d::SamplerInfo &last_clip_sampler);
+void configure_world_to_last_clip(const LandMeshManager *lmeshMgr);
 void preload_textures_for_last_clip();
 void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data, bool update_game_screen,
   const Point3 &view_pos);

@@ -25,7 +25,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
 
-static const int ASSET_RESID_BASE = 128 << 10;
+static const int ASSET_RESID_BASE = 512 << 10;
 
 static String startDir, tmpStr;
 static IDaBuildInterface *dabuild = NULL;
@@ -76,8 +76,8 @@ public:
 class DaBuildCacheUpdater : public IDagorAssetBaseChangeNotify, public IDagorAssetChangeNotify
 {
 public:
-  virtual void onAssetBaseChanged(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
-    dag::ConstSpan<DagorAsset *> removed_assets)
+  void onAssetBaseChanged(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
+    dag::ConstSpan<DagorAsset *> removed_assets) override
   {
     for (int i = 0; i < changed_assets.size(); i++)
     {
@@ -88,8 +88,8 @@ public:
         assetRev[anid]++;
     }
   }
-  virtual void onAssetRemoved(int asset_name_id, int asset_type) {}
-  virtual void onAssetChanged(const DagorAsset &a, int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override {}
+  void onAssetChanged(const DagorAsset &a, int asset_name_id, int asset_type) override
   {
     if (a.getType() == texTypeId)
       ::reload_changed_texture_asset(a);
@@ -487,7 +487,8 @@ static bool abc_get_res_refs(int res_id, Tab<int> &out_refs)
   if (!refResv)
     return true;
 
-  Tab<IDagorAssetRefProvider::Ref> refList(refResv->getAssetRefs(*a), tmpmem);
+  Tab<IDagorAssetRefProvider::Ref> refList(tmpmem);
+  refResv->getAssetRefs(*a, refList);
   for (int i = 0; i < refList.size(); ++i)
   {
     if (refList[i].flags & refResv->RFLG_EXTERNAL)
@@ -534,13 +535,11 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   if (!exp)
     return true;
 
-  IDagorAssetRefProvider *refResv = assetMgr->getAssetRefProvider(a->getType());
-  Tab<IDagorAssetRefProvider::Ref> refList;
-
   int tmp_top = tmpRefList.size();
-  if (refResv)
+  if (IDagorAssetRefProvider *refResv = assetMgr->getAssetRefProvider(a->getType()))
   {
-    refList = refResv->getAssetRefs(*a);
+    Tab<IDagorAssetRefProvider::Ref> refList;
+    refResv->getAssetRefs(*a, refList);
     for (int i = 0; i < refList.size(); ++i)
     {
       if (refList[i].flags & refResv->RFLG_BROKEN)
@@ -567,6 +566,7 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   }
 
   mkbindump::BinDumpSaveCB cwr(8 << 20, _MAKE4C('PC'), false);
+  cwr.setFastBuildFlag(true);
   PassThroughLogWriter lw(buildLog);
   dabuild->setupReports(&lw, NULL);
   String cachePath;

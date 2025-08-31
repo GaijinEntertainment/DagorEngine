@@ -33,6 +33,7 @@ Sources =
   banks.cpp
   attributes.cpp
   delayed.cpp
+  releasing.cpp
   update.cpp
   mixing.cpp
   soundSystem.cpp

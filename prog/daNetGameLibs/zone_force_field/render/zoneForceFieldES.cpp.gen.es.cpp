@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "zoneForceFieldES.cpp.inl"
 ECS_DEF_PULL_VAR(zoneForceField);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc gather_spheres_es_event_handler_comps[] =
 {

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="..\..\..\prog\_jBuild\msbuild\projectConfigurations.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ec9b6280-58eb-4a39-8e2e-c3d49b7c8a09}</ProjectGuid>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <GameDir>$(ProjectDir)..\viewer\</GameDir>
+    <GameName>dng_scene_viewer</GameName>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)defaults.props" />
+  <PropertyGroup Label="Configuration">
+    <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(CommonProgDir)daNetGame;.;$(CommonProgDir)daNetGameLibs</NMakeIncludeSearchPath>
+    <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);USE_JOLT_PHYSICS;JPH_DISABLE_CUSTOM_ALLOCATOR;JPH_CROSS_PLATFORM_DETERMINISTIC;JPH_ENABLE_ASSERTS;JPH_DEBUG_RENDERER;JPH_USE_SSE4_1;JPH_USE_SSE4_2</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup>
+    <OutDir>$(GameDir)$(JamPlatform)-$(JamPlatformArch)\</OutDir>
+    <RelativeExeDir>$(JamPlatform)-$(JamPlatformArch)\</RelativeExeDir>
+    <JamOutput>$(OutDir)$(GameName)$(NameSuffix).exe</JamOutput>
+    <ExeName>$(GameName)$(NameSuffix).exe</ExeName>
+    <LocalDebuggerWorkingDirectory>$(GameDir)</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+  <ItemGroup Label="Wildcard">
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
+  </ItemGroup>
+</Project>

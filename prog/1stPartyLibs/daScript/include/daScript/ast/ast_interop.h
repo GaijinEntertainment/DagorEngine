@@ -132,7 +132,10 @@ namespace das
         }
         const char * fnName = nullptr;
         static void placementNewFunc ( CType * cmres, Args... args ) {
-            new (cmres) CType(args...);
+            (void)cmres;
+            ((void)args, ...);
+            if constexpr (!das::is_stub_type<CType>::value) new (cmres) CType(args...);
+            else { DAS_ASSERTF(false, "STUB!"); }
         }
         virtual void * getBuiltinAddress() const override { return (void *) &placementNewFunc; }
     };
@@ -160,10 +163,21 @@ namespace das
             return context.code->makeNode<SimNode_Using<CType,Args...>>(at);
         }
         static void usingFunc ( Args... args, TBlock<void,TTemporary<TExplicit<CType>>> && block, Context * context, LineInfo * at ) {
-            CType value(args...);
-            vec4f bargs[1];
-            bargs[0] = cast<CType *>::from(&value);
-            context->invoke(block,bargs,nullptr,at);
+            ((void)args, ...);
+            (void)block;
+            (void)context;
+            (void)at;
+            if constexpr (!is_stub_type<CType>::value)
+            {
+                CType value(args...);
+                vec4f bargs[1];
+                bargs[0] = cast<CType *>::from(&value);
+                context->invoke(block, bargs, nullptr, at);
+            }
+            else
+            {
+                DAS_ASSERTF(false, "STUB!");
+            }
         }
         virtual void * getBuiltinAddress() const override { return (void *) &usingFunc; }
     };

@@ -8,7 +8,7 @@ require DagorSystem
 [init]
 def load
 
-  if ecs_has_tag("dasDebug")
+  if ecs_has_tag("dasWebui")
     load_optional_folder("%dngdas/remote/es")
 
   load_folder("%asset_viewer/animation")

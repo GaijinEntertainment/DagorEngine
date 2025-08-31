@@ -5,7 +5,6 @@
 #include <EASTL/vector_map.h>
 #include <EASTL/vector_multimap.h>
 #include <osApiWrappers/dag_critSec.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "shader.h"
 #include "vulkan_device.h"
@@ -152,8 +151,8 @@ public:
   }
 
 private:
-  eastl::vector<eastl::unique_ptr<ItemType>> items;
-  eastl::vector<LinearStorageIndex> freeIds;
+  dag::Vector<eastl::unique_ptr<ItemType>> items;
+  dag::Vector<LinearStorageIndex> freeIds;
   eastl::vector_multimap<uint32_t, uint32_t> itemsHashToIndex;
   eastl::vector_map<uint32_t, uint32_t> itemsIndexToHash;
 };
@@ -212,10 +211,10 @@ public:
     }
   }
 
-  ProgramID newComputeProgram(DeviceContext &ctx, const Tab<spirv::ChunkHeader> &chunks, const Tab<uint8_t> &chunk_data)
+  ProgramID newComputeProgram(DeviceContext &ctx, const ShaderModuleHeader &smh, const ShaderModuleBlob &smb)
   {
     WinAutoLock lock(dataGuard);
-    return progs.compute.add(ctx, {chunks, chunk_data});
+    return progs.compute.add(ctx, {smh, smb});
   }
 
   ProgramID newGraphicsProgram(DeviceContext &ctx, InputLayoutID vdecl, ShaderID vs, ShaderID fs)
@@ -237,6 +236,17 @@ public:
   }
 
   ProgramID getDebugProgram() const { return debugProgId; }
+  ProgramID getRotateProgram(VkSurfaceTransformFlagBitsKHR transform)
+  {
+    if (transform == VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)
+      return rotate90ProgId;
+    else if (transform == VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR)
+      return rotate180ProgId;
+    else if (transform == VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)
+      return rotate270ProgId;
+    G_ASSERTF(0, "vulkan: identity or unknown rotation %u", transform);
+    return debugProgId;
+  }
 
   // ----- shaders
 
@@ -265,8 +275,8 @@ public:
   }
 
   ShaderID newShader(DeviceContext &ctx, VkShaderStageFlagBits stage, Tab<spirv::ChunkHeader> &chunks, Tab<uint8_t> &chunk_data);
-  ShaderID newShader(DeviceContext &ctx, eastl::vector<VkShaderStageFlagBits> stage, eastl::vector<Tab<spirv::ChunkHeader>> chunks,
-    eastl::vector<Tab<uint8_t>> chunk_data);
+  ShaderID newShader(DeviceContext &ctx, dag::Vector<VkShaderStageFlagBits> stage, dag::Vector<Tab<spirv::ChunkHeader>> chunks,
+    dag::Vector<Tab<uint8_t>> chunk_data);
 
   void deleteShader(DeviceContext &ctx, ShaderID shader);
   ShaderID getNullFragmentShader() { return nullFragmentShader; }
@@ -319,9 +329,13 @@ private:
   eastl::optional<ShaderInfo::CreationInfo> getShaderCreationInfo(DeviceContext &ctx, const CombinedChunkModules &modules);
 
   void initDebugProg(bool has_bindless, DeviceContext &dc);
+  void initRotateProg(bool has_bindless, DeviceContext &dc);
   void initShaders(DeviceContext &ctx);
 
   ProgramID debugProgId;
+  ProgramID rotate90ProgId;
+  ProgramID rotate180ProgId;
+  ProgramID rotate270ProgId;
   ShaderID nullFragmentShader;
   WinCritSec dataGuard;
 

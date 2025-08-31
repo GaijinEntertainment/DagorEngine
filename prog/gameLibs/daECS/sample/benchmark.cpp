@@ -71,6 +71,7 @@ struct LoadGameResJob : public cpujobs::IJob
 {
   ecs::gameres_list_t resnm;
   eastl::vector<EntityId> entities;
+  const char *getJobName(bool &) const override { return "LoadGameResJob"; }
   virtual void doJob()
   {
     debug("doJob");
@@ -286,7 +287,7 @@ static void kinematics_es_event_all(const ecs::Event &, const ecs::QueryView &co
   }
 }
 
-static ecs::EntitySystemDesc kinematics_es_desc("kinematics_es", ecs::EntitySystemOps(kinematics_es_all, nullptr),
+static ecs::EntitySystemDesc kinematics_es_desc("kinematics_es", ecs::EntitySystemOps(kinematics_es_all, (ecs::EventFuncType) nullptr),
   make_span(kinematics_comps + 0, 1), make_span(kinematics_comps + 1, 1), make_span(kinematics_comps + 2, 1),
   make_span(kinematics_comps + 3, 1),
   ecs::EventSetBuilder<>::build(), // ecs::EventComponentChanged
@@ -1203,9 +1204,9 @@ int myMain()
   {
     prune_cache();
     auto testQ = [&pos8, &vel8, dt]() {
-      Point3 * /*__restrict*/ pos = (Point3 *)(pos8.data()); // with __restrict it is theoretical limit. But noone really writes
+      Point3 * /*__restrict*/ pos = (Point3 *)(pos8.data()); // with __restrict it is theoretical limit. But no one really writes
                                                              // __restrict, so we omit it intentionally
-      const Point3 * /*__restrict*/ vel = (const Point3 *)(vel8.data()); // with __restrict it is theoretical limit. But noone really
+      const Point3 * /*__restrict*/ vel = (const Point3 *)(vel8.data()); // with __restrict it is theoretical limit. But no one really
                                                                          // writes __restrict, so we omit it intentionally
       for (int i = 0; i < TESTS; ++i)
         pos[i] += dt * vel[i];

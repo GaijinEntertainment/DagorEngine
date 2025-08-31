@@ -7,6 +7,7 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_samplerHandle.h>
 #include "sampler.h"
+#include <EASTL/bit.h>
 
 namespace drv3d_dx11
 {
@@ -268,8 +269,9 @@ struct DepthStencilState
   bool depthWrite;    //= false
   bool stencilEnable; //= false
 
-  uint8_t depthFunc;   // D3D11_COMPARISON_FUNC
-  uint8_t stencilMask; // 0xff
+  uint8_t depthFunc;        // D3D11_COMPARISON_FUNC
+  uint8_t stencilWriteMask; // 0xff
+  uint8_t stencilReadMask;  // 0xff
 
   uint8_t stencilFunc;      // D3D11_COMPARISON_FUNC
   uint8_t stencilFail;      // D3D11_STENCIL_OP
@@ -290,7 +292,8 @@ struct DepthStencilState
     depthWrite(false),
     stencilEnable(false),
     depthFunc(CMPF_GREATEREQUAL),
-    stencilMask(0xff),
+    stencilWriteMask(0xff),
+    stencilReadMask(0xff),
     stencilFunc(CMPF_NEVER),
     stencilFail(STNCLOP_KEEP),
     stencilDepthFail(STNCLOP_KEEP),
@@ -320,7 +323,8 @@ struct DepthStencilState
         uint32_t stencilBackDepthFail : 4;
         uint32_t stencilBackDepthPass : 4;
         uint32_t stencilBackFunc : 4;
-        uint32_t stencilMask : 8;
+        uint32_t stencilWriteMask : 8;
+        uint32_t stencilReadMask : 8;
       } s;
     } u;
 
@@ -337,46 +341,29 @@ struct DepthStencilState
     COPY_KEY(stencilBackDepthFail);
     COPY_KEY(stencilBackDepthPass);
     COPY_KEY(stencilBackFunc);
-    COPY_KEY(stencilMask);
+    COPY_KEY(stencilWriteMask);
+    COPY_KEY(stencilReadMask);
     return u.k;
   };
 };
 
-struct SamplerState
+struct ResourceSlotState
 {
-  enum class SamplerSource : uint8_t
-  {
-    None = 0,
-    Texture = 1,
-    Sampler = 2,
-    Latest = 3
-  };
-
-
   ID3D11ShaderResourceView *viewObject = nullptr;
   ID3D11SamplerState *stateObject = nullptr;
-  SamplerKey latestSamplerKey = {};
 
   BaseTexture *texture = nullptr;
   GenericBuffer *buffer = nullptr;
   d3d::SamplerHandle samplerHandle = d3d::INVALID_SAMPLER_HANDLE;
-  SamplerSource samplerSource = SamplerSource::None;
 
   // return true if modified
-  bool setTex(BaseTexture *tex, unsigned shader_stage, bool use_sampler)
+  bool setTex(BaseTexture *tex, unsigned shader_stage)
   {
-    if (use_sampler)
-    {
-      samplerSource = tex ? SamplerSource::Texture : SamplerSource::None;
-      samplerHandle = d3d::INVALID_SAMPLER_HANDLE;
-    }
-
     if (buffer)
     {
       buffer = NULL;
       texture = tex;
       viewObject = NULL;
-      stateObject = NULL;
       BaseTex *bt = (BaseTex *)tex;
       if (bt)
       {
@@ -398,14 +385,13 @@ struct SamplerState
       }
       else // tex == NULL
       {
-        return stateObject != nullptr;
+        return false;
       }
     }
 
     texture = tex;
     // will be filled on flush
     viewObject = NULL;
-    stateObject = NULL;
     return true;
   }
 
@@ -416,7 +402,6 @@ struct SamplerState
       texture = NULL;
       buffer = buf;
       viewObject = NULL;
-      stateObject = NULL;
       return true;
     }
 
@@ -428,21 +413,17 @@ struct SamplerState
     buffer = buf;
     // will be filled on flush
     viewObject = NULL;
-    stateObject = NULL;
     return true;
   }
 
   bool setSampler(d3d::SamplerHandle sampler)
   {
-    bool unchanged = ((samplerSource == SamplerSource::Sampler) && (sampler == samplerHandle)) ||
-                     ((samplerSource == SamplerSource::None) && (sampler == d3d::INVALID_SAMPLER_HANDLE));
-    if (unchanged)
+    if (sampler == samplerHandle)
     {
       return false;
     }
 
     stateObject = nullptr;
-    samplerSource = sampler == d3d::INVALID_SAMPLER_HANDLE ? SamplerSource::None : SamplerSource::Sampler;
     samplerHandle = sampler;
     return true;
   }
@@ -450,16 +431,39 @@ struct SamplerState
 
 struct TextureFetchState
 {
-  struct Samplers
+  struct SlotRange
   {
-    StaticTab<SamplerState, MAX_RESOURCES> resources;
-    uint32_t modifiedMask = 0;
-    G_STATIC_ASSERT(MAX_RESOURCES <= sizeof(decltype(modifiedMask)) * CHAR_BIT);
-    bool flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views, ID3D11SamplerState **states, int &first, int &max);
-    ID3D11SamplerState *getStateObject(const BaseTex *basetex);
-    ID3D11SamplerState *getStateObject(const SamplerKey &key);
+    int firstUsed = INT_MAX;
+    int maxUsed = -1;
+
+    friend void update(SlotRange &rng, int slot)
+    {
+      rng.firstUsed = min(rng.firstUsed, slot);
+      rng.maxUsed = max(rng.maxUsed, slot);
+    }
   };
-  carray<Samplers, STAGE_MAX_EXT> resources;
+
+  struct Resources
+  {
+    StaticTab<ResourceSlotState, MAX_RESOURCES> resources;
+    uint32_t modifiedMask = 0, samplersModifiedMask = 0;
+
+    G_STATIC_ASSERT(MAX_RESOURCES <= sizeof(decltype(modifiedMask)) * CHAR_BIT);
+    G_STATIC_ASSERT(MAX_CS_SAMPLERS <= sizeof(decltype(samplersModifiedMask)) * CHAR_BIT);
+    G_STATIC_ASSERT(MAX_PS_SAMPLERS <= sizeof(decltype(samplersModifiedMask)) * CHAR_BIT);
+    G_STATIC_ASSERT(MAX_VS_SAMPLERS <= sizeof(decltype(samplersModifiedMask)) * CHAR_BIT);
+
+    // static constexpr uint32_t SAMPLERS_SLOT_MASK = 1 << eastl::bit_width(MAX_CS_SAMPLERS) - 1;
+    static constexpr uint32_t SAMPLERS_SLOT_MASK = 0xFFFF;
+
+    bool flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views, ID3D11SamplerState **states,
+      SlotRange &view_range_out, SlotRange &state_range_out);
+    ID3D11SamplerState *getStateObject(const SamplerKey &key);
+
+    G_STATIC_ASSERT(sizeof(modifiedMask) == sizeof(samplersModifiedMask));
+    uint32_t anyModifiedMask() const { return modifiedMask | samplersModifiedMask; }
+  };
+  carray<Resources, STAGE_MAX_EXT> resources;
 
   struct UAV
   {

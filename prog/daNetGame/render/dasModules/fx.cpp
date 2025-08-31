@@ -62,6 +62,8 @@ public:
       "bind_dascript::effect_set_spawn_rate");
     das::addExtern<DAS_BIND_FUN(effect_set_gravity_tm)>(*this, lib, "effect_set_gravity_tm", das::SideEffects::modifyArgument,
       "bind_dascript::effect_set_gravity_tm");
+    das::addExtern<DAS_BIND_FUN(effect_hide_and_reset)>(*this, lib, "effect_hide_and_reset", das::SideEffects::modifyArgument,
+      "bind_dascript::effect_hide_and_reset");
     das::addExtern<DAS_BIND_FUN(acesfx::set_gravity_zones)>(*this, lib, "acesfx_set_gravity_zones",
       das::SideEffects::modifyArgumentAndExternal, "::acesfx::set_gravity_zones");
     using method_effect_reset = DAS_CALL_MEMBER(TheEffect::reset);
@@ -86,9 +88,6 @@ public:
     das::addExtern<DAS_BIND_FUN(acesfx::getFxQualityMask)>(*this, lib, "getFxQualityMask", das::SideEffects::accessExternal,
       "acesfx::getFxQualityMask");
 
-    using method_lock = DAS_CALL_MEMBER(AcesEffect::lock);
-    das::addExtern<DAS_CALL_METHOD(method_lock)>(*this, lib, "lock", das::SideEffects::modifyArgument,
-      DAS_CALL_MEMBER_CPP(AcesEffect::lock));
     using method_setFxScale = DAS_CALL_MEMBER(AcesEffect::setFxScale);
     das::addExtern<DAS_CALL_METHOD(method_setFxScale)>(*this, lib, "setFxScale", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(AcesEffect::setFxScale));
@@ -110,7 +109,7 @@ public:
     das::addUsing<::acesfx::GravityZoneBuffer>(*this, lib, "::acesfx::GravityZoneBuffer");
     das::addExtern<DAS_BIND_FUN(acesfx::push_gravity_zone)>(*this, lib, "push", das::SideEffects::modifyArgument,
       "::acesfx::push_gravity_zone")
-      ->args({"buffer", "transform", "size", "shape", "type", "sq_distance_to_camera", "is_important"});
+      ->args({"buffer", "transform", "size", "shape", "type", "weight", "sq_distance_to_camera", "is_important"});
     compileBuiltinModule("fx.das", (unsigned char *)dng_fx_das, sizeof(dng_fx_das));
     verifyAotReady();
   }

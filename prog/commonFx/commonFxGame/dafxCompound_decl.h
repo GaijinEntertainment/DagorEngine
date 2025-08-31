@@ -1,7 +1,10 @@
-// clang-format off  // generated text, do not modify!
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// clang-format off  // generated text, do not modify!
 #include "readType.h"
 
+#include <math/dag_Point3.h>
 #include <math/dag_curveParams.h>
 #include <fx/dag_paramScript.h>
 
@@ -14,35 +17,7 @@ namespace ScriptHelpers
 class TunedElement;
 };
 
-
-class LightfxShadowParams
-{
-public:
-  bool enabled;
-  bool is_dynamic_light;
-  bool shadows_for_dynamic_objects;
-  bool shadows_for_gpu_objects;
-  int quality;
-  int shrink;
-  int priority;
-
-
-  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
-
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
-  {
-    G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
-
-    enabled = readType<int>(ptr, len);
-    is_dynamic_light = readType<int>(ptr, len);
-    shadows_for_dynamic_objects = readType<int>(ptr, len);
-    shadows_for_gpu_objects = readType<int>(ptr, len);
-    quality = readType<int>(ptr, len);
-    shrink = readType<int>(ptr, len);
-    priority = readType<int>(ptr, len);
-  }
-};
+#include <lightfxShadow_decl.h>
 
 class LightfxParams
 {
@@ -54,15 +29,16 @@ public:
   real mod_radius;
   real life_time;
   real fade_time;
+  bool override_shadow;
   LightfxShadowParams shadow;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 4);
+    CHECK_FX_VERSION_OPT(ptr, len, 5);
 
     ref_slot = readType<int>(ptr, len);
     allow_game_override = readType<int>(ptr, len);
@@ -71,7 +47,10 @@ public:
     mod_radius = readType<real>(ptr, len);
     life_time = readType<real>(ptr, len);
     fade_time = readType<real>(ptr, len);
-    shadow.load(ptr, len, load_cb);
+    override_shadow = readType<int>(ptr, len);
+    if (!shadow.load(ptr, len, load_cb))
+      return false;
+    return true;
   }
 };
 
@@ -85,14 +64,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     low_quality = readType<int>(ptr, len);
     medium_quality = readType<int>(ptr, len);
     high_quality = readType<int>(ptr, len);
+    return true;
   }
 };
 
@@ -125,10 +105,10 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 10);
+    CHECK_FX_VERSION_OPT(ptr, len, 11);
 
     ref_slot = readType<int>(ptr, len);
     offset = readType<Point3>(ptr, len);
@@ -151,7 +131,79 @@ public:
     global_life_time_max = readType<real>(ptr, len);
     transform_type = readType<int>(ptr, len);
     render_group = readType<int>(ptr, len);
-    quality.load(ptr, len, load_cb);
+    if (!quality.load(ptr, len, load_cb))
+      return false;
+    return true;
+  }
+};
+
+class SphereSectorPlacement
+{
+public:
+  real sector_angle;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
+
+    sector_angle = readType<real>(ptr, len);
+    return true;
+  }
+};
+
+class CylinderPlacement
+{
+public:
+  real placement_height;
+  bool use_whole_surface;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
+
+    placement_height = readType<real>(ptr, len);
+    use_whole_surface = readType<int>(ptr, len);
+    return true;
+  }
+};
+
+class CompositePlacement
+{
+public:
+  bool enabled;
+  int placement_type;
+  real placement_radius;
+  int copies_number;
+  bool place_in_volume;
+  SphereSectorPlacement sphere_sector;
+  CylinderPlacement cylinder;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    placement_type = readType<int>(ptr, len);
+    placement_radius = readType<real>(ptr, len);
+    copies_number = readType<int>(ptr, len);
+    place_in_volume = readType<int>(ptr, len);
+    if (!sphere_sector.load(ptr, len, load_cb))
+      return false;
+    if (!cylinder.load(ptr, len, load_cb))
+      return false;
+    return true;
   }
 };
 
@@ -163,20 +215,24 @@ public:
   int player_reserved;
   real one_point_number;
   real one_point_radius;
+  CompositePlacement procedural_placement;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION_OPT(ptr, len, 4);
 
     spawn_range_limit = readType<real>(ptr, len);
     max_instances = readType<int>(ptr, len);
     player_reserved = readType<int>(ptr, len);
     one_point_number = readType<real>(ptr, len);
     one_point_radius = readType<real>(ptr, len);
+    if (!procedural_placement.load(ptr, len, load_cb))
+      return false;
+    return true;
   }
 };
 
@@ -208,14 +264,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION_OPT(ptr, len, 3);
 
     array.resize(readType<int>(ptr, len));
     for (auto &param : array)
-      param.load(ptr, len, load_cb);
+      if (!param.load(ptr, len, load_cb))
+        return false;
     instance_life_time_min = readType<real>(ptr, len);
     instance_life_time_max = readType<real>(ptr, len);
     fx_scale_min = readType<real>(ptr, len);
@@ -284,5 +341,6 @@ public:
     fx16 = load_cb->getReference(fx16_id);
     if (fx16 == nullptr && load_cb->getBrokenRefName(fx16_id))
       G_ASSERTF(0, "dafx compound: invalid sub fx reference %s for fx16", load_cb->getBrokenRefName(fx16_id));
+    return true;
   }
 };

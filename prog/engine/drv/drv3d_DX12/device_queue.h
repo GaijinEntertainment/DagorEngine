@@ -3,7 +3,9 @@
 
 #include "d3d12_debug_names.h"
 #include "d3d12_error_handling.h"
+#include "debug/device_state.h"
 
+#include <dag/dag_vector.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_tiledResource.h>
 #include <EASTL/utility.h>
@@ -110,8 +112,10 @@ private:
   static TileMapperAccel tileMapperAccel;
 };
 
-#ifdef EXTENDED_ASYNC_PROGRESS_DEBUG
-#define AP_DEBUG(...) debug(__VA_ARGS__)
+#define EXTENDED_ASYNC_PROGRESS_DEBUG 0
+
+#if EXTENDED_ASYNC_PROGRESS_DEBUG
+#define AP_DEBUG(...) logdbg(__VA_ARGS__)
 #else
 #define AP_DEBUG(...)
 #endif
@@ -136,17 +140,14 @@ public:
     progress = 0;
   }
 
-  bool reset(ID3D12Device *device, const wchar_t *name)
+  bool reset(ID3D12Device *device, debug::DeviceState &debug, eastl::wstring_view name)
   {
     reset();
     if (!DX12_CHECK_OK(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, COM_ARGS(&fence))))
     {
       return false;
     }
-    if (fence && name)
-    {
-      DX12_SET_DEBUG_OBJ_NAME(fence, name);
-    }
+    debug.nameObject(fence.Get(), name);
     return true;
   }
 
@@ -167,6 +168,13 @@ public:
   {
     AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), progress, &queue);
     return queue.syncWith(fence.Get(), progress);
+  }
+
+  bool waitOnProgress(const DeviceQueue &queue, uint64_t value) const
+  {
+    AP_DEBUG("DX12: %p:%u (%u)->wait %p", fence.Get(), value, progress, &queue);
+    G_ASSERTF(progress >= value, "%u >= %u failed", progress, value);
+    return queue.syncWith(fence.Get(), value);
   }
 
   uint64_t currentProgress() const
@@ -213,7 +221,7 @@ class DeviceQueueGroup
   AsyncProgress frameProgress;
 
 public:
-  bool init(ID3D12Device *device, bool give_names);
+  bool init(ID3D12Device *device, debug::DeviceState &debug);
   void shutdown();
   DeviceQueue &operator[](DeviceQueueType type) { return group[static_cast<uint32_t>(type)]; }
   const DeviceQueue &operator[](DeviceQueueType type) const { return group[static_cast<uint32_t>(type)]; }
@@ -222,6 +230,7 @@ public:
   void leaveSuspendedState();
 #endif
   uint64_t checkFrameProgress() const { return frameProgress.currentProgress(); }
+  uint64_t lastFrameProgress() const { return frameProgress.expectedProgress(); }
   bool updateFrameProgress(uint64_t progress)
   {
     return frameProgress.enqueueProgress(group[static_cast<uint32_t>(DeviceQueueType::READ_BACK)], progress);
@@ -231,7 +240,10 @@ public:
     return frameProgress.enqueueProgress(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)], progress);
   }
   bool waitForFrameProgress(uint64_t progress, HANDLE wait) const { return frameProgress.waitForProgress(progress, wait); }
-  bool synchronizeWithPreviousFrame() const { return frameProgress.wait(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)]); }
+  bool synchronizeWithPreviousFrame(uint64_t progress_sync) const
+  {
+    return frameProgress.waitOnProgress(group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)], progress_sync);
+  }
   bool canWaitOnFrameProgress() const { return static_cast<bool>(frameProgress); }
 
   // sync method name schema: synchronize<waiting queue>With<signaling queue>

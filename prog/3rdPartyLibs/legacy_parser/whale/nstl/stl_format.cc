@@ -27,6 +27,8 @@ inline void stl_format_callback(std::ios_base::event e, std::ios_base& io, int)
 	}
 }
 
+#else
+#include <locale>
 #endif
 
 
@@ -314,4 +316,3 @@ template<class charT>
 		map_braces(m2("{ ", " }")),
 		map_arrow("==>")
 	{}
-	

@@ -29,11 +29,10 @@ macro SP_SCREEN_RAY_DEPTH_CAST(code)
         depthThresholdScale, sp_globtm_from_campos, sp_projtm);
 
       uint numSteps4 = 4;//total number of steps is 16
-      float startMipLevel = 1.0f;
+      float mipLevel = 1.0f;
       ScreenSpaceRayHit rayHit = cast_screenspace_hzb_ray(
         downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,
-        startMipLevel, startMipLevel + 2.f,
-        ray, numSteps4, -noiseOffset,
+        mipLevel, ray, numSteps4, -noiseOffset,
         1);
       if (rayHit.hitType)
       {
@@ -72,8 +71,15 @@ macro SP_SCREEN_RAY_CAST(code)
       {
         float3 prevNDC = get_screen_probe_campos_history_ndc(hitCamPos);
         float3 prevUVW = float3(prevNDC.xy*float2(0.5,-0.5) + float2(0.5,0.5), prevNDC.z);
-        if (sp_is_valid_history() && sample_prev_frame_radiance(prevUVW, hitUVW, hitCamPos, allow_uncertaincy, lighting))
+
+        float3 historyRadiance;
+        bool hasValidHistoryRadiance = false;
+        if (sp_is_valid_history())
+          hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, hitUVW, hitCamPos, allow_uncertaincy, historyRadiance);
+
+        if (hasValidHistoryRadiance)
         {
+          lighting = historyRadiance;
           return SCREEN_RAY_CAST_SURE_HIT;
         }
       } else

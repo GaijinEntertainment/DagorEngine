@@ -58,7 +58,7 @@ Sources =
   jmemdagor.c
 ;
 
-CPPopt = -DNO_GETENV=1 ;
+CPPopt = -DNO_GETENV ;
 
 if $(PlatformSpec) = clang {
   CPPopt += -Wno-shift-negative-value ;

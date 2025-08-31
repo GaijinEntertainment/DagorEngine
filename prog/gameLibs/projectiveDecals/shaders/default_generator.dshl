@@ -138,6 +138,7 @@ texture spray_diff_tex;
 
 shader projective_decal_decals
 {
+  supports global_const_block;
   supports global_frame;
   z_write = false;
   z_test = true;
@@ -176,7 +177,7 @@ shader projective_decal_decals
 
 
   PROJECTIVE_DECALS_MATRICES(spray_decal_matrices, SPRAY_DECALS_MAX_MATRICES_COUNT, vs)
-  POJECTIVE_DECALS_VS_COMMON()
+  PROJECTIVE_DECALS_VS_COMMON()
 
   (vs) {
     globtm@f44 = globtm;
@@ -223,7 +224,7 @@ shader projective_decal_decals
 
   REDUCE_GBUFFER_MRT_MOBILE()
   WRITE_GBUFFER()
-  POJECTIVE_DECALS_PS_COMMON()
+  PROJECTIVE_DECALS_PS_COMMON()
   ENABLE_ASSERT(ps)
 
   (ps) {
@@ -268,7 +269,7 @@ shader projective_decal_decals
       init_metalness(result, metalness * albedoFactor);
 
 
-      float3 pointToEye = world_view_pos-worldPos;
+      float3 pointToEye = world_view_pos.xyz - worldPos.xyz;
 ##if compatibility_mode == compatibility_mode_off
       init_normal(result, 0);
       GBUFFER_OUTPUT ret = encode_gbuffer_alpha(result, alpha, pointToEye, GET_SCREEN_POS(input.pos));

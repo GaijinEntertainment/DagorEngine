@@ -4,11 +4,7 @@
 #include "messageQueueInternal.h"
 #include "scopedImguiBeginDisabled.h"
 #include <propPanel/imguiHelper.h>
-#include <sepGui/wndMenuInterface.h>
 #include <imgui/imgui.h>
-
-// ::ROOT_MENU_ITEM is used at a lot of places, so ensure compatibility.
-G_STATIC_ASSERT(PropPanel::ROOT_MENU_ITEM == ROOT_MENU_ITEM);
 
 namespace PropPanel
 {
@@ -216,7 +212,7 @@ void Menu::click(unsigned item_id)
 void Menu::onImguiDelayedCallback(void *user_data)
 {
   if (eventHandler)
-    eventHandler->onMenuItemClick((unsigned)user_data);
+    eventHandler->onMenuItemClick((unsigned)(uintptr_t)user_data);
 }
 
 Menu::MenuItem *Menu::getMenuItemById(unsigned id) { return id == ROOT_MENU_ITEM ? &rootMenu : rootMenu.getMenuItemById(id); }
@@ -246,7 +242,7 @@ void Menu::updateImgui()
     rootMenu.updateImgui(clickedItem);
 
     if (clickedItem && eventHandler)
-      message_queue.requestDelayedCallback(*this, (void *)clickedItem->id);
+      message_queue.requestDelayedCallback(*this, (void *)((uintptr_t)clickedItem->id));
 
     ImGui::EndMainMenuBar();
   }

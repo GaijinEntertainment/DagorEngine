@@ -13,25 +13,25 @@ class Menu : public IMenu, public IDelayedCallbackHandler
 {
 public:
   Menu();
-  ~Menu();
+  ~Menu() override;
 
-  virtual void addItem(unsigned menu_id, unsigned item_id, const char *title) override;
-  virtual void addSeparator(unsigned menu_id, unsigned item_id) override;
-  virtual void addSubMenu(unsigned menu_id, unsigned submenu_id, const char *title) override;
+  void addItem(unsigned menu_id, unsigned item_id, const char *title) override;
+  void addSeparator(unsigned menu_id, unsigned item_id) override;
+  void addSubMenu(unsigned menu_id, unsigned submenu_id, const char *title) override;
 
-  virtual int getItemCount(unsigned menu_id) override;
+  int getItemCount(unsigned menu_id) override;
 
-  virtual void clearMenu(unsigned menu_id) override;
+  void clearMenu(unsigned menu_id) override;
 
-  virtual void setEnabledById(unsigned item_id, bool enabled) override;
-  virtual void setCheckById(unsigned item_id, bool checked) override;
-  virtual void setRadioById(unsigned item_id, unsigned group_first_item_id, unsigned group_last_item_id) override;
-  virtual void setCaptionById(unsigned item_id, const char caption[]) override;
+  void setEnabledById(unsigned item_id, bool enabled) override;
+  void setCheckById(unsigned item_id, bool checked) override;
+  void setRadioById(unsigned item_id, unsigned group_first_item_id, unsigned group_last_item_id) override;
+  void setCaptionById(unsigned item_id, const char caption[]) override;
 
-  virtual void setEventHandler(IMenuEventHandler *event_handler) override;
-  virtual void click(unsigned item_id) override;
+  void setEventHandler(IMenuEventHandler *event_handler) override;
+  void click(unsigned item_id) override;
 
-  virtual bool isContextMenu() const override { return false; }
+  bool isContextMenu() const override { return false; }
 
   void updateImgui();
 
@@ -64,7 +64,7 @@ protected:
     dag::Vector<MenuItem *> children;
   };
 
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  void onImguiDelayedCallback(void *user_data) override;
 
   MenuItem *getMenuItemById(unsigned id);
 

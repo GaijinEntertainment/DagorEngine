@@ -3,6 +3,7 @@
 
 #include <util/dag_globDef.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
 #include <3d/ddsxTex.h>
 #include <DXGIFormat.h>
 #include "generic/dag_tabExt.h"
@@ -114,7 +115,7 @@ public:
 
     ID3D11Texture2D *resolvedTex;
     D3DTextures() :
-      resolvedTex(NULL), stagingTex(NULL), texRes(NULL), texUsage(D3D11_USAGE_DEFAULT), texAccess(0), memSize(0), realMipLevels(0){};
+      resolvedTex(NULL), stagingTex(NULL), texRes(NULL), texUsage(D3D11_USAGE_DEFAULT), texAccess(0), memSize(0), realMipLevels(0) {};
   };
   D3DTextures tex;
 
@@ -143,14 +144,14 @@ public:
   uint16_t dirtyRt : 1;
   uint16_t wasUsed : 1;
 
-  static BaseTex *create_tex(uint32_t cflg_, int type_);
+  static BaseTex *create_tex(uint32_t cflg, D3DResourceType type);
   static void destroy_tex(BaseTex *);
 
-  virtual void setResApiName(const char *name) const override { tex.setPrivateData(name); }
+  void setApiName(const char *name) const override { tex.setPrivateData(name); }
 
   bool setReloadCallback(BaseTexture::IReloadData *_rld);
 
-  int ressize() const override;
+  uint32_t getSize() const override;
 
   const char *strLabel() const;
 
@@ -187,11 +188,14 @@ public:
   ID3D11UnorderedAccessView *getExistingUaView(uint32_t face, uint32_t mip_level, bool as_uint);
   ID3D11UnorderedAccessView *getUaView(uint32_t face, uint32_t mip_level, bool as_uint);
 
-  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex) override;
+  bool updateTexResFormat(unsigned d3d_format) override;
+  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override;
   void replaceTexResObject(BaseTexture *&other_tex) override;
 
   bool allocateTex() override;
   void discardTex() override;
+
+  bool markTexelsUninitialized() const;
 
   inline bool isTexResEqual(BaseTexture *bt) const;
 
@@ -222,20 +226,12 @@ public:
   bool isSampledAsFloat() const;
 
 private:
-  BaseTex(uint32_t cflg_, int type_);
+  BaseTex(uint32_t cflg, D3DResourceType type);
   BaseTex(const BaseTex &) = delete;
   BaseTex &operator=(const BaseTex &) = delete;
   ~BaseTex();
 
-protected:
-  int texaddrImpl(int a) override;
-  int texaddruImpl(int a) override;
-  int texaddrvImpl(int a) override;
-  int texaddrwImpl(int a) override;
-  int texbordercolorImpl(E3DCOLOR c) override;
-  int texfilterImpl(int m) override;
-  int texmipmapImpl(int m) override;
-  int texlodImpl(float mipmaplod) override;
-  int setAnisotropyImpl(int level) override;
+  typedef dag::FixedMoveOnlyFunction<8, int()> CreateTexCallback;
+  int recreate_if_stub_used(CreateTexCallback &&create_placeholder_tex);
 };
 }; // namespace drv3d_dx11

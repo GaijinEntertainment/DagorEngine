@@ -12,7 +12,8 @@
 
 struct HeightmapQueryInput
 {
-  float2 worldPos2d;
+  float3 worldPos;
+  int riLandclassIndex;
 };
 
 #endif

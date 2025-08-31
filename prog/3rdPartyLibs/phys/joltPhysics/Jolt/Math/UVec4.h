@@ -67,8 +67,8 @@ public:
 	/// Equals (component wise)
 	static JPH_INLINE UVec4		sEquals(UVec4Arg inV1, UVec4Arg inV2);
 
-	/// Component wise select, returns inV1 when highest bit of inControl = 0 and inV2 when highest bit of inControl = 1
-	static JPH_INLINE UVec4		sSelect(UVec4Arg inV1, UVec4Arg inV2, UVec4Arg inControl);
+	/// Component wise select, returns inNotSet when highest bit of inControl = 0 and inSet when highest bit of inControl = 1
+	static JPH_INLINE UVec4		sSelect(UVec4Arg inNotSet, UVec4Arg inSet, UVec4Arg inControl);
 
 	/// Logical or (component wise)
 	static JPH_INLINE UVec4		sOr(UVec4Arg inV1, UVec4Arg inV2);
@@ -213,7 +213,7 @@ public:
 	};
 };
 
-static_assert(is_trivial<UVec4>(), "Is supposed to be a trivial type!");
+static_assert(std::is_trivial<UVec4>(), "Is supposed to be a trivial type!");
 
 JPH_NAMESPACE_END
 

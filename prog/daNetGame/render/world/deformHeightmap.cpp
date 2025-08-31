@@ -95,7 +95,6 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
   {
     String texName(64, "deform_hmap_depth_tex_%d", i);
     depthTextures[i] = dag::create_tex(nullptr, texSize, texSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, texName);
-    depthTextures[i]->disableSampler();
   }
   {
     d3d::SamplerInfo smpInfo;
@@ -111,7 +110,6 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
     String texName(64, "deform_hmap_postfx_tex_%d", i);
     const int flags = TEXCF_UNORDERED | TEXFMT_R8;
     postFxTextures[i] = dag::create_tex(nullptr, texSize, texSize, flags, 1, texName);
-    postFxTextures[i]->disableSampler();
     // The correct addr mode would be border, with border color of E3DCOLOR_MAKE(127, 0, 0, 0), but arbitrary border
     // colors are not supported on XB1. This is not a problem since we intentionally never sample out-of-bounds uvs.
   }
@@ -125,7 +123,6 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
   {
     String texName(64, "deform_hmap_info_tex_%d", i);
     deformInfoTextures[i] = dag::create_tex(nullptr, texSize, texSize, TEXCF_RTARGET | TEXFMT_R8, 1, texName);
-    deformInfoTextures[i]->disableSampler();
   }
   {
     const char *bufName = "deform_hmap_postfx_cell_buf";
@@ -175,12 +172,19 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
     logerr("DeformHeightmap: Not all deform hmap related shaders and shadervars were found, initialization failed.");
 
   const int physMatCount = PhysMat::physMatCount();
-  dag::Vector<Point2, framemem_allocator> deformParams(physMatCount, PhysMat::getMaterial("default").heightmapDeformation);
+  const PhysMat::MaterialData &defaultPhysMat = PhysMat::getMaterial("default");
+  const Point2 &defaultVehicleHmapDeformParams = defaultPhysMat.vehicleHeightmapDeformation;
+  dag::Vector<Point4, framemem_allocator> deformParams(physMatCount,
+    {defaultVehicleHmapDeformParams.x, defaultVehicleHmapDeformParams.y, defaultPhysMat.humanHeightmapDeformation, 0});
   for (int physmatId = 0; physmatId < physMatCount; physmatId++)
-    deformParams[physmatId] = PhysMat::getMaterial(physmatId).heightmapDeformation;
+  {
+    const PhysMat::MaterialData &currentPhysMat = PhysMat::getMaterial(physmatId);
+    const Point2 &vehicleHmapDeformParams = currentPhysMat.vehicleHeightmapDeformation;
+    deformParams[physmatId] = {vehicleHmapDeformParams.x, vehicleHmapDeformParams.y, currentPhysMat.humanHeightmapDeformation, 0};
+  }
 
-  hmapDeformParamsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(Point2), physMatCount, "hmap_deform_params_buffer");
-  hmapDeformParamsBuffer.getBuf()->updateData(0, (uint32_t)(physMatCount * sizeof(Point2)), deformParams.data(), VBLOCK_WRITEONLY);
+  hmapDeformParamsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(Point4), physMatCount, "hmap_deform_params_buffer");
+  hmapDeformParamsBuffer.getBuf()->updateData(0, (uint32_t)(physMatCount * sizeof(Point4)), deformParams.data(), VBLOCK_WRITEONLY);
 }
 
 DeformHeightmap::~DeformHeightmap() { instance = nullptr; }

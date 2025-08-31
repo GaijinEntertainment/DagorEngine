@@ -5,14 +5,30 @@
 
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_direct.h>
+#include <supp/dag_comPtr.h>
 
 #include <xess_sdk/inc/xess/xess_d3d12.h>
 #include <xess_sdk/inc/xess/xess_debug.h>
 
+#include <xess_sdk/inc/xell/xell_d3d12.h>
+
+#include <xess_sdk/inc/xess_fg/xefg_swapchain_d3d12.h>
+#include <xess_sdk/inc/xess_fg/xefg_swapchain_debug.h>
+
 #include <type_traits>
 
+#include <3d/gpuLatency.h>
+#include <util/dag_finally.h>
+
+static constexpr auto xefg_init_flags = XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
 using namespace drv3d_dx12;
+
+void get_fg_initializers(DXGIFactory *&factory, DXGISwapChain *&swapchain, ID3D12CommandQueue *&graphicsQueue);
+void shutdown_internal_swapchain();
+bool adopt_external_swapchain(DXGISwapChain *swapchain);
+void create_default_swapchain();
+
 
 static const char *get_xess_result_as_string(xess_result_t result)
 {
@@ -120,7 +136,75 @@ public:
     LOAD_FUNC(xessGetVersion);         //-V516
 #undef LOAD_FUNC
 
+    libxess_fg.reset(os_dll_load("libxess_fg.dll"));
+    if (!libxess_fg)
+    {
+      logdbg("DX12: XeSS_FG: Failed to load libxess_fg.dll, xess_fg will be disabled");
+    }
+    else
+    {
+
+#define LOAD_FUNC(x)                                                       \
+  do                                                                       \
+  {                                                                        \
+    x = static_cast<decltype(x)>(os_dll_get_symbol(libxess_fg.get(), #x)); \
+    if (x == nullptr)                                                      \
+      return false;                                                        \
+  } while (0)
+
+      LOAD_FUNC(xefgSwapChainD3D12CreateContext);         //-V516
+      LOAD_FUNC(xefgSwapChainD3D12InitFromSwapChainDesc); //-V516
+      LOAD_FUNC(xefgSwapChainD3D12GetSwapChainPtr);       //-V516
+      LOAD_FUNC(xefgSwapChainD3D12TagFrameResource);      //-V516
+      LOAD_FUNC(xefgSwapChainTagFrameConstants);          //-V516
+      LOAD_FUNC(xefgSwapChainSetEnabled);                 //-V516
+      LOAD_FUNC(xefgSwapChainSetPresentId);               //-V516
+      LOAD_FUNC(xefgSwapChainGetLastPresentStatus);       //-V516
+      LOAD_FUNC(xefgSwapChainSetLoggingCallback);         //-V516
+      LOAD_FUNC(xefgSwapChainDestroy);                    //-V516
+      LOAD_FUNC(xefgSwapChainSetLatencyReduction);        //-V516
+      LOAD_FUNC(xefgSwapChainSetSceneChangeThreshold);    //-V516
+      LOAD_FUNC(xefgSwapChainEnableDebugFeature);         //-V516
+      LOAD_FUNC(xefgSwapChainD3D12BuildPipelines);        //-V516
+#undef LOAD_FUNC
+    }
+
     return true;
+  }
+
+  void makeFgContext()
+  {
+    auto result = xefgSwapChainD3D12CreateContext(static_cast<ID3D12Device *>(d3d::get_device()), &m_xefgContext);
+    if (result < XEFG_SWAPCHAIN_RESULT_SUCCESS)
+      logdbg("[XeFG] xefgSwapChainD3D12CreateContext failed with %d", result);
+    else if (result > XEFG_SWAPCHAIN_RESULT_SUCCESS)
+      logwarn("[XeFG] xefgSwapChainD3D12CreateContext succeeded with warning %d", result);
+
+    if (result >= XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    {
+      G_VERIFY(xefgSwapChainD3D12BuildPipelines(m_xefgContext, nullptr, false, xefg_init_flags) == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+
+#if DAGOR_DBGLEVEL < 1
+      auto logLevel = XEFG_SWAPCHAIN_LOGGING_LEVEL_ERROR;
+#else
+      auto logLevel = XEFG_SWAPCHAIN_LOGGING_LEVEL_WARNING;
+#endif
+
+      xefgSwapChainSetLoggingCallback(
+        m_xefgContext, logLevel,
+        [](const char *message, xefg_swapchain_logging_level_t level, void *) {
+          switch (level)
+          {
+            case XEFG_SWAPCHAIN_LOGGING_LEVEL_DEBUG: logdbg("[XEFG] %s", message); break;
+            case XEFG_SWAPCHAIN_LOGGING_LEVEL_INFO: logdbg("[XEFG] %s", message); break;
+            case XEFG_SWAPCHAIN_LOGGING_LEVEL_WARNING: logwarn("[XEFG] %s", message); break;
+            case XEFG_SWAPCHAIN_LOGGING_LEVEL_ERROR: logerr("[XEFG] %s", message); break;
+          }
+        },
+        nullptr);
+    }
+
+    lastPresentStatus = xefg_swapchain_present_status_t{};
   }
 
   bool init(void *device)
@@ -129,6 +213,10 @@ public:
       return false;
 
     m_state = XessState::SUPPORTED;
+
+    if (libxess_fg)
+      makeFgContext();
+
     return true;
   }
 
@@ -158,9 +246,44 @@ public:
     return true;
   }
 
+  bool shutdownFg()
+  {
+    if (m_xefgContext)
+    {
+      if (fgActive)
+      {
+        d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+        FINALLY([] { d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP); });
+
+        // Reset the swapchain from the backend. Don't set a default one just yet, as the XeFG
+        // swapchain still exist and there can be only one with flip model.
+        shutdown_internal_swapchain();
+        create_default_swapchain();
+      }
+
+      auto result = xefgSwapChainDestroy(m_xefgContext);
+      G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, false);
+      m_xefgContext = nullptr;
+
+      if (fgActive)
+      {
+        lastPresentStatus = xefg_swapchain_present_status_t{};
+
+        // Reset XeLL to the original state.
+        auto xell = GpuLatency::getInstance();
+        G_ASSERT(xell);
+        xell->setOptions(xellBackupState ? GpuLatency::Mode::On : GpuLatency::Mode::Off, 0);
+      }
+
+      fgActive = false;
+    }
+
+    return true;
+  }
+
   bool shutdown()
   {
-    return (m_state == XessState::READY || m_state == XessState::SUPPORTED) &&
+    return shutdownFg() && (m_state == XessState::READY || m_state == XessState::SUPPORTED) &&
            xessDestroyContext(m_xessContext) == XESS_RESULT_SUCCESS;
   }
 
@@ -263,6 +386,158 @@ public:
     }
   }
 
+  bool isFrameGenerationSupported() const { return m_xefgContext; }
+
+  bool isFrameGenerationEnabled() const { return m_xefgContext && fgActive; }
+
+  void enableFrameGeneration(bool enable)
+  {
+    if (enable)
+    {
+      if (fgActive)
+        return;
+
+      d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+      FINALLY([] { d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP); });
+
+      // Make the framegen swapchain and replace the driver one with it
+      ComPtr<DXGIFactory> dxgiFactory;
+      ComPtr<DXGISwapChain> dxgiSwapchain;
+      ComPtr<ID3D12CommandQueue> d3dGraphicsQueue;
+      get_fg_initializers(*dxgiFactory.GetAddressOf(), *dxgiSwapchain.GetAddressOf(), *d3dGraphicsQueue.GetAddressOf());
+
+      DXGI_SWAP_CHAIN_DESC swapchainDesc = {};
+      dxgiSwapchain->GetDesc(&swapchainDesc);
+      HWND hwnd;
+      dxgiSwapchain->GetHwnd(&hwnd);
+      DXGI_SWAP_CHAIN_DESC1 desc1;
+      dxgiSwapchain->GetDesc1(&desc1);
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc;
+      dxgiSwapchain->GetFullscreenDesc(&fullscreenDesc);
+      dxgiSwapchain.Reset();
+
+      G_ASSERT_RETURN(fullscreenDesc.Windowed, );
+
+      // XeLL need to be enabled
+      xellBackupState = false;
+
+      auto xell = GpuLatency::getInstance();
+      if (!xell)
+        xell = GpuLatency::create(GpuVendor::INTEL);
+
+      G_ASSERT_RETURN(xell, );
+
+      if (xell->isEnabled())
+        xellBackupState = true;
+      else
+        xell->setOptions(GpuLatency::Mode::On, 0);
+
+      xefgSwapChainSetLatencyReduction(m_xefgContext, xell->getHandle());
+
+      // Remove the old swapchain first, because only one swapchain can exist for the window with flip model
+      shutdown_internal_swapchain();
+
+      xefg_swapchain_d3d12_init_params_t params = {
+        .initFlags = xefg_init_flags,
+        .maxInterpolatedFrames = 1,
+        .uiMode = XEFG_SWAPCHAIN_UI_MODE_HUDLESS_UITEXTURE,
+      };
+
+      [[maybe_unused]] auto result = xefgSwapChainD3D12InitFromSwapChainDesc(m_xefgContext, hwnd, &desc1, &fullscreenDesc,
+        d3dGraphicsQueue.Get(), dxgiFactory.Get(), &params);
+      G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, );
+
+      ComPtr<IDXGISwapChain3> newDxgiSwapchain;
+      result = xefgSwapChainD3D12GetSwapChainPtr(m_xefgContext, IID_PPV_ARGS(newDxgiSwapchain.GetAddressOf()));
+      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+
+      if (!adopt_external_swapchain(newDxgiSwapchain.Get()))
+      {
+        // try to restore the default DXGI swapchain if XESS FG swapchain creation is failed
+        create_default_swapchain();
+        return;
+      }
+
+      result = xefgSwapChainSetEnabled(m_xefgContext, true);
+      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+
+      fgActive = true;
+
+#if 0
+      xefgSwapChainEnableDebugFeature(m_xefgContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_SHOW_ONLY_INTERPOLATION, true, nullptr);
+      xefgSwapChainEnableDebugFeature(m_xefgContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_PRESENT_FAILED_INTERPOLATION, true, nullptr);
+#endif
+    }
+    else
+    {
+      if (m_xefgContext && fgActive)
+      {
+        shutdownFg();
+        makeFgContext();
+      }
+    }
+  }
+
+  void suppressFrameGeneration(bool suppress)
+  {
+    if (m_xefgContext && fgActive)
+    {
+      auto result = xefgSwapChainSetEnabled(m_xefgContext, !suppress);
+      G_UNUSED(result);
+      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+    }
+  }
+
+  void doScheduleGeneratedFrames(const void *args, void *command_list)
+  {
+    xefgSwapChainGetLastPresentStatus(m_xefgContext, &lastPresentStatus);
+
+    if (m_xefgContext && fgActive)
+    {
+      auto &fgArgs = *static_cast<const XessFgParamsDx12 *>(args);
+      auto d3dCommandList = static_cast<ID3D12CommandList *>(command_list);
+
+      xefg_swapchain_frame_constant_data_t constData = {};
+      memcpy(constData.viewMatrix, fgArgs.viewTm, sizeof(fgArgs.viewTm));
+      memcpy(constData.projectionMatrix, fgArgs.projTm, sizeof(fgArgs.projTm));
+      constData.jitterOffsetX = fgArgs.inJitterOffsetX;
+      constData.jitterOffsetY = fgArgs.inJitterOffsetY;
+      constData.motionVectorScaleX = fgArgs.inMotionVectorScaleX;
+      constData.motionVectorScaleY = fgArgs.inMotionVectorScaleY;
+      constData.resetHistory = fgArgs.inReset;
+
+      auto result = xefgSwapChainTagFrameConstants(m_xefgContext, fgArgs.inFrameIndex, &constData);
+      G_UNUSED(result);
+      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+
+      auto tagResource = [&](Image *img, xefg_swapchain_resource_type_t type) {
+        auto desc = img->getHandle()->GetDesc();
+
+        xefg_swapchain_d3d12_resource_data_t resData = {};
+        resData.type = type;
+        resData.validity = XEFG_SWAPCHAIN_RV_ONLY_NOW;
+        resData.resourceSize = {(uint32_t)desc.Width, (uint32_t)desc.Height};
+        resData.pResource = img->getHandle();
+        resData.incomingState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        if (type == XEFG_SWAPCHAIN_RES_DEPTH)
+          resData.incomingState |= D3D12_RESOURCE_STATE_DEPTH_READ;
+        auto result = xefgSwapChainD3D12TagFrameResource(m_xefgContext, d3dCommandList, fgArgs.inFrameIndex, &resData);
+        G_UNUSED(result);
+        G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+      };
+
+      tagResource(fgArgs.inColorHudless, XEFG_SWAPCHAIN_RES_HUDLESS_COLOR);
+      tagResource(fgArgs.inMotionVectors, XEFG_SWAPCHAIN_RES_MOTION_VECTOR);
+      tagResource(fgArgs.inDepth, XEFG_SWAPCHAIN_RES_DEPTH);
+      tagResource(fgArgs.inUi, XEFG_SWAPCHAIN_RES_UI);
+
+      result = xefgSwapChainSetPresentId(m_xefgContext, fgArgs.inFrameIndex);
+      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+    }
+  }
+
+  int getPresentedFrameCount() { return lastPresentStatus.isFrameGenEnabled ? lastPresentStatus.framesPresented : 1; }
+
 private:
   bool checkResult(xess_result_t result)
   {
@@ -286,16 +561,38 @@ private:
   xess_2d_t m_renderResolution = {0, 0};
   XessState m_state = XessState::DISABLED;
 
+  xefg_swapchain_handle_t m_xefgContext = nullptr;
+  xefg_swapchain_present_status_t lastPresentStatus = {};
+  bool fgActive = false;
+
+  bool xellBackupState = false;
+
   DagorDynLibHolder libxess;
-  decltype(::xessD3D12CreateContext) *xessD3D12CreateContext;
-  decltype(::xessGetProperties) *xessGetProperties;
-  decltype(::xessD3D12Init) *xessD3D12Init;
-  decltype(::xessGetInputResolution) *xessGetInputResolution;
-  decltype(::xessDestroyContext) *xessDestroyContext;
-  decltype(::xessD3D12Execute) *xessD3D12Execute;
-  decltype(::xessSetVelocityScale) *xessSetVelocityScale;
-  decltype(::xessStartDump) *xessStartDump;
-  decltype(::xessGetVersion) *xessGetVersion;
+  DagorDynLibHolder libxess_fg;
+  decltype(::xessD3D12CreateContext) *xessD3D12CreateContext = nullptr;
+  decltype(::xessGetProperties) *xessGetProperties = nullptr;
+  decltype(::xessD3D12Init) *xessD3D12Init = nullptr;
+  decltype(::xessGetInputResolution) *xessGetInputResolution = nullptr;
+  decltype(::xessDestroyContext) *xessDestroyContext = nullptr;
+  decltype(::xessD3D12Execute) *xessD3D12Execute = nullptr;
+  decltype(::xessSetVelocityScale) *xessSetVelocityScale = nullptr;
+  decltype(::xessStartDump) *xessStartDump = nullptr;
+  decltype(::xessGetVersion) *xessGetVersion = nullptr;
+
+  decltype(::xefgSwapChainD3D12CreateContext) *xefgSwapChainD3D12CreateContext = nullptr;
+  decltype(::xefgSwapChainD3D12InitFromSwapChainDesc) *xefgSwapChainD3D12InitFromSwapChainDesc = nullptr;
+  decltype(::xefgSwapChainD3D12GetSwapChainPtr) *xefgSwapChainD3D12GetSwapChainPtr = nullptr;
+  decltype(::xefgSwapChainD3D12TagFrameResource) *xefgSwapChainD3D12TagFrameResource = nullptr;
+  decltype(::xefgSwapChainTagFrameConstants) *xefgSwapChainTagFrameConstants = nullptr;
+  decltype(::xefgSwapChainSetEnabled) *xefgSwapChainSetEnabled = nullptr;
+  decltype(::xefgSwapChainSetPresentId) *xefgSwapChainSetPresentId = nullptr;
+  decltype(::xefgSwapChainGetLastPresentStatus) *xefgSwapChainGetLastPresentStatus = nullptr;
+  decltype(::xefgSwapChainSetLoggingCallback) *xefgSwapChainSetLoggingCallback = nullptr;
+  decltype(::xefgSwapChainDestroy) *xefgSwapChainDestroy = nullptr;
+  decltype(::xefgSwapChainSetLatencyReduction) *xefgSwapChainSetLatencyReduction = nullptr;
+  decltype(::xefgSwapChainSetSceneChangeThreshold) *xefgSwapChainSetSceneChangeThreshold = nullptr;
+  decltype(::xefgSwapChainEnableDebugFeature) *xefgSwapChainEnableDebugFeature = nullptr;
+  decltype(::xefgSwapChainD3D12BuildPipelines) *xefgSwapChainD3D12BuildPipelines = nullptr;
 };
 
 } // namespace drv3d_dx12
@@ -331,6 +628,21 @@ bool XessWrapper::isXessQualityAvailableAtResolution(uint32_t target_width, uint
   return pImpl->isXessQualityAvailableAtResolution(target_width, target_height, xess_quality);
 }
 
+bool XessWrapper::isFrameGenerationSupported() const { return pImpl->isFrameGenerationSupported(); }
+
+bool XessWrapper::isFrameGenerationEnabled() const { return pImpl->isFrameGenerationEnabled(); }
+
+void XessWrapper::enableFrameGeneration(bool enable) { pImpl->enableFrameGeneration(enable); }
+
+void XessWrapper::suppressFrameGeneration(bool suppress) { pImpl->suppressFrameGeneration(suppress); }
+
+void XessWrapper::doScheduleGeneratedFrames(const void *args, void *command_list)
+{
+  pImpl->doScheduleGeneratedFrames(args, command_list);
+}
+
+int XessWrapper::getPresentedFrameCount() { return pImpl->getPresentedFrameCount(); }
+
 XessState XessWrapper::getXessState() const { return pImpl->getXessState(); }
 
 void XessWrapper::getXeSSRenderResolution(int &w, int &h) const { pImpl->getXeSSRenderResolution(w, h); }
@@ -361,3 +673,184 @@ static void xess_debug_imgui()
 REGISTER_IMGUI_WINDOW("Render", "XeSS debug", xess_debug_imgui);
 
 #endif
+
+class IntelGpuLatency : public GpuLatency
+{
+public:
+  IntelGpuLatency()
+  {
+    G_ASSERT(d3d::get_driver_code().is(d3d::dx12));
+
+    if (!loadLibrary())
+      return;
+
+    auto result = xellD3D12CreateContext((ID3D12Device *)d3d::get_device(), &handle);
+    if (result == XELL_RESULT_SUCCESS)
+    {
+      modes = {Mode::Off, Mode::On};
+
+#if DAGOR_DBGLEVEL < 1
+      auto logLevel = XELL_LOGGING_LEVEL_ERROR;
+#else
+      auto logLevel = XELL_LOGGING_LEVEL_WARNING;
+#endif
+
+      xellSetLoggingCallback(handle, logLevel, [](const char *message, xell_logging_level_t level) {
+        switch (level)
+        {
+          case XELL_LOGGING_LEVEL_DEBUG: logdbg("[XELL] %s", message); break;
+          case XELL_LOGGING_LEVEL_INFO: logdbg("[XELL] %s", message); break;
+          case XELL_LOGGING_LEVEL_WARNING: logwarn("[XELL] %s", message); break;
+          case XELL_LOGGING_LEVEL_ERROR: logerr("[XELL] %s", message); break;
+        }
+      });
+    }
+    else
+    {
+      switch (result)
+      {
+        case XELL_RESULT_ERROR_UNSUPPORTED_DEVICE:
+          logwarn("XeLL initialization failed with XELL_RESULT_ERROR_UNSUPPORTED_DEVICE");
+          break;
+        case XELL_RESULT_ERROR_UNSUPPORTED_DRIVER:
+          logwarn("XeLL initialization failed with XELL_RESULT_ERROR_UNSUPPORTED_DRIVER");
+          break;
+        default: logerr("XeLL initialization failed with %d", result); break;
+      }
+      modes = {Mode::Off};
+    }
+  }
+
+  ~IntelGpuLatency()
+  {
+    if (handle)
+      xellDestroyContext(handle);
+  }
+
+  dag::ConstSpan<Mode> getAvailableModes() const override { return make_span_const(modes); }
+
+  void startFrame(uint32_t) override {}
+
+  void setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type) override
+  {
+    if (!handle)
+      return;
+
+    switch (marker_type)
+    {
+      case lowlatency::LatencyMarkerType::SIMULATION_START: xellAddMarkerData(handle, frame_id, XELL_SIMULATION_START); break;
+      case lowlatency::LatencyMarkerType::SIMULATION_END: xellAddMarkerData(handle, frame_id, XELL_SIMULATION_END); break;
+      case lowlatency::LatencyMarkerType::RENDERSUBMIT_START: xellAddMarkerData(handle, frame_id, XELL_RENDERSUBMIT_START); break;
+      case lowlatency::LatencyMarkerType::RENDERSUBMIT_END: xellAddMarkerData(handle, frame_id, XELL_RENDERSUBMIT_END); break;
+      case lowlatency::LatencyMarkerType::PRESENT_START: xellAddMarkerData(handle, frame_id, XELL_PRESENT_START); break;
+      case lowlatency::LatencyMarkerType::PRESENT_END: xellAddMarkerData(handle, frame_id, XELL_PRESENT_END); break;
+      default: break;
+    }
+  }
+
+  void setOptions(Mode mode, uint32_t frame_limit_us) override
+  {
+    if (!handle)
+      return;
+
+    xell_sleep_params_t params = {};
+    params.minimumIntervalUs = frame_limit_us;
+    switch (mode)
+    {
+      case Mode::Off: params.bLowLatencyMode = 0; break;
+      case Mode::On:
+      case Mode::OnPlusBoost: params.bLowLatencyMode = 1; break;
+    }
+
+    // params.bLowLatencyBoost can be set once it becomes available.
+
+    xellSetSleepMode(handle, &params);
+  }
+
+  void sleep(uint32_t frame_id) override
+  {
+    if (!handle)
+      return;
+
+    xellSleep(handle, frame_id);
+  }
+
+  lowlatency::LatencyData getStatisticsSince(uint32_t frame_id, uint32_t max_count = 0) override
+  {
+    // Anti Lag 2 has no support for this
+    G_UNUSED(frame_id);
+    G_UNUSED(max_count);
+    lowlatency::LatencyData ret;
+    return ret;
+  }
+
+  void *getHandle() const override { return handle; }
+
+  bool isEnabled() const override
+  {
+    if (!handle)
+      return false;
+
+    xell_sleep_params_t params = {};
+    if (xellGetSleepMode(handle, &params) != XELL_RESULT_SUCCESS)
+      return false;
+
+    return params.bLowLatencyMode == 1;
+  }
+
+  GpuVendor getVendor() const override { return GpuVendor::INTEL; }
+
+  bool isVsyncAllowed() const override { return true; }
+
+private:
+  bool loadLibrary()
+  {
+    xellD3D12CreateContext = nullptr;
+    xellDestroyContext = nullptr;
+    xellAddMarkerData = nullptr;
+    xellSetSleepMode = nullptr;
+    xellSleep = nullptr;
+    xellGetSleepMode = nullptr;
+    xellSetLoggingCallback = nullptr;
+
+    libxell.reset(os_dll_load("libxell.dll"));
+    if (!libxell)
+    {
+      logdbg("DX12: XeLL: Failed to load libxell.dll, xell will be disabled");
+      return false;
+    }
+
+#define LOAD_FUNC(x)                                                    \
+  do                                                                    \
+  {                                                                     \
+    x = static_cast<decltype(x)>(os_dll_get_symbol(libxell.get(), #x)); \
+    if (x == nullptr)                                                   \
+      return false;                                                     \
+  } while (0)
+
+    LOAD_FUNC(xellD3D12CreateContext); //-V516
+    LOAD_FUNC(xellDestroyContext);     //-V516
+    LOAD_FUNC(xellAddMarkerData);      //-V516
+    LOAD_FUNC(xellSetSleepMode);       //-V516
+    LOAD_FUNC(xellSleep);              //-V516
+    LOAD_FUNC(xellGetSleepMode);       //-V516
+    LOAD_FUNC(xellSetLoggingCallback); //-V516
+#undef LOAD_FUNC
+
+    return true;
+  }
+
+  dag::Vector<Mode> modes = {Mode::Off};
+  xell_context_handle_t handle = nullptr;
+
+  DagorDynLibHolder libxell;
+  decltype(::xellD3D12CreateContext) *xellD3D12CreateContext = nullptr;
+  decltype(::xellDestroyContext) *xellDestroyContext = nullptr;
+  decltype(::xellAddMarkerData) *xellAddMarkerData = nullptr;
+  decltype(::xellSetSleepMode) *xellSetSleepMode = nullptr;
+  decltype(::xellSleep) *xellSleep = nullptr;
+  decltype(::xellGetSleepMode) *xellGetSleepMode = nullptr;
+  decltype(::xellSetLoggingCallback) *xellSetLoggingCallback = nullptr;
+};
+
+GpuLatency *create_gpu_latency_intel() { return new IntelGpuLatency(); }

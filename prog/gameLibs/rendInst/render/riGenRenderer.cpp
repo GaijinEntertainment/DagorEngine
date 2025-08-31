@@ -159,11 +159,10 @@ void RiGenRenderer::updatePerDrawData(RendInstGenData::RtData &rt_data, int per_
 
     auto &riDrawData = drawData[riIdx];
 
+    const bool isPosInst = rt_data.riPosInst[riIdx];
     const uint32_t vectorsCnt =
-      rt_data.riPosInst[riIdx]
-        ? 1
-        : 3 + RIGEN_ADD_STRIDE_PER_INST_B(rt_data.riZeroInstSeeds[riIdx], per_inst_data_dwords) / RENDER_ELEM_SIZE_PACKED;
-    const uint32_t flags = (rt_data.riZeroInstSeeds[riIdx] == 0) && (per_inst_data_dwords != 0) ? 2 : 0;
+      isPosInst ? 1 : 3 + RIGEN_ADD_STRIDE_PER_INST_B(rt_data.riZeroInstSeeds[riIdx], per_inst_data_dwords) / RENDER_ELEM_SIZE_PACKED;
+    const uint32_t flags = (!isPosInst && (rt_data.riZeroInstSeeds[riIdx] == 0) && (per_inst_data_dwords != 0)) ? 2 : 0;
 
     auto range = rt_data.rtPoolData[riIdx]->lodRange[rt_data.riResLodCount(riIdx) - 1];
     range = rt_data.rtPoolData[riIdx]->hasImpostor() ? rt_data.get_trees_last_range(range) : rt_data.get_last_range(range);
@@ -364,7 +363,7 @@ void RiGenRenderer::addCellVisibleObjects(RendInstGenData::RtData &rt_data, cons
 
             G_ASSERT(ofs >= cellRtData->pools[riIdx].baseOfs);
             G_ASSERT(count <= cellRtData->pools[riIdx].total);
-            G_ASSERT((count * stride + cellBufferRegion.offset + ofs) <= rt_data.cellsVb.getHeap().getBuf()->ressize());
+            G_ASSERT((count * stride + cellBufferRegion.offset + ofs) <= rt_data.cellsVb.getHeap().getBuf()->getSize());
             G_ASSERT((count * stride + ofs) <= cellBufferRegion.size);
             G_ASSERT(count > 0);
 
@@ -518,6 +517,8 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
   bool curRenderQuad = false;
   bool currentDepthPrepass = false;
   d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
+  shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
+  const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
   for (const auto &record : renderRecords)
   {
     G_ASSERT(record.count != INVALID);
@@ -594,10 +595,12 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
 
     if (eastl::exchange(currentDepthPrepass, afterDepthPrepass) != afterDepthPrepass)
     {
+      shaders::overrides::reset();
       if (afterDepthPrepass)
-        shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
+        shaders::overrides::set(hasStencilTestStateOverride ? rendinst::render::afterDepthPrepassWithStencilTestOverride
+                                                            : rendinst::render::afterDepthPrepassOverride);
       else
-        shaders::overrides::reset();
+        shaders::overrides::set(previousOverrideId);
     }
 
     if (debug_mesh::set_debug_value(record.meshDebugValue))
@@ -607,8 +610,12 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
     {
       set_states_for_variant(record.curShader->native(), record.variant, record.prog, record.state);
       if (renderPass == RenderPass::ToShadow)
+      {
         d3d::settex(dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET,
           rt_data.rtPoolData[record.poolIdx]->rendinstGlobalShadowTex.getArrayTex());
+        d3d::set_sampler(STAGE_PS, dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET,
+          rt_data.rtPoolData[record.poolIdx]->globalShadowSampler);
+      }
     }
 
     curRState = record.rstate;
@@ -652,7 +659,10 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
   }
 
   if (currentDepthPrepass)
+  {
     shaders::overrides::reset();
+    shaders::overrides::set(previousOverrideId);
+  }
 
   debug_mesh::reset_debug_value();
 }
@@ -679,7 +689,7 @@ RiGenRenderer::MultiDrawRenderer RiGenRenderer::getMultiDrawRenderer()
       }
       params.instanceOffset = drawRecord.offset;
       if (DAGOR_UNLIKELY(drawRecord.visibility == drawRecord.PER_INSTANCE &&
-                         drawRecord.offset + drawRecord.count >= rendinst::render::MAX_INSTANCES))
+                         drawRecord.offset + drawRecord.count > rendinst::render::MAX_INSTANCES))
       {
         logwarn("RiGenRenderer per instance buffer has more than %d instances!", rendinst::render::MAX_INSTANCES);
         params.instanceOffset = 0;
@@ -715,6 +725,8 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
   cb.flushPerDraw();
 
   bool currentDepthPrepass = false;
+  shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
+  const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
 
   uint8_t curVbIdx = INVALID;
   uint8_t curStride = INVALID;
@@ -754,10 +766,12 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
 
     if (eastl::exchange(currentDepthPrepass, afterDepthPrepass) != afterDepthPrepass)
     {
+      shaders::overrides::reset();
       if (afterDepthPrepass)
-        shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
+        shaders::overrides::set(hasStencilTestStateOverride ? rendinst::render::afterDepthPrepassWithStencilTestOverride
+                                                            : rendinst::render::afterDepthPrepassOverride);
       else
-        shaders::overrides::reset();
+        shaders::overrides::set(previousOverrideId);
     }
 
     debug_mesh::set_debug_value(record.meshDebugValue);
@@ -767,18 +781,39 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
   }
 
   if (currentDepthPrepass)
+  {
     shaders::overrides::reset();
+    shaders::overrides::set(previousOverrideId);
+  }
 
   debug_mesh::reset_debug_value();
 }
 
-static void RiGenRenderer_afterDeviceReset(bool /*full_reset*/)
+static bool ri_gen_after_device_reset_callback_issued = false;
+
+static void RiGenRenderer_afterDeviceReset_impl(void *)
 {
+  if (RendInstGenData::isLoading)
+  {
+    add_delayed_callback_buffered((delayed_callback)&RiGenRenderer_afterDeviceReset_impl, nullptr);
+    return;
+  }
+
+  ri_gen_after_device_reset_callback_issued = false;
+
   if (!RendInstGenData::renderResRequired)
     return;
 
   FOR_EACH_RG_LAYER_DO (rgl)
     rendinst::render::RiGenRenderer::updatePerDrawData(*rgl->rtData, rgl->perInstDataDwords);
+}
+
+static void RiGenRenderer_afterDeviceReset(bool /*full_reset*/)
+{
+  if (ri_gen_after_device_reset_callback_issued)
+    return;
+  ri_gen_after_device_reset_callback_issued = true;
+  RiGenRenderer_afterDeviceReset_impl(nullptr);
 }
 
 REGISTER_D3D_AFTER_RESET_FUNC(RiGenRenderer_afterDeviceReset);

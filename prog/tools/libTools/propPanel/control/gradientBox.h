@@ -23,31 +23,28 @@ public:
     G_ASSERT(mH > 0);
   }
 
-  virtual unsigned getTypeMaskForSet() const override
-  {
-    return CONTROL_DATA_TYPE_GRADIENT | CONTROL_CAPTION | CONTROL_DATA_MIN_MAX_STEP;
-  }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_GRADIENT | CONTROL_CAPTION | CONTROL_DATA_MIN_MAX_STEP; }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_GRADIENT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_GRADIENT; }
 
-  virtual void setGradientValue(PGradient value) override { gradientControl.setValue(value); }
-  virtual void getGradientValue(PGradient destGradient) const override { gradientControl.getValue(destGradient); }
+  void setGradientValue(PGradient value) override { gradientControl.setValue(value); }
+  void getGradientValue(PGradient destGradient) const override { gradientControl.getValue(destGradient); }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
   // current X value line
-  virtual void setFloatValue(float value) override { gradientControl.setCurValue(value); }
+  void setFloatValue(float value) override { gradientControl.setCurValue(value); }
 
   // 2 byte - cycle
-  virtual void setIntValue(int value) override { gradientControl.setCycled(value & CONTROL_CYCLED_VALUES); }
+  void setIntValue(int value) override { gradientControl.setCycled(value & CONTROL_CYCLED_VALUES); }
 
-  virtual void setMinMaxStepValue(float min, float max, float step) override { gradientControl.setMinMax(min, max); }
+  void setMinMaxStepValue(float min, float max, float step) override { gradientControl.setMinMax(min, max); }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void reset() override { gradientControl.reset(); }
+  void reset() override { gradientControl.reset(); }
 
-  virtual long onWcClipboardCopy(WindowBase *source, DataBlock &blk) override
+  long onWcClipboardCopy(WindowBase *source, DataBlock &blk) override
   {
     blk.reset();
     blk.setStr("DataType", "Gradient");
@@ -66,7 +63,7 @@ public:
     return 1;
   }
 
-  virtual long onWcClipboardPaste(WindowBase *source, const DataBlock &blk) override
+  long onWcClipboardPaste(WindowBase *source, const DataBlock &blk) override
   {
     if (strcmp(blk.getStr("DataType", ""), "Gradient") != 0)
       return 0;
@@ -97,7 +94,7 @@ public:
     return result;
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

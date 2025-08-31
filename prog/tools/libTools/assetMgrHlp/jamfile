@@ -13,6 +13,7 @@ Sources =
   assetBuildCache.cpp
   assetExpCache.cpp
   texConvCache.cpp
+  texAssetBuilderTextureFactory.cpp
   reloadTexAsset.cpp
   refProviders.cpp
   assetLocalProps.cpp

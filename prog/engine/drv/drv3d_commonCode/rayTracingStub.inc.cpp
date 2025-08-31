@@ -27,6 +27,27 @@ RaytraceAccelerationStructureGpuHandle d3d::get_raytrace_acceleration_structure_
 }
 void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure, RaytraceAnyAccelerationStructure, bool) {}
 bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build(uint32_t) { return false; }
+::raytrace::AccelerationStructurePool d3d::raytrace::create_acceleration_structure_pool(
+  const ::raytrace::AccelerationStructurePoolCreateInfo &)
+{
+  return ::raytrace::InvalidAccelerationStructurePool;
+}
+void d3d::raytrace::destroy_acceleration_structure_pool(::raytrace::AccelerationStructurePool) {}
+RaytraceAccelerationStructureGpuHandle d3d::raytrace::get_pool_base_address(::raytrace::AccelerationStructurePool) { return {0}; }
+::raytrace::AccelerationStructureSizes d3d::raytrace::calculate_acceleration_structure_sizes(
+  const ::raytrace::AccelerationStructureSizeCalculcationInfo &)
+{
+  return {};
+}
+::raytrace::AnyAccelerationStructure d3d::raytrace::create_acceleration_structure(::raytrace::AccelerationStructurePool,
+  const ::raytrace::AccelerationStructurePlacementInfo &)
+{
+  return {};
+}
+void d3d::raytrace::destroy_acceleration_structure(::raytrace::AccelerationStructurePool, ::raytrace::AnyAccelerationStructure) {}
+void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters,
+  ::raytrace::AccelerationStructureBuildMode)
+{}
 ::raytrace::Pipeline d3d::raytrace::create_pipeline(const ::raytrace::PipelineCreateInfo &) { return ::raytrace::InvalidPipeline; }
 ::raytrace::Pipeline d3d::raytrace::expand_pipeline(const ::raytrace::Pipeline &, const ::raytrace::PipelineExpandInfo &)
 {

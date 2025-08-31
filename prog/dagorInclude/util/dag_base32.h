@@ -9,7 +9,7 @@
 
 
 //! convert binary data to string in base-32 (a..z 2..7) format
-#define ENCODE_B32(C) ((C) < 26 ? 'a' + (C) : '2' + (C)-26)
+#define ENCODE_B32(C) ((C) < 26 ? 'a' + (C) : '2' + (C) - 26)
 static inline const char *data_to_str_b32_buf(char *dest, size_t dest_len, const void *src_data, size_t src_data_len)
 {
   G_ASSERTF_RETURN(src_data_len % 5 == 0, NULL, "src_data_len=%d", src_data_len);

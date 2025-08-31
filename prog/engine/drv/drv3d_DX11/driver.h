@@ -55,6 +55,7 @@ struct RENDERDOC_API_1_5_0;
 #include <osApiWrappers/dag_miscApi.h>
 
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 
 struct ID3D11Device1;
 struct ID3D11Device3;
@@ -198,6 +199,7 @@ extern float gpu_frame_time;
 extern LARGE_INTEGER qpc_freq;
 extern bool flush_on_present;
 extern bool flush_before_survey;
+extern int max_pending_frames;
 extern bool use_gpu_dt;
 extern bool hdr_enabled;
 extern bool int10_hdr_buffer;
@@ -409,8 +411,8 @@ struct RenderState : public FrameStateTM
     rasterizerModified = true;
     alphaBlendModified = true;
     depthStencilModified = true;
-    for (int i = 0; i < texFetchState.resources.size(); ++i)
-      texFetchState.resources[i].modifiedMask = 0xffffffff;
+    for (auto &resources : texFetchState.resources)
+      resources.modifiedMask = resources.samplersModifiedMask = 0xffffffff;
     currentFrameDip = 0;
     resetDipCounter();
   };
@@ -421,9 +423,9 @@ struct RenderState : public FrameStateTM
   ~RenderState()
   {
     for (int i = 0; i < MAX_PS_SAMPLERS; ++i)
-      d3d::set_tex(STAGE_PS, i, 0);
+      d3d::set_tex(STAGE_PS, i, nullptr);
     for (int i = 0; i < MAX_VS_SAMPLERS; ++i)
-      d3d::set_tex(STAGE_VS, i, 0);
+      d3d::set_tex(STAGE_VS, i, nullptr);
     for (int i = MAX_PS_SAMPLERS; i < MAX_RESOURCES; ++i)
       d3d::set_buffer(STAGE_PS, i, 0);
     for (int i = MAX_VS_SAMPLERS; i < MAX_RESOURCES; ++i)
@@ -462,6 +464,7 @@ void recreate_render_states();
 void close_textures();
 void recreate_all_queries();
 void reset_all_queries();
+void reset_timestamp_frequency();
 
 static bool init_all(int imm_vb_size, int imm_ib_size)
 {
@@ -479,7 +482,18 @@ static bool init_all(int imm_vb_size, int imm_ib_size)
   return res;
 }
 
-static bool flush_all(bool should_flush_buffers = true)
+enum class FlushStages
+{
+  Shaders,
+  NullRTs,
+  CsObjects,
+  Samplers,
+  RTs,
+  Buffers,
+  States,
+};
+
+inline bool flush_states(FlushStages last_stage, bool should_flush_buffers = true)
 {
   if (dagor_d3d_force_driver_reset)
     return false;
@@ -490,24 +504,37 @@ static bool flush_all(bool should_flush_buffers = true)
   // It must be a first flush before all other resources because setups a current shader set (which of
   // vs, ds, hs, gs are actually used and so on) which the rest resources will be passed to
   flush_shaders(rs, should_flush_buffers);
+  if (last_stage == FlushStages::Shaders)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_null_rendertargets(rs); // Should be called before flush_samplers to reset RT targets to be bound to shaders.
+  if (last_stage == FlushStages::NullRTs)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_cs_objects(rs, /*async*/ false);
+  if (last_stage == FlushStages::CsObjects)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_samplers(rs); // Should be called before flush_rendertargets to reset RT bound textures.
+  if (last_stage == FlushStages::Samplers)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_rendertargets(rs);
+  if (last_stage == FlushStages::RTs)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_buffers(rs);
+  if (last_stage == FlushStages::Buffers)
+    return true;
   if (dagor_d3d_force_driver_reset)
     return false;
   flush_states(rs); // depends on rendertargets
+  G_ASSERT(last_stage == FlushStages::States);
 
   if (dagor_d3d_force_driver_reset)
     return false;
@@ -516,6 +543,8 @@ static bool flush_all(bool should_flush_buffers = true)
   rs.currentFrameDip++;
   return true;
 }
+
+static bool flush_all(bool should_flush_buffers = true) { return flush_states(FlushStages::States, should_flush_buffers); }
 
 static bool flush_cs_all(bool should_flush_buffers, bool async)
 {

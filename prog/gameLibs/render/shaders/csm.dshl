@@ -40,6 +40,8 @@ interval num_of_cascades:one<2, two<3, three<4, four;
 
 float4 csm_culling_near_planes;
 
+float csm_dither_cascade_scale = 0.1;
+
 texture downsampled_shadows;
 macro INIT_ESM_SHADOW(stage)
 if (assume_downsampled_shadows == on)
@@ -68,6 +70,7 @@ macro INIT_CSM_SHADOW(code)
   (code){
     shadow_cascade_depth_tex@shd = shadow_cascade_depth_tex;
     start_csm_shadow_blend__pcf@f3 = (start_csm_shadow_blend, pcf_lerp.x, pcf_lerp.y, 0);
+    csm_dither_cascade_scale@f1 = csm_dither_cascade_scale;
   }
 endmacro
 
@@ -85,12 +88,12 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
 
       fixed texCSMShadow ( float2 uv, float z)
       {
-        return shadow2D(shadow_cascade_depth_tex, float3(uv, z));
+        return fixed(shadow2D(shadow_cascade_depth_tex, float3(uv, z)));
       }
 
       fixed texCSMDepth ( float2 uv)
       {
-        return tex2Dlod(shadow_cascade_depth_tex, float4(uv, 0,0)).x;
+        return fixed(tex2Dlod(shadow_cascade_depth_tex, float4(uv, 0,0)).x);
       }
       #define texCSMShadow3(a,b,c) texCSMDepth(a)
 
@@ -128,7 +131,7 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
         for (float x = -3; x <= 3; x += 2.0)
           sum += texCSMShadow2(depthShadowTC.xy + float2(x, y)*csm_pcf_lerp.x, depthShadowTC.z, depthShadowTC.w);
         }
-      return sum/16;
+      return half(sum/16);
     }
     half get_pcf_csm_shadow_4x4(float3 depthShadowTC)
     {
@@ -144,11 +147,11 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
          -CSMpcf4x4_1.zwxy
       };
       half selfShadow = 0;
-      half2 baseTexCoord = depthShadowTC.xy - CSMSizes.zw;
+      half2 baseTexCoord = half2(depthShadowTC.xy - CSMSizes.zw);
 
       half4   shadowMapWeights[4];
       half4   shadowMapVals[4];
-      half2 pFrac = frac(baseTexCoord.xy * CSMSizes.xy);
+      half2 pFrac = half2(frac(baseTexCoord.xy * CSMSizes.xy));
       half2 invpFrac = 1-pFrac;
       shadowMapWeights[0] = half4( invpFrac.y, invpFrac.x, 1, invpFrac.x*invpFrac.y );
       shadowMapWeights[1] = half4( invpFrac.y*pFrac.x, 1, pFrac.x, invpFrac.y );
@@ -202,7 +205,7 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
         shadow += texCSMShadow(depthShadowTC.xy+sampleOffset, depthShadowTC.z);
         //shadow += texCSMShadow(depthShadowTC.xy+sampleOffset.yx, depthShadowTC.z);
       }
-      return shadow*(1./NUM_SAMPLES);
+      return half(shadow*(1./NUM_SAMPLES));
     }
     #define get_pcf_csm_shadow(a) get_pcf_csm_shadow_fxaa(a)
 
@@ -223,7 +226,7 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
     half2 get_csm_shadow_dithered(float3 pointToEye, float dither, out uint cascade_id, out float3 shadow_tc, float radiusScale = 4)
     {
       float csmEffect = 1;
-      shadow_tc = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*0.1);
+      shadow_tc = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*csm_dither_cascade_scale);
       FLATTEN
       if (shadow_tc.z<1)
         return half2(get_csm_shadow_8_tap(shadow_tc, dither, radiusScale), saturate(csmEffect*10-9));//saturate(csmEffect*10-9));//saturate(csmEffect*10-9));

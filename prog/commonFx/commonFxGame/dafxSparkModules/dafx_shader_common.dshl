@@ -21,8 +21,8 @@ macro USE_SPARKFX_SYSTEM_COMMON()
     #include "dafx_loaders.hlsli"
     #include "dafx_packers.hlsli"
     #include "noise/SimplexPerlin3D_Deriv.hlsl"
-    #include "dafx_code_common_decl.hlsl"
-    #include "dafx_code_common.hlsl"
+    #include "dafx_code_common_decl.hlsli"
+    #include "dafx_code_common.hlsli"
     #include "dafx_globals.hlsli"
   }
 
@@ -37,7 +37,7 @@ macro USE_SPARKFX_SYSTEM_COMMON()
     #define VELOCITY_DOT_BIAS 0.01
 
     DAFX_INLINE
-    bool apply_depth_collision(GlobalData_cref gparams, float dt, float3 pos, float3 vel, float restitution, float friction, out float3 out_pos, out float3 out_vel, out float min_dist)
+    bool apply_depth_collision(GlobalData_cref gparams, float dt, float3 pos, float3 vel, float restitution, float friction, bool relaxed, out float3 out_pos, out float3 out_vel, out float min_dist)
     {
       out_pos = pos;
       out_vel = vel;
@@ -75,13 +75,18 @@ macro USE_SPARKFX_SYSTEM_COMMON()
       min_dist = posDist;
       float posDistNew = depthNew - dafx_linearize_z(ndcNew.z, gparams);
       float posDistNewAbs = abs(posDistNew);
-      float3 normal = normalize(cross(worldPos1 - worldPos0, worldPos2 - worldPos0));
 
-      bool isCollided = stcValid && stcValidNew && ((posDist < 0) != (posDistNew < 0) && (posDistAbs < DEPTH_POS_BIAS_SIGN || posDistNewAbs < DEPTH_POS_BIAS_SIGN));
+      bool isOccluded = posDist < 0;
+      bool isNewOccluded = posDistNew < 0;
+
+      bool isCollided = !relaxed && stcValid && stcValidNew && (isOccluded != isNewOccluded && (posDistAbs < DEPTH_POS_BIAS_SIGN || posDistNewAbs < DEPTH_POS_BIAS_SIGN));
       isCollided = isCollided | (stcValid && posDistAbs < DEPTH_POS_BIAS);
       isCollided = isCollided | (stcValidNew && posDistNewAbs < DEPTH_POS_BIAS);
       if (!isCollided)
         return false;
+
+      float3 normal = normalize(cross(worldPos1 - worldPos0, worldPos2 - worldPos0));
+      normal = isOccluded ? -normal : normal;
 
       float velNorm = dot(vel, normal);
       float velLen = length(vel);
@@ -93,6 +98,7 @@ macro USE_SPARKFX_SYSTEM_COMMON()
       out_vel = velNorm < -MIN_VELOCITY_RESTITUTION ? normal * -velNorm * restitution :
         (velNorm > MIN_VELOCITY_RESTITUTION ? normal * velNorm : 0);
       out_vel += tangent * max(velTang - max(pow2(velTang), MIN_CALM_FRICTION) * friction * dt * pow2(max(normal.y, 0)), 0);
+      out_pos += isOccluded ? normal * DEPTH_POS_BIAS : 0.f; // avoid penetrating surface from inside.
       return true;
     }
   }
@@ -103,7 +109,7 @@ macro USE_DAFX_RENDER_COMMON()
 
   hlsl {
     #include "dafx_loaders.hlsli"
-    #include "dafx_code_common_decl.hlsl"
+    #include "dafx_code_common_decl.hlsli"
     #include "dafx_globals.hlsli"
   }
 endmacro

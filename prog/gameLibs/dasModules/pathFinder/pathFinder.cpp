@@ -126,6 +126,10 @@ public:
 
     das::addExtern<DAS_BIND_FUN(find_path)>(*this, lib, "find_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::find_path");
+    das::addExtern<DAS_BIND_FUN(find_path_with_flags)>(*this, lib, "find_path_with_flags",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::find_path_with_flags");
+    das::addExtern<DAS_BIND_FUN(find_any_path)>(*this, lib, "find_any_path", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::find_any_path");
 
     das::addExtern<DAS_BIND_FUN(check_path_req)>(*this, lib, "check_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::check_path_req");
@@ -177,6 +181,10 @@ public:
     das::addExtern<DAS_BIND_FUN(project_to_nearest_navmesh_point_no_obstacles_3d)>(*this, lib,
       "project_to_nearest_navmesh_point_no_obstacles", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::project_to_nearest_navmesh_point_no_obstacles_3d");
+
+    das::addExtern<DAS_BIND_FUN(project_to_nearest_navmesh_point_no_obstacles_3d_ex)>(*this, lib,
+      "project_to_nearest_navmesh_point_no_obstacles_ex", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::project_to_nearest_navmesh_point_no_obstacles_3d_ex");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::find_random_point_around_circle)>(*this, lib, "find_random_point_around_circle",
       das::SideEffects::modifyArgument, "pathfinder::find_random_point_around_circle");

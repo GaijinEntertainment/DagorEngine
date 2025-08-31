@@ -14,7 +14,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_set.h>
 #include "main/vromfs.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "game/gameEvents.h"
 #include "game/player.h"
 
@@ -75,12 +75,11 @@
 #include "main/ecsUtils.h"
 #include "main/gameLoad.h"
 
-SQInteger get_thread_id_func();
-
 
 #if DAS_SMART_PTR_ID
 uint64_t das::ptr_ref_count::ref_count_total = 0;
 uint64_t das::ptr_ref_count::ref_count_track = 0;
+uint64_t das::ptr_ref_count::ref_count_track_destructor = 0;
 das::das_set<uint64_t> das::ptr_ref_count::ref_count_ids;
 das::mutex das::ptr_ref_count::ref_count_mutex;
 #endif
@@ -245,6 +244,7 @@ static int get_das_int_setting(const char *path, int def)
 static const char *get_das_init_entry_point() { return get_das_path_setting("game_das_script_init"); }
 #if DAGOR_DBGLEVEL > 0
 static const char *get_das_thread_init_script() { return get_das_path_setting("game_das_script_thread_init"); }
+static SQInteger get_thread_id_func() { return SQInteger(get_current_thread_id()); }
 #endif
 static const char *get_das_entry_point() { return get_das_path_setting("game_das_script"); }
 static const char *get_das_project() { return get_das_path_setting("game_das_project"); }
@@ -274,9 +274,12 @@ void global_init_das()
 
   const bool enableAot = NEED_DAS_AOT_COMPILE || debugBlk->getBool("das_aot", false);
   const bool enableAotErrorsLog = debugBlk->getBool("das_log_aot_errors", DAGOR_DBGLEVEL > 0);
+  const bool gen2MakeSyntax = ::dgs_get_settings()->getBool("game_das_gen_2_make_syntax", false);
+
   bind_dascript::init_das(enableAot ? bind_dascript::AotMode::AOT : bind_dascript::AotMode::NO_AOT,
     auto_hot_reload ? bind_dascript::HotReload::ENABLED : bind_dascript::HotReload::DISABLED,
-    enableAotErrorsLog ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO);
+    enableAotErrorsLog ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO,
+    gen2MakeSyntax ? bind_dascript::DasSyntax::V1_5 : bind_dascript::DasSyntax::V1_0);
 
   const Tab<const char *> ecsTags = ecs_get_global_tags_context();
   const auto devTagPos = eastl::find_if(ecsTags.begin(), ecsTags.end(), [](const char *tag) { return strcmp(tag, "dev") == 0; });
@@ -313,12 +316,11 @@ HSQUIRRELVM init()
 
   bindquirrel::apply_compiler_options_from_game_settings(moduleMgr.get());
 
+#if DAGOR_DBGLEVEL > 0 || _TARGET_PC
   const DataBlock *debugBlk = dgs_get_settings()->getBlockByNameEx("debug");
   bool useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
-
   // we allow loading from real fs if useAddonVromSrc is on, otherwise it won't even work
   SqModules::tryOpenFilesFromRealFS = useAddonVromSrc;
-#if DAGOR_DBGLEVEL > 0 || _TARGET_PC
   // on PC or in in dev mode on non-PC platforms we allow scripts 'modding'.
   // we also allow loading from real fs if useAddonVromSrc is on
   SqModules::tryOpenFilesFromRealFS |= debugBlk->getBool("allowScriptsModding", false);
@@ -343,7 +345,7 @@ HSQUIRRELVM init()
 
   stackCheck.check();
 
-  sqeventbus::bind(moduleMgr.get(), "game", sqeventbus::ProcessingMode::IMMEDIATE);
+  sqeventbus::bind(moduleMgr.get(), "game", sqeventbus::ProcessingMode::MANUAL_PUMP);
   moduleMgr->registerMathLib();
   moduleMgr->registerStringLib();
   moduleMgr->registerIoStreamLib();
@@ -470,6 +472,9 @@ uint32_t initialize_deserializer_(const char *name)
     return -1;
   }
 
+  const auto size = df_length(file);
+  debug("das: serialize: reading cache file '%s' size %@", bind_dascript::deserializationFileName.c_str(), size);
+
   das::unique_ptr<das::SerializationStorage> buffer(
     bind_dascript::create_file_read_serialization_storage(file, bind_dascript::deserializationFileName));
   bind_dascript::initDeserializerStorage = das::move(buffer);
@@ -560,7 +565,6 @@ bool run_with_serialization()
     char buf[DAGOR_MAX_PATH];
     return initialize_deserializer(get_serialized_data_filename(buf));
   }();
-  debug("das: serialize: Checking against serialized AST:", serializedVersion);
   debug("das: serialize: - Serialized version: %lu - %s", serializedVersion, serializedVersion == -1 ? "missing (corrupted)" : "ok");
 
   bind_dascript::enableSerialization = false;

@@ -40,6 +40,8 @@ static bool allowOodlePacking = false;
 static bool logExportTime = false;
 static bool errorOnDuplicateNames = false;
 static bool errorOnOldParams = false;
+static bool removeOutOfRangeNotetrackKeys = true;
+static bool logOnNotetrackKeyRemoval = false;
 
 static TMatrix make_scale_tm(const TMatrix &tm, const Point3 &scale)
 {
@@ -59,40 +61,61 @@ class AclAllocator : public acl::iallocator
 public:
   AclAllocator(IMemAlloc *m) : mem(m) {}
 
-  virtual void *allocate(size_t size, size_t alignment) { return mem->allocAligned(size, alignment); }
+  void *allocate(size_t size, size_t alignment) override { return mem->allocAligned(size, alignment); }
 
-  virtual void deallocate(void *ptr, size_t size)
+  void deallocate(void *ptr, size_t size) override
   {
     G_UNUSED(size);
     mem->freeAligned(ptr);
   }
 };
 
+const char *animSuffix = "_anim";
+
 class A2dExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "a2d exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "a2d exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return Anim2DataGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return Anim2DataGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override
   {
-    static constexpr const int base_ver = 5;
+    static constexpr const int base_ver = 6;
     return base_ver * 3 + (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 3));
   }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
     files.clear();
     files.push_back() = a.getTargetFilePath();
+
+    if (const DataBlock *autoCompleteBlk = a.props.getBlockByName("autoComplete"))
+    {
+      if (const char *collisionNameRaw = autoCompleteBlk->getStr("collisionName", nullptr))
+      {
+        char collisionName[128];
+        remove_suffix(collisionName, collisionNameRaw, animSuffix);
+        remove_suffix(collisionName, collisionName, autoCompleteBlk->getStr("collisionSuffixToRemove", ""));
+        if (const DagorAsset *collisionAsset = a.getMgr().findAsset(collisionName, a.getMgr().getAssetTypeId("collision")))
+          files.push_back() = collisionAsset->getTargetFilePath();
+      }
+      if (const char *skeletonNameRaw = a.props.getStr("skeletonName", NULL))
+      {
+        char skeletonName[128];
+        remove_suffix(skeletonName, skeletonNameRaw, animSuffix);
+        if (const DagorAsset *skeletonAsset = a.getMgr().findAsset(skeletonName, a.getMgr().getAssetTypeId("skeleton")))
+          files.push_back() = skeletonAsset->getTargetFilePath();
+      }
+    }
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     auto startTime = profile_ref_ticks();
 
@@ -127,8 +150,11 @@ public:
     float sampleRate = props.getReal("sampleRate", a.props.getReal("sampleRate", 0));
     debug("%s: posPrec=%.5fm velPrec=%.5f shell=%.5fm sr=%.2fHz", a.getName(), posPrecision, velPrecision, shellDistance, sampleRate);
 
-    FastNameMap reqNodeMask, charDepNodes;
-    bool strip_char_dep = false;
+    FastNameMap reqNodeMask;      // Map of nodes which are fully excluded from animation.
+    FastNameMap stripNodesExcept; // If not empty, all nodes which ARE NOT in this map will be stripped of position and scale channels.
+    FastNameMap stripNodes;       // If not empty, all nodes in this map will be stripped of position and scale channels.
+    bool stripNodesExceptEnabled = false;
+    bool stripNodesEnabled = false;
     if (const DataBlock *b = props.getBlockByName("applyNodeMask"))
     {
       for (int i = 0, nid = b->getNameId("node"); i < b->paramCount(); i++)
@@ -139,10 +165,17 @@ public:
     }
     if (const DataBlock *b = props.getBlockByName("stripChannelsForCharDep"))
     {
-      strip_char_dep = b->getBool("strip", true);
+      stripNodesExceptEnabled = b->getBool("strip", true);
       for (int i = 0, nid = b->getNameId("node"); i < b->paramCount(); i++)
         if (b->getParamNameId(i) == nid && b->getParamType(i) == b->TYPE_STRING)
-          charDepNodes.addNameId(b->getStr(i));
+          stripNodesExcept.addNameId(b->getStr(i));
+    }
+    if (const DataBlock *b = props.getBlockByName("stripChannelsFromNodes"))
+    {
+      stripNodesEnabled = b->getBool("strip", true);
+      for (int i = 0, nid = b->getNameId("node"); i < b->paramCount(); i++)
+        if (b->getParamNameId(i) == nid && b->getParamType(i) == b->TYPE_STRING)
+          stripNodes.addNameId(b->getStr(i));
     }
 
     AScene origSkeletonScene;
@@ -150,18 +183,17 @@ public:
     bool autoCompleted = false;
     if (const DataBlock *autoCompleteBlk = a.props.getBlockByName("autoComplete"))
     {
-      const char *animSuffix = "_anim";
       const int flags = LASF_NOMATS | LASF_NOMESHES | LASF_NOSPLINES | LASF_NOLIGHTS;
       if (load_skeleton(a, animSuffix, flags, log, origSkeletonScene) &&
           load_skeleton(a, animSuffix, flags, log, autoCompletedSkeletonScene))
         autoCompleted = auto_complete_skeleton(a, animSuffix, flags, log, autoCompletedSkeletonScene.root);
     }
 
-    mkbindump::BinDumpSaveCB cwrDump(128 << 10, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB cwrDump(128 << 10, cwr);
     bool failed = false;
-    if (!convert(crd, cwrDump, posPrecision, velPrecision, shellDistance, sampleRate, props.getBool("makeAdditive", false),
-          props.getStr("additiveRefPose", NULL), reqNodeMask, origSkeletonScene.root,
-          autoCompleted ? autoCompletedSkeletonScene.root : nullptr, strip_char_dep, charDepNodes, a, log))
+    if (!A2dExporter::convert(crd, cwrDump, posPrecision, velPrecision, shellDistance, sampleRate, props, reqNodeMask,
+          origSkeletonScene.root, autoCompleted ? autoCompletedSkeletonScene.root : nullptr, stripNodesExceptEnabled, stripNodesExcept,
+          stripNodesEnabled, stripNodes, a, log))
     {
       log.addMessage(ILogWriter::ERROR, "%s: error convert!", a.getNameTypified());
       cwr.beginBlock();
@@ -172,7 +204,7 @@ public:
     cwr.beginBlock();
     if ((preferZstdPacking || allowOodlePacking) && cwrDump.getSize() > 512)
     {
-      mkbindump::BinDumpSaveCB mcwr(cwrDump.getSize(), cwr.getTarget(), cwr.WRITE_BE);
+      mkbindump::BinDumpSaveCB mcwr(cwrDump.getSize(), cwr);
       MemoryLoadCB mcrd(cwrDump.getRawWriter().getMem(), false);
 
       if (allowOodlePacking)
@@ -293,8 +325,9 @@ protected:
   }
 
   static bool convert(IGenLoad &crd, mkbindump::BinDumpSaveCB &cwr, float pos_prec, float vel_prec, float shell_dist,
-    float sample_rate, bool make_additive, const char *additive_key_suffix, FastNameMap &req_node_mask, Node *original_skeleton,
-    Node *auto_completed_skeleton, bool strip_for_char_dep, FastNameMap &char_dep_nodes, const DagorAsset &a, ILogWriter &log)
+    float sample_rate, const DataBlock &props, FastNameMap &req_node_mask, Node *original_skeleton, Node *auto_completed_skeleton,
+    bool strip_nodes_except_enabled, FastNameMap &strip_nodes_except, bool strip_nodes_enabled, FastNameMap &strip_nodes,
+    const DagorAsset &a, ILogWriter &log)
   {
     AnimDataHeader hdr;
 
@@ -390,19 +423,6 @@ protected:
         }
     hdrV200.totalAnimLabelNum = noteTrackPool.size();
 
-    int nid_requireKey = a.props.getNameId("requireKey");
-    if (nid_requireKey >= 0)
-      for (int i = 0; i < a.props.paramCount(); i++)
-        if (a.props.getParamNameId(i) == nid_requireKey && a.props.getParamType(i) == DataBlock::TYPE_STRING)
-        {
-          const char *key = a.props.getStr(i);
-          if (namedKey.getStrId(key) < 0)
-          {
-            log.addMessage(ILogWriter::ERROR, "%s: missing mandatory label <%s>", a.getNameTypified(), key);
-            return false;
-          }
-        }
-
     // find minimax timing
     int mint = 0, maxt = 0, minStep = 4800 * 60; // 1 minute step max
     if (hdrV200.timeNum)
@@ -417,6 +437,37 @@ protected:
       if (dt > 0 && minStep > dt)
         minStep = dt;
     }
+
+    // remove note track keys that are out of time range
+    if (a.props.getBool("removeOutOfRangeNotetrackKeys", removeOutOfRangeNotetrackKeys))
+      for (int i = 0; i < noteTrackPool.size(); i++)
+        if (noteTrackPool[i].time < mint || noteTrackPool[i].time > maxt)
+        {
+          if (logOnNotetrackKeyRemoval)
+            debug("removed %s (%d), out of range %d..%d", &namePool[noteTrackPool[i].name], noteTrackPool[i].time, mint, maxt);
+          erase_items(noteTrackPool, i, 1);
+          i--;
+        }
+    if (hdrV200.totalAnimLabelNum > noteTrackPool.size())
+    {
+      debug("removed %d note track keys that are out of time range %d..%d: %d -> %d", //
+        hdrV200.totalAnimLabelNum - noteTrackPool.size(), mint, maxt, hdrV200.totalAnimLabelNum, noteTrackPool.size());
+      hdrV200.totalAnimLabelNum = noteTrackPool.size();
+    }
+
+    // check presense of required keys in note track
+    bool missing_labels = false;
+    dblk::iterate_params_by_name_and_type(a.props, "requireKey", DataBlock::TYPE_STRING,
+      [&a, &log, &namedKey, &missing_labels](int param_idx) {
+        const char *key = a.props.getStr(param_idx);
+        if (namedKey.getStrId(key) < 0)
+        {
+          log.addMessage(ILogWriter::ERROR, "%s: missing mandatory label <%s>", a.getNameTypified(), key);
+          missing_labels = true;
+        }
+      });
+    if (missing_labels)
+      return false;
 
     // complement notetrack with default keys
     if (const DataBlock *b = a.props.getBlockByName("defaultKeys"))
@@ -512,7 +563,7 @@ protected:
           ch.nodeName[i] = (char *)(intptr_t)crd.readInt();
         crd.read(ch.nodeWt, ch.nodeNum * sizeof(float));
 
-        if (req_node_mask.nameCount() || strip_for_char_dep)
+        if (req_node_mask.nameCount() || strip_nodes_except_enabled || strip_nodes_enabled)
         {
           bool ps_type = (ch.channelType == AnimV20::CHTYPE_POSITION || ch.channelType == AnimV20::CHTYPE_SCALE);
           ChannelData ch2;
@@ -521,8 +572,10 @@ protected:
           for (int i = 0; i < ch.nodeNum; i++)
           {
             const char *node_nm = namePool.data() + (intptr_t)ch.nodeName[i];
-            if (!(req_node_mask.nameCount() && req_node_mask.getNameId(node_nm) < 0) &&
-                !(strip_for_char_dep && ps_type && char_dep_nodes.getNameId(node_nm) < 0))
+            const bool removedByMask = req_node_mask.nameCount() && req_node_mask.getNameId(node_nm) < 0;
+            const bool removedByExcludeCharDep = strip_nodes_except_enabled && ps_type && strip_nodes_except.getNameId(node_nm) < 0;
+            const bool removedByIncludeCharDep = strip_nodes_enabled && ps_type && strip_nodes.getNameId(node_nm) >= 0;
+            if (!removedByMask && !removedByExcludeCharDep && !removedByIncludeCharDep)
               nodeRemap[i] = ch2.nodeNum++;
           }
 
@@ -556,41 +609,81 @@ protected:
     sort(chan, &ChannelData::cmp);
 
     // process additive animations
-    if (make_additive)
+    bool makeAdditive = props.getBool("makeAdditive", false);
+    if (makeAdditive)
     {
+      const char *additive_key_suffix = props.getStr("additiveRefPose", NULL);
       String end_key_name, ref_key_name;
-      debug("additive=%d (%s)", make_additive, additive_key_suffix);
+      debug("additive=1 suffix=(%s)", additive_key_suffix);
       Tab<int> addAnimRangeTriple;
-      for (int i = 0; i < namedKey.getMapRaw().size(); i++)
+      const DataBlock *addKeys = props.getBlockByName("additiveKeys");
+      if (addKeys)
       {
-        debug("%s=%d", namedKey.getMapRaw()[i].name, namedKey.getMapRaw()[i].id);
-        if (strcmp(namedKey.getMapRaw()[i].name, "start") == 0)
+        for (int i = 0; i < addKeys->blockCount(); i++)
         {
-          end_key_name = "end";
-          ref_key_name = additive_key_suffix;
-        }
-        else if (trail_strcmp(namedKey.getMapRaw()[i].name, "_start"))
-        {
-          int prefix_len = i_strlen(namedKey.getMapRaw()[i].name) - 6;
-          end_key_name.printf(0, "%.*s_end", prefix_len, namedKey.getMapRaw()[i].name);
-          ref_key_name.printf(0, "%.*s_%s", prefix_len, namedKey.getMapRaw()[i].name, additive_key_suffix);
-        }
-        else
-          continue;
+          const DataBlock *b = addKeys->getBlock(i);
+          const char *t0Key = b->getStr("start", "start");
+          int t0 = namedKey.getStrId(t0Key);
+          const char *t1Key = b->getStr("end", "end");
+          int t1 = namedKey.getStrId(t1Key);
+          const char *trefKey = b->getStr("ref", "ref");
+          int tref = namedKey.getStrId(trefKey);
+          debug("make additive from blk (%s...%s ref=%s)  %d..%d  ref=%d", t0Key, t1Key, trefKey, t0, t1, tref);
+          if (t0 < 0 || t1 < 0 || tref < 0)
+          {
+            log.addMessage(ILogWriter::ERROR,
+              "%s: Failed to make additive range with keys: start: '%s'(found:%d) end: '%s'(found:%d) ref: '%s'(found:%d)",
+              a.getNameTypified(), t0Key, t0 >= 0, t1Key, t1 >= 0, trefKey, tref >= 0);
+            continue;
+          }
 
-        int t0 = namedKey.getMapRaw()[i].id;
-        int t1 = namedKey.getStrId(end_key_name);
-        int tref = namedKey.getStrId(ref_key_name);
-        debug("make additive (%s...%s ref=%s)  %d..%d  ref=%d", namedKey.getMapRaw()[i].name, end_key_name, ref_key_name, t0, t1,
-          tref);
-        if (t0 < 0 || t1 < 0 || tref < 0)
-        {
-          log.addMessage(ILogWriter::ERROR, "%s: bad labels for additive anim", a.getNameTypified());
-          return false;
+          addAnimRangeTriple.push_back(t0);
+          addAnimRangeTriple.push_back(t1);
+          addAnimRangeTriple.push_back(tref);
         }
-        addAnimRangeTriple.push_back(t0);
-        addAnimRangeTriple.push_back(t1);
-        addAnimRangeTriple.push_back(tref);
+      }
+      else // !addKeys
+      {
+        for (int i = 0; i < namedKey.getMapRaw().size(); i++)
+        {
+          debug("%s=%d", namedKey.getMapRaw()[i].name, namedKey.getMapRaw()[i].id);
+          if (strcmp(namedKey.getMapRaw()[i].name, "start") == 0)
+          {
+            end_key_name = "end";
+            ref_key_name = additive_key_suffix;
+          }
+          else if (trail_strcmp(namedKey.getMapRaw()[i].name, "_start"))
+          {
+            int prefix_len = i_strlen(namedKey.getMapRaw()[i].name) - 6;
+            end_key_name.printf(0, "%.*s_end", prefix_len, namedKey.getMapRaw()[i].name);
+            ref_key_name.printf(0, "%.*s_%s", prefix_len, namedKey.getMapRaw()[i].name, additive_key_suffix);
+          }
+          else
+            continue;
+
+          int t0 = namedKey.getMapRaw()[i].id;
+          int t1 = namedKey.getStrId(end_key_name);
+          int tref = namedKey.getStrId(ref_key_name);
+          debug("make additive from suffix (%s...%s ref=%s)  %d..%d  ref=%d", namedKey.getMapRaw()[i].name, end_key_name, ref_key_name,
+            t0, t1, tref);
+          if (t0 < 0 || t1 < 0 || tref < 0)
+          {
+            log.addMessage(ILogWriter::ERROR,
+              "%s: Failed to make additive range with keys: start: '%s'(found:%d) end: '%s'(found:%d) ref: '%s'(found:%d)",
+              a.getNameTypified(), namedKey.getMapRaw()[i].name, t0 >= 0, end_key_name, t1 >= 0, ref_key_name, tref >= 0);
+            continue;
+          }
+          addAnimRangeTriple.push_back(t0);
+          addAnimRangeTriple.push_back(t1);
+          addAnimRangeTriple.push_back(tref);
+        }
+      }
+
+      if (addAnimRangeTriple.size() == 0)
+      {
+        log.addMessage(ILogWriter::ERROR, "%s: No additive ranges found, making normal anim.", a.getNameTypified());
+        makeAdditive = false;
+        goto after_additive;
       }
 
       Tab<animopt::PosKey> pt3x;
@@ -710,6 +803,7 @@ protected:
         }
       }
     }
+  after_additive:;
 
     // optimize tracks
     int timeLength = 0;
@@ -891,7 +985,7 @@ protected:
 
     start_ofs = cwr.tell();
     cwr.writeFourCC(hdr.label);
-    cwr.writeInt32e(make_additive ? 0x301 : 0x300);
+    cwr.writeInt32e(makeAdditive ? 0x301 : 0x300);
     cwr.writeInt32e(16);
     cwr.writeInt32e(0);
 
@@ -1409,7 +1503,7 @@ protected:
 class A2dExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     const DataBlock *a2dBlk = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("a2d");
 
@@ -1428,17 +1522,23 @@ public:
     errorOnOldParams = a2dBlk->getBool("errorOnOldParams", false);
     if (errorOnOldParams)
       debug("a2d errorOnOldParams");
+    removeOutOfRangeNotetrackKeys = a2dBlk->getBool("removeOutOfRangeNotetrackKeys", true);
+    if (!removeOutOfRangeNotetrackKeys)
+      debug("a2d removeOutOfRangeNotetrackKeys=false (global)");
+    logOnNotetrackKeyRemoval = a2dBlk->getBool("logOnNotetrackKeyRemoval", false);
+    if (logOnNotetrackKeyRemoval)
+      debug("a2d logOnNotetrackKeyRemoval");
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 0; }
-  virtual const char *__stdcall getRefProvType(int idx) { return NULL; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return NULL; }
+  int __stdcall getRefProvCount() override { return 0; }
+  const char *__stdcall getRefProvType(int idx) override { return NULL; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return NULL; }
 
 protected:
   A2dExporter exp;

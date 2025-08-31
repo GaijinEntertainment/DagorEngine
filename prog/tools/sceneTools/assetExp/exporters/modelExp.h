@@ -27,7 +27,6 @@ extern DataBlock appBlkCopy;
 
 extern DagorAsset *cur_asset;
 extern ILogWriter *cur_log;
-extern Tab<IDagorAssetRefProvider::Ref> tmp_refs;
 
 inline void set_context(DagorAsset &a, ILogWriter &l)
 {

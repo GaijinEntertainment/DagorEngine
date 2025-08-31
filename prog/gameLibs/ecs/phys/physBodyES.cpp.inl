@@ -21,10 +21,10 @@ static constexpr const size_t MAX_COLL_OBJ_SZ = eastl::max( //
     eastl::max(sizeof(PhysCapsuleCollision), sizeof(PhysCylinderCollision))));
 
 
-static PhysCollision *set_coll_type(ecs::EntityId eid, const char *coll_type_str, void *mem)
+static PhysCollision *set_coll_type(const ecs::EntityManager &mgr, ecs::EntityId eid, const char *coll_type_str, void *mem)
 {
-  Point4 cparams = g_entity_mgr->get<Point4>(eid, ECS_HASH(ANAME(coll_params)));
-  TMatrix ctm = g_entity_mgr->getOr(eid, ECS_HASH(ANAME(coll_tm)), TMatrix::IDENT);
+  Point4 cparams = mgr.get<Point4>(eid, ECS_HASH(ANAME(coll_params)));
+  TMatrix ctm = mgr.getOr(eid, ECS_HASH(ANAME(coll_tm)), TMatrix::IDENT);
   int collTypeInt = -1;
   for (int i = 0; i < countof(COLL_TYPES) && collTypeInt < 0; ++i)
     if (strcmp(COLL_TYPES[i], coll_type_str) == 0)
@@ -76,7 +76,7 @@ struct PhysBodyCreationContext
   {
     const char *collType = mgr.getOr(eid, ECS_HASH(ANAME(coll_type)), ecs::nullstr);
     if (collType)
-      coll = set_coll_type(eid, collType, collStor);
+      coll = set_coll_type(mgr, eid, collType, collStor);
 
     if (auto massMx = mgr.getNullable<Point4>(eid, ECS_HASH(ANAME(mass_mx))))
       mass = massMx->x, pbcd.momentOfInertia = Point3(massMx->y, massMx->z, massMx->w);

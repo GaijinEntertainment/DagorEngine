@@ -13,6 +13,7 @@
 #include <math/dag_e3dColor.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 
 
 namespace proto
@@ -34,6 +35,7 @@ namespace proto
     DBT_PARAM_TYPE_E3DCOLOR,
     DBT_PARAM_TYPE_MATRIX,
     DBT_PARAM_TYPE_INT64,
+    DBT_PARAM_TYPE_IPOINT4,
     DBT_PARAM_VALUE,
   };
 
@@ -108,6 +110,15 @@ namespace proto
           stream.writeVarInt(DBT_PARAM_TYPE_IPOINT3, value.x);
           stream.writeVarInt(DBT_PARAM_TYPE_IPOINT3, value.y);
           stream.writeVarInt(DBT_PARAM_TYPE_IPOINT3, value.z);
+        }
+        break;
+      case DataBlock::TYPE_IPOINT4:
+        {
+          const IPoint4 value = blk.getIPoint4(index);
+          stream.writeVarInt(DBT_PARAM_TYPE_IPOINT4, value.x);
+          stream.writeVarInt(DBT_PARAM_TYPE_IPOINT4, value.y);
+          stream.writeVarInt(DBT_PARAM_TYPE_IPOINT4, value.z);
+          stream.writeVarInt(DBT_PARAM_TYPE_IPOINT4, value.w);
         }
         break;
       case DataBlock::TYPE_BOOL:
@@ -238,6 +249,22 @@ namespace proto
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT3);
           PROTO_VALIDATE(stream.readVarInt(value.z));
           blk.addIPoint3(paramName.c_str(), value);
+        }
+        break;
+      case DBT_PARAM_TYPE_IPOINT4:
+        {
+          IPoint4 value;
+          PROTO_VALIDATE(stream.readVarInt(value.x));
+          PROTO_VALIDATE(stream.readTag(tag));
+          PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
+          PROTO_VALIDATE(stream.readVarInt(value.y));
+          PROTO_VALIDATE(stream.readTag(tag));
+          PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
+          PROTO_VALIDATE(stream.readVarInt(value.z));
+          PROTO_VALIDATE(stream.readTag(tag));
+          PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
+          PROTO_VALIDATE(stream.readVarInt(value.w));
+          blk.addIPoint4(paramName.c_str(), value);
         }
         break;
       case DBT_PARAM_TYPE_BOOL:

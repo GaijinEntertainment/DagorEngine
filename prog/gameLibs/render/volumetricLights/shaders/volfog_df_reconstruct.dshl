@@ -2,6 +2,7 @@ include "sky_shader_global.dshl"
 include "viewVecVS.dshl"
 include "prev_screen_tc.dshl"
 include "gpu_occlusion.dshl"
+include "camera_in_camera.dshl"
 
 include "volfog_df_common.dshl"
 
@@ -83,6 +84,8 @@ int volfog_df_reconstruct_debug_tex_const_no = 3 always_referenced;
 
 shader distant_fog_reconstruct_cs
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
   VIEW_VEC_OPTIMIZED(cs)
   INIT_ZNZFAR_STAGE(cs)
   BASE_GPU_OCCLUSION(cs)
@@ -397,9 +400,14 @@ shader distant_fog_reconstruct_cs
       return diff > df_param_occluded_threshold;
     }
 
+
     [numthreads( RECONSTRUCT_WARP_SIZE, RECONSTRUCT_WARP_SIZE, 1 )]
-    void ReconstructDistantFog( uint2 dtId : SV_DispatchThreadID)
+    void ReconstructDistantFog( uint2 dtId : SV_DispatchThreadID, uint gidx : SV_GroupIndex)
     {
+      float2 screenTc = (dtId.xy+0.5)*distant_fog_reconstruction_resolution.zw;
+      CameraView currentViewType = get_camera_view_postfx();
+      DISCARD_IF_INVALID_VIEW_AREA_CS(screenTc);
+
       if (any(dtId >= uint2(distant_fog_reconstruction_resolution.xy)))
         return;
 
@@ -409,8 +417,6 @@ shader distant_fog_reconstruct_cs
       uint2 reconstructionId = raymarchedBlockData.reconstructionId;
 
       bool isRaymarched = all(dtId == reconstructionId);
-
-      float2 screenTc = (dtId.xy+0.5)*distant_fog_reconstruction_resolution.zw;
       float3 viewVec = getViewVecOptimized(screenTc);
 
       float downsampledDistRaw = getDistSingleRaw(screenTc);

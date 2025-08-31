@@ -10,14 +10,14 @@ public:
     HmapLandBrush(client, height_map), limitValue(0), isDown(down), limitValueUse(false), power(1)
   {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void fillParams(PropPanel::ContainerPropertyControl &panel) override;
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual bool brushPaintApply(int x, int y, float inc, bool rb);
-  virtual void saveToBlk(DataBlock &blk) const;
-  virtual void loadFromBlk(const DataBlock &blk);
+  bool brushPaintApply(int x, int y, float inc, bool rb) override;
+  void saveToBlk(DataBlock &blk) const override;
+  void loadFromBlk(const DataBlock &blk) override;
 
-  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid) override;
 
 protected:
   float limitValue;

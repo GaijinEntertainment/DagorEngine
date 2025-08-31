@@ -2,11 +2,14 @@
 
 #include "workCyclePriv.h"
 
+struct Display;
+
 namespace workcycle_internal
 {
 void idle_loop() {}
 void set_title(const char *, bool) {}
 #if _TARGET_PC_LINUX
+Display *get_root_display() { return nullptr; }
 void set_title_tooltip(const char *, const char *, bool) {}
 #endif
 } // namespace workcycle_internal

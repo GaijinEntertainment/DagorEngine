@@ -1,4 +1,4 @@
-# `.blk` File Format
+# BLK File Format
 
 The `.blk` ("block") is a *data block*, the primary configuration format in
 Dagor Engine. It is a configuration file similar to `.ini`, `.cfg`, and other

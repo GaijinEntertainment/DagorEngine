@@ -34,7 +34,8 @@ ShaderMatVdata::~ShaderMatVdata()
   for (int i = vdata.size() - 1; i >= 0; i--)
     vdata[i].free();
   for (int i = mat.size() - 1; i >= 0; i--)
-    mat[i]->delRef();
+    if (mat[i])
+      mat[i]->delRef();
 }
 
 void ShaderMatVdata::getTexIdx(const ShaderMatVdata &other_smvd)
@@ -55,11 +56,13 @@ void ShaderMatVdata::preloadTex()
 
 ShaderMatVdata *ShaderMatVdata::create(int tex_num, int mat_num, int vdata_num, int mvhdr_sz, unsigned model_type)
 {
-  ShaderMatVdata *smv = NULL;
-  void *mem = memalloc(
-    sizeof(ShaderMatVdata) + elem_size(smv->tex) * tex_num + elem_size(smv->mat) * mat_num + elem_size(smv->vdata) * vdata_num,
-    midmem);
-  smv = new (mem, _NEW_INPLACE) ShaderMatVdata(tex_num, mat_num, vdata_num, mvhdr_sz, model_type);
+  const size_t size = sizeof(ShaderMatVdata) + //
+                      sizeof(decltype(ShaderMatVdata::tex)::value_type) * tex_num +
+                      sizeof(decltype(ShaderMatVdata::mat)::value_type) * mat_num +
+                      sizeof(decltype(ShaderMatVdata::vdata)::value_type) * vdata_num;
+
+  void *mem = memalloc(size, midmem);
+  ShaderMatVdata *smv = new (mem, _NEW_INPLACE) ShaderMatVdata(tex_num, mat_num, vdata_num, mvhdr_sz, model_type);
   return smv;
 }
 
@@ -75,9 +78,11 @@ ShaderMatVdata *ShaderMatVdata::make_tmp_copy(ShaderMatVdata *src_smv, int apply
   if (!src_smv)
     return nullptr;
 
-  ShaderMatVdata *smv = NULL;
-  void *mem = memalloc(sizeof(ShaderMatVdata) + elem_size(src_smv->vdata) * src_smv->vdataFullCount, midmem);
-  smv = new (mem, _NEW_INPLACE) ShaderMatVdata(0, 0, src_smv->vdataFullCount, src_smv->matVdataHdrSz, src_smv->modelType);
+  const size_t size = sizeof(ShaderMatVdata) + //
+                      sizeof(decltype(ShaderMatVdata::vdata)::value_type) * src_smv->vdataFullCount;
+  void *mem = memalloc(size, midmem);
+  ShaderMatVdata *smv =
+    new (mem, _NEW_INPLACE) ShaderMatVdata(0, 0, src_smv->vdataFullCount, src_smv->matVdataHdrSz, src_smv->modelType);
   smv->_resv = 0;
   smv->lodsAreSplit = src_smv->lodsAreSplit;
   smv->matVdataSrcRef = src_smv->matVdataSrcRef;

@@ -4,10 +4,12 @@
 //
 #pragma once
 
+#include <generic/dag_tabFwd.h>
 #include <drv/3d/dag_driver.h>
 
 #if _TARGET_D3D_MULTI
 #include <drv/3d/dag_interface_table.h>
+#include <dag/dag_vector.h>
 
 class String;
 class D3dEventQuery;
@@ -35,9 +37,13 @@ void unregister_before_window_destroyed_callback(BeforeWindowDestroyedCookie *co
 static inline bool device_lost(bool *can_reset_now) { return d3di.device_lost(can_reset_now); }
 static inline bool reset_device() { return d3di.reset_device(); }
 
-static inline bool update_screen(bool app_active = true) { return d3di.update_screen(app_active); }
+static inline bool update_screen(uint32_t frame_id = 0, bool app_active = true) { return d3di.update_screen(frame_id, app_active); }
 static inline void wait_for_async_present(bool force = false) { return d3di.wait_for_async_present(force); }
-static inline void gpu_latency_wait() { return d3di.gpu_latency_wait(); }
+static inline void begin_frame(uint32_t frame_id, bool allow_wait) { d3di.begin_frame(frame_id, allow_wait); }
+static inline void mark_simulation_start(uint32_t frame_id) { d3di.mark_simulation_start(frame_id); }
+static inline void mark_simulation_end(uint32_t frame_id) { d3di.mark_simulation_end(frame_id); }
+static inline void mark_render_start(uint32_t frame_id) { d3di.mark_render_start(frame_id); }
+static inline void mark_render_end(uint32_t frame_id) { d3di.mark_render_end(frame_id); }
 
 static inline GPUFENCEHANDLE insert_fence(GpuPipeline gpu_pipeline) { return d3di.insert_fence(gpu_pipeline); }
 static inline void insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline)
@@ -84,21 +90,27 @@ static inline void endEvent() { return d3di.endEvent(); }
 
 #include "rayTrace/rayTraceMulti.inl.h"
 
-static inline void resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS)
+static inline void resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS)
 {
   d3di.resource_barrier(desc, gpu_pipeline);
 }
 
-#if _TARGET_PC_WIN
-namespace pcwin32
+#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
+namespace pcwin
 {
 static inline void set_present_wnd(void *hwnd) { return d3di.set_present_wnd(hwnd); }
 
+static inline bool can_render_to_window() { return d3di.can_render_to_window(); }
+static inline BaseTexture *get_swapchain_for_window(void *hwnd) { return d3di.get_swapchain_for_window(hwnd); }
+static inline void present_to_window(void *hwnd) { return d3di.present_to_window(hwnd); }
+
 static inline bool set_capture_full_frame_buffer(bool ison) { return d3di.set_capture_full_frame_buffer(ison); }
-static inline unsigned get_texture_format(BaseTexture *tex) { return d3di.get_texture_format(tex); }
-static inline const char *get_texture_format_str(BaseTexture *tex) { return d3di.get_texture_format_str(tex); }
+static inline unsigned get_texture_format(const BaseTexture *tex) { return d3di.get_texture_format(tex); }
+static inline const char *get_texture_format_str(const BaseTexture *tex) { return d3di.get_texture_format_str(tex); }
 static inline void *get_native_surface(BaseTexture *tex) { return d3di.get_native_surface(tex); }
-} // namespace pcwin32
+
+dag::ConstSpan<DriverCode> get_supported_graphics_apis();
+} // namespace pcwin
 #endif
 }; // namespace d3d
 #endif

@@ -54,8 +54,10 @@ static ShaderTarget to_shader_target(RenderPass render_pass)
 }
 
 static DynamicShaderHelper panel_shaders[ShaderTarget::Count];
+static d3d::SamplerHandle panel_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
 static int panel_textureVarId = -1;
+static int panel_samplerVarId = -1;
 static int panel_brightnessVarId = -1;
 static int panel_pointer_texture1VarId = -1;
 static int panel_pointer_uv_tl_iwih1VarId = -1;
@@ -70,6 +72,7 @@ static int panel_metalnessVarId = -1;
 
 static int panel_worldVarId = -1;
 static int panel_world_normalVarId = -1;
+static int panel_prev_globtmVarId = -1;
 
 static VDECL panel_vertex_declaration = BAD_VDECL;
 static int panel_vertex_stride = -1;
@@ -117,7 +120,12 @@ static bool initialize_rendering_resources()
     panel_shaders[ShaderTarget::Depth].init("darg_panel_depth", channels, countof(channels), "darg_panel_depth", true);
     panel_shaders[ShaderTarget::GBuffer].init("darg_panel_gbuffer", channels, countof(channels), "darg_panel_gbuffer", true);
 
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    panel_sampler = d3d::request_sampler(smpInfo);
+
     panel_textureVarId = ::get_shader_glob_var_id("panel_texture", true);
+    panel_samplerVarId = ::get_shader_variable_id("panel_texture_samplerstate", true);
     panel_brightnessVarId = ::get_shader_glob_var_id("panel_brightness", true);
     panel_pointer_texture1VarId = ::get_shader_glob_var_id("panel_pointer_texture1", true);
     panel_pointer_uv_tl_iwih1VarId = ::get_shader_glob_var_id("panel_pointer_uv_tl_iwih1", true);
@@ -130,6 +138,7 @@ static bool initialize_rendering_resources()
     panel_metalnessVarId = ::get_shader_glob_var_id("panel_metalness", true);
     panel_worldVarId = ::get_shader_glob_var_id("panel_world", true);
     panel_world_normalVarId = ::get_shader_glob_var_id("panel_world_normal", true);
+    panel_prev_globtmVarId = ::get_shader_glob_var_id("panel_prev_globtm", true);
   }
 
   if (panel_vertex_declaration == BAD_VDECL)
@@ -165,7 +174,8 @@ static TMatrix build_panel_transform(const darg::PanelSpatialInfo &info)
   return matTranslation * matRotation * matScale;
 }
 
-TMatrix orient_toward(const Point3 &point, const Point3 &size, const Point3 &position, bool lockY = false)
+TMatrix orient_toward(const Point3 &point, const Point3 &size, const Point3 &position, bool lockY = false,
+  const Point3 &y_axis = Point3(0, 1, 0))
 {
   TMatrix result;
 
@@ -173,7 +183,7 @@ TMatrix orient_toward(const Point3 &point, const Point3 &size, const Point3 &pos
 
   if (lockY)
   {
-    y = Point3(0, 1, 0);
+    y = y_axis;
     z = point - position;
     z.normalize();
     x = z % y;
@@ -184,7 +194,7 @@ TMatrix orient_toward(const Point3 &point, const Point3 &size, const Point3 &pos
   {
     z = point - position;
     z.normalize();
-    x = z % Point3(0, 1, 0);
+    x = z % y_axis;
     x.normalize();
     y = x % z;
   }
@@ -223,32 +233,31 @@ static void clip_panel(const Frustum &camera_frustum, darg::PanelSpatialInfo &in
   info.visible = bounding.width().length() > 0.001 && camera_frustum.testBox(bounding) != Frustum::OUTSIDE;
 }
 
-void panel_spatial_resolver(const TMatrix &vr_space, const TMatrix &camera, const TMatrix &left_hand_transform,
-  const TMatrix &right_hand_transform, const Frustum &camera_frustum, darg::PanelSpatialInfo &info, EntityResolver entity_resolver,
-  TMatrix &out_transform)
+void panel_spatial_resolver(const darg::IGuiScene::SpatialSceneData &scene_data, darg::PanelSpatialInfo &info, TMatrix &out_transform)
 {
-  FINALLY([&]() { clip_panel(camera_frustum, info, out_transform); });
+  FINALLY([&]() { clip_panel(scene_data.cameraFrustum, info, out_transform); });
 
   TMatrix panelTransform = build_panel_transform(info);
+  const TMatrix &camera = scene_data.camera;
+  const TMatrix &leftHandTm = scene_data.hands[0];
+  const TMatrix &rightHandTm = scene_data.hands[1];
 
   switch (info.anchor)
   {
     case darg::PanelAnchor::Scene: break;
-
-    case darg::PanelAnchor::VRSpace: panelTransform = vr_space * panelTransform; break;
-
+    case darg::PanelAnchor::VRSpace: panelTransform = scene_data.vrSpaceOrigin * panelTransform; break;
     case darg::PanelAnchor::Head: panelTransform = camera * panelTransform; break;
-
-    case darg::PanelAnchor::LeftHand: panelTransform = left_hand_transform * panelTransform; break;
-
-    case darg::PanelAnchor::RightHand: panelTransform = right_hand_transform * panelTransform; break;
-
+    case darg::PanelAnchor::LeftHand: panelTransform = leftHandTm * panelTransform; break;
+    case darg::PanelAnchor::RightHand: panelTransform = rightHandTm * panelTransform; break;
     case darg::PanelAnchor::Entity:
-      panelTransform = entity_resolver(info.anchorEntityId, info.anchorNodeName.data()) * panelTransform;
+      panelTransform = scene_data.entityTmResolver(info.anchorEntityId, info.anchorNodeName.data()) * panelTransform;
       break;
 
     default: DAG_FATAL("This PanelAnchor type should be handled here. %d", int(info.anchor)); return;
   }
+
+  const Point3 headDir = normalize(camera.getcol(3) - panelTransform.getcol(3));
+  panelTransform.col[3] += headDir * info.headDirOffset;
 
   // If all axes are locked, it means that the rotation of the panel is locked, and its orientation
   // is controlled entirely by its rotation angles
@@ -264,21 +273,28 @@ void panel_spatial_resolver(const TMatrix &vr_space, const TMatrix &camera, cons
   switch (info.constraint)
   {
     case darg::PanelRotationConstraint::FaceLeftHand:
-      orientTransform = orient_toward(left_hand_transform.getcol(3), info.size, panelPosition);
+      orientTransform = orient_toward(leftHandTm.getcol(3), info.size, panelPosition, false, Point3(0, 1, 0));
       break;
 
     case darg::PanelRotationConstraint::FaceRightHand:
-      orientTransform = orient_toward(right_hand_transform.getcol(3), info.size, panelPosition);
+      orientTransform = orient_toward(rightHandTm.getcol(3), info.size, panelPosition, false, Point3(0, 1, 0));
       break;
 
-    case darg::PanelRotationConstraint::FaceHead: orientTransform = orient_toward(camera.getcol(3), info.size, panelPosition); break;
+    case darg::PanelRotationConstraint::FaceHead:
+      orientTransform = orient_toward(camera.getcol(3), info.size, panelPosition, false, Point3(0, 1, 0));
+      break;
 
     case darg::PanelRotationConstraint::FaceHeadLockY:
-      orientTransform = orient_toward(camera.getcol(3), info.size, panelPosition, true);
+      orientTransform = orient_toward(camera.getcol(3), info.size, panelPosition, true, Point3(0, 1, 0));
+      break;
+
+    case darg::PanelRotationConstraint::FaceHeadLockPlayspaceY:
+      orientTransform = orient_toward(camera.getcol(3), info.size, panelPosition, false, scene_data.vrSpaceOrigin.getcol(1));
       break;
 
     case darg::PanelRotationConstraint::FaceEntity:
-      orientTransform = orient_toward(entity_resolver(info.facingEntityId, nullptr).getcol(3), info.size, panelPosition, true);
+      orientTransform = orient_toward(scene_data.entityTmResolver(info.facingEntityId, nullptr).getcol(3), info.size, panelPosition,
+        true, Point3(0, 1, 0));
       break;
 
     default: DAG_FATAL("This PanelRotationConstraint type should be handled here. %d", int(info.constraint)); return;
@@ -287,7 +303,8 @@ void panel_spatial_resolver(const TMatrix &vr_space, const TMatrix &camera, cons
   out_transform = orientTransform;
 }
 
-void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_point, RenderPass render_pass)
+void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pass, const Point3 &view_point, const TMatrix &view_tm,
+  const TMatrix *prev_view_tm, const TMatrix4 *prev_proj_current_jitter, int view_index)
 {
   using namespace darg;
 
@@ -319,13 +336,15 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
 
   d3d::setvdecl(panel_vertex_declaration);
 
-  TMatrix oldWorldTm, oldViewTm;
+  TMatrix oldWorldTm;
   d3d::gettm(TM_WORLD, oldWorldTm);
-  d3d::gettm(TM_VIEW, oldViewTm);
 
-  TMatrix adjustedViewTm{oldViewTm};
+  TMatrix adjustedViewTm{view_tm};
   adjustedViewTm.setcol(3, {0.f, 0.f, 0.f});
   d3d::settm(TM_VIEW, adjustedViewTm);
+
+  TMatrix adjustedPrevViewTm{prev_view_tm ? *prev_view_tm : TMatrix::IDENT};
+  adjustedPrevViewTm.setcol(3, {0.f, 0.f, 0.f});
 
   int oldFrameBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
@@ -378,8 +397,10 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
     adjustedTm.setcol(3, renderInfo.transform.getcol(3) - view_point);
     d3d::settm(TM_WORLD, adjustedTm);
 
+    spatialInfo.lastTransform.setCurrentView(view_index);
+    TMatrix lastAdjustedTm{spatialInfo.lastTransform.current() ? spatialInfo.lastTransform.current().value() : adjustedTm};
     if (render_pass == RenderPass::GBuffer)
-      spatialInfo.lastTransform = renderInfo.transform;
+      spatialInfo.lastTransform.current() = adjustedTm;
 
     TMatrix adjustedNormalTm{renderInfo.transform};
     adjustedNormalTm.setcol(0, normalize(adjustedNormalTm.getcol(0)));
@@ -387,6 +408,7 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
     adjustedNormalTm.setcol(2, normalize(adjustedNormalTm.getcol(2)));
 
     ShaderGlobal::set_texture(panel_textureVarId, renderInfo.texture);
+    ShaderGlobal::set_sampler(panel_samplerVarId, panel_sampler);
     ShaderGlobal::set_real(panel_brightnessVarId, renderInfo.brightness);
     ShaderGlobal::set_texture(panel_pointer_texture1VarId, renderInfo.pointerTexture[0]);
     ShaderGlobal::set_color4(panel_pointer_color1VarId, renderInfo.pointerColor[0]);
@@ -406,6 +428,12 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
     ShaderGlobal::set_float4x4(panel_worldVarId, worldTm);
     ShaderGlobal::set_float4x4(panel_world_normalVarId, worldNormalTm);
 
+    if (prev_view_tm && prev_proj_current_jitter)
+    {
+      TMatrix4 lastGlobTm = TMatrix4(lastAdjustedTm) * (TMatrix4(adjustedPrevViewTm) * *prev_proj_current_jitter);
+      ShaderGlobal::set_float4x4(panel_prev_globtmVarId, lastGlobTm.transpose());
+    }
+
     panel_shaders[to_shader_target(render_pass)].shader->setStates();
 
     d3d::drawind(PRIM_TRILIST, 0, panel_triangle_counts[geomIndex], 0);
@@ -413,8 +441,10 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
 
   ShaderGlobal::setBlock(oldFrameBlock, ShaderGlobal::LAYER_FRAME);
 
-  d3d::settm(TM_VIEW, oldViewTm);
+  d3d::settm(TM_VIEW, view_tm);
   d3d::settm(TM_WORLD, oldWorldTm);
+
+  d3d::setvdecl(BAD_VDECL);
 
   if (render_pass == RenderPass::Shadow)
   {

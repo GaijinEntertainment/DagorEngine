@@ -126,8 +126,8 @@ shader tree_simple, tree_colored
       #define PARALLAX_TEX tex
       #define PARALLAX_ATTR a
       #define num_parallax_iterations 5
-      #define parallax_tex2dlod(tex, tc) tex2DLodBindless(get_##tex(), tc)
-      #define parallax_tex2d(tex, tc) tex2DBindless(get_##tex(), tc)
+      #define parallax_tex2dlod(tex, tc) tex2DLodBindless(PPCAT(get_, tex()), tc)
+      #define parallax_tex2d(tex, tc) tex2DBindless(PPCAT(get_, tex()), tc)
       #include "parallax.hlsl"
 
       GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS)

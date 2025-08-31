@@ -9,7 +9,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <libTools/util/blkUtil.h>
 #include <memory/dag_mem.h>
-#include <windows.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -45,12 +44,12 @@ static bool is_key_chord_pressed_owned(ImGuiKeyChord key_chord, ImGuiID canvas_i
 
 // -----------------------------------------------
 
+static constexpr int CURVE_SENSITIVE = 5;
+static constexpr int CURVE_POINT_RAD = 3;
+static constexpr int CURVE_SCROLL_SPEED = 10;
+
 enum
 {
-  CURVE_SENSITIVE = 5,
-  CURVE_POINT_RAD = 3,
-  CURVE_SCROLL_SPEED = 10,
-
   DIALOG_ID_X = 1000,
   DIALOG_ID_Y,
 };
@@ -377,7 +376,7 @@ void CurveControlStandalone::drawAxisMarks(uint32_t color)
         drawList->AddLine(ImVec2(p.x, p.y - AXIS_MARK_SIZE) + viewOffset, ImVec2(p.x, p.y + AXIS_MARK_SIZE) + viewOffset, color);
 
         if (checkTextNeed(count, i))
-          drawMarkText(Point2(p.x, p.y + 2 * AXIS_MARK_SIZE), value_, TA_CENTER);
+          drawMarkText(Point2(p.x, p.y + 2 * AXIS_MARK_SIZE), value_);
       }
     }
   }
@@ -394,7 +393,7 @@ void CurveControlStandalone::drawAxisMarks(uint32_t color)
         drawList->AddLine(ImVec2(p.x - AXIS_MARK_SIZE, p.y) + viewOffset, ImVec2(p.x + AXIS_MARK_SIZE, p.y) + viewOffset, color);
 
         if (checkTextNeed(count, i))
-          drawMarkText(Point2(p.x - 2 * AXIS_MARK_SIZE, p.y), value_, TA_RIGHT);
+          drawMarkText(Point2(p.x - 2 * AXIS_MARK_SIZE, p.y), value_);
       }
     }
   }
@@ -421,7 +420,7 @@ void CurveControlStandalone::drawPlotLine(const Point2 &p1, const Point2 &p2, ui
   drawList->AddLine(ImVec2(p1Loc.x, p1Loc.y) + viewOffset, ImVec2(p2Loc.x, p2Loc.y) + viewOffset, color);
 }
 
-void CurveControlStandalone::drawMarkText(const Point2 &pos, double _value, unsigned align)
+void CurveControlStandalone::drawMarkText(const Point2 &pos, double _value)
 {
   String txt(10, "%g", _value);
   ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -607,11 +606,6 @@ void CurveControlStandalone::onLButtonUp(long x, long y)
   }
 }
 
-// TODO: ImGui porting: use ImGui for cursor changing (but it does not have all the cursor types)
-static HCURSOR hc_select_cursor = LoadCursor(nullptr, IDC_CROSS);
-static HCURSOR hc_move_cursor = LoadCursor(nullptr, IDC_SIZEALL);
-static HCURSOR hc_hand_cursor = LoadCursor(nullptr, IDC_HAND);
-
 void CurveControlStandalone::onDrag(int x, int y)
 {
   if (mode == MODE_DRAG_COORD)
@@ -633,7 +627,7 @@ void CurveControlStandalone::onDrag(int x, int y)
     startingPos.x = x;
     startingPos.y = y;
 
-    SetCursor(hc_hand_cursor);
+    mouseCursor = ImGuiMouseCursor_Hand;
   }
   else if (mode == MODE_SELECTION)
   {
@@ -653,7 +647,7 @@ void CurveControlStandalone::onDrag(int x, int y)
       if (cb->moveSelectedControlPoints(fromStartingPos))
       {
         build();
-        SetCursor(hc_move_cursor);
+        mouseCursor = ImGuiMouseCursor_ResizeAll;
         if (mEventHandler)
           mEventHandler->onWcChange(windowBaseForEventHandler);
       }
@@ -661,7 +655,7 @@ void CurveControlStandalone::onDrag(int x, int y)
     if (rectSelect.active)
     {
       ProcessRectSelection(x, y);
-      SetCursor(hc_select_cursor);
+      mouseCursor = ImGuiMouseCursor_Arrow;
     }
   }
 }
@@ -951,17 +945,24 @@ void CurveControlStandalone::updateImgui(float width, float height)
 
   if (isHovered)
   {
+    const bool isMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
     if (mousePosInCanvas != lastMousePosInCanvas)
     {
       lastMousePosInCanvas = mousePosInCanvas;
 
-      if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+      if (isMouseDown)
         onDrag(mousePosInCanvas.x, mousePosInCanvas.y);
       else
         onMouseMove(mousePosInCanvas.x, mousePosInCanvas.y);
     }
 
-    if (!tooltipText.empty() && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    if (isMouseDown)
+      ImGui::SetMouseCursor(mouseCursor);
+    else
+      mouseCursor = ImGuiMouseCursor_Arrow;
+
+    if (!tooltipText.empty() && !isMouseDown)
       ImGui::SetItemTooltip("%s", tooltipText.c_str());
 
     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))

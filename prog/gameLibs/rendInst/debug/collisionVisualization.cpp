@@ -3,6 +3,7 @@
 #include <rendInst/debugCollisionVisualization.h>
 #include <rendInst/rendInstCollision.h>
 #include <rendInst/rendInstAccess.h>
+#include <gameRes/dag_collisionResource.h>
 
 #include <util/dag_console.h>
 #include <shaders/dag_shaderVar.h>
@@ -43,6 +44,8 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
   static Color4 boxColor = Color4(0.5f, 1.0f, 1.0f, 1.0f);
   static Color4 capsuleColor = Color4(1.0f, 1.0f, 0.0f, 1.0f);
   static Color4 sphereColor = Color4(1.0f, 0.5f, 0.5f, 1.0f);
+  static Color4 coneColor = sphereColor;
+  static Color4 spheroidColor = capsuleColor;
 
   if (coll.collRes)
   {
@@ -106,6 +109,8 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
           draw_debug_solid_capsule(meshNode.capsule, coll.tm, color * capsuleColor, shaded);
           break;
         }
+
+        default: break;
       }
     }
     RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(coll.desc);
@@ -156,12 +161,21 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
         BBox3 canopyBox; // synthetical tree canopy box
         getRIGenCanopyBBox(riProp, worldBox, canopyBox);
 
-        if (riProp.canopyTriangle)
+        if (riProp.canopyShape == RendInstGenData::CanopyShape::CONE)
         {
           float canopyWidth = canopyBox.width().x * 0.5f;
           Point3 bottomCenter = {canopyBox.center().x, canopyBox.boxMin().y, canopyBox.center().z};
           float canopyHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
-          draw_debug_solid_cone(bottomCenter, Point3(0, 1, 0), canopyWidth, canopyHeight, 8, color * sphereColor);
+          draw_debug_solid_cone(bottomCenter, Point3(0, 1, 0), canopyWidth, canopyHeight, 8, color * coneColor);
+        }
+        else if (riProp.canopyShape == RendInstGenData::CanopyShape::SPHEROID)
+        {
+          TMatrix tm;
+          tm.zero();
+          tm[0][0] = tm[2][2] = canopyBox.width().x * 0.5f;
+          tm[1][1] = (canopyBox.boxMax().y - canopyBox.boxMin().y) * 0.5f;
+          tm.setcol(3, canopyBox.center());
+          draw_debug_solid_sphere(Point3::ZERO, 1.0f, tm, color * spheroidColor);
         }
         else
         {

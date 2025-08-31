@@ -11,17 +11,14 @@
 #include <generic/dag_carray.h>
 #include <dasModules/aotEcsContainer.h>
 
-#define DAS_TAB_SIZE(CTYPE)                                \
-  namespace das                                            \
-  {                                                        \
-  template <>                                              \
-  struct das_default_vector_size<CTYPE>                    \
-  {                                                        \
-    static __forceinline uint32_t size(const CTYPE &value) \
-    {                                                      \
-      return uint32_t(value.size());                       \
-    }                                                      \
-  };                                                       \
+#define DAS_TAB_SIZE(CTYPE)                                                                   \
+  namespace das                                                                               \
+  {                                                                                           \
+  template <>                                                                                 \
+  struct das_default_vector_size<CTYPE>                                                       \
+  {                                                                                           \
+    static __forceinline uint32_t size(const CTYPE &value) { return uint32_t(value.size()); } \
+  };                                                                                          \
   }
 
 #define DAS_TAB_INDEX(CTYPE, ITEM_CTYPE)                                      \
@@ -52,14 +49,12 @@
   template <>                                                                          \
   struct das_iterator<CTYPE> : das_array_iterator<CTYPE, ITEM_CTYPE>                   \
   {                                                                                    \
-    __forceinline das_iterator(CTYPE &ar) : das_array_iterator(ar)                     \
-    {}                                                                                 \
+    __forceinline das_iterator(CTYPE &ar) : das_array_iterator(ar) {}                  \
   };                                                                                   \
   template <>                                                                          \
   struct das_iterator<const CTYPE> : das_array_iterator<const CTYPE, const ITEM_CTYPE> \
   {                                                                                    \
-    __forceinline das_iterator(const CTYPE &ar) : das_array_iterator(ar)               \
-    {}                                                                                 \
+    __forceinline das_iterator(const CTYPE &ar) : das_array_iterator(ar) {}            \
   };                                                                                   \
   }
 
@@ -92,13 +87,10 @@
   DAS_TAB_INDEX(CTYPE, ITEM_CTYPE)             \
   DAS_ARRAY_ITERATOR(CTYPE, ITEM_CTYPE)
 
-#define DAS_ANNOTATE_VECTOR(TYPE, CTYPE)                                                      \
-  struct TYPE##Annotation : das::ManagedVectorAnnotation<CTYPE>                               \
-  {                                                                                           \
-    TYPE##Annotation(das::ModuleLibrary &ml) : das::ManagedVectorAnnotation<CTYPE>(#TYPE, ml) \
-    {                                                                                         \
-      cppName = " ::" #CTYPE;                                                                 \
-    }                                                                                         \
+#define DAS_ANNOTATE_VECTOR(TYPE, CTYPE)                                                                                  \
+  struct TYPE##Annotation : das::ManagedVectorAnnotation<CTYPE>                                                           \
+  {                                                                                                                       \
+    TYPE##Annotation(das::ModuleLibrary &ml) : das::ManagedVectorAnnotation<CTYPE>(#TYPE, ml) { cppName = " ::" #CTYPE; } \
   };
 
 #define DAS_VECTOR_FACTORY(TYPE, CTYPE, ITEM_CTYPE, CPP_NAME)                                               \
@@ -107,14 +99,12 @@
   template <>                                                                                               \
   struct typeName<CTYPE>                                                                                    \
   {                                                                                                         \
-    constexpr static const char *name()                                                                     \
-    {                                                                                                       \
-      return #TYPE;                                                                                         \
-    }                                                                                                       \
+    constexpr static const char *name() { return #TYPE; }                                                   \
   };                                                                                                        \
   template <>                                                                                               \
   struct typeFactory<CTYPE>                                                                                 \
   {                                                                                                         \
+    template <typename T = void> /* generic to instatiate impl once only on actual call */                  \
     static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                                       \
     {                                                                                                       \
       das::string declN = typeName<CTYPE>::name();                                                          \
@@ -138,14 +128,12 @@
   template <>                                                                                               \
   struct typeName<CTYPE>                                                                                    \
   {                                                                                                         \
-    constexpr static const char *name()                                                                     \
-    {                                                                                                       \
-      return #TYPE;                                                                                         \
-    }                                                                                                       \
+    constexpr static const char *name() { return #TYPE; }                                                   \
   };                                                                                                        \
   template <>                                                                                               \
   struct typeFactory<CTYPE>                                                                                 \
   {                                                                                                         \
+    template <typename T = void> /* generic to instatiate impl once only on actual call */                  \
     static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                                       \
     {                                                                                                       \
       das::string declN = typeName<CTYPE>::name();                                                          \
@@ -156,7 +144,6 @@
         ann->cppName = CPP_NAME;                                                                            \
         auto mod = library.front();                                                                         \
         mod->addAnnotation(ann);                                                                            \
-        /*registerVectorFunctions<CTYPE>::init(mod, library, declT->canCopy(), declT->canMove()); */        \
         RegisterVecSetFunctions<CTYPE>::init(*mod, library, declT->canCopy(), declT->canMove());            \
       }                                                                                                     \
       return makeHandleType(library, declN.c_str());                                                        \
@@ -220,7 +207,7 @@ struct ManagedTabAnnotation : TypeAnnotation
     using TT = OT;
     DAS_PTR_NODE;
 
-    SimNodeAtTab(const LineInfo &at, SimNode *rv, SimNode *idx, uint32_t ofs) : SimNode_At(at, rv, idx, 0, ofs, 0) {}
+    SimNodeAtTab(const LineInfo &at, SimNode *rv, SimNode *idx, uint32_t ofs) : SimNode_At(at, rv, idx, 0, ofs, 0, "") {}
 
     virtual SimNode *visit(SimVisitor &vis) override
     {

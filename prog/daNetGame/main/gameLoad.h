@@ -20,6 +20,7 @@ struct GamePackage
   {
     eastl::string mount;
     eastl::string vromFile;
+    eastl::string stripPrefixes;
     bool mountAsPack = false;
   };
 
@@ -29,7 +30,6 @@ struct GamePackage
   eastl::vector<eastl::string> rawAddons;
   DataBlock gameSettings;
 
-  eastl::string gameName;
   eastl::string sceneName;
   eastl::string levelBlkPath;
   eastl::vector<eastl::string> importScenes;
@@ -64,12 +64,14 @@ bool is_user_game_mod();
 const UserGameModeInfo &get_user_mode_info();
 void unload_current_game();
 
+bool parse_addons(GamePackage &gameInfo, const DataBlock &addons_blk, bool useAddonVromSrc, const char *only_vrom_fn = nullptr);
+void add_operator_vromfs(GamePackage &gameInfo);
 GamePackage load_game_package();
 void load_package_files(const GamePackage &game_info, bool load_game_res = true);
 void setup_base_resources(const GamePackage &game_info, dag::ConstSpan<VromLoadInfo> extra_vroms = {}, bool load_game_res = true);
 
 // Note: Entities that created from scene with non zero import depth isn't saved in editor
-bool load_game_scene(const char *scene_path, int import_depth = 1);
+bool load_game_scene(const char *scene_path, int import_depth /* = 1 */, uint32_t load_type /* = 3 IMPORT */);
 
 void switch_scene(eastl::string_view scene, eastl::vector<eastl::string> &&import_scenes, UserGameModeContext &&ugm_ctx = {});
 void switch_scene_and_update(eastl::string_view scene);

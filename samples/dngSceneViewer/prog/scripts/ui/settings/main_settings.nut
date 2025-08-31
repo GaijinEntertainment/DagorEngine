@@ -1,8 +1,8 @@
 from "%scripts/ui/ui_library.nut" import *
 
 let {menuBtn} = require("%scripts/ui/widgets/simpleComponents.nut")
-let { graphicsOptions } = require("graphics_options.nut")
-let {audio_options} = require("audio_options.nut")
+let { graphicsOptions } = require("%scripts/ui/settings/graphics_options.nut")
+let {audio_options} = require("%scripts/ui/settings/audio_options.nut")
 
 let showSettingsMenu = mkWatched(persist, "showSettings", false)
 let close = @() showSettingsMenu.set(false)

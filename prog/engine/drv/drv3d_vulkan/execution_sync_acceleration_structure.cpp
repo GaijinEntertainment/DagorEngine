@@ -2,47 +2,97 @@
 
 #include "execution_sync.h"
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #include "pipeline_barrier.h"
 #include "raytrace_as_resource.h"
 #include "vk_to_string.h"
+#include "backend_interop.h"
+#include "backend.h"
 
 using namespace drv3d_vulkan;
 
-String ExecutionSyncTracker::AccelerationStructureOp::format() const
+template <>
+String AccelerationStructureSyncOp::format() const
 {
   return String(128, "syncASOp %p:\n%p-%s\n%s\n%s\n internal caller: %s\n external caller: %s", this, obj, obj->getDebugName(),
     formatPipelineStageFlags(laddr.stage), formatMemoryAccessFlags(laddr.access), caller.getInternal(), caller.getExternal());
 }
 
-bool ExecutionSyncTracker::AccelerationStructureOp::conflicts(const AccelerationStructureOp &cmp) const
+template <>
+bool AccelerationStructureSyncOp::conflicts(const AccelerationStructureSyncOp &cmp) const
 {
   return laddr.conflicting(cmp.laddr) && !completed && !cmp.completed;
 }
 
-void ExecutionSyncTracker::AccelerationStructureOp::addToBarrierByTemplateSrc(PipelineBarrier &barrier) const
+template <>
+bool AccelerationStructureSyncOp::verifySelfConflict(const AccelerationStructureSyncOp &cmp) const
 {
-  barrier.addStagesSrc(laddr.stage);
-  barrier.addMemory({laddr.access, conflictingAccessFlags});
+  // use stageless conflict check, there is no way to self conflict in single action step, based on stages
+  return laddr.conflictingStageless(cmp.laddr) && !completed && !cmp.completed;
 }
 
-void ExecutionSyncTracker::AccelerationStructureOp::addToBarrierByTemplateDst(PipelineBarrier &barrier) const
+template <>
+void AccelerationStructureSyncOp::addToBarrierByTemplateSrc(PipelineBarrier &barrier)
 {
-  barrier.addStagesDst(laddr.stage);
+  barrier.addMemory({laddr.stage, conflictingLAddr.stage}, {laddr.access, conflictingLAddr.access});
 }
 
-void ExecutionSyncTracker::AccelerationStructureOp::onConflictWithDst(const ExecutionSyncTracker::AccelerationStructureOp &dst)
+template <>
+void AccelerationStructureSyncOp::addToBarrierByTemplateDst(PipelineBarrier &)
+{}
+
+template <>
+void AccelerationStructureSyncOp::onConflictWithDst(AccelerationStructureSyncOp &dst)
 {
-  conflictingAccessFlags |= dst.laddr.access;
+  conflictingLAddr.merge(dst.laddr);
 }
 
+template <>
+bool AccelerationStructureSyncOp::allowsConflictFromObject()
+{
+  return false;
+}
+
+template <>
+bool AccelerationStructureSyncOp::hasObjConflict()
+{
+  return false;
+}
+
+template <>
+bool AccelerationStructureSyncOp::mergeCheck(AccelerationStructureArea, uint32_t)
+{
+  return true;
+}
+
+template <>
+bool AccelerationStructureSyncOp::isAreaPartiallyCoveredBy(const AccelerationStructureSyncOp &)
+{
+  return false;
+}
+
+template <>
+bool AccelerationStructureSyncOp::processPartials()
+{
+  return false;
+}
+
+template <>
+void AccelerationStructureSyncOp::onPartialSplit()
+{}
+
+template <>
 void ExecutionSyncTracker::AccelerationStructureOpsArray::removeRoSeal(RaytraceAccelerationStructure *obj)
 {
-  arr[lastProcessed] = {OpUid::next(), obj->getRoSealReads(), obj, {}, {}, // we don't know actual
-                                                                           // caller
-    VK_ACCESS_NONE,
-    /*completed*/ false,
-    /*dstConflict*/ false};
+  // we don't know actual caller here
+  arr[lastProcessed] = AccelerationStructureSyncOp(SyncOpUid::next(), {}, obj->getRoSealReads(), obj, {});
 }
 
-#endif // D3D_HAS_RAY_TRACING
+template <>
+bool ExecutionSyncTracker::AccelerationStructureOpsArray::isRoSealValidForOperation(RaytraceAccelerationStructure *, uint32_t)
+{
+  return true;
+}
+
+
+#endif // VULKAN_HAS_RAYTRACING

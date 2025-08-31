@@ -55,8 +55,6 @@ public:
   inline const char *getGameDir() const { return gameDir; }
   inline const char *getLevelsBinDir() const { return levelsBinDir; }
   inline const char *getPhysmatPath() const { return physmatPath; }
-  inline const char *getSoundFileName() const { return soundFileName; }
-  inline const char *getSoundFxFileName() const { return soundFxFileName; }
   inline const char *getScriptLibrary() const { return scriptLibrary; }
 
   inline const char *getCollisionName() const { return collisionName; }
@@ -84,14 +82,14 @@ protected:
   Workspaces *wspData;
 
   // Load application-specific data from BLK
-  virtual bool loadSpecific(const DataBlock &blk) { return true; }
+  virtual bool loadSpecific([[maybe_unused]] const DataBlock &blk) { return true; }
   // Load application-specific data from application.blk
-  virtual bool loadAppSpecific(const DataBlock &blk) { return true; }
+  virtual bool loadAppSpecific([[maybe_unused]] const DataBlock &blk) { return true; }
 
   // Save application-specific data in BLK
   // Must use only DataBlock::set... methods and DataBlock::addBlock to avoid rewrite other
   // application data
-  virtual bool saveSpecific(DataBlock &blk) { return true; }
+  virtual bool saveSpecific([[maybe_unused]] DataBlock &blk) { return true; }
 
   virtual bool createApplicationBlk(const char *path) const;
 
@@ -109,9 +107,7 @@ private:
   String gameDir;
   String levelsBinDir;
   String physmatPath;
-  String soundFileName;
   String scriptLibrary;
-  String soundFxFileName;
 
   String collisionName;
 

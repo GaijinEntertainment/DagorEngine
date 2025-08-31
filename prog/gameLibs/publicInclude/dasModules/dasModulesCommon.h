@@ -31,10 +31,7 @@ namespace das
   template <>                                                  \
   struct typeName<TYPE>                                        \
   {                                                            \
-    static string name()                                       \
-    {                                                          \
-      return #TYPE;                                            \
-    }                                                          \
+    static string name() { return #TYPE; }                     \
   };                                                           \
   template <>                                                  \
   struct das_alias<TYPE> : das::das_alias_vec<TYPE, DAS_TYPE>  \

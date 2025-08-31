@@ -72,6 +72,7 @@ int getOpCount(FunctionId func);
 
 // return result value type for specified function
 shexpr::ValueType getValueType(FunctionId func);
+bool getValueTypeIsInteger(FunctionId func);
 
 // evaluate function - return false, if error. if output value type is real, return value in res.r.
 bool evaluate(FunctionId func, Color4 &res, const ArgList &args);

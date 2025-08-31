@@ -7,6 +7,15 @@ rendinst_deferred_modulate2x_decal:rendinst_modulate2x_diffuse_decal
 dynamic_simple:rendinst_simple
 dynamic_simple_uv:rendinst_simple_uv
 
+dynamic_masked_chrome_bump:rendinst_simple
+dynamic_masked_chrome_bump_uv:rendinst_simple_uv
+
+dynamic_masked_chrome:rendinst_simple
+dynamic_masked_chrome_uv:rendinst_simple_uv
+
+simple_aces:rendinst_simple
+simple_aces_uv:rendinst_simple_uv
+
 dynamic_layered:rendinst_layered
 dynamic_layered_uv:rendinst_layered_uv
 

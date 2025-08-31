@@ -23,6 +23,7 @@ void rendinst_impostor_set_parallax_mode(bool allowed);
 void rendinst_impostor_set_view_mode(bool allowed);
 bool rendinst_impostor_is_parallax_allowed();
 bool rendinst_impostor_is_tri_view_allowed();
+void rendinst_impostor_disable_anisotropy();
 
 decl_dclass_and_id(RenderableInstanceResource, DObject, 0xBD23B4A7u)
 public:
@@ -228,7 +229,7 @@ public:
   const RenderableInstanceLodsResource *getNextClone() const { return nullptr; }
   static void lockClonesList() {}
   static void unlockClonesList() {}
-  static void (*on_higher_lod_required)(RenderableInstanceLodsResource * res, unsigned req_lod, unsigned cur_lod);
+  static void (*on_higher_lod_required)(RenderableInstanceLodsResource *res, unsigned req_lod, unsigned cur_lod);
 
   static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }
@@ -315,13 +316,14 @@ protected:
   };
   static_assert(RES_LD_FLG_SHIFT + RES_LD_FLG_SIZE == 32,
     "Since we use one dword for the bitfield, we shouldn't have unhandled bits there.");
-  uint32_t packedFields;
+  uint32_t packedFields = 0;
   unsigned char rotationPaletteSize = 1;
   unsigned char qlMinAllowedLod = 0;
   volatile unsigned short qlReqLod = qlReqLodInitialValue, qlReqLodPrev = qlReqLodInitialValue;
   volatile unsigned short qlReloadCnt = 0, qlDiscardCnt = 0;
   int qlReqLFU = 0;
-  mutable uint32_t bvhId = 0;
+  mutable uint32_t bvhId : 31 = 0;
+  mutable bool hasTreeOrFlagMaterial : 1 = false;
   Ptr<ShaderMatVdata> smvd;
   PATCHABLE_32BIT_PAD32(_resv[3]);
 
@@ -356,6 +358,16 @@ public:
   uint32_t getBvhId() const { return bvhId; }
   void setBvhId(uint32_t id) const { bvhId = id; }
 
+  bool hasTreeOrFlag() const { return hasTreeOrFlagMaterial; }
+
+#if _TARGET_64BIT && !defined(DEBUG_DOBJECTS)
+  void setRiExtraId(int id) { DObject::_resv = id; }
+  int getRiExtraId() const { return DObject::_resv; }
+#else
+  constexpr void setRiExtraId(int) {}
+  constexpr int getRiExtraId() const { return -1; }
+#endif
+
   void loadImpostorData(const char *name);
   bool hasImpostor() const
   {
@@ -386,7 +398,7 @@ public:
   }
 
 protected:
-  RenderableInstanceLodsResource() : packedFields(0) {}
+  RenderableInstanceLodsResource() { setRiExtraId(-1); }
   RenderableInstanceLodsResource(const RenderableInstanceLodsResource &);
   ~RenderableInstanceLodsResource() { clearData(); }
 

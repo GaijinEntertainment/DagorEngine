@@ -17,9 +17,7 @@ TEXTUREID load_texture_array_immediate(const char *name, const char *param_name,
   TEXTUREID id = names.size() ? ::add_managed_array_texture(name, names) : BAD_TEXTUREID;
   if (id == BAD_TEXTUREID)
     return id;
-  ArrayTexture *array = (ArrayTexture *)::acquire_managed_tex(id);
-  if (array)
-    array->disableSampler();
+  ::acquire_managed_tex(id);
   count = names.size();
 
   return id;

@@ -70,6 +70,7 @@ void VoltexRenderer::render(const ManagedTex &voltex, int mip_level, IPoint3 sha
   else if (shaderPs.getElem())
   {
     SCOPE_RENDER_TARGET;
+    d3d::set_render_target();
     d3d::set_render_target(0, voltex.getVolTex(), d3d::RENDER_TO_WHOLE_ARRAY, mip_level);
     if (shape.x != (tinfo.w >> mip_level) || shape.y != (tinfo.h >> mip_level) || shape.z != (tinfo.d >> mip_level))
       d3d::setview(offset.x, offset.y, shape.x, shape.y, 0.0, 1.0);

@@ -75,8 +75,7 @@ bool GIWindows::calc()
 {
   if (!activeList.size())
   {
-    uint v[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(currentWindowsGridSB.getBuf(), v);
+    d3d::zero_rwbufi(currentWindowsGridSB.getBuf());
     d3d::resource_barrier({currentWindowsGridSB.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
     return true;
   }
@@ -135,14 +134,12 @@ bool GIWindows::calc()
   if (cBox.empty() ||
       !currentWindowsSBInd.getBuf()->updateDataWithLock(0, cBox.size() * sizeof(uint32_t), cBox.data(), VBLOCK_WRITEONLY))
   {
-    uint v[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(currentWindowsGridSB.getBuf(), v);
+    d3d::zero_rwbufi(currentWindowsGridSB.getBuf());
     d3d::resource_barrier({currentWindowsGridSB.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
     return false;
   }
 
-  uint v[4] = {0, 0, 0, 0};
-  d3d::clear_rwbufi(gridCntSB.getBuf(), v);
+  d3d::zero_rwbufi(gridCntSB.getBuf());
   d3d::set_rwbuffer(STAGE_CS, 0, currentWindowsGridSB.getBuf());
   d3d::set_rwbuffer(STAGE_CS, 1, gridCntSB.getBuf());
   auto fun = [&](auto Condition, auto &shader, int sx, int sy, int sz) {
@@ -161,12 +158,9 @@ bool GIWindows::calc()
       }
   };
   G_ASSERT(subRes.x % 2 == subRes.z % 2 && subRes.x % 2 == 0);
-  fun(
-    [](uint cnt) -> auto{ return cnt == 0; }, clear_windows_grid_range, 4, 4, 4);
-  fun(
-    [](uint cnt) -> auto{ return cnt > 0 && cnt <= 16; }, fill_windows_grid_range_fast, 2, 1, 2);
-  fun(
-    [](uint cnt) -> auto{ return cnt > 16; }, fill_windows_grid_range, 2, 1, 2);
+  fun([](uint cnt) -> auto { return cnt == 0; }, clear_windows_grid_range, 4, 4, 4);
+  fun([](uint cnt) -> auto { return cnt > 0 && cnt <= 16; }, fill_windows_grid_range_fast, 2, 1, 2);
+  fun([](uint cnt) -> auto { return cnt > 16; }, fill_windows_grid_range, 2, 1, 2);
   // full:
   d3d::set_rwbuffer(STAGE_CS, 0, 0);
   d3d::set_rwbuffer(STAGE_CS, 1, 0);

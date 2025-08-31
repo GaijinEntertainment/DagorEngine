@@ -4,8 +4,6 @@
 //
 #pragma once
 
-#include <stdarg.h>
-
 #include <osApiWrappers/dag_miscApi.h>
 #include <supp/dag_define_KRNLIMP.h>
 

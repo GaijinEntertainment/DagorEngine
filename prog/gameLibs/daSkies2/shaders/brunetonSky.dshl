@@ -110,7 +110,7 @@ macro BASE_USE_BRUNETON_FOG(code)
       return get_fog_prepared_tc(getPreparedScatteringTc(-view.y, dist));
     }
 
-    half4 get_scattering_tc_scatter_loss(float2 texcoord, float3 view, float dist, out float tcZ)
+    half4 get_scattering_tc_scatter_loss(float2 texcoord, float dist, out float tcZ)
     {
       tcZ = min(get_scattering_tc_z(dist), skies_panoramic_scattering__inv_distance.w);
       half4 combined = (half4)tex3Dlod(skies_frustum_scattering, float4(texcoord, tcZ, 0));
@@ -143,12 +143,20 @@ macro BASE_USE_BRUNETON_FOG(code)
 
     void get_scattering_tc_fog(float2 texcoord, float3 view, float dist, out half3 transmittance, out half3 inscatter)
     {
+    #if USE_CAMERA_IN_CAMERA
+      texcoord = remap_to_main_view_uv(texcoord);
+    #endif
+
       float tcZ;
-      half4 combined = get_scattering_tc_scatter_loss(texcoord, view, dist, tcZ);
+      half4 combined = get_scattering_tc_scatter_loss(texcoord, dist, tcZ);
       get_scattering_scatter_colored_loss(combined, tcZ, view, dist, transmittance, inscatter);
     }
     void get_scattering_tc_fog(float2 texcoord, float3 pointToEye, out half3 transmittance, out half3 inscatter)
     {
+    #if USE_CAMERA_IN_CAMERA
+      texcoord = remap_to_main_view_uv(texcoord);
+    #endif
+
       float dist2 = dot(pointToEye, pointToEye);
       float rdist = rsqrt(dist2);
       get_scattering_tc_fog(texcoord, pointToEye*rdist, dist2*rdist, transmittance, inscatter);

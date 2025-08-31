@@ -8,15 +8,27 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
 ;
 
+if $(Platform) = linux {
+  # includes are from "pkg-config --cflags dbus-1"
+  AddIncludes +=
+    /usr/include/dbus-1.0
+    /usr/lib/x86_64-linux-gnu/dbus-1.0/include
+  ;
+
+  AddLibs += -ldbus-1 ;
+}
+
 Sources =
   propPanel.cpp
   c_indirect.cpp
   c_util.cpp
   colorChangeBuffer.cpp
+  colorsInternal.cpp
   contextMenuInternal.cpp
   focusHelper.cpp
   imageHelper.cpp
   imguiHelper.cpp
+  immediateFocusLossHandler.cpp
   menuInternal.cpp
   messageQueueInternal.cpp
   tooltipHelper.cpp
@@ -41,7 +53,12 @@ Sources =
   control/panelWindow.cpp
   control/propertyControlBase.cpp
   control/spinEditStandalone.cpp
+  control/treeStandalone.cpp
 ;
+
+if $(Platform) = linux {
+  Sources += commonWindow/colorPicker_linux.cpp ;
+}
 
 UseProgLibs =
   3rdPartyLibs/imgui

@@ -18,6 +18,7 @@ Sources =
 
 UseProgLibs +=
   3rdPartyLibs/eastl
+  gameLibs/resourcePool
 ;
 
 SourceES =

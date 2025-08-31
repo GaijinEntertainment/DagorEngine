@@ -12,7 +12,7 @@
 #include "guiScene.h"
 #include "dargDebugUtils.h"
 #include <perfMon/dag_cpuFreq.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 
 namespace darg
@@ -197,11 +197,11 @@ static int64_t get_anim_ref_time()
   if (refTime != 0)
     return refTime;
 
-  static std::atomic_flag lock = ATOMIC_FLAG_INIT;
-  while (lock.test_and_set(std::memory_order_acquire))
+  static dag::AtomicFlag lock;
+  while (lock.test_and_set(dag::memory_order_acquire))
     ;
   refTime = ref_time_ticks();
-  lock.clear(std::memory_order_release);
+  lock.clear(dag::memory_order_release);
   return refTime;
 }
 
@@ -265,7 +265,7 @@ void Animation::callHandler(const Sqrat::Object &handler, bool allow_start)
     }
     else if (allow_start)
     {
-      guiScene->getElementTree()->startAnimation(handler);
+      elem->etree->startAnimation(handler);
     }
   }
 }

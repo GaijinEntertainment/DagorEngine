@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/objectMotionBlur.h>
+#include <drv/3d/dag_resId.h>
 
 namespace objectmotionblur
 {

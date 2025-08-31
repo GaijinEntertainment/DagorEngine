@@ -2,5 +2,192 @@ blood_puddles__debugger {
   _singleton:b=true
   _tags:t="render,dev"
 
-  "blood_puddle_dbg__render_node:dabfg::NodeHandle"{}
+  "blood_puddle_dbg__render_node:dafg::NodeHandle"{}
+  blood_puddle_dbg__mode:i=0
+}
+
+blood_puddles_settings {
+  singleton:b=true
+  _tags:t="render"
+  _tracked:t="blood_puddles_settings__groupAttributes"
+  _tracked:t="blood_puddles_settings__visualAttributes"
+
+  // ===================================================================
+  // [ATLAS PARAMS]
+  // - baseTex:t="atlas_res", where atlas_res is BC1 texture with the following format:
+  // R - NormalMap.x
+  // G - Intensity
+  // B - NormalMap.y
+  //
+  // - flowmap:t="flowmap_res", where flowmap_res is BC4 texture with only one channel
+  // - atlasSize:p2 = VARIANTS_NUM, GROUPS
+
+  "blood_puddles_settings__atlas:object" {
+    baseTex:t="decal_growth_liquid_atlas_separate_tex_n"
+    flowmapTex:t="decal_growth_liquid_atlas_separate_tex_m"
+    atlasSize:p2=4, 8
+  }
+
+  // ===================================================================
+  // [GROUP TYPES]
+  // - puddle (on the ground in case of death or abruption of limbs)
+  // - splash (on the ground knock-out effect on hit)
+  // - spray (on the ground drops on hit)
+  // - leak (projected wall decals with leaking)
+  // - foorprint (on the ground from the sole when you step into a puddle)
+  // - explosion (projected on wall/floor from explosion)
+  //
+  // ===================================================================
+  // [PER GROUP PARAMS]
+  // -appearTime:r
+  // Time to finish the flowmap / effect
+  //
+  // ===
+  // -minDistance:r
+  // Minimum distance between puddles in the group to spawn a new one
+  //
+  // ===
+  // -sizeRange:p2
+  // Size range for new puddles
+  //
+  // ===
+  // -bloodNormalDominanceTerm:r
+  // Additional term for more blood normal dominance
+  // [0:1]
+  //
+  // ===
+  // -edgeWidthScale:r
+  // Scaling of the blood edge
+  // blood_puddles.show_edge
+  // [0:1]
+  //
+  // ===
+  // [PUDDLE SPECIFIC GROUP PARAMS]
+  // -stayFreshTime:r
+  // Time period when a footstep is able to be spawned.
+  //
+  // ===
+  // [SPLASH SPECIFIC GROUP PARAMS]
+  // -splashFxTemplName:t
+  // When hit effect falls it creates splash effect with decals.
+  //
+  // -maxEffectsPerFrame limits splash effects per frame
+
+  // [FOOTSTEP SPECIFIC GROUP PARAMS]
+  // -strengthDecayPerStep:r
+  // opacity multiplier per each step.
+  //
+  //-minStrength:r
+  // minimum strength at which it's still possible
+  // to place a footstep
+
+  // [EXPLOSION SPECIFIC GROUP PARAMS]
+  //-variantsCount:i
+  // For this group we split variant of textures by HALF
+  // It means that in one row for this group locates 2 sets of textures, for floor and wall
+  // In row texture locate in this order: W W F F
+  // Where W - means texture for placing on wall
+  // Where F - means texture for placing on floor
+  //
+  //-maxVerticalThreshold:r
+  // angular limit for the decal normal to choose if it's wall or floor decal
+  // if cos between UP and decal's NORMAL is below this value
+  // floor decal variant will be taken
+
+  "blood_puddles_settings__groupAttributes:object" {
+    "puddle:object" {
+      appearTime:r=25
+      minDistance:r=0.25
+      sizeRange:p2=0.5, 2
+      variantsCount:i=4
+
+      stayFreshTime:r=60
+
+      bloodNormalDominanceTerm:r=0.85
+      edgeWidthScale:r=0.9
+    }
+
+    "splash:object" {
+      appearTime:r=1
+      minDistance:r=0.01
+      sizeRange:p2=1, 1.5
+      variantsCount:i=4
+
+      effectTemplateName:t="hit_blood_ground_effect"
+      maxEffectsPerFrame:i=2
+
+      bloodNormalDominanceTerm:r=0.9
+      edgeWidthScale:r=0.5
+    }
+
+    "spray:object" {
+      appearTime:r=1
+      minDistance:r=0.01
+      sizeRange:p2=0.25, 0.5
+      variantsCount:i=4
+
+      bloodNormalDominanceTerm:r=0.8
+      edgeWidthScale:r=0.5
+    }
+
+    "leak:object" {
+      appearTime:r=10
+      minDistance:r=0.1
+      sizeRange:p2=0.8, 1.5
+      variantsCount:i=4
+
+      bloodNormalDominanceTerm:r=0.95
+      edgeWidthScale:r=0.1
+    }
+
+    "footprint:object" {
+      appearTime:r=0.1
+      minDistance:r=0.01
+      sizeRange:p2=0.3, 0.3
+
+      strengthDecayPerStep:r=0.8
+      minStrength:r=0.2
+
+      "variantsCounts:list<i>" {
+        bareLeg:i=4
+        footWearOne:i=4
+      }
+
+      bloodNormalDominanceTerm:r=0.1
+      edgeWidthScale:r=0.93
+    }
+
+    "explosion:object" {
+      appearTime:r=10
+      minDistance:r=0.1
+      sizeRange:p2=0.8, 1.5
+      variantsCount:i=4
+
+      maxVerticalThreshold:r=0.7
+
+      bloodNormalDominanceTerm:r=0.95
+      edgeWidthScale:r=0.1
+    }
+  }
+
+  "blood_puddles_settings__visualAttributes:object"{
+      startSize:r=0.05
+      colorAtHighIntensity:p3=0.14, 0.0, 0
+      colorAtLowIntensity:p3=0.05, 0, 0
+
+      reflectance:r=0.15
+      smoothness:r=1.0
+      smoothnessOnEdge:r=1.0
+
+      landscapeReflectance:r=0.21
+      landscapeSmoothnessEdge:r=0.4
+
+      //Albedo darkening
+      //landscape: in the puddle center
+      //ri: the whole puddle
+      //
+      //It's mostly used to make fake depth on the landscape
+      //but is in use by RI for the common visual.
+      centerAlbedoDarkening:r=0.5
+    }
 }

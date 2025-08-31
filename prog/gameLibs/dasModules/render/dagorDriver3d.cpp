@@ -14,10 +14,10 @@ DAS_BIND_ENUM_CAST(DepthAccess);
 DAS_BASE_BIND_ENUM(DepthAccess, DepthAccess, RW, SampledRO);
 
 DAS_BIND_ENUM_CAST(d3d::MipMapMode);
-DAS_BASE_BIND_ENUM(d3d::MipMapMode, MipMapMode, Default, Disabled, Point, Linear);
+DAS_BASE_BIND_ENUM(d3d::MipMapMode, MipMapMode, Disabled, Point, Linear);
 
 DAS_BIND_ENUM_CAST(d3d::FilterMode);
-DAS_BASE_BIND_ENUM(d3d::FilterMode, FilterMode, Default, Disabled, Point, Linear, Best, Compare);
+DAS_BASE_BIND_ENUM(d3d::FilterMode, FilterMode, Disabled, Point, Linear, Best, Compare);
 
 DAS_BIND_ENUM_CAST(d3d::AddressMode);
 DAS_BASE_BIND_ENUM(d3d::AddressMode, AddressMode, Wrap, Mirror, Clamp, Border, MirrorOnce);
@@ -35,7 +35,7 @@ struct ShadersECSAnnotation : das::ManagedStructureAnnotation<ShadersECS, false>
   ShadersECSAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ShadersECS", ml) { cppName = " ::ShadersECS"; }
 };
 
-struct PostFxRendererAnnotation : das::ManagedStructureAnnotation<PostFxRenderer, false>
+struct PostFxRendererAnnotation : das::ManagedStructureAnnotation<PostFxRenderer, true, true>
 {
   PostFxRendererAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("PostFxRenderer", ml, "PostFxRenderer") {}
 };
@@ -53,9 +53,9 @@ struct BorderColorAnnotation : das::ManagedStructureAnnotation<d3d::BorderColor,
   }
 };
 
-struct ShaderInfoAnnotation : das::ManagedStructureAnnotation<d3d::SamplerInfo, false>
+struct SamplerInfoAnnotation : das::ManagedStructureAnnotation<d3d::SamplerInfo, false>
 {
-  ShaderInfoAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SamplerInfo", ml, "d3d::SamplerInfo")
+  SamplerInfoAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SamplerInfo", ml, "d3d::SamplerInfo")
   {
     addField<DAS_BIND_MANAGED_FIELD(mip_map_mode)>("mip_map_mode");
     addField<DAS_BIND_MANAGED_FIELD(filter_mode)>("filter_mode");
@@ -65,6 +65,14 @@ struct ShaderInfoAnnotation : das::ManagedStructureAnnotation<d3d::SamplerInfo, 
     addField<DAS_BIND_MANAGED_FIELD(border_color)>("border_color");
     addField<DAS_BIND_MANAGED_FIELD(anisotropic_max)>("anisotropic_max");
     addField<DAS_BIND_MANAGED_FIELD(mip_map_bias)>("mip_map_bias");
+  }
+};
+
+struct TexStreamingContextAnnotation : das::ManagedStructureAnnotation<TexStreamingContext, false>
+{
+  TexStreamingContextAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("TexStreamingContext", ml)
+  {
+    cppName = " ::TexStreamingContext";
   }
 };
 
@@ -97,6 +105,8 @@ struct OverrideStateAnnotation : das::ManagedStructureAnnotation<shaders::Overri
     addField<DAS_BIND_MANAGED_FIELD(sblenda)>("sblenda");
     addField<DAS_BIND_MANAGED_FIELD(dblenda)>("dblenda");
     addField<DAS_BIND_MANAGED_FIELD(colorWr)>("colorWr");
+    addField<DAS_BIND_MANAGED_FIELD(zBias)>("zBias");
+    addField<DAS_BIND_MANAGED_FIELD(slopeZBias)>("slopeZBias");
   }
 };
 
@@ -113,6 +123,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorTexture3D"));
+    addAnnotation(das::make_smart<TexStreamingContextAnnotation>(lib));
     addAnnotation(das::make_smart<Driver3dPerspectiveAnnotation>(lib));
     addAnnotation(das::make_smart<ShadersECSAnnotation>(lib));
     addAnnotation(das::make_smart<PostFxRendererAnnotation>(lib));
@@ -125,7 +136,7 @@ public:
     addEnumeration(das::make_smart<EnumerationAddressMode>());
     addEnumeration(das::make_smart<EnumerationBorderColor_Color>());
     addAnnotation(das::make_smart<BorderColorAnnotation>(lib));
-    addAnnotation(das::make_smart<ShaderInfoAnnotation>(lib));
+    addAnnotation(das::make_smart<SamplerInfoAnnotation>(lib));
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 
@@ -174,9 +185,10 @@ public:
     BIND_WRAP_FUNC(d3d_resource_barrier_buf, "d3d_resource_barrier", modifyExternal);
     BIND_WRAP_FUNC(d3d_get_vsync_refresh_rate, "d3d_get_vsync_refresh_rate", accessExternal);
 
+    das::addCtor<PostFxRenderer, const char *>(*this, lib, "PostFxRenderer", "PostFxRenderer");
     CLASS_MEMBER(PostFxRenderer::render, "render", das::SideEffects::modifyExternal)
     CLASS_MEMBER(ComputeShader::dispatchThreads, "dispatchThreads", das::SideEffects::modifyExternal)
-
+    CLASS_MEMBER(TexStreamingContext::getTexLevel, "getTexLevel", das::SideEffects::none);
 
 #undef CLASS_MEMBER
 #undef BIND_FUNC

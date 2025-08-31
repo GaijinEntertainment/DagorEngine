@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "compositeEditor.h"
-#include "../av_cm.h"
 #include "../av_appwnd.h"
 #include "compositeEditorPanel.h"
 #include "compositeEditorTree.h"
 #include "compositeEditorUndo.h"
+#include "entity_cm.h"
 #include "dataBlockIncludeChecker.h"
 #include <assets/asset.h>
 #include <de3_dataBlockIdHolder.h>
@@ -19,19 +19,9 @@
 #include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
-extern void rimgr_set_force_lod_no(int lod_no);
+using PropPanel::ROOT_MENU_ITEM;
 
-enum
-{
-  CM_ADD_NODE = CM_PLUGIN_BASE + 1,
-  CM_ADD_RANDOM_ENTITY,
-  CM_CHANGE_ASSET,
-  CM_OPEN_ASSET,
-  CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD,
-  CM_COPY_ASSET_NAME_TO_CLIPBOARD,
-  CM_DELETE_NODE,
-  CM_REVEAL_ASSET_IN_EXPLORER,
-};
+extern void rimgr_set_force_lod_no(int lod_no);
 
 CompositeEditor::ReloadHelper::ReloadHelper(CompositeEditor &editor, const DagorAsset &asset,
   CompositeEditorRefreshType inRefreshType) :
@@ -219,7 +209,7 @@ bool CompositeEditor::saveComposit()
     const int dialogResult = wingw::message_box(wingw::MBS_EXCL | wingw::MBS_YESNO, "WARNING",
       "The original composit contains an #include block. Saving the asset might cause data loss. Continue?");
 
-    if (dialogResult != PropPanel::DIALOG_ID_YES)
+    if (dialogResult != wingw::MB_ID_YES)
       return false;
   }
 
@@ -267,7 +257,7 @@ void CompositeEditor::deleteSelectedNode(bool needsConfirmation)
     const int dialogResult = wingw::message_box(wingw::MBS_EXCL | wingw::MBS_YESNO, "Delete node?",
       "Are you sure that you want to delete the selected node?");
 
-    if (dialogResult != PropPanel::DIALOG_ID_YES)
+    if (dialogResult != wingw::MB_ID_YES)
       return;
   }
 
@@ -328,17 +318,17 @@ bool CompositeEditor::canSwitchToAnotherAsset()
   const int dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Composit properties",
     "You have changed the composit. Do you want to save the changes?");
 
-  if (dialogResult == PropPanel::DIALOG_ID_YES)
+  if (dialogResult == wingw::MB_ID_YES)
   {
     return saveComposit();
   }
-  else if (dialogResult == PropPanel::DIALOG_ID_NO)
+  else if (dialogResult == wingw::MB_ID_NO)
   {
     revertChanges();
     return true;
   }
 
-  G_ASSERT(dialogResult == PropPanel::DIALOG_ID_CANCEL);
+  G_ASSERT(dialogResult == wingw::MB_ID_CANCEL);
   return false;
 }
 
@@ -443,7 +433,7 @@ void CompositeEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
 
 int CompositeEditor::onMenuItemClick(unsigned id)
 {
-  if (id == CM_ADD_NODE)
+  if (id == CM_COMPOSITE_EDITOR_ADD_NODE)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -458,7 +448,7 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_ADD_RANDOM_ENTITY)
+  else if (id == CM_COMPOSITE_EDITOR_ADD_RANDOM_ENTITY)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -474,7 +464,7 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_CHANGE_ASSET)
+  else if (id == CM_COMPOSITE_EDITOR_CHANGE_ASSET)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -500,12 +490,12 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_DELETE_NODE)
+  else if (id == CM_COMPOSITE_EDITOR_DELETE_NODE)
   {
     deleteSelectedNode();
     return 0;
   }
-  else if (id == CM_OPEN_ASSET)
+  else if (id == CM_COMPOSITE_EDITOR_OPEN_ASSET)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -521,7 +511,7 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD)
+  else if (id == CM_COMPOSITE_EDITOR_COPY_ASSET_FILEPATH_TO_CLIPBOARD)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -536,7 +526,7 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_COPY_ASSET_NAME_TO_CLIPBOARD)
+  else if (id == CM_COMPOSITE_EDITOR_COPY_ASSET_NAME_TO_CLIPBOARD)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -548,7 +538,7 @@ int CompositeEditor::onMenuItemClick(unsigned id)
 
     return 0;
   }
-  else if (id == CM_REVEAL_ASSET_IN_EXPLORER)
+  else if (id == CM_COMPOSITE_EDITOR_REVEAL_ASSET_IN_EXPLORER)
   {
     G_ASSERT(selectedTreeDataNode);
     if (!selectedTreeDataNode)
@@ -594,19 +584,19 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
 
   if (selectedTreeDataNode->canEditChildren())
   {
-    menu.addItem(ROOT_MENU_ITEM, CM_ADD_NODE, "Add node");
+    menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_ADD_NODE, "Add node");
     separateDelete = true;
   }
 
   if (selectedTreeDataNode->canEditRandomEntities(isRootNode))
   {
-    menu.addItem(ROOT_MENU_ITEM, CM_ADD_RANDOM_ENTITY, "Add entity");
+    menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_ADD_RANDOM_ENTITY, "Add entity");
     separateDelete = true;
   }
 
   if (selectedTreeDataNode->canEditAssetName(isRootNode))
   {
-    menu.addItem(ROOT_MENU_ITEM, CM_CHANGE_ASSET, "Change asset");
+    menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_CHANGE_ASSET, "Change asset");
     separateDelete = true;
   }
 
@@ -615,16 +605,16 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
     if (separateDelete)
       menu.addSeparator(ROOT_MENU_ITEM);
 
-    menu.addItem(ROOT_MENU_ITEM, CM_DELETE_NODE, "Delete node\tDelete");
+    menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DELETE_NODE, "Delete node\tDelete");
 
     if (selectedTreeDataNode->hasNameParameter())
     {
       menu.addSeparator(ROOT_MENU_ITEM);
-      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH_TO_CLIPBOARD, "Copy filepath");
-      menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_NAME_TO_CLIPBOARD, "Copy name");
-      menu.addItem(ROOT_MENU_ITEM, CM_OPEN_ASSET, "Open asset");
+      menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_COPY_ASSET_FILEPATH_TO_CLIPBOARD, "Copy filepath");
+      menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_COPY_ASSET_NAME_TO_CLIPBOARD, "Copy name");
+      menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_OPEN_ASSET, "Open asset");
       menu.addSeparator(ROOT_MENU_ITEM);
-      menu.addItem(ROOT_MENU_ITEM, CM_REVEAL_ASSET_IN_EXPLORER, "Reveal in Explorer");
+      menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_REVEAL_ASSET_IN_EXPLORER, "Reveal in Explorer");
     }
   }
 

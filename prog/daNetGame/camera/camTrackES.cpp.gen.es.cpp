@@ -1,9 +1,11 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t camtrack__filename_get_type();
 static ecs::LTComponentList camtrack__filename_component(ECS_HASH("camtrack__filename"), camtrack__filename_get_type(), "prog/daNetGame/camera/camTrackES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "camTrackES.cpp.inl"
 ECS_DEF_PULL_VAR(camTrack);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc camtrack_updater_es_comps[] =
 {

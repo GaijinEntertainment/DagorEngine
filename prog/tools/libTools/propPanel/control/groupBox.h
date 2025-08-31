@@ -17,16 +17,16 @@ public:
     ContainerPropertyControl(id, event_handler, parent, x, y, w, h), controlCaption(caption)
   {}
 
-  virtual int getImguiControlType() const { return (int)ControlType::GroupBox; }
+  int getImguiControlType() const override { return (int)ControlType::GroupBox; }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
-  virtual bool isRealContainer() override { return false; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  bool isRealContainer() override { return false; }
 
-  virtual void updateImgui() override { groupBoxUpdateImgui(true); }
+  void updateImgui() override { groupBoxUpdateImgui(true); }
 
   void groupBoxUpdateImgui(bool draw_bottom_separator)
   {

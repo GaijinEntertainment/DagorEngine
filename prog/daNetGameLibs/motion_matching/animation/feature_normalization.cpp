@@ -52,6 +52,7 @@ void calculate_normalization(
   FrameFeatures featuresGetter;
   featuresGetter.nodeCount = clips[0].features.nodeCount;
   featuresGetter.trajectoryPointCount = clips[0].features.trajectoryPointCount;
+  featuresGetter.featuresSizeInVec4f = clips[0].features.featuresSizeInVec4f;
   featuresGetter.trajectorySizeInVec4f = clips[0].features.trajectorySizeInVec4f;
   featuresGetter.data = eastl::move(std);
   for (int group = 0; group < normalization_groups; ++group)

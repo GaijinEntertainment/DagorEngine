@@ -6,6 +6,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_info.h>
 #include <generic/dag_sort.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <3d/dag_textureIDHolder.h>
@@ -51,6 +52,7 @@ ShadowSystem::ShadowSystem(const char *name_suffix) : nameSuffix(name_suffix)
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   smpInfo.filter_mode = d3d::FilterMode::Compare;
+  smpInfo.mip_map_mode = d3d::MipMapMode::Point;
   shadowSampler = d3d::request_sampler(smpInfo);
 
   shaders::OverrideState state;
@@ -98,7 +100,6 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
     dynamic_light_shadows.close();
     dynamic_light_shadows =
       dag::create_tex(NULL, atlasWidth, atlasHeight, textureFormat | TEXCF_RTARGET, 1, getResName("dynamic_light_shadows").c_str());
-    dynamic_light_shadows->disableSampler();
     ShaderGlobal::set_texture(dynamic_light_shadowsVarId, dynamic_light_shadows);
     ShaderGlobal::set_sampler(dynamic_light_shadows_samplerstateVarId, shadowSampler);
     d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
@@ -113,12 +114,10 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
     tempCopy.close();
     tempCopy =
       dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, getResName("temp_dynamic_light_shadows").c_str());
-    tempCopy->disableSampler();
 
     octahedral_temp_shadow.close();
     octahedral_temp_shadow = dag::create_array_tex(maxOctahedralTempShadow, maxOctahedralTempShadow, 6, textureFormat | TEXCF_RTARGET,
       1, getResName("octahedral_temp_shadow").c_str());
-    octahedral_temp_shadow->disableSampler();
     ShaderGlobal::set_texture(octahedral_temp_shadowVarId, octahedral_temp_shadow);
   }
   if (!copyDepth)
@@ -480,7 +479,7 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       d3d::set_render_target((Texture *)NULL, 0);
       d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
       const int sizeInRegs = sizeof(TraceLightInfo) / 16;
-      const int quant = d3d::set_vs_constbuffer_size(51 * sizeInRegs) / sizeInRegs; // 51 must match shader
+      const int quant = d3d::set_vs_constbuffer_size(51 * sizeInRegs) / sizeInRegs + 1; // 51 must match shader
       G_ASSERT(quant > 0);
       ShaderGlobal::set_color4(octahedral_texture_sizeVarId, tinfo.w, tinfo.h, 1. / tinfo.w, 1. / tinfo.h);
 
@@ -489,7 +488,7 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       for (int i = 0, e = traceAreas.size(); i < e; i += quant)
       {
         const uint32_t cnt = min<int>(e - i, quant);
-        d3d::set_vs_const(0, &traceAreas[i], cnt * sizeInRegs);
+        d3d::set_vs_const(1, &traceAreas[i], cnt * sizeInRegs);
         // todo: render in quads on consoles, saves shader ops
         d3d::draw(PRIM_TRILIST, 0, cnt * 2);
       }
@@ -523,31 +522,43 @@ void ShadowSystem::copyStaticToDynamic(const Volume &volume)
 
 void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, int w, int h)
 {
-  // can be done on modern API without renders
-  // or can be done on compute
-  shaders::overrides::set(cmpfAlwaysStateId);
-  G_ASSERT_RETURN(w <= maxShadow && h <= maxShadow, );
-  G_ASSERT_RETURN(copyDepth, );
-  d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
-  int v_from[4] = {src_x, src_y, 0, 0};
-  d3d::set_ps_const(77, (float *)v_from, 1);
-  if (w < maxShadow || h < maxShadow)
-    d3d::setview(0, 0, w, h, 0, 1);
-  d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
-  d3d::settex(15, dynamic_light_shadows.getTex2D());
-  d3d::set_sampler(STAGE_PS, 15, shadowSampler);
-  copyDepth->render();
+  TIME_D3D_PROFILE(copyAtlasRegion);
 
-  d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
-  d3d::setview(dst_x, dst_y, w, h, 0, 1);
-  d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
-  d3d::settex(15, tempCopy.getTex2D());
-  int v[4] = {-dst_x, -dst_y, 0, 0};
-  d3d::set_ps_const(77, (float *)v, 1);
-  copyDepth->render();
-  shaders::overrides::reset();
+  // copy is faster
+  // dx11 has different issues syncing copies of depth with followup usage
+  if (!d3d::get_driver_code().is(d3d::dx11))
+  {
+    tempCopy.getTex2D()->updateSubRegion(dynamic_light_shadows.getTex2D(), 0, src_x, src_y, 0, w, h, 1, 0, 0, 0, 0);
+    dynamic_light_shadows.getTex2D()->updateSubRegion(tempCopy.getTex2D(), 0, 0, 0, 0, w, h, 1, 0, dst_x, dst_y, 0);
+    d3d::setview(dst_x, dst_y, w, h, 0, 1);
+  }
+  else
+  {
+
+    shaders::overrides::set(cmpfAlwaysStateId);
+    G_ASSERT_RETURN(w <= maxShadow && h <= maxShadow, );
+    G_ASSERT_RETURN(copyDepth, );
+    d3d::set_render_target((Texture *)NULL, 0);
+    d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
+    int v_from[4] = {src_x, src_y, 0, 0};
+    d3d::set_ps_const(77, (float *)v_from, 1);
+    if (w < maxShadow || h < maxShadow)
+      d3d::setview(0, 0, w, h, 0, 1);
+    d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+    d3d::settex(15, dynamic_light_shadows.getTex2D());
+    d3d::set_sampler(STAGE_PS, 15, shadowSampler);
+    copyDepth->render();
+
+    d3d::set_render_target((Texture *)NULL, 0);
+    d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+    d3d::setview(dst_x, dst_y, w, h, 0, 1);
+    d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+    d3d::settex(15, tempCopy.getTex2D());
+    int v[4] = {-dst_x, -dst_y, 0, 0};
+    d3d::set_ps_const(77, (float *)v, 1);
+    copyDepth->render();
+    shaders::overrides::reset();
+  }
 }
 
 void ShadowSystem::endRenderVolumes()
@@ -717,6 +728,16 @@ void ShadowSystem::startRenderVolumeView(uint32_t id, uint32_t view_id, mat44f &
     if (current_render_type == RENDER_STATIC || !(render_flags & RENDER_STATIC))
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
   }
+  else
+  {
+#if DAGOR_DBGLEVEL > 0
+    {
+      Driver3dRenderTarget rt;
+      d3d::get_render_target(rt);
+      G_ASSERT(rt.getDepth().tex == dynamic_light_shadows.getTex2D());
+    }
+#endif
+  }
 }
 
 void ShadowSystem::endRenderVolumeView(uint32_t, uint32_t) {}
@@ -730,15 +751,17 @@ void ShadowSystem::startRenderDynamic(uint32_t id)
     copyStaticToDynamic(volume);
 }
 
-void ShadowSystem::packOctahedral(uint16_t id, bool dynamic_content)
+void ShadowSystem::packOctahedral(uint16_t id, bool additional_dynamic_content)
 {
   Volume &volume = volumes[id];
   if (!volume.isOctahedral())
     return;
+
+  TIME_D3D_PROFILE(packOctahedral);
   d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
   d3d::resource_barrier({octahedral_temp_shadow.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
-  if (dynamic_content)
+  if (additional_dynamic_content)
   {
     G_ASSERTF(!volume.dynamicShadow.isEmpty(), "if we here, we actually should not render anything at all");
     d3d::setview(volume.dynamicShadow.x, volume.dynamicShadow.y, volume.dynamicShadow.width, volume.dynamicShadow.height, 0, 1);
@@ -756,12 +779,13 @@ void ShadowSystem::packOctahedral(uint16_t id, bool dynamic_content)
 
   shaders::OverrideStateId originalState = shaders::overrides::get_current();
   shaders::overrides::reset();
-  if (!dynamic_content) // we only need z-test _additional_ content, otherwise just immediately write
+  // depth test is only needed when we use static-light-with-dynamic content, on second draw (where we 'add' dynamic content)
+  // OR if we use approximate static geometry (which is traced directly into atlas) and then additional geometry
+  const bool useZCmp = additional_dynamic_content || volume.isApproximatelyTracedStaticCasters();
+  if (!useZCmp)
     shaders::overrides::set(cmpfAlwaysNoBiasStateId);
-  // depth test is only needed when we use static-light-with-dynamic content,
-  // and only on second draw (where we 'add' dynamic content)
   octahedralPacker.render();
-  if (!dynamic_content)
+  if (!useZCmp)
     shaders::overrides::reset();
   shaders::overrides::set(originalState);
 }
@@ -831,8 +855,17 @@ void ShadowSystem::endRenderVolume(uint32_t id)
   if (volume.isOctahedral())
   {
     const bool dynamic = volume.isStaticLightWithDynamicContent(currentFrame) && !volume.dynamicShadow.isEmpty();
-    if (dynamic || !volume.isApproximatelyTracedStaticCasters()) // otherwise it is already written directly to target
+    if (volume.isApproximatelyTracedStaticCasters() && (volume.hasOnlyStaticCasters() || !dynamic))
+    {
+      // so, it is already rendered in trace stage or copied
+      // restore depth target as we expect that it setted on next volume processing loop
+      d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+    }
+    else
+    {
+      // either all content, or just dynamic content shadows are not yet packed into atlas
       packOctahedral(id, dynamic);
+    }
   }
 
   volume.lastFrameUpdated = currentFrame;
@@ -1147,18 +1180,11 @@ void ShadowSystem::debugValidate()
 
 bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
 {
-  // debug("atlas occupied %d / %d", atlas.occupiedArea(atlasWidth*atlasHeight), atlasWidth*atlasHeight);
   Volume &volume = volumes[id];
   if (volume.shadow.height == targetSize)
     return true;
-  // bool wasEmpty = volume.shadow.isEmpty();
-  AtlasRect oldStaticRect;
 
-  if (!volume.isDynamicOrOnlyStaticCasters() && targetSize > volume.shadow.width)
-  {
-    oldStaticRect = volume.shadow;
-    volume.shadow.reset();
-  }
+  const AtlasRect oldRect = volume.shadow;
 
   atlasFree(volume.dynamicShadow);
   volume.dynamicShadow.reset();
@@ -1175,8 +1201,15 @@ bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
     if (volume.shadow.isEmpty())
       volume.shadow = atlasInsert(targetSize);
   }
+
+  G_ASSERTF_RETURN(!(volume.shadow.isEmpty() && !oldRect.isEmpty() && targetSize <= minShadow), false,
+    "insertToAtlas is broken! While processing volume %d, targetSize %d isn't greater than minShadow %d, "
+    "but we failed to re-allocate a rect with size identical to old recently freed rect %dx%d at (%d, %d)!",
+    id, targetSize, minShadow, oldRect.width, oldRect.height, oldRect.x, oldRect.y);
+
+  // no luck, try to allocate half res
   int downgradedSize = targetSize;
-  if (volume.shadow.isEmpty() && downgradedSize > minShadow)
+  if (volume.shadow.isEmpty())
   {
     downgradedSize >>= 1;
     volume.shadow = atlasInsert(downgradedSize);
@@ -1185,36 +1218,34 @@ bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
       downgradedSize, notEnoughSpaceMul);
   }
 
-  if (volume.shadow.isEmpty()) // there is not enough space even for half res
+  // there is not enough space even for half res, try quarter
+  if (volume.shadow.isEmpty())
   {
     degradeQuality();
     downgradedSize >>= 1;
     DEBUG_OCCUPANCY("degradeQuality! %d: not enough space in atlas for %d shadow, downgrade quality %d, notEnoughSpaceMul=%f!", id,
       targetSize, downgradedSize, notEnoughSpaceMul);
-    // try to allocate quarter res
     volume.shadow = atlasInsert(downgradedSize);
   }
+
   debugValidate();
 
-  if (!oldStaticRect.isEmpty() && volume.shadow.width <= oldStaticRect.width) // nothing has changed in terms of quality, we'd better
-                                                                              // reuse old shadow
+  // If we moved in the atlas -- invalidate all data & re-render/re-calc it.
+  // Do the same for dynamic volumes, because they need to be re-processed
+  // every frame in any case.
+  if (volume.isDynamic() || volume.shadow != oldRect)
   {
-    DEBUG_OCCUPANCY("%d: use old rect %d", id, oldStaticRect.width);
-    atlasFree(volume.shadow);
-    volume.shadow = oldStaticRect;
-  }
-  else
-  {
-    atlasFree(oldStaticRect);
-    if (volume.shadow.isEmpty())
-    {
-      DEBUG_OCCUPANCY("still not enough space in atlas for %d shadow!", targetSize);
-    }
     volume.lastFrameUpdated = 1;
     volume.lastFrameChanged = volume.lastFrameUpdated + 1;
     memset(&volumesTexTM[id], 0, sizeof(volumesTexTM[id]));
     memset(&volumesOctahedralData[id], 0, sizeof(volumesOctahedralData[id]));
   }
+
+  if (volume.shadow.isEmpty())
+  {
+    DEBUG_OCCUPANCY("still not enough space in atlas for %d shadow!", targetSize);
+  }
+
   return !volume.shadow.isEmpty();
 }
 

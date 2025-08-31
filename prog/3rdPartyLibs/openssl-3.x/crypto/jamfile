@@ -191,6 +191,13 @@ if $(PlatformSpec) = gcc {
     Copt += -fno-sanitize=thread ;
   }
 }
+
+if $(PlatformSpec) = clang {
+  if $(Sanitize) = undefined {
+    Copt += -fno-sanitize=undefined ;
+  }
+}
+
 if $(PlatformArch) = e2k { Copt += -Wno-reduced-alignment ; }
 
 ExplicitLicenseUsed += $(Root)/$(Location) ;

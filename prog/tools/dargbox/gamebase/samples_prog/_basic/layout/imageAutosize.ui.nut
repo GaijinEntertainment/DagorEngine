@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let fillerBlock = {
   rendObj = ROBJ_SOLID
-  size = [flex(), sh(1)]
+  size = static [flex(), sh(1)]
   color = 0xFFFCC66
 }
 
@@ -19,7 +19,7 @@ let imageLocal = {
 }
 
 return {
-  size = [sh(80), flex()]
+  size = static [sh(80), flex()]
   hplace = ALIGN_CENTER
   gap = sh(3)
   flow = FLOW_HORIZONTAL
@@ -36,9 +36,9 @@ return {
         // expecting that image should fill all width of available space, but have unneeded blank offsets
         imageNet.__merge({ size = flex() })
         // expecting that image fill all width and fit height with aspect, but it's empty at all
-        imageNet.__merge({ size = [flex(), SIZE_TO_CONTENT] })
+        imageNet.__merge({ size = FLEX_H })
         // image have fixed width and keeping height with aspect, but it's size is totally independent of parent
-        imageNet.__merge({ size = [sh(20), SIZE_TO_CONTENT] })
+        imageNet.__merge({ size = static [sh(20), SIZE_TO_CONTENT] })
       ]
     }
     {
@@ -50,8 +50,8 @@ return {
       children = [
         imageLocal.__merge({ size = SIZE_TO_CONTENT })
         imageLocal.__merge({ size = flex() })
-        imageLocal.__merge({ size = [flex(), SIZE_TO_CONTENT] })
-        imageLocal.__merge({ size = [sh(20), SIZE_TO_CONTENT] })
+        imageLocal.__merge({ size = FLEX_H })
+        imageLocal.__merge({ size = static [sh(20), SIZE_TO_CONTENT] })
       ]
     }
   ]

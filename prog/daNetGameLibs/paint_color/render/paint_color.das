@@ -28,8 +28,8 @@ struct ShaderColorInfo
   color : Color4
   varId : int
 
-def ShaderColorInfo(color : Color4 = Color4(float4(0, 0, 0, 0)); varId : int = -1)
-  return [[ShaderColorInfo color = color, varId = varId]]
+def ShaderColorInfo(color : Color4; varId : int)
+  return ShaderColorInfo(color = color, varId = varId)
 
 [es(on_appear, tag=render, track=shader_color__colors)]
 def shader_color_es(evt : Event;

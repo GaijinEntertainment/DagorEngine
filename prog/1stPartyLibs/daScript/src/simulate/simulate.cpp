@@ -58,8 +58,6 @@ namespace das
     #define WARN_SLOW_CAST(TYPE)
     // #define WARN_SLOW_CAST(TYPE)    DAS_ASSERTF(0, "internal perofrmance issue, casting eval to eval##TYPE" );
 
-    DAS_THREAD_LOCAL StackAllocator *SharedStackGuard::lastContextStack = nullptr;
-
     SimNode * SimNode::copyNode ( Context &, NodeAllocator * code ) {
         auto prefix = ((NodePrefix *)this) - 1;
 #ifndef NDEBUG
@@ -115,6 +113,14 @@ namespace das
     char * SimNode::evalPtr ( Context & context ) {
         WARN_SLOW_CAST(Ptr);
         return cast<char *>::to(eval(context));
+    }
+
+    SimNode * SimNode_WithErrorMessage::copyNode ( Context & context, NodeAllocator * code ) {
+        SimNode_WithErrorMessage * that = (SimNode_WithErrorMessage *) SimNode::copyNode(context, code);
+        if ( errorMessage ) {
+            that->errorMessage = errorMessage[0]==0 ? "" : code->allocateName(errorMessage);
+        }
+        return that;
     }
 
     vec4f SimNode_Jit::eval ( Context & context ) {
@@ -177,7 +183,7 @@ namespace das
             if ( pLambda->capture ) {
                 SimFunction ** fnMnh = (SimFunction **) pLambda->capture;
                 SimFunction * simFunc = fnMnh[1];
-                if (!simFunc) context.throw_error_at(debugInfo, "lambda finalizer is a null function");
+                if (!simFunc) context.throw_error_at(debugInfo, "lambda finalizer is a null function%s", errorMessage);
                 vec4f argValues[1] = {
                     cast<void *>::from(pLambda->capture)
                 };
@@ -492,7 +498,7 @@ namespace das
     // SimNode_CallBase
 
     SimNode * SimNode_CallBase::copyNode ( Context & context, NodeAllocator * code ) {
-        SimNode_CallBase * that = (SimNode_CallBase *) SimNode::copyNode(context, code);
+        SimNode_CallBase * that = (SimNode_CallBase *) SimNode_WithErrorMessage::copyNode(context, code);
         if ( nArguments ) {
             SimNode ** newArguments = (SimNode **) code->allocate(nArguments * sizeof(SimNode *));
             memcpy ( newArguments, that->arguments, nArguments * sizeof(SimNode *));
@@ -910,7 +916,7 @@ namespace das
     // Context
     std::recursive_mutex g_DebugAgentMutex;
     das_safe_map<string, DebugAgentInstance>   g_DebugAgents;
-    static DAS_THREAD_LOCAL bool g_isInDebugAgentCreation = false;
+    static DAS_THREAD_LOCAL(bool) g_isInDebugAgentCreation;
     extern atomic<int> g_envTotal;
 
     template <typename TT>
@@ -921,8 +927,8 @@ namespace das
 
     template <typename TT>
     void for_each_debug_agent ( const TT & lmbd ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            lmbd ( daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent );
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            lmbd ( (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent );
         }
         std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
         for ( auto & it : g_DebugAgents ) {
@@ -968,6 +974,32 @@ namespace das
         debugInfo = make_shared<DebugInfoAllocator>();
         ownStack = (stackSize != 0);
         persistent = ph;
+    }
+
+    void Context::setup(int totalVars, uint32_t globalStringHeapSize, CodeOfPolicies policies, AnnotationArgumentList options) {
+        verySafeContext = options.getBoolOption("very_safe_context",policies.very_safe_context);
+        breakOnException |= policies.debugger;
+        gcEnabled = options.getBoolOption("gc", false);
+        persistent = options.getBoolOption("persistent_heap", policies.persistent_heap);
+        if ( persistent ) {
+            heap = make_smart<PersistentHeapAllocator>();
+            stringHeap = make_smart<PersistentStringAllocator>();
+        } else {
+            heap = make_smart<LinearHeapAllocator>();
+            stringHeap = make_smart<LinearStringAllocator>();
+        }
+        heap->setInitialSize ( options.getIntOption("heap_size_hint", policies.heap_size_hint) );
+        heap->setLimit ( options.getUInt64Option("heap_size_limit", policies.max_heap_allocated) );
+        stringHeap->setInitialSize ( options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) );
+        stringHeap->setLimit ( options.getUInt64Option("string_heap_size_limit", policies.max_string_heap_allocated) );
+        constStringHeap = make_shared<ConstStringAllocator>();
+        totalVariables = totalVars;
+        if ( globalStringHeapSize ) {
+            constStringHeap->setInitialSize(globalStringHeapSize);
+        }
+        globalVariables = (GlobalVariable *) code->allocate( uint32_t(totalVars*sizeof(GlobalVariable)) );
+        globalsSize = 0;
+        sharedSize = 0;
     }
 
     void Context::strip() {
@@ -1105,6 +1137,24 @@ namespace das
         skipLockChecks = ctx.skipLockChecks;
     }
 
+    void Context::freeGlobalsAndShared() {
+        if ( globals && globalsOwner ) {
+            das_aligned_free16(globals);
+            globals = nullptr;
+        }
+        if ( shared && sharedOwner ) {
+            das_aligned_free16(shared);
+            shared = nullptr;
+        }
+    }
+
+    void Context::allocateGlobalsAndShared() {
+        freeGlobalsAndShared();
+        globals = globalsSize ? (char *) das_aligned_alloc16(globalsSize) : nullptr;
+        shared = sharedOwner ? (char *) das_aligned_alloc16(sharedSize) : nullptr;
+        globalsOwner = true;
+        sharedOwner = true;
+    }
     uint64_t Context::getSharedMemorySize() const {
         uint64_t mem = 0;
         mem += code ? code->totalAlignedMemoryAllocated() : 0;
@@ -1132,6 +1182,7 @@ namespace das
         : stack(opts.stackSize ? opts.stackSize : ctx.stack.size()) {
         verySafeContext = ctx.verySafeContext;
         persistent = ctx.persistent;
+        gcEnabled = ctx.gcEnabled;
         code = ctx.code;
         constStringHeap = ctx.constStringHeap;
         debugInfo = ctx.debugInfo;
@@ -1185,16 +1236,19 @@ namespace das
         restart();
         if ( !failed ) {
             if ( stack.size() > globalInitStackSize ) {
-                failed |= runWithCatch([&]() {
+                failed |= !runWithCatch([&]() {
                     runInitScript();
                 });
             } else {
                 auto ssz = max ( int(stack.size()), 16384 ) + globalInitStackSize;
                 StackAllocator init_stack(ssz);
                 SharedStackGuard init_guard(*this, init_stack);
-                failed |= runWithCatch([&]() {
+                failed |= !runWithCatch([&]() {
                     runInitScript();
                 });
+            }
+            if ( failed ) {
+                to_err(&exceptionAt, last_exception);
             }
         }
         restart();
@@ -1232,6 +1286,9 @@ namespace das
         if ( contextMutex ) {
             delete contextMutex;
             contextMutex = nullptr;
+        }
+        for (auto &obj : deleteUponFinish) {
+            delete obj;
         }
     }
 
@@ -1413,6 +1470,7 @@ namespace das
         return runWithCatch([&](){
             for ( int j=0, js=totalFunctions; j!=js && !stopFlags; ++j ) {
                 auto & pf = functions[j];
+                DAS_ASSERTF(pf.debugInfo, "Missing debug info for %s", pf.name);
                 if ( pf.debugInfo->flags & FuncInfo::flag_shutdown ) {
                     callOrFastcall(&pf, nullptr, 0);
                 }
@@ -1669,23 +1727,16 @@ namespace das
             any |= pAgent->onLog(context, at, level, text);
         });
         if ( !any ) {
-            if ( level>=LogLevel::warning ) {
-                das_to_stderr("%s%s", prefix, text);
-            } else {
-                das_to_stdout("%s%s", prefix, text);
-            }
+            das_to_stdout_level_prefix_text(level, prefix, text);
         }
     }
 
     void installThreadLocalDebugAgent ( DebugAgentPtr newAgent, LineInfoArg * at, Context * context ) {
-        if ( !daScriptEnvironment::bound ) {
-            context->throw_error_at(at, "expecting bound environment");
-        }
-        if ( daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
+        if ( *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
             context->throw_error_at(at, "thread local debug agent already installed");
         }
         std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
-        daScriptEnvironment::bound->g_threadLocalDebugAgent = {
+        (*daScriptEnvironment::g_threadLocalDebugAgent) = new DebugAgentInstance{
             newAgent,
             context->shared_from_this()
         };
@@ -1743,13 +1794,13 @@ namespace das
 {
 
     void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo ) {
-        g_isInDebugAgentCreation = true;
+        *g_isInDebugAgentCreation = true;
         shared_ptr<Context> forkContext;
         bool realPersistent = context->persistent;
         context->persistent = true;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::debug_context)));
         context->persistent = realPersistent;
-        g_isInDebugAgentCreation = false;
+        *g_isInDebugAgentCreation = false;
         vec4f args[1];
         args[0] = cast<Context *>::from(context);
         SimFunction * fun = exFn.PTR;
@@ -1757,13 +1808,15 @@ namespace das
     }
 
     bool isInDebugAgentCreation() {
-        return g_isInDebugAgentCreation;
+        return *g_isInDebugAgentCreation;
     }
 
     void shutdownDebugAgent() {
+        bool hasThreadLocal = *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent;
+        DebugAgent * threadLocalDebugAgent = hasThreadLocal ? (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent.get() : nullptr;
         for_each_debug_agent([&](const DebugAgentPtr & pAgent){
-            if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-                daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onUninstall(pAgent.get());
+            if ( hasThreadLocal ) {
+                threadLocalDebugAgent->onUninstall(pAgent.get());
             }
             for ( auto & ap : g_DebugAgents ) {
                 ap.second.debugAgent->onUninstall(pAgent.get());
@@ -1773,6 +1826,23 @@ namespace das
         {
             std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
             swap(agents, g_DebugAgents);
+            delete (*daScriptEnvironment::g_threadLocalDebugAgent);
+            (*daScriptEnvironment::g_threadLocalDebugAgent) = {};
+        }
+    }
+
+    void shutdownThreadLocalDebugAgent() {
+        bool hasThreadLocal = *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent;
+        if ( hasThreadLocal ) {
+            DebugAgent * threadLocalDebugAgent = (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent.get();
+            for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+                pAgent->onUninstall(threadLocalDebugAgent);
+            });
+            {
+                std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+                delete (*daScriptEnvironment::g_threadLocalDebugAgent);
+                (*daScriptEnvironment::g_threadLocalDebugAgent) = {};
+            }
         }
     }
 
@@ -1794,15 +1864,10 @@ namespace das
         os_debug_break();
     }
 
-    void Context::to_out ( const LineInfo *, const char * message ) {
+    void Context::to_out ( const LineInfo *, int level, const char * message ) {
         if (message) {
-            das_to_stdout("%s", message);
-        }
-    }
-
-    void Context::to_err ( const LineInfo *, const char * message ) {
-        if (message) {
-            das_to_stderr("%s", message);
+            const char * prefix = getLogMarker(level);
+            das_to_stdout_level_prefix_text(level, prefix, message);
         }
     }
 
@@ -1905,7 +1970,7 @@ namespace das
                     char total[20];
                     if ( fi->profileData.size()>size_t(line) && fi->profileData[line] ) {
                         uint64_t samples = fi->profileData[line];
-                        auto result = fmt::format_to(total, "{:6.2f}", samples*100.0/totalGoo); *result = 0;
+                        auto result = fmt::format_to(total, FMT_STRING("{:6.2f}"), samples*100.0/totalGoo); *result = 0;
                         tout << total;
                     } else {
                         tout << "      ";
@@ -1971,8 +2036,8 @@ namespace das
     }
 
     void Context::instrumentFunctionCallbackThreadLocal ( SimFunction * sim, bool entering, uint64_t userData ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onInstrumentFunction(this, sim, entering, userData);
+        if ( *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onInstrumentFunction(this, sim, entering, userData);
         }
     }
 
@@ -1999,33 +2064,33 @@ namespace das
         }
     }
 
-    void Context::onAllocateString ( void * ptr, uint64_t size, const LineInfo & at ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onAllocateString(this, ptr, size, at);
+    void Context::onAllocateString ( void * ptr, uint64_t size, bool tempString, const LineInfo & at ) {
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onAllocateString(this, ptr, size, tempString, at);
         }
     }
 
-    void Context::onFreeString ( void * ptr, const LineInfo & at ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onFreeString(this, ptr, at);
+    void Context::onFreeString ( void * ptr, bool tempString, const LineInfo & at ) {
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onFreeString(this, ptr, tempString, at);
         }
     }
 
     void Context::onAllocate ( void * ptr, uint64_t size, const LineInfo & at ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onAllocate(this, ptr, size, at);
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onAllocate(this, ptr, size, at);
         }
     }
 
     void Context::onReallocate ( void * ptr, uint64_t size, void * newPtr, uint64_t newSize, const LineInfo & at ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onReallocate(this, ptr, size, newPtr, newSize, at);
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onReallocate(this, ptr, size, newPtr, newSize, at);
         }
     }
 
     void Context::onFree ( void * ptr, const LineInfo & at ) {
-        if ( g_envTotal > 0 && daScriptEnvironment::bound && daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent ) {
-            daScriptEnvironment::bound->g_threadLocalDebugAgent.debugAgent->onFree(this, ptr, at);
+        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
+            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onFree(this, ptr, at);
         }
     }
 

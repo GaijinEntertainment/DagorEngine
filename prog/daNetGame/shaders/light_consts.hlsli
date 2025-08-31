@@ -1,7 +1,0 @@
-#ifndef LIGHT_CONSTS_HLSLI_INCLUDED
-#define LIGHT_CONSTS_HLSLI_INCLUDED
-
-//cos(78.4 deg) = 0.2
-#define NIGHT_SUN_COS 0.2f
-
-#endif

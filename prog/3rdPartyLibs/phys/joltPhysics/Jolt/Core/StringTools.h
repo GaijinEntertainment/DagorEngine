@@ -15,22 +15,9 @@ template<typename T>
 String ConvertToString(const T &inValue)
 {
 	using OStringStream = std::basic_ostringstream<char, std::char_traits<char>, STLAllocator<char>>;
-    OStringStream oss;
-    oss << inValue;
-    return oss.str();
-}
-
-/// Calculate the FNV-1a hash of inString.
-/// @see https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
-constexpr uint64 HashString(const char *inString)
-{
-	uint64 hash = 14695981039346656037UL;
-	for (const char *c = inString; *c != 0; ++c)
-	{
-		hash ^= *c;
-		hash = hash * 1099511628211UL;
-	}
-	return hash;
+	OStringStream oss;
+	oss << inValue;
+	return oss.str();
 }
 
 /// Replace substring with other string

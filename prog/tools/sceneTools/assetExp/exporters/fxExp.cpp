@@ -23,20 +23,20 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(fx)
 class EffectExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "fx exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "fx exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return EffectGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 135; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return EffectGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 159; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override { files.clear(); }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     String className(a.props.getStr("className", NULL));
 
@@ -62,7 +62,7 @@ public:
 
       SaveCB() : refs(tmpmem) {}
 
-      virtual int getRefSlotId(const char *name, bool make_unique)
+      int getRefSlotId(const char *name, bool make_unique) override
       {
         for (int i = 0; i < refs.size(); ++i)
           if (stricmp(refs[i], name) == 0)
@@ -103,16 +103,15 @@ public:
 class EffectRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "fx refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "fx refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<Ref> refs(tmpmem);
     refs.clear();
 
     int refNameId = a.props.getNameId("ref");
@@ -141,15 +140,13 @@ public:
         r.setBrokenRef(String(128, "%s:%s", name, typeName));
       // debug("%d: %s %s -> %p", refs.size(), name, typeName, r.refAsset);
     }
-
-    return refs;
   }
 };
 
 class EffectExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     const char *fx_nut = appblk.getBlockByNameEx("assets")->getStr("fxScriptsDir", NULL);
     if (fx_nut)
@@ -158,15 +155,15 @@ public:
     register_all_common_fx_tools();
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   EffectExporter exp;

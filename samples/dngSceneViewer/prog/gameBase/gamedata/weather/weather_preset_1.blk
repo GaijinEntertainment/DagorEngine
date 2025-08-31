@@ -1,0 +1,45 @@
+common {
+  condensation_type:t="rain"
+  dirt_type:t="ground"
+  water{
+    //hard_fog_start:r=100000 //use me if far water is on
+    //hard_fog_end:r=300000   //use me if far water is on
+    cloud_shadow_intensity:r = 0.8
+    //water_level:r=0
+    //water_color:p4=0.4, 0.7 0.7, 1
+    L_inv_white:r = 0.3
+  }
+
+  hdr{
+    useAdaptation:b=yes
+    adaptationTimeHighToNorm:r=0.25
+    adaptationTimeNormToHigh:r=0.65
+    adaptationMultiplier:r = 0.65 //not working with auto brightness
+    targetBrightnessUp:r=1.005
+    targetBrightnessEffect:r=0.0//0 - swtich it off, 0.5 - default
+    fake{
+      adaptationMax:r = 2.2
+      adaptationMin:r = 0.1
+      lumMin:r = 0.68
+      lumMax:r = 0.95
+    }
+  }
+
+  DemonPostFx{
+    use:b=yes
+    showAlpha:b=no
+    glowRadius:r=0.1
+    useBetterGlow:b=yes
+    glowFadeK:r=2
+    glowEdgeK:r=0
+    glowAngleU:r=44
+    glowAngleV:r=144
+    useRawSkyMask:b=yes
+
+    hdrStarThreshold:r = 4.75
+    hdrDarkThreshold:r = 0.6
+    hdrGlowPower:r = 1.0
+    hdrGlowMul:r=0.2
+    hdrStarPowerMul:r=0.32
+  }
+}

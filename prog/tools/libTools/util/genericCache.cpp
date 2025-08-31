@@ -147,7 +147,8 @@ void GenericBuildCache::removeUntouched()
 
 void GenericBuildCache::updateFileHash(const char *fname)
 {
-  int id = fnames.getNameId(mkRelPath(fname));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.getNameId(mkRelPath(fname, tmp_stor));
   if (id >= 0)
   {
     unsigned fsz, ts = getFileTime(fname, fsz);
@@ -169,7 +170,8 @@ void GenericBuildCache::updateFileHash(const char *fname)
 
 bool GenericBuildCache::checkFileChanged(const char *fname)
 {
-  int id = fnames.addNameId(mkRelPath(fname));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.addNameId(mkRelPath(fname, tmp_stor));
   if (id < rec.size())
   {
     if (rec[id].changed)
@@ -205,7 +207,8 @@ bool GenericBuildCache::checkFileChanged(const char *fname)
 }
 bool GenericBuildCache::checkDataBlockChanged(const char *fname_ref, DataBlock &blk)
 {
-  int id = fnames.addNameId(String(260, "%s*", mkRelPath(fname_ref)));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.addNameId(strcat(const_cast<char *>(mkRelPath(fname_ref, tmp_stor)), "*"));
 
   if (id < rec.size() && rec[id].changed)
     return true;

@@ -17,7 +17,7 @@ Sources = ;
 AutoscanBuildLists . : *.cpp : Sources ;
 
 if $(UseApex) = yes {
-  CPPopt += -DENABLE_APEX=1 ;
+  CPPopt += -DENABLE_APEX ;
 }
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

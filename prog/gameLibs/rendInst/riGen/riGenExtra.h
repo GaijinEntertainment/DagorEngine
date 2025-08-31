@@ -24,7 +24,7 @@ struct MaterialRayStrat
 
   MaterialRayStrat(PhysMat::MatID ray_mat, bool process_pos_ri = false) : rayMatId(ray_mat), processPosRI(process_pos_ri) {}
 
-  bool shouldIgnoreRendinst(bool is_pos, bool /* is_immortal */, PhysMat::MatID mat_id) const
+  bool shouldIgnoreRendinst(bool is_pos, bool /* is_immortal */, bool /* damageable */, PhysMat::MatID mat_id) const
   {
     if (is_pos && !processPosRI)
       return true;
@@ -64,14 +64,12 @@ extern eastl::bitvector<> riExtraPoolWasNotSavedToElems; // Parallel to `riExtra
 
 extern SmartReadWriteFifoLock ccExtra;
 extern int maxExtraRiCount;
+extern float extendTreeRiExtraTreeBbox;
 
-// 0th is main, 1th is for async opaque render
-inline constexpr size_t RIEX_RENDERING_CONTEXTS = 2;
-
-extern int maxRenderedRiEx[RIEX_RENDERING_CONTEXTS];
+extern carray<int, RI_EXTRA_VB_CTX_CNT> maxRenderedRiEx;
 extern float riExtraLodDistSqMul;
 extern float riExtraCullDistSqMul;
-extern Tab<uint16_t> riExPoolIdxPerStage[RIEX_STAGE_COUNT];
+extern carray<Tab<uint16_t>, RIEX_STAGE_COUNT> riExPoolIdxPerStage;
 
 void initRIGenExtra(bool need_render = true, const DataBlock *level_blk = nullptr);
 void optimizeRIGenExtra();
@@ -110,6 +108,8 @@ void init_instance_user_data_for_tiled_scene(rendinst::RiExtraPool &pool, scene:
   const int32_t *add_data);
 void set_instance_user_data(scene::node_index ni, int add_data_dwords, const int32_t *add_data);
 const uint32_t *get_user_data(rendinst::riex_handle_t);
+vec4f get_node_bsphere(rendinst::riex_handle_t, float &);
+void prefetch_node(rendinst::riex_handle_t);
 } // namespace rendinst
 
 DAG_DECLARE_RELOCATABLE(rendinst::RiExtraPool);

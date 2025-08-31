@@ -14,9 +14,9 @@ public:
 
   const char *getSetTex() const { return selTex; }
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   HmapLandPlugin &plugin;

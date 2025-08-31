@@ -8,6 +8,10 @@ struct AimRenderingData
 {
   bool farDofEnabled = false;
   bool lensRenderEnabled = false;
+  ecs::EntityId entityWithScopeLensEid;
+  int lensNodeId = -1;
+  int lensCollisionNodeId = -1;
+  float lensBoundingSphereRadius = 1.0f;
 };
 
 AimRenderingData get_aim_rendering_data();

@@ -10,48 +10,10 @@
 
 namespace rendinst::gen
 {
-static __forceinline void _rnd_ivec2_mbit(int &seed, int &x, int &y)
-{
-  static constexpr int MASK = rendinst::gen::land::DensMapLeaf::SZ - 1;
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  x = signed(a >> 16) & MASK;
-  y = signed(b >> 16) & MASK;
-  seed = (int)b;
-}
-static __forceinline void _rnd_ivec2(int &seed, int &x, int &y)
-{
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  x = signed(a >> 16) & 0x7FFF;
-  y = signed(b >> 16) & 0x7FFF;
-  seed = (int)b;
-}
-
-static __forceinline void _rnd_fvec2(int &seed, float &x, float &y)
-{
-  int ix, iy;
-  _rnd_ivec2(seed, ix, iy);
-  y = iy / 32768.0f;
-  x = ix / 32768.0f;
-}
-
-static __forceinline void _skip6_rnd(int &seed)
-{
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b, c, d, e, f;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  c = (unsigned)b * 0x41C64E6D + 0x3039;
-  d = (unsigned)c * 0x41C64E6D + 0x3039;
-  e = (unsigned)d * 0x41C64E6D + 0x3039;
-  f = (unsigned)e * 0x41C64E6D + 0x3039;
-  seed = (int)f;
-}
-__forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd(s); }
-
 
 #define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                                  \
   float rndx, rndy;                                                                                              \
-  _rnd_fvec2(seed, rndx, rndy);                                                                                  \
+  rnd_fvec2(seed, rndx, rndy);                                                                                   \
   pos.x = (ou + rndx) * gstepx + (mx + entity_ofs_x);                                                            \
   pos.y = init_y0;                                                                                               \
   pos.z = (ov + rndy) * gstepy + (my + entity_ofs_z);                                                            \
@@ -60,12 +22,12 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
   int mtz = int(floorf(pos.z * world2sampler) - floorf(world2sampler * entity_ofs_z));                           \
   if ((rect_test && !(rect & Point2::xz(pos))) || !mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z)) \
   {                                                                                                              \
-    _skip6_rnd(seed);                                                                                            \
-    _rnd(seed);                                                                                                  \
+    skip6_rnd(seed);                                                                                             \
+    rnd(seed);                                                                                                   \
     ret_word;                                                                                                    \
   }                                                                                                              \
                                                                                                                  \
-  float w = floorf(_frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                     \
+  float w = floorf(frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                      \
   int objId, entIdx = -1;                                                                                        \
   bool posInst = false;                                                                                          \
   bool paletteRotation = false;                                                                                  \
@@ -155,7 +117,7 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
     pool.addEntity(tm, posInst, ent_remap[entIdx], paletteRotation ? paletteId : -1);                            \
   }                                                                                                              \
   else                                                                                                           \
-    _skip6_rnd(seed);
+    skip6_rnd(seed);
 
 namespace internal
 {
@@ -227,8 +189,8 @@ struct GenObjCB
     TMatrix tm;
 
     int seed1 = u0 + 97, seed2 = v0 + 79;
-    _rnd(seed1);
-    _rnd(seed2);
+    rnd(seed1);
+    rnd(seed2);
     int seed = (sgeg.rseed ^ seed1 ^ seed2) + seed1 + seed2;
 
     int numu = 0;
@@ -240,7 +202,7 @@ struct GenObjCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit(seed, ou, ov);
+        rnd_ivec2_mbit(internal::CSZ - 1, seed, ou, ov);
         if (cu[ov][ou] == ADD)
           break;
       }
@@ -260,11 +222,11 @@ struct GenObjCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit(seed, ou, ov);
+        rnd_ivec2_mbit(internal::CSZ - 1, seed, ou, ov);
         if (cu[ov][ou] == ADD)
           break;
       }
-      if (_rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? (int)floorf(num * 32768) + 1 : 0))
+      if (rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? (int)floorf(num * 32768) + 1 : 0))
       {
         ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, return);
       }
@@ -317,8 +279,8 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
       memset(cu2, 0, sizeof(cu2));
 
       int seed1 = int(mx / dx) + 97, seed2 = int(my / dy) + 79;
-      _rnd(seed1);
-      _rnd(seed2);
+      rnd(seed1);
+      rnd(seed2);
       int seed = (sgeg.rseed ^ seed1 ^ seed2) + seed1 + seed2;
 
       int numu = 0;
@@ -330,7 +292,7 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
         int ou, ov;
         for (;;)
         {
-          _rnd_ivec2_mbit(seed, ou, ov);
+          rnd_ivec2_mbit(internal::CSZ - 1, seed, ou, ov);
           if (!(cu2[ov] & (1 << ou)))
             break;
         }
@@ -348,11 +310,11 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
         int ou, ov;
         for (;;)
         {
-          _rnd_ivec2_mbit(seed, ou, ov);
+          rnd_ivec2_mbit(internal::CSZ - 1, seed, ou, ov);
           if (!(cu2[ov] & (1 << ou)))
             break;
         }
-        if (_rnd(seed) < (int)floorf(num * 32768) + 1)
+        if (rnd(seed) < (int)floorf(num * 32768) + 1)
         {
           ADD_ENTITY_BYMASK(1, mask, internal::rect, planted.ent, continue);
         }

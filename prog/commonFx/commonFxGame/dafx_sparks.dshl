@@ -1,6 +1,12 @@
 include "dafxSparkModules/dafx_shader_common.dshl"
 include "dafx_helpers.dshl"
 
+
+// disabled by default, but can be enabled for testing
+int fx_test_disable_velocity_spawn_tm_normalization = 1;
+interval fx_test_disable_velocity_spawn_tm_normalization: no < 1, yes;
+
+
 shader dafx_culling_discard
 {
   ENABLE_ASSERT(cs)
@@ -15,8 +21,12 @@ shader dafx_sparks_ps_emission, dafx_sparks_ps_simulation
 
   hlsl(cs)
   {
-    #include "dafxSparks_decl.hlsl"
-    #include "dafx_sparks.hlsl"
+    ##if fx_test_disable_velocity_spawn_tm_normalization == no
+      #define TEST_SPARKS_USE_NTM 1
+    ##endif
+
+    #include "dafxSparks_decl.hlsli"
+    #include "dafx_sparks.hlsli"
   }
 
   if (shader == dafx_sparks_ps_emission)
@@ -38,20 +48,11 @@ shader sparks_ps, sparks_thermal
 
   hlsl
   {
-    #include "dafxSparks_decl.hlsl"
-    #include "fx_thermals.hlsl"
+    #include "dafxSparks_decl.hlsli"
+    #include "fx_thermals_render.hlsl"
     #include "dafx_globals.hlsli"
     #include "dafx_hlsl_funcs.hlsli"
     #include "dafx_packers.hlsli"
-  }
-
-  if (shader == sparks_ps)
-  {
-    hlsl
-    {
-      #undef DAFXEX_USE_REACTIVE_MASK
-      #define DAFXEX_USE_REACTIVE_MASK 1 // sparks are usually highres and have low overdraw, so we can always output fsr mask
-    }
   }
 
   DAFX_SCREEN_POS_TO_TC()
@@ -174,17 +175,10 @@ shader sparks_ps, sparks_thermal
 #endif
 
       float3 wpos = p.pos;
-      if (ps.localSpaceFlag)
+      if (DAFX_SPARK_DECL_LOCAL_SPACE_ENABLED(ps.flags))
       {
-        wpos = float3(
-          dot(float4(p.pos, 1), ps.tm[0]),
-          dot(float4(p.pos, 1), ps.tm[1]),
-          dot(float4(p.pos, 1), ps.tm[2]));
-
-        p.velocity = float3(
-          dot(float4(p.velocity, 0), ps.tm[0]),
-          dot(float4(p.velocity, 0), ps.tm[1]),
-          dot(float4(p.velocity, 0), ps.tm[2]));
+        wpos = mul_tm_pos(p.pos, ps.tm);
+        p.velocity = mul_tm_dir(p.velocity, ps.tm);
       }
 
       // offset for depth buffer collision

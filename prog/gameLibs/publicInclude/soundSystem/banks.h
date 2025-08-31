@@ -43,12 +43,13 @@ const char *get_master_preset();
 
 bool is_enabled(const char *preset_name);
 bool is_loaded(const char *preset_name);
+bool is_master_loaded();
 bool is_exist(const char *preset_name);
 bool is_preset_has_failed_banks(const char *preset_name);
 void get_failed_banks_names(eastl::vector<eastl::string, framemem_allocator> &failed_banks_names);
 void get_loaded_banks_names(eastl::vector<eastl::string, framemem_allocator> &banks_names);
 void get_mod_banks_names(eastl::vector<eastl::string, framemem_allocator> &banks_names);
-bool are_banks_from_preset_exist(const char *preset_name, const char *lang = nullptr);
+bool are_banks_from_preset_exist(const char *preset_name, const char *lang = nullptr, const char *type = nullptr);
 
 bool is_valid_event(const FMODGUID &event_id);
 bool is_valid_event(const char *full_path);

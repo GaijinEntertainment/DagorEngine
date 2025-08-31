@@ -6,9 +6,6 @@
 
 JPH_NAMESPACE_BEGIN
 
-// GCC doesn't properly detect that mState is used to ensure that mResult is initialized
-JPH_GCC_SUPPRESS_WARNING("-Wmaybe-uninitialized")
-
 /// Helper class that either contains a valid result or an error
 template <class Type>
 class Result
@@ -24,11 +21,11 @@ public:
 		switch (inRHS.mState)
 		{
 		case EState::Valid:
-			::new (&mResult) Type (inRHS.mResult);
+			new (&mResult) Type (inRHS.mResult);
 			break;
 
 		case EState::Error:
-			::new (&mError) String(inRHS.mError);
+			new (&mError) String(inRHS.mError);
 			break;
 
 		case EState::Invalid:
@@ -43,11 +40,11 @@ public:
 		switch (inRHS.mState)
 		{
 		case EState::Valid:
-			::new (&mResult) Type (std::move(inRHS.mResult));
+			new (&mResult) Type (std::move(inRHS.mResult));
 			break;
 
 		case EState::Error:
-			::new (&mError) String(std::move(inRHS.mError));
+			new (&mError) String(std::move(inRHS.mError));
 			break;
 
 		case EState::Invalid:
@@ -70,11 +67,11 @@ public:
 		switch (inRHS.mState)
 		{
 		case EState::Valid:
-			::new (&mResult) Type (inRHS.mResult);
+			new (&mResult) Type (inRHS.mResult);
 			break;
 
 		case EState::Error:
-			::new (&mError) String(inRHS.mError);
+			new (&mError) String(inRHS.mError);
 			break;
 
 		case EState::Invalid:
@@ -94,11 +91,11 @@ public:
 		switch (inRHS.mState)
 		{
 		case EState::Valid:
-			::new (&mResult) Type (std::move(inRHS.mResult));
+			new (&mResult) Type (std::move(inRHS.mResult));
 			break;
 
 		case EState::Error:
-			::new (&mError) String(std::move(inRHS.mError));
+			new (&mError) String(std::move(inRHS.mError));
 			break;
 
 		case EState::Invalid:
@@ -140,10 +137,10 @@ public:
 	const Type &		Get() const									{ JPH_ASSERT(IsValid()); return mResult; }
 
 	/// Set the result value
-	void				Set(const Type &inResult)					{ Clear(); ::new (&mResult) Type(inResult); mState = EState::Valid; }
+	void				Set(const Type &inResult)					{ Clear(); new (&mResult) Type(inResult); mState = EState::Valid; }
 
 	/// Set the result value (move value)
-	void				Set(Type &&inResult)						{ Clear(); ::new (&mResult) Type(std::move(inResult)); mState = EState::Valid; }
+	void				Set(Type &&inResult)						{ Clear(); new (&mResult) Type(std::move(inResult)); mState = EState::Valid; }
 
 	/// Check if we had an error
 	bool				HasError() const							{ return mState == EState::Error; }
@@ -152,9 +149,9 @@ public:
 	const String &		GetError() const							{ JPH_ASSERT(HasError()); return mError; }
 
 	/// Set an error value
-	void				SetError(const char *inError)				{ Clear(); ::new (&mError) String(inError); mState = EState::Error; }
-	void				SetError(const string_view &inError)		{ Clear(); ::new (&mError) String(inError); mState = EState::Error; }
-	void				SetError(String &&inError)					{ Clear(); ::new (&mError) String(std::move(inError)); mState = EState::Error; }
+	void				SetError(const char *inError)				{ Clear(); new (&mError) String(inError); mState = EState::Error; }
+	void				SetError(const string_view &inError)		{ Clear(); new (&mError) String(inError); mState = EState::Error; }
+	void				SetError(String &&inError)					{ Clear(); new (&mError) String(std::move(inError)); mState = EState::Error; }
 
 private:
 	union

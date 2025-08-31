@@ -104,12 +104,16 @@ public:
   const ManagedTex &getDepthAll() const { return renderTargets.getDepthAll(); }
   const ManagedTexView getDepthAllView() const { return {getDepthAll()}; }
   PostFxRenderer *getResolveShading() const { return shadingResolver.getResolveShading(); }
-  Texture *getRt(uint32_t idx) const { return renderTargets.getRt(idx); }
-  TEXTUREID getRtId(uint32_t idx) const { return renderTargets.getRtId(idx); }
+  Texture *getRt(uint32_t idx, bool optional = false) const { return renderTargets.getRt(idx, optional); }
+  TEXTUREID getRtId(uint32_t idx, bool optional = false) const { return renderTargets.getRtId(idx, optional); }
   const ManagedTex &getRtAll(uint32_t idx) const { return renderTargets.getRtAll(idx); }
   ManagedTexView getRtAllView(uint32_t idx) const { return {getRtAll(idx)}; }
   uint32_t getRtNum() const { return renderTargets.getRtNum(); }
   void swapDepth(ResizableTex &ndepth) { renderTargets.swapDepth(ndepth); }
+  d3d::SamplerHandle getSampler() const { return renderTargets.getSampler(); }
+  void acquirePooledRTs() { renderTargets.acquirePooledRTs(); }
+  void releasePooledRT(uint32_t idx) { renderTargets.releasePooledRT(idx); }
+  bool useRt(uint32_t idx) const { return renderTargets.useRt(idx); }
 
 protected:
   DeferredRT renderTargets;

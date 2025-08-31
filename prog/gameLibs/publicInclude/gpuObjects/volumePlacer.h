@@ -41,7 +41,7 @@ private:
   eastl::array<int, MAX_LAYERS> numInstancesToDraw;
   eastl::unique_ptr<ComputeShaderElement> boxPlacer;
   eastl::unique_ptr<ComputeShaderElement> updateMatrices, clearTerrainObjects, gatherTriangles, computeTerrainObjectsCount,
-    onTerrainGeometryPlacer, onRendinstGeometryPlacer, objectRemover;
+    onTerrainGeometryPlacer, onRendinstGeometryPlacer, objectRemover, decalMover;
 
   struct PrefixSumShaders
   {
@@ -72,7 +72,17 @@ private:
   };
   using Visibility = eastl::vector_map<uint32_t, eastl::vector<BufferRec>>;
   eastl::array<Visibility, gpu_objects::MAX_LODS> visibilityByLod, visibilityByLodDecal;
-  eastl::fixed_vector<BBox3, 64> removeBoxList;
+
+  struct EraseBox
+  {
+    // TODO: Change this later to TMatrix, as this only needs to be a 3x3 matrix
+    TMatrix4 tm;
+    Point3 boxCenter;
+    Point3 boxSize;
+
+    EraseBox(const Point3 &box_min, const Point3 &box_max, const TMatrix4 &box_tm);
+  };
+  eastl::fixed_vector<EraseBox, 64> removeBoxList;
 
   bool placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
     const Point4 &up_vector_threshold, const Point2 &distance_based_scale, float min_scale_radius, bool on_geometry,
@@ -108,7 +118,7 @@ public:
   } matricesBuffer;
 
   void performPlacing(const Point3 &camera_pos);
-  void addEraseBox(const Point3 &box_min, const Point3 &box_max);
+  void addEraseBox(const Point3 &box_min, const Point3 &box_max, const TMatrix4 &box_tm);
   void updateVisibility(const Frustum &frustum, ShadowPass for_shadow);
   void copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset, int lod, int layer, eastl::vector<IPoint2> &offsets_and_counts,
     eastl::vector<uint16_t> &ri_ids);
@@ -123,6 +133,8 @@ public:
     const Point3 &gpu_object_placer__distance_to_scale_pow, float gpu_object_placer__distance_to_rotation_pow,
     bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_affect_decals,
     bool gpu_object_placer__distance_out_of_range);
+  void moveDecals(int count, int ri_idx, int buf_offset, const TMatrix &transform, int gpu_object_placer__distance_emitter_buffer_size,
+    bool place_decals_strictly_in_box, int gpu_object_placer__decal_buffer_size, const Point2 &spoofed_decal_size, bool on_geometry);
 
   void drawDebugGeometry(const TMatrix &transform, float min_triangle_size, float triangle_length_ratio_cutoff,
     const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles);

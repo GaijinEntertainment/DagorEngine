@@ -5,11 +5,13 @@
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <libTools/renderViewports/cachedViewports.h>
 #include <libTools/renderViewports/renderViewport.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/util/strUtil.h>
+#include <render/texDebug.h>
 #include <render/variance.h>
 #include <render/renderType.h>
 #include <render/waterRender.h>
@@ -27,12 +29,12 @@
 #include <render/preIntegratedGF.h>
 #include <render/genericLUT/fullColorGradingLUT.h>
 #include <render/dag_cur_view.h>
+#include <render/dynmodelRenderer.h>
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_textureIDHolder.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_draw.h>
-#include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_shader.h>
@@ -52,7 +54,6 @@
 #include <de3_waterSrv.h>
 #include <de3_landmesh.h>
 #include <EditorCore/ec_interface_ex.h>
-#include <sepGui/wndPublic.h>
 
 #include <scene/dag_visibility.h>
 #include <shaders/dag_renderScene.h>
@@ -65,18 +66,15 @@
 #include <fx/dag_hdrRender.h>
 #include <fx/dag_leavesWind.h>
 #include <fx/toolsHeatHazeGlue.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <drv/3d/dag_platform_pc.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texPackMgr2.h>
-#include <perfMon/dag_graphStat.h>
-#include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <debug/dag_debug.h>
-#include <windows.h>
-#include <stdio.h>
 #include <debug/dag_debug3d.h>
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_overrideStates.h>
@@ -88,12 +86,19 @@
 #include <vr/vrGuiSurface.h>
 
 #include <drv/dag_vr.h>
+#include <shaders/dag_shaderMesh.h>
+
+#if _TARGET_PC_WIN
+#include <windows.h>
+#endif
 
 static const uint32_t EXPOSURE_BUF_SIZE = 8;
+static TexStreamingContext currentTexCtx = {0};
 
 extern CachedRenderViewports *ec_cached_viewports;
 extern void ec_init_stat3d();
 extern void ec_stat3d_wait_frame_end(bool frame_start);
+extern void set_tonemap_changed_callback(void (*)());
 
 struct DynamicRenderOption
 {
@@ -154,61 +159,12 @@ static Tab<IRenderingService *> rendSrv(tmpmem);
 // ran at least once.
 static bool skip_next_frame = true;
 
-static bool preparing_light_probe = false;
 static bool use_cmpf_less_for_screenshots = false;
 
 static bool render_vr_shadows = true;
 static bool render_shadow() { return renderShadow && (DAEDITOR3.getStereoIndex() == StereoIndex::Mono || render_vr_shadows); }
 static bool render_fom_shadow() { return renderShadowFom && (DAEDITOR3.getStereoIndex() == StereoIndex::Mono || render_vr_shadows); }
 
-
-static bool dump_frame = false;
-static void dump_ingame_profiler_cb(void *, uintptr_t cNode, uintptr_t pNode, const char *name, const TimeIntervalInfo &ti)
-{
-  char tabs[65];
-  memset(tabs, ' ', 64);
-  tabs[min<int>(ti.depth, 16) * 4] = 0;
-
-  char gpuinterval[64], gpuData[128];
-  if (ti.gpuValid)
-  {
-    SNPRINTF(gpuinterval, sizeof(gpuinterval), "%.2f;%.2f;%.2f", ti.tGpuMin, ti.tGpuMax, ti.tGpuSpike);
-    SNPRINTF(gpuData, sizeof(gpuData), "%d;%d;%d;%d;%d;%d", ti.stat.val[DRAWSTAT_DP], (int)ti.stat.tri, ti.stat.val[DRAWSTAT_RT],
-      ti.stat.val[DRAWSTAT_PS], ti.stat.val[DRAWSTAT_INS], ti.stat.val[DRAWSTAT_LOCKVIB]);
-  }
-  else
-  {
-    SNPRINTF(gpuinterval, sizeof(gpuinterval), ";;");
-    SNPRINTF(gpuData, sizeof(gpuData), ";;;;;;;;;");
-  }
-
-  char skipped[16];
-  if (ti.skippedFrames)
-    SNPRINTF(skipped, sizeof(skipped), "%d", ti.skippedFrames);
-  else
-    skipped[0] = 0;
-  char averageFrameCnt[32];
-  double avFrames = ((double)ti.lifetimeCalls) / max(1u, ti.lifetimeFrames);
-  if (avFrames <= 0.99)
-    SNPRINTF(averageFrameCnt, sizeof(averageFrameCnt), "%.2f", avFrames);
-  else
-    averageFrameCnt[0] = 0;
-
-  DAEDITOR3.conNote("%s%s;%d;%s;%.2f;%.2f;%.2f;%.2f;%s;%s", tabs, name, ti.perFrameCalls, averageFrameCnt, ti.tMin, ti.tMax, ti.tSpike,
-    ti.unknownTimeMsec, gpuinterval, gpuData, skipped);
-}
-
-static void internal_dump_profiler()
-{
-  if (!dump_frame || !(da_profiler::get_active_mode() & da_profiler::EVENTS))
-    return;
-
-  DAEDITOR3.conNote("=======Frame Log========");
-  DAEDITOR3.conNote("name;calls;avFrameCnt;cpuMin;cpuMax;cpuSpike;cpuOwn;gpuMin;gpuMax;gpuSpike;"
-                    "dip;tri;rt;prog;ins;lockivb;skipped");
-  da_profiler::dump_frames(dump_ingame_profiler_cb, NULL);
-  dump_frame = false;
-}
 
 static int parseTexFmt(const char *sfmt, int def_fmt)
 {
@@ -230,7 +186,7 @@ static int parseTexFmt(const char *sfmt, int def_fmt)
   else if (strcmp(sfmt, "A8L8") == 0)
     fmt = TEXFMT_R8G8;
   else if (strcmp(sfmt, "L8") == 0 || strcmp(sfmt, "R8") == 0)
-    fmt = TEXFMT_L8;
+    fmt = TEXFMT_R8;
   else
     logwarn("fmt <%s> not recognized, using %08X", sfmt, fmt);
   return fmt;
@@ -254,7 +210,6 @@ public:
   int effects_depth_texVarId = -1;
   bool renderMatrixOk;
   bool tryToggleVr = false;
-  shaders::OverrideStateId noCullStateId;
   shaders::OverrideStateId geomEnviId;
   shaders::RenderStateId defaultRenderStateId;
   shaders::RenderStateId alphaWriterRenderStateId;
@@ -318,9 +273,6 @@ public:
       lin_float1111_texid = add_managed_texture(fn);
 
     shaders::OverrideState state;
-    state.set(shaders::OverrideState::CULL_NONE);
-    noCullStateId = shaders::overrides::create(state);
-
     state = shaders::OverrideState();
     state.set(shaders::OverrideState::Z_WRITE_DISABLE);
     state.set(shaders::OverrideState::BLEND_SRC_DEST);
@@ -350,12 +302,14 @@ public:
       exposureBuffer = dag::buffers::create_ua_sr_structured(4, EXPOSURE_BUF_SIZE, "Exposure");
       writeExposure(1.0f);
     }
+
+    texdebug::init();
   }
 
-  ~DaEditor3DynamicScene()
+  ~DaEditor3DynamicScene() override
   {
+    texdebug::teardown();
     shaders::overrides::destroy(geomEnviId);
-    shaders::overrides::destroy(noCullStateId);
     del_it(postFx);
     combinedShadowsRenderer.clear();
     deferredTarget.reset();
@@ -365,9 +319,6 @@ public:
     light_probe::destroy(enviProbeBlack);
     enviProbeBlack = NULL;
     del_it(deferredCsm);
-    cubeData.clear();
-    bkgData.clear();
-    voltexData.clear();
     vrResources.teardown();
     shutdown();
   }
@@ -385,7 +336,7 @@ public:
     return DAEDITOR3.getStereoIndex() == StereoIndex::Mono ? downsampledFarDepth : vrResources.downsampledFarDepth;
   }
 
-  virtual void actScene()
+  void actScene() override
   {
     if (!IEditorCoreEngine::get())
       return;
@@ -406,6 +357,7 @@ public:
     update_ambient_wind();
 
     // do not waste resources when app is minimized
+#if _TARGET_PC_WIN
     HWND wnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
     skip_next_frame = IsIconic(wnd);
     if (skip_next_frame)
@@ -419,6 +371,10 @@ public:
       }
       skip_next_frame = IsIconic(wnd);
     }
+#else
+    // TODO: tools Linux porting: IsIconic
+    skip_next_frame = false;
+#endif
   }
 
   void gatherRendSrv()
@@ -437,7 +393,7 @@ public:
     }
   }
 
-  virtual void beforeDrawScene(int realtime_elapsed_usec, float /*gametime_elapsed_sec*/)
+  void beforeDrawScene(int realtime_elapsed_usec, float /*gametime_elapsed_sec*/) override
   {
     d3d::set_render_target();
     ::advance_shader_global_time(realtime_elapsed_usec * 1e-6f);
@@ -447,10 +403,9 @@ public:
     if (skip_next_frame)
       return;
 
-    if (rtype == RTYPE_DYNAMIC_DEFERRED && reqEnviProbeUpdate && enviProbe)
+    if (rtype == RTYPE_DYNAMIC_DEFERRED && reqEnviProbeUpdate && enviProbe && isDaSkiesTexReady())
     {
-      debug("deferredRender: update enviProbe");
-      IEditorCoreEngine::get()->beforeRenderObjects();
+      debug("deferredRender: update enviProbe, grs_cur_view.pos=%@", grs_cur_view.pos);
       gatherRendSrv();
       updateEnviProbe();
       reqEnviProbeUpdate = false;
@@ -460,8 +415,14 @@ public:
     IEditorCoreEngine::get()->beforeRenderObjects();
     d3d::set_render_target();
   }
+  static bool isDaSkiesTexReady()
+  {
+    if (ISkiesService *skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>())
+      return skiesSrv->areCloudTexturesReady();
+    return true;
+  }
 
-  virtual void drawScene()
+  void drawScene() override
   {
     if (skip_next_frame)
       return;
@@ -539,12 +500,18 @@ public:
       }
     }
 
+#if _TARGET_PC_WIN
     HWND hwnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
 
     RECT rect;
     GetClientRect(hwnd, &rect);
     const int clientRectWidth = rect.right - rect.left;
     const int clientRectHeight = rect.bottom - rect.top;
+#else
+    int clientRectWidth = 0;
+    int clientRectHeight = 0;
+    d3d::get_screen_size(clientRectWidth, clientRectHeight);
+#endif
 
     if (::grs_draw_wire)
       d3d::setwire(0);
@@ -560,15 +527,20 @@ public:
       rect.top = 0;
       rect.right = clientRectWidth;
       rect.bottom = clientRectHeight;
-      d3d::stretch_rect(nullptr, vrResources.imguiTex.getTex2D(), &rect, &rect);
+      d3d::stretch_rect(d3d::get_backbuffer_tex(), vrResources.imguiTex.getTex2D(), &rect, &rect);
     }
 
+#if _TARGET_PC_WIN // TODO: tools Linux porting: check_and_restore_3d_device
     // When toggling the application's window between minimized and maximized state the client size could be 0. This is
     // here to avoid the assert in d3d::stretch_rect.
     if (clientRectWidth <= 0 || clientRectHeight <= 0)
       hwnd = nullptr;
 
-    d3d::pcwin32::set_present_wnd(hwnd);
+    if (check_and_restore_3d_device())
+      d3d::pcwin::set_present_wnd(hwnd);
+#else
+    check_and_restore_3d_device();
+#endif
   }
 
   BaseTexture *getRenderBuffer() { return sceneRt; }
@@ -649,9 +621,6 @@ public:
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
       return;
     }
-
-    if (!check_and_restore_3d_device())
-      goto empty_render;
 
     Driver3dRenderTarget rt;
     int viewportX, viewportY, viewportW, viewportH;
@@ -797,7 +766,8 @@ public:
 
     d3d::setwire(::grs_draw_wire);
 
-    internal_dump_profiler();
+    if (auto *hlp = EDITORCORE->queryEditorInterface<IRenderHelperService>())
+      hlp->dumpPendingProfilerDumpOnFrameEnd();
     dagor_frame_no_increment();
   }
 
@@ -920,12 +890,14 @@ public:
     release_managed_tex(characterMicrodetailsId);
     characterMicrodetailsId = BAD_TEXTUREID;
   }
-  void reloadMicroDetails(const DataBlock &deferredBlk)
+  void reloadCharacterMicroDetails(const DataBlock &deferredBlk, const DataBlock &levelBlk)
   {
     if (get_shader_variable_id("character_micro_details", true) >= 0)
     {
       closeMicroDetails();
-      const DataBlock *micro = deferredBlk.getBlockByName("character_micro_details");
+      bool useInfantryCharacterMicrodetails = levelBlk.getBool("useInfantryCharacterMicrodetails", false);
+      const DataBlock *micro =
+        deferredBlk.getBlockByName(useInfantryCharacterMicrodetails ? "character_micro_details_infantry" : "character_micro_details");
       if (micro)
       {
         extern TEXTUREID load_texture_array_immediate(const char *name, const char *param_name, const DataBlock &blk, int &count);
@@ -935,18 +907,12 @@ public:
         {
           d3d::SamplerInfo smpInfo;
           smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
-          ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true),
-            d3d::request_sampler(smpInfo));
+          d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+          ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true), smp);
+          ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate", true), smp);
         }
         ShaderGlobal::set_int(get_shader_variable_id("character_micro_details_count", true), microDetailCount);
         debug("microDetailCount = %d", microDetailCount);
-
-        // WT character microdetail shader code uses land_micro_details sampler for character microdetails
-        // If it's not set, the character microdetails will use an invalid sampler
-        // This is a workaround until separate samplers are supported in driver
-        int land_micro_detailsVarId = get_shader_variable_id("land_micro_details", true);
-        if (land_micro_detailsVarId >= 0)
-          ShaderGlobal::set_texture(land_micro_detailsVarId, characterMicrodetailsId);
       }
     }
   }
@@ -1054,10 +1020,6 @@ public:
     d3d::resource_barrier({fomShadowsSin.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     fomShadowsCos.setVar();
     fomShadowsSin.setVar();
-    fomShadowsCos->texaddr(TEXADDR_BORDER);
-    fomShadowsSin->texaddr(TEXADDR_BORDER);
-    fomShadowsCos->texbordercolor(0);
-    fomShadowsSin->texbordercolor(0);
   }
   void disableFOM()
   {
@@ -1091,6 +1053,7 @@ public:
     d3d::getpersp(p);
     EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1,
       p.hk, current_occlusion);
+    currentTexCtx = TexStreamingContext(p, targetW);
 
 
     if (globalFrameBlockId != -1)
@@ -1193,8 +1156,11 @@ public:
       for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
         ShaderGlobal::set_color4(envi_sph_N_texVarId[i], renderNoAmb ? black : sphHarm[i]);
 
-    if (enviProbeBlack && (renderNoEnvRefl || no_ess)) // set light probe only after updateEnviProbe() called at least once
+    if (renderNoEnvRefl || no_ess) // set light probe only after updateEnviProbe() called at least once
+    {
       ShaderGlobal::set_texture(local_light_probe_texVarId, *light_probe::getManagedTex(renderNoEnvRefl ? enviProbeBlack : enviProbe));
+      ShaderGlobal::set_sampler(get_shader_variable_id("local_light_probe_tex_samplerstate", true), d3d::request_sampler({}));
+    }
   }
 
   void deferredRender(const TMatrix &view_tm, const TMatrix4 &proj_tm, bool vr_mode)
@@ -1415,8 +1381,8 @@ public:
     d3d::settm(TM_PROJ, &savedProj);
 #endif
   }
-  virtual Point4 getCascadeShadowAnchor(int cascade_no) { return Point4::xyz0(-::grs_cur_view.itm.getcol(3)); }
-  virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf)
+  Point4 getCascadeShadowAnchor(int cascade_no) override { return Point4::xyz0(-::grs_cur_view.itm.getcol(3)); }
+  void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf) override
   {
     d3d::settm(TM_VIEW, TMatrix::IDENT);
     d3d::settm(TM_PROJ, &deferredCsm->getWorldRenderMatrix(cascade_no));
@@ -1427,8 +1393,8 @@ public:
     else
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 1, 0);
   }
-  virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum & /*cascade_frustum*/, float &out_min_sparse_dist,
-    int &out_min_sparse_frame)
+  void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum & /*cascade_frustum*/, float &out_min_sparse_dist,
+    int &out_min_sparse_frame) override
   {
     out_min_sparse_dist = csmMinSparseDist;
     out_min_sparse_frame = csmMinSparseFrame;
@@ -1455,7 +1421,7 @@ public:
     }
   }
 
-  void renderGeomEnvi()
+  void renderGeomEnvi(bool preparing_light_probe = false)
   {
     TIME_D3D_PROFILE_NAME(render_vsm, "render_envi");
     bool ortho = false;
@@ -1467,11 +1433,13 @@ public:
       d3d::setwire(false);
       shaders::overrides::set(geomEnviId);
 
-      if (BaseTexture *bt = acquire_managed_tex(enviCubeTexId))
-      {
-        renderEnviCubeTexture(bt, Color4(1, 1, 1, 1) * getExposure(), Color4(0, 0, 0, 1));
-        release_managed_tex(enviCubeTexId);
-      }
+      if (!preparing_light_probe)
+        if (auto *hlp = EDITORCORE->queryEditorInterface<IRenderHelperService>())
+        {
+          if (BaseTexture *bt = acquire_managed_tex(enviCubeTexId))
+            hlp->renderEnviCubeTexture(bt, Color4(1, 1, 1, 1) * getExposure(), Color4(0, 0, 0, 1));
+          release_managed_tex(enviCubeTexId);
+        }
 
       shaders::overrides::reset();
       d3d::setwire(::grs_draw_wire);
@@ -1503,6 +1471,8 @@ public:
     TIME_D3D_PROFILE_NAME(render_vsm, "render_decal");
     for (int i = 0; i < rendSrv.size(); i++)
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_STATIC_DECALS);
+    for (int i = 0; i < rendSrv.size(); i++)
+      rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_DECALS);
   }
   void renderGeomDistortion()
   {
@@ -1618,6 +1588,8 @@ public:
     int fmt = parseTexFmt(blk.getStr("lightProbeFmt", "A16B16G16R16F"), TEXFMT_A16B16G16R16F);
 
     enviProbe = light_probe::create("envi", blk.getInt("lightProbeSz", 128), fmt);
+    enviProbeBlack = light_probe::create("enviBlack", 4, TEXFMT_A16B16G16R16F);
+    resetEnviProbesToBlack(true);
 
     deferredRtFmt = parseTexFmt(blk.getStr("sceneFmt", "A2B10G10R10"), TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE);
     postfxRtFmt = parseTexFmt(blk.getStr("postfxFmt", "ARGB8"), TEXFMT_A8R8G8B8);
@@ -1654,7 +1626,6 @@ public:
     volFogCallback.init();
     noPfxResolve.init("deferred_no_postfx_resolve", true);
     preIntegratedGF = render_preintegrated_fresnel_GGX("preIntegratedGF", PREINTEGRATE_SPECULAR_DIFFUSE_QUALITY_MAX);
-    reloadMicroDetails(blk);
 
     shaders::OverrideState state;
     state.set(shaders::OverrideState::Z_BIAS);
@@ -1706,6 +1677,12 @@ public:
     fomTexSize = blk.getInt("fom_tex_sz", 256);
     fomShadowsCos = dag::create_tex(nullptr, fomTexSize, fomTexSize, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "fom_shadows_cos");
     fomShadowsSin = dag::create_tex(nullptr, fomTexSize, fomTexSize, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "fom_shadows_sin");
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(get_shader_variable_id("fom_shadows_cos_samplerstate", true), smp);
+    ShaderGlobal::set_sampler(get_shader_variable_id("fom_shadows_sin_samplerstate", true), smp);
   }
 
   void initCommon()
@@ -1716,11 +1693,40 @@ public:
     resolvedDepthRenderer.init("intz_scene_to_float", true);
   }
 
+  void resetEnviProbesToBlack(bool set_sph_harm_vars)
+  {
+    G_ASSERT(enviProbeBlack);
+    G_ASSERT(enviProbe);
+    d3d::GpuAutoLock gpuLock;
+    for (int i = 0; i < 6; ++i)
+    {
+      d3d::set_render_target(light_probe::getManagedTex(enviProbeBlack)->getCubeTex(), i, 0);
+      d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
+      d3d::set_render_target(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, 0);
+      d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
+    }
+    light_probe::update(enviProbeBlack, NULL);
+    light_probe::update(enviProbe, NULL);
+
+    if (set_sph_harm_vars)
+    {
+      float gamma = 1.0f;
+      if (light_probe::calcDiffuse(enviProbe, NULL, gamma, 1.0f, true))
+      {
+        const Color4 *sphHarm = light_probe::getSphHarm(enviProbe);
+        for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
+          ShaderGlobal::set_color4(get_shader_variable_id(String(128, "enviSPH%d", i)), sphHarm[i]);
+      }
+    }
+    d3d::set_render_target();
+  }
   void updateEnviProbe()
   {
     float cur_exposure = getExposure();
     setExposure(1.0f);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    for (auto *rs : rendSrv)
+      rs->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
 
     static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
     static int light_probe_posVarId = get_shader_variable_id("light_probe_pos", true);
@@ -1729,20 +1735,6 @@ public:
     ShaderGlobal::set_color4(worldViewPosVarId, 0, 0, 0, 1);
     ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
     ShaderGlobal::set_color4(light_probe_posVarId, 0, 0, 0, 1);
-    if (!enviProbeBlack)
-    {
-      enviProbeBlack = light_probe::create("enviBlack", 4, TEXFMT_A16B16G16R16F);
-      for (int i = 0; i < 6; ++i)
-      {
-        d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
-        TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
-        d3d::settm(TM_VIEW, inverse(cameraMatrix));
-
-        d3d::set_render_target(light_probe::getManagedTex(enviProbeBlack)->getCubeTex(), i, 0);
-        d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
-      }
-      light_probe::update(enviProbeBlack, NULL);
-    }
 
     Point3 last_pos = ::grs_cur_view.pos;
     ::grs_cur_view.pos.zero();
@@ -1753,7 +1745,6 @@ public:
     for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
       ShaderGlobal::set_color4(enviSPHVarId[i], 0, 0, 0, 0);
 
-    preparing_light_probe = true;
     for (int i = 0; i < 6; ++i)
     {
       d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
@@ -1762,9 +1753,8 @@ public:
 
       d3d::set_render_target(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, 0);
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-      renderGeomEnvi();
+      renderGeomEnvi(/*preparing_light_probe*/ true);
     }
-    preparing_light_probe = false;
     light_probe::update(enviProbe, NULL);
 
     float gamma = 1.0f;
@@ -1785,16 +1775,27 @@ public:
     ShaderGlobal::set_texture(get_shader_variable_id("envi_probe_specular"), *light_probe::getManagedTex(enviProbe));
     ShaderGlobal::set_sampler(get_shader_variable_id("envi_probe_specular_samplerstate"), d3d::request_sampler({}));
 
-    // static int ord = 0;
-    // save_cubetex_as_ddsx(light_probe::getManagedTex(enviProbe)->getCubeTex(),
-    //   String(0, "D:/dagor2_tools/skyquake/develop/enviProbe.%d.cube.ddsx", ord++));
+#if 0 // NOTE: can use console command `tex.show envi_probe_specular#2 rgb` for visualization
+    static int ord = 0;
+    String fn_prefix(0, "envi_probes/probe_%d_%d%s/ep_%d", ord, dagor_frame_no(), isDaSkiesTexReady() ? "" : "_nr", ord);
+    dd_mkpath(fn_prefix);
+    for (int i = 0; i < 6; ++i)
+      save_cube_rt_image_as_tga(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, String(0, "%s_f%d.tga", fn_prefix, i));
+    save_cubetex_as_ddsx(light_probe::getManagedTex(enviProbe)->getCubeTex(), String::mk_str_cat(fn_prefix, ".ddsx"));
+    ord ++
+#endif
   }
 
   void afterD3DReset(bool full_reset)
   {
     if (ssao)
       ssao->reset();
-    updateEnviProbe();
+    if (enviProbe)
+    {
+      resetEnviProbesToBlack(false);
+      updateEnviProbe(); // call this once before reqEnviProbeUpdate to get non-black probe
+      reqEnviProbeUpdate = true;
+    }
   }
 
   void shutdown()
@@ -1881,7 +1882,7 @@ public:
       if (!combinedShadowsTex)
       {
         if (VariableMap::isGlobVariablePresent(get_shader_variable_id("combined_shadows", true)))
-          combinedShadowsTex = dag::create_tex(nullptr, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
+          combinedShadowsTex = dag::create_tex(nullptr, w, h, TEXFMT_R8 | TEXCF_RTARGET, 1, "combined_shadows");
         else
           debug("'%s' var not present, %s is not used", "combined_shadows", "combinedShadowsTex");
       }
@@ -1889,7 +1890,8 @@ public:
       if (vrWidth && !vrResources.combinedShadowsTex)
         if (VariableMap::isGlobVariablePresent(get_shader_variable_id("combined_shadows", true)))
           vrResources.combinedShadowsTex = UniqueTexHolder(
-            dag::create_tex(nullptr, vrWidth, vrHeight, TEXFMT_L8 | TEXCF_RTARGET, 1, "vr_combined_shadows"), "combined_shadows");
+            dag::create_tex(nullptr, vrWidth, vrHeight, TEXFMT_R8 | TEXCF_RTARGET, 1, "vr_combined_shadows"), "combined_shadows");
+      ShaderGlobal::set_sampler(get_shader_variable_id("combined_shadows_samplerstate", true), d3d::request_sampler({}));
     }
 
     if (vrWidth)
@@ -2002,41 +2004,57 @@ public:
         blackTex = dag::create_tex((TexImage32 *)blackImg, 1, 1, TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "black_tex1x1");
 
       downsampledNormals = dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET, 1, "downsampled_normals");
-      downsampledNormals->texfilter(TEXFILTER_POINT);
-      downsampledNormals->texaddr(TEXADDR_CLAMP);
       downsampledNormals.setVar();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        ShaderGlobal::set_sampler(get_shader_variable_id("downsampled_normals_samplerstate"), d3d::request_sampler(smpInfo));
+      }
 
       uint32_t fmt = TEXFMT_A16B16G16R16F;
       downsampledOpaqueTarget = dag::create_tex(nullptr, targetW / 2, targetH / 2, fmt | TEXCF_RTARGET, 1, "prev_frame_tex");
-      downsampledOpaqueTarget->texaddr(TEXADDR_CLAMP);
       downsampledOpaqueTarget.setVar();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        ShaderGlobal::set_sampler(get_shader_variable_id("prev_frame_tex_samplerstate"), d3d::request_sampler(smpInfo));
+      }
 
       lowresFxTex = dag::create_tex(nullptr, targetW / 2, targetH / 2, fmt | TEXCF_RTARGET, 1, "low_res_fx_rt");
+      ShaderGlobal::set_sampler(get_shader_variable_id("lowres_fx_source_tex_samplerstate", true), d3d::request_sampler({}));
 
       downsampledFarDepth =
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex");
-      downsampledFarDepth->texfilter(TEXFILTER_POINT);
-      downsampledFarDepth->texaddr(TEXADDR_BORDER);
-      downsampledFarDepth->texbordercolor(0xFFFFFFFF);
       downsampledFarDepth.setVar();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+        smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        ShaderGlobal::set_sampler(get_shader_variable_id("downsampled_far_depth_tex_samplerstate"), d3d::request_sampler(smpInfo));
+      }
 
       if (vrWidth)
       {
         vrResources.downsampledFarDepth = UniqueTexHolder(
           dag::create_tex(nullptr, vrWidth / 2, vrHeight / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex_vr"),
           "downsampled_far_depth_tex");
-        vrResources.downsampledFarDepth->texfilter(TEXFILTER_POINT);
-        vrResources.downsampledFarDepth->texaddr(TEXADDR_BORDER);
-        vrResources.downsampledFarDepth->texbordercolor(0xFFFFFFFF);
         vrResources.downsampledFarDepth.setVar();
       }
 
       checkerboardDepth =
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "downsampled_checkerboard_depth_tex");
-      checkerboardDepth->texfilter(TEXFILTER_POINT);
-      checkerboardDepth->texaddr(TEXADDR_BORDER);
-      checkerboardDepth->texbordercolor(0xFFFFFFFF);
       checkerboardDepth.setVar();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+        smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+        ShaderGlobal::set_sampler(get_shader_variable_id("downsampled_checkerboard_depth_tex_samplerstate"), smp);
+        ShaderGlobal::set_sampler(get_shader_variable_id("effects_depth_tex_samplerstate", true), smp);
+      }
 
       upscaleSamplingRenderer.reset();
       Ptr<ShaderMaterial> upscale_mat = new_shader_material_by_name_optional("upscale_sampling");
@@ -2145,7 +2163,7 @@ public:
     {
       TEXTUREID tid = add_managed_texture(cubetex_nm);
       BaseTexture *t = acquire_managed_tex(tid);
-      if (t && t->restype() != RES3D_CUBETEX)
+      if (t && t->getType() != D3DResourceType::CUBETEX)
       {
         release_managed_tex(tid);
         t = NULL;
@@ -2173,334 +2191,6 @@ public:
     ltSun0 = enviSlp;
     ShaderGlobal::set_vars_from_blk(gameGlobVars);
     ShaderGlobal::set_vars_from_blk(enviBlk, true);
-  }
-
-  void renderEnviCubeTexture(BaseTexture *tex, const Color4 &cMul, const Color4 &cAdd)
-  {
-    if (!tex || preparing_light_probe)
-      return;
-    if (!cubeData.inited())
-      prepareCubeData();
-
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME); // since we change render states and constants/samplers
-    tex->texaddr(TEXADDR_CLAMP);
-    shaders::overrides::set(noCullStateId);
-    shaders::render_states::set(defaultRenderStateId);
-    d3d::settex(0, tex);
-
-    TMatrix cubeWtm;
-    cubeWtm.identity();
-    cubeWtm.setcol(3, ::grs_cur_view.pos);
-    d3d::settm(TM_WORLD, cubeWtm);
-
-    TMatrix4_vec4 gtm;
-    d3d::getglobtm(gtm);
-    process_tm_for_drv_consts(gtm);
-    d3d::set_vs_const(0, gtm[0], 4);
-    d3d::set_ps_const1(0, cMul.r, cMul.g, cMul.b, cMul.a);
-    d3d::set_ps_const1(1, cAdd.r, cAdd.g, cAdd.b, cAdd.a);
-
-    d3d::set_program(cubeData.prog);
-    d3d::setvsrc(0, cubeData.vb, sizeof(Point3));
-    d3d::setind(cubeData.ib);
-    d3d::drawind(PRIM_TRILIST, 0, 12, 0);
-
-    d3d::setvdecl(BAD_VDECL);
-    d3d::set_program(BAD_PROGRAM);
-    d3d::settex(0, NULL);
-    shaders::overrides::reset();
-  }
-  void renderEnviBkgTexture(BaseTexture *tex, const Color4 &scales)
-  {
-    if (!tex || preparing_light_probe)
-      return;
-    if (bkgData.prog == BAD_PROGRAM)
-      prepareBkgData();
-
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME); // since we change render states and constants/samplers
-    d3d::set_vs_const1(0, scales.r, scales.g, scales.b, scales.a);
-    shaders::overrides::set(noCullStateId);
-    shaders::render_states::set(defaultRenderStateId);
-    d3d::settex(0, tex);
-
-    d3d::set_program(bkgData.prog);
-    d3d::setvsrc(0, bkgData.vb, sizeof(Point2));
-    d3d::draw(PRIM_TRISTRIP, 0, 2);
-
-    d3d::set_program(BAD_PROGRAM);
-    d3d::settex(0, NULL);
-    shaders::overrides::reset();
-  }
-  void renderEnviVolTexture(BaseTexture *tex, const Color4 &cMul, const Color4 &cAdd, const Color4 &scales, float tz)
-  {
-    if (!tex || preparing_light_probe)
-      return;
-    if (voltexData.prog == BAD_PROGRAM)
-      prepareVolTexData();
-
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME); // since we change render states and constants/samplers
-    d3d::set_ps_const1(0, cMul.r, cMul.g, cMul.b, cMul.a);
-    d3d::set_ps_const1(1, cAdd.r, cAdd.g, cAdd.b, cAdd.a);
-    d3d::set_ps_const1(2, tz, 0, 0, 0);
-    d3d::set_vs_const1(0, scales.r, scales.g, scales.b, scales.a);
-    shaders::overrides::set(noCullStateId);
-    shaders::render_states::set(defaultRenderStateId);
-    d3d::settex(0, tex);
-
-    d3d::set_program(voltexData.prog);
-    d3d::setvsrc(0, voltexData.vb, sizeof(Point2));
-    d3d::draw(PRIM_TRISTRIP, 0, 2);
-
-    d3d::set_program(BAD_PROGRAM);
-    d3d::settex(0, NULL);
-    shaders::overrides::reset();
-  }
-
-  void prepareCubeData()
-  {
-    // DX9 HLSL
-    static const char *vs_hlsl = "struct VSInput  { float3 pos:POSITION; };\n"
-                                 "struct VSOutput { float4 pos:POSITION; float3 tc:TEXCOORD0; };\n"
-                                 "float4x4 globTm: register(c0);\n"
-                                 "VSOutput vs_main(VSInput input)\n"
-                                 "{\n"
-                                 "  VSOutput output;\n"
-                                 "  output.pos = mul(float4(input.pos, 1), globTm); output.pos.z = 0;\n"
-                                 "  output.tc  = input.pos;\n"
-                                 "  return output;\n"
-                                 "}\n";
-    static const char *ps_hlsl = "struct VSOutput { float4 pos:POSITION; float3 tc:TEXCOORD0; };\n"
-                                 "samplerCUBE tex : register(s0);\n"
-                                 "float4 cMul: register(c0);\n"
-                                 "float4 cAdd: register(c1);\n"
-                                 "float4 ps_main(VSOutput input):COLOR0 {\n"
-                                 "  float4 c = texCUBE(tex, input.tc);\n"
-                                 "  return c*cMul+float4(c.aaa, 1)*cAdd;\n"
-                                 "}\n";
-
-    // DX11 HLSL
-    static const char *vs_hlsl11 = "struct VSInput  { float3 pos:POSITION; };\n"
-                                   "struct VSOutput { float4 pos:SV_POSITION; float3 tc:TEXCOORD0; };\n"
-                                   "float4x4 globTm: register(c0);\n"
-                                   "VSOutput vs_main(VSInput input)\n"
-                                   "{\n"
-                                   "  VSOutput output;\n"
-                                   "  output.pos = mul(float4(input.pos, 1), globTm); output.pos.z = 0;\n"
-                                   "  output.tc  = input.pos;\n"
-                                   "  return output;\n"
-                                   "}\n";
-    static const char *ps_hlsl11 = "struct VSOutput { float4 pos:SV_POSITION; float3 tc:TEXCOORD0; };\n"
-                                   "TextureCube tex: register(t0);\n"
-                                   "SamplerState tex_samplerstate : register(s0);\n"
-                                   "float4 cMul: register(c0);\n"
-                                   "float4 cAdd: register(c1);\n"
-                                   "float4 ps_main(VSOutput input):SV_Target0 {\n"
-                                   "  float4 c = tex.Sample(tex_samplerstate, input.tc);\n"
-                                   "  return c*cMul+float4(c.aaa, 1)*cAdd;\n"
-                                   "}\n";
-
-    static VSDTYPE dcl[] = {VSD_STREAM(0), VSD_REG(VSDR_POS, VSDT_FLOAT3), VSD_END};
-
-    VPROG vs = d3d::create_vertex_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? vs_hlsl11 : vs_hlsl, -1, "vs_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "vs_4_0" : "vs_3_0");
-    FSHADER ps = d3d::create_pixel_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? ps_hlsl11 : ps_hlsl, -1, "ps_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "ps_4_0" : "ps_3_0");
-    VDECL vd = d3d::create_vdecl(dcl);
-    cubeData.prog = d3d::create_program(vs, ps, vd);
-    d3d::set_program(cubeData.prog);
-
-    cubeData.vb = d3d::create_vb(sizeof(Point3) * 8, 0);
-    cubeData.ib = d3d::create_ib(sizeof(short) * 3 * 12, 0);
-    debug("cubeData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p ib=%p", cubeData.prog, vs, ps, vd, cubeData.vb, cubeData.ib);
-
-    {
-      Point3 *vp;
-      d3d_err(cubeData.vb->lockEx(0, 0, &vp, VBLOCK_WRITEONLY));
-      vp[0].set(-0.5, -0.5, -0.5);
-      vp[1].set(+0.5, -0.5, -0.5);
-      vp[2].set(-0.5, +0.5, -0.5);
-      vp[3].set(+0.5, +0.5, -0.5);
-      vp[4].set(-0.5, -0.5, +0.5);
-      vp[5].set(+0.5, -0.5, +0.5);
-      vp[6].set(-0.5, +0.5, +0.5);
-      vp[7].set(+0.5, +0.5, +0.5);
-      d3d_err(cubeData.vb->unlock());
-    }
-    {
-      unsigned short *ip;
-      d3d_err(cubeData.ib->lock(0, 0, &ip, VBLOCK_WRITEONLY));
-      int ind = 0;
-      ip[ind++] = 0;
-      ip[ind++] = 1;
-      ip[ind++] = 2;
-      ip[ind++] = 1;
-      ip[ind++] = 3;
-      ip[ind++] = 2;
-
-      ip[ind++] = 4;
-      ip[ind++] = 5;
-      ip[ind++] = 6;
-      ip[ind++] = 5;
-      ip[ind++] = 7;
-      ip[ind++] = 6;
-
-      ip[ind++] = 0;
-      ip[ind++] = 4;
-      ip[ind++] = 2;
-      ip[ind++] = 2;
-      ip[ind++] = 4;
-      ip[ind++] = 6;
-
-      ip[ind++] = 1;
-      ip[ind++] = 3;
-      ip[ind++] = 5;
-      ip[ind++] = 3;
-      ip[ind++] = 7;
-      ip[ind++] = 5;
-
-      ip[ind++] = 0;
-      ip[ind++] = 4;
-      ip[ind++] = 1;
-      ip[ind++] = 1;
-      ip[ind++] = 4;
-      ip[ind++] = 5;
-
-      ip[ind++] = 2;
-      ip[ind++] = 6;
-      ip[ind++] = 3;
-      ip[ind++] = 3;
-      ip[ind++] = 6;
-      ip[ind++] = 7;
-
-      d3d_err(cubeData.ib->unlock());
-    }
-  }
-
-  void prepareBkgData()
-  {
-    // DX9 HLSL
-    static const char *vs_hlsl = "struct VSInput  { float2 pos:POSITION; };\n"
-                                 "struct VSOutput { float4 pos:POSITION; float2 tc:TEXCOORD0; };\n"
-                                 "float4 tcMA: register(c0);\n"
-                                 "VSOutput vs_main(VSInput input)\n"
-                                 "{\n"
-                                 "  VSOutput output;\n"
-                                 "  output.pos = float4(input.pos, 0, 1);\n"
-                                 "  output.tc  = input.pos*tcMA.xy+tcMA.zw;\n"
-                                 "  return output;\n"
-                                 "}\n";
-    static const char *ps_hlsl = "struct VSOutput{float4 pos:POSITION; float2 tc:TEXCOORD0; };\n"
-                                 "sampler tex : register(s0);\n"
-                                 "float4 ps_main(VSOutput input):COLOR0 { return float4(tex2D(tex, input.tc).rgb, 1); }\n";
-
-    // DX11 HLSL
-    static const char *vs_hlsl11 = "struct VSInput  { float2 pos:POSITION; };\n"
-                                   "struct VSOutput { float4 pos:SV_POSITION; float2 tc:TEXCOORD0; };\n"
-                                   "float4 tcMA: register(c0);\n"
-                                   "VSOutput vs_main(VSInput input)\n"
-                                   "{\n"
-                                   "  VSOutput output;\n"
-                                   "  output.pos = float4(input.pos, 0, 1);\n"
-                                   "  output.tc  = input.pos*tcMA.xy+tcMA.zw;\n"
-                                   "  return output;\n"
-                                   "}\n";
-
-    static const char *ps_hlsl11 =
-      "struct VSOutput{float4 pos:SV_POSITION; float2 tc:TEXCOORD0; };\n"
-      "Texture2D tex: register(t0);\n"
-      "SamplerState tex_samplerstate : register(s0);\n"
-      "float4 ps_main(VSOutput input):SV_Target0 { return float4(tex.Sample(tex_samplerstate, input.tc).rgb, 1); }\n";
-
-    static VSDTYPE dcl[] = {VSD_STREAM(0), VSD_REG(VSDR_POS, VSDT_FLOAT2), VSD_END};
-
-    VPROG vs = d3d::create_vertex_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? vs_hlsl11 : vs_hlsl, -1, "vs_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "vs_4_0" : "vs_3_0");
-    FSHADER ps = d3d::create_pixel_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? ps_hlsl11 : ps_hlsl, -1, "ps_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "ps_4_0" : "ps_3_0");
-    VDECL vd = d3d::create_vdecl(dcl);
-    bkgData.prog = d3d::create_program(vs, ps, vd);
-
-    bkgData.vb = d3d::create_vb(sizeof(Point2) * 4, 0);
-    debug("bkgData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p", bkgData.prog, vs, ps, vd, bkgData.vb);
-
-    {
-      Point2 *vp;
-      d3d_err(bkgData.vb->lock(0, 0, (void **)&vp, VBLOCK_WRITEONLY));
-      vp[0].set(-1, -1);
-      vp[1].set(-1, +1);
-      vp[2].set(+1, -1);
-      vp[3].set(+1, +1);
-      d3d_err(bkgData.vb->unlock());
-    }
-  }
-
-  void prepareVolTexData()
-  {
-    // DX9 HLSL
-    static const char *vs_hlsl = "struct VSInput  { float2 pos:POSITION; };\n"
-                                 "struct VSOutput { float4 pos:POSITION; float2 tc:TEXCOORD0; };\n"
-                                 "float4 tcMA: register(c0);\n"
-                                 "VSOutput vs_main(VSInput input)\n"
-                                 "{\n"
-                                 "  VSOutput output;\n"
-                                 "  output.pos = float4(input.pos, 0, 1);\n"
-                                 "  output.tc  = input.pos*tcMA.xy+tcMA.zw;\n"
-                                 "  return output;\n"
-                                 "}\n";
-    static const char *ps_hlsl = "struct VSOutput{float4 pos:POSITION; float2 tc:TEXCOORD0; };\n"
-                                 "sampler3D tex : register(s0);\n"
-                                 "float4 cMul: register(c0);\n"
-                                 "float4 cAdd: register(c1);\n"
-                                 "float4 cTcZ: register(c2);\n"
-                                 "float4 ps_main(VSOutput input):COLOR0 {\n"
-                                 "  float4 c = tex3D(tex, float3(input.tc, cTcZ.x));\n"
-                                 "  return c*cMul+float4(c.aaa, 1)*cAdd;\n"
-                                 "}\n";
-
-    // DX11 HLSL
-    static const char *vs_hlsl11 = "struct VSInput  { float2 pos:POSITION; };\n"
-                                   "struct VSOutput { float4 pos:SV_POSITION; float2 tc:TEXCOORD0; };\n"
-                                   "float4 tcMA: register(c0);\n"
-                                   "VSOutput vs_main(VSInput input)\n"
-                                   "{\n"
-                                   "  VSOutput output;\n"
-                                   "  output.pos = float4(input.pos, 0, 1);\n"
-                                   "  output.tc  = input.pos*tcMA.xy+tcMA.zw;\n"
-                                   "  return output;\n"
-                                   "}\n";
-
-    static const char *ps_hlsl11 = "struct VSOutput { float4 pos:SV_POSITION; float2 tc:TEXCOORD0; };\n"
-                                   "Texture3D tex: register(t0);\n"
-                                   "SamplerState tex_samplerstate : register(s0);\n"
-                                   "float4 cMul: register(c0);\n"
-                                   "float4 cAdd: register(c1);\n"
-                                   "float4 cTcZ: register(c2);\n"
-                                   "float4 ps_main(VSOutput input):SV_Target0 {\n"
-                                   "  float4 c = tex.Sample(tex_samplerstate, float3(input.tc, cTcZ.x));\n"
-                                   "  return c*cMul+float4(c.aaa, 1)*cAdd;\n"
-                                   "}\n";
-
-    static VSDTYPE dcl[] = {VSD_STREAM(0), VSD_REG(VSDR_POS, VSDT_FLOAT2), VSD_END};
-
-    VPROG vs = d3d::create_vertex_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? vs_hlsl11 : vs_hlsl, -1, "vs_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "vs_4_0" : "vs_3_0");
-    FSHADER ps = d3d::create_pixel_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? ps_hlsl11 : ps_hlsl, -1, "ps_main",
-      d3d::get_driver_code().is(d3d::dx11) ? "ps_4_0" : "ps_3_0");
-    VDECL vd = d3d::create_vdecl(dcl);
-    voltexData.prog = d3d::create_program(vs, ps, vd);
-
-    voltexData.vb = d3d::create_vb(sizeof(Point2) * 4, 0);
-    debug("voltexData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p", voltexData.prog, vs, ps, vd, voltexData.vb);
-
-    {
-      Point2 *vp;
-      d3d_err(voltexData.vb->lock(0, 0, (void **)&vp, VBLOCK_WRITEONLY));
-      vp[0].set(-1, -1);
-      vp[1].set(-1, +1);
-      vp[2].set(+1, -1);
-      vp[3].set(+1, +1);
-      d3d_err(voltexData.vb->unlock());
-    }
   }
 
   void setPfxLevelBlk(const DataBlock *b)
@@ -2670,31 +2360,12 @@ private:
   TEXTUREID enviCubeTexId;
   SimpleString enviCubeVarName;
 
-  struct ShaderBufData
-  {
-    PROGRAM prog;
-    Vbuffer *vb;
-    Ibuffer *ib;
-
-    ShaderBufData() : prog(BAD_PROGRAM), vb(NULL), ib(NULL) {}
-
-    bool inited() { return prog != BAD_PROGRAM; }
-    void clear()
-    {
-      del_d3dres(vb);
-      del_d3dres(ib);
-      d3d::delete_program(prog);
-      prog = BAD_PROGRAM;
-    }
-  };
-  ShaderBufData cubeData, voltexData, bkgData;
-
 private:
   ///////////////////////////////////////////////////////////////////////////////
   // VR rendering
   ///////////////////////////////////////////////////////////////////////////////
 
-  struct VRRenderingResouces
+  struct VRRenderingResources
   {
     eastl::unique_ptr<DeferredRenderTarget> deferredTarget;
 
@@ -2896,9 +2567,10 @@ public:
     dynRendOpt[ROPT_NO_POSTFX] = &renderNoPostfx;
   }
 
-  virtual void setup(const char *app_dir, const DataBlock &appblk)
+  void setup(const char *app_dir, const DataBlock &appblk) override
   {
     dynScene = new DaEditor3DynamicScene;
+    set_tonemap_changed_callback(&onTonemapSettingsChanged);
 
     if (const DataBlock *b = appblk.getBlockByName("dynamicDeferred"))
     {
@@ -2985,69 +2657,67 @@ public:
     DEBUG_DUMP_VAR(use_heat_haze);
   }
 
-  virtual void init()
+  void init() override
   {
+    if (auto *hlp = EDITORCORE->queryEditorInterface<IRenderHelperService>())
+      hlp->init();
     ec_init_stat3d();
     if (dynScene->rtype == RTYPE_CLASSIC)
       dynScene->initClassic();
     else if (dynScene->rtype == RTYPE_DYNAMIC_DEFERRED)
       dynScene->initDeferred(deferredBlk, shadowQualityProps[shadowQuality]);
-
-    dagor_select_game_scene(dynScene);
   }
-  virtual void term()
+  void term() override
   {
+    dagor_select_game_scene(nullptr);
+
+    heat_haze_glue.term();
+    set_tonemap_changed_callback(nullptr);
     del_it(dynScene);
     deferredBlk.reset();
+    if (auto *hlp = EDITORCORE->queryEditorInterface<IRenderHelperService>())
+      hlp->term();
   }
 
-  virtual void enableRender(bool enable) { render_enabled = enable; }
+  void enableRender(bool enable) override { render_enabled = enable; }
 
-  virtual void setEnvironmentSnapshot(const char *blk_fn, bool render_cubetex_from_snapshot)
+  void selectAsGameScene() override { dagor_select_game_scene(dynScene); }
+
+  void setEnvironmentSnapshot(const char *blk_fn, bool render_cubetex_from_snapshot) override
   {
     if (dynScene)
       dynScene->setEnvironmentSnapshot(blk_fn, render_cubetex_from_snapshot);
   }
-  virtual bool hasEnvironmentSnapshot() { return dynScene && dynScene->hasEnvironmentSnapshot(); }
+  bool hasEnvironmentSnapshot() override { return dynScene && dynScene->hasEnvironmentSnapshot(); }
 
-  virtual void renderEnviCubeTexture(BaseTexture *tex, const Color4 &cMul, const Color4 &cAdd)
-  {
-    if (dynScene)
-      dynScene->renderEnviCubeTexture(tex, cMul, cAdd);
-  }
-  virtual void renderEnviBkgTexture(BaseTexture *tex, const Color4 &scales)
-  {
-    if (dynScene)
-      dynScene->renderEnviBkgTexture(tex, scales);
-  }
-  virtual void renderEnviVolTexture(BaseTexture *tex, const Color4 &cMul, const Color4 &cAdd, const Color4 &scales, float tz)
-  {
-    if (dynScene)
-      dynScene->renderEnviVolTexture(tex, cMul, cAdd, scales, tz);
-  }
-
-  virtual void restartPostfx(const DataBlock &game_params)
+  void restartPostfx(const DataBlock &game_params) override
   {
     if (dynScene)
       dynScene->restartPostfx(game_params);
   }
-  virtual void onLightingSettingsChanged()
+  void reloadCharacterMicroDetails(const DataBlock &deferred_blk, const DataBlock &level_blk) override
+  {
+    if (dynScene)
+      dynScene->reloadCharacterMicroDetails(deferred_blk, level_blk);
+  }
+  void onLightingSettingsChanged() override
   {
     if (dynScene)
       dynScene->reqEnviProbeUpdate = true;
   }
 
-  virtual void afterD3DReset(bool full_reset)
+  void beforeD3DReset(bool full_reset) override {}
+  void afterD3DReset(bool full_reset) override
   {
     if (dynScene)
     {
-      d3d::GpuAutoLock gpuLock;
       dynScene->afterD3DReset(full_reset);
       dynScene->reInitCsm(shadowQualityProps.size() ? shadowQualityProps[shadowQuality] : NULL);
     }
   }
 
-  virtual void renderViewportFrame(ViewportWindow *vpw)
+  TexStreamingContext getMainViewStreamingContext() override { return currentTexCtx; }
+  void renderViewportFrame(ViewportWindow *vpw) override
   {
     d3d::GpuAutoLock gpuLock;
     if (dynScene && vpw)
@@ -3066,50 +2736,15 @@ public:
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
     }
   }
-  virtual void renderScreenshot()
+  void renderScreenshot() override
   {
     if (dynScene)
       dynScene->renderScreenShot();
   }
 
-  virtual void renderFramesToGetStableAdaptation(float max_da, int max_frames)
-  {
-    // NOTE: ImGui porting: with the current continuous rendering this seems unnecessary and causes a crash in the Environment settings
-    // dialog.
-    //     if (renderNoPostfx || !dynScene)
-    //       return;
-    //
-    //     float cur_exposure = getExposure();
-    //     while (max_frames)
-    //     {
-    //       renderViewportFrame(NULL);
-    //       float new_exposure = getExposure();
-    //       // debug("renderFramesToGetStableAdaptation: %d frames left, a=%.3f da=%.3f max_a=%.3f",
-    //       //   max_frames, cur_ob, new_ob-cur_ob, max_da);
-    //       if (fabsf(new_exposure - cur_exposure) < max_da)
-    //         break;
-    //       cur_exposure = new_exposure;
-    //       max_frames--;
-    //     }
-  }
-
-  virtual void enableFrameProfiler(bool enable)
-  {
-    if (enable)
-      da_profiler::add_mode(da_profiler::EVENTS | da_profiler::GPU);
-    else
-      da_profiler::remove_mode(da_profiler::EVENTS | da_profiler::GPU);
-    DAEDITOR3.conNote("Time profiler %s", enable ? "ON" : "OFF");
-  }
-  virtual void profilerDumpFrame()
-  {
-    if ((da_profiler::get_active_mode() & da_profiler::EVENTS))
-      dump_frame = true;
-  }
-
-  virtual dag::ConstSpan<int> getSupportedRenderTypes() const { return rtypeSupp; }
-  virtual int getRenderType() const { return dynScene->rtype; }
-  virtual bool setRenderType(int t)
+  dag::ConstSpan<int> getSupportedRenderTypes() const override { return rtypeSupp; }
+  int getRenderType() const override { return dynScene->rtype; }
+  bool setRenderType(int t) override
   {
     if (find_value_idx(rtypeSupp, t) < 0)
       return false;
@@ -3117,9 +2752,9 @@ public:
     return true;
   }
 
-  virtual dag::ConstSpan<const char *> getDebugShowTypeNames() const { return dbgShowTypeNm; }
-  virtual int getDebugShowType() const { return dbgShowType; }
-  virtual bool setDebugShowType(int t)
+  dag::ConstSpan<const char *> getDebugShowTypeNames() const override { return dbgShowTypeNm; }
+  int getDebugShowType() const override { return dbgShowType; }
+  bool setDebugShowType(int t) override
   {
     if (t < 0 || t >= dbgShowTypeNm.size())
       return false;
@@ -3128,14 +2763,14 @@ public:
     return true;
   }
 
-  virtual const char *getRenderOptName(int ropt) { return (ropt >= 0 && ropt < ROPT_COUNT) ? dynRendOpt[ropt]->name : NULL; }
-  virtual bool getRenderOptSupported(int ropt)
+  const char *getRenderOptName(int ropt) override { return (ropt >= 0 && ropt < ROPT_COUNT) ? dynRendOpt[ropt]->name : NULL; }
+  bool getRenderOptSupported(int ropt) override
   {
     if (ropt < 0 || ropt >= ROPT_COUNT)
       return false;
     return dynRendOpt[ropt]->allowed;
   }
-  virtual void setRenderOptEnabled(int ropt, bool enable)
+  void setRenderOptEnabled(int ropt, bool enable) override
   {
     if (ropt < 0 || ropt >= ROPT_COUNT)
       return;
@@ -3152,16 +2787,16 @@ public:
       setExposure(1.0f);
     }
   }
-  virtual bool getRenderOptEnabled(int ropt)
+  bool getRenderOptEnabled(int ropt) override
   {
     if (ropt < 0 || ropt >= ROPT_COUNT)
       return false;
     return *dynRendOpt[ropt];
   }
 
-  virtual dag::ConstSpan<const char *> getShadowQualityNames() const { return shadowQualityNm; }
-  virtual int getShadowQuality() const { return shadowQuality; }
-  virtual void setShadowQuality(int q)
+  dag::ConstSpan<const char *> getShadowQualityNames() const override { return shadowQualityNm; }
+  int getShadowQuality() const override { return shadowQuality; }
+  void setShadowQuality(int q) override
   {
     if (q < 0)
       q = 0;
@@ -3176,15 +2811,15 @@ public:
       dynScene->reInitCsm(shadowQualityProps.size() ? shadowQualityProps[q] : NULL);
   }
 
-  virtual bool hasExposure() const { return dynScene ? dynScene->hasExposure() : false; }
+  bool hasExposure() const override { return dynScene ? dynScene->hasExposure() : false; }
 
-  virtual void setExposure(float exposure)
+  void setExposure(float exposure) override
   {
     if (dynScene)
       dynScene->setExposure(exposure);
   };
 
-  virtual float getExposure()
+  float getExposure() override
   {
     if (dynScene)
       return dynScene->getExposure();
@@ -3192,53 +2827,77 @@ public:
       return 0.0f;
   };
 
-  virtual void setWaterReflectionEnabled(bool enable) { renderWater = enable; }
-  virtual bool getWaterReflectionEnabled() { return renderWater; }
-
-
-  virtual void setRenderEnviFirst(bool first) { renderEnvironmentFirst = first && dynScene->rtype != RTYPE_DYNAMIC_DEFERRED; }
-  virtual bool getRenderEnviFirst() { return renderEnvironmentFirst; }
-
-  virtual void getPostFxSettings(DemonPostFxSettings &set)
+  void getPostFxSettings(DemonPostFxSettings &set) override
   {
     if (dynScene)
       dynScene->getPostFxSettings(set);
     else
       memset(&set, 0, sizeof(set));
   }
-  virtual void setPostFxSettings(DemonPostFxSettings &set)
+  void setPostFxSettings(DemonPostFxSettings &set) override
   {
     if (dynScene)
       dynScene->setPostFxSettings(set);
   }
 
-  virtual BaseTexture *getRenderBuffer() override { return dynScene ? dynScene->getRenderBuffer() : nullptr; }
+  BaseTexture *getRenderBuffer() override { return dynScene ? dynScene->getRenderBuffer() : nullptr; }
 
-  virtual D3DRESID getRenderBufferId() override { return dynScene ? dynScene->getRenderBufferId() : BAD_TEXTUREID; }
+  D3DRESID getRenderBufferId() override { return dynScene ? dynScene->getRenderBufferId() : BAD_TEXTUREID; }
 
-  virtual BaseTexture *getDepthBuffer() override { return dynScene ? dynScene->getDepthBuffer() : nullptr; }
+  BaseTexture *getDepthBuffer() override { return dynScene ? dynScene->getDepthBuffer() : nullptr; }
 
-  virtual D3DRESID getDepthBufferId() override { return dynScene ? dynScene->getDepthBufferId() : BAD_TEXTUREID; }
+  D3DRESID getDepthBufferId() override { return dynScene ? dynScene->getDepthBufferId() : BAD_TEXTUREID; }
 
-  void onTonemapSettingsChanged() { dynScene->onTonemapSettingsChanged(); }
+  static void onTonemapSettingsChanged();
 
-  virtual const ManagedTex &getDownsampledFarDepth() override { return dynScene->getDownsampledFarDepth(); }
+  const ManagedTex &getDownsampledFarDepth() override { return dynScene->getDownsampledFarDepth(); }
 
-  virtual void toggleVrMode() override { dynScene->toggleVrMode(); }
+  void toggleVrMode() override { dynScene->toggleVrMode(); }
+
+  void renderOneDynModelInstance(DynamicRenderableSceneInstance *sceneInstance, Stage stage, int *optional_inst_seed,
+    bool raw_render) override
+  {
+    if (!raw_render && dynrend::can_render(sceneInstance))
+    {
+      // Put instance seed to the 5th render data, hopefully no shader uses this
+      // The skinning shader in tools reads the instance seed from here
+      // All regular params are expected to be 0
+      dynrend::PerInstanceRenderData renderData;
+      renderData.params.resize(5);
+      mem_set_0(renderData.params);
+      if (optional_inst_seed)
+        memcpy(&renderData.params[4].x, optional_inst_seed, sizeof(*optional_inst_seed));
+
+      ShaderMesh::Stage s = ShaderMesh::Stage::STG_opaque;
+      switch (stage)
+      {
+        case Stage::STG_RENDER_DYNAMIC_OPAQUE:
+        case Stage::STG_RENDER_SHADOWS:
+        case Stage::STG_RENDER_TO_CLIPMAP: break; // already ShaderMesh::Stage::STG_Opaque
+        case Stage::STG_RENDER_DYNAMIC_DECALS: s = ShaderMesh::Stage::STG_decal; break;
+        case Stage::STG_RENDER_DYNAMIC_TRANS: s = ShaderMesh::Stage::STG_trans; break;
+        case Stage::STG_RENDER_DYNAMIC_DISTORTION: s = ShaderMesh::Stage::STG_distortion; break;
+        default: return;
+      }
+      return dynrend::render_one_instance(sceneInstance, s, currentTexCtx, nullptr, optional_inst_seed ? &renderData : nullptr);
+    }
+
+    if (stage == Stage::STG_RENDER_DYNAMIC_OPAQUE || stage == Stage::STG_RENDER_SHADOWS || stage == Stage::STG_RENDER_TO_CLIPMAP)
+      sceneInstance->render();
+    else if (stage == Stage::STG_RENDER_DYNAMIC_TRANS)
+      sceneInstance->renderTrans();
+    else if (stage == Stage::STG_RENDER_DYNAMIC_DISTORTION)
+      sceneInstance->renderDistortion();
+  }
 
   static void render_viewport_frame(ViewportWindow *vpw);
 };
 
 static GenericDynRenderService srv;
 void GenericDynRenderService::render_viewport_frame(ViewportWindow *vpw) { srv.renderViewportFrame(vpw); }
+void GenericDynRenderService::onTonemapSettingsChanged() { srv.dynScene->onTonemapSettingsChanged(); }
 
-void set_tonemap_changed_callback(void (*)());
-
-void *get_generic_dyn_render_service()
-{
-  set_tonemap_changed_callback([] { srv.onTonemapSettingsChanged(); });
-  return &srv;
-}
+void *get_generic_dyn_render_service() { return &srv; }
 
 ///////////////////////////////////////////////////////////////////////////////
 // VR GUI rendering

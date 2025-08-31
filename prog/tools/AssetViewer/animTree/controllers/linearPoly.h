@@ -22,3 +22,4 @@ void linear_poly_set_selected_node_list_settings(PropPanel::ContainerPropertyCon
 void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
 const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx);
 String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx);
+void linear_poly_update_child_name(DataBlock &settings, const char *name, const String &old_name);

@@ -17,6 +17,7 @@ struct RadianceGrid
   void drawDebug(int debug_type = 0);
   void drawDebugIrradiance(int debug_type = 0);
   void afterReset();
+  void resetHistoryAge();
   ~RadianceGrid();
 
   float get_probe_size(uint32_t i) const { return radiance.get_probe_size(i); }

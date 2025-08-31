@@ -13,5 +13,6 @@ Access detailed references for the Dagor Engine's API and documentation.
    dagor-engine-docs/index.rst
    dagor-ecs/index.rst
    dagor-dshl/index.rst
+   dagor-tools/index.rst
 
 

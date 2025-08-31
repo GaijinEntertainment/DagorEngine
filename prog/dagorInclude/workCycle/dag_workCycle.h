@@ -52,6 +52,16 @@ void dagor_enable_idle_priority(bool enable);
 //! false by default.
 void dagor_suppress_d3d_update(bool enable);
 
+//! returns the latest frame id that was started
+//! A frame can be started before it's cycle in order to do work
+//! out of band (in a worker thread, for example).
+//! In this case the `dagor_get_latest_frame_started` will lead
+//! `dagor_get_global_frame_id`
+unsigned int dagor_get_latest_frame_started();
+
+//! This function is used to start the next frame in the work cycle.
+void dagor_start_next_frame(bool allow_wait = true);
+
 //
 // work cycle settings; READ ONLY!
 //

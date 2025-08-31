@@ -17,6 +17,7 @@ source
   include "../../../gameLibs/daGI2/shaders/shadersList.blk"
   include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
   include shadersList.blk
+  include shadersListForTools.blk
 }
 
 common_valid_variants
@@ -30,7 +31,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = 5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
     supports_sh_6_1:i = 0
@@ -39,11 +40,14 @@ Compile
     object_tess_factor:r=0 // Not supported
     hmap_tess_factor:r=0
     water_tess_factor:i=0
+    "@override:use_glass_dual_source_blending":i=0
+    can_use_half_precision:i=0
 
     // @TODO: replace w/ dagi_sp_has_exposure_assume=dagi_sp_calc_exposure=0 once high quality gi is banned on old devices
     dagi_sp_has_exposure_assume:i=1
   }
   dict_size_in_kb:i=4096
+  required_shaders {}
 }
 
 explicit_var_ref

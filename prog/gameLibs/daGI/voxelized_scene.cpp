@@ -101,15 +101,19 @@ void GI3D::initSceneVoxels()
     sceneVoxelsColor = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), sceneFmt | TEXCF_UNORDERED,
       1, "scene_voxels_data");
     d3d::clear_rwtexf(sceneVoxelsColor.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
-    sceneVoxelsColor->texaddr(TEXADDR_WRAP);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("scene_voxels_data_samplerstate"), d3d::request_sampler(smpInfo));
     d3d::resource_barrier({sceneVoxelsColor.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
 
 #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
-  sceneVoxelsAlpha = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), TEXFMT_L8 | TEXCF_UNORDERED,
+  sceneVoxelsAlpha = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), TEXFMT_R8 | TEXCF_UNORDERED,
     1, "scene_voxels_alpha");
   d3d::clear_rwtexf(sceneVoxelsAlpha.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
-  sceneVoxelsAlpha->texaddr(TEXADDR_WRAP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+  ShaderGlobal::set_sampler(::get_shader_variable_id("scene_voxels_alpha_samplerstate"), d3d::request_sampler(smpInfo));
   d3d::resource_barrier({sceneVoxelsAlpha.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 #endif
   selectedGbufVoxelsCount = dag::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "voxelsCount");
@@ -198,8 +202,7 @@ void GI3D::markVoxelsFromRT(const TMatrix4 &globtm, float speed)
   TIME_D3D_PROFILE(mark_voxels_from_gbuf);
   if (invalidateCount)
   {
-    uint32_t v[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(selectedGbufVoxelsCount.get(), v);
+    d3d::zero_rwbufi(selectedGbufVoxelsCount.get());
     d3d::resource_barrier({selectedGbufVoxelsCount.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
     invalidateCount = false;
   }

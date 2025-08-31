@@ -1,5 +1,5 @@
 # https://github.com/jrouwe/JoltPhysics.git
-# rev 6535d6ca60a47bed90153730b3fc3a409d48e274
+# rev 4f9a86b53916cc91c042acf6cd79eeef62bf5f0c
 Root    ?= ../../../.. ;
 Location = prog/3rdPartyLibs/phys/joltPhysics ;
 PlatformArch_windows ?= x86_64 ;
@@ -29,7 +29,6 @@ local _SrcDirs =
   Jolt/Physics/SoftBody
   Jolt/Physics/Vehicle
   Jolt/Skeleton
-  Jolt/TriangleGrouper
   Jolt/TriangleSplitter
 ;
 
@@ -41,15 +40,13 @@ include $(Root)/$(Location)/setup.jam ;
 if $(Platform) in windows { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
 if $(JoltDebugRender) = yes { _SrcDirs += Jolt/Renderer ; }
 
-if $(Platform) = linux || $(PlatformSpec) = clang {
-  if $(Platform) in windows xboxOne scarlett {
-    CPPopt += -fp:fast -Wno-unknown-warning-option ;
-    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations /clang:-mno-fma ; }
-  } else {
-    CPPopt += -ffast-math ;
-    if $(Platform) in android { CPPopt += -fno-unsafe-math-optimizations ; }
-    else if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations -mno-fma ; }
-  }
+if $(PlatformSpec) in gcc clang {
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 } else if $(SSEVersion) = 0 { CPPopt += /arch:SSE2 ; } # msvc windows-x86 implied
 if $(Platform) in ps4 ps5 { AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ; } # sys/prctl.h
 

@@ -3,4 +3,8 @@ include "shaders_spirv_nswitch.blk"
 "@override:outDumpName":t="../../game/compiledShaders/compat/game"
 "@override:Compile" {
   "@override:fsh":t="5.0"
+  "@override:assume_vars"
+  {
+    can_use_half_precision:i=0
+  }
 }

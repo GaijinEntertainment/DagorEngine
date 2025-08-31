@@ -1,5 +1,6 @@
 options no_aot
 options persistent_heap
+options stack = 65536
 
 require ecs
 require strings
@@ -18,7 +19,7 @@ require %danetlibs.imgui_daeditor.imgui.imgui_common
 
 [console_cmd(name="imgui.editor_ecs_inspector")]
 def show_ecs_inspector()
-  let isVisible = imgui_get_state() != ImGuiState OFF && imgui_window_is_visible("Editor", "Inspector")
+  let isVisible = imgui_get_state() != ImGuiState.OFF && imgui_window_is_visible("Editor", "Inspector")
   let setVisible = !isVisible
   console_command(setVisible ? "imgui.activate" : "imgui.off")
   imgui_window_set_visible("Editor", "Inspector", setVisible)
@@ -142,7 +143,7 @@ def aux_ecs_inspector(idx : int; var filter : ImGuiTextFilter)
     selectedEids[idx] = INVALID_ENTITY_ID
     return
 
-  var eids <- [{auto[] selectedEids[idx]}]
+  var eids <- [ selectedEids[idx]]
   inspect_item(idx, filter, unsafe(reinterpret< array<EntityId># > eids), true)
   delete eids
 

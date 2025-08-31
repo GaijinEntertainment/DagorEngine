@@ -1,0 +1,227 @@
+include_optional "project_heightmap_shadows_opt.dshl"
+
+texture heightmap_shadow;
+
+
+float4 heightmap_shadow_tc_ofs_sz[4];//must match MAX_HMAP_SHADOW_CASCADES
+int4 heightmap_shadow_world_lt_szi[4];
+float4 heightmap_shadow_dir_from_sun[4];
+float4 heightmap_shadow_height_encoding;
+int4 heightmap_shadow_szi_np2;
+
+define_macro_if_not_defined INIT_HMAP_SHADOWS_OPT(code)
+endmacro
+
+macro INIT_HMAP_SHADOWS_MATH(code)
+  local float4 dims = (get_dimensions(heightmap_shadow, 0));
+  (code) {
+    heightmap_shadow_tc_ofs_sz@f4[] = heightmap_shadow_tc_ofs_sz;
+    heightmap_shadow_world_lt_szi@i4[] = heightmap_shadow_world_lt_szi;
+    heightmap_shadow_dir_from_sun@f4[] = heightmap_shadow_dir_from_sun;
+    heightmap_shadow_szi_np2@i4 = heightmap_shadow_szi_np2;
+    heightmap_shadow_height_encoding@f3 = heightmap_shadow_height_encoding;
+
+    heightmap_shadow_sz@f4 = (dims.x, dims.z - 1, 1./max(dims.x,1), 1/(0.5 - 0.5/max(dims.x,2)));
+  }
+endmacro
+
+macro INIT_HMAP_SHADOWS(code)
+  INIT_HMAP_SHADOWS_MATH(code)
+  INIT_HMAP_SHADOWS_OPT(code)
+  (code) {
+    heightmap_shadow@smpArray = heightmap_shadow;
+  }
+endmacro
+
+macro USE_HMAP_SHADOWS_MATH(code)
+  hlsl(code) {
+    #include "heightmapShadows.hlsli"
+    #include "project_heightmap_shadows.hlsl" // should define PROJECT_MAX_HMAP_SHADOW_CASCADES to constant
+    #ifndef PROJECT_MAX_HMAP_SHADOW_CASCADES
+      #define PROJECT_MAX_HMAP_SHADOW_CASCADES MAX_HMAP_SHADOW_CASCADES
+    #endif
+    #define sample_da_hmap_shadows_lt_coord(clip) _sample_da_hmap_shadows_lt_coord(clip, _FILE_, __LINE__)
+    #define sample_da_hmap_shadows_dir_from_sun(clip) _sample_da_hmap_shadows_dir_from_sun(clip, _FILE_, __LINE__)
+    int4 _sample_da_hmap_shadows_lt_coord(uint clip, int file, int ln)
+    {
+      ##assert(clip < MAX_HMAP_SHADOW_CASCADES, "[%s:%.f] Out of bounds: Buffer 'sample_da_hmap_shadows_lt_coord' has size 4, but access to (%.f)", file, ln, clip);
+      return heightmap_shadow_world_lt_szi[clip];
+    }
+
+    int4 da_hmap_shadows_abs_coord_ltsz(uint clip) {return sample_da_hmap_shadows_lt_coord(clip);}
+    int2 da_hmap_shadows_abs_coord_lt(uint clip) {return sample_da_hmap_shadows_lt_coord(clip).xy;}
+    float da_hmap_shadows_texel_size(uint clip) {return asfloat(sample_da_hmap_shadows_lt_coord(clip).z);}
+
+    float4 _sample_da_hmap_shadows_dir_from_sun(uint clip, int file, int ln)
+    {
+      ##assert(clip < MAX_HMAP_SHADOW_CASCADES, "[%s:%.f] Out of bounds: Buffer 'heightmap_shadow_dir_from_sun' has size 4, but access to (%.f)", file, ln, clip);
+      return heightmap_shadow_dir_from_sun[clip];
+    }
+
+    float4 da_hmap_shadows_get_dir_from_sun(uint clip)
+    {
+      return sample_da_hmap_shadows_dir_from_sun(clip);
+    }
+
+    float2 da_hmap_shadows_abs_coordi_to_texel_pos(int2 coord, int4 lt)
+    {
+      return (coord.xy+0.5)*asfloat(lt.z);
+    }
+
+    float2 da_hmap_shadows_abs_coord_to_world_pos_clip(int2 coord, uint clip)
+    {
+      float2 xz = da_hmap_shadows_abs_coordi_to_texel_pos(coord, da_hmap_shadows_abs_coord_ltsz(clip));
+      float2 from_sun_dir_xz = sample_da_hmap_shadows_dir_from_sun(clip).xy;
+      return float2(from_sun_dir_xz.y*xz.x + from_sun_dir_xz.x*xz.y,
+                   -from_sun_dir_xz.x*xz.x + from_sun_dir_xz.y*xz.y);
+    }
+
+    uint2 da_hmap_shadows_wrapped_coord_from_abs_coord(int2 abs_coord)
+    {
+      //non-pow2
+      ##assert(all(abs_coord + heightmap_shadow_szi_np2.y) >= 0, "hmap shadows wrapped around limit");
+      return uint2(heightmap_shadow_szi_np2.y + abs_coord)%uint(heightmap_shadow_szi_np2.x);
+    }
+
+    int2 da_hmap_shadows_abs_coord_from_wrapped_coord(uint2 wrapped, int2 clip_lt)
+    {
+      //non-pow2
+      return clip_lt + int2(uint2(int2(wrapped) - clip_lt.xy + heightmap_shadow_szi_np2.y)%uint(heightmap_shadow_szi_np2.x));
+    }
+
+    int2 da_hmap_shadows_abs_coord_from_wrapped_coord_clip(uint2 wrapped, uint clip)
+    {
+      return da_hmap_shadows_abs_coord_from_wrapped_coord(wrapped, sample_da_hmap_shadows_lt_coord(clip).xy);
+    }
+
+    float2 da_hmap_shadows_tc_to_sample(float2 worldPosXZ, uint clip)
+    {
+      float2 from_sun_dir_xz = sample_da_hmap_shadows_dir_from_sun(clip).zw; // zw = sun_dir * invCascadeSz
+      float2 rotated = float2(from_sun_dir_xz.y*worldPosXZ.x - from_sun_dir_xz.x*worldPosXZ.y,
+                              from_sun_dir_xz.x*worldPosXZ.x + from_sun_dir_xz.y*worldPosXZ.y);
+      return rotated;
+    }
+    float2 da_hmap_shadows_tc_vignette2(float2 tc, float4 center_var)
+    {
+      return abs(tc*center_var.zw + center_var.xy);
+    }
+    bool da_hmap_shadows_is_tc_inside(float2 tc, float4 center_var)
+    {
+      return all(da_hmap_shadows_tc_vignette2(tc, center_var) < 1);
+    }
+    struct HmapShadowInfoFind
+    {
+      float4 tc_vignette;
+      float3 next_tc;
+      int cascade;
+    };
+    HmapShadowInfoFind worldPosFindHmapShadowTCVignette(float2 worldPosXZ)
+    {
+      HmapShadowInfoFind t;
+      t.tc_vignette = float4(0,0, 1, 1);
+      t.cascade = heightmap_shadow_szi_np2.z;
+      t.next_tc = float3(0,0,heightmap_shadow_szi_np2.z);
+      UNROLL
+      for (int i = PROJECT_MAX_HMAP_SHADOW_CASCADES - 1; i >= 0; --i)
+      {
+        float4 v = heightmap_shadow_tc_ofs_sz[i];
+        float2 tcS = da_hmap_shadows_tc_to_sample(worldPosXZ, i);
+        float2 vignette = da_hmap_shadows_tc_vignette2(tcS, v);
+        bool inside = all(vignette < 1);
+        t.next_tc = inside ? float3(t.tc_vignette.xy, t.cascade) : t.next_tc;
+        t.tc_vignette = inside ? float4(tcS, vignette) : t.tc_vignette;
+        t.cascade = inside ? i : t.cascade;
+      }
+      t.cascade = min(t.cascade, heightmap_shadow_szi_np2.w);
+      return t;
+    }
+    float3 worldPosFindHmapShadowTCHard(float2 worldPosXZ)
+    {
+      float3 t = float3(0,0,PROJECT_MAX_HMAP_SHADOW_CASCADES);
+      UNROLL
+      for (int i = PROJECT_MAX_HMAP_SHADOW_CASCADES-1; i >= 0; --i)
+      {
+        float4 v = heightmap_shadow_tc_ofs_sz[i];
+        float2 tcS = da_hmap_shadows_tc_to_sample(worldPosXZ, i);
+        t = all(da_hmap_shadows_tc_vignette2(tcS, v) < 1) ? float3(tcS, i) : t;
+      }
+      return t;
+    }
+  }
+endmacro
+
+macro USE_HMAP_SHADOWS(code)
+  USE_HMAP_SHADOWS_MATH(code)
+  hlsl(code) {
+
+    float getHmapShadowSimpleTCUnsaturated(float2 tc, int cascade, float worldPosY)
+    {
+      worldPosY = worldPosY*heightmap_shadow_height_encoding.x + heightmap_shadow_height_encoding.y;
+      worldPosY += exp2(cascade)*1./65535.; // for r16 encoding, adds max possible error
+      float4 shadowAltDist = tex3Dlod(heightmap_shadow, float4(tc, cascade,0));
+      float geomShadow = saturate((worldPosY - shadowAltDist.x)/(heightmap_shadow_height_encoding.z + asfloat(heightmap_shadow_world_lt_szi[cascade].w)*shadowAltDist.y)); // two channel - universal
+      return geomShadow;
+      //four channel earth - with earth level additionally blurred shadows
+      //return shadowAltDist.z;
+      //return lerp(shadowAltDist.z, geomShadow, cascade < heightmap_shadow_sz.y ? saturate(exp2(-cascade - 1.f)*(worldPosY - shadowAltDist.w)/heightmap_shadow_height_encoding.x - 1) : 1);
+    }
+    float getHmapShadowSimple(float3 worldPos)
+    {
+      #if HMAP_HARD_VIGNETTE
+      float3 tc = worldPosFindHmapShadowTCHard(worldPos.xz);
+      if (tc.z < PROJECT_MAX_HMAP_SHADOW_CASCADES)
+        return getHmapShadowSimpleTCUnsaturated(tc.xy, tc.z, worldPos.y);
+      return 1;
+      #else
+      //fade between cascades
+      HmapShadowInfoFind cascade = worldPosFindHmapShadowTCVignette(worldPos.xz);
+      float2 vignette = saturate(cascade.tc_vignette.zw*5 - 4);
+      float vignetteVal = saturate(dot(vignette, vignette));
+      float shadowVal = getHmapShadowSimpleTCUnsaturated(cascade.tc_vignette.xy, cascade.cascade, worldPos.y);
+      #if PROJECT_MAX_HMAP_SHADOW_CASCADES != 1
+      float nextCascadeShadowVal = cascade.cascade == heightmap_shadow_szi_np2.w ? 1 : shadowVal;
+      BRANCH
+      if (vignetteVal > 0 && cascade.next_tc.z < heightmap_shadow_szi_np2.z)
+        nextCascadeShadowVal = getHmapShadowSimpleTCUnsaturated(cascade.next_tc.xy, cascade.next_tc.z, worldPos.y);
+      #else
+      float nextCascadeShadowVal = 1;
+      #endif
+      return lerp(shadowVal, nextCascadeShadowVal, vignetteVal);
+      #endif
+    }
+
+    float getHmapShadowSimpleDithered(float3 worldPos, float dither)
+    {
+      #if PROJECT_MAX_HMAP_SHADOW_CASCADES == 1
+      return getHmapShadowSimple(worldPos);
+      #endif
+      HmapShadowInfoFind cascade = worldPosFindHmapShadowTCVignette(worldPos.xz);
+      float2 vignette = saturate(cascade.tc_vignette.zw*5 - 4);
+      float vignetteVal = saturate(dot(vignette, vignette));
+      FLATTEN
+      if (vignetteVal > 0 && cascade.next_tc.z < heightmap_shadow_szi_np2.z)
+      {
+        //dither between cascades based
+        FLATTEN
+        if (dither < vignetteVal)
+        {
+          cascade.cascade = cascade.next_tc.z;
+          cascade.tc_vignette.xy = cascade.next_tc.xy;
+        }
+        vignetteVal = 0;
+      }
+
+      float shadowVal = getHmapShadowSimpleTCUnsaturated(cascade.tc_vignette.xy, cascade.cascade, worldPos.y);
+      return lerp(shadowVal, 1, vignetteVal);
+    }
+
+    float getHmapShadow(float3 worldPos)
+    {
+      return getHmapShadowSimple(worldPos);
+    }
+    float getHmapShadowDithered(float3 worldPos, float dither)
+    {
+      return getHmapShadowSimpleDithered(worldPos, dither);
+    }
+  }
+endmacro

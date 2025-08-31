@@ -12,9 +12,9 @@ JPH_NAMESPACE_BEGIN
 /// Distance constraint settings, used to create a distance constraint
 class JPH_EXPORT DistanceConstraintSettings final : public TwoBodyConstraintSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, DistanceConstraintSettings)
 
+public:
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 
@@ -83,7 +83,7 @@ public:
 	void						SetLimitsSpringSettings(const SpringSettings &inLimitsSpringSettings) { mLimitsSpringSettings = inLimitsSpringSettings; }
 
 	///@name Get Lagrange multiplier from last physics update (the linear impulse applied to satisfy the constraint)
-	inline float	 			GetTotalLambdaPosition() const								{ return mAxisConstraint.GetTotalLambda(); }
+	inline float				GetTotalLambdaPosition() const								{ return mAxisConstraint.GetTotalLambda(); }
 
 private:
 	// Internal helper function to calculate the values below

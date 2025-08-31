@@ -200,7 +200,7 @@ void PuddlesManager::init(const LandMeshManager *lmesh_mgr, const DataBlock &set
     puddleLod = (int)max(0.f, floorf(log2f(puddlesTexelSize / hmapTexelSize) + 0.5f));
 
     debug("init puddles map rex %d^2, %f texel heightmapLod = %f", puddlesRes, puddlesTexelSize, puddleLod);
-    // puddles.set(d3d::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET|TEXFMT_L8, 1, "puddles"), "puddles");
+    // puddles.set(d3d::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "puddles"), "puddles");
     puddles = dag::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET | TEXFMT_L16, 1, "puddles");
     {
       d3d::SamplerInfo smpInfo;
@@ -210,7 +210,6 @@ void PuddlesManager::init(const LandMeshManager *lmesh_mgr, const DataBlock &set
     puddles.setVar();
     puddlesRenderer.init("make_puddles");
     puddlesRemover.init("remove_puddles_in_craters", nullptr, 0, "remove_puddles_in_craters");
-    puddles.getTex2D()->disableSampler();
     puddlesHelper.curOrigin = IPoint2(-1000000, 1000000);
     puddlesHelper.texSize = puddlesRes;
     puddlesRemovedBuf = dag::buffers::create_persistent_cb(MAX_PUDDLES_REMOVED, "removed_puddles_buf");

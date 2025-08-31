@@ -1,8 +1,10 @@
+options gen2
 options log_require = true
 
 require actions
 
 [export]
-def test
+def test {
     print("in cdp\n")
     return true
+}

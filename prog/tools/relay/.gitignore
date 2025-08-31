@@ -1,0 +1,8 @@
+/develop
+/game
+/projects
+/install
+/CVS/**
+.cvsignore
+_cache
+application.blk

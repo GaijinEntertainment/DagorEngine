@@ -40,9 +40,12 @@ inline bool get_water_ecs_query(ecs::EntityId eid, Callable c);
 template <typename Callable>
 static void effect_ripple_ecs_query(Callable c);
 
+static ecs::EntityId water_ripples_eid = ecs::INVALID_ENTITY_ID;
+
 static void destroy_water_ripples_entity()
 {
-  g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("water_ripples")));
+  g_entity_mgr->destroyEntity(water_ripples_eid);
+  water_ripples_eid = ecs::INVALID_ENTITY_ID;
 }
 
 ECS_TAG(render)
@@ -54,12 +57,12 @@ static void attempt_to_enable_water_ripples_es(const ecs::Event &, FFTWater &wat
     destroy_water_ripples_entity();
     return;
   }
-  if (g_entity_mgr->getSingletonEntity(ECS_HASH("water_ripples")))
+  if (water_ripples_eid != ecs::INVALID_ENTITY_ID && g_entity_mgr->doesEntityExist(water_ripples_eid))
     return;
   ecs::ComponentsInitializer init;
   init[ECS_HASH("water_ripples__water_level")] = fft_water::get_level(&water);
 
-  g_entity_mgr->createEntityAsync("water_ripples", eastl::move(init));
+  water_ripples_eid = g_entity_mgr->createEntityAsync("water_ripples", eastl::move(init));
 }
 
 ECS_TAG(render)

@@ -32,9 +32,9 @@ void replicated_component_client_modify_blacklist_add(ecs::component_t component
   replicated_component_client_modify_blacklist.insert(component);
 }
 
-void replicated_component_on_client_deserialize(ecs::EntityId eid, ecs::component_index_t cidx)
+void replicated_component_on_client_deserialize(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t cidx)
 {
-  if (replicated_component_client_modify_blacklist.count(g_entity_mgr->getDataComponents().getComponentTpById(cidx)) <= 0)
+  if (replicated_component_client_modify_blacklist.count(mgr.getDataComponents().getComponentTpById(cidx)) <= 0)
     return;
   BlacklistedComponentInfo &info = blacklisted_components[make_bl_info_key(eid, cidx)];
   ++info.deserializeCounter;
@@ -44,14 +44,13 @@ void replicated_component_on_client_deserialize(ecs::EntityId eid, ecs::componen
     info.deserializeCounter = info.changeCounter + 1; // We don't want to spam error messages.
     logerr("entity %d(templ='%s'): modifying replicated component %d('%s') from client (1), this is "
            "blacklisted by _replicatedComponentClientModifyBlacklist",
-      (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid), (int)cidx,
-      g_entity_mgr->getDataComponents().getComponentNameById(cidx));
+      (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid), (int)cidx, mgr.getDataComponents().getComponentNameById(cidx));
   }
 }
 
-void replicated_component_on_client_change(ecs::EntityId eid, ecs::component_index_t cidx)
+void replicated_component_on_client_change(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t cidx)
 {
-  if (replicated_component_client_modify_blacklist.count(g_entity_mgr->getDataComponents().getComponentTpById(cidx)) <= 0)
+  if (replicated_component_client_modify_blacklist.count(mgr.getDataComponents().getComponentTpById(cidx)) <= 0)
     return;
   BlacklistedComponentInfo &info = blacklisted_components[make_bl_info_key(eid, cidx)];
   ++info.changeCounter;
@@ -61,8 +60,7 @@ void replicated_component_on_client_change(ecs::EntityId eid, ecs::component_ind
     info.deserializeCounter = info.changeCounter + 1; // We don't want to spam error messages.
     logerr("entity %d(templ='%s'): modifying replicated component %d('%s') from client (2), this is "
            "blacklisted by _replicatedComponentClientModifyBlacklist",
-      (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid), (int)cidx,
-      g_entity_mgr->getDataComponents().getComponentNameById(cidx));
+      (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid), (int)cidx, mgr.getDataComponents().getComponentNameById(cidx));
   }
 }
 

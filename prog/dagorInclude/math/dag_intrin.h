@@ -92,7 +92,7 @@ inline unsigned __clz_unsafe(unsigned long long value)
 #else
 #if _TARGET_64BIT
 #if defined(__clang__)
-#ifdef __LZCNT__
+#if defined(__LZCNT__) && !defined(__e2k__)
   return __builtin_ia32_lzcnt_u64(value); // lzcnt
 #else
   return __builtin_clzll(value); // bsr
@@ -128,14 +128,14 @@ inline unsigned __clz_unsafe(long long value) { return __clz_unsafe((unsigned lo
 
 inline unsigned __clz_unsafe(unsigned int value)
 {
-#if defined(__ARM_ARCH)
+#if /* Apple silicon or ARMv8 */ defined(__arm64__) || defined(__aarch64__)
   return __builtin_clz(value); // clz
 #else
 #if defined(__clang__)
-#ifdef __LZCNT__
+#if defined(__LZCNT__) && !defined(__e2k__)
   return __builtin_ia32_lzcnt_u32(value); // lzcnt
 #else
-  return __builtin_clz(value);   // bsr
+  return __builtin_clz(value); // bsr
 #endif
 #elif defined(__GNUC__)
   return __builtin_clz(value); // bsr or lznct if -mabm

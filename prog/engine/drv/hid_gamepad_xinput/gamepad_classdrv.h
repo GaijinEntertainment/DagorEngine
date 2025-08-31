@@ -99,7 +99,6 @@ protected:
   bool enableAutoDef;
   bool emulateSingleDevice;
   int rescanCount;
-  volatile int updaterIsRunning;
   eastl::unique_ptr<XInputUpdater> inputUpdater;
   float stickDeadZoneScale[2] = {1, 1};
 
@@ -107,5 +106,6 @@ protected:
 
   void initXbox();
   void updateXboxGamepads();
+  void terminateInputUpdaterThread();
 };
 } // namespace HumanInput

@@ -8,22 +8,29 @@
 #include "shStateBlock.h"
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <startup/dag_restart.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_initOnDemand.h>
+#include <memory/dag_framemem.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <stdio.h>
 #include <EASTL/vector_map.h>
+#include <EASTL/vector_set.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_atomic_types.h>
+#include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_threadSafety.h>
 #include "shaders/sh_vars.h"
 #include <supp/dag_alloca.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
+#include <3d/tql.h>
 
 //
 
@@ -76,19 +83,21 @@ real get_shader_global_time_phase(float period, float offset)
 
 void ShaderGlobal::reset_textures(bool removed_tex_only)
 {
-  auto &vl = shBinDumpRW().globVars;
+  auto &state = shBinDumpOwner().globVarsState;
+  const auto &vars = shBinDump().globVars;
 
-  for (int i = 0, e = vl.size(); i < e; i++)
+  for (int i = 0, e = state.size(); i < e; i++)
   {
-    auto type = vl.getType(i);
+    const auto type = vars.getType(i);
     if (type == SHVT_TEXTURE)
     {
+      auto &tex = state.get<shaders_internal::Tex>(i);
       if (removed_tex_only)
-        if (get_managed_texture_name(vl.getTex(i).texId) || get_managed_texture_refcount(vl.getTex(i).texId) <= 0)
+        if (get_managed_texture_name(tex.texId) || get_managed_texture_refcount(tex.texId) <= 0)
           continue;
-      release_managed_tex(vl.getTex(i).texId);
-      vl.setTexId(i, BAD_TEXTUREID);
-      vl.setTex(i, NULL);
+      release_managed_tex(tex.texId);
+      tex.texId = BAD_TEXTUREID;
+      tex.tex = nullptr;
 
       int iid = shBinDumpOwner().globVarIntervalIdx[i];
       if (iid >= 0)
@@ -96,12 +105,13 @@ void ShaderGlobal::reset_textures(bool removed_tex_only)
     }
     else if (type == SHVT_BUFFER)
     {
+      auto &buf = state.get<shaders_internal::Buf>(i);
       if (removed_tex_only)
-        if (get_managed_res_name(vl.getBuf(i).bufId) || get_managed_res_refcount(vl.getBuf(i).bufId) <= 0)
+        if (get_managed_res_name(buf.bufId) || get_managed_res_refcount(buf.bufId) <= 0)
           continue;
-      release_managed_tex(vl.getBuf(i).bufId);
-      vl.setBufId(i, BAD_TEXTUREID);
-      vl.setBuf(i, NULL);
+      release_managed_tex(buf.bufId);
+      buf.bufId = BAD_TEXTUREID;
+      buf.buf = nullptr;
 
       int iid = shBinDumpOwner().globVarIntervalIdx[i];
       if (iid >= 0)
@@ -112,10 +122,11 @@ void ShaderGlobal::reset_textures(bool removed_tex_only)
 
 void ShaderGlobal::reset_stale_vars()
 {
-  auto &vl = shBinDumpRW().globVars;
-  for (int i = 0, e = vl.size(); i < e; i++)
-    if (vl.getType(i) == SHVT_TLAS)
-      vl.set<RaytraceTopAccelerationStructure *>(i, nullptr);
+  auto &state = shBinDumpOwner().globVarsState;
+  const auto &vars = shBinDump().globVars;
+  for (int i = 0, e = state.size(); i < e; i++)
+    if (vars.getType(i) == SHVT_TLAS)
+      state.set<RaytraceTopAccelerationStructure *>(i, nullptr);
 }
 
 void ShaderGlobal::reset_from_vars(TEXTUREID id)
@@ -123,19 +134,21 @@ void ShaderGlobal::reset_from_vars(TEXTUREID id)
   if (id == BAD_TEXTUREID)
     return;
 
-  auto &vl = shBinDumpRW().globVars;
+  auto &state = shBinDumpOwner().globVarsState;
+  const auto &vars = shBinDump().globVars;
 
-  for (int i = 0, e = vl.size(); i < e; i++)
+  for (int i = 0, e = state.size(); i < e; i++)
   {
-    auto type = vl.getType(i);
+    auto type = vars.getType(i);
     if (type == SHVT_TEXTURE)
     {
-      if (vl.getTex(i).texId != id)
+      auto &tex = state.get<shaders_internal::Tex>(i);
+      if (tex.texId != id)
         continue;
       if (get_managed_texture_refcount(id) > 0)
         release_managed_tex(id);
-      vl.setTexId(i, BAD_TEXTUREID);
-      vl.setTex(i, NULL);
+      tex.texId = BAD_TEXTUREID;
+      tex.tex = nullptr;
 
       int iid = shBinDumpOwner().globVarIntervalIdx[i];
       if (iid >= 0)
@@ -143,12 +156,13 @@ void ShaderGlobal::reset_from_vars(TEXTUREID id)
     }
     else if (type == SHVT_BUFFER)
     {
-      if (vl.getBuf(i).bufId != id)
+      auto &buf = state.get<shaders_internal::Buf>(i);
+      if (buf.bufId != id)
         continue;
       if (get_managed_res_refcount(id) > 0)
         release_managed_res(id);
-      vl.setBufId(i, BAD_TEXTUREID);
-      vl.setBuf(i, NULL);
+      buf.bufId = BAD_D3DRESID;
+      buf.buf = nullptr;
 
       int iid = shBinDumpOwner().globVarIntervalIdx[i];
       if (iid >= 0)
@@ -161,9 +175,12 @@ void ShaderGlobal::reset_from_vars(TEXTUREID id)
 
 struct ShaderVDeclVsd
 {
-  uint32_t hash; // keep hash so we can faster select
+  uint32_t hash = 0; // keep hash so we can faster select
   Tab<VSDTYPE> vsd;
-  bool operator==(const ShaderVDeclVsd &a) { return a.hash == hash && a.vsd.size() == vsd.size() && mem_eq(vsd, a.vsd.data()); }
+  ShaderVDeclVsd() = default;
+  ShaderVDeclVsd(IMemAlloc *a) : vsd(a) {}
+  ShaderVDeclVsd(const ShaderVDeclVsd &) = default;
+  bool operator==(const ShaderVDeclVsd &a) const { return a.hash == hash && a.vsd.size() == vsd.size() && mem_eq(vsd, a.vsd.data()); }
   bool operator<(const ShaderVDeclVsd &a) const
   {
     if (hash != a.hash)
@@ -222,7 +239,7 @@ void dynrender::convert_channels_to_vsd(const CompiledShaderChannelId *ch, int n
 #elif _TARGET_PC | _TARGET_IOS | _TARGET_TVOS | _TARGET_C3 | _TARGET_ANDROID
         r = (ch[c].vbui == 0 ? VSDR_POS : VSDR_POS2);
 #else
-        !error unsuported platform
+        !error unsupported platform
 #endif
         break;
       case SCUSAGE_NORM:
@@ -231,7 +248,7 @@ void dynrender::convert_channels_to_vsd(const CompiledShaderChannelId *ch, int n
 #elif _TARGET_PC | _TARGET_IOS | _TARGET_TVOS | _TARGET_C3 | _TARGET_ANDROID
         r = (ch[c].vbui == 0 ? VSDR_NORM : VSDR_NORM2);
 #else
-        !error unsuported platform
+        !error unsupported platform
 #endif
         break;
       case SCUSAGE_VCOL: r = (ch[c].vbui == 0 ? VSDR_DIFF : VSDR_SPEC); break;
@@ -276,7 +293,7 @@ void dynrender::convert_channels_to_vsd(const CompiledShaderChannelId *ch, int n
 }
 
 
-static VDECL internal_add_shader_vdecl_from_vsd(ShaderVDeclVsd &&vsd)
+static VDECL internal_add_shader_vdecl_from_vsd(ShaderVDeclVsd &vsd)
 {
   // look for vdecl with our vsd
   {
@@ -296,7 +313,7 @@ static VDECL internal_add_shader_vdecl_from_vsd(ShaderVDeclVsd &&vsd)
       d3d::delete_vdecl(vdecl);
       return ret;
     }
-  shader_vdecl_map.emplace_hint(it, eastl::move(vsd), vdecl);
+  shader_vdecl_map.emplace_hint(it, vsd, vdecl);
   shader_vdecl_map_mutex.unlock();
   return vdecl;
 }
@@ -304,9 +321,7 @@ static VDECL internal_add_shader_vdecl_from_vsd(ShaderVDeclVsd &&vsd)
 
 static VDECL add_shader_vdecl(const CompiledShaderChannelId *ch, int numch, dag::Span<VSDTYPE> add_vsd)
 {
-
-  // build vsd
-  ShaderVDeclVsd vsd;
+  ShaderVDeclVsd vsd(framemem_ptr());
   dynrender::convert_channels_to_vsd(ch, numch, vsd.vsd);
   if (add_vsd.size())
   {
@@ -315,8 +330,7 @@ static VDECL add_shader_vdecl(const CompiledShaderChannelId *ch, int numch, dag:
     vsd.vsd.push_back(VSD_END);
   }
   vsd.hash = mem_hash_fnv1((const char *)vsd.vsd.data(), data_size(vsd.vsd)); // probably make hasher based on words, not bytes
-
-  return internal_add_shader_vdecl_from_vsd(eastl::move(vsd));
+  return internal_add_shader_vdecl_from_vsd(vsd);                             // Note: not move b/c of framemem
 }
 
 void close_vdecl()
@@ -418,70 +432,160 @@ void RElem::render(bool indexed, int base_vertex_index) const
 
 namespace shaders_bindump_reload_fence
 {
-static volatile int launched_jobs = 0;
-static volatile int shaders_reloading = 0;
-static dag::Vector<int> job_manager_ids;
-static OSSpinlock job_managers_mutex;
 
-struct FenceJob : public cpujobs::IJob
+// Sync works as follows
+//
+// register_job_manager_requiring_shaders_bindump and load_shaders_bindump_with_fence are mutually excluded, so we only have to
+// organize sync for managers that were registered before (re)load was initiated.
+//
+// load_shaders_bindump_with_fence also protects itself with a JobManagersSyncPoint which
+// 1) Places a special FenceJob on each registered mgr and waits for all of them to reach this job
+//    (allReachedFenceEvent +notReachedFenceCount) in constructor
+// 2) The mgrs then sync-wait inside FenceJob for the reload to finish (reloadDoneEvent + reloadDone)
+// 3) When reload is done, JobManagersSyncPoint notifies fences and managers resume work.
+//
+// In order to avoid deadlocks when re-entering load_shaders_bindump_with_fence, each JobManagersSyncPoint spawns
+// it's own block of events/counters SyncPointSharedState which is only destroyed when all FenceJobs and sync point
+// are done with it, and concurrently with that it is ok to call load_shaders_bindump_with_fence again,
+// which will place more fences and use different events/counters.
+
+
+static struct Context
 {
-  void doJob() override
+  OSReadWriteLock bindumpReloadLock;
+  eastl::vector_set<int> waitingJobManagerIds DAG_TS_GUARDED_BY(bindumpReloadLock);
+} g_ctx{};
+
+class JobManagersSyncPoint
+{
+  struct SyncPointSharedState
   {
-    interlocked_increment(launched_jobs);
-    spin_wait([] { return interlocked_acquire_load(shaders_reloading); });
-    interlocked_decrement(launched_jobs);
+    os_event_t reloadDoneEvent{};
+    dag::AtomicFlag reloadDone{};
+
+    os_event_t allReachedFenceEvent{};
+    dag::AtomicInteger<int> notReachedFenceCount;
+
+    dag::AtomicInteger<int> rc;
+
+    SyncPointSharedState(int fence_count, int ref_count) : notReachedFenceCount{fence_count}, rc{ref_count}
+    {
+      os_event_create(&allReachedFenceEvent);
+      os_event_create(&reloadDoneEvent, nullptr, true);
+    }
+
+    ~SyncPointSharedState()
+    {
+      os_event_destroy(&allReachedFenceEvent);
+      os_event_destroy(&reloadDoneEvent);
+    }
+
+    friend void release(SyncPointSharedState *&hnd)
+    {
+      G_ASSERT(hnd);
+      if (hnd->rc.sub_fetch(1) == 0)
+        delete hnd;
+      hnd = nullptr;
+    }
+  };
+
+  struct FenceJob : public cpujobs::IJob
+  {
+    SyncPointSharedState *state;
+
+    explicit FenceJob(SyncPointSharedState *state) : state{state} {}
+
+    const char *getJobName(bool &) const override { return "FenceJob"; }
+
+    void doJob() override
+    {
+      if (state->notReachedFenceCount.sub_fetch(1) == 0)
+        os_event_set(&state->allReachedFenceEvent);
+
+      while (!state->reloadDone.test())
+        os_event_wait_noreset(&state->reloadDoneEvent, 1);
+
+      release(state);
+    }
+    void releaseJob() override { delete this; }
+  };
+
+  SyncPointSharedState *state{nullptr};
+
+public:
+  JobManagersSyncPoint() DAG_TS_REQUIRES(g_ctx.bindumpReloadLock)
+  {
+#if DAGOR_DBGLEVEL > 0
+    int64_t currentThreadId = get_current_thread_id();
+    if (eastl::find_if(g_ctx.waitingJobManagerIds.cbegin(), g_ctx.waitingJobManagerIds.cend(), [currentThreadId](int id) {
+          return cpujobs::get_job_manager_thread_id(id) == currentThreadId;
+        }) != g_ctx.waitingJobManagerIds.cend())
+    {
+      G_ASSERTF(0, "Trying to reload shaders bindump from job mgr %d which relies on bindump, this would be a deadlock",
+        currentThreadId);
+    }
+#endif
+
+    // Fence counter is g_ctx.waitingJobManagerIds.size() since there is one FenceJob per mgr,
+    // but rc is that + 1 cause the syncpoint itself holds a ref too
+    const int registeredJobMgrCount = int(g_ctx.waitingJobManagerIds.size());
+    state = new SyncPointSharedState{registeredJobMgrCount, registeredJobMgrCount + 1};
+
+    for (int jobMgrId : g_ctx.waitingJobManagerIds)
+      G_VERIFY(cpujobs::add_job(jobMgrId, new FenceJob{state}));
+
+    while (state->notReachedFenceCount.load() > 0)
+      os_event_wait(&state->allReachedFenceEvent, 1);
   }
-  void releaseJob() override { delete this; }
+
+  ~JobManagersSyncPoint()
+  {
+    state->reloadDone.test_and_set();
+    os_event_set(&state->reloadDoneEvent);
+
+    release(state);
+  }
 };
 
-struct JobManagersFence
-{
-  JobManagersFence()
-  {
-    G_ASSERTF(interlocked_acquire_load(shaders_reloading) == 0, "Simultaneous shaders reload from different threads?");
-    spin_wait([] { return interlocked_acquire_load(launched_jobs); });
-    interlocked_release_store(launched_jobs, 0);
-    interlocked_release_store(shaders_reloading, 1);
-    uint32_t expectedJobs = 0;
-    {
-      OSSpinlockScopedLock lock(job_managers_mutex);
-      expectedJobs = job_manager_ids.size();
-      for (int jobMgrId : job_manager_ids)
-        G_VERIFY(cpujobs::add_job(jobMgrId, new FenceJob));
-    }
-    spin_wait([expectedJobs] { return interlocked_acquire_load(launched_jobs) != expectedJobs; });
-  }
-  ~JobManagersFence() { interlocked_release_store(shaders_reloading, 0); }
-};
-
-static bool check_current_thread()
-{
-  int64_t currentThreadId = get_current_thread_id();
-  OSSpinlockScopedLock lock(job_managers_mutex);
-  for (int jobMgrId : job_manager_ids)
-    if (cpujobs::get_job_manager_thread_id(jobMgrId) == currentThreadId)
-    {
-      // Probably you are doing something wrong, but if you really want to reload shaders
-      // from jobs, then make sure that you haven't data races with other threads.
-      // And don't launch FenceJob for current thread, otherwise it is deadlock.
-      return false;
-    }
-  return true;
-}
 } // namespace shaders_bindump_reload_fence
 
 void register_job_manager_requiring_shaders_bindump(int job_mgr_id)
 {
-  OSSpinlockScopedLock lock(shaders_bindump_reload_fence::job_managers_mutex);
-  for (int jobId : shaders_bindump_reload_fence::job_manager_ids)
-    if (jobId == job_mgr_id)
-      return;
-  shaders_bindump_reload_fence::job_manager_ids.push_back(job_mgr_id);
+  using namespace shaders_bindump_reload_fence;
+  ScopedLockWriteTemplate lock{g_ctx.bindumpReloadLock};
+  g_ctx.waitingJobManagerIds.insert(job_mgr_id);
+}
+
+bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version)
+{
+  using namespace shaders_bindump_reload_fence;
+  G_ASSERT_RETURN(src_filename, false);
+
+  ScopedLockWriteTemplate lock{g_ctx.bindumpReloadLock};
+  JobManagersSyncPoint syncPoint{};
+  return load_shaders_bindump(src_filename, shader_model_version);
 }
 
 static void build_shaderdump_filename(char fname[DAGOR_MAX_PATH], const char *src_filename,
   d3d::shadermodel::Version shader_model_version)
 {
+  const auto getFormatForStubDriver = [] {
+    const char *ret = "%s.%s.shdump.bin";
+#if _TARGET_PC
+    if (::dgs_get_settings()->getBlockByNameEx("video")->getBlockByNameEx("stub")->getBool("enableBindlessAndRt", false))
+    {
+#if _TARGET_PC_WIN
+      ret = "%sDX12.%s.shdump.bin";
+#elif _TARGET_PC_LINUX
+      ret = "%sSpirV.bindless.%s.shdump.bin";
+#else
+      ret = "%sMTL.bindless.%s.shdump.bin";
+#endif
+    }
+#endif
+    return ::dgs_get_settings()->getBlockByNameEx("video")->getBlockByNameEx("stub")->getStr("shaderDumpOverride", ret);
+  };
+
   auto verStr = d3d::as_ps_string(shader_model_version);
 
   size_t sizeof_fname = sizeof(char) * DAGOR_MAX_PATH;
@@ -495,6 +599,7 @@ static void build_shaderdump_filename(char fname[DAGOR_MAX_PATH], const char *sr
       .map(d3d::ps4, "%sPS4.%s.shdump.bin")
       .map(d3d::ps5, "%sPS5.%s.shdump.bin")
       .map(d3d::metal, d3d::get_driver_desc().caps.hasBindless ? "%sMTL.bindless.%s.shdump.bin" : "%sMTL.%s.shdump.bin")
+      .map(d3d::stub, getFormatForStubDriver)
       .map(d3d::any, "%s.%s.shdump.bin");
 
   _snprintf(fname, sizeof_fname, format, src_filename, verStr);
@@ -609,15 +714,6 @@ bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version sh
   return load_shaders_bindump(dump.c_str(), shader_model_version, shBinDumpExOwner(!sec_dump_for_exp));
 }
 
-bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version)
-{
-  G_ASSERT_RETURN(src_filename, false);
-  G_ASSERT_RETURN(shaders_bindump_reload_fence::check_current_thread(), false);
-
-  shaders_bindump_reload_fence::JobManagersFence fence;
-  return load_shaders_bindump(src_filename, shader_model_version);
-}
-
 static void unload_shaders_bindump(ScriptedShadersBinDumpOwner &dest)
 {
   stcode::unload();
@@ -635,6 +731,52 @@ static d3d::shadermodel::Version forceFSH = d3d::smAny;
 d3d::shadermodel::Version getMaxFSHVersion() { return forceFSH; }
 void limitMaxFSHVersion(d3d::shadermodel::Version f) { forceFSH = f; }
 
+static bool debugDump = false;
+
+bool load_shaders_debug_bindump(d3d::shadermodel::Version version)
+{
+#if DAGOR_DBGLEVEL > 0
+  if (debugDump)
+    return true;
+
+  if (d3d::get_driver_code() != d3d::dx12 || dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false))
+  {
+    debug("Debug shaderdumps only exist for PC DX12");
+    return false;
+  }
+
+  static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders")) + ".debug";
+
+  if (load_shaders_bindump(shadersDir + "/game_debug", version))
+  {
+    debugDump = true;
+    return true;
+  }
+  debug("The debug shaderdump cannot be found, make sure it exists: %s/game_debugDX12.ps%d%d.shdump", shadersDir, version.minor,
+    version.major);
+#endif
+  return false;
+}
+
+bool unload_shaders_debug_bindump(d3d::shadermodel::Version version)
+{
+#if DAGOR_DBGLEVEL > 0
+  if (!debugDump)
+    return true;
+
+  static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders")) + ".debug";
+
+  if (load_shaders_bindump(shadersDir + "/game", d3d::shadermodel::Version(5, 0)))
+  {
+    debugDump = false;
+    return true;
+  }
+  debug("The normal shaderdump cannot be found, make sure it exists: %s/gameDX12.ps%d%d.shdump", shadersDir, version.minor,
+    version.major);
+#endif
+  return false;
+}
+
 void dump_shader_statistics()
 {
 #if DAGOR_DBGLEVEL > 0
@@ -650,6 +792,8 @@ void dump_shader_statistics()
   }
 #endif
 }
+
+void set_stcode_special_tag_interp(stcode::SpecialBlkTagInterpreter &&interp) { stcode::set_special_tag_interp(eastl::move(interp)); }
 
 class ShadersRestartProc : public SRestartProc
 {
@@ -677,6 +821,7 @@ public:
 
   void startup()
   {
+    tql::reset_texture_from_shader_vars = &ShaderGlobal::reset_from_vars;
     shaders_internal::init_stateblocks();
     ShaderStateBlock::clear();
     if (d3d::smAny == maxFshVer)

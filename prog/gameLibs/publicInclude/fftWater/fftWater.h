@@ -8,7 +8,6 @@
 #include <generic/dag_tab.h>
 #include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_resourcePool.h>
 #include <3d/dag_lockTexture.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/vector.h>
@@ -50,12 +49,6 @@ enum class Spectrum : uint8_t
 
 G_STATIC_ASSERT((int)fft_water::Spectrum::LAST == 1);
 static const char *spectrum_names[(int)Spectrum::LAST + 1] = {"phillips", "unified_directional"};
-
-enum
-{
-  WATER_RENDER_PASS_NORMAL = 0,
-  WATER_RENDER_PASS_DEPTH = 1
-};
 
 struct SimulationParams
 {
@@ -161,9 +154,12 @@ struct WaterFlowmap
   float flowmapDamping = 0.9f;
   Point4 flowmapStrength = Point4(1, 5, 0.5f, 0);
   Point4 flowmapStrengthAdd = Point4(0.5f, 1, 1, 0.1f);
+  Point4 fluidStrength = Point4(0.2f, 20, 1, 0.1f);
   Point4 flowmapFoam = Point4(5, 10, 0.5f, 0.1f);
-  float flowmapFoamReflectivityMin = 0.0f;
-  Point3 flowmapFoamColor = Point3(1, 1, 1);
+  Point4 flowmapFoamColor0 = Point4(1, 1, 1, 1);
+  Point4 flowmapFoamColor1 = Point4(1, 1, 1, 1);
+  float flowmapBumpmappingScale = 10.0f;
+  float flowmapFoamSoftness = 1.0f;
   float flowmapFoamTiling = 1;
   float flowmapFoamDisplacement = 0.1f;
   float flowmapFoamDetail = 1;
@@ -210,7 +206,7 @@ enum
 {
   GEOM_INVISIBLE = 0,
   GEOM_NORMAL = 1,
-  GEOM_HIGH = GEOM_NORMAL
+  GEOM_HIGH = 2
 };
 enum RenderMode
 {
@@ -221,36 +217,36 @@ enum RenderMode
 };
 FFTWater *create_water(RenderQuality quality, float period = 1000.f, int res_bits = 7, bool depth_renderer = false,
   bool ssr_renderer = false, bool one_to_four_cascades = false, int min_render_res_bits = 6,
-  RenderQuality geom_quality = RenderQuality::UNDEFINED);
+  RenderQuality geom_quality = RenderQuality::UNDEFINED, bool water_heightmap_draw_patches = true);
 void init_render(FFTWater *, int quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades,
-  RenderQuality geom_quality = RenderQuality::UNDEFINED);
-bool one_to_four_render_enabled(FFTWater *handle);
+  RenderQuality geom_quality = RenderQuality::UNDEFINED, bool water_heightmap_draw_patches = true);
+bool one_to_four_render_enabled(const FFTWater *handle);
 void set_grid_lod0_additional_tesselation(FFTWater *a, float amount);
 void set_grid_lod0_area_radius(FFTWater *a, float radius);
-void set_period(FFTWater *handle, float period);
-int get_num_cascades(FFTWater *handle);
+void set_period(FFTWater *a, float period);
+int get_num_cascades(const FFTWater *handle);
 void set_num_cascades(FFTWater *handle, int cascades);
-float get_period(FFTWater *handle);
+float get_period(const FFTWater *handle);
 void delete_water(FFTWater *&);
 void simulate(FFTWater *handle, double time);
-void before_render(FFTWater *handle);
+void before_render(const FFTWater *handle);
 void set_render_quad(FFTWater *handle, const BBox2 &quad);
-void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, const Driver3dPerspective &persp,
-  int geom_lod_quality = GEOM_NORMAL, int survey_id = -1, IWaterDecalsRenderHelper *decals_renderer = NULL,
-  RenderMode render_mode = WATER_SHADER);
-float getGridLod0AreaSize(FFTWater *handle);
+void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum,
+  const Driver3dPerspective &persp, int geom_lod_quality = GEOM_NORMAL, int survey_id = -1,
+  IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER);
+float getGridLod0AreaSize(const FFTWater *handle);
 void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tesselation);
 void setAnisotropy(FFTWater *handle, int aniso, float mip_bias = 0.f);
-float get_small_wave_fraction(FFTWater *handle);
+float get_small_wave_fraction(const FFTWater *handle);
 void set_small_wave_fraction(FFTWater *handle, float smallWaveFraction);
-float get_cascade_window_length(FFTWater *handle);
+float get_cascade_window_length(const FFTWater *handle);
 void set_cascade_window_length(FFTWater *handle, float value);
-float get_cascade_facet_size(FFTWater *handle);
+float get_cascade_facet_size(const FFTWater *handle);
 void set_cascade_facet_size(FFTWater *handle, float value);
-SimulationParams get_simulation_params(FFTWater *handle);
+SimulationParams get_simulation_params(const FFTWater *handle);
 void set_simulation_params(FFTWater *handle, const SimulationParams &params);
 void set_foam(FFTWater *handle, const FoamParams &params);
-FoamParams get_foam(FFTWater *handle);
+FoamParams get_foam(const FFTWater *handle);
 
 enum GraphicFeature
 {
@@ -269,7 +265,7 @@ enum GraphicFeature
   GRAPHIC_FEATURE_END
 };
 void enable_graphic_feature(FFTWater *handle, GraphicFeature feature, bool enable);
-void get_cascade_period(FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out);
+void get_cascade_period(const FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out);
 
 // if detect_rivers_width <= 0 or reiversCB == 0, it won't be used
 void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
@@ -280,51 +276,58 @@ void set_flowmap_tex(FFTWater *handle);
 void set_flowmap_params(FFTWater *handle);
 void set_flowmap_foam_params(FFTWater *handle);
 void close_flowmap(FFTWater *handle);
-bool is_flowmap_active(FFTWater *handle);
+bool is_flowmap_active(const FFTWater *handle);
 void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &heightmapTexView,
-  LockedImage2DView<uint16_t> &floodfillTexView, uint16_t heightmapLevel);
+  LockedImage2DView<uint16_t> &floodfillTexView, float waterLevel, const Point4 &heightmapMinMax, const BBox3 &levelBox,
+  const fft_water::WaterHeightmap *waterHeightmap);
 void deferred_wet_ground(FFTWater *handle, const Point3 &pos);
-void prepare_refraction(FFTWater *handle, Texture *scene_target_tex);
+void prepare_refraction(const FFTWater *handle, Texture *scene_target_tex);
 void set_current_time(FFTWater *handle, double time); // remove me! should not be used!
 void reset_physics(FFTWater *handle);
 void wait_physics(FFTWater *handle);
-bool validate_next_time_tick(FFTWater *handle, double next_time);
+bool validate_next_time_tick(const FFTWater *handle, double next_time);
 void reset_render(FFTWater *handle); // if device is lost
 void set_render_quality(FFTWater *handle, int quality, bool depth_renderer, bool ssr_renderer);
-float get_level(FFTWater *handle);
+float get_level(const FFTWater *handle);
 void set_level(FFTWater *handle, float level);
-float get_height(FFTWater *handle, const Point3 &point);
-float get_max_level(FFTWater *handle);
-void get_wind_speed(FFTWater *handle, float &out_speed, Point2 &out_wind_dir);
+float get_min_level(const FFTWater *handle);
+float get_max_level(const FFTWater *handle);
+void set_min_max_level(FFTWater *handle, float min_level, float max_level);
+float get_height(const FFTWater *handle, const Point3 &point);
+void get_wind_speed(const FFTWater *handle, float &out_speed, Point2 &out_wind_dir);
 void set_wind_speed(FFTWater *handle, float speed, const Point2 &wind_dir);
-void get_roughness(FFTWater *handle, float &out_roughness_base, float &out_cascades_roughness_base);
+void get_roughness(const FFTWater *handle, float &out_roughness_base, float &out_cascades_roughness_base);
 void set_roughness(FFTWater *handle, float roughness_base, float cascades_roughness_base);
-float get_max_wave(FFTWater *handle);
-float get_significant_wave_height(FFTWater *handle);
+float get_max_wave(const FFTWater *handle);
+float get_significant_wave_height(const FFTWater *handle);
 void set_wave_displacement_distance(FFTWater *handle, const Point2 &value);
 void shore_enable(FFTWater *handle, bool enable);
-bool is_shore_enabled(FFTWater *handle);
-float get_shore_wave_threshold(FFTWater *handle);
+bool is_shore_enabled(const FFTWater *handle);
+float get_shore_wave_threshold(const FFTWater *handle);
 void set_shore_wave_threshold(FFTWater *handle, float value);
-int get_fft_resolution(FFTWater *handle);
+int get_fft_resolution(const FFTWater *handle);
 void set_fft_resolution(FFTWater *handle, int res_bits);
-void set_render_pass(FFTWater *handle, int pass);
 
-int intersect_segment(FFTWater *, const Point3 &start, const Point3 &end, float &result); // must return 1 if intersection found and 0
-                                                                                          // if intersection is not found, updates
-                                                                                          // result (T along the segment) if
-                                                                                          // intersection is found
-int intersect_segment_at_time(FFTWater *, double at_time, const Point3 &start, const Point3 &end, float &result); // must return 1 if
-                                                                                                                  // intersection found
-                                                                                                                  // and 0 if
-                                                                                                                  // intersection is
-                                                                                                                  // not found, updates
-                                                                                                                  // result (T along
-                                                                                                                  // the segment) if
-                                                                                                                  // intersection is
-                                                                                                                  // found
-int getHeightAboveWater(FFTWater *, const Point3 &point, float &result, bool matchRenderGrid = false);
-int getHeightAboveWaterAtTime(FFTWater *, double at_time, const Point3 &point, float &result, Point3 *out_displacement = NULL);
+int intersect_segment(const FFTWater *, const Point3 &start, const Point3 &end, float &result); // must return 1 if intersection found
+                                                                                                // and 0 if intersection is not found,
+                                                                                                // updates result (T along the segment)
+                                                                                                // if intersection is found
+int intersect_segment_at_time(const FFTWater *, double at_time, const Point3 &start, const Point3 &end, float &result); // must return
+                                                                                                                        // 1 if
+                                                                                                                        // intersection
+                                                                                                                        // found and 0
+                                                                                                                        // if
+                                                                                                                        // intersection
+                                                                                                                        // is not
+                                                                                                                        // found,
+                                                                                                                        // updates
+                                                                                                                        // result (T
+                                                                                                                        // along the
+                                                                                                                        // segment) if
+                                                                                                                        // intersection
+                                                                                                                        // is found
+int getHeightAboveWater(const FFTWater *, const Point3 &point, float &result, bool matchRenderGrid = false);
+int getHeightAboveWaterAtTime(const FFTWater *, double at_time, const Point3 &point, float &result, Point3 *out_displacement = NULL);
 void setRenderParamsToPhysics(FFTWater *handle);
 void setVertexSamplers(FFTWater *, int samplersCount); // samplersCount shows quality of sampling. Obviously, if higher cascades can
                                                        // not provide significant displacement, they should not be used
@@ -360,14 +363,14 @@ void apply_wave_preset(FFTWater *water, const WavePreset &preset1, const WavePre
 void apply_wave_preset(FFTWater *water, const WavePresets &waves, float bf_scale, const Point2 &wind_dir);
 void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, Spectrum spectrum);
 
-void get_wave_preset(FFTWater *water, WavePreset &out_preset);
+void get_wave_preset(const FFTWater *water, WavePreset &out_preset);
 void set_wind(FFTWater *handle, float bf_scale, const Point2 &wind_dir);
 
-WaterFlowmap *get_flowmap(FFTWater *handle);
+WaterFlowmap *get_flowmap(const FFTWater *handle);
 void create_flowmap(FFTWater *handle);
 void remove_flowmap(FFTWater *handle);
 
-const WaterHeightmap *get_heightmap(FFTWater *water);
+const WaterHeightmap *get_heightmap(const FFTWater *water);
 void set_heightmap(FFTWater *water, eastl::unique_ptr<WaterHeightmap> &&heightmap);
 void remove_heightmap(FFTWater *water);
 void load_heightmap(IGenLoad &loadCb, FFTWater *water);

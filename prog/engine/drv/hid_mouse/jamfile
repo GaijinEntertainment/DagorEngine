@@ -31,4 +31,10 @@ if $(Platform) in linux {
   AddLibs += -lX11 ;
 }
 
+if $(Platform) = windows {
+  Sources +=
+    windows_ms_api.cpp
+  ;
+}
+
 include $(Root)/prog/_jBuild/build.jam ;

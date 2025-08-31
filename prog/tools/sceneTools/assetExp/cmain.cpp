@@ -48,8 +48,8 @@ extern char **environ;
 
 extern "C" IDaBuildInterface *__stdcall get_dabuild_interface();
 static inline void clearCache(const String &path, const char *mask);
-static int findBadReferences(dag::ConstSpan<DagorAsset *> assets, int tex_atype);
-static int checkAssetReferences(DagorAsset *asset);
+static int findBadReferences(dag::ConstSpan<DagorAsset *> assets, int tex_atype, Tab<IDagorAssetRefProvider::Ref> &tmp_refs);
+static int checkAssetReferences(DagorAsset *asset, Tab<IDagorAssetRefProvider::Ref> &tmp_refs);
 
 class ConsoleLogWriterEx : public ConsoleLogWriter
 {
@@ -59,7 +59,7 @@ public:
   String impWarn;
   int impWarnCnt;
 
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
     if (type == REMARK || type < level)
       return;
@@ -93,9 +93,9 @@ public:
       errCount++;
   }
 
-  virtual void startLog() { errCount = 0; }
-  virtual void endLog() {}
-  virtual bool hasErrors() const { return errCount > 0; }
+  void startLog() override { errCount = 0; }
+  void endLog() override {}
+  bool hasErrors() const override { return errCount > 0; }
 
   MessageType level;
   int errCount;
@@ -105,7 +105,7 @@ class ConsoleMsgPipe : public NullMsgPipe
 {
 public:
   ConsoleMsgPipe(ConsoleLogWriterEx &l) : log(l) {}
-  virtual void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath)
+  void onAssetMgrMessage(int msg_t, const char *msg, DagorAsset *a, const char *asset_src_fpath) override
   {
     updateErrCount(msg_t);
     if (msg_t == REMARK)
@@ -576,7 +576,8 @@ int DagorWinMain(bool debugmode)
 
     for (int t = 0; t < targets.size(); t++)
     {
-      String ts(mkbindump::get_target_str(targets[t]));
+      uint64_t tc_storage = 0;
+      const char *ts = mkbindump::get_target_str(targets[t], tc_storage);
       dag::ConstSpan<DagorAsset *> assets = mgr.getAssets();
       const char *pkg_by_folder_tex = NULL;
       const char *pkg_by_folder_res = NULL;
@@ -644,6 +645,25 @@ int DagorWinMain(bool debugmode)
       int ai = find_value_idx(mgr.getAssets(), a);
       force_rebuild_assets.addInt(ai);
       AssetExportCache::sharedDataAddForceRebuildAsset(a->getNameTypified());
+      if (a->getType() == mgr.getTexAssetTypeId() && !strchr(name, '$') &&
+          force_rebuild_assets.size() + 3 <= countof(DabuildJobSharedMem::forceRebuildAssetIdx))
+      {
+        if (DagorAsset *a1 = mgr.findAsset(String::mk_str_cat(name, "$tq")))
+        {
+          force_rebuild_assets.addInt(find_value_idx(mgr.getAssets(), a1));
+          AssetExportCache::sharedDataAddForceRebuildAsset(a1->getNameTypified());
+        }
+        if (DagorAsset *a1 = mgr.findAsset(String::mk_str_cat(name, "$hq")))
+        {
+          force_rebuild_assets.addInt(find_value_idx(mgr.getAssets(), a1));
+          AssetExportCache::sharedDataAddForceRebuildAsset(a1->getNameTypified());
+        }
+        if (DagorAsset *a1 = mgr.findAsset(String::mk_str_cat(name, "$uhq")))
+        {
+          force_rebuild_assets.addInt(find_value_idx(mgr.getAssets(), a1));
+          AssetExportCache::sharedDataAddForceRebuildAsset(a1->getNameTypified());
+        }
+      }
     }
     else
       log.addMessage(ILogWriter::WARNING, "can't find asset <%s> to force rebuild", name);
@@ -671,7 +691,8 @@ int DagorWinMain(bool debugmode)
         const DataBlock &expBlk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
         const DataBlock &destBlk = *expBlk.getBlockByNameEx("destination");
 
-        String ts(mkbindump::get_target_str(targets[t]));
+        uint64_t tc_storage = 0;
+        const char *ts = mkbindump::get_target_str(targets[t], tc_storage);
         String profile_suffix;
         if (assets_profile && *assets_profile)
           profile_suffix.printf(0, ".%s", assets_profile);
@@ -849,6 +870,7 @@ int DagorWinMain(bool debugmode)
     printf("%.*s", (int)cwr.size(), cwr.data());
   }
 
+  Tab<IDagorAssetRefProvider::Ref> tmp_refs;
   for (const SimpleString &a_nm : singleAssetShowRefsList)
   {
     DagorAsset *a = mgr.findAsset(a_nm, exp_types);
@@ -862,9 +884,9 @@ int DagorWinMain(bool debugmode)
     IDagorAssetRefProvider *refProvider = a->getMgr().getAssetRefProvider(a->getType());
     if (refProvider)
     {
-      dag::ConstSpan<IDagorAssetRefProvider::Ref> refs = refProvider->getAssetRefs(*a);
-      printf("\n--- asset <%s> refs(%d):\n", a->getNameTypified().c_str(), (int)refs.size());
-      for (const IDagorAssetRefProvider::Ref &r : refs)
+      refProvider->getAssetRefs(*a, tmp_refs);
+      printf("\n--- asset <%s> refs(%d):\n", a->getNameTypified().c_str(), (int)tmp_refs.size());
+      for (const IDagorAssetRefProvider::Ref &r : tmp_refs)
         printf("  %c[%c%c] %s\n", r.flags & IDagorAssetRefProvider::RFLG_BROKEN ? '-' : ' ',
           r.flags & IDagorAssetRefProvider::RFLG_EXTERNAL ? 'X' : ' ', r.flags & IDagorAssetRefProvider::RFLG_OPTIONAL ? 'o' : ' ',
           r.getAsset() ? r.getAsset()->getNameTypified().c_str() //-V522
@@ -909,7 +931,7 @@ int DagorWinMain(bool debugmode)
     }
     if (singleAssetOut == "*")
       singleAssetOut = String(0, "%s.%s.%s", a->getName(), a->getTypeStr(), strcmp(a->getTypeStr(), "tex") == 0 ? "dds" : "bin");
-    checkAssetReferences(a);
+    checkAssetReferences(a, tmp_refs);
 
     IDagorAssetExporter *e = mgr.getAssetExporter(a->getType());
     if (!e)
@@ -927,8 +949,10 @@ int DagorWinMain(bool debugmode)
 
     mkbindump::BinDumpSaveCB cwr(16 << 10, targets[0], false);
     cwr.setProfile(assets_profile);
+    if (singleAssetFastBuild)
+      cwr.setFastBuildFlag(true);
     int t0 = get_time_msec();
-    if (!(singleAssetFastBuild ? e->buildAssetFast(*a, cwr, log) : e->exportAsset(*a, cwr, log)))
+    if (!e->exportAsset(*a, cwr, log))
     {
       log.addMessage(ILogWriter::ERROR, "can't build asset <%s> data", a->getName());
       return 1;
@@ -978,10 +1002,11 @@ int DagorWinMain(bool debugmode)
     OAHashNameMap<true> names;
     Tab<int> name2list;
     name2list.reserve(list.size());
+    uint64_t tc_storage = 0;
     for (const auto &fn : list)
       for (int t = 0; t < targets.size(); t++)
-        if (trail_stricmp(fn, String(260, "%s.c4.bin", mkbindump::get_target_str(targets[t]))) ||
-            trail_stricmp(fn, String(260, "%s.ct.bin", mkbindump::get_target_str(targets[t]))))
+        if (trail_stricmp(fn, String(260, "%s.c4.bin", mkbindump::get_target_str(targets[t], tc_storage))) ||
+            trail_stricmp(fn, String(260, "%s.ct.bin", mkbindump::get_target_str(targets[t], tc_storage))))
         {
           int id = names.addNameId(dd_get_fname(fn));
           if (id == name2list.size()) // must be always true!
@@ -996,7 +1021,7 @@ int DagorWinMain(bool debugmode)
 
     for (int t = 0; t < targets.size(); t++)
     {
-      String ts(mkbindump::get_target_str(targets[t]));
+      const char *ts = mkbindump::get_target_str(targets[t], tc_storage);
       for (int i = 0; i < assets.size(); i++)
       {
         int fidx = assets[i]->getFolderIndex();
@@ -1084,7 +1109,7 @@ int DagorWinMain(bool debugmode)
   else if (maintListOp == 2)
   {
     log.addMessage(ILogWriter::NOTE, "checking references for %d assets...", mgr.getAssets().size());
-    int bad_refs = findBadReferences(mgr.getAssets(), mgr.getTexAssetTypeId());
+    int bad_refs = findBadReferences(mgr.getAssets(), mgr.getTexAssetTypeId(), tmp_refs);
     if (bad_refs)
       post_error(mgr.getMsgPipe(), "found %d bad references in asset base!", bad_refs);
     else
@@ -1113,16 +1138,18 @@ int DagorWinMain(bool debugmode)
           ::dd_erase(cacheBase + arg[j]);
         }
 
+        uint64_t tc_storage = 0;
+        const char *tc_str = mkbindump::get_target_str(targets[i], tc_storage);
         if (export_tex && arg.size() == 1)
         {
-          mask.printf(128, "*.dxp.bin.%s.*", mkbindump::get_target_str(targets[i]));
+          mask.printf(128, "*.dxp.bin.%s.*", tc_str);
           clearCache(cacheBase, mask);
-          mask.printf(128, "*.ddsx.%s.*", mkbindump::get_target_str(targets[i]));
+          mask.printf(128, "*.ddsx.%s.*", tc_str);
           clearCache(cacheBase, mask);
         }
         if (export_res && arg.size() == 1)
         {
-          mask.printf(128, "*.grp.%s.*", mkbindump::get_target_str(targets[i]));
+          mask.printf(128, "*.grp.%s.*", tc_str);
           clearCache(cacheBase, mask);
         }
 
@@ -1268,44 +1295,40 @@ int DagorWinMain(bool debugmode)
 
 static inline void clearCache(const String &path, const char *mask)
 {
-  alefind_t ff;
-
   String mp(512, "%s%s", path.str(), mask);
 
-  for (bool ok = ::dd_find_first(mp, DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(mp, DA_FILE))
   {
     debug("remove %s", path + ff.name);
     ::dd_erase(path + ff.name);
   }
-  ::dd_find_close(&ff);
 
   mp = path + "*";
-  for (bool ok = ::dd_find_first(mp, DA_SUBDIR, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(mp, DA_SUBDIR))
   {
     clearCache(path + ff.name + "/", mask);
     ::dd_rmdir(path + ff.name);
   }
-  ::dd_find_close(&ff);
 }
 
-static int findBadReferences(dag::ConstSpan<DagorAsset *> assets, int tex_atype)
+static int findBadReferences(dag::ConstSpan<DagorAsset *> assets, int tex_atype, Tab<IDagorAssetRefProvider::Ref> &tmp_refs)
 {
   int bad_rc = 0;
   for (DagorAsset *a : assets)
     if (a && a->getType() != tex_atype) // subtle optimization: textures don't reference anything now
-      bad_rc += checkAssetReferences(a);
+      bad_rc += checkAssetReferences(a, tmp_refs);
   return bad_rc;
 }
-static int checkAssetReferences(DagorAsset *a)
+static int checkAssetReferences(DagorAsset *a, Tab<IDagorAssetRefProvider::Ref> &tmp_refs)
 {
   IDagorAssetRefProvider *refProvider = a->getMgr().getAssetRefProvider(a->getType());
   if (!refProvider)
     return 0;
 
-  dag::ConstSpan<IDagorAssetRefProvider::Ref> refs = refProvider->getAssetRefs(*a);
+  refProvider->getAssetRefs(*a, tmp_refs);
   int bad_rc = 0;
 
-  for (const IDagorAssetRefProvider::Ref &r : refs)
+  for (const IDagorAssetRefProvider::Ref &r : tmp_refs)
   {
     if (r.getAsset())
       continue;

@@ -33,12 +33,14 @@
 #include <assets/assetHlp.h>
 #include <assets/assetRefs.h>
 #include <assets/assetMgr.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_dynSceneRes.h>
 
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_miscApi.h>
 
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_dataBlock.h>
@@ -52,9 +54,9 @@
 #include <3d/ddsxTex.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <winGuiWrapper/wgw_busy.h>
 
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_input.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameSettings.h>
 
@@ -84,7 +86,7 @@ struct ExportFiltersPlgRec
   bool *useFilter;
 };
 
-static int get_tex_asset_data_size(DagorAsset *a, unsigned target)
+static int get_tex_asset_data_size(DagorAsset *a, unsigned target, int texq)
 {
   if (!a)
     return 0;
@@ -94,12 +96,12 @@ static int get_tex_asset_data_size(DagorAsset *a, unsigned target)
   if (minimize_dabuild_usage)
   {
     ddsx::DDSxDataPublicHdr ddsx_hdr;
-    int ddsx_msize = ddsx::read_ddsx_header(String(0, "%s*", a->getName()), ddsx_hdr, true);
+    int ddsx_msize = ddsx::read_ddsx_header(String(0, "%s*", a->getName()), ddsx_hdr, true, texq);
     if (ddsx_msize >= 0)
       return ddsx_msize;
   }
 
-  return texconvcache::get_tex_size(*a, target, NULL);
+  return texconvcache::get_tex_size(*a, target, NULL, texq);
 }
 
 unsigned TextureRemapHelper::getTexturesSize(unsigned target) const
@@ -115,7 +117,7 @@ unsigned TextureRemapHelper::getTexturesSize(unsigned target) const
     for (int i = 0; i < texname.nameCount(); ++i)
     {
       DagorAsset *a = DAEDITOR3.getAssetByName(texname.getName(i), actype);
-      int sz = get_tex_asset_data_size(a, target);
+      int sz = get_tex_asset_data_size(a, target, getTexQ(a->getName()));
       if (sz < 0)
         DAEDITOR3.conWarning("cannot get size of %s texture asset", texname.getName(i));
       size += sz;
@@ -168,6 +170,40 @@ TextureRemapHelper::~TextureRemapHelper()
   for (int i = 0; i < ddsxTex.size(); i++)
     ddsxTex[i].free();
   clear_and_shrink(ddsxTex);
+}
+
+static void add_name_id_excl_trail_asterisk(NameMap &nm, const char *name)
+{
+  size_t len = strlen(name);
+  if (len > 1 && name[len - 1] == '*')
+    len--;
+  nm.addNameId(name, len);
+}
+void TextureRemapHelper::setupTexQualityFromLevelBlk(const DataBlock &level_blk)
+{
+  if (const DataBlock *b = level_blk.getBlockByName("forceTexLQ"))
+    dblk::iterate_params_by_name_and_type(*b, "tex", DataBlock::TYPE_STRING,
+      [b, this](int idx) { add_name_id_excl_trail_asterisk(lqTexNames, b->getStr(idx)); });
+  if (const DataBlock *b = level_blk.getBlockByName("forceTexMQ"))
+    dblk::iterate_params_by_name_and_type(*b, "tex", DataBlock::TYPE_STRING,
+      [b, this](int idx) { add_name_id_excl_trail_asterisk(mqTexNames, b->getStr(idx)); });
+  if (lqTexNames.nameCount() || mqTexNames.nameCount())
+    debug("read tex quality restrictions from level-BLK: %d MQ tex, %d LQ tex (%s)", //
+      mqTexNames.nameCount(), lqTexNames.nameCount(), level_blk.resolveFilename());
+
+  customMetricsTexCount = level_blk.getInt("textures_count", -1);
+  customMetricsTexSizeMb = level_blk.getReal("textures_size", -1.f);
+  if (customMetricsTexCount >= 0 || customMetricsTexSizeMb >= 0)
+    debug("read custom metrics from level-BLK: tex.size=%gM, tex.count=%d (%s)", //
+      customMetricsTexSizeMb, customMetricsTexCount, level_blk.resolveFilename());
+}
+int TextureRemapHelper::getTexQ(const char *tex_name) const
+{
+  if (lqTexNames.getNameId(tex_name) >= 0)
+    return 2;
+  if (mqTexNames.getNameId(tex_name) >= 0)
+    return 1;
+  return 0;
 }
 
 int TextureRemapHelper::getDDSxTextureSize(int i) const
@@ -392,7 +428,8 @@ bool TextureRemapHelper::validateTexture_(const char *file_name_param)
 
 static void make_scene_fname(String &dest_fn, const char *scene_dir, int target_code)
 {
-  dest_fn = ::make_full_path(scene_dir, String(64, "scene-%s.scn", mkbindump::get_target_str(target_code)));
+  uint64_t tc_storage = 0;
+  dest_fn = ::make_full_path(scene_dir, String(64, "scene-%s.scn", mkbindump::get_target_str(target_code, tc_storage)));
 }
 
 void add_built_scene_textures(const char *scene_dir, ITextureNumerator &tn)
@@ -683,7 +720,7 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
         }
     }
 
-    virtual bool onOk()
+    bool onOk() override
     {
       int i;
       for (i = 0; i < exportData.size(); ++i)
@@ -782,8 +819,10 @@ bool DagorEdAppWindow::showPluginDlg(Tab<IGenEditorPlugin *> &build_plugin, Tab<
 }
 
 
+static int stmask_render_saved_for_export = 0;
 static void endExport(Tab<IOnExportNotify *> &expNotify, CoolConsole &console, unsigned target_code)
 {
+  IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, stmask_render_saved_for_export);
   if (expNotify.size())
   {
     console.startProgress();
@@ -828,7 +867,14 @@ static inline void addUsedTextures(DagorAsset &a, OAHashNameMap<true> &resTexLis
           resTexList.addNameId(ta->getName());
       }
       else
-        logwarn("failed to resolve tex asset: tid=0x%x, name=<%s> for asset <%s>", tid, get_managed_texture_name(tid), a.getName());
+      {
+        bool runtime_arrtex = false;
+        if (BaseTexture *t = acquire_managed_tex(tid))
+          runtime_arrtex = (t->getType() == D3DResourceType::ARRTEX);
+        release_managed_tex(tid);
+        if (!runtime_arrtex)
+          logwarn("failed to resolve tex asset: tid=0x%x, name=<%s> for asset <%s>", tid, get_managed_texture_name(tid), a.getName());
+      }
     release_game_resource((GameResource *)res);
   }
   else
@@ -855,7 +901,8 @@ static void add_tex_refs_recursive(DagorAsset &a, OAHashNameMap<true> &resList, 
   IDagorAssetRefProvider *r = a.getMgr().getAssetRefProvider(a.getType());
   if (!r)
     return;
-  SmallTab<IDagorAssetRefProvider::Ref, TmpmemAlloc> refs(r->getAssetRefs(a));
+  Tab<IDagorAssetRefProvider::Ref> refs(tmpmem);
+  r->getAssetRefs(a, refs);
   if (!refs.size())
     return;
 
@@ -874,7 +921,7 @@ static void add_tex_refs_recursive(DagorAsset &a, OAHashNameMap<true> &resList, 
 
 // batch export logging
 
-const char *BATCH_LOG_PATH = "/.log/batch_log.txt";
+const char *BATCH_LOG_PATH = "/.logs/batch_log.txt";
 BatchLogCB *bl_callback = NULL;
 
 BatchLogCB::BatchLogCB(BatchLog *_bl) : bl(_bl) { G_ASSERT(bl); }
@@ -929,7 +976,7 @@ static bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
   MemoryLoadCB crd(cwr.getMem(), false);
   while (sz > 0)
   {
-    int rdsz = __min(sz, BUF_SZ);
+    int rdsz = min(sz, BUF_SZ);
     df_read(fp, buf, rdsz);
     crd.read(buf2, rdsz);
     if (memcmp(buf, buf2, rdsz) != 0)
@@ -943,10 +990,86 @@ static bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
   return true;
 }
 
+static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
+{
+  String app_root(DAGORED2->getWorkspace().getAppDir());
+  DataBlock appblk(String::mk_str_cat(app_root, "/application.blk"));
+  String fn(0, "levels/%s", DAGORED2->getProjectFileName());
+  remove_trailing_string(fn, ".level.blk");
+  fn += ".blk";
+
+  class LevelsFolderIncludeFileResolver : public DataBlock::IIncludeFileResolver
+  {
+  public:
+    LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
+    bool resolveIncludeFile(String &inout_fname) override
+    {
+      String fn;
+      for (int i = 0; i < prefix.size(); i++)
+      {
+        fn.printf(0, "%s/%s/levels/%s", appDir, prefix[i], inout_fname);
+        if (dd_file_exists(fn))
+        {
+          inout_fname = fn;
+          return true;
+        }
+      }
+      return false;
+    }
+    void preparePrefixes(const DataBlock *b, const char *app_dir)
+    {
+      prefix.clear();
+      appDir = app_dir;
+      if (!b)
+        return;
+      for (int i = 0; i < b->paramCount(); i++)
+        if (b->getParamType(i) == DataBlock::TYPE_STRING)
+          prefix.push_back(b->getStr(i));
+    }
+    Tab<const char *> prefix;
+    const char *appDir;
+  };
+  static LevelsFolderIncludeFileResolver inc_resv;
+
+  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"), app_root);
+  DataBlock::setIncludeResolver(&inc_resv);
+
+  debug("Loading level settings from \"%s\"", fn);
+  bool loaded = false;
+  int prefix_tried = 0;
+  for (int i = 0; i < inc_resv.prefix.size(); i++)
+  {
+    String fpath(0, "%s/%s/%s", app_root, inc_resv.prefix[i], fn);
+    if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
+    {
+      loaded = true;
+      break;
+    }
+    debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
+    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
+    {
+      loaded = true;
+      break;
+    }
+    prefix_tried++;
+  }
+
+  if (!loaded)
+    loaded = levelSettingsBlk.load(fn);
+
+  return loaded;
+}
+
 bool DagorEdAppWindow::gatherUsedResStats(dag::ConstSpan<IBinaryDataBuilder *> exporters, unsigned target_code,
   const OAHashNameMap<true> &levelResList, TextureRemapHelper &out_trh, int64_t &out_texSize, int &out_texCount,
   bool verbose_to_console)
 {
+  int startTime = get_time_msec();
+  DataBlock levelSettingsBlk;
+  if (loadLevelSettingsBlk(levelSettingsBlk))
+    out_trh.setupTexQualityFromLevelBlk(levelSettingsBlk);
+
   for (int i = 0; i < exporters.size(); i++)
   {
     if (!exporters[i]->addUsedTextures(out_trh))
@@ -985,54 +1108,109 @@ bool DagorEdAppWindow::gatherUsedResStats(dag::ConstSpan<IBinaryDataBuilder *> e
         DAEDITOR3.conNote("level DDSx %5d: +%5dK [%s]", i, out_trh.getDDSxTextureSize(i) >> 10, out_trh.getDDSxTextureName(i));
       else
         debug("level DDSx %d: %s -> sz=%d", i, out_trh.getDDSxTextureName(i), out_trh.getDDSxTextureSize(i));
-    for (int i = 0; i < out_trh.getTexturesCount(); i++)
-    {
-      DagorAsset *a = DAEDITOR3.getAssetByName(out_trh.getTextureName(i), assetrefs::get_tex_type());
-      int sz = get_tex_asset_data_size(a, target_code);
-      if (verbose_to_console)
-        DAEDITOR3.conNote("level tex %6d: +%5dK [%s]", i, sz >> 10, out_trh.getTextureName(i));
-      else
-        debug("level tex %d: %s -> sz=%d", i, out_trh.getTextureName(i), sz);
-    }
-    iterate_names(resTexList, [&](int id, const char *name) {
-      if (out_trh.getTextureOrdinal(name) != -1)
-        return;
-
-      DagorAsset *a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
-      int sz = get_tex_asset_data_size(a, target_code);
-      if (verbose_to_console)
-        DAEDITOR3.conNote("resource tex %3d: +%5dK [%s]", id, sz >> 10, name);
-      else
-        debug("resource tex %d: %s -> sz=%d", id, name, sz);
-      if (sz < 0)
-        DAEDITOR3.conWarning("cannot get size of %s texture asset", name);
-      else
-      {
-        out_texCount++;
-        out_texSize += sz;
-      }
-    });
+    carray<const char *, 3> qstr = {"", " MQ", " LQ"};
 
     int64_t bakedImpTexSize = 0;
     int bakedImpTexCount = 0;
-    iterate_names(bakedImpTexList, [&](int id, const char *name) {
+    for (int id = bakedImpTexList.nameCount() - 1; id >= 0; id--)
+    {
+      const char *name = bakedImpTexList.getStringDataUnsafe(id);
       if (out_trh.getTextureOrdinal(name) != -1)
-        return;
+        continue;
 
       DagorAsset *a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
-      int sz = get_tex_asset_data_size(a, target_code);
-      if (verbose_to_console)
-        DAEDITOR3.conNote("bakedImp tex %3d: +%5dK [%s]", id, sz >> 10, name);
-      else
-        debug("bakedImp tex %d: %s -> sz=%d", id, name, sz);
-      if (sz < 0)
-        DAEDITOR3.conWarning("cannot get size of %s texture asset", name);
-      else
+      int texq = out_trh.getTexQ(a->getName());
+
+      bool out_unused;
+      if (!texconvcache::is_tex_built_and_actual(*a, target_code, nullptr, out_unused))
+        texconvcache::schedule_prebuild_tex(a, static_cast<TexQL>(texq));
+    }
+    for (int id = resTexList.nameCount() - 1; id >= 0; id--)
+    {
+      const char *name = resTexList.getStringDataUnsafe(id);
+      if (out_trh.getTextureOrdinal(name) != -1)
+        continue;
+
+      DagorAsset *a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
+      int texq = out_trh.getTexQ(a->getName());
+
+      bool out_unused;
+      if (!texconvcache::is_tex_built_and_actual(*a, target_code, nullptr, out_unused))
+        texconvcache::schedule_prebuild_tex(a, static_cast<TexQL>(texq));
+    }
+    for (int i = out_trh.getTexturesCount() - 1; i >= 0; i--)
+    {
+      DagorAsset *a = DAEDITOR3.getAssetByName(out_trh.getTextureName(i), assetrefs::get_tex_type());
+      int texq = out_trh.getTexQ(a->getName());
+
+      bool out_unused;
+      if (!texconvcache::is_tex_built_and_actual(*a, target_code, nullptr, out_unused))
+        texconvcache::schedule_prebuild_tex(a, static_cast<TexQL>(texq));
+    }
+
+    const int workCycleFreq = 15; // call dagor_work_cycle roughly every workCycleFreq msecs
+    int lastUpdate = get_time_msec();
+    for (int i = 0; i < out_trh.getTexturesCount(); i++)
+    {
+      if (get_time_msec() - lastUpdate >= workCycleFreq)
       {
-        bakedImpTexCount++;
-        bakedImpTexSize += sz;
+        dagor_work_cycle();
+        lastUpdate = get_time_msec();
       }
-    });
+
+      DagorAsset *a = DAEDITOR3.getAssetByName(out_trh.getTextureName(i), assetrefs::get_tex_type());
+      int texq = out_trh.getTexQ(a->getName());
+      int sz = get_tex_asset_data_size(a, target_code, texq);
+
+      if (verbose_to_console)
+        DAEDITOR3.conNote("level tex %6d: +%5dK [%s]%s", i, sz >> 10, out_trh.getTextureName(i), qstr[texq]);
+      else
+        debug("level tex %d: %s%s -> sz=%d", i, out_trh.getTextureName(i), qstr[texq], sz);
+    }
+    for (int id = 0; id < resTexList.nameCount(); id++)
+    {
+      if (get_time_msec() - lastUpdate >= workCycleFreq)
+      {
+        dagor_work_cycle();
+        lastUpdate = get_time_msec();
+      }
+
+      const char *name = resTexList.getStringDataUnsafe(id);
+      if (out_trh.getTextureOrdinal(name) != -1)
+        continue;
+      DagorAsset *a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
+      int texq = out_trh.getTexQ(a->getName());
+      int sz = get_tex_asset_data_size(a, target_code, texq);
+      out_texCount++;
+      out_texSize += sz;
+
+      if (verbose_to_console)
+        DAEDITOR3.conNote("resource tex %3d: +%5dK [%s]%s", id, sz >> 10, name, qstr[texq]);
+      else
+        debug("resource tex %d: %s%s -> sz=%d", id, name, qstr[texq], sz);
+    }
+    for (int id = 0; id < bakedImpTexList.nameCount(); id++)
+    {
+      if (get_time_msec() - lastUpdate >= workCycleFreq)
+      {
+        dagor_work_cycle();
+        lastUpdate = get_time_msec();
+      }
+
+      const char *name = bakedImpTexList.getStringDataUnsafe(id);
+      if (out_trh.getTextureOrdinal(name) != -1)
+        continue;
+      DagorAsset *a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
+      int texq = out_trh.getTexQ(a->getName());
+      int sz = get_tex_asset_data_size(a, target_code, texq);
+      bakedImpTexCount++;
+      bakedImpTexSize += sz;
+
+      if (verbose_to_console)
+        DAEDITOR3.conNote("bakedImp tex %3d: +%5dK [%s]%s", id, sz >> 10, name, qstr[texq]);
+      else
+        debug("bakedImp tex %d: %s%s -> sz=%d", id, name, qstr[texq], sz);
+    }
 
     if (verbose_to_console)
     {
@@ -1045,6 +1223,10 @@ bool DagorEdAppWindow::gatherUsedResStats(dag::ConstSpan<IBinaryDataBuilder *> e
     if (bakedImpTexList.nameCount())
       DAEDITOR3.conNote("Baked impostors (%s in %d tex) are excluded from metrics", ::bytes_to_mb(bakedImpTexSize), bakedImpTexCount);
   }
+
+  int timeSpent = get_time_msec() - startTime;
+  debug("Gathered used res stats in %dms", timeSpent);
+  DAEDITOR3.conNote("Gathered used res stats in %g seconds", timeSpent / 1000.0);
   return true;
 }
 void DagorEdAppWindow::exportLevelToGame(int target_code)
@@ -1164,7 +1346,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       }
     }
 
-    bool onOk()
+    bool onOk() override
     {
       for (int i = 0; i < exporters.size(); ++i)
       {
@@ -1179,8 +1361,6 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
 
       return true;
     }
-
-    virtual bool doScrollPanel() const { return true; }
 
   private:
     const Tab<IBinaryDataBuilder *> &exporters;
@@ -1275,7 +1455,11 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
     log_message = "";
   }
 
-  wingw::set_busy(true);
+  ec_set_busy(true);
+  stmask_render_saved_for_export = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+  IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER,
+    IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT));
+
   int exportStart = ::get_time_msec();
   // notify listeners about export begins
   Tab<IOnExportNotify *> expNotify(tmpmem);
@@ -1324,7 +1508,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
     console->endProgress();
     endExport(expNotify, *console, target_code);
     console->endLog();
-    wingw::set_busy(false);
+    ec_set_busy(false);
 
     if (!mNeedSuppress)
       wingw::message_box(wingw::MBS_EXCL, "Export to game error", "Errors during level validation.\nSee console for details.");
@@ -1334,7 +1518,6 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   }
 
   // gather textures used in all components of level
-  validateStart = ::get_time_msec();
   console->setActionDesc("Gathering textures...");
 
   // Gather resource list used in level
@@ -1347,12 +1530,14 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   TextureRemapHelper trh(target_code);
   int64_t texSize = 0;
   int texCount = 0;
+
+  bool prevFastConv = texconvcache::set_fast_conv(auto_full_throttle.prev_ddsx_fast_conv);
   if (!gatherUsedResStats(exporters, target_code, levelResList, trh, texSize, texCount))
   {
     console->endProgress();
     endExport(expNotify, *console, target_code);
     console->endLog();
-    wingw::set_busy(false);
+    ec_set_busy(false);
 
     if (!mNeedSuppress)
       wingw::message_box(wingw::MBS_EXCL, "Export to game error", "Errors during level validation.\nSee console for details.");
@@ -1360,8 +1545,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
     console->showConsole(true);
     return;
   }
-
-  DAEDITOR3.conNote("Gathered tex/res lists for %g seconds", (::get_time_msec() - validateStart) / 1000.0);
+  texconvcache::set_fast_conv(prevFastConv);
 
   DataBlock metrixBlk;
   bool metrixFound = wsp->getMetricsBlk(metrixBlk);
@@ -1383,7 +1567,8 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
 
     if (levelMetricsBlk)
     {
-      const int maxTexCount = levelMetricsBlk->getInt("textures_count", 0);
+      const int custom_tex_cnt = trh.getCustomMetricsTexCount();
+      const int maxTexCount = custom_tex_cnt < 0 ? levelMetricsBlk->getInt("textures_count", 0) : custom_tex_cnt;
 
       if (texCount > maxTexCount)
       {
@@ -1399,7 +1584,8 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       }
       else
       {
-        const int64_t maxTexSize = levelMetricsBlk->getReal("textures_size", 0) * int64_t(1 << 20);
+        const float custom_tex_sz = trh.getCustomMetricsTexSizeMb();
+        const int64_t maxTexSize = (custom_tex_sz < 0 ? levelMetricsBlk->getReal("textures_size", 0) : custom_tex_sz) * (1 << 20);
 
         if (texSize > maxTexSize)
         {
@@ -1472,7 +1658,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       console->endProgress();
       endExport(expNotify, *console, target_code);
       console->endLog();
-      wingw::set_busy(false);
+      ec_set_busy(false);
 
       if (!mNeedSuppress)
         wingw::message_box(wingw::MBS_EXCL, "Export to game error", "Errors during level validation.\nSee console for details.");
@@ -1547,7 +1733,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       dd_erase(binFName);
       console->endProgress();
       endExport(expNotify, *console, target_code);
-      wingw::set_busy(false);
+      ec_set_busy(false);
       log_message = "Can't convert one or more textures";
       if (!mNeedSuppress)
         wingw::message_box(wingw::MBS_EXCL, "Export to Game", log_message.str());
@@ -1596,7 +1782,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
             console->addMessage(console->ERROR, log_message.str());
             console->endProgress();
             endExport(expNotify, *console, target_code);
-            wingw::set_busy(false);
+            ec_set_busy(false);
             if (!mNeedSuppress)
               wingw::message_box(wingw::MBS_EXCL, "Export to Game", "Some plugins could not perform operation");
             else
@@ -1637,7 +1823,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
             console->addMessage(console->ERROR, log_message.str());
             console->endProgress();
             endExport(expNotify, *console, target_code);
-            wingw::set_busy(false);
+            ec_set_busy(false);
             if (!mNeedSuppress)
               wingw::message_box(wingw::MBS_EXCL, "Export to Game", "Some plugins could not perform operation");
             else
@@ -1672,7 +1858,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
 
     log_message = String(512, "Couldn't write file \"%s\"", (const char *)binFName);
     console->addMessage(ILogWriter::FATAL, log_message);
-    wingw::set_busy(false);
+    ec_set_busy(false);
     if (!mNeedSuppress)
       wingw::message_box(wingw::MBS_EXCL, "Export error", "Couldn't write file \"%s\"", (const char *)binFName);
     else
@@ -1753,7 +1939,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
         (const char *)::bytes_to_mb(levelSize), levelSize, (const char *)::bytes_to_mb(maxFileSize), maxFileSize);
       console->addMessage(ILogWriter::FATAL, log_message);
 
-      wingw::set_busy(false);
+      ec_set_busy(false);
       if (!mNeedSuppress)
         wingw::message_box(wingw::MBS_EXCL, "Export to game error", "Errors during level metrics check.\nSee console for details.");
       else
@@ -1768,7 +1954,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   const int sec = (get_time_msec() - exportStart) / 1000;
   console->addMessage(ILogWriter::NOTE, "Export time is %i minutes %i seconds; dest: %s", sec / 60, sec % 60, binFName);
 
-  wingw::set_busy(false);
+  ec_set_busy(false);
   log_message = String(512, "Dagor Binary Level Dump was written to\n\n%s", binFName.str());
   if (!console_was_visible)
     console->hideConsole();

@@ -5,6 +5,7 @@ include "shore.dshl"
 include "displacement_inc.dshl"
 include "heightmap_common.dshl"
 include "biomes.dshl"
+include "underwater_fog.dshl"
 
 float4 heightmap_min_max = (0, 0, 0, 0);
 
@@ -14,7 +15,6 @@ float4 specular_detect_land_color = (1, 0, 0, 0);
 
 float4 landCellShortDecodeXZ=(1,1,0,0);
 float4 landCellShortDecodeY =(1,0,0,0);
-float ocean_density = 1.0;
 float wetness_above = 1.05;
 
 int lmesh_rendering_mode = 0;
@@ -175,7 +175,7 @@ block(scene) land_mesh_with_clipmap
 
   (ps) {
     wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
-    shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+    shore_params1@f4 = (max_wave_height, scroll_time, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
     lightmap_tex@smp2d = lightmap_tex;
   }
 
@@ -245,7 +245,7 @@ if (autodetect_land_selfillum_enabled == yes)
       BRANCH\
       if (selfillum_strength > 0.001)\
       {\
-        bool active2 = (land_selfillum_params_add.y < 0 || any(int4(detail_no.id * MAX_MICRO_DETAILS_SCALE + 0.5) == int4(land_selfillum_params_add.yyyy)));\
+        bool active2 = (land_selfillum_params_add.y < 0 || any(int4(detail_no.id * land_micro_details_cnt_scale + 0.5) == int4(land_selfillum_params_add.yyyy)));\
         if (active2 && (land_selfillum_params_add.x < 0 || getBiomeGroupIndex(worldpos) == int(land_selfillum_params_add.x))) {\
           APPLY_LAND_SELFILLUM(gbuffer, worldpos, selfillum_strength);\
         } \

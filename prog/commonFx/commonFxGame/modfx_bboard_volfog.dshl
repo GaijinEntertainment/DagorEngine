@@ -1,0 +1,7 @@
+include "modfx_bboard_render_inc.dshl"
+
+shader dafx_modfx_bboard_volfog_injection
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_bboard_volfog_injection)
+  USE_MODFX_UBERSHADER()
+}

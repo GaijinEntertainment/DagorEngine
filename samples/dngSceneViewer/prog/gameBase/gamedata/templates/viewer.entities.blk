@@ -1,0 +1,839 @@
+import:t="%danetlibs/renderer/templates/render_settings.template.blk"
+import:t="dng_lib_entities.blk"
+import:t="lens_flare.blk"
+import:t="game_objects.blk"
+import:t="color_grading_tonemap.blk"
+import:t="lights.blk"
+import:t="postfx.blk"
+import:t="weather.blk"
+import:t="envi_fx.blk"
+import:t="character_controller.blk"
+import:t="sounds.blk"
+import_optional:t="#content/east_district/templates/*.pkg.entities.blk"
+
+ecs_no_debug{
+  "noECSDebug:tag"{
+    _tags:t="ecsDebug"
+  }
+}
+replicating{
+  replication {_tags:t="net";}
+}
+daeditor_selected {
+  "daeditor__selected:tag"{}
+}
+
+msg_sink{
+  msg_sink{}
+  _use:t=replicating;
+  _singleton:b=yes
+} // TODO: rename to net_msg_sink
+
+glob_input{
+  input{_tags:t="input";}
+  "glob_input:tag"{_tags:t="input";}
+  "glob_input__inputMode:i"{_tags:t="input";}
+}
+
+observed{
+  _group{
+    _hide:b=yes
+    "watchedByPlr:eid"{}
+    "bindedCamera:eid" {_tags:t="gameClient"; _track:b=yes; value:i=0;}
+    "activeCamIdx:i" { _tags:t="gameClient"; value:i=0; }
+    "activeCamIdxBeforeEnterVehicle:i" { _tags:t="gameClient"; value:i=0; }
+  }
+}
+observed_local{_use:t="observed";}
+observed_remote{}
+
+volfog_nbs{
+    _use:t="replicating"
+    _singleton:b=yes
+    volfog_nbs__rootGraph:t=""
+    volfog_nbs__low_range:r = 256.0
+    volfog_nbs__high_range:r = 1024.0
+    volfog_nbs__low_height:r = 8.0
+    volfog_nbs__high_height:r = 200.0
+ }
+
+free_cam_input{
+  _group{
+    "free_cam_input__move:u16"{ value:i=-1; }
+    "free_cam_input__rotate:u16"{ value:i=-1; }
+    "free_cam_input__shiftY:u16"{ value:i=-1; }
+    "free_cam_input__zoomIn:u16"{ value:i=-1; }
+    "free_cam_input__zoomOut:u16"{ value:i=-1; }
+    "free_cam_input__turbo:u16"{ value:i=-1; }
+    "free_cam_input__speedUp:u16"{ value:i=-1; }
+    "free_cam_input__speedDown:u16"{ value:i=-1; }
+    "free_cam_input__speedReset:u16"{ value:i=-1; }
+    "free_cam_input__bank:u16"{ value:i=-1; }
+  }
+
+  free_cam__move:p2=0,0
+  free_cam__rotate:p2=0,0
+  free_cam__shiftY:r=0
+  free_cam__turbo:b=no
+  free_cam__angSpdScale:p2=0.01, 0.01
+  free_cam__move_speed:r=5
+  free_cam__moveSpeedDefault:r=5
+  free_cam__bank:r=0
+
+  _tracked:t="free_cam__angSpdScale"
+  _tracked:t="free_cam__move_speed"
+}
+
+base_free_cam{
+  _use:t="free_cam_input"
+  editableObj:b=no
+  camera__active:b=no
+  camera__input_enabled:b=yes
+  fov:r=90.0
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  base_transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _tracked:t="camera__active"
+  "camera_view:tag"{}
+  input{
+    _tags:t="input"
+  }
+  _group{
+    free_cam{}
+    free_cam__mouse:p2=0, 0
+    _tags:t="gameClient"
+  }
+}
+
+free_cam{
+  _use:t="base_free_cam"
+  free_cam__angSpdScale:p2=0.001,0.001
+}
+
+
+static_cam{
+  camera__active:b=no
+  "camera_view:tag"{}
+  fov:r=90
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _use:t=replicating;
+  "net__inInitialScope:tag"{}
+  "respbase:tag"{_tags:t="server";}
+}
+
+level{
+  _use:t="replicating"
+  _singleton:b=yes
+  nonCreatableObj:b=yes
+  _tracked:t="level__loaded"
+  _tracked:t="level__loadedAtTime"
+  level__blk:t=""
+  "level__loaded:b"{
+    value:b=no
+    _hide:b=yes
+  }
+  level__loadedAtTime:r=-1
+  level__timeRange:p2=9, 9
+  level__latitude:r=-200
+  level__longtitude:r=-200
+  level__day:i=21
+  level__month:i=6
+  level__year:i=1941
+  level__timeSeed:i=-1
+  level__timeOfDay:r=9
+  level__weatherSeed:i=-1
+  level__cloudsHoleEnabled:b=yes
+  level__weather:t="weather_clear_b"
+  level__fpsLimit:i=-1 // -1: use fpsLimit from settings, 0: unlimited, >0 limited
+  level__fixedBattleAreas:b=no
+  level__useGroundHolesCollision:b=no
+  level__renderFeaturesOverrideFromLevelBlk:b=no
+  "level__renderFeaturesOverrides:object"{}
+
+  "net__alwaysInScope:tag"{}
+
+  level{}
+
+  "level__timeVec:array"{}
+  "level__weatherChoice:object"{
+    "weather_clear_b":r=0.5
+  }
+
+  "level__weatherRemaps:shared:object"{
+    "gamedata/weather/weather_almost_clear.blk":t="weather_clear_b"
+  }
+  _tracked:t="level__timeOfDay"
+}
+
+player {
+  player{}
+  _group{
+    _replicate:b=yes //template?
+    _track:b=yes
+    "possessed:eid"{ }
+    "specTarget:eid"{ }
+    team:i=-1
+    name:t=""
+    disconnected:b=false
+    player__score:r=0
+    player__checkpoints:i=0
+    player__last_checkpoint_time:r=0
+  }
+  disconnectedAtTime:r=-1
+  "is_local:b"{ _track:b=yes; }
+  platformUid:t=""
+  platform:t=""
+  connid:i=-1
+  clientNetFlags:i=0
+  connectedAtTime:r=-1
+  startedAtTime:r=-1
+  canBeLocal:b=yes
+  _use:t=replicating;
+  "net__notInInitialScope:tag"{}
+  receive_logerr:b=false
+
+  "activeCamName:t"{_tags:t="gameClient"; value:t=""}
+  "activeCamEid:eid"{_tags:t="gameClient";}
+
+  appId:i=0; "userid:u64"{ value:i64=-1; } //== to avoid component is not known in template <player>
+}
+
+ri_gpu_object{
+  _use:t="replicating"
+  _group{
+    _track:b=yes
+    ri_gpu_object__name:t=""
+    ri_gpu_object__grid_tiling:i=4
+    ri_gpu_object__grid_size:i=16
+    ri_gpu_object__cell_size:r=8
+    ri_gpu_object__seed:i=0
+    ri_gpu_object__up_vector:p3=0, 1, 0
+    ri_gpu_object__scale_range:p2=1, 1
+    ri_gpu_object__biom_indexes:p4=-1, -1, -1, -1
+    ri_gpu_object__is_using_normal:b=no
+    ri_gpu_object__incline_delta:r=0
+    ri_gpu_object__rotate_range:p2=0, 0
+    ri_gpu_object__map:t=""
+    ri_gpu_object__map_size:p2=512, 512
+    ri_gpu_object__map_offset:p2=0, 0
+    ri_gpu_object__color_from:c=127, 127, 127, 127
+    ri_gpu_object__color_to:c=127, 127, 127, 127
+    ri_gpu_object__slope_factor:p2=1, 0
+    ri_gpu_object__hardness:r=1
+    ri_gpu_object__sparse_weight:r=0
+    ri_gpu_object__decal:b=no
+    ri_gpu_object__transparent:b=no
+    ri_gpu_object__distorsion:b=no
+    ri_gpu_object__place_on_water:b=no
+    ri_gpu_object__render_into_shadows:b=no
+    ri_gpu_object__coast_range:p2=-1, -1
+    ri_gpu_object__face_coast:b=no
+    "ri_gpu_object__biome_params:array"{}
+    "ri_gpu_object__multiple_objects:array"{}
+  }
+
+  "ri_preload:GpuObjectRiResourcePreload"{
+    _tags:t="render"
+  }
+}
+
+shaderVars{
+  _tracked:t="shader_vars__vars"
+  _replicated:t="shader_vars__vars"
+  _use:t="replicating"
+  _singleton:b=yes
+
+  "shader_vars__vars:object"{}
+  "shader_vars__original_vars:object"{}
+}
+
+water{
+  _singleton:b=yes
+  _use:t="replicating"
+  _group{
+    _track:b=yes
+    water__strength:r=4
+    water__wind_dir:r=40
+    water__level:r=0
+    water__fft_resolution:i=7
+    water__max_tessellation:i=4
+    water__flowmap:b=yes
+    water__has_slopes:b=no
+    water__flowmap_tex:t=""
+    water__flowmap_area:p4=-512, -512, 512, 512
+    water__wind_strength:r=0.2
+    water__flowmap_range:r=100
+    water__flowmap_fading:r=3
+    water__flowmap_prebaked_speed:r=1
+    water__flowmap_prebaked_foam_scale:r=5
+    water__flowmap_prebaked_foam_power:r=0.5
+    water__flowmap_prebaked_foamfx:r=0
+    water__flowmap_min_distance:r=0.5
+    water__flowmap_max_distance:r=1
+    water__flowmap_simulated_speed:r=1
+    water__flowmap_simulated_foam_scale:r=0.3
+    water__flowmap_foam_power:r=5
+    water__flowmap_foam_scale:r=10
+    water__flowmap_foam_threshold:r=0.5
+    water__flowmap_foam_reflectivity:r=0.1
+    water__flowmap_foam_color:p3=1, 1, 1
+    water__flowmap_foam_tiling:r=1
+    water__flowmap_speed_depth_scale:r=1
+    water__flowmap_foam_speed_scale:r=0.1
+    water__flowmap_speed_depth_max:r=0.3
+    water__flowmap_foam_depth_max:r=1
+    water__flowmap_slope:r=1
+    water__flowmap_detail:b=yes
+
+    foamfx__tile_uv_scale:r=0.05
+    foamfx__distortion_scale:r=0.75
+    foamfx__normal_scale:r=0.1
+    foamfx__pattern_gamma:r=2.2
+    foamfx__mask_gamma:r=2.2
+    foamfx__gradient_gamma:r=2.2
+    foamfx__underfoam_threshold:r=0.1
+    foamfx__overfoam_threshold:r=0.25
+    foamfx__underfoam_weight:r=0.2
+    foamfx__overfoam_weight:r=1
+    foamfx__underfoam_color:p3=1, 1, 1
+    foamfx__overfoam_color:p3=1, 1, 1
+    foamfx__reflectivity:r=0.1
+    foamfx__tile_tex:t="foam_generator_1_tile_tex_n"
+    foamfx__gradient_tex:t="foam_generator_gradient_tex_n"
+
+    shore__enabled:b=yes
+    shore__texture_size:i=1024
+    shore__hmap_size:r=1024
+    shore__rivers_width:r=200
+    shore__significant_wave_threshold:r=0.62
+    shore__wave_height_to_amplitude:r=0.25
+    shore__amplitude_to_length:r=30
+    shore__parallelism_to_wind:r=0.1
+    shore__width_k:r=3
+    shore__waves_dist:p4=600, 1000, 0, 50
+    shore__wave_gspeed:r=1
+  }
+  waterTrail__cascadeArea:r=128
+  waterTrail__cascadeAreaMul:r=2.5
+  waterTrail__quadHeight:r=20
+  waterTrail__fadeInTime:r=0.1
+  waterTrail__fadeOutTime:r=60
+  waterTrail__widthThreshold:r=2
+  waterTrail__forwardExpand:r=20
+  waterTrail__activeVertexCount:i=16384
+  waterTrail__finalizedVertexCount:i=32768
+  waterTrail__maxPointsPerSegment:i=100
+  waterTrail__useObstacle:b=no
+  waterTrail__texName:t="water_foam_trail_mask"
+
+  water{}
+  is_underwater:b=false
+  water_level:r=0
+  "needsWaterDroplets:tag"{_tags:t="render"}
+}
+
+wind{
+  "ambient_wind:AmbientWind"{
+    _tags:t="render"
+  }
+
+  _group{
+    _track:b=yes
+    wind__flowMap:t=""
+    wind__left_top_right_bottom:p4=-2048, -2048, 2048, 2048
+    wind__dir:r=40 // degrees
+    wind__strength:r=2 // beaufort
+    wind__noiseStrength:r=2 // multiplier of wind.strength
+    wind__noiseSpeed:r=1 // beaufort
+    wind__noiseScale:r=70 // meters
+    wind__noisePerpendicular:r=0.5 // multiplier of wind.noiseStrength
+  }
+  dyn_wind__cumulus_alt_multiplier:r=2 // artificial altitude cloud speed multiplier
+  dyn_wind__strata_alt_multiplier:r=2 // artificial altitude cloud speed multiplier
+  _use:t="replicating"
+  _singleton:b=yes
+}
+
+muzzle_flash_manager{
+  _tags:t="render"
+  _singleton:b=yes
+  muzzle_flash_manager__effect_pos:p3 = 0.0, 0.0, 0.0
+  muzzle_flash_manager__effect_lifetime:r = 0.0
+  muzzle_flash_manager__effect_color:p3 = 0.0, 0.0, 0.0
+  muzzle_flash_manager__effect_stength:r = 0.0
+  muzzle_flash_manager__effect_size:r = 0.0
+
+  muzzle_flash_manager__fadeout:r = 0.67
+  muzzle_flash_manager__base_effect_color:p3 = 1.0, 0.5, 0.2
+  muzzle_flash_manager__base_effect_lifetime:r = 0.05
+  muzzle_flash_manager__base_effect_size:r = 0.33
+  muzzle_flash_manager__base_effect_stength:r = 0.5
+  muzzle_flash_manager__effect_offset:r = 0.1
+}
+
+falling_weather_effect_template{
+  _use:t="replicating"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 20, 0]]
+  // there is one effect and in this point there will be no overflow
+  // and this point not (0.0f, 0.0f, 0.0f) because
+  // in this point there may be an overflow
+  _group{
+    _tags:t="render"
+    camera_prev_pos:p3= 0, 0, 0
+    camera_prev_vel:p3= 0, 0, 0
+    effect__offset:p3=0, 1, 0
+    effect__bias_coef:r=0.5
+    effect__smooth_coef:r = 0.2
+  }
+  "client__canDestroyServerEntity:tag"{
+    _tags:t="playingReplay"
+  }
+  effect{
+    _tags:t="render"
+  }
+ "request_depth_above_render_transparent:tag"{_tags:t=render;}
+}
+
+rendinst_base{
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _tracked:t="transform"
+
+  "riExtraAuthority:tag"{
+    _tags:t="server"
+  }
+
+  "riOffender:eid"{
+    _tags:t="server"
+  }
+
+  ri_extra{}
+  ri_extra__destroyed:b=no
+}
+
+rendinst_handle{
+  _use:t="rendinst_base"
+  "ri_extra__handle:u64"{
+    value:i64=-1
+  }
+}
+
+rendinst{
+  _use:t="rendinst_base"
+  ri_extra__name:t=""
+  ri_extra__bboxMin:p3=0, 0, 0
+  ri_extra__bboxMax:p3=0, 0, 0
+}
+
+placeable_rendinst{
+  _use:t="rendinst"
+  _use:t="replicating"
+
+  "isRendinstDestr:tag"{
+    _tags:t="render"
+  }
+}
+
+entity_prefab{
+  "entity_prefab__templatesToCreate:shared:object"{}
+  "entity_prefab__createdEntities:list<eid>"{}
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+entity_prefab_child{
+  relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "entity_prefab__parentEid:eid"{}
+}
+
+capsules_ao{
+  capsules_ao__max_units_per_cell:i=4 //optimizes case, where density of units in one space is high.
+  _singleton:b=yes
+
+  capsules_ao{
+    _tags:t="render"
+  }
+}
+
+animchar{
+  "animchar__updatable:b"{
+    value:b=yes
+    _hide:b=yes
+  }
+  animchar__accumDt:r=0
+  animchar__dtThresholdDefaultValue:r=0.1
+  "animchar__dtThreshold:r"{
+    value:r=0
+    _hide:b=yes
+  }
+
+  animchar{}
+  animchar_render{
+    _tags:t="render"
+  }
+
+  animchar_node_wtm{
+    _tags:t="render"
+  }
+
+  _group{
+    _tags:t="render"
+    animchar_render__dist_sq:r=201
+    animchar_render__shadow_cast_dist:r=-1
+  }
+
+  animchar_render__root_pos{
+    _tags:t="render"
+  }
+
+  animchar_bsph{
+    _tags:t="render"
+  }
+
+  animchar_bsph_precalculated{
+    _tags:t="render"
+  }
+
+  "animchar__usePrecalculatedData:b"{
+    _tags:t="render"
+    value:b=no
+  }
+
+  animchar_bbox{
+    _tags:t="render"
+  }
+
+  "animchar_bbox_precalculated:BBox3"{
+    _tags:t="render"
+  }
+
+  animchar_shadow_cull_bbox{
+    _tags:t="render"
+  }
+
+  "animchar_shadow_cull_bbox_precalculated:BBox3"{
+    _tags:t="render"
+  }
+
+  animchar_visbits{
+    _tags:t="render"
+  }
+
+  "animchar__visible:b"{
+    _tags:t="render"
+    value:b=yes
+  }
+
+  "animchar__invisDtThreshold:r"{
+    _tags:t="render"
+    value:r=0.4
+  }
+
+  "animchar__minDtThreshold:r"{
+    _tags:t="render"
+    value:r=0
+  }
+
+  "animchar__renderPriority:b"{
+    _tags:t="render"
+    value:b=no
+  }
+}
+
+dynmat_params_base {
+  "additional_data:list<p4>"{
+    _tags:t="render"
+  }
+  _group{
+    _tags:t=render
+    needImmediateConstPS:b=true
+  }
+  "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,0,1,3
+      dynmat_param__emission_albedo_mult:r=0.1
+    }
+  }
+}
+
+skies_settings{
+  _use:t="replicating"
+  _singleton:b=yes
+  _group{
+    _track:b=yes
+    skies_settings__weatherSeed:i=-1
+    randomize_seed_button:b=no
+    clouds_rendering__forward_eccentricity:r=0.8
+    clouds_rendering__back_eccentricity:r=0.5
+    clouds_rendering__forward_eccentricity_weight:r=0.5
+    clouds_rendering__erosion_noise_size:r=25.3
+    clouds_rendering__ambient_desaturation:r=0.5
+    clouds_rendering__ms_contribution:r=0.7
+    clouds_rendering__ms_attenuation:r=0.3
+    clouds_rendering__ms_ecc_attenuation:r=0.6
+    clouds_rendering__erosionWindSpeed:r=0.6
+    strata_clouds__amount:p2=0.8, 0.8
+    strata_clouds__altitude:p2=8, 8
+    strata_clouds__tex:t="strata_clouds_simple"
+    clouds_form__extinction:p2=0.75, 0.75
+    clouds_form__turbulenceStrength:p2=0.21, 0.21
+    clouds_form__shapeNoiseScale:i=9
+    clouds_form__cumulonimbusShapeScale:i=4
+    clouds_form__turbulenceFreq:i=2
+    "clouds_form__layers:array"{
+      "layer:object"{
+        startAt:p2=0.8, 0.8
+        thickness:p2=8, 8
+        density:p2=1, 1
+        clouds_type:p2=0.5, 0.5
+        clouds_type_variance:p2=0.5, 0.5
+      }
+
+      "layer:object"{
+        startAt:p2=8, 8
+        thickness:p2=4, 4
+        density:p2=0.5, 0.5
+        clouds_type:p2=0, 0
+        clouds_type_variance:p2=0.5, 0.5
+      }
+    }
+    clouds_settings__maximum_averaging_ratio:r=1
+    clouds_settings__force_panorama:b=no
+    clouds_settings__quality:i=1
+    clouds_settings__target_quality:i=1
+    clouds_settings__competitive_advantage:b=no
+    clouds_settings__fastEvolution:b=no
+    clouds_weather_gen__epicness:r=0
+    "clouds_weather_gen__layers:array"{
+      "layer:object"{
+        coverage:p2=0.5, 0.5
+        freq:p2=2, 2
+        seed:p2=0, 0
+      }
+
+      "layer:object"{
+        coverage:p2=0.5, 0.5
+        freq:p2=3, 3
+        seed:p2=0.5, 0.5
+      }
+    }
+    clouds_weather_gen__cumulonimbusCoverage:p2=0, 0
+    clouds_weather_gen__cumulonimbusSeed:p2=0, 0
+    clouds_weather_gen__worldSize:r=65536
+    sky_atmosphere__average_ground_albedo:r=0.1
+    sky_settings__haze_strength:r=1
+    sky_settings__haze_min_angle:r=10
+    sky_settings__haze_peak_hour_offset:r=0
+    sky_atmosphere__min_ground_offset:r=0
+    sky_atmosphere__ground_color:p3=1, 1, 1
+    sky_atmosphere__mie2_thickness:p2=0.4, 0.4
+    sky_atmosphere__mie2_altitude:p2=0.2, 0.2
+    sky_atmosphere__mie2_scale:p2=0, 0
+    sky_atmosphere__mie_height:p2=1.2, 1.2
+    sky_atmosphere__mie_scale:p2=1, 1
+    sky_atmosphere__mie_absorption_scale:p2=1, 1
+    sky_atmosphere__mie_scattering_color:p3=1, 1, 1
+    sky_atmosphere__mie_absorption_color:p3=1, 1, 1
+    sky_atmosphere__mie_assymetry:p2=0.8, 0.8
+    sky_atmosphere__mie_back_assymetry:p2=0.2, 0.2
+    sky_atmosphere__planet_scale:r=1
+    sky_atmosphere__atmosphere_scale:r=1
+    sky_atmosphere__rayleigh_scale:p2=1, 1
+    sky_atmosphere__rayleigh_alt_scale:p2=1, 1
+    sky_atmosphere__rayleigh_color:p3=1, 1, 1
+    sky_atmosphere__multiple_scattering_factor:r=1
+    sky_atmosphere__ozone_alt_dist:r=1
+    sky_atmosphere__ozone_max_alt:r=1
+    sky_atmosphere__ozone_scale:p2=1, 1
+    sky_atmosphere__sun_brightness:r=1
+    sky_atmosphere__moon_brightness:r=1
+    sky_atmosphere__moon_color:p3=1, 1, 1
+    use_clouds_hole:b=yes
+  }
+
+  "skies_settings_tag:tag"{
+    _tags:t="render"
+  }
+}
+
+clouds_hole_target{
+  _use:t="replicating"
+  _singleton:b=yes //because we support only one hole
+  //hole will be between sun and target point
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  density:r=0
+  _tracked:t="transform"
+  _tracked:t="density"
+
+
+  "clouds_hole_tag:tag"{}
+}
+
+settings_override_manager{
+  _group{
+    "settings_override__manager:SettingsOverride"{}
+  }
+}
+
+settings_override_settings{
+  _group{
+    _track:b=yes
+
+    settings_override__useCustomSettings:b=no
+    "settings_override__graphicsSettings:object"{
+      //Can override graphics and video block items
+    }
+    "settings_override__graphicsSettings_pc:object"{}
+    "settings_override__graphicsSettings_android:object"{}
+    "settings_override__graphicsSettings_ios:object"{}
+  }
+}
+
+motion_blur_manager{
+  _group{
+    _tags:t="render"
+    "motion_blur:MotionBlur"{}
+  }
+}
+
+motion_blur_settings{
+  motion_blur__mode:i=2
+  _group{
+    _track:b=yes
+
+    motion_blur__scale:r=1 //scale below 0.01 turns off rendering motion blur entirely
+    motion_blur__velocityMultiplier:r=0.005
+    motion_blur__maxVelocity:r=0.1
+    motion_blur__alphaMulOnApply:r=0.125
+    motion_blur__overscanMul:r=0.01
+    motion_blur__forwardBlur:r=0
+  }
+}
+
+motion_blur{
+  _use:t="motion_blur_settings"
+  _use:t="motion_blur_manager"
+  _singleton:b=yes
+}
+
+cinematic_mode_manager{
+  _use:t="settings_override_manager"
+  _use:t="motion_blur_manager"
+
+  "cinematic_mode_tag:tag"{}
+
+  _group{
+    _tags:t="render"
+    "cinematic_mode__manager:CinematicMode"{}
+  }
+}
+
+cinematic_mode_settings{
+  _use:t="settings_override_settings"
+  _use:t="motion_blur_settings"
+
+  "settings_override__graphicsSettings:object"{
+    //Example settings, to be filled from quality_preset_option.nut
+    // "graphics/preset":t="ultra"
+    // "graphics/cloudsQuality":t="volumetric"
+
+    //Force 100% render scale so that super resolution screenshots work
+    "video/antiAliasingMode":i=3
+    "video/temporalUpsamplingRatio":r=100
+    "video/dynamicResolution/targetFPS":i=0
+    "video/fsr":t="off"
+    "video/ssaa":b=no
+    "video/staticResolutionScale":r=100
+  }
+
+  motion_blur__scale:r=0
+
+  _group{
+    _track:b=yes
+    _tags:t="render"
+
+    cinematic_mode__fps:i=60
+    cinematic_mode__fname:t=""
+    cinematic_mode__audioDataFName:t=""
+    cinematic_mode__bitrate:i=30000000
+    cinematic_mode__subPixels:i=2
+    cinematic_mode__superPixels:i=2
+    cinematic_mode__vignetteStrength:r=0.0
+    cinematic_mode__chromaticAberration:p3=0.01, 0.007, 1 // red, green, offset
+    cinematic_mode__filmGrain:p3=0.0, 1.0, 1.0 // strength, rate, pitch [0.5; 1.0]
+    cinematic_mode__lenseFlareIntensity:r=0.0
+    cinematic_mode__lenseDust:b=no
+    cinematic_mode__recording:b=no
+    cinematic_mode__audio_recording:b=no
+    cinematic_mode__loadAudio:b=no
+    cinematic_mode__saveAudio:b=no
+
+    cinematic_mode__hasRain:b=no
+    cinematic_mode__hasSnow:b=no
+    cinematic_mode__hasLightning:b=no
+
+    cinematic_mode__weatherPreset:t=""
+    cinematic_mode__rain:b=no
+    cinematic_mode__snow:b=no
+    cinematic_mode__lightning:b=no
+
+    cinematic_mode__dayTime:r=12.0
+
+    cinematic_mode__colorGradingSelected:t=""
+    cinematic_mode__enablePostBloom:b=yes
+  }
+
+  _group{
+    _track:b=yes
+    _tags:t="render"
+    bloom__threshold:r=1.0
+  }
+
+  cinematic_mode__saved_bloom_threshold:r=0.8
+  cinematic_mode__default_bloom_threshold:r=1.0
+
+  "cinematic_mode__weatherPresetList:list<t>"{}
+
+  "cinematic_mode__colorGradingOptions:shared:list<t>"{
+    item:t="postfx_color_grading_tonemap_death_alive_enlisted" //Position 0 should be the default
+  }
+
+  cinematic_mode__lenseCoveringTex:t="lense_dust"
+  cinematic_mode__lenseRadialTex:t=""
+}
+
+cinematic_mode{
+  _use:t="cinematic_mode_settings"
+  _use:t="cinematic_mode_manager"
+  _singleton:b=yes
+}
+
+voxel_grid {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "voxel_grid__voxels:list<b>"{}
+  voxel_grid__resolution:i=10
+  voxel_grid__step:r=0.3
+  "voxel_grid__checkConnectivity:tag"{}
+}
+
+voxel_grid_init_manager{
+  "voxel_grid_init__riExtras:list<u64>"{}
+  voxel_grid_init__trianglesPerUpdate:i=100
+  voxel_grid_init__currentRi:i=0
+  voxel_grid_init__currentTriangle:i=0
+  voxel_grid_init__currentNode:i=0
+  "voxel_grid_init__inProgress:tag"{}
+}
+
+menu{
+  in_menu:b=yes
+}
+
+quit_after_load{
+  quit_after_load_time:r=10
+  quitAtTime:r=-1
+}

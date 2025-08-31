@@ -5,6 +5,7 @@
 #include "actionData.h"
 #include <daInput/config_api.h>
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_delayedAction.h>
 
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiPointing.h>
@@ -357,22 +358,24 @@ static bool sq_is_action_stateful(dainput::action_handle_t action)
 }
 
 static Sqrat::Function digital_event_progress_monitor_sq;
-static void on_digital_event_progress_changed_sq(dag::ConstSpan<dainput::DigitalActionProgress> actions)
+static void on_digital_event_progress_changed_sq(dag::ConstSpan<dainput::DigitalActionProgress> a)
 {
   if (digital_event_progress_monitor_sq.IsNull())
     return;
-  HSQUIRRELVM vm = digital_event_progress_monitor_sq.GetVM();
-  Sqrat::Array arr(vm, actions.size());
-  for (int i = 0; i < actions.size(); i++)
-  {
-    Sqrat::Table t(vm);
-    t.SetValue<SQInteger>("action", actions[i].action);
-    t.SetValue<SQInteger>("state", actions[i].state);
-    t.SetValue<SQInteger>("evType", actions[i].evType);
-    t.SetValue<SQInteger>("startT0msec", actions[i].startT0msec);
-    arr.SetValue(i, t);
-  }
-  digital_event_progress_monitor_sq(arr);
+  add_delayed_action_buffered(make_delayed_action([actions = Tab<dainput::DigitalActionProgress>(a, tmpmem)]() {
+    HSQUIRRELVM vm = digital_event_progress_monitor_sq.GetVM();
+    Sqrat::Array arr(vm, actions.size());
+    for (int i = 0; i < actions.size(); i++)
+    {
+      Sqrat::Table t(vm);
+      t.SetValue<SQInteger>("action", actions[i].action);
+      t.SetValue<SQInteger>("state", actions[i].state);
+      t.SetValue<SQInteger>("evType", actions[i].evType);
+      t.SetValue<SQInteger>("startT0msec", actions[i].startT0msec);
+      arr.SetValue(i, t);
+    }
+    digital_event_progress_monitor_sq(arr);
+  }));
 }
 static void sq_install_digital_event_progress_monitor(Sqrat::Function func)
 {

@@ -8,6 +8,7 @@
 #include <EASTL/hash_map.h>
 #include <EASTL/map.h>
 #include "main_pipelines.h"
+#include "cleanup_queue_tags.h"
 
 namespace drv3d_vulkan
 {
@@ -33,8 +34,8 @@ private:
   typedef eastl::pair<GraphicsPipelineVariantDescription::Hash, Index> KeyIndexPair;
 
   Index lastIndex = 0;
-  eastl::vector<KeyIndexPair> indexArray;
-  eastl::vector<ExtendedVariantDescription> dataArray;
+  dag::Vector<KeyIndexPair> indexArray;
+  dag::Vector<ExtendedVariantDescription> dataArray;
 };
 
 class VariatedGraphicsPipeline : public DebugAttachedPipeline<GraphicsPipelineLayout, GraphicsProgram, CustomPipeline>
@@ -43,17 +44,15 @@ class VariatedGraphicsPipeline : public DebugAttachedPipeline<GraphicsPipelineLa
 public:
   struct CompilationContext
   {
-    VulkanDevice &dev;
     RenderStateSystemBackend &rsBackend;
     VulkanPipelineCacheHandle pipeCache;
     RenderPassResource *nativeRP;
-    uint32_t *asyncPipeFeedbackPtr;
+    uint32_t *asyncPipeFeedback;
     bool nonDrawCompile;
   };
 
 private:
   GraphicsPipeline *findVariant(const GraphicsPipelineVariantDescription &dsc);
-  GraphicsPipeline *mapDublicate(GraphicsPipelineVariantDescription &dsc);
   GraphicsPipeline *compileNewVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc);
 
 public:
@@ -83,33 +82,24 @@ public:
 
       return ret;
     }
-
-    CreationInfo() = delete;
   };
 
-  // generic cleanup queue support
-  static constexpr int CLEANUP_DESTROY = 0;
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupBackend()
   {}
 
-  template <int Tag>
-  void onDelayedCleanupFrontend()
-  {}
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
   const char *resTypeString() { return "VariatedGraphicsPipeline"; }
 
-  VariatedGraphicsPipeline(VulkanDevice &, ProgramID inProg, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &info) :
+  VariatedGraphicsPipeline(ProgramID inProg, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &info) :
     DebugAttachedPipeline(l), modules(info.modules), variations(info.varStorage), program(inProg), seenBefore(info.seenBefore)
   {}
 
   GraphicsPipeline *getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc);
 
-  void shutdown(VulkanDevice &device);
+  void shutdown();
 
   bool hasGeometryStage() const { return layout->hasGS(); }
 
@@ -124,7 +114,7 @@ public:
 private:
   GraphicsPipelineShaderSet<const ShaderModule *> modules;
 
-  eastl::vector<eastl::pair<GraphicsPipelineVariantDescription::Hash, GraphicsPipeline *>> items;
+  dag::Vector<eastl::pair<GraphicsPipelineVariantDescription::Hash, GraphicsPipeline *>> items;
   GraphicsPipelineVariationStorage &variations;
   ProgramID program;
   bool seenBefore;

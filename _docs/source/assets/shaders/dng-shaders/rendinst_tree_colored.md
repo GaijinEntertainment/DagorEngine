@@ -1,4 +1,4 @@
-# Shader: rendinst_tree_colored
+# `rendinst_tree_colored`
 
 ## Overview
 

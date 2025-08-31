@@ -99,6 +99,12 @@ void DynamicLightProbe::init(unsigned int size, const char *name, unsigned fmt, 
 #define VAR(a) a##VarId = get_shader_variable_id(#a, result.getCubeTex() ? false : true);
   GLOBAL_VARS_LIST
 #undef VAR
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+  d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("dynamic_cube_tex_1_samplerstate"), smp);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("dynamic_cube_tex_2_samplerstate"), smp);
 }
 
 void DynamicLightProbe::close()

@@ -1,0 +1,405 @@
+function_name([arg2_name: float, arg3_name: float])
+function_name([arg2_name: float, arg3_name: float])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+function_name([arg2_name: float, arg3_name: float], ...)
+function_name([arg2_name: float, arg3_name: float], ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 0
+  argCount: 2
+
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
+  functionName: function_name
+  returnTypeMask: 0xffffffff
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x10
+  requiredArgs: 1
+  argCount: 3
+
+FunctionName(arg1_Name: bool|null)
+FunctionName(arg1_Name: bool|null)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
+function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
+  functionName: function_name
+  returnTypeMask: 0x5
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 3
+  argCount: 3
+
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
+  functionName: function_name
+  returnTypeMask: 0x301
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 3
+  argCount: 3
+
+function_name(arg1_name, [arg2_name, arg3_name])
+function_name(arg1_name, [arg2_name, arg3_name])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+  functionName: function_name
+  returnTypeMask: 0x20
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 3
+
+instance.function_name()
+instance.function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x8000
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+(userpointer|instance).function_name()
+(userpointer|instance).function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x8800
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+(table|class).function_name()
+(table|class).function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x4020
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(...)
+function_name(...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 0
+  argCount: 0
+
+function_name(arg1_name: int, ...)
+function_name(arg1_name: int, ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 1
+  argCount: 1
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 1
+  argCount: 3
+
+string.function_name(int: float, [string: number, string: generator])
+string.function_name(int: float, [string: number, string: generator])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x10
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
+function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
+function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name()
+function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(): int
+function_name(): int
+  functionName: function_name
+  returnTypeMask: 0x2
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(arg1_name)
+function_name(arg1_name)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+FunctionName(arg1_Name: int|null)
+FunctionName(arg1_Name: int|null)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+FunctionName(arg1_Name: table|array)
+FunctionName(arg1_Name: table|array)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+function_name([arg2_name: float, arg3_name: float])
+function_name([arg2_name: float, arg3_name: float])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+function_name([arg2_name: float, arg3_name: float], ...)
+function_name([arg2_name: float, arg3_name: float], ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 0
+  argCount: 2
+
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table, ...: string]) : any
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
+  functionName: function_name
+  returnTypeMask: 0xffffffff
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x10
+  requiredArgs: 1
+  argCount: 3
+
+FunctionName(arg1_Name: ( null | bool ) )
+FunctionName(arg1_Name: bool|null)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+function_name(arg1_name: int, arg2_name: string, arg3_name: any): float | null
+function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
+  functionName: function_name
+  returnTypeMask: 0x5
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 3
+  argCount: 3
+
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): (function | null)
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
+  functionName: function_name
+  returnTypeMask: 0x301
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 3
+  argCount: 3
+
+function_name(arg1_name: any, [arg2_name: any, arg3_name: any])
+function_name(arg1_name, [arg2_name, arg3_name])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+  functionName: function_name
+  returnTypeMask: 0x20
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 3
+
+instance.function_name()
+instance.function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x8000
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+(instance|userpointer).function_name()
+(userpointer|instance).function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x8800
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+ ( table | class ) . function_name ( )
+(table|class).function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x4020
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(...: any)
+function_name(...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 0
+  argCount: 0
+
+function_name(...)
+function_name(...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 0
+  argCount: 0
+
+function_name(arg1_name: int, ...)
+function_name(arg1_name: int, ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 1
+  argCount: 1
+
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0xffffffff
+  requiredArgs: 1
+  argCount: 3
+
+string.function_name(int: float, [string: number, string: generator])
+string.function_name(int: float, [string: number, string: generator])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0x10
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name(arg1_name:bool,[arg2_name:string,arg3_name:float])
+function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+   function_name ( arg1_name :int ,[ arg2_name: int,   arg3_name : int ] )
+function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 3
+
+function_name()
+function_name()
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(): int
+function_name(): int
+  functionName: function_name
+  returnTypeMask: 0x2
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 0
+
+function_name(arg1_name: any)
+function_name(arg1_name)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+FunctionName(arg1_Name: int|null)
+FunctionName(arg1_Name: int|null)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+
+FunctionName(arg1_Name: (table|array))
+FunctionName(arg1_Name: table|array)
+  functionName: FunctionName
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+

@@ -5,16 +5,16 @@ require DagorSystem
 require daslib/assert_once
 
 
-def sound_material_to_smid(name : string; sound_physmat__soundMaterials : StringList; def_smid : float) : float
+def sound_material_to_smid(name : string; sound_physmat__soundMaterials : StringList; def_smid : int) : int
   let idx = find_index(sound_physmat__soundMaterials, name)
-  return idx >= 0 ? float(idx) : def_smid
+  return idx >= 0 ? idx : def_smid
 
 
 [es(tag=sound, on_appear)]
 def sound_physmat_on_appear(evt : Event;
-                            var sound_physmat__PMIDToSMID : FloatList&;
-                            sound_physmat__defPhysMatId : float;
-                            sound_physmat__defSoundMatId : float;
+                            var sound_physmat__PMIDToSMID : IntList&;
+                            sound_physmat__defPhysMatId : int;
+                            sound_physmat__defSoundMatId : int;
                             sound_physmat__soundMaterials : StringList;
                             sound_physmat__physmatToSoundmat : Object)
   var maxCount = 0

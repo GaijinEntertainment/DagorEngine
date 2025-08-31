@@ -34,7 +34,7 @@ def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : 
         if total_checkpoints == player__checkpoints
           player_winner_eid = possessedByPlr
         //print("score {player__score} at {player__last_checkpoint_time}")
-      net::send_net_event(eid, [[EventOnCheckpointVisited byPlayer=possessedByPlr]])
+      net::send_net_event(eid, EventOnCheckpointVisited(byPlayer = possessedByPlr))
   if player_winner_eid != INVALID_ENTITY_ID
     using() <| $(var scores : Object)
       query() <| $ [es(REQUIRE=player)] (eid : EntityId;
@@ -48,8 +48,8 @@ def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : 
           set(plinfo, "player_score", player__score)
           set(plinfo, "player_last_checkpoint_time", player__last_checkpoint_time)
           set(scores, "{eid}", plinfo)
-      net::broadcast_net_event([[EventSessionFinishedOnWin byPlayer=player_winner_eid, scores=ecs_addr(scores)]])
-    broadcastEvent([[EventSetExitTimerOnWin exit_in_sec=15.0]])
+      net::broadcast_net_event(EventSessionFinishedOnWin(byPlayer = player_winner_eid, scores = ecs_addr(scores)))
+    broadcastEvent(EventSetExitTimerOnWin(exit_in_sec = 15.0))
 
 
 [es(tag=server, tag=net)]

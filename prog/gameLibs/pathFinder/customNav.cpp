@@ -78,7 +78,7 @@ uint32_t CustomNav::allocAreaId()
 void CustomNav::areaUpdateBox(uint32_t area_id, const TMatrix &tm, const BBox3 &oobb, float w1, float w2, bool optimize,
   float posThreshold, float angCosThreshold)
 {
-  Area area;
+  BoxArea area;
   area.id = area_id;
   area.oobb = oobb;
   area.tm = tm;
@@ -86,93 +86,135 @@ void CustomNav::areaUpdateBox(uint32_t area_id, const TMatrix &tm, const BBox3 &
   area.weight[0] = w1;
   area.weight[1] = w2;
   area.optimize = optimize;
-  areaUpdate(area, posThreshold, angCosThreshold);
+
+  areaUpdate(
+    area, boxAreas, cylAreas, [](Tile &tile) { return &tile.boxAreas; },
+    [&area, &posThreshold, &angCosThreshold](const BoxArea &existing_area) {
+      if ((existing_area.weight[0] == area.weight[0]) && (existing_area.weight[1] == area.weight[1]) &&
+          (existing_area.optimize == area.optimize))
+      {
+        float cDistSq = lengthSq(area.tm * area.oobb.center() - existing_area.tm * existing_area.oobb.center());
+        Point3 szDiff = abs(area.oobb.width() - existing_area.oobb.width());
+        float maxSzDiff = max(max(szDiff.x, szDiff.y), szDiff.z);
+        if ((cDistSq <= posThreshold * posThreshold) && (maxSzDiff <= posThreshold))
+        {
+          Point3 prevForwardDir = existing_area.tm % Point3(1.0f, 0.0f, 0.0f);
+          Point3 forwardDir = area.tm % Point3(1.0f, 0.0f, 0.0f);
+          if (dot(prevForwardDir, forwardDir) >= angCosThreshold)
+            return false;
+        }
+      }
+      return true;
+    });
 }
 
 void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize, float posThreshold,
   float angCosThreshold)
 {
-  Area area;
+  (void)angCosThreshold; // TODO remove this parameter from here and from all call sights - it's not used
+
+  CylArea area;
   area.id = area_id;
-  area.isCylinder = true;
   area.oobb = aabb;
-  area.tm = TMatrix::IDENT;
   area.weight[0] = w1;
   area.weight[1] = w2;
   area.optimize = optimize;
-  areaUpdate(area, posThreshold, angCosThreshold);
+
+  areaUpdate(
+    area, cylAreas, boxAreas, [](Tile &tile) { return &tile.cylinderAreas; },
+    [&area, &posThreshold](const CylArea &existing_area) {
+      if ((existing_area.weight[0] == area.weight[0]) && (existing_area.weight[1] == area.weight[1]) &&
+          (existing_area.optimize == area.optimize))
+      {
+        float cDistSq = lengthSq(area.oobb.center() - existing_area.oobb.center());
+        Point3 szDiff = abs(area.oobb.width() - existing_area.oobb.width());
+        float maxSzDiff = max(max(szDiff.x, szDiff.y), szDiff.z);
+        if ((cDistSq <= posThreshold * posThreshold) && (maxSzDiff <= posThreshold))
+          return false;
+      }
+      return true;
+    });
 }
 
-void CustomNav::areaUpdate(const Area &area, float posThreshold, float angCosThreshold)
+template <typename AreaT, typename AreaHashMapT, typename AltAreaHashMapT, typename GetTileAreasCB, typename AllowUpdateCB>
+void CustomNav::areaUpdate(AreaT &area, AreaHashMapT &areas, AltAreaHashMapT &alt_areas, GetTileAreasCB get_tile_areas_cb,
+  AllowUpdateCB allow_update_cb)
 {
-  restoreLostTiles();
-
   dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh || (area.id == 0))
     return;
+
+  restoreLostTiles();
+
+  auto removeEmptyTiles = [this](const Tab<uint32_t> &tile_ids_to_check) {
+    for (uint32_t tile_id : tile_ids_to_check)
+    {
+      auto it = tiles.find(tile_id);
+      if ((it != tiles.end()) && it->second.cylinderAreas.empty() && it->second.boxAreas.empty())
+        tiles.erase(it);
+    }
+  };
+
+  // Area with this ID already exists and is of the same type as 'area'
   auto it = areas.find(area.id);
   if (it != areas.end())
   {
-    if ((it->second.isCylinder == area.isCylinder) && (it->second.weight[0] == area.weight[0]) &&
-        (it->second.weight[1] == area.weight[1]) && (it->second.optimize == area.optimize))
-    {
-      float cDistSq = area.isCylinder ? lengthSq(area.oobb.center() - it->second.oobb.center())
-                                      : lengthSq(area.tm * area.oobb.center() - it->second.tm * it->second.oobb.center());
-      Point3 szDiff = abs(area.oobb.width() - it->second.oobb.width());
-      float maxSzDiff = max(max(szDiff.x, szDiff.y), szDiff.z);
-      if ((cDistSq <= posThreshold * posThreshold) && (maxSzDiff <= posThreshold))
-      {
-        if (area.isCylinder)
-          return;
-        else
-        {
-          // For boxes, also check orientation.
-          Point3 prevForwardDir = it->second.tm % Point3(1.0f, 0.0f, 0.0f);
-          Point3 forwardDir = area.tm % Point3(1.0f, 0.0f, 0.0f);
-          if (dot(prevForwardDir, forwardDir) >= angCosThreshold)
-            return;
-        }
-      }
-    }
+    auto &existingArea = it->second;
+    if (!allow_update_cb(existingArea))
+      return;
     Tab<uint32_t> affectedTiles(framemem_ptr());
-    areaRemoveFromTiles(it->second, affectedTiles);
-    uint32_t generation = it->second.generation;
-    it->second = area;
-    it->second.generation = generation + 1;
-    areaAddToTiles(it->second);
-    for (uint32_t tile_id : affectedTiles)
-    {
-      auto jt = tiles.find(tile_id);
-      if ((jt != tiles.end()) && jt->second.cylinderAreas.empty() && jt->second.boxAreas.empty())
-        tiles.erase(jt);
-    }
+    areaRemoveFromTiles(existingArea, affectedTiles, get_tile_areas_cb);
+    uint32_t generation = existingArea.generation;
+    existingArea = area;
+    existingArea.generation = generation + 1;
+    areaAddToTiles(existingArea);
+    removeEmptyTiles(affectedTiles);
+    return;
   }
-  else
+
+  // Area with this ID already exists, but is not of the same type as 'area'
+  const auto jt = alt_areas.find(area.id);
+  if (jt != alt_areas.end())
   {
+    auto &existingArea = jt->second;
+    Tab<uint32_t> affectedTiles(framemem_ptr());
+    areaRemoveFromTiles(existingArea, affectedTiles, get_tile_areas_cb);
+    area.generation = existingArea.generation + 1;
     it = areas.insert(eastl::make_pair(area.id, area)).first;
     areaAddToTiles(it->second);
+    removeEmptyTiles(affectedTiles);
+    alt_areas.erase(jt);
+    return;
   }
+
+  // Area with this ID does not exist, let's add it
+  it = areas.insert(eastl::make_pair(area.id, area)).first;
+  areaAddToTiles(it->second);
 }
 
 class CustomNavHelper
 {
 public:
-  static EASTL_FORCE_INLINE bool isAreaTile(const dtMeshTile *tile, const BBox3 &aabb, const CustomNav::Area &area)
+  static EASTL_FORCE_INLINE bool isAreaTile(const dtMeshTile *tile, const BBox3 &aabb, const CustomNav::BoxArea &area)
   {
     BBox3 tileAABB(Point3(&tile->header->bmin[0], Point3::CTOR_FROM_PTR), Point3(&tile->header->bmax[0], Point3::CTOR_FROM_PTR));
     if (!(aabb & tileAABB))
       return false;
-    if (area.isCylinder)
-    {
-      Point3 sz = area.oobb.width();
-      return testCircleAABB(tileAABB, area.oobb.center(), sz.x * sz.z);
-    }
     return check_bbox_intersection(area.oobb, area.tm, tileAABB, TMatrix::IDENT);
+  }
+
+  static EASTL_FORCE_INLINE bool isAreaTile(const dtMeshTile *tile, const BBox3 &aabb, const CustomNav::CylArea &area)
+  {
+    BBox3 tileAABB(Point3(&tile->header->bmin[0], Point3::CTOR_FROM_PTR), Point3(&tile->header->bmax[0], Point3::CTOR_FROM_PTR));
+    if (!(aabb & tileAABB))
+      return false;
+    Point3 sz = area.oobb.width();
+    return testCircleAABB(tileAABB, area.oobb.center(), sz.x * sz.z);
   }
 };
 
-template <typename T>
-void CustomNav::walkAreaTiles(const Area &area, T cb)
+template <typename AreaT, typename CB>
+void CustomNav::walkAreaTiles(const AreaT &area, CB cb)
 {
   dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh)
@@ -224,56 +266,54 @@ static void debug_log_tile_info(uint32_t tile_id)
     th->bmax[2]);
 }
 
-void CustomNav::addAreaToTile(Area &area, uint32_t tile_id)
+template <typename AreaT>
+void debug_log_cannot_add_area_to_tile(uint32_t tile_id, uint32_t area_id, const AreaT &area, const AreaT &existing_area,
+  const char *area_type, const char *function_name)
 {
-  Tile &tile = tiles[tile_id];
-  if (area.isCylinder)
-  {
-    for (const Area &a : tile.cylinderAreas)
-    {
-      if (DAGOR_UNLIKELY(a.id == area.id))
-      {
-        logerr("a.id == area.id  %d == %d for cylinder area in %s", a.id, area.id, __FUNCTION__);
-        debug("tile count (%d vs %d) and gen (%d vs %d), tile_id %u", a.tileCount, area.tileCount, a.generation, area.generation,
-          tile_id);
-        debug_log_tile_info(tile_id);
-        BBox3 abb = a.getAABB();
-        debug("customNav a bbox  %f %f %f %f %f %f", abb.boxMin().x, abb.boxMin().y, abb.boxMin().z, abb.boxMax().x, abb.boxMax().y,
-          abb.boxMax().z);
-        BBox3 bbox = area.getAABB();
-        debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
-          bbox.boxMax().y, bbox.boxMax().z);
-        return;
-      }
-    }
-    tile.cylinderAreas.push_back(area);
-    ++area.tileCount;
-  }
-  else
-  {
-    for (const Area &a : tile.boxAreas)
-    {
-      if (DAGOR_UNLIKELY(a.id == area.id))
-      {
-        logerr("a.id == area.id  %d == %d for box area in %s", a.id, area.id, __FUNCTION__);
-        debug("tile count (%d vs %d) and gen (%d vs %d), tile_id %u", a.tileCount, area.tileCount, a.generation, area.generation,
-          tile_id);
-        debug_log_tile_info(tile_id);
-        BBox3 abb = a.getAABB();
-        debug("customNav a bbox  %f %f %f %f %f %f", abb.boxMin().x, abb.boxMin().y, abb.boxMin().z, abb.boxMax().x, abb.boxMax().y,
-          abb.boxMax().z);
-        BBox3 bbox = area.getAABB();
-        debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
-          bbox.boxMax().y, bbox.boxMax().z);
-        return;
-      }
-    }
-    tile.boxAreas.push_back(area);
-    ++area.tileCount;
-  }
+  logerr("a.id == area.id  %d == %d for %s area in %s", area_id, area_id, area_type, function_name);
+  debug("tile count (%d vs %d) and gen (%d vs %d), tile_id %u", existing_area.tileCount, area.tileCount, existing_area.generation,
+    area.generation, tile_id);
+  debug_log_tile_info(tile_id);
+  BBox3 abb = existing_area.getAABB();
+  debug("customNav a bbox  %f %f %f %f %f %f", abb.boxMin().x, abb.boxMin().y, abb.boxMin().z, abb.boxMax().x, abb.boxMax().y,
+    abb.boxMax().z);
+  BBox3 bbox = area.getAABB();
+  debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x, bbox.boxMax().y,
+    bbox.boxMax().z);
 }
 
-void CustomNav::areaAddToTiles(Area &area)
+void CustomNav::addAreaToTile(CylArea &area, uint32_t tile_id)
+{
+  Tile &tile = tiles[tile_id];
+  for (const CylArea &a : tile.cylinderAreas)
+  {
+    if (DAGOR_UNLIKELY(a.id == area.id))
+    {
+      debug_log_cannot_add_area_to_tile(tile_id, area.id, area, a, "cylinder", __FUNCTION__);
+      return;
+    }
+  }
+  tile.cylinderAreas.push_back(area);
+  ++area.tileCount;
+}
+
+void CustomNav::addAreaToTile(BoxArea &area, uint32_t tile_id)
+{
+  Tile &tile = tiles[tile_id];
+  for (const BoxArea &a : tile.boxAreas)
+  {
+    if (DAGOR_UNLIKELY(a.id == area.id))
+    {
+      debug_log_cannot_add_area_to_tile(tile_id, area.id, area, a, "box", __FUNCTION__);
+      return;
+    }
+  }
+  tile.boxAreas.push_back(area);
+  ++area.tileCount;
+}
+
+template <typename AreaT>
+void CustomNav::areaAddToTiles(AreaT &area)
 {
   walkAreaTiles(area, [this, &area](uint32_t tile_id) { addAreaToTile(area, tile_id); });
 }
@@ -302,23 +342,42 @@ void CustomNav::restoreLostTiles()
   if (!navMesh)
     return;
 
-  static const int MAX_NEIS = 32;
-  const dtMeshTile *neis[MAX_NEIS];
-  const int numAreas = (int)reTile.areas.size();
-  for (int k = 0; k < numAreas; ++k)
-  {
-    auto it = areas.find(reTile.areas[k]);
-    if (it == areas.end())
-      continue;
-    Area &area = it->second;
+  auto areaAddToTileNeighbors = [this, navMesh](auto &area) {
+    static const int MAX_NEIS = 32;
+    const dtMeshTile *neis[MAX_NEIS];
     BBox3 aabb = area.getAABB();
     int nneis = navMesh->getTilesAt(reTile.tx, reTile.ty, neis, MAX_NEIS);
     for (int j = 0; j < nneis; ++j)
     {
       const dtMeshTile *tile = neis[j];
       if (tile->header->layer == reTile.tlayer)
+      {
         if (CustomNavHelper::isAreaTile(tile, aabb, area))
+        {
+          --area.tileCount;
           addAreaToTile(area, navMesh->decodePolyIdTile(navMesh->getTileRef(tile)));
+        }
+      }
+    }
+  };
+
+  const int numAreas = (int)reTile.areas.size();
+  for (int k = 0; k < numAreas; ++k)
+  {
+    auto it = boxAreas.find(reTile.areas[k]);
+    if (it != boxAreas.end())
+    {
+      BoxArea &area = it->second;
+      areaAddToTileNeighbors(area);
+      continue;
+    }
+
+    auto jt = cylAreas.find(reTile.areas[k]);
+    if (jt != cylAreas.end())
+    {
+      CylArea &area = jt->second;
+      areaAddToTileNeighbors(area);
+      continue;
     }
   }
 }
@@ -330,51 +389,57 @@ void CustomNav::removeTile(uint32_t tile_id)
   tiles.erase(tile_id);
 }
 
-void CustomNav::areaRemoveFromTiles(Area &area, Tab<uint32_t> &affected_tiles)
+template <typename AreaT, typename GetTileAreasCB>
+void CustomNav::areaRemoveFromTiles(AreaT &area, Tab<uint32_t> &affected_tiles, GetTileAreasCB get_tile_areas_cb)
 {
-  walkAreaTiles(area, [this, &area, &affected_tiles](uint32_t tile_id) {
+  walkAreaTiles(area, [this, &area, &affected_tiles, get_tile_areas_cb](uint32_t tile_id) {
     auto it = tiles.find(tile_id);
     if (it == tiles.end())
       return;
-    if (area.isCylinder)
-    {
-      for (auto jt = it->second.cylinderAreas.begin(); jt != it->second.cylinderAreas.end(); ++jt)
-        if (jt->id == area.id)
-        {
-          it->second.cylinderAreas.erase(jt);
-          --area.tileCount;
-          if (it->second.cylinderAreas.empty() && it->second.boxAreas.empty())
-            affected_tiles.push_back(tile_id);
-          break;
-        }
-    }
-    else
-    {
-      for (auto jt = it->second.boxAreas.begin(); jt != it->second.boxAreas.end(); ++jt)
-        if (jt->id == area.id)
-        {
-          it->second.boxAreas.erase(jt);
-          --area.tileCount;
-          if (it->second.cylinderAreas.empty() && it->second.boxAreas.empty())
-            affected_tiles.push_back(tile_id);
-          break;
-        }
-    }
+
+    Tile &tile = it->second;
+    auto &tileAreas = *get_tile_areas_cb(tile);
+
+    for (auto jt = tileAreas.begin(); jt != tileAreas.end(); ++jt)
+      if (jt->id == area.id)
+      {
+        tileAreas.erase(jt);
+        --area.tileCount;
+        if (tile.cylinderAreas.empty() && tile.boxAreas.empty())
+          affected_tiles.push_back(tile_id);
+        break;
+      }
   });
 }
 
 void CustomNav::areaRemove(uint32_t area_id)
 {
-  auto it = areas.find(area_id);
-  if (it != areas.end())
+  auto it = boxAreas.find(area_id);
+  if (it != boxAreas.end())
   {
     restoreLostTiles();
 
     Tab<uint32_t> affectedTiles(framemem_ptr());
-    areaRemoveFromTiles(it->second, affectedTiles);
+    areaRemoveFromTiles(it->second, affectedTiles, [](Tile &tile) { return &tile.boxAreas; });
     for (uint32_t tile_id : affectedTiles)
       tiles.erase(tile_id);
-    areas.erase(it);
+    boxAreas.erase(it);
+
+    return;
+  }
+
+  auto jt = cylAreas.find(area_id);
+  if (jt != cylAreas.end())
+  {
+    restoreLostTiles();
+
+    Tab<uint32_t> affectedTiles(framemem_ptr());
+    areaRemoveFromTiles(jt->second, affectedTiles, [](Tile &tile) { return &tile.cylinderAreas; });
+    for (uint32_t tile_id : affectedTiles)
+      tiles.erase(tile_id);
+    cylAreas.erase(jt);
+
+    return;
   }
 }
 
@@ -388,7 +453,7 @@ float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2,
     return 0.0f;
   }
   float w = 0.0f;
-  for (const Area &area : it->second.boxAreas)
+  for (const BoxArea &area : it->second.boxAreas)
   {
     Point3 p1Inv = area.invTm * p1;
     Point3 p2Inv = area.invTm * p2;
@@ -418,7 +483,7 @@ float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2,
         optimize = !lineChangesQuadrant(area.oobb.center(), p1Inv, p2Inv);
     }
   }
-  for (const Area &area : it->second.cylinderAreas)
+  for (const CylArea &area : it->second.cylinderAreas)
   {
     // For cylinders there's only one path that's fast, since
     // the math is quite simple.
@@ -500,7 +565,7 @@ uint32_t CustomNav::getHash(uint64_t poly_ref) const
   polyAABB.lim[0].y -= 0.1f;
   polyAABB.lim[1].y += 0.1f;
 
-  for (const Area &area : it->second.boxAreas)
+  for (const BoxArea &area : it->second.boxAreas)
   {
     if (!check_bbox_intersection(area.oobb, area.tm, polyAABB, TMatrix::IDENT))
       continue;
@@ -519,7 +584,7 @@ uint32_t CustomNav::getHash(uint64_t poly_ref) const
         tmpHashBuff.push_back(eastl::make_pair(area.id, area.generation));
     }
   }
-  for (const Area &area : it->second.cylinderAreas)
+  for (const CylArea &area : it->second.cylinderAreas)
   {
     if (!(area.oobb & polyAABB))
       continue;

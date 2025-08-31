@@ -132,6 +132,9 @@ public:
     SQUnsignedInteger defaultLangFeatures;
     SQUserPointer _foreignptr;
     SQRELEASEHOOK _releasehook;
+
+    SQObjectPtr doc_objects;
+    int doc_object_index;
 private:
     SQChar *_scratchpad;
     SQInteger _scratchpadsize;

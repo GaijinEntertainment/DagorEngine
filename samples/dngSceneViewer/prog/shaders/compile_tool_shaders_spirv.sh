@@ -1,2 +1,3 @@
 ../../../../tools/dagor_cdk/linux-$(uname -m)/dsc2-spirv-dev ./shaders_tools11.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -maxVSF 4096  -o ../../../../_output/shaders/dngSceneViewer-tools~spirv -out ../../develop/toolShaders/toolsSpirV
-../../../../tools/dagor_cdk/linux-$(uname -m)/dsc2-spirv-dev ./shaders_tools_exp.blk -q -shaderOn -relinkOnly  -o ../../../../_output/shaders/dngSceneViewer-tools~spirv
+../../../../tools/dagor_cdk/linux-$(uname -m)/dsc2-stub-dev  ./shaders_tools_exp.blk -q -shaderOn -no_sha1_cache  -o ../../../_output/shaders/dngSceneViewer~exp
+../../../../tools/dagor_cdk/linux-$(uname -m)/dsc2-spirv-dev ./shaders_impostorbaker.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -maxVSF 4096  -o ../../../_output/shaders/dngSceneViewer-impostorbaker~spirv -out ../../tools/tools.impostorbakerSpirV

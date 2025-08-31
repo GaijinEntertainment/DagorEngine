@@ -4,10 +4,18 @@
 //
 #pragma once
 
-#include <drv/3d/dag_resId.h>
+#ifndef ImTextureID
+typedef void *ImTextureID;
+#endif
 
 namespace PropPanel
 {
+
+enum class IconId : int
+{
+  Invalid = 0,
+  // The rest of the ids are dynamically allocated.
+};
 
 // Release the internal structures used by PropPanel.
 void release();
@@ -18,9 +26,15 @@ void after_new_frame();
 // This must be called before ImGui::EndFrame.
 void before_end_frame();
 
-// Loads an icon from p2util::get_icon_path(). In case of tools that will be dagor/tools/dagor_cdk/commonData/gui16x16/.
+// Loads an icon from p2util::get_icon_path(). If the icon cannot be found there then it tries to fall back to
+// p2util::get_icon_fallback_path(). In case of tools they'll be dagor/tools/dagor_cdk/commonData/icons/{THEME NAME}/
+// and/or dagor/tools/dagor_cdk/commonData/icons/ depending on the theme.
 // filename: name of the icon without extension. E.g.: "close_editor".
-TEXTUREID load_icon(const char *filename);
+IconId load_icon(const char *filename);
+
+ImTextureID get_im_texture_id_from_icon_id(IconId icon_id);
+
+void reload_all_icons();
 
 // Display tooltip for the previous ImGui control if the mouse is over it.
 // Similar to ImGui::SetItemTooltip but the tooltip behaves more like Windows tooltips.

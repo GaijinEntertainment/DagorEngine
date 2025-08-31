@@ -1,8 +1,6 @@
+import "math" as math
 from "%darg/ui_imports.nut" import *
 from "math" import clamp
-
-let math = require("math")
-
 let interop = {}
 
 let style = {}
@@ -59,7 +57,7 @@ function HelicopterRocketAim(line_style) {
 
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [sh(0.8), sh(2)]
+      size = static [sh(0.8), sh(2)]
       commands = [
         [VECTOR_LINE, -100, -100, 100, -100],
         [VECTOR_LINE, -100, 100, 100, 100],
@@ -70,7 +68,7 @@ function HelicopterRocketAim(line_style) {
   return {
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
-    size = [0,0]
+    size = 0
     behavior = Behaviors.RtPropUpdate
     update = @() {
       isHidden = !interop.state.rocketAimVisible
@@ -86,7 +84,7 @@ function HelicopterRocketAim(line_style) {
 function HelicopterFlightDirection(line_style) {
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [sh(0.75), sh(0.75)]
+      size = sh(0.75)
       commands = [
         [VECTOR_LINE, -100, 0, -200, 0],
         [VECTOR_LINE, 100, 0, 200, 0],
@@ -96,7 +94,7 @@ function HelicopterFlightDirection(line_style) {
     })
 
   return @(){
-    size = [0, 0]
+    size = 0
     behavior = Behaviors.RtPropUpdate
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
@@ -115,7 +113,7 @@ function HelicopterGunDirection(line_style) {
 
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [sh(0.625), sh(0.625)]
+      size = sh(0.625)
       commands = [
         [VECTOR_LINE, 0, 50, 0, 150],
         [VECTOR_LINE, 0, -50, 0, -150],
@@ -125,7 +123,7 @@ function HelicopterGunDirection(line_style) {
     })
 
   return @() {
-    size = [0, 0]
+    size = 0
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     behavior = Behaviors.RtPropUpdate
@@ -247,7 +245,7 @@ function Root() {
   return {
     halign = ALIGN_LEFT
     valign = ALIGN_TOP
-    size = [sw(100) , sh(100)]
+    size = static [sw(100) , sh(100)]
     children
   }
 }

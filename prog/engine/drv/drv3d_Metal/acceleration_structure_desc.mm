@@ -4,11 +4,10 @@
 
 #include "drv_log_defs.h"
 #include "acceleration_structure_desc.h"
-#include "buffers.h"
+#include "render.h"
 
 namespace acceleration_structure_descriptors::detail
 {
-API_AVAILABLE(ios(15.0), macos(11.0))
 void processCommonGeometryFlags(MTLAccelerationStructureGeometryDescriptor *desc, RaytraceGeometryDescription::Flags flags)
 {
   desc.intersectionFunctionTableOffset = 0; // not implemented
@@ -19,8 +18,7 @@ void processCommonGeometryFlags(MTLAccelerationStructureGeometryDescriptor *desc
   desc.allowDuplicateIntersectionFunctionInvocation = !((flags & RaytraceGeometryDescription::Flags::NO_DUPLICATE_ANY_HIT_INVOCATION) != RaytraceGeometryDescription::Flags::NONE);
 }
 
-API_AVAILABLE(ios(15.0), macos(11.0))
-MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const RaytraceGeometryDescription::TrianglesInfo &triangles)
+MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const RaytraceGeometryDescription::TrianglesInfo &triangles, eastl::vector<drv3d_metal::Buffer *, framemem_allocator> *resources)
 {
   MTLAccelerationStructureTriangleGeometryDescriptor *desc = [MTLAccelerationStructureTriangleGeometryDescriptor descriptor];
 
@@ -28,6 +26,12 @@ MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const Raytra
   desc.vertexBuffer = vBuffer->getBuffer();
   desc.vertexStride = triangles.vertexStride;
   desc.vertexBufferOffset = triangles.vertexOffset * triangles.vertexStride + triangles.vertexOffsetExtraBytes;
+
+  G_ASSERT(desc.vertexBuffer);
+  G_ASSERT(desc.vertexStride > 0);
+
+  if (resources)
+    resources->push_back(vBuffer);
 
   if (@available(macOS 13.0, iOS 16.0, *))
   {
@@ -37,15 +41,40 @@ MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const Raytra
       case VSDT_FLOAT2: desc.vertexFormat = MTLAttributeFormatFloat2; break;
       case VSDT_FLOAT3: desc.vertexFormat = MTLAttributeFormatFloat3; break;
       case VSDT_FLOAT4: desc.vertexFormat = MTLAttributeFormatFloat4; break;
-      default: desc.vertexFormat = MTLAttributeFormatFloat3; break;
+      case VSDT_HALF2: desc.vertexFormat = MTLAttributeFormatHalf2; break;
+      case VSDT_HALF4: desc.vertexFormat = MTLAttributeFormatHalf4; break;
+      case VSDT_SHORT2N: desc.vertexFormat = MTLAttributeFormatShort2Normalized; break;
+      case VSDT_SHORT4N: desc.vertexFormat = MTLAttributeFormatShort4Normalized; break;
+      case VSDT_USHORT2N: desc.vertexFormat = MTLAttributeFormatUShort2Normalized; break;
+      case VSDT_USHORT4N: desc.vertexFormat = MTLAttributeFormatUShort4Normalized; break;
+      default:
+        G_ASSERTF(0, "Unknown vertex format %d", triangles.vertexFormat);
+    }
+
+    if (triangles.transformBuffer)
+    {
+      auto tBuffer = reinterpret_cast<drv3d_metal::Buffer*>(triangles.transformBuffer);
+
+      if (resources)
+        resources->push_back(tBuffer);
+
+      desc.transformationMatrixBuffer = tBuffer->getBuffer();
+      desc.transformationMatrixBufferOffset = triangles.transformOffset*sizeof(MTLPackedFloat4x3) + tBuffer->getDynamicOffset();
     }
   }
 
   if (triangles.indexBuffer)
   {
     auto iBuffer = reinterpret_cast<drv3d_metal::Buffer*>(triangles.indexBuffer);
-    desc.indexBuffer = iBuffer->getBuffer();
     const bool isUInt32 = (iBuffer->bufFlags & SBCF_INDEX32);
+
+    G_ASSERT(iBuffer->getDynamicOffset() == 0);
+    G_ASSERT(iBuffer->getSize() >= triangles.indexCount * (isUInt32 ? sizeof(uint32_t) : sizeof(uint16_t)));
+
+    if (resources)
+      resources->push_back(iBuffer);
+
+    desc.indexBuffer = iBuffer->getBuffer();
     desc.indexType = isUInt32 ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16;
     desc.indexBufferOffset = triangles.indexOffset * (isUInt32 ? sizeof(uint32_t) : sizeof(uint16_t));
 
@@ -53,7 +82,7 @@ MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const Raytra
   }
   else
   {
-    const int vertexCount = (vBuffer->ressize() - desc.vertexBufferOffset) / triangles.vertexStride;
+    const int vertexCount = (vBuffer->getSize() - desc.vertexBufferOffset) / triangles.vertexStride;
     desc.triangleCount = vertexCount / 3;
 
     // "the vertex buffer provides 3 vertices for each triangle"
@@ -66,12 +95,15 @@ MTLAccelerationStructureGeometryDescriptor *getTriangleGeometryDesc(const Raytra
   return desc;
 }
 
-API_AVAILABLE(ios(15.0), macos(11.0))
-MTLAccelerationStructureGeometryDescriptor *getAABBGeometryDesc(const RaytraceGeometryDescription::AABBsInfo &aabbs)
+MTLAccelerationStructureGeometryDescriptor *getAABBGeometryDesc(const RaytraceGeometryDescription::AABBsInfo &aabbs, eastl::vector<drv3d_metal::Buffer *, framemem_allocator> *resources)
 {
+  drv3d_metal::Buffer *buffer = (drv3d_metal::Buffer*)aabbs.buffer;
   MTLAccelerationStructureBoundingBoxGeometryDescriptor *desc = [MTLAccelerationStructureBoundingBoxGeometryDescriptor descriptor];
-  desc.boundingBoxBuffer = ((drv3d_metal::Buffer*)aabbs.buffer)->getBuffer();
+  desc.boundingBoxBuffer = buffer->getBuffer();
   desc.boundingBoxCount = aabbs.count;
+
+  if (resources)
+    resources->push_back(buffer);
 
   // "The stride must be at least 24 bytes"
   // https://developer.apple.com/documentation/metal/mtlaccelerationstructureboundingboxgeometrydescriptor/3553863-boundingboxstride?language=objc
@@ -84,7 +116,6 @@ MTLAccelerationStructureGeometryDescriptor *getAABBGeometryDesc(const RaytraceGe
   return desc;
 }
 
-API_AVAILABLE(ios(15.0), macos(11.0))
 MTLAccelerationStructureUsage getASUsage(RaytraceBuildFlags build_flags)
 {
   MTLAccelerationStructureUsage result = MTLAccelerationStructureUsageNone;
@@ -102,7 +133,6 @@ MTLAccelerationStructureUsage getASUsage(RaytraceBuildFlags build_flags)
 
 namespace acceleration_structure_descriptors
 {
-API_AVAILABLE(ios(15.0), macos(11.0))
 MTLInstanceAccelerationStructureDescriptor *getTLASDescriptor(uint32_t instance_count, RaytraceBuildFlags flags)
 {
   // Create the instance acceleration structure that contains all instances in the scene.
@@ -114,27 +144,21 @@ MTLInstanceAccelerationStructureDescriptor *getTLASDescriptor(uint32_t instance_
   if (@available(iOS 15, macOS 12.0, *))
   {
     accDesc.instanceDescriptorType = MTLAccelerationStructureInstanceDescriptorTypeUserID;
+    accDesc.instanceDescriptorStride = sizeof(MTLAccelerationStructureUserIDInstanceDescriptor);
   }
 
   accDesc.instanceCount = instance_count;
   return accDesc;
 }
 
-API_AVAILABLE(ios(15.0), macos(11.0))
-MTLPrimitiveAccelerationStructureDescriptor *getBLASDescriptor(const RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags)
+MTLPrimitiveAccelerationStructureDescriptor *getBLASDescriptor(const RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags, eastl::vector<drv3d_metal::Buffer *, framemem_allocator> *resources)
 {
   NSMutableArray *geometryDescs  = [[NSMutableArray alloc] init];
   for (uint32_t i = 0; i < count; i++)
   {
-    MTLAccelerationStructureGeometryDescriptor *geometryDesc = [desc, i]() {
-      switch(desc[i].type)
-      {
-        case RaytraceGeometryDescription::Type::TRIANGLES:
-          return detail::getTriangleGeometryDesc(desc[i].data.triangles);
-        case RaytraceGeometryDescription::Type::AABBS:
-          return detail::getAABBGeometryDesc(desc[i].data.aabbs);
-      }
-    }();
+    G_ASSERT(desc[i].type == RaytraceGeometryDescription::Type::TRIANGLES || desc[i].type == RaytraceGeometryDescription::Type::AABBS);
+    MTLAccelerationStructureGeometryDescriptor *geometryDesc = desc[i].type == RaytraceGeometryDescription::Type::TRIANGLES ?
+      detail::getTriangleGeometryDesc(desc[i].data.triangles, resources) : detail::getAABBGeometryDesc(desc[i].data.aabbs, resources);
     [geometryDescs addObject: geometryDesc];
   }
 

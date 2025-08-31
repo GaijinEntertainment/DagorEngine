@@ -1,4 +1,5 @@
 ---
+# expects clang-format 18.1.8
 BasedOnStyle: Microsoft
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveMacros:

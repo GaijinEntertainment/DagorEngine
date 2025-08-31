@@ -1,4 +1,4 @@
-# Shader: land_mesh_height_decal
+# `land_mesh_height_decal`
 
 ## Overview
 

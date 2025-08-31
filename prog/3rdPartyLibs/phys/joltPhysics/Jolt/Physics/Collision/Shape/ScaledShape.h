@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Jolt/Physics/Collision/Shape/DecoratedShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaleHelpers.h>
 
 JPH_NAMESPACE_BEGIN
 
@@ -16,6 +17,7 @@ class JPH_EXPORT ScaledShapeSettings final : public DecoratedShapeSettings
 {
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, ScaledShapeSettings)
 
+public:
 	/// Default constructor for deserialization
 									ScaledShapeSettings() = default;
 
@@ -42,10 +44,10 @@ public:
 									ScaledShape(const ScaledShapeSettings &inSettings, ShapeResult &outResult);
 
 	/// Constructor that decorates another shape with a scale
-									ScaledShape(const Shape *inShape, Vec3Arg inScale)		: DecoratedShape(EShapeSubType::Scaled, inShape), mScale(inScale) { }
+									ScaledShape(const Shape *inShape, Vec3Arg inScale)		: DecoratedShape(EShapeSubType::Scaled, inShape), mScale(inScale) { JPH_ASSERT(!ScaleHelpers::IsZeroScale(mScale)); }
 
 	/// Get the scale
-	Vec3		 					GetScale() const										{ return mScale; }
+	Vec3							GetScale() const										{ return mScale; }
 
 	// See Shape::GetCenterOfMass
 	virtual Vec3					GetCenterOfMass() const override						{ return mScale * mInnerShape->GetCenterOfMass(); }
@@ -94,7 +96,7 @@ public:
 	virtual void					CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
 
 	// See: Shape::CollideSoftBodyVertices
-	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const override;
 
 	// See Shape::CollectTransformedShapes
 	virtual void					CollectTransformedShapes(const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale, const SubShapeIDCreator &inSubShapeIDCreator, TransformedShapeCollector &ioCollector, const ShapeFilter &inShapeFilter) const override;
@@ -119,6 +121,9 @@ public:
 
 	// See Shape::IsValidScale
 	virtual bool					IsValidScale(Vec3Arg inScale) const override;
+
+	// See Shape::MakeScaleValid
+	virtual Vec3					MakeScaleValid(Vec3Arg inScale) const override;
 
 	// Register shape functions with the registry
 	static void						sRegister();

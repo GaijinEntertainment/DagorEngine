@@ -8,6 +8,7 @@
 #include <math/dag_e3dColor.h>
 #include <util/dag_string.h>
 #include <memory/dag_framemem.h>
+#include <math/integer/dag_IPoint4.h>
 
 static bool check_scheme_block_match(const char *expr, const char *value)
 {
@@ -139,6 +140,16 @@ bool blk_to_json(const DataBlock &blk, Json::Value &json, const DataBlock &schem
         typeSuffix = ":ip3";
         break;
       }
+      case DataBlock::TYPE_IPOINT4:
+      {
+        IPoint4 ip4 = blk.getIPoint4(iParam);
+        child[3] = ip4.w;
+        child[2] = ip4.z;
+        child[1] = ip4.y;
+        child[0] = ip4.x;
+        typeSuffix = ":ip4";
+        break;
+      }
       case DataBlock::TYPE_BOOL:
         child = blk.getBool(iParam);
         typeSuffix = ":b";
@@ -224,6 +235,7 @@ static DataBlock::ParamType get_blk_param_type(const char *name, size_t len, con
     *suffix = name + len - 4;
     CHECK_PTYPE(":ip2", TYPE_IPOINT2);
     CHECK_PTYPE(":ip3", TYPE_IPOINT3);
+    CHECK_PTYPE(":ip4", TYPE_IPOINT4);
     CHECK_PTYPE(":i64", TYPE_INT64);
   }
 
@@ -352,6 +364,17 @@ static bool add_blk_param_from_json(DataBlock &blk, const Json::Value &key, cons
     blkKey = strKey;
     blkKey[keyLen - 4] = 0;
     blk.addIPoint3(blkKey, IPoint3(value[0].asInt(), value[1].asInt(), value[2].asInt()));
+  }
+  else if (blkParamType == DataBlock::TYPE_IPOINT4)
+  {
+    if (value.type() != Json::arrayValue || value.size() != 4)
+    {
+      G_ASSERT(!"Invalid type for IPoint4");
+      return false;
+    }
+    blkKey = strKey;
+    blkKey[keyLen - 4] = 0;
+    blk.addIPoint4(blkKey, IPoint4(value[0].asInt(), value[1].asInt(), value[2].asInt(), value[3].asInt()));
   }
   else if (blkParamType == DataBlock::TYPE_E3DCOLOR)
   {
@@ -625,6 +648,16 @@ static void json_table_extract_array_value(DataBlock &obj, const char *key, cons
       obj.addIPoint3(keyWoType, ip3);
       return;
     }
+    if (typeHint == DataBlock::TYPE_IPOINT4)
+    {
+      IPoint4 ip4;
+      ip4.x = (int)val[0].asLargestInt();
+      ip4.y = (int)val[1].asLargestInt();
+      ip4.z = (int)val[2].asLargestInt();
+      ip4.w = (int)val[3].asLargestInt();
+      obj.addIPoint4(keyWoType, ip4);
+      return;
+    }
   }
   else if (is_json_array_of_numbers(val, 4))
   {
@@ -687,6 +720,7 @@ static void json_table_extract_object_value(DataBlock &obj, const char *key, con
       case DataBlock::TYPE_IPOINT2: canExtractAsComplexObj = is_json_array_of_numbers(subValue, 2); break;
       case DataBlock::TYPE_POINT3:
       case DataBlock::TYPE_IPOINT3: canExtractAsComplexObj = is_json_array_of_numbers(subValue, 3); break;
+      case DataBlock::TYPE_IPOINT4:
       case DataBlock::TYPE_POINT4: canExtractAsComplexObj = is_json_array_of_numbers(subValue, 4); break;
       default: break;
     }

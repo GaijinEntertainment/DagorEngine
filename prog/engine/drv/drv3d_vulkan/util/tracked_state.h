@@ -72,10 +72,7 @@
   {                                                             \
     TrackedState::transit(target);                              \
   }                                                             \
-  static constexpr bool is_nested_field()                       \
-  {                                                             \
-    return true;                                                \
-  }
+  static constexpr bool is_nested_field() { return true; }
 
 #define VULKAN_TRACKED_STATE_DEFAULT_NESTED_FIELD_CB()    \
   VULKAN_TRACKED_STATE_DEFAULT_NESTED_FIELD_CB_NO_RESET() \

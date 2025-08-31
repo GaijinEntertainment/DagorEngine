@@ -17,11 +17,21 @@ BVHDynRend ?= yes ;
 BVHFx ?= yes ;
 BVHCables ?= yes ;
 
+BVHProfiling ?= no ;
+
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
+UseProgLibs +=
+  gameLibs/userSystemInfo
+;
+
 
 if $(BVHSupport) = yes {
+  if $(BVHProfiling) = yes {
+    CPPopt += -DBVH_PROFILING_ENABLED=1 ;
+  }
+
   Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp ;
 
   if $(BVHTerrain) = yes {

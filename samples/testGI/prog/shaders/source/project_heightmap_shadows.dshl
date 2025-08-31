@@ -1,0 +1,52 @@
+texture lmesh_height_tex;
+float4 lmesh_height_encoding;
+float4 world_to_lmesh_height;
+
+macro PROJECT_BASE_HEIGHTMAP_LEVEL(code)
+  (code) {
+    lmesh_height_tex@smp2d = lmesh_height_tex;
+    world_to_lmesh_height@f4 = world_to_lmesh_height;
+    lmesh_height_encoding@f3 = lmesh_height_encoding;
+  }
+  hlsl(code) {
+    void get_project_base_heightmap(uint cascade, float2 worldPosXZ, inout float height, inout float high_hmap, float texelSize)
+    {
+      float2 tc = worldPosXZ*world_to_lmesh_height.xy + world_to_lmesh_height.zw;
+      if (any(abs(tc*2 - 1) >= lmesh_height_encoding.z))
+        return;
+      float hSampled = tex2Dlod(lmesh_height_tex, float4(tc,0,0)).x;
+      high_hmap = height = lmesh_height_encoding.x + lmesh_height_encoding.y*hSampled;
+    }
+    bool get_project_base_heightmap_tc_valid(float2 hmap_tc)
+    {
+      return true; // if our hmap is mirrored
+      return all(abs(hmap_tc*2 - 1) < 1);
+    }
+  }
+endmacro
+
+texture depth_above;
+float4 world_to_depth_above = (0,2,2,1);
+float4 depth_above_heights;
+
+macro PROJECT_ABOVE_HEIGHTMAP_LEVEL(code)
+
+  (code) {
+    depth_above@smp2d = depth_above;
+    world_to_depth_above@f4 = world_to_depth_above;
+    depth_above_heights@f2 = depth_above_heights;
+  }
+  hlsl(code) {
+    void get_project_upper_heightmap(uint cascade, float2 worldPosXZ, inout float high_hmap)
+    {
+      return;
+      float2 depthAboveTc = worldPosXZ*world_to_depth_above.x + world_to_depth_above.yz;
+      depthAboveTc.y = 1-depthAboveTc.y;
+
+      float depthAboveH = depth_above_heights.x + depth_above_heights.y*tex2Dlod(depth_above, float4(depthAboveTc,0,0)).x;
+      float2 vignette = saturate(abs(depthAboveTc*2 - 1)*100 - 99);
+      float vignetteV = saturate(dot(vignette, vignette));
+      high_hmap = lerp(max(high_hmap, depthAboveH), high_hmap, vignetteV);
+    }
+  }
+endmacro

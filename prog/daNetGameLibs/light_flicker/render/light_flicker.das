@@ -5,7 +5,7 @@ require DagorShaders
 require AnimV20
 require DagorMaterials
 require math.base
-require app
+require app // get_sync_time
 require danetlibs.light_flicker.render.light_flicker_common
 require daSkies
 
@@ -58,6 +58,48 @@ def init_flicker_light(evt : Event;
   light_flicker__seed = int(uint(eid)) ^ get_rnd_seed()
 
 [es(tag=render, after=after_camera_sync)]
+def light_flicker_update2_es(info : UpdateStageInfoAct;
+                             light_flicker__brightnesses : float3;
+                             light_flicker__timings : float3;
+                             light_flicker__timingMul : float;
+                             light_flicker__brigtnessDeviation : float;
+                             light_flicker__timeDeviation : float;
+                             light_flicker__noiseToFlatRatio : float;
+                             light_flicker__noisePhase : float;
+                             light_flicker__noiseVelocity : float;
+                             var light_flicker__currentBase : float&;
+                             var light_flicker__changeAt : float&;
+                             var light_flicker__seed : int&;
+                             var light_flicker__brightness : float&)
+  if light_flicker__changeAt < info.curTime
+    let nextStateRnd = _rnd_float(light_flicker__seed, .0, 3.0)
+    if nextStateRnd < 1.0
+      light_flicker__currentBase = light_flicker__brightnesses.x
+    elif nextStateRnd < 2.0
+      light_flicker__currentBase = light_flicker__brightnesses.y
+    else
+      light_flicker__currentBase = light_flicker__brightnesses.z
+
+    light_flicker__currentBase *= _rnd_float(light_flicker__seed, 1.0 - light_flicker__brigtnessDeviation, 1.0 + light_flicker__brigtnessDeviation)
+
+    let nextTimeRnd = _rnd_float(light_flicker__seed, .0, 3.0)
+    var duration = .0
+    if nextTimeRnd < 1.0
+      duration = light_flicker__timings.x
+    elif nextTimeRnd < 2.0
+      duration = light_flicker__timings.y
+    else
+      duration = light_flicker__timings.z
+
+    duration *= light_flicker__timingMul
+    light_flicker__changeAt = info.curTime + duration * _rnd_float(light_flicker__seed, 1.0 - light_flicker__timeDeviation, 1.0 + light_flicker__timeDeviation)
+
+  let noise = perlin_noise1(light_flicker__noiseVelocity * info.curTime + light_flicker__noisePhase)
+  light_flicker__brightness = light_flicker__currentBase + noise * light_flicker__noiseToFlatRatio
+
+
+
+[es(tag=render, after=after_camera_sync)]
 def light_flicker_update_es(info : UpdateStageInfoAct;
                             light_flicker__on_time : float2;
                             light_flicker__off_time : float2;
@@ -92,10 +134,10 @@ def light_flicker_update_es(info : UpdateStageInfoAct;
   let isInAttack = flicker_on > 0.0 && flicker_on < 1.0
   let isInOn = flicker_status == 1.0
   let isInOff = flicker_status == 0.0 || (light_flicker__nightly && !is_night_time())
-  light_flicker__state = int(isInOff ? LightFlickerState Off
-                            : isInAttack ? LightFlickerState Attack
-                            : isInOn ? LightFlickerState On
-                            : LightFlickerState Release)
+  light_flicker__state = int(isInOff ? LightFlickerState.Off
+                            : isInAttack ? LightFlickerState.Attack
+                            : isInOn ? LightFlickerState.On
+                            : LightFlickerState.Release)
 
   let brightness = lerp(off_brightness, on_brightness, flicker_status)
   let min_max_noise = lerp(light_flicker__noise_brightness_off, light_flicker__noise_brightness_on, float2(flicker_status))
@@ -205,7 +247,7 @@ def light_flicker_spawn_sparks_fx_on_attack_state(evt : Event;
                                                   light_flicker__sparksEffectSpawnChance : float;
                                                   light_flicker__lightEids : EidList;
                                                   light_flicker__state : int)
-  if light_flicker__state != int(LightFlickerState Attack)
+  if light_flicker__state != int(LightFlickerState.Attack)
     return
 
   for lightEid in light_flicker__lightEids

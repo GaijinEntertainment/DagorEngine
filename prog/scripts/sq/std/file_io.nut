@@ -33,10 +33,10 @@ function doInFile(filePath, flags, action){
   }, action)
 }
 
-return {
+return freeze({
   readFileAsBlob
   readFileAsString
   writeBlobToFile
   writeStringToFile
   doInFile
-}
+})

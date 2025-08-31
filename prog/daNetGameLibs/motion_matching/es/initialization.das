@@ -3,12 +3,12 @@ require MotionMatching
 require danetlibs/motion_matching/es/motion_matching_common
 require danetlibs/motion_matching/es/mm_events
 
-[es(before=init_animations_es, on_appear, on_event=InvalidateAnimationDataBase)]
+[es(before=(init_animations_es, load_animation_data_base_es), on_appear, on_event=InvalidateAnimationDataBase)]
 def invalidate_anim_data_base(evt : Event;
                               var main_database__loaded : bool&)
   main_database__loaded = false
 
-[es(before=init_animations_es, on_appear, on_event=InvalidateAnimationDataBase)]
+[es(before=(init_animations_es, load_animation_data_base_es), on_appear, on_event=InvalidateAnimationDataBase)]
 def init_anim_data_base_weights(evt : Event;
                                 var dataBase : AnimationDataBase;
                                 weightsPath : string;

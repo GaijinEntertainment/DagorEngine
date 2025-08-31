@@ -15,51 +15,6 @@
 
 namespace drv3d_dx12
 {
-template <D3D12_DESCRIPTOR_HEAP_TYPE Type>
-class StreamDescriptorHeap
-{
-  ComPtr<ID3D12DescriptorHeap> heap;
-  D3D12_CPU_DESCRIPTOR_HANDLE cpuBegin{};
-  uint32_t descriptorCount = 0;
-  uint32_t descriptorSize = 0;
-
-  static constexpr uint32_t descriptor_count_alignment = 64;
-
-public:
-  void init(ID3D12Device *device) { descriptorSize = device->GetDescriptorHandleIncrementSize(Type); }
-
-  uint32_t getDescriptorSize() const { return descriptorSize; }
-
-  D3D12_CPU_DESCRIPTOR_HANDLE getDescriptors(ID3D12Device *device, uint32_t count)
-  {
-    if (descriptorCount < count)
-    {
-      heap.Reset();
-
-      D3D12_DESCRIPTOR_HEAP_DESC desc{};
-      desc.Type = Type;
-      desc.NumDescriptors = descriptorCount = align_value(count, descriptor_count_alignment);
-      DX12_CHECK_RESULT(device->CreateDescriptorHeap(&desc, COM_ARGS(&heap)));
-      if (heap)
-      {
-        cpuBegin = heap->GetCPUDescriptorHandleForHeapStart();
-      }
-      else
-      {
-        cpuBegin = {};
-      }
-    }
-
-    return cpuBegin;
-  }
-
-  void shutdown()
-  {
-    heap.Reset();
-    descriptorCount = 0;
-  }
-};
-
 template <typename Policy>
 class DescriptorHeap
 {
@@ -121,7 +76,10 @@ public:
     target.init(data);
     target.heap = ThisPolicy::allocateHeap(device, data, target);
     if (!target.heap)
+    {
+      G_ASSERT_FAIL("DX12: DescriptorHeap::allocate: failed to allocate descriptor");
       return result;
+    }
     target.cpuBegin = target.heap->GetCPUDescriptorHandleForHeapStart();
     target.cpuEnd = target.cpuBegin;
     target.cpuEnd.ptr += target.getTotalSlots() * data.slotSize();
@@ -206,7 +164,7 @@ struct BasicBlockHeap
   }
 };
 
-typedef BasicBlockHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV> ShaderResouceViewStagingPolicy;
+typedef BasicBlockHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV> ShaderResourceViewStagingPolicy;
 typedef BasicBlockHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER> SamplerStagingPolicy;
 typedef BasicBlockHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV> RenderTargetViewPolicy;
 typedef BasicBlockHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV> DepthStencilViewPolicy;
@@ -332,7 +290,7 @@ struct BasicFreeListHeap
   }
 };
 
-typedef BasicFreeListHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV> ShaderResouceViewDynamicPolicy;
+typedef BasicFreeListHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV> ShaderResourceViewDynamicPolicy;
 // TODO: may have a different policy for this?
 typedef BasicFreeListHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER> SamplerDynamicPolicy;
 
@@ -548,6 +506,13 @@ class ShaderResourceViewDescriptorHeapManager
       return DescriptorHeapIndex::make(index);
     }
 
+    DescriptorHeapIndex allocateDescriptors(uint32_t count)
+    {
+      auto index = allocationCount;
+      allocationCount += count;
+      return DescriptorHeapIndex::make(index);
+    }
+
     /// returns true when enough space is available
     bool reserveSpace(uint32_t size) const { return (SRV_HEAP_SIZE - allocationCount) >= size; }
   };
@@ -610,6 +575,15 @@ public:
 
   D3D12_GPU_DESCRIPTOR_HANDLE getGpuAddress(DescriptorHeapRange range) const { return getGpuAddress(range.base); }
 
+  D3D12_CPU_DESCRIPTOR_HANDLE getCpuAddress(DescriptorHeapIndex index) const
+  {
+    G_ASSERT(static_cast<bool>(index));
+    auto result = heaps[index.subHeapIndex].getCpuAddress(index.descriptorIndex);
+    return result;
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE getCpuAddress(DescriptorHeapRange range) const { return getCpuAddress(range.base); }
+
   DescriptorHeapIndex findInUAVScratchSegment(const D3D12_CPU_DESCRIPTOR_HANDLE *, uint32_t) const
   {
     return DescriptorHeapIndex::make_invalid();
@@ -660,6 +634,11 @@ public:
   DescriptorHeapIndex appendToConstScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptors, count), activeHeapIndex);
+  }
+
+  DescriptorHeapIndex allocateConstBufferDescriptors(uint32_t count)
+  {
+    return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].allocateDescriptors(count), activeHeapIndex);
   }
 
   DescriptorReservationResult reserveSpace(ID3D12Device *device, uint32_t b_register_count, uint32_t t_register_count,

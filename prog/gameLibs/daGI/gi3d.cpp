@@ -216,8 +216,7 @@ void GI3D::VolmapCascade::init(const char *name_, const Point2 &sz, int xz, int 
   toroidalOrigin = IPoint3(0, -10000, 0);
   resetted = true;
   fillBoxParams();
-  uint v[4] = {0, 0, 0, 0};
-  d3d::clear_rwbufi(voxelsWeightHistogram.get(), v); // todo:to be cleared in render if invalid
+  d3d::zero_rwbufi(voxelsWeightHistogram.get()); // todo:to be cleared in render if invalid
 }
 
 BBox3 GI3D::VolmapCascade::getBox() const
@@ -320,14 +319,16 @@ void GI3D::VolmapCommonData::init(int xz_dimensions, int y_dimensions, int max_v
   maxVoxels = max_voxels;
   int format = scalar_ao ? TEXFMT_R8 : TEXFMT_R11G11B10F;
   cube = dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions * 6, format | TEXCF_UNORDERED, 1, "gi_ambient_volmap");
-  cube->texaddr(TEXADDR_WRAP);
-  cube->texaddrw(TEXADDR_CLAMP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
+  smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("gi_ambient_volmap_samplerstate", true), smp);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("ssgi_ambient_volmap_temporal_samplerstate", true), smp);
 
   d3d::resource_barrier({cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   ssgiTemporalWeight =
-    dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions, TEXFMT_L8 | TEXCF_UNORDERED, 1, "ssgi_ambient_volmap_temporal");
-  ssgiTemporalWeight->texaddr(TEXADDR_WRAP);
-  ssgiTemporalWeight->texaddrw(TEXADDR_CLAMP);
+    dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions, TEXFMT_R8 | TEXCF_UNORDERED, 1, "ssgi_ambient_volmap_temporal");
   invalidateTextureContent();
 
   G_ASSERT(maxVoxels > 0);
@@ -353,7 +354,6 @@ void GI3D::VolmapCommonData::RT::createTextures(QualitySettings quality, int xz_
   int xzDim = xz_dimensions * OCTAHEDRAL_TILE_SIDE_LENGTH;
   octahedralDistances = dag::create_array_tex(xzDim, xzDim, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "octahedral_distances");
   deadProbes = dag::create_array_tex(xz_dimensions, xz_dimensions, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "dead_probes");
-  deadProbes.getArrayTex()->texfilter(TEXFILTER_POINT);
 }
 
 void GI3D::VolmapCommonData::RT::createOctahedralDistances(int xz_dim, int y_dim)
@@ -841,11 +841,12 @@ void GI3D::updateOrigin(const Point3 &center, const dagi25d::voxelize_scene_fun_
   updateWallsPos(center);
   {
     TIME_D3D_PROFILE(gi_update_origin_25d);
-    dagi25d::UpdateResult sceneMoved = scene25D.updateOrigin(center, voxelize_25d_cb);
+    bool sceneUpdatePending = false;
+    dagi25d::UpdateResult sceneMoved = scene25D.updateOrigin(center, voxelize_25d_cb, sceneUpdatePending);
     if (sceneMoved == dagi25d::UpdateResult::TELEPORTED && !gi_25d_force_update_scene.get())
       shouldUpdate3D = false; // only update 3d scene if we hadn't updated 2D scene
-    else
-    {
+    else if (!sceneUpdatePending)
+    { // only update irradiance if scene update is completed for the new center position
       // only update 3d scene if we hadn't updated 2D scene&irradiance
       if (irradiance25D.updateOrigin(center) == irradiance25D.UPDATE_TELEPORTED && !gi_25d_force_update_volmap.get())
         shouldUpdate3D = false;
@@ -915,8 +916,7 @@ void GI3D::VolmapCascade::cull(VolmapCommonData &common, mat44f_cref globtm)
 
   TIME_D3D_PROFILE(cull_frustum_voxels_cs); // todo:we can speed up by checking chunks first
   set_frustum_planes(frustum);
-  unsigned v[4] = {0, 0, 0, 0};
-  d3d::clear_rwbufi(common.frustumVisibleAmbientVoxelsCount.get(), v); // todo: to be cleared once
+  d3d::zero_rwbufi(common.frustumVisibleAmbientVoxelsCount.get()); // todo: to be cleared once
   d3d::resource_barrier({common.frustumVisibleAmbientVoxelsCount.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
   d3d::set_rwbuffer(STAGE_CS, 0, common.frustumVisibleAmbientVoxelsCount.get());
   d3d::set_rwbuffer(STAGE_CS, 1, common.frustumVisibleAmbientVoxels.getBuf());

@@ -10,14 +10,18 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_convar.h>
 #include <ioSys/dag_dataBlock.h>
+#include <shaders/dag_shaderBlock.h>
 
 
 #define GLOBAL_VARS_LIST                       \
   VAR(taa_input_resolution)                    \
   VAR(taa_output_resolution)                   \
   VAR(taa_history_tex)                         \
+  VAR(taa_history_tex_samplerstate)            \
   VAR(taa_frame_tex)                           \
+  VAR(taa_frame_tex_samplerstate)              \
   VAR(taa_was_dynamic_tex)                     \
+  VAR(taa_was_dynamic_tex_samplerstate)        \
   VAR(taa_clamping_gamma_factor)               \
   VAR(taa_new_frame_weight)                    \
   VAR(taa_new_frame_weight_for_motion)         \
@@ -40,14 +44,14 @@
   VAR(taa_jitter_offset)                       \
   VAR(taa_adaptive_filter)                     \
   VAR(taa_scale_aabb_with_motion_steepness)    \
-  VAR(taa_scale_aabb_with_motion_max)
+  VAR(taa_scale_aabb_with_motion_max)          \
+  VAR(taa_precomputed_weights_samplerstate)
 
 #define VAR(a) static int gv_##a = -1;
 GLOBAL_VARS_LIST
 #undef VAR
 
-static void init_gvars()
-{
+static void init_gvars(){
 #define VAR(a) gv_##a = ::get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
 #undef VAR
@@ -55,12 +59,14 @@ static void init_gvars()
 
 
 TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, const IPoint2 &output_resolution, int resolve_tex_fmt,
-  bool low_quality, bool req_dynamic_tex, bool hist_fmt_match_resolve, const char *name) :
+  bool low_quality, bool req_dynamic_tex, bool mobile_taa, const char *name) :
   inputResolution(input_resolution),
   outputResolution(output_resolution),
   frame(0, 0),
-  lodBias(-log2(float(output_resolution.y) / float(input_resolution.y)))
+  lodBias(-log2(float(output_resolution.y) / float(input_resolution.y))),
+  precomputedWeightsReady(false)
 {
+  G_UNUSED(low_quality);
   render.init(shader);
   init_gvars();
 
@@ -68,15 +74,34 @@ TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, cons
   if (!name)
     name = defaultName;
 
-  resolvedFramePool = RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | resolve_tex_fmt, 1);
-
-  int historyFmt = hist_fmt_match_resolve ? resolve_tex_fmt : (low_quality ? TEXFMT_R11G11B10F : TEXFMT_A16B16G16R16F);
+  int historyFmt = mobile_taa ? resolve_tex_fmt : TEXFMT_A16B16G16R16F;
   historyFmt |= TEXCF_RTARGET;
 
   historyTexPool = RTargetPool::get(outputResolution.x, outputResolution.y, historyFmt, 1);
 
   wasDynamicTexPool =
-    req_dynamic_tex ? RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | TEXFMT_L8, 1) : nullptr;
+    req_dynamic_tex ? RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | TEXFMT_R8, 1) : nullptr;
+
+  if (mobile_taa)
+  {
+    const int precomputedWeightsSize = 64;
+    taaPrecomputedWeights.set(d3d::create_tex(nullptr, precomputedWeightsSize, precomputedWeightsSize,
+                                TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "taa_precomputed_weights"),
+      "taa_precomputed_weights");
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(gv_taa_precomputed_weights_samplerstate, smp);
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(gv_taa_frame_tex_samplerstate, smp);
+    ShaderGlobal::set_sampler(gv_taa_history_tex_samplerstate, smp);
+    ShaderGlobal::set_sampler(gv_taa_was_dynamic_tex_samplerstate, smp);
+  }
 }
 
 bool TemporalAA::beforeRenderFrame()
@@ -104,15 +129,28 @@ bool TemporalAA::beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter)
 
 void TemporalAA::applyImpl(TEXTUREID currentFrameId)
 {
+  if (taaPrecomputedWeights.getTex2D() && !precomputedWeightsReady)
+  {
+    SCOPE_RENDER_TARGET;
+    PostFxRenderer precompute;
+    precompute.init("taa_precompute");
+    SCOPE_RESET_SHADER_BLOCKS;
+    d3d::set_render_target();
+    d3d::set_render_target(0, taaPrecomputedWeights.getTex2D(), 0);
+    ShaderGlobal::set_color4(gv_taa_input_resolution, inputResolution.x, inputResolution.y, 0, 0);
+    ShaderGlobal::set_color4(gv_taa_output_resolution, outputResolution.x, outputResolution.y, 0, 0);
+    precompute.render();
+    taaPrecomputedWeights.setVar();
+    precomputedWeightsReady = true;
+  }
+
   RTarget::Ptr nextHistory = historyTexPool->acquire();
-  nextHistory->getTex2D()->texaddr(TEXADDR_CLAMP);
   d3d::set_render_target(1, nextHistory->getTex2D(), 0);
 
   RTarget::Ptr nextWasDynamic;
   if (wasDynamicTexPool)
   {
     nextWasDynamic = wasDynamicTexPool->acquire();
-    nextWasDynamic->getTex2D()->texaddr(TEXADDR_CLAMP);
     d3d::set_render_target(2, nextWasDynamic->getTex2D(), 0);
   }
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
@@ -132,23 +170,18 @@ void TemporalAA::applyImpl(TEXTUREID currentFrameId)
   frame++;
 }
 
-RTarget::CPtr TemporalAA::apply(TEXTUREID currentFrameId)
+void TemporalAA::apply(TEXTUREID currentFrameId, Texture *target)
 {
   SCOPE_RENDER_TARGET;
 
-  RTarget::Ptr result = resolvedFramePool->acquire();
-  result->getTex2D()->texaddr(TEXADDR_CLAMP);
-  d3d::set_render_target(result->getTex2D(), 0);
+  d3d::set_render_target(target, 0);
 
   applyImpl(currentFrameId);
-
-  return result;
 }
 
-void TemporalAA::applyToSwapchain(TEXTUREID currentFrameId)
+void TemporalAA::applyToCurrentTarget(TEXTUREID currentFrameId)
 {
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target();
   applyImpl(currentFrameId);
 }
 

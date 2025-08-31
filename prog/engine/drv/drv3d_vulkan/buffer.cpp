@@ -25,18 +25,18 @@ GenericBufferInterface::GenericBufferInterface(uint32_t struct_size, uint32_t el
   bool managed, const char *stat_name) :
   structSize(struct_size), bufSize(struct_size * element_count), bufFlags(flags), uavFormat(format)
 {
-  G_ASSERTF(bufSize, "vulkan: trying to create empty buffer <%s>", stat_name);
-  G_ASSERTF((bufFlags & (SBCF_FRAMEMEM | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE)) !=
-              (SBCF_FRAMEMEM | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE),
+  D3D_CONTRACT_ASSERTF(bufSize, "vulkan: trying to create empty buffer <%s>", stat_name);
+  D3D_CONTRACT_ASSERTF((bufFlags & (SBCF_FRAMEMEM | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE)) !=
+                         (SBCF_FRAMEMEM | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE),
     "vulkan: can't create RT scratch buffer as framemem");
-  setResName(stat_name);
-  G_ASSERTF(
+  setName(stat_name);
+  D3D_CONTRACT_ASSERTF(
     format == FormatStore(0) || ((flags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW)) == 0),
     "can't create buffer with texture format which is Structured, Vertex, Index or Raw");
 
   if (bufFlags & SBCF_MISC_ALLOW_RAW)
   {
-    G_ASSERT(struct_size == 1 || struct_size == 4);
+    D3D_CONTRACT_ASSERT(struct_size == 1 || struct_size == 4);
     structSize = 4;
   }
 
@@ -45,18 +45,18 @@ GenericBufferInterface::GenericBufferInterface(uint32_t struct_size, uint32_t el
   {
     if (!is_good_buffer_structure_size(structSize))
     {
-      D3D_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and probably "
-                "results in degraded performance. For some platforms it might requires the shader "
-                "compiler to restructure the structure type to avoid layout violations and on other "
-                "platforms it results in wasted memory as the memory manager has to insert extra "
-                "padding to align the buffer properly.",
-        structSize, getResName());
+      D3D_CONTRACT_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and probably "
+                         "results in degraded performance. For some platforms it might requires the shader "
+                         "compiler to restructure the structure type to avoid layout violations and on other "
+                         "platforms it results in wasted memory as the memory manager has to insert extra "
+                         "padding to align the buffer properly.",
+        structSize, getName());
     }
   }
 
   if ((bufFlags & SBCF_ZEROMEM) && (bufFlags & SBCF_FRAMEMEM))
   {
-    D3D_ERROR(
+    D3D_CONTRACT_ERROR(
       "Using SBCF_ZEROMEM and SBCF_FRAMEMEM flags for buffer %s together don't make really any sense and it prevents the driver "
       "to apply optimizations on the buffer handling");
   }
@@ -103,7 +103,7 @@ void GenericBufferInterface::useExternalResource(Buffer *resource)
 
 void GenericBufferInterface::afterBufferResourceAllocated()
 {
-  Globals::Dbg::naming.setBufName(ref.buffer, getResName());
+  Globals::Dbg::naming.setBufName(ref.buffer, getName());
   if (FormatStore(0) != uavFormat)
     ref.buffer->addBufferView(uavFormat);
 
@@ -135,7 +135,26 @@ GenericBufferInterface::~GenericBufferInterface()
   ctx.destroyBuffer(ref.buffer);
 }
 
-int GenericBufferInterface::ressize() const { return int(bufSize); }
+void GenericBufferInterface::onDeviceReset() { asyncCopyEvent.reset(); }
+
+void GenericBufferInterface::afterDeviceReset()
+{
+  if (rld)
+    rld->reloadD3dRes(this);
+  else if (getFlags() & SBCF_ZEROMEM)
+  {
+    unsigned char *data = nullptr;
+    if (lock(0, getSize(), (void **)&data, VBLOCK_WRITEONLY) && data)
+    {
+      memset(data, 0, getSize());
+      unlock();
+    }
+  }
+  if (getBufName() && getBufferRef())
+    setApiName(getBufName());
+}
+
+uint32_t GenericBufferInterface::getSize() const { return int(bufSize); }
 
 int GenericBufferInterface::getFlags() const { return int(bufFlags); }
 
@@ -149,8 +168,8 @@ bool GenericBufferInterface::copyTo(Sbuffer *dst)
 {
   auto dest = (GenericBufferInterface *)dst;
   auto &context = Globals::ctx;
-  G_ASSERTF(bufSize <= ref.buffer->getBlockSize(), "the actual backing buffer is smaller (%d bytes) than the Buffer (%d bytes)",
-    ref.buffer->getBlockSize(), bufSize);
+  D3D_CONTRACT_ASSERTF(bufSize <= ref.buffer->getBlockSize(),
+    "the actual backing buffer is smaller (%d bytes) than the Buffer (%d bytes)", ref.buffer->getBlockSize(), bufSize);
   // reorder buffer update if we running it from external thread
   if (Globals::lock.isAcquired())
     context.copyBufferDiscardReorderable(ref, dest->ref, 0, 0, bufSize);
@@ -216,7 +235,7 @@ void GenericBufferInterface::markAsyncCopyInProgress()
   {
     if (!asyncCopyEvent.isCompleted())
     {
-      D3D_ERROR("vulkan: async readback is already requested for buffer [%s]", ref.buffer->getDebugName());
+      D3D_CONTRACT_ERROR("vulkan: async readback is already requested for buffer [%s]", ref.buffer->getDebugName());
       TIME_PROFILE(vulkan_double_readback_wait);
       ctx.waitForIfPending(asyncCopyEvent);
     }
@@ -225,7 +244,7 @@ void GenericBufferInterface::markAsyncCopyInProgress()
     //  D3D_ERROR("vulkan: async readback is not consumed [%s]", ref.buffer->getDebugName());
     asyncCopyEvent.reset();
   }
-  asyncCopyEvent.request(ctx.getCurrentWorkItemId());
+  asyncCopyEvent.request(ctx.getCurrentWorkItemId() + Frontend::readbacks.getLatency());
   lastLockFlags = 0;
 }
 
@@ -233,7 +252,7 @@ void GenericBufferInterface::markAsyncCopyFinished()
 {
   if (!asyncCopyEvent.isCompleted())
   {
-    D3D_ERROR("vulkan: async readback is not yet completed for buffer [%s]", ref.buffer->getDebugName());
+    D3D_CONTRACT_ERROR("vulkan: async readback is not yet completed for buffer [%s]", ref.buffer->getDebugName());
     TIME_PROFILE(vulkan_incomplete_readback_wait);
     Globals::ctx.waitForIfPending(asyncCopyEvent);
   }
@@ -243,7 +262,10 @@ void GenericBufferInterface::markAsyncCopyFinished()
 void GenericBufferInterface::blockingReadbackWait()
 {
   TIME_PROFILE(vulkan_buffer_blocking_readback_wait);
-  Globals::ctx.wait();
+  G_ASSERTF(!asyncCopyEvent.isRequested(), "vulkan: async copy event should not be requested here");
+  asyncCopyEvent.request(Globals::ctx.getCurrentWorkItemId() + Frontend::readbacks.getLatency());
+  Globals::ctx.waitForIfPending(asyncCopyEvent);
+  asyncCopyEvent.reset();
 }
 
 bool GenericBufferInterface::isDMAPathAvailable()
@@ -255,11 +277,19 @@ bool GenericBufferInterface::isDMAPathAvailable()
 
 BufferRef GenericBufferInterface::fillFrameMemWithDummyData()
 {
-  G_ASSERTF(bufFlags & SBCF_FRAMEMEM, "vulkan: binding empty non framemem buffer %p:%s", this, getResName());
+  G_ASSERTF(bufFlags & SBCF_FRAMEMEM, "vulkan: binding empty non framemem buffer %p:%s", this, getName());
   // because we do like to create-bind-discard-draw, and we can't state-replace empty buffers
   // always allocate empty block when non discarded buffer is bound
   void *ptr;
   lock(0, 0, &ptr, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   unlock();
   return ref;
+}
+
+bool GenericBufferInterface::setReloadCallback(Sbuffer::IReloadData *_rld)
+{
+  if (rld && rld != _rld)
+    rld->destroySelf();
+  rld = _rld;
+  return true;
 }

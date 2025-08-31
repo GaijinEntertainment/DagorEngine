@@ -6,6 +6,7 @@
 #include <EASTL/vector.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -127,6 +128,7 @@ static void dblk::save(const ExposedDataBlock &blk, IGenSave &cb, dblk::StringVa
       case DataBlock::TYPE_REAL:
       case DataBlock::TYPE_POINT3:
       case DataBlock::TYPE_IPOINT3:
+      case DataBlock::TYPE_IPOINT4:
       case DataBlock::TYPE_POINT2:
       case DataBlock::TYPE_IPOINT2:
       case DataBlock::TYPE_POINT4:

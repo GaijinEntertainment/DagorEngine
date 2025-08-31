@@ -7,7 +7,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <render/renderEvent.h>
 #include "render/fx/effectEntity.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "render/weather/rain.h"
 #include <util/dag_convar.h>
 

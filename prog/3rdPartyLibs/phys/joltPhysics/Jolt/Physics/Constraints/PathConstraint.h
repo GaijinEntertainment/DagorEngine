@@ -14,6 +14,9 @@
 
 JPH_NAMESPACE_BEGIN
 
+JPH_SUPPRESS_WARNING_PUSH
+JPH_GCC_SUPPRESS_WARNING("-Wshadow") // GCC complains about the 'Free' value conflicting with the 'Free' method
+
 /// How to constrain the rotation of the body to a PathConstraint
 enum class EPathRotationConstraintType
 {
@@ -25,6 +28,8 @@ enum class EPathRotationConstraintType
 	FullyConstrained,				///< Fully constrain the rotation of the body 2 to the rotation of body 1
 };
 
+JPH_SUPPRESS_WARNING_POP
+
 /// Path constraint settings, used to constrain the degrees of freedom between two bodies to a path
 ///
 /// The requirements of the path are that:
@@ -35,9 +40,9 @@ enum class EPathRotationConstraintType
 /// The reason for all this is that the constraint acts like a slider constraint with the sliding axis being the tangent vector (the assumption here is that delta time will be small enough so that the path is linear for that delta time).
 class JPH_EXPORT PathConstraintSettings final : public TwoBodyConstraintSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, PathConstraintSettings)
 
+public:
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void					SaveBinaryState(StreamOut &inStream) const override;
 

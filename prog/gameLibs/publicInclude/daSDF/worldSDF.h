@@ -34,7 +34,7 @@ struct WorldSDF
   virtual ~WorldSDF();
   virtual void debugRender() = 0;
   virtual void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb,
-    const render_instances_cb &render_cb) = 0;
+    const render_instances_cb &render_cb, uint32_t allow_update_mask = ~0u) = 0;
   virtual bool shouldUpdate(const Point3 &pos, uint32_t clip) const = 0;
   virtual void fixup_settings(uint16_t &w, uint16_t &d, uint8_t &c) const = 0;
   virtual void setValues(uint8_t clips, uint16_t width, uint16_t height, float voxel0_size) = 0;
@@ -53,6 +53,7 @@ struct WorldSDF
   virtual int rasterizationVoxelAround() const = 0; // when using raseterization we can cover up to N voxels around triangle. without
                                                     // typedload it is 0
   virtual void fullReset(bool invalidate_current = true) = 0;
+  virtual uint32_t getClipsReady() const = 0;
 };
 
 WorldSDF *new_world_sdf();

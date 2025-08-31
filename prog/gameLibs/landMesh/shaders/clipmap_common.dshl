@@ -1,16 +1,34 @@
 texture cache_tex0;
+int cache_tex0_tex_slot;
+int cache_tex0_smp_slot;
 texture last_clip_tex;
+int last_clip_tex_tex_slot;
+int last_clip_tex_smp_slot;
 float4 world_to_last_clip = (1/2048,1/2048, 0,0);
 
-macro INIT_CLIPMAP_LAST_BASE(code)
+int clipmap_allow_debug = 0;
+interval clipmap_allow_debug : no < 1, yes;
+assume_if_not_assumed clipmap_allow_debug = no;
+
+int clipmap_enable_debug_color = 0;
+
+macro INIT_CLIPMAP_LAST_BASE(code, textures_as_bindless)
   (code) {
     world_to_last_clip@f4 = world_to_last_clip;
-    last_clip_tex@smp2d = last_clip_tex;
+    if (textures_as_bindless)
+    {
+      last_clip_tex_tex_slot@i1 = last_clip_tex_tex_slot;
+      last_clip_tex_smp_slot@i1 = last_clip_tex_smp_slot;
+    }
+    else
+    {
+      last_clip_tex@smp2d = last_clip_tex;
+    }
   }
 endmacro
 
 macro INIT_CLIPMAP_LAST()
-  INIT_CLIPMAP_LAST_BASE(ps)
+  INIT_CLIPMAP_LAST_BASE(ps, false)
 endmacro
 
 macro USE_CLIPMAP_LAST_BASE(code)
@@ -36,7 +54,7 @@ macro INIT_CLIPMAP_FALLBACK(code)
 endmacro
 
 macro INIT_CLIPMAP_FALLBACK_ALBEDO(code)
-  INIT_CLIPMAP_LAST_BASE(code)
+  INIT_CLIPMAP_LAST_BASE(code, false)
   INIT_CLIPMAP_FALLBACK(code)
   (code) {
     cache_tex0@smp2d = cache_tex0;
@@ -59,5 +77,66 @@ macro USE_CLIPMAP_FALLBACK_ALBEDO(code)
         return sample_lastclip_lod(worldPos, 0);
       }
     }
+  }
+endmacro
+
+macro INIT_CLIPMAP_OPT_DEBUG(code)
+  if (clipmap_allow_debug == yes)
+  {
+    (code)
+    {
+      clipmap_enable_debug_color@i1 = (clipmap_enable_debug_color)
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_OPT_DEBUG(code)
+  bool clipmap_allow_debug_define = clipmap_allow_debug == yes;
+  hlsl(code)
+  {
+  ##if clipmap_allow_debug == yes
+    // debug color enums
+    #define CLIPMAP_DEBUG_FEEDBACK_RESPONSE 1
+    #define CLIPMAP_DEBUG_TILES_COLORING 2
+
+    void get_clipmap_debug_color(out half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend)
+    {
+      #define DEBUG_COLORS_COUNT 9
+      float3 debug_colors[DEBUG_COLORS_COUNT] =
+      {
+        float3(1,0,0),  // 0-red
+        float3(0,1,0),  // 1-green
+        float3(0,0,1),  // 2-blue -- debug_feedback_response, tile_mip == 0
+        float3(1,1,0),  // 3-yellow
+        float3(0,1,1),  // 4-cyan
+        float3(1,0,1),  // 5-magenta
+        float3(1,1,1),  // 6-white
+        float3(0.25, 0.25, 0.25), // 7-gray
+        float3(0,0,0),   // 8-black
+      };
+
+      if (clipmap_enable_debug_color == CLIPMAP_DEBUG_FEEDBACK_RESPONSE)
+      {
+        // Feedback should provide tile_mip equal to floor(smooth_mip) (blue color))
+        int color_idx = clamp((int)(tile_mip - floor(smooth_mip) + 2.01f), 0, DEBUG_COLORS_COUNT - 3);
+        outCol = debug_colors[color_idx];
+      }
+      else if (clipmap_enable_debug_color == CLIPMAP_DEBUG_TILES_COLORING)
+      {
+        if (blend > 0.99f)
+        {
+          outCol = is_fb ? debug_colors[DEBUG_COLORS_COUNT-2] : debug_colors[DEBUG_COLORS_COUNT-1];
+        }
+        else
+        {
+          intile_uv = abs(intile_uv - 0.5) * 2.0;
+          float mask = 1.f - saturate( 4.f * max(intile_uv.x , intile_uv.y) - 3.f);
+          outCol = debug_colors[int(tile_mip)] * mask;
+        }
+      }
+    }
+  ##else
+    void get_clipmap_debug_color(half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend) {}
+  ##endif
   }
 endmacro

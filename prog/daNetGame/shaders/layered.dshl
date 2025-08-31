@@ -50,7 +50,7 @@ macro LAYERED_PS()
         //(base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));//overlay
         return
           lerp(
-            (4.59479341998814 * base.rgb * blend.rgb),//2^2.2
+            (COLOR_CORRECTION_MULTIPLIER * base.rgb * blend.rgb),//2^2.2
             (1.0 + (1.278180101932895*base.rgb - half3(1.278180101932895,1.278180101932895,1.278180101932895)) * (half3(1,1,1) - blend.rgb)), //1/(1-0.5^2.2)
              step(half3(0.217637640824031, 0.217637640824031, 0.217637640824031), base));//0.5^2.2
       }
@@ -65,6 +65,11 @@ macro LAYERED_PS()
         half3 result = overlay_srgb(pow(base, 1/2.2), pow(blend, 1/2.2));
         return pow(result,2.2);
       }
+
+      #ifdef FORCE_EARLY_DEPTH_STENCIL
+        FORCE_EARLY_DEPTH_STENCIL
+      #endif
+
       GBUFFER_OUTPUT layered_ps(VsOutput input)
       {
         UnpackedGbuffer gbuffer;
@@ -99,7 +104,7 @@ macro LAYERED_PS()
         half4 detailColor = lerp(detailColor1, detailColor2, weight2);
         //half3 diffuseColor = overlay_linear_gamma22(baseColor, detailColor);
         //half3 diffuseColor = overlay_srgb_midpoint_linear(baseColor, detailColor);
-        half3 diffuseColor = baseColor.rgb * detailColor.rgb * 4.59479341998814;
+        half3 diffuseColor = baseColor.rgb * detailColor.rgb * COLOR_CORRECTION_MULTIPLIER;
 
         //read normal maps
         half4 baseNormalMap = SAMPLE_TEX(get_basenormal(), input.baseTC.xy);

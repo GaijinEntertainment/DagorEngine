@@ -20,7 +20,7 @@ public:
 
   TrackedTriangle(Edge *e, int t = NOT_IN_HEAP) : Triangle(e, t) {}
 
-  void update(Subdivision &);
+  void update(Subdivision &) override;
 
 
   void setCandidate(int x, int y, real)
@@ -66,7 +66,7 @@ class GreedySubdivision : public Subdivision
 protected:
   Map *H;
 
-  Triangle *allocFace(Edge *e);
+  Triangle *allocFace(Edge *e) override;
 
   void compute_plane(Plane &, Triangle &, Map &);
 

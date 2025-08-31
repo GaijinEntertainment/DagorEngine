@@ -1,0 +1,39 @@
+include "rendinst_simple_inc.dshl"
+include "vcolor_layered_inc.dshl"
+
+
+macro COMMON_RENDINST_VCOLOR_INIT(use_tessellation, for_dng)
+
+  COMMON_RENDINST_SIMPLE_INIT(for_dng)
+
+  INIT_VCOLOR_LAYERED(true)
+
+  hlsl {
+    ##if (rendinst_render_is_normal_or_vox_albedo || use_tessellation) // tessellation needs it in depth/shadow pass too
+      #define HAS_VERTEX_COLOR_MASK 1
+    ##endif
+  }
+
+  channel color8 vcol[0] = vcol;
+
+  COMMON_RENDINST_INIT_PAINT(use_tessellation)
+endmacro
+
+
+macro COMMON_RENDINST_VCOLOR_PS(is_blending_hmap, has_sampler)
+
+  USE_VCOLOR_LAYERED(ps)
+  USE_VCOLOR_LAYERED(vs)
+
+  COMMON_RENDINST_PS_PREP(false)
+
+  if (!rendinst_render_is_shadow_or_depth)
+  {
+    VCOLOR_LAYERED_PS_IMPL((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), is_blending_hmap, false, has_sampler, true)
+  }
+endmacro
+
+macro COMMON_RENDINST_VCOLOR_PS_AND_COMPILE(is_blending_hmap, has_sampler)
+  COMMON_RENDINST_VCOLOR_PS(is_blending_hmap, has_sampler)
+  COMPILE_RI_VS_TARGET("simple_vs")
+endmacro

@@ -316,7 +316,7 @@ void set_vars(EventHandle event_handle, dag::ConstSpan<VarId> ids, dag::ConstSpa
 #endif
     G_UNREFERENCED(fresult);
   }
-  // this works like its should not (https://cvs1.gaijin.lan/#/c/dagor4/+/163349/)
+  // this works like its should not, see ambientSoundES.cpp.inl
   // SOUND_VERIFY(eventInstance->setParametersByIDs(as_fmod_param_id(ids.cbegin()), values.begin(), values.size()));
 }
 

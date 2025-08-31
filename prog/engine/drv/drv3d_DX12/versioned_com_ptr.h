@@ -23,6 +23,15 @@ struct TypeIndexInTypePack<T, TypePack<O, Ts...>>
   static constexpr size_t value = 1 + TypeIndexInTypePack<T, TypePack<Ts...>>::value;
 };
 
+template <typename T, typename A>
+struct AppendToTypePack;
+
+template <typename T, typename... Ts>
+struct AppendToTypePack<TypePack<Ts...>, T>
+{
+  using Type = TypePack<Ts..., T>;
+};
+
 template <typename Base, typename... Versions>
 class VersionedComPtr;
 

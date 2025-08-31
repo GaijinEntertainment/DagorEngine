@@ -31,6 +31,7 @@ struct DaGIVoxelScene
   void rbNone();
   void rbFinish();
   void debugRender();
+  uint32_t getSdfClips() const { return clips + firstSdfClip; }
   PostFxRenderer dagi_lit_scene_voxels_debug;
   PostFxRenderer dagi_world_scene_voxel_scene_debug;
   eastl::unique_ptr<ComputeShaderElement> dagi_voxel_scene_reset_cs, dagi_voxel_lit_scene_from_gbuf_cs;
@@ -38,7 +39,7 @@ struct DaGIVoxelScene
   UniqueTexHolder dagi_lit_voxel_scene, dagi_lit_voxel_scene_alpha;
   uint32_t gbuf_update_frame = 0;
   uint16_t resW = 0, resD = 0, clips = 0, fullAtlasResD = 0;
-  uint8_t firstSdfClip = 0, sdfClips = 0;
+  uint8_t firstSdfClip = 0;
   bool anisotropy = false;
   bool lumaOnly = false;
   bool temporalStable = false;

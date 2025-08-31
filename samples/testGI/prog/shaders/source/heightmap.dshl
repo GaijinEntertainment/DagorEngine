@@ -8,7 +8,6 @@ shader heightmap
 {
   no_ablend;
 
-  channel short2 pos[0]=pos[0];
   INIT_WORLD_HEIGHTMAP_VS()
   USE_HEIGHTMAP_COMMON_VS()
   USE_HEIGHTMAP_INSTANCING()
@@ -39,7 +38,7 @@ shader heightmap
   //cull_mode = none;
   (ps) {
     heightmap@smp2d = tex_hmap_low;
-    sizes@f4 = (tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, 0, 0, 0);
+    sizes@f4 = (2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, 0, 0, 0);
     tex_hmap_inv_sizes@f4 = (tex_hmap_inv_sizes.x, tex_hmap_inv_sizes.y, 1/tex_hmap_inv_sizes.x, 1/tex_hmap_inv_sizes.y);
     world_to_hmap_low@f4 = world_to_hmap_low;
     world_view_pos@f3 = world_view_pos;

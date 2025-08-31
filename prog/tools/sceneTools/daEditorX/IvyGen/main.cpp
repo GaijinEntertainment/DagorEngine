@@ -1,49 +1,17 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "plugIn.h"
+#include "plugin.h"
 
 #include <oldEditor/pluginService/de_IDagorPhys.h>
 #include <coolConsole/coolConsole.h>
+#include <de3_dllPlugin.h>
 
-#include <windows.h>
-
-static IvyGenPlugin *plugin = NULL;
+static IvyGenPlugin *plugin = nullptr;
 IDagorPhys *dagPhys = NULL;
 
+DE3_DLL_PLUGIN_LINKAGE int DE3_DLL_PLUGIN_CALLCONV get_plugin_version() { return IGenEditorPlugin::VERSION_1_1; }
 
-#if !_TARGET_STATIC_LIB
-//==================================================================================================
-BOOL __stdcall DllMain(HINSTANCE instance, DWORD reason, void *)
-{
-  if (reason == DLL_PROCESS_DETACH && plugin)
-  {
-    delete plugin;
-    plugin = NULL;
-  }
-
-  return TRUE;
-}
-
-
-//==================================================================================================
-extern "C" int __fastcall get_plugin_version() { return IGenEditorPlugin::VERSION_1_1; }
-
-
-//==================================================================================================
-
-extern "C" IGenEditorPlugin *__fastcall register_plugin(IDagorEd2Engine &editor)
-#else
-static IGenEditorPlugin *register_plugin(IDagorEd2Engine &editor);
-
-void init_plugin_ivygen()
-{
-  IGenEditorPlugin *plugin = register_plugin(*DAGORED2);
-  if (!DAGORED2->registerPlugin(plugin))
-    del_it(plugin);
-}
-
-static IGenEditorPlugin *register_plugin(IDagorEd2Engine &editor)
-#endif
+DE3_DLL_PLUGIN_LINKAGE IGenEditorPlugin *DE3_DLL_PLUGIN_CALLCONV register_plugin(IDagorEd2Engine &editor, const char *dll_path)
 {
   daeditor3_init_globals(editor);
   CoolConsole &con = editor.getConsole();
@@ -60,3 +28,14 @@ static IGenEditorPlugin *register_plugin(IDagorEd2Engine &editor)
 
   return ::plugin;
 }
+
+DE3_DLL_PLUGIN_LINKAGE void DE3_DLL_PLUGIN_CALLCONV release_plugin() { del_it(plugin); }
+
+#if _TARGET_STATIC_LIB
+void init_plugin_ivygen()
+{
+  IGenEditorPlugin *plugin = register_plugin(*DAGORED2, nullptr);
+  if (!DAGORED2->registerPlugin(plugin))
+    del_it(plugin);
+}
+#endif

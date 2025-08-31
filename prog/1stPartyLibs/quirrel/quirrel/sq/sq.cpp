@@ -23,6 +23,7 @@
 #include <sqmodules.h>
 #include <sqastio.h>
 #include <sqstddebug.h>
+#include <squirrel/sqtypeparser.h>
 
 #include <startup/dag_globalSettings.h>
 
@@ -30,6 +31,7 @@
 
 
 static SqModules *module_mgr = nullptr;
+static bool check_stack_mode = false;
 
 
 void PrintVersionInfos();
@@ -76,14 +78,73 @@ void PrintUsage()
         _SC("  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n")
         _SC("  -diag-file file           write diagnostics into specified file\n")
         _SC("  -sa                       enable static analyzer\n")
-        _SC("  --inverse-warnings        flip diagnostic state\n")
+        _SC("  --check-stack             check stack after each script execution\n")
         _SC("  --warnings-list           print all warnings and exit\n")
-        _SC("  -W<num>                   disable diagnostic by numeric id\n")
-        _SC("  -<diagnostic-name>        disable diagnostic by text id\n")
+        _SC("  --parse-types             parse function types from file\n")
+        _SC("  --D:<diagnostic-name>     disable diagnostic by text id\n")
         _SC("  -optCH                    enable Closure Hoisting Optimization\n")
         _SC("  -d                        generates debug infos\n")
         _SC("  -v                        displays version\n")
         _SC("  -h                        prints help\n"));
+}
+
+std::string read_file_ignoring_utf8bom(const char *filename)
+{
+    FILE *f = fopen(filename, "rb");
+    if (!f)
+        return std::string();
+
+    int length = 0;
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    std::string result;
+    result.resize(length + 1);
+    size_t sz = fread(&result[0], 1, length, f);
+    fclose(f);
+    result[sz] = 0;
+
+    if (sz >= 3 && result[0] == 0xEF && result[1] == 0xBB && result[2] == 0xBF)
+        result.erase(0, 3);
+
+    return result;
+}
+
+static int fill_stack(HSQUIRRELVM v)
+{
+  if (!check_stack_mode)
+    return 0;
+
+  for (int i = 0; i < 8; i++)
+    sq_pushinteger(v, i + 1000000);
+
+  return sq_gettop(v);
+}
+
+static bool check_stack(HSQUIRRELVM v, int expected_top)
+{
+  if (!check_stack_mode)
+    return true;
+
+  int top = sq_gettop(v);
+  if (top != expected_top)
+  {
+    fprintf(errorStream, "ERROR: Stack top is %d, expected %d\n", top, expected_top);
+    return false;
+  }
+
+  for (int i = 0; i < 8; i++)
+  {
+    SQInteger val = -1;
+    if (SQ_FAILED(sq_getinteger(v, -8 + i, &val)) || val != i + 1000000)
+    {
+      fprintf(errorStream, "ERROR: Stack value at %d is %d, expected %d\n", -8 + i, int(val), i + 1000000);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 struct DumpOptions {
@@ -228,6 +289,59 @@ bool ends_with(const char * str, const char * suffix)
     return s && s[strlen(suffix)] == 0;
 }
 
+static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
+{
+    std::string code = read_file_ignoring_utf8bom(filename);
+    if (code.empty())
+        return false;
+
+    const char *c = code.c_str();
+    std::string line;
+    int lineNum = 1;
+
+    while (*c) {
+        if (*c == '\n' || c[1] == 0) {
+            if (c[1] == 0)
+                line += *c;
+            if (!line.empty()) {
+                printf("%s\n", line.c_str());
+
+                SQFunctionType t(_ss(sqvm));
+                SQInteger errorPos;
+                SQObjectPtr errorString;
+                if (sq_parse_function_type_string(sqvm, line.c_str(), t, errorPos, errorString)) {
+                    SQObjectPtr s = sq_stringify_function_type(sqvm, t);
+                    printf("%s\n", _stringval(s));
+                    printf("  functionName: %s\n", _stringval(t.functionName));
+                    printf("  returnTypeMask: 0x%x\n", unsigned(t.returnTypeMask));
+                    printf("  objectTypeMask: 0x%x\n", unsigned(t.objectTypeMask));
+                    printf("  ellipsisArgTypeMask: 0x%x\n", unsigned(t.ellipsisArgTypeMask));
+                    printf("  requiredArgs: %d\n", int(t.requiredArgs));
+                    printf("  argCount: %d\n", int(t.argTypeMask.size()));
+                    printf("\n");
+                }
+                else {
+                    printf("ERROR: %s\n", _stringval(errorString));
+                    printf("at %s:%d:%d\n\n", filename, lineNum, int(errorPos));
+                }
+
+                line.clear();
+            }
+            lineNum++;
+        }
+        else {
+            if (*c != '\r')
+                line += *c;
+        }
+
+        c++;
+    }
+
+    return true;
+}
+
+
+
 #define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
@@ -240,7 +354,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     FILE *diagFile = nullptr;
     int compiles_only = 0;
     bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
-    bool flip_warnigns = false;
+    bool parse_types = false;
 
     if (static_analysis) {
       sq_enablesyntaxwarnings(true);
@@ -269,6 +383,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else if (strcmp("-absolute-path", arg) == 0)
             {
                 module_mgr->compilationOptions.useAbsolutePath = true;
+            }
+            else if (strcmp("-parse-types", arg) == 0)
+            {
+                parse_types = true;
             }
             else if (strcmp("-d", arg) == 0)
             {
@@ -309,6 +427,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 index++;
                 output = arg;
             }
+            else if (strcmp("-check-stack", arg) == 0) {
+                check_stack_mode = true;
+            }
             else if (strcmp("-optCH", arg) == 0) {
                 sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, true);
             }
@@ -324,25 +445,13 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else if (strcmp("-sa", arg) == 0) {
                 static_analysis = true;
             }
-            else if (strcmp("-W", arg) == 0 || strcmp("-w", arg) == 0) {
-                if (isdigit(arg[2])) {
-                    int id = atoi(&arg[2]);
-                    if (!sq_setdiagnosticstatebyid(id, false)) {
-                        printf("Unknown warning ID %s\n", &arg[2]);
-                    }
-                }
-            }
-            else if (strcmp(arg, "-inverse-warnings") == 0) {
-                flip_warnigns = true;
+            else if (static_analysis && strncmp("--D:", arg, 4) == 0) {
+                if (!sq_setdiagnosticstatebyname(&arg[5], false))
+                    printf("Unknown warning ID: '%s'\n", &arg[5]);
             }
             else if (strcmp(arg, "-warnings-list") == 0) {
                 sq_printwarningslist(stdout);
                 return _DONE;
-            }
-            else if (arg[0] == '-' && static_analysis && isalpha(arg[1])) {
-                if (!sq_setdiagnosticstatebyname(arg + 1, false)) {
-                    printf("Unknown warning ID: '%s'", arg);
-                }
             }
             else if (arg[0] == '-') {
                 PrintVersionInfos();
@@ -362,9 +471,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         module_mgr->onAST_cb = &dumpAst_callback;
         module_mgr->onBytecode_cb = &dumpBytecodeAst_callback;
 
-        if (flip_warnigns)
-          sq_invertwarningsstate();
-
         module_mgr->compilationOptions.doStaticAnalysis = static_analysis;
 
         if (static_analysis) {
@@ -381,6 +487,14 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         if (listOfNutFiles.empty()) {
             printf("Error: expected source file name\n");
             return _ERROR;
+        }
+
+        if (parse_types) {
+            for (const std::string & fn : listOfNutFiles) {
+                if (!parse_types_from_file(v, fn.c_str()))
+                    return _ERROR;
+            }
+            return _DONE;
         }
 
         for (const std::string & fn : listOfNutFiles) {
@@ -408,6 +522,8 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 }
             }
             else {
+                int top = fill_stack(v);
+
                 Sqrat::Object exports;
                 std::string errMsg;
                 int retCode = _DONE;
@@ -426,6 +542,12 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
                 if (retCode != _DONE) {
                   fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
+                }
+
+                if (!check_stack(v, top)) {
+                    fprintf(stderr, _SC("Stack check failed after execution of '%s'\n"), filename);
+                    *retval = -3;
+                    retCode = _ERROR;
                 }
 
                 return retCode;
@@ -539,6 +661,7 @@ void Interactive(HSQUIRRELVM v)
     sq_release(v, &bindingsTable);
 }
 
+
 //int main(int argc, char* argv[])
 int DagorWinMain(bool /*debugmode*/)
 {
@@ -570,6 +693,7 @@ int DagorWinMain(bool /*debugmode*/)
     module_mgr->registerIoLib();
     module_mgr->registerDateTimeLib();
     module_mgr->registerDebugLib();
+    module_mgr->registerModulesLib();
 
     sqstd_register_command_line_args(v, ::dgs_argc, ::dgs_argv);
 

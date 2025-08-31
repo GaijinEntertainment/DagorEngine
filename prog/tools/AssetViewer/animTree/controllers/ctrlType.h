@@ -11,7 +11,7 @@
     DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(paramsCtrl), DECL_CTRL(randomSwitch), DECL_CTRL(alignEx),    \
     DECL_CTRL(alignNode), DECL_CTRL(moveNode), DECL_CTRL(fifo3), DECL_CTRL(legsIK), DECL_CTRL(twistCtrl), DECL_CTRL(condHide), \
     DECL_CTRL(lookat), DECL_CTRL(scaleNode), DECL_CTRL(defClampCtrl), DECL_CTRL(lookatNode), DECL_CTRL(deltaRotateShiftCalc),  \
-    DECL_CTRL(setMotionMatchingTag), DECL_CTRL(footLockerIK)
+    DECL_CTRL(setMotionMatchingTag), DECL_CTRL(footLockerIK), DECL_CTRL(eyeCtrl)
 
 #define DECL_CTRL(x) String(#x)
 inline const Tab<String> ctrl_type = {CONTROLLERS_LIST};

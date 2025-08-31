@@ -337,3 +337,51 @@ const char *drv3d_vulkan::formatObjectType(VkObjectType obj_type)
   }
   return enumName;
 }
+
+String drv3d_vulkan::formatShaderStageFlags(VkShaderStageFlags flags)
+{
+  String ret;
+  bool nonEmpty = false;
+#define APPEND_FLAG(x)     \
+  if (flags & x)           \
+  {                        \
+    if (nonEmpty)          \
+      ret.append("|");     \
+    ret.append((#x) + 16); \
+    nonEmpty = true;       \
+  }
+
+  APPEND_FLAG(VK_SHADER_STAGE_VERTEX_BIT)
+  APPEND_FLAG(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT)
+  APPEND_FLAG(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
+  APPEND_FLAG(VK_SHADER_STAGE_GEOMETRY_BIT)
+  APPEND_FLAG(VK_SHADER_STAGE_FRAGMENT_BIT)
+  APPEND_FLAG(VK_SHADER_STAGE_COMPUTE_BIT)
+
+  ret.append(String(32, "(%lu)", flags));
+
+  return ret;
+
+#undef APPEND_FLAG
+}
+
+const char *drv3d_vulkan::formatPresentMode(VkPresentModeKHR mode)
+{
+  const char *enumName = "<unknown>";
+  switch (mode)
+  {
+    ENUM_TO_NAME(VK_PRESENT_MODE_IMMEDIATE_KHR);
+    ENUM_TO_NAME(VK_PRESENT_MODE_MAILBOX_KHR);
+    ENUM_TO_NAME(VK_PRESENT_MODE_FIFO_KHR);
+    ENUM_TO_NAME(VK_PRESENT_MODE_FIFO_RELAXED_KHR);
+    // we probably never use those, those are for direct front buffer rendering
+#if VK_KHR_shared_presentable_image
+    ENUM_TO_NAME(VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR);
+    ENUM_TO_NAME(VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
+#endif
+    default: break;
+  }
+  return enumName;
+}
+
+#undef ENUM_TO_NAME

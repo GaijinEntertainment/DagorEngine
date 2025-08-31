@@ -12,6 +12,15 @@ int get_test_value(const char *k)
   return it == values.end() ? -1 : it->second;
 }
 
+bool ignore_log_errors;
+
+void ignore_log_errors_(const das::TBlock<void> &block, das::Context *context, das::LineInfoArg *at)
+{
+  ignore_log_errors = true;
+  context->invoke(block, nullptr, nullptr, at);
+  ignore_log_errors = false;
+}
+
 namespace bind_dascript
 {
 
@@ -23,6 +32,8 @@ public:
     das::ModuleLibrary lib(this);
     das::addExtern<DAS_BIND_FUN(set_test_value)>(*this, lib, "set_test_value", das::SideEffects::modifyExternal, "set_test_value");
     das::addExtern<DAS_BIND_FUN(get_test_value)>(*this, lib, "get_test_value", das::SideEffects::modifyExternal, "get_test_value");
+    das::addExtern<DAS_BIND_FUN(ignore_log_errors_)>(*this, lib, "ignore_log_errors", das::SideEffects::invokeAndAccessExternal,
+      "ignore_log_errors_");
     verifyAotReady();
   }
   virtual das::ModuleAotType aotRequire(das::TextWriter &tw) const override

@@ -50,6 +50,8 @@ struct MaterialData
   real lifeTime; /// Life time collision object
 
   int physBodyMaterial;
+  float physStaticFriction;
+  float physRestitution;
 
   // new fundamental properties for static/dynamic scene materials
   bool camera_collision;
@@ -66,7 +68,8 @@ struct MaterialData
 
   bool isSolid;
   int tankTracksTexId;
-  Point2 heightmapDeformation;
+  Point2 vehicleHeightmapDeformation;
+  float humanHeightmapDeformation;
   float trailDetailStrength;
 
   inline MaterialData() { physBodyMaterial = 0; } //-V730

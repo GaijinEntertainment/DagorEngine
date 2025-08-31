@@ -21,8 +21,8 @@ struct LineSampler
     int pos;
     float height = -1.f;
 
-    LinePoint() : pos(0.f), height(-1.f){};
-    LinePoint(int p, float h) : pos(p), height(h){};
+    LinePoint() : pos(0.f), height(-1.f) {}
+    LinePoint(int p, float h) : pos(p), height(h) {}
 
 
     float getVect(LinePoint pt)

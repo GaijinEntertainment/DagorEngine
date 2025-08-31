@@ -45,6 +45,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("DagorResPtr"), true);
+    addBuiltinDependency(lib, require("DagorDriver3D"));
     addEnumeration(das::make_smart<EnumerationSHVT>());
     addAnnotation(das::make_smart<ShaderVarAnnotation>(lib));
     addAnnotation(das::make_smart<ShaderMaterialAnnotation>(lib));
@@ -71,6 +72,8 @@ public:
       "::ShaderGlobal::set_texture");
     das::addExtern<bool (*)(int, ManagedBufView), set_buffer>(*this, lib, "set_buffer", das::SideEffects::modifyExternal,
       "::ShaderGlobal::set_buffer");
+    das::addExtern<bool (*)(int, d3d::SamplerHandle), set_sampler>(*this, lib, "set_sampler", das::SideEffects::modifyExternal,
+      "::ShaderGlobal::set_sampler");
     das::addExtern<DAS_BIND_FUN(set_color4)>(*this, lib, "set_color4", das::SideEffects::modifyExternal, "::ShaderGlobal::set_color4");
     das::addExtern<DAS_BIND_FUN(set_color4_e3d)>(*this, lib, "set_color4", das::SideEffects::modifyExternal,
       "::ShaderGlobal::set_color4");

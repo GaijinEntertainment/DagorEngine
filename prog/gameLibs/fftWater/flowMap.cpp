@@ -51,11 +51,14 @@
   VAR(water_flowmap_damping)                 \
   VAR(water_flowmap_strength)                \
   VAR(water_flowmap_strength_add)            \
+  VAR(water_fluid_strength)                  \
   VAR(water_flowmap_foam)                    \
-  VAR(water_flowmap_foam_color)              \
+  VAR(water_flowmap_foam_color_0)            \
+  VAR(water_flowmap_foam_color_1)            \
+  VAR(water_flowmap_foam_bumpmapping_scale)  \
   VAR(water_flowmap_foam_tiling)             \
   VAR(water_flowmap_foam_displacement)       \
-  VAR(water_flowmap_foam_reflectivity_min)   \
+  VAR(water_flowmap_foam_softness)           \
   VAR(water_flowmap_depth)                   \
   VAR(water_flowmap_slope)                   \
   VAR(water_flowmap_cascades)                \
@@ -72,12 +75,9 @@
 GLOBAL_VARS_LIST
 #undef VAR
 
-static void init_shader_vars()
-{
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_LIST
+static void init_shader_vars() { GLOBAL_VARS_LIST; }
 #undef VAR
-}
 
 CONSOLE_BOOL_VAL("render", debug_water_flowmap, false);
 
@@ -99,6 +99,7 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
   WaterFlowmapCascade &waterFlowmapCascade = waterFlowmap->cascades[cascade];
 
   ShaderGlobal::set_real(water_flowmap_debugVarId, debug_water_flowmap.get() ? 1 : 0);
+  static d3d::SamplerHandle clampLinearSampler;
 
   if (waterFlowmapCascade.frameCount == 0)
   {
@@ -150,11 +151,6 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
         TEXCF_RTARGET | TEXFMT_R16F | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_blur_b%d", cascade));
       waterFlowmapCascade.tempTex = dag::create_tex(NULL, blurTextureSize, flowmap_texture_size,
         TEXCF_RTARGET | TEXFMT_R16F | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_temp_%d", cascade));
-      waterFlowmapCascade.blurTexA.getTex2D()->texaddr(TEXADDR_CLAMP);
-      waterFlowmapCascade.blurTexB.getTex2D()->texaddr(TEXADDR_CLAMP);
-      waterFlowmapCascade.blurTexA.getTex2D()->texfilter(TEXFILTER_LINEAR);
-      waterFlowmapCascade.blurTexB.getTex2D()->texfilter(TEXFILTER_LINEAR);
-      waterFlowmapCascade.tempTex->disableSampler();
     }
 
     waterFlowmapCascade.texA.close();
@@ -163,19 +159,17 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
       TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_a%d", cascade));
     waterFlowmapCascade.texB = dag::create_tex(NULL, flowmap_texture_size, flowmap_texture_size,
       TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_b%d", cascade));
-    waterFlowmapCascade.texA->disableSampler();
-    waterFlowmapCascade.texB->disableSampler();
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
-    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
-    ShaderGlobal::set_sampler(flowmap_temp_tex_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(water_flowmap_tex_add_0_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(water_flowmap_tex_add_1a_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(water_flowmap_tex_add_1b_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(water_flowmap_tex_add_2a_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(water_flowmap_tex_add_2b_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(tex_samplerstateVarId, sampler);
+    clampLinearSampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(flowmap_temp_tex_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(water_flowmap_tex_add_0_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(water_flowmap_tex_add_1a_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(water_flowmap_tex_add_1b_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(water_flowmap_tex_add_2a_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(water_flowmap_tex_add_2b_samplerstateVarId, clampLinearSampler);
+    ShaderGlobal::set_sampler(tex_samplerstateVarId, clampLinearSampler);
   }
 
   if (!waterFlowmapCascade.texA || !waterFlowmapCascade.texB)
@@ -214,26 +208,23 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
   Point4 foamDetail = Point4(0.025f, 0.01f, 10.0f * waterFlowmap->flowmapFoamDetail, 10.0f);
   ShaderGlobal::set_color4(water_flowmap_foam_detailVarId, foamDetail);
 
-  if (cascade != 0)
+  float blend = 0;
+  float frameTime = waterFlowmapCascade.frameRate * get_shader_global_time();
+  bool update = waterFlowmapCascade.frameTime < 0;
+  if (update)
   {
-    float blend = 0;
-    float frameTime = waterFlowmapCascade.frameRate * get_shader_global_time();
-    bool update = waterFlowmapCascade.frameTime < 0;
-    if (update)
-    {
-      if (waterFlowmapCascade.frameCount == 2) // texA and texB are initialized
-        waterFlowmapCascade.frameTime = int(frameTime);
-    }
-    else
-    {
-      update = waterFlowmapCascade.frameTime != int(frameTime);
+    if (waterFlowmapCascade.frameCount == 2) // texA and texB are initialized
       waterFlowmapCascade.frameTime = int(frameTime);
-      blend = frameTime - float(waterFlowmapCascade.frameTime);
-    }
-    ShaderGlobal::set_real(water_flowmap_blendVarId, blend);
-    if (!update)
-      return;
   }
+  else
+  {
+    update = waterFlowmapCascade.frameTime != int(frameTime);
+    waterFlowmapCascade.frameTime = int(frameTime);
+    blend = frameTime - float(waterFlowmapCascade.frameTime);
+  }
+  ShaderGlobal::set_real(water_flowmap_blendVarId, blend);
+  if (!update)
+    return;
 
   float cameraSnap = float(flowmap_texture_size) / (range * 2);
   Point3 cameraPos = camera_pos;
@@ -363,11 +354,13 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
 
       d3d::set_render_target(waterFlowmapCascade.tempTex.getTex2D(), 0);
       ShaderGlobal::set_texture(texVarId, flowmapDst);
+      ShaderGlobal::set_sampler(tex_samplerstateVarId, clampLinearSampler);
       waterFlowmap->flowmapBlurX.render();
 
       d3d::set_render_target(blurDst.getTex2D(), 0);
       ShaderGlobal::set_texture(texVarId, waterFlowmapCascade.tempTex);
       waterFlowmap->flowmapBlurY.render();
+      ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
 
       if (cascade == 1)
       {
@@ -434,6 +427,7 @@ void set_flowmap_params(FFTWater *handle)
   ShaderGlobal::set_real(water_flowmap_fadingVarId, waterFlowmap->flowmapFading);
   ShaderGlobal::set_color4(water_flowmap_strengthVarId, flowmapStrength);
   ShaderGlobal::set_color4(water_flowmap_strength_addVarId, waterFlowmap->flowmapStrengthAdd);
+  ShaderGlobal::set_color4(water_fluid_strengthVarId, waterFlowmap->fluidStrength);
 }
 
 void set_flowmap_foam_params(FFTWater *handle)
@@ -443,8 +437,10 @@ void set_flowmap_foam_params(FFTWater *handle)
     return;
 
   ShaderGlobal::set_color4(water_flowmap_foamVarId, waterFlowmap->flowmapFoam);
-  ShaderGlobal::set_real(water_flowmap_foam_reflectivity_minVarId, waterFlowmap->flowmapFoamReflectivityMin);
-  ShaderGlobal::set_color4(water_flowmap_foam_colorVarId, waterFlowmap->flowmapFoamColor);
+  ShaderGlobal::set_color4(water_flowmap_foam_color_0VarId, waterFlowmap->flowmapFoamColor0);
+  ShaderGlobal::set_color4(water_flowmap_foam_color_1VarId, waterFlowmap->flowmapFoamColor1);
+  ShaderGlobal::set_real(water_flowmap_foam_bumpmapping_scaleVarId, waterFlowmap->flowmapBumpmappingScale);
+  ShaderGlobal::set_real(water_flowmap_foam_softnessVarId, waterFlowmap->flowmapFoamSoftness);
   ShaderGlobal::set_real(water_flowmap_foam_tilingVarId, waterFlowmap->flowmapFoamTiling);
   ShaderGlobal::set_real(water_flowmap_foam_displacementVarId, waterFlowmap->flowmapFoamDisplacement);
 }
@@ -474,7 +470,7 @@ void close_flowmap(FFTWater *handle)
   waterFlowmap->cascades.clear();
 }
 
-bool is_flowmap_active(FFTWater *handle)
+bool is_flowmap_active(const FFTWater *handle)
 {
   WaterFlowmap *waterFlowmap = get_flowmap(handle);
   if (!waterFlowmap)
@@ -491,7 +487,8 @@ enum FloodType
 };
 
 void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &heightmapTexView,
-  LockedImage2DView<uint16_t> &floodfillTexView, uint16_t heightmapLevel)
+  LockedImage2DView<uint16_t> &floodfillTexView, float waterLevel, const Point4 &heightmapMinMax, const BBox3 &levelBox,
+  const fft_water::WaterHeightmap *waterHeightmap)
 {
   TIME_D3D_PROFILE(flowmap_floodfill);
 
@@ -503,10 +500,30 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
     Tab<int> queue(framemem_ptr());
     queue.resize(queueSize);
 
+    float x1 = levelBox.boxMin().x;
+    float y1 = levelBox.boxMin().z;
+    float x2 = levelBox.boxMax().x;
+    float y2 = levelBox.boxMax().z;
+    x2 = (x2 - x1) / float(texSize);
+    y2 = (y2 - y1) / float(texSize);
+    x1 += x2 * 0.5f;
+    y1 += y2 * 0.5f;
+
+    uint16_t heightmapLevel = uint16_t(UINT16_MAX * (waterLevel * heightmapMinMax.x + heightmapMinMax.y));
+
     for (int y = 0; y < texSize; y++)
     {
       for (int x = 0; x < texSize; x++)
       {
+        if (waterHeightmap)
+        {
+          float waterHeight = waterLevel;
+          waterHeightmap->getHeightmapDataBilinear(float(x) * x2 + x1, float(y) * y2 + y1, waterHeight);
+          if (waterHeight > waterLevel + 1)
+            waterHeight += 10;
+          heightmapLevel = uint16_t(UINT16_MAX * (waterHeight * heightmapMinMax.x + heightmapMinMax.y));
+        }
+
         if (
           (heightmapTexView[IPoint2(x, y)] < heightmapLevel) ||
           ((x - 1 >= 0) && (heightmapTexView[IPoint2(x - 1, y)] < heightmapLevel) && (heightmapTexView[IPoint2(x - 1, y)] > 0)) ||

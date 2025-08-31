@@ -27,7 +27,7 @@ class Vector3d
   friend class Matrix;
 
 public:
-  Vector3d(void){}; // null constructor, does not inialize point.
+  Vector3d(void) {} // null constructor, does not inialize point.
 
   Vector3d(const Vector3d &a) // constructor copies existing vector.
   {
@@ -448,7 +448,7 @@ template <class Type>
 class Vector2d
 {
 public:
-  Vector2d(void){}; // null constructor, does not inialize point.
+  Vector2d(void) {} // null constructor, does not inialize point.
 
   Vector2d(const Vector2d &a) // constructor copies existing vector.
   {

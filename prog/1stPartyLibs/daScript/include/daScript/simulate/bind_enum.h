@@ -40,13 +40,14 @@
 
 #define DAS_BASE_BIND_ENUM_BOTH(helper, enum_name, das_enum_name, annotation_name, ...) \
 class annotation_name : public das::Enumeration {\
+private:\
+    inline static const char *enumArrayName[] = { DAS_FOR_EACH(DAS_BIND_ENUM_PRINT_HELPER, enum_name, __VA_ARGS__) };\
 public:\
     annotation_name() : das::Enumeration(#das_enum_name) {\
         external = true;\
         cppName = #enum_name; \
         baseType = (das::Type) das::ToBasicType< das::underlying_type< enum_name >::type >::type; \
         enum_name enumArray[] = { DAS_FOR_EACH(helper, enum_name, __VA_ARGS__) };\
-        static const char *enumArrayName[] = { DAS_FOR_EACH(DAS_BIND_ENUM_PRINT_HELPER, enum_name, __VA_ARGS__) };\
         for (uint32_t i = 0; i < sizeof(enumArray)/sizeof(enumArray[0]); ++i)\
             addI(enumArrayName[i], int64_t(enumArray[i]), das::LineInfo());\
     }\

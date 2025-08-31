@@ -10,7 +10,7 @@ sign_digest:t="sha256"
 rootFolder:t="."
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="scripts/"
   dest_path:t="scripts/"
   scan_folder:b=true
@@ -26,7 +26,7 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/scripts/sq/daRg"
   dest_path:t="sq/darg"
   scan_folder:b=true
@@ -35,7 +35,25 @@ folder {
 }
 
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
+  path:t="../../../prog/gameLibs/groundHolesCore"
+  dest_path:t="gameLibs/groundHolesCore"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.blk
+}
+
+folder {
+  output:t="dng_scene_viewer.vromfs.bin"
+  path:t="../../../prog/gameLibs/render/lensFlare"
+  dest_path:t="gameLibs/render/lensFlare"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.blk
+}
+
+folder {
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/scripts/sq/std"
   dest_path:t="sq/std"
   scan_folder:b=true
@@ -43,7 +61,7 @@ folder {
   wildcard:t=*.nut
 }
 folder {
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  output:t="dng_scene_viewer.vromfs.bin"
   path:t="../../../prog/scripts/sq/daeditor"
   dest_path:t="sq/daeditor"
   scan_folder:b=true
@@ -105,8 +123,8 @@ folder {
   wildcard:t=*.das
 }
 "@clone-last:folder"{
-  "@override:path":t="../../../prog/gameLibs/das/daBfg"
-  "@override:dest_path":t="das/daBfg"
+  "@override:path":t="../../../prog/gameLibs/das/daFrameGraph"
+  "@override:dest_path":t="das/daFrameGraph"
   "@delete-all:wildcard":t=""
   wildcard:t=*.das
 }
@@ -120,8 +138,8 @@ folder {
 include "_dng_libs_prog.vromfs.blk"
 
 folder{
-  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
-  path:t="gameBase/content/dng_scene_viewer/"
+  output:t="dng_scene_viewer.vromfs.bin"
+  path:t="gameBase/"
   dest_path:t="./"
   wildcard:t="*.json"
   wildcard:t="*.blk"
@@ -132,7 +150,7 @@ folder{
 
 folder{
   output:t="content/east_district/east_district.vromfs.bin"
-  path:t="gameBase/content/east_district/"
+  path:t="gamebase_package./"
   dest_path:t="./"
   wildcard:t="*.json"
   wildcard:t="*.blk"

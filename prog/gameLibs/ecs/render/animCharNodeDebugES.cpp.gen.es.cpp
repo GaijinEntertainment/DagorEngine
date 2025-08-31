@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animCharNodeDebugES.cpp.inl"
 ECS_DEF_PULL_VAR(animCharNodeDebug);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc debug_draw_animchar_node_es_comps[] =
 {

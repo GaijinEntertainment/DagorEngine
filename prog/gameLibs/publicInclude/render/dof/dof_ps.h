@@ -8,6 +8,7 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_resizableTex.h>
+#include <resourcePool/resourcePool.h>
 #include <generic/dag_carray.h>
 #include <render/dof/dofProperties.h>
 
@@ -49,6 +50,7 @@ public:
   void setLinearBlend(bool use_linear_blend) { useLinearBlend = use_linear_blend; }
   int getWidth() const { return width; }
   int getHeight() const { return height; }
+  void releaseRTs();
 
 protected:
   void initNear();
@@ -61,11 +63,14 @@ protected:
   bool useLinearBlend;
   bool useSimplifiedRendering = false;
   bool useCoCAccumulation = false;
+  bool useNearDof = false;
+  bool useFarDof = false;
   PostFxRenderer dofGather, dofComposite, dofDownscale, dofTile;
   int width, height;
   int originalWidth = 0, originalHeight = 0;
   ResizableTex dof_max_coc_far;
-  eastl::array<ResizableTex, 2> dof_far_layer, dof_near_layer;
+  ResizableRTargetPool::Ptr dofLayerRTPool;
+  ResizableRTarget::Ptr dof_far_layer, dof_near_layer;
   carray<ResizableTex, 3> dof_coc;
   ResizableTex dof_coc_history;
   DOFProperties cFocus, nFocus;
@@ -74,4 +79,5 @@ protected:
   float minCheckDist = 0.08f;
   bool on = true;
   d3d::SamplerHandle clampSampler = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle clampPointSampler = d3d::INVALID_SAMPLER_HANDLE;
 };

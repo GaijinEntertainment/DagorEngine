@@ -63,3 +63,11 @@ void haptic::playHapticPattern(const int patternId, float intensityMultiplier)
 void haptic::setGlobalIntensity(const float multiplier) { g_globalIntensityMultiplier = multiplier; }
 
 float haptic::getGlobalIntensity() { return g_globalIntensityMultiplier; }
+
+void haptic::stopHapticEffects()
+{
+  TIME_PROFILE(stopHapticEffects);
+#if _TARGET_ANDROID
+  stopHapticEffects_android();
+#endif
+}

@@ -47,7 +47,7 @@ namespace das {
         ,"thread_local","throw","true","try","typedef","typeid","typename","union","unsigned","using"
         ,"virtual","void","volatile","wchar_t","while","xor","xor_eq"
         /* extra */
-        ,"override","final","import","module","transaction_safe","transaction_safe_dynamic"
+        ,"override","final","import","module","transaction_safe","transaction_safe_dynamic","super"
     };
 
     bool isCppKeyword(const string & str) {
@@ -168,6 +168,8 @@ namespace das {
         bool checkDeprecated;
         bool disableInit;
         bool noLocalClassMembers;
+        bool noWritingToNameless;
+        bool alwaysCallSuper;
     public:
         LintVisitor ( const ProgramPtr & prog ) : program(prog) {
             checkOnlyFastAot = program->options.getBoolOption("only_fast_aot", program->policies.only_fast_aot);
@@ -181,6 +183,16 @@ namespace das {
             checkDeprecated = program->options.getBoolOption("no_deprecated", program->policies.no_deprecated);
             disableInit = prog->options.getBoolOption("no_init", prog->policies.no_init);
             noLocalClassMembers = prog->options.getBoolOption("no_local_class_members", prog->policies.no_local_class_members);
+            noWritingToNameless = prog->options.getBoolOption("no_writing_to_nameless", prog->policies.no_writing_to_nameless);
+            alwaysCallSuper = prog->options.getBoolOption("always_call_super", prog->policies.always_call_super);
+        }
+    public:
+        void reportUnsafeTypeExpressions() {
+            for ( auto expr : usedTypeExprs ) {
+                program->error("type expression result is used, and not just passed",
+                    "consider default<" + expr->type->describe() + ">", "",
+                        expr->at, CompilationError::invalid_type);
+            }
         }
     protected:
         void verifyOnlyFastAot ( Function * _func, const LineInfo & at ) {
@@ -250,6 +262,9 @@ namespace das {
         bool isValidStructureName(const string & str) const {
             return !isCppKeyword(str);
         }
+        virtual bool canVisitStructure ( Structure * st ) override {
+            return !st->isTemplate;     // not a thing with templates
+        }
         virtual void preVisit ( Structure * var ) override {
             Visitor::preVisit(var);
             if (!isValidStructureName(var->name)) {
@@ -263,6 +278,15 @@ namespace das {
         }
         virtual void preVisitExpression ( Expression * expr ) override {
             if ( expr->alwaysSafe && expr->userSaidItsSafe && !expr->generated ) {
+                if (func == nullptr) {
+                    // we're in global scope
+                    anyUnsafe = true;
+                    if ( checkUnsafe ) {
+                        program->error("unsafe in global initializer.", "unsafe are prohibited by CodeOfPolicies", "",
+                            expr->at, CompilationError::unsafe_function);
+                    }
+                    return;
+                }
                 auto origin = func->getOrigin();
                 if ( !(origin && origin->generated) && !func->generated )
                 {
@@ -405,8 +429,9 @@ namespace das {
             if ( expr->arguments[0]->rtti_isMakeArray() ) {
                 auto ma = static_cast<ExprMakeArray *>(expr->arguments[0].get());
                 if ( ma->values.size()==0 ) return;
-                if ( ma->recordType->isTuple() ) {
-                    if ( ma->recordType->argTypes[0]->isString() ) {
+                auto recType = ma->recordType ? ma->recordType : ma->makeType;
+                if ( recType->isTuple() ) {
+                    if ( recType->argTypes[0]->isString() ) {
                         das_set<const char *,hash_ccs,equalto_ccs> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isMakeTuple() ) {
@@ -444,7 +469,7 @@ namespace das {
                         }
                     }
                 } else {
-                    if ( ma->recordType->isString() ) {
+                    if ( recType->isString() ) {
                         das_set<const char *,hash_ccs,equalto_ccs> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isStringConstant() ) {
@@ -474,9 +499,19 @@ namespace das {
                 }
             }
         }
+        void verifyNoWrite ( ExprCallFunc * expr ) {
+            // TODO: add support for ExprInvoke
+            if ( noWritingToNameless ) {
+                if ( expr->write && !(expr->type->ref || expr->type->isPointer()) ) {
+                    program->error("dead write is prohibited by CodeOfPolicies", "\tin " + expr->describe(), "",
+                        expr->at, CompilationError::no_writing_to_nameless);
+                }
+            }
+        }
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
             verifyOnlyFastAot(expr->func, expr->at);
+            verifyNoWrite(expr);
             if ( checkDeprecated && expr->func->deprecated ) {
                 string message = "";
                 for ( auto & ann : expr->func->annotations ) {
@@ -526,17 +561,57 @@ namespace das {
                         arg->at, CompilationError::cant_be_null);
                 }
             }
-            if ( expr->func->name=="builtin`to_table_move" && expr->func->fromGeneric && expr->func->fromGeneric->module->name=="$" ) {
+            if ( starts_with(expr->func->name,"builtin`to_table_move`") && expr->func->fromGeneric && expr->func->fromGeneric->module->name=="$" ) {
                 verifyToTableMove(expr);
             }
+            if ( isClassCtor ) {
+                auto baseClass = func->classParent->parent;
+                if ( expr->func->name==(baseClass->name+"`"+baseClass->name) ) {
+                    anySuperCalls = true;
+                }
+            }
+        }
+        virtual ExpressionPtr visit ( ExprInvoke * expr ) override {
+            Visitor::visit(expr);
+            if ( expr->isInvokeMethod ) {
+                auto arg0 = expr->arguments[0].get();
+                if ( arg0->rtti_isR2V() ) {
+                    arg0 = static_cast<ExprRef2Value*>(arg0)->subexpr.get();
+                }
+                if ( arg0->rtti_isField() ) {
+                    auto field = static_cast<ExprField*>(arg0);
+                    if ( field->value->rtti_isTypeDecl() ) {
+                        usedTypeExprs.erase(field->value.get());
+                    }
+                }
+            }
+            return expr;
+        }
+        virtual ExpressionPtr visit ( ExprCall * expr ) override {
+            Visitor::visit(expr);
+            if ( expr->func ) {
+                size_t argIndex = 0;
+                for ( auto & arg : expr->func->arguments ) {
+                    if ( arg->isAccessUnused() ) {
+                        auto & earg = expr->arguments[argIndex];
+                        if ( earg->rtti_isTypeDecl() ) {
+                            usedTypeExprs.erase(earg.get());
+                        }
+                    }
+                    ++argIndex;
+                }
+            }
+            return expr;
         }
         virtual void preVisit ( ExprOp1 * expr ) override {
             Visitor::preVisit(expr);
             verifyOnlyFastAot(expr->func, expr->at);
+            verifyNoWrite(expr);
         }
         virtual void preVisit ( ExprOp2 * expr ) override {
             Visitor::preVisit(expr);
             verifyOnlyFastAot(expr->func, expr->at);
+            verifyNoWrite(expr);
             if ( checkAotSideEffects ) {
                 if ( !expr->left->noNativeSideEffects || !expr->right->noNativeSideEffects ) {
                     program->error("side effects may affect evaluation order", "", "", expr->at,
@@ -626,6 +701,7 @@ namespace das {
         }
         virtual void preVisit ( ExprUnsafe * expr ) override {
             if ( !expr->generated ) {
+                DAS_ASSERTF(func, "internal compiler error: ExprUnsafe should always be inside function");
                 auto origin = func->getOrigin();
                 if ( !(origin && origin->generated) && !func->generated )
                 {
@@ -643,6 +719,11 @@ namespace das {
         bool isValidFunctionName(const string & str) const {
             return !isCppKeyword(str);
         }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
+        bool isClassCtor = false;
+        bool anySuperCalls = false;
         virtual void preVisit ( Function * fn ) override {
             Visitor::preVisit(fn);
             func = fn;
@@ -684,8 +765,17 @@ namespace das {
                 program->error("[init] is disabled in the options or CodeOfPolicies",  "", "",
                     fn->at, CompilationError::no_init);
             }
+            if ( alwaysCallSuper && fn->isClassMethod && fn->classParent && fn->classParent->parent && fn->name==(fn->classParent->name+"`"+fn->classParent->name)) {
+                isClassCtor = true; // detect class constructor, but only if we always call super
+            }
         }
         virtual FunctionPtr visit ( Function * fn ) override {
+            if ( isClassCtor && !anySuperCalls ) {
+                program->error("class constructor " + fn->name + " does not call super initializer", "",
+                    "", fn->at, CompilationError::invalid_member_function);
+            }
+            anySuperCalls = false;
+            isClassCtor = false;
             func = nullptr;
             return Visitor::visit(fn);
         }
@@ -746,11 +836,24 @@ namespace das {
                 }
             }
         }
+        virtual void preVisit ( ExprMakeStruct * mks ) override {
+            Visitor::preVisit(mks);
+            if ( mks->constructor && mks->constructor->arguments.size() ) {
+                program->error("default arguments of constructors can't be used in make declarations", "its not yet implemented", "",
+                    mks->at, CompilationError::unspecified);
+            }
+        }
+        virtual void preVisit ( ExprTypeDecl * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->alwaysSafe ) return;
+            usedTypeExprs.insert(expr);
+        }
     public:
         ProgramPtr program;
         Function * func = nullptr;
         Variable * globalVar = nullptr;
         bool anyUnsafe = false;
+        das_hash_set<Expression *> usedTypeExprs;
     };
 
     struct Option {
@@ -775,6 +878,8 @@ namespace das {
         "report_private_functions",     Type::tBool,
         "strict_properties",            Type::tBool,
         "very_safe_context",            Type::tBool,
+        "no_writing_to_nameless",       Type::tBool,
+        "always_call_super",            Type::tBool,
     // memory
         "stack",                        Type::tInt,
         "intern_strings",               Type::tBool,
@@ -825,6 +930,7 @@ namespace das {
         "fusion",                       Type::tBool,
         "remove_unused_symbols",        Type::tBool,
         "no_fast_call",                 Type::tBool,
+        "scoped_stack_allocator",       Type::tBool,
     // language
         "always_export_initializer",    Type::tBool,
         "infer_time_folding",           Type::tBool,
@@ -868,6 +974,7 @@ namespace das {
         // lint it
         LintVisitor lintV(this);
         visit(lintV);
+        lintV.reportUnsafeTypeExpressions();
         unsafe = lintV.anyUnsafe;
         // check for invalid options
         das_map<string,Type> ao;

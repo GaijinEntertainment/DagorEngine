@@ -34,9 +34,7 @@ public:
   virtual void seekto(int abs_ofs);
   virtual void seektoend(int rel_ofs = 0);
   virtual const char *getTargetName() { return "(msg)"; }
-  virtual void flush()
-  { /*noop*/
-  }
+  virtual void flush() { /*noop*/ }
 
 protected:
   static constexpr int BLOCK_MAX = 32;

@@ -125,15 +125,21 @@ static bool rendinst_console_handler(const char *argv[], int argc)
     float fov = argc > 1 ? console::to_real(argv[1]) : 90.f;
     float tg = tan(fov / 180.f * PI * 0.5f);
 
-    eastl::string cvs_dump = "name;count on map;bSphere rad;bBox rad;"
-                             "L0 dips;L1 dips;L2 dips;L3 dips;"
-                             "L0 tris;L1 tris;L2 tris;L3 tris;"
-                             "Phys tris; Trace tris;"
-                             "L0 dist;L1 dist;L2 dist;L3 dist;"
-                             "L0 screen%;L1 screen%;L2 screen%;L3 screen%;"
-                             "L0 dist rec;L1 dist rec;L2 dist rec;L3 dist rec;"
-                             "L2 heavy shaders;L3 heavy shaders;"
-                             "\n";
+    eastl::string cvs_dump = "name;count on map;bSphere rad;bBox rad;";
+    constexpr int MAX_LODS = rendinst::RiExtraPool::MAX_LODS;
+    for (uint32_t lod = 0; lod < MAX_LODS; lod++)
+      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "L%d dips;", lod);
+    for (uint32_t lod = 0; lod < MAX_LODS; lod++)
+      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "L%d tris;", lod);
+    cvs_dump += "Phys tris; Trace tris;";
+    for (uint32_t lod = 0; lod < MAX_LODS; lod++)
+      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "L%d dist;", lod);
+    for (uint32_t lod = 0; lod < MAX_LODS; lod++)
+      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "L%d screen;", lod);
+    for (uint32_t lod = 0; lod < MAX_LODS; lod++)
+      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "L%d dist rec;", lod);
+    cvs_dump += "L2 heavy shaders;L3 heavy shaders;"
+                "\n";
 
     for (uint32_t i = 0, n = rendinst::riExtra.size(); i < n; i++)
     {
@@ -156,7 +162,6 @@ static bool rendinst_console_handler(const char *argv[], int argc)
         float lodDistance, recomendedDistance, screenPercent;
       };
 
-      constexpr int MAX_LODS = rendinst::RiExtraPool::MAX_LODS;
       eastl::fixed_vector<LodInfo, MAX_LODS> lodsInfo;
       const auto &lods = pool.res->lods;
       float triangleCountFactor = 0.1572f; // coefficient for adjusting the aggressiveness of the LOD shift depending on the number of

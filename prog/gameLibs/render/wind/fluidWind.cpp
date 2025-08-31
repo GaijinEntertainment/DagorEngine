@@ -49,6 +49,7 @@ void FluidWind::update(float dt, const Point3 &origin)
   {
     // advect
     d3d::set_tex(STAGE_CS, 0, speedTexCur[0]->getVolTex());
+    d3d::set_sampler(STAGE_CS, 0, d3d::request_sampler({}));
     d3d::set_rwtex(STAGE_CS, 0, speedTexCur[1]->getVolTex(), 0, 0);
     advect->dispatch(dx1, dy1, dz1);
     d3d::set_rwtex(STAGE_CS, 0, NULL, 0, 0);
@@ -135,15 +136,16 @@ void FluidWind::update(float dt, const Point3 &origin)
 
     // draw source
     d3d::set_tex(STAGE_CS, 0, speedTexCur[1]->getVolTex());
+    d3d::set_sampler(STAGE_CS, 0, d3d::request_sampler({}));
     d3d::set_rwtex(STAGE_CS, 0, speedTexCur[0]->getVolTex(), 0, 0);
-    // d3d::set_tex(STAGE_CS, 2, pressureTexCur[1]->getVolTex());
+    // d3d::set_tex(STAGE_CS, 2, pressureTexCur[1]->getVolTex(), false);
     // d3d::set_rwtex(STAGE_CS, 2, pressureTexCur[0]->getVolTex(), 0, 0);
     drawMotors[motor.type]->dispatch(dx1, dy1, dz1);
     d3d::set_rwtex(STAGE_CS, 0, NULL, 0, 0);
     d3d::set_tex(STAGE_CS, 0, NULL);
     d3d::resource_barrier({speedTexCur[0]->getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
     // d3d::set_rwtex(STAGE_CS, 2, NULL, 0, 0);
-    // d3d::set_tex(STAGE_CS, 2, NULL);
+    // d3d::set_tex(STAGE_CS, 2, NULL, false);
     // eastl::swap(pressureTexCur[0], pressureTexCur[1]);
   }
 
@@ -159,6 +161,7 @@ void FluidWind::update(float dt, const Point3 &origin)
   {
     // calc speed divergence
     d3d::set_tex(STAGE_CS, 0, speedTexCur[0]->getVolTex());
+    d3d::set_sampler(STAGE_CS, 0, d3d::request_sampler({}));
     d3d::set_rwtex(STAGE_CS, 1, divergenceTex.getVolTex(), 0, 0);
     divergence->dispatch(dx2, dy2, dz2);
     d3d::set_rwtex(STAGE_CS, 1, NULL, 0, 0);
@@ -184,6 +187,7 @@ void FluidWind::update(float dt, const Point3 &origin)
 
     // project
     d3d::set_tex(STAGE_CS, 0, speedTexCur[0]->getVolTex());
+    d3d::set_sampler(STAGE_CS, 0, d3d::request_sampler({}));
     d3d::set_tex(STAGE_CS, 2, pressureTexCur[1]->getVolTex());
     d3d::set_rwtex(STAGE_CS, 0, speedTexCur[1]->getVolTex(), 0, 0);
     project3d->dispatch(dx2, dy2, dz2);
@@ -203,6 +207,7 @@ void FluidWind::renderDebug()
 {
 #if DEBUG_OUTPUT
   d3d::set_tex(STAGE_CS, 0, speedTexCur[0]->getVolTex());
+  d3d::set_sampler(STAGE_CS, 0, d3d::request_sampler({}));
   d3d::set_tex(STAGE_CS, 1, divergenceTex.getVolTex());
   d3d::set_tex(STAGE_CS, 2, pressureTexCur[1]->getVolTex());
   d3d::set_rwtex(STAGE_CS, 3, outputTex.getTex2D(), 0, 0);
@@ -275,26 +280,16 @@ void FluidWind::init()
   {
     String texName(0, "windSpeedTex%d", i);
     speedTex[i] = dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
-    speedTex[i]->disableSampler();
 
     texName = String(0, "windPressureTex%d", i);
     pressureTex[i] = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
-    pressureTex[i].getVolTex()->texfilter(TEXFILTER_LINEAR);
-    pressureTex[i].getVolTex()->texaddr(TEXADDR_BORDER);
-    pressureTex[i].getVolTex()->texbordercolor(0);
   }
 
   divergenceTex =
     dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windDivergenceTex");
-  divergenceTex.getVolTex()->texfilter(TEXFILTER_LINEAR);
-  divergenceTex.getVolTex()->texaddr(TEXADDR_BORDER);
-  divergenceTex.getVolTex()->texbordercolor(0);
 
 #if DEBUG_OUTPUT
   outputTex = dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windOutputTex");
-  outputTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
-  outputTex.getTex2D()->texaddr(TEXADDR_BORDER);
-  outputTex.getTex2D()->texbordercolor(0);
 #endif
 }
 

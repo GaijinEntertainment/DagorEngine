@@ -15,6 +15,7 @@
 #define DagUtilFreeCam_CID Class_ID(0xc765357, 0x25063e74)
 #define TexAnimIO_CID      Class_ID(0x3ce771ac, 0x3663135a)
 #define PolyBumpUtil_CID   Class_ID(0x7d651a5f, 0x79bd1cf0)
+#define ImpUtil_CID        Class_ID(0x5575310b, 0x5b5840b1)
 
 #define MatConvUtil_CID              Class_ID(0x13354bd4, 0x29c32883)
 #define OBJECT_PROPERTIES_EDITOR_CID Class_ID(0x73c5685c, 0x71a47013)
@@ -37,8 +38,8 @@ ClassDesc *GetDagFreeCamUtilCD();
 ClassDesc *GetTexAnimIOCD();
 ClassDesc *GetPolyBumpCD();
 ClassDesc *GetObjectPropertiesEditorCD();
-ClassDesc *GetTexLoadCD();
 ClassDesc *GetDAGEXPCD();
+ClassDesc *GetImpUtilCD();
 
 TCHAR *GetString(int id);
 
@@ -59,7 +60,7 @@ enum
   EXP_CAM = 0x0010,
   EXP_HLP = 0x0020,
   EXP_MAT = 0x0040,
-  EXP_ANI = 0x0080,
+  // EXP_ANI = 0x0080,   // unused
   EXP_ARNG = 0x0100,
   EXP_LTARG = 0x0200,
   EXP_CTARG = 0x0400,
@@ -80,7 +81,6 @@ enum
 
   EXP_OBJECTS = EXP_MESH | EXP_LT | EXP_CAM | EXP_HLP | EXP_SPLINE,
   EXP_DEFAULT = EXP_MESH | EXP_LT | EXP_CAM | EXP_HLP | EXP_SPLINE | EXP_MAT | EXP_MATOPT
-  //| EXP_ANI
 };
 
 
@@ -103,3 +103,10 @@ inline bool is_equal_point(Point3 &left, Point3 &right, float delta = 1e-4f)
 Matrix3 get_scaled_stretch_node_tm(INode *node, TimeValue time);
 
 Matrix3 get_scaled_object_tm(INode *node, TimeValue time);
+
+template <typename ValueType>
+BOOL pb_get_value(IParamBlock &pb, int i, TimeValue t, ValueType &v)
+{
+  Interval valid = FOREVER;
+  return pb.GetValue(i, t, v, valid);
+}

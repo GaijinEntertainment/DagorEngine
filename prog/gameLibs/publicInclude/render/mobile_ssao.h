@@ -18,7 +18,7 @@ public:
   MobileSSAORenderer(int w, int h, int num_views, uint32_t flags = SSAO_NONE);
   ~MobileSSAORenderer();
 
-  void reset() override{};
+  void reset() override {}
 
   void setCurrentView(int) override;
 

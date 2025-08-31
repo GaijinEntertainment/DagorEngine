@@ -29,6 +29,26 @@ bool FrontRenderPassState::isReferenced(const Image *object) const
   return false;
 }
 
+bool FrontRenderPassState::replaceImage(const Image *src, Image *dst)
+{
+  bool ret = false;
+  using Bind = StateFieldRenderPassTarget;
+  const Bind *rpTargets = &getRO<StateFieldRenderPassTargets, StateFieldRenderPassTarget>();
+
+  for (uint32_t i = 0; i < StateFieldRenderPassTargets::size(); ++i)
+  {
+    const Bind &rt = rpTargets[i];
+    if (rt.image == src)
+    {
+      Bind replacement = rt;
+      replacement.image = dst;
+      set<StateFieldRenderPassTargets, Bind::Indexed>({i, replacement});
+      ret |= true;
+    }
+  }
+  return ret;
+}
+
 bool FrontRenderPassState::handleObjectRemoval(const Image *object)
 {
   if (isReferenced(object))

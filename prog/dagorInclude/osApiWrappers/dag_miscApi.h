@@ -8,7 +8,12 @@
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <supp/dag_define_KRNLIMP.h>
 #if _TARGET_SIMD_SSE
+#ifdef _MSC_VER
+extern "C" void _mm_pause(void);
+#pragma intrinsic(_mm_pause)
+#else
 #include <emmintrin.h> // _mm_pause
+#endif
 #endif
 
 
@@ -142,6 +147,11 @@ KRNLIMP TargetPlatform get_platform_id_by_string(const char *name);
 
 //! returns string that uniquely identifies platform (that target was build for)
 KRNLIMP const char *get_platform_string_id();
+
+//! returns host platform (uses notation like in jBuild: windows, linux, macOS, etc.)
+KRNLIMP const char *get_host_platform_string();
+//! returns host platform architecture (uses notation like in jBuild: x86_64, arm64, x86, etc.)
+KRNLIMP const char *get_host_arch_string();
 
 //! flash window in the taskbar if inactive
 KRNLIMP void flash_window(void *wnd_handle = NULL, bool always_flash = false);

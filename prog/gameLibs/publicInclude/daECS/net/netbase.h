@@ -92,7 +92,7 @@ public:
 
   virtual bool changeSendAddress(const char * /*new_host*/) { return false; }
 
-  virtual void allowReceivePlaintext(bool /*allow*/){};
+  virtual void allowReceivePlaintext(bool /*allow*/) {}
 
   virtual int getMTU() const = 0;
   virtual SystemAddress getIP() const = 0;
@@ -121,7 +121,7 @@ class INetDriver
 public:
   virtual ~INetDriver() {}
   virtual void destroy() { delete this; }
-  virtual bool connect(const char * /*connecturl*/, uint16_t /*protov*/) { return false; }
+  virtual bool connect(const char * /*connecturl*/, uint16_t /*protov*/, bool /*is_relay_connection*/ = false) { return false; }
   virtual eastl::optional<danet::EchoResponse> receiveEchoResponse() { return eastl::nullopt; }
   virtual Packet *receive(int cur_time_ms) = 0;
   virtual void free(Packet *pkt) = 0;
@@ -154,6 +154,8 @@ bool read_eid(const danet::BitStream &bs, ecs::EntityId &eid); // return false i
 #define NET_SEND_NET_MSG_DECLARED
 // Dst connection is deduced automatically (based of routing & recipient filter of message)
 // Return number of successfull sends
+int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId to_eid, net::IMessage &&msg,
+  const net::MessageNetDesc *msg_net_desc = nullptr);
 int send_net_msg(ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 #endif
 // Returns true if app is running in server environment.

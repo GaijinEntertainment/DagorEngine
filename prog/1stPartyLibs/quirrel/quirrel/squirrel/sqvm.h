@@ -95,7 +95,7 @@ public:
     bool StringCat(const SQObjectPtr &str, const SQObjectPtr &obj, SQObjectPtr &dest);
     static bool IsEqual(const SQObjectPtr &o1,const SQObjectPtr &o2,bool &res);
     bool ToString(const SQObjectPtr &o,SQObjectPtr &res);
-    SQString *PrintObjVal(const SQObjectPtr &o);
+    SQString *PrintObjVal(const SQObject &o);
 
 
     void Raise_Error(const SQChar *s, ...);

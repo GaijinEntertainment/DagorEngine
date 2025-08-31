@@ -279,8 +279,8 @@ public:
   List<ReflectionVarMeta, false> varList;
   uint32_t debugWatermark;
 
-  ReflectableObject *volatile prevChanged, *volatile nextChanged; // for changed_reflectables list
-  ReflectableObject *volatile prev, *volatile next;               // for all_reflectables list
+  ReflectableObject *prevChanged, *nextChanged; // for changed_reflectables list
+  ReflectableObject *prev, *next;               // for all_reflectables list
 
   void setRelfectionFlag(Flags flag) { reflectionFlags |= flag; }
   bool isRelfectionFlagSet(Flags flag) const { return (bool)(reflectionFlags & flag); }
@@ -288,6 +288,12 @@ public:
 
 private:
   uint32_t reflectionFlags;
+
+// Note: explicit padding to defeat tail padding optimization (same layout across majority of platforms for compat with das aot
+// compiler)
+#if !_TARGET_PC_LINUX && _TARGET_64BIT          // Linux have it's own das aot compiler
+  char _pad[sizeof(void *) - sizeof(uint32_t)]; //-V730_NOINIT
+#endif
 
   // dummy mpi implementation
   virtual mpi::Message *dispatchMpiMessage(mpi::MessageID /*mid*/) { return NULL; }
@@ -307,12 +313,16 @@ protected: // only childs can create and delete this class
     debugWatermark(DANET_WATERMARK)
   {}
 
+  ReflectableObject(const ReflectableObject &) = default;
+
   ~ReflectableObject()
   {
     checkWatermark();
     disableReflection(true);
     debugWatermark = DANET_DEAD_WATERMARK;
   }
+
+  ReflectableObject &operator=(const ReflectableObject &) = default;
 
 public:
   void checkWatermark() const
@@ -809,37 +819,33 @@ struct ReflectionVarTypeDispatcher // default type
 
 #define DANET_COMMA ,
 
-#define DECL_VEC_CLASS(typ, decl, additional_decl)                                                           \
-  template <class EventListener>                                                                             \
-  class ReflectionVarVector##typ : public ReflectionVarVectorBase<typ, EventListener>                        \
-  {                                                                                                          \
-  public:                                                                                                    \
-    typedef ReflectionVarVectorBase<typ, EventListener> BaseClass;                                           \
-    ReflectionVarVector##typ() : ReflectionVarVectorBase<typ, EventListener>()                               \
-    {                                                                                                        \
-      G_STATIC_ASSERT(sizeof(*this) == (sizeof(typ) + sizeof(ReflectionVarMeta)));                           \
-    }                                                                                                        \
-    explicit ReflectionVarVector##typ(const typ &other) : ReflectionVarVectorBase<typ, EventListener>(other) \
-    {}                                                                                                       \
-    const typ &operator=(const typ &val)                                                                     \
-    {                                                                                                        \
-      return BaseClass::Set(val);                                                                            \
-    }                                                                                                        \
-    const typ &operator=(const ReflectionVarVector##typ<EventListener> &val)                                 \
-    {                                                                                                        \
-      return BaseClass::Set(val.BaseClass::template getValue<typ>());                                        \
-    }                                                                                                        \
-    struct ArrayElem                                                                                         \
-    {                                                                                                        \
-      decl                                                                                                   \
-    };                                                                                                       \
-    decl;                                                                                                    \
-    additional_decl                                                                                          \
-  };                                                                                                         \
-  template <class EventListener>                                                                             \
-  struct ReflectionVarTypeDispatcher<typ, EventListener>                                                     \
-  {                                                                                                          \
-    typedef ReflectionVarVector##typ<EventListener> VarType;                                                 \
+#define DECL_VEC_CLASS(typ, decl, additional_decl)                                                              \
+  template <class EventListener>                                                                                \
+  class ReflectionVarVector##typ : public ReflectionVarVectorBase<typ, EventListener>                           \
+  {                                                                                                             \
+  public:                                                                                                       \
+    typedef ReflectionVarVectorBase<typ, EventListener> BaseClass;                                              \
+    ReflectionVarVector##typ() : ReflectionVarVectorBase<typ, EventListener>()                                  \
+    {                                                                                                           \
+      G_STATIC_ASSERT(sizeof(*this) == (sizeof(typ) + sizeof(ReflectionVarMeta)));                              \
+    }                                                                                                           \
+    explicit ReflectionVarVector##typ(const typ &other) : ReflectionVarVectorBase<typ, EventListener>(other) {} \
+    const typ &operator=(const typ &val) { return BaseClass::Set(val); }                                        \
+    const typ &operator=(const ReflectionVarVector##typ<EventListener> &val)                                    \
+    {                                                                                                           \
+      return BaseClass::Set(val.BaseClass::template getValue<typ>());                                           \
+    }                                                                                                           \
+    struct ArrayElem                                                                                            \
+    {                                                                                                           \
+      decl                                                                                                      \
+    };                                                                                                          \
+    decl;                                                                                                       \
+    additional_decl                                                                                             \
+  };                                                                                                            \
+  template <class EventListener>                                                                                \
+  struct ReflectionVarTypeDispatcher<typ, EventListener>                                                        \
+  {                                                                                                             \
+    typedef ReflectionVarVector##typ<EventListener> VarType;                                                    \
   };
 
 #define _MC BaseClass::markAsChanged() // mark changed
@@ -1019,13 +1025,10 @@ static inline int empty_encoder(DANET_ENCODER_SIGNATURE)
   return 1;
 }
 
-#define DANET_DEFINE_ALIAS_CODER_FOR_TYPE(f_name, typ)               \
-  namespace danet                                                    \
-  {                                                                  \
-  static inline danet::reflection_var_encoder get_encoder_for(typ *) \
-  {                                                                  \
-    return &f_name;                                                  \
-  }                                                                  \
+#define DANET_DEFINE_ALIAS_CODER_FOR_TYPE(f_name, typ)                                   \
+  namespace danet                                                                        \
+  {                                                                                      \
+  static inline danet::reflection_var_encoder get_encoder_for(typ *) { return &f_name; } \
   }
 
 #define DANET_DEFINE_CODER_FOR_TYPE(f_name, typ) \
@@ -1077,20 +1080,13 @@ static inline int empty_encoder(DANET_ENCODER_SIGNATURE)
   DANET_DEF_GET_DEBUG_NAME(class_name)             \
   DECL_REPLICATION_FOOTER(class_name)
 
-#define DECL_REFLECTION_STUB       \
-  const char *getClassName() const \
-  {                                \
-    return "";                     \
-  }
+#define DECL_REFLECTION_STUB \
+  const char *getClassName() const { return ""; }
 
-#define DECL_REPLICATION_STUB                                          \
-  DECL_REFLECTION_STUB                                                 \
-  int getClassId() const override                                      \
-  {                                                                    \
-    return -1;                                                         \
-  }                                                                    \
-  void serializeReplicaCreationData(danet::BitStream &) const override \
-  {}
+#define DECL_REPLICATION_STUB                    \
+  DECL_REFLECTION_STUB                           \
+  int getClassId() const override { return -1; } \
+  void serializeReplicaCreationData(danet::BitStream &) const override {}
 
 #define IMPLEMENT_REPLICATION_BODY(class_name, str_name, templ_name, pref)                                           \
   pref int class_name::you_forget_to_put_IMPLEMENT_REPLICATION_4_##templ_name = -1;                                  \

@@ -47,7 +47,7 @@ struct BufferList : ObjectPoolWithLock<ObjectProxyPtr<BufferType>, N>
     {
       ObjectProxyPtr<BufferType> e;
       e.obj = buf;
-      buf->handle = safeAllocAndSet(e);
+      buf->handle = ObjectPoolWithLock<ObjectProxyPtr<BufferType>, N>::safeAllocAndSet(e);
       if (buf->handle != BAD_HANDLE)
         return true;
       D3D_ERROR("Not enough handles for IB/VB buffer");
@@ -61,7 +61,7 @@ struct BufferList : ObjectPoolWithLock<ObjectProxyPtr<BufferType>, N>
     {
       ObjectProxyPtr<BufferType> e;
       e.obj = buf;
-      buf->handle = safeAllocAndSet(e);
+      buf->handle = ObjectPoolWithLock<ObjectProxyPtr<BufferType>, N>::safeAllocAndSet(e);
       if (buf->handle != BAD_HANDLE)
         return true;
       D3D_ERROR("Not enough handles for IB/VB buffer");
@@ -110,7 +110,7 @@ struct InlineBuffer
     uint32_t startOffset = currOffset;
     uint32_t alignedSize = POW2_ALIGN(size, DataAlign);
     uint32_t nextOffset = currOffset + alignedSize;
-    if (nextOffset < buf.ressize())
+    if (nextOffset < buf.getSize())
     {
       currOffset = nextOffset;
       out_start_offset = startOffset;
@@ -118,9 +118,10 @@ struct InlineBuffer
     }
     else
     {
-      if (alignedSize > buf.ressize())
+      if (alignedSize > buf.getSize())
       {
-        G_ASSERT_LOG(0, "[E] InlineBuffer overflow");
+        D3D_CONTRACT_ASSERT_FAIL("InlineBuffer overflow");
+        D3D_CONTRACT_ERROR("InlineBuffer overflow");
         return NULL;
       }
 
@@ -142,7 +143,7 @@ static int sort_buffers_by_size(GenericBuffer *const *left, GenericBuffer *const
   if (int diff = ((*left)->bufSize >> 10) - ((*right)->bufSize >> 10))
     return -diff;
   else
-    return strcmp((*left)->getResName(), (*right)->getResName());
+    return strcmp((*left)->getName(), (*right)->getName());
 }
 
 template <class T>
@@ -166,7 +167,7 @@ int get_buffer_mem_used(String *stat, T &bufList, int &out_sysmem)
     if (stat)
     {
       add.printf(0, "%5dK %s '%s' buffer%s\n", sortedBuffersList[i]->bufSize >> 10,
-        sortedBuffersList[i]->bufFlags & SBCF_DYNAMIC ? "dynamic" : "static", sortedBuffersList[i]->getResName(),
+        sortedBuffersList[i]->bufFlags & SBCF_DYNAMIC ? "dynamic" : "static", sortedBuffersList[i]->getName(),
         sortedBuffersList[i]->systemCopy ? "(has copy)" : "");
       STAT_STR_APPEND(add, *stat);
     }
@@ -188,8 +189,8 @@ void dump_buffers(Tab<ResourceDumpInfo> &dump_info)
     {
       const GenericBuffer *buff = g_buffers[bufferNo].obj;
 
-      dump_info.emplace_back(ResourceDumpBuffer({(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, buff->ressize(),
-        buff->systemCopy ? buff->ressize() : -1, buff->getFlags(), -1, -1, -1, -1, buff->getResName(), ""}));
+      dump_info.emplace_back(ResourceDumpBuffer({(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, buff->getSize(),
+        buff->systemCopy ? buff->getSize() : (uint32_t)-1, buff->getFlags(), -1, -1, -1, -1, buff->getName(), ""}));
     }
   ITERATE_OVER_OBJECT_POOL_RESTORE(g_buffers);
 }
@@ -201,11 +202,11 @@ void dump_buffers(Tab<ResourceDumpInfo> &) {}
 int get_ib_vb_mem_used(String *stat, int &out_sysmem)
 {
   out_sysmem = 0;
-  int inlineSize = g_inline_vertex_buffer.buf.ressize() + g_inline_index_buffer.buf.ressize();
+  int inlineSize = g_inline_vertex_buffer.buf.getSize() + g_inline_index_buffer.buf.getSize();
   if (stat)
   {
-    stat->aprintf(128, "%5dK inline vertex buffer\n", g_inline_vertex_buffer.buf.ressize() >> 10);
-    stat->aprintf(128, "%5dK inline index buffer\n", g_inline_index_buffer.buf.ressize() >> 10);
+    stat->aprintf(128, "%5dK inline vertex buffer\n", g_inline_vertex_buffer.buf.getSize() >> 10);
+    stat->aprintf(128, "%5dK inline index buffer\n", g_inline_index_buffer.buf.getSize() >> 10);
   }
 
   inlineSize += get_buffer_mem_used(stat, g_buffers, out_sysmem);
@@ -253,7 +254,7 @@ void flush_buffers(RenderState &rs)
     if (vs.source != NULL)
     {
       buffers[i] = vs.source->buffer;
-      G_ASSERTF(vs.source->buffer != NULL, "vs[%d].source=%p (%s)", i, vs.source, vs.source->getResName());
+      G_ASSERTF(vs.source->buffer != NULL, "vs[%d].source=%p (%s)", i, vs.source, vs.source->getName());
       offsets[i] = vs.offset;
       strides[i] = vs.stride;
     }
@@ -317,7 +318,7 @@ void gather_buffers_to_recreate(FramememResourceSizeInfoCollection &collection)
   ITERATE_OVER_OBJECT_POOL(g_buffers, i)
     if (auto buf = g_buffers[i].obj)
     {
-      collection.push_back({(uint32_t)buf->ressize(), (uint32_t)i, false, buf->rld != nullptr});
+      collection.push_back({buf->getSize(), (uint32_t)i, false, buf->rld != nullptr});
     }
   ITERATE_OVER_OBJECT_POOL_RESTORE(g_buffers)
 }
@@ -338,7 +339,7 @@ Vbuffer *d3d::create_vb(int size, int flg, const char *name)
   GenericBuffer *buf = new GenericBuffer();
   flg |= SBCF_BIND_VERTEX;
   validate_sbuffer_flags(flg, name);
-  G_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES)) == 0);
+  D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES)) == 0);
   bool res = g_buffers.createObj(buf, size, flg, (flg & SBCF_BIND_MASK) >> 16, name);
   if (!res)
   {
@@ -354,7 +355,7 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
   GenericBuffer *buf = new GenericBuffer();
   flg |= SBCF_BIND_INDEX;
   validate_sbuffer_flags(flg, stat_name);
-  G_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
+  D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
   bool res = g_buffers.createObj(buf, size, flg, (flg & SBCF_BIND_MASK) >> 16, stat_name);
   if (!res)
   {
@@ -371,7 +372,7 @@ Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
   GenericBuffer *buf = new GenericBuffer();
   if (flags & SBCF_BIND_CONSTANT)
   {
-    G_ASSERTF((flags & SBCF_BIND_SHADER_RES) == 0, "constant buffers shouldn't be bound as shader resource.");
+    D3D_CONTRACT_ASSERTF((flags & SBCF_BIND_SHADER_RES) == 0, "constant buffers shouldn't be bound as shader resource.");
   }
   bool res = g_buffers.createSObj(buf, struct_size, elements, flags, format, name); //== fixme: |SBCF_BIND_VERTEX
   if (!res)
@@ -398,7 +399,7 @@ bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int ofs, int stride)
 
 bool d3d::setind(Sbuffer *ib)
 {
-  G_ASSERT_RETURN(!ib || ib->getFlags() & SBCF_BIND_INDEX, false);
+  D3D_CONTRACT_ASSERT_RETURN(!ib || ib->getFlags() & SBCF_BIND_INDEX, false);
 
   RenderState &rs = g_render_state;
   if (rs.nextVertexInput.indexBuffer != ib)
@@ -443,10 +444,10 @@ static inline void set_primitive_type_unsafe(RenderState &rs, uint32_t prim_type
           (rs.hdgBits & (HAS_HS | HAS_DS)) != 0))
     {
 #if DAGOR_DBGLEVEL > 0
-      D3D_ERROR("Invalid primitive topology %u for draw call encountered. Geometry stage active %s, "
-                "Hull stage active %s, "
-                "Domain stage active %s, "
-                "Hull topology %u",
+      D3D_CONTRACT_ERROR("Invalid primitive topology %u for draw call encountered. Geometry stage active %s, "
+                         "Hull stage active %s, "
+                         "Domain stage active %s, "
+                         "Hull topology %u",
         result_type, ((rs.hdgBits & HAS_GS) != 0) ? "yes" : "no", ((rs.hdgBits & HAS_HS) != 0) ? "yes" : "no",
         ((rs.hdgBits & HAS_DS) != 0) ? "yes" : "no", (unsigned)rs.hullTopology);
 #endif
@@ -464,9 +465,9 @@ bool d3d::draw_base(int prim_type, int start_vertex, int numprim, uint32_t num_i
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(prim_type != PRIM_TRIFAN);
-  G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
-  // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(prim_type != PRIM_TRIFAN);
+  D3D_CONTRACT_ASSERT(rs.nextVertexShader != BAD_HANDLE);
+  // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
@@ -494,14 +495,14 @@ bool d3d::drawind_base(int prim_type, int start_index, int numprim, int base_ver
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(prim_type != PRIM_TRIFAN);
+  D3D_CONTRACT_ASSERT(prim_type != PRIM_TRIFAN);
   G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
   // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   base_vertex = max(0, base_vertex);
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
-  G_ASSERT(num_instances > 0);
+  D3D_CONTRACT_ASSERT(num_instances > 0);
   if (num_instances > 1 || start_instance > 0) // may be we need to render as instanced in some other cases?
   {
     dx_context->DrawIndexedInstanced(nprim_to_nverts(prim_type, numprim), num_instances, start_index, base_vertex, start_instance);
@@ -569,8 +570,8 @@ bool d3d::drawind_up(int prim_type, int /*minvert*/, int numVerts, int numprim, 
   CHECK_THREAD;
 
   RenderState &rs = g_render_state;
-  G_ASSERT(rs.nextVdecl != BAD_HANDLE);
-  G_ASSERT(prim_type != PRIM_TRIFAN);
+  D3D_CONTRACT_ASSERT(rs.nextVdecl != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(prim_type != PRIM_TRIFAN);
   uint32_t offset;
 
   uint8_t *dst = g_inline_vertex_buffer.alloc(numVerts * stride_bytes, offset);
@@ -620,20 +621,20 @@ bool d3d::draw_indirect(int prim_type, Sbuffer *args, uint32_t byte_offset)
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
-  // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextVertexShader != BAD_HANDLE);
+  // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
   GenericBuffer *vb = NULL;
-  G_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("can not draw from non drawindirect buffer");
+    D3D_CONTRACT_ERROR("can not draw from non drawindirect buffer");
     return false;
   }
-  G_ASSERT(vb->buffer);
+  D3D_CONTRACT_ASSERT(vb->buffer);
 
   dx_context->DrawInstancedIndirect(vb->buffer, byte_offset);
 
@@ -651,20 +652,20 @@ bool d3d::draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t byte_offs
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
-  // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextVertexShader != BAD_HANDLE);
+  // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
   GenericBuffer *vb = NULL;
-  G_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("can not draw from non drawindirect buffer");
+    D3D_CONTRACT_ERROR("can not draw from non drawindirect buffer");
     return false;
   }
-  G_ASSERT(vb->buffer);
+  D3D_CONTRACT_ASSERT(vb->buffer);
 
   dx_context->DrawIndexedInstancedIndirect(vb->buffer, byte_offset);
 
@@ -682,8 +683,8 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
-  // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextVertexShader != BAD_HANDLE);
+  // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
@@ -691,10 +692,10 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("can not draw from non drawindirect buffer");
+    D3D_CONTRACT_ERROR("can not draw from non drawindirect buffer");
     return false;
   }
-  G_ASSERT(vb->buffer);
+  D3D_CONTRACT_ASSERT(vb->buffer);
 
 #if USE_NVAPI_MULTIDRAW
   if (is_nvapi_initialized)
@@ -718,8 +719,8 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
     return true;
   RenderState &rs = g_render_state;
 
-  G_ASSERT(rs.nextVertexShader != BAD_HANDLE);
-  // G_ASSERT(rs.nextPixelShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextVertexShader != BAD_HANDLE);
+  // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
 
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
@@ -727,10 +728,10 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("can not draw from non drawindirect buffer");
+    D3D_CONTRACT_ERROR("can not draw from non drawindirect buffer");
     return false;
   }
-  G_ASSERT(vb->buffer);
+  D3D_CONTRACT_ASSERT(vb->buffer);
 
 #if USE_NVAPI_MULTIDRAW
   if (is_nvapi_initialized)
@@ -751,7 +752,7 @@ bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t th
   bool async = gpu_pipeline == GpuPipeline::ASYNC_COMPUTE && (d3d::get_driver_desc().caps.hasAsyncCompute);
 
   RenderState &rs = g_render_state;
-  G_ASSERT(rs.nextComputeShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextComputeShader != BAD_HANDLE);
 
   if (!flush_cs_all(true, async))
     return true;
@@ -775,16 +776,16 @@ bool d3d::dispatch_indirect(Sbuffer *args, uint32_t offset, GpuPipeline gpu_pipe
   bool async = gpu_pipeline == GpuPipeline::ASYNC_COMPUTE && (d3d::get_driver_desc().caps.hasAsyncCompute);
 
   RenderState &rs = g_render_state;
-  G_ASSERT(rs.nextComputeShader != BAD_HANDLE);
+  D3D_CONTRACT_ASSERT(rs.nextComputeShader != BAD_HANDLE);
   if (!flush_cs_all(true, async))
     return true;
 
-  G_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
   GenericBuffer *vb = (GenericBuffer *)args;
-  G_ASSERT(vb->buffer);
+  D3D_CONTRACT_ASSERT(vb->buffer);
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("can not dispatch from non drawindirect buffer");
+    D3D_CONTRACT_ERROR("can not dispatch from non drawindirect buffer");
     return false;
   }
 
@@ -830,8 +831,8 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline) 
 
 bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
 {
-  G_ASSERT(slot < MAX_CONST_BUFFERS);
-  G_ASSERT(shader_stage < STAGE_MAX);
+  D3D_CONTRACT_ASSERT(slot < MAX_CONST_BUFFERS);
+  D3D_CONTRACT_ASSERT(shader_stage < STAGE_MAX);
   if (slot >= MAX_CONST_BUFFERS || shader_stage >= STAGE_MAX)
     return false;
   if (!buffer)
@@ -846,14 +847,15 @@ bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer
   else
   {
     GenericBuffer *vb = (GenericBuffer *)buffer;
-    G_ASSERT(vb->bufFlags & SBCF_BIND_CONSTANT);
+    D3D_CONTRACT_ASSERT(vb->bufFlags & SBCF_BIND_CONSTANT);
     if (!(vb->bufFlags & SBCF_BIND_CONSTANT))
       return false;
 
-    G_ASSERTF_RETURN(dx_context1 || (consts_offset == 0 && consts_size == 0), false,
+    D3D_CONTRACT_ASSERTF_RETURN(g_device_desc.caps.hasConstBufferOffset || (consts_offset == 0 && consts_size == 0), false,
       "Const buffer with offset and size doesn't support in this DX version. "
       "Check DeviceDriverCapabilities::hasConstBufferOffset.");
-    G_ASSERTF_RETURN(!(consts_offset & 15) && !(consts_size & 15), false, "consts_offset and consts_size should be aligned by 16");
+    D3D_CONTRACT_ASSERTF_RETURN(!(consts_offset & 15) && !(consts_size & 15), false,
+      "consts_offset and consts_size should be aligned by 16");
     // debug("Slot %d; Vb bufSize %d; Vb structSize %d", slot, vb->bufSize, vb->structSize);
     consts_size = consts_size ? consts_size : 4096;
     if (g_render_state.constants.customBuffers[shader_stage][slot] != vb->buffer ||
@@ -876,17 +878,18 @@ bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 {
   if (buffer)
   {
-    G_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_UNORDERED check!
+    D3D_CONTRACT_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_UNORDERED check!
 #if DAGOR_DBGLEVEL > 0
-                                                                                 // todo: this check to be removed
+                                                                                            // todo: this check to be removed
     if ((buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_UNORDERED)
-      D3D_ERROR("buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!", buffer->getBufName());
+      D3D_CONTRACT_ERROR("buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!",
+        buffer->getBufName());
 #endif
   }
 
   if (slot >= MAX_RESOURCES) // these are not samplers!
   {
-    D3D_ERROR("invalid slot number %d", slot);
+    D3D_CONTRACT_ERROR("invalid slot number %d", slot);
     return false;
   }
 
@@ -897,12 +900,13 @@ bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
   if (
     buffer && (buffer->getFlags() & SBCF_DYNAMIC) && !(buffer->getFlags() & (SBCF_BIND_CONSTANT | SBCF_BIND_VERTEX | SBCF_BIND_INDEX)))
   {
-    G_ASSERTF(((GenericBuffer *)buffer)->updated, "Dynamic buffer %s is used before update this frame.", buffer->getBufName());
+    D3D_CONTRACT_ASSERTF(((GenericBuffer *)buffer)->updated, "Dynamic buffer %s is used before update this frame.",
+      buffer->getBufName());
   }
 #endif
 
   ResAutoLock resLock;
-  TextureFetchState::Samplers &res = g_render_state.texFetchState.resources[shader_stage];
+  TextureFetchState::Resources &res = g_render_state.texFetchState.resources[shader_stage];
   res.resources.resize(max(res.resources.size(), slot + 1));
   if (res.resources[slot].setBuffer((GenericBuffer *)buffer))
   {
@@ -912,7 +916,7 @@ bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 
   if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
   {
-    TextureFetchState::Samplers &res = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
+    TextureFetchState::Resources &res = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
     res.resources.resize(max(res.resources.size(), slot + 1));
     if (res.resources[slot].setBuffer((GenericBuffer *)buffer))
     {
@@ -928,7 +932,7 @@ bool d3d::set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 {
   if (featureLevelsSupported < D3D_FEATURE_LEVEL_11_1 && shader_stage != STAGE_CS && shader_stage != STAGE_PS)
   {
-    D3D_ERROR("currently unsupported set buffers to other stages than Cs and Ps");
+    D3D_CONTRACT_ERROR("currently unsupported set buffers to other stages than Cs and Ps");
     return false;
   }
   if (shader_stage == STAGE_VS)
@@ -936,11 +940,12 @@ bool d3d::set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
   GenericBuffer *vb = NULL;
   if (buffer)
   {
-    G_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_SHADER_RES check!
+    D3D_CONTRACT_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_SHADER_RES check!
 #if DAGOR_DBGLEVEL > 0
-                                                                                 // todo: this check to be removed
+                                                                                            // todo: this check to be removed
     if ((buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_SHADER_RES)
-      D3D_ERROR("buffer %s is without SBCF_BIND_UNORDERED flag and can't be used in UAV. Deprecated, fixme!", buffer->getBufName());
+      D3D_CONTRACT_ERROR("buffer %s is without SBCF_BIND_UNORDERED flag and can't be used in UAV. Deprecated, fixme!",
+        buffer->getBufName());
 #endif
     remove_buffer_from_slot(buffer);
     vb = (GenericBuffer *)buffer;

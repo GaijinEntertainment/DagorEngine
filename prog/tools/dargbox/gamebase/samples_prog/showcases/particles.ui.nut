@@ -1,7 +1,5 @@
+import "math" as math
 from "%darg/ui_imports.nut" import *
-
-let math = require("math")
-
 /* possible easings
 Linear, InQuad, OutQuad, InOutQuad, InCubic, OutCubic, InOutCubic, InQuart, OutQuart, InOutQuart, InOutBezier, CosineFull, InStep, OutStep,
 */
@@ -49,7 +47,7 @@ function mkParticles(params=defParams){
     children = particles
   }
 }
-let part = {rendObj=ROBJ_SOLID size=[120,120] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}
+let part = {rendObj=ROBJ_SOLID size=120 transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}
 
 function root() {
   return {
@@ -60,7 +58,7 @@ function root() {
     color = Color(120,120,120)
     children = [
       mkParticles({num=20 part=part duration=[0.5,1.8]})
-      mkParticles({num=8 rotEndSpr=30 rotStartSpr=30 duration=[0.3,0.9] part={rendObj=ROBJ_SOLID size=[300,100] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}})
+      mkParticles({num=8 rotEndSpr=30 rotStartSpr=30 duration=[0.3,0.9] part={rendObj=ROBJ_SOLID size=static [300,100] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}})
     ]
   }
 }

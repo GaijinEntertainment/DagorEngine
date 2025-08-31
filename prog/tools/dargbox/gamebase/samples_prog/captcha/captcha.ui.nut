@@ -1,7 +1,7 @@
+from "dagor.http" import HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest
+from "json" import parse_json, object_to_json_string
 from "%darg/ui_imports.nut" import *
 //consider generate captcha in squirrel
-let {HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest} = require("dagor.http")
-let {parse_json, object_to_json_string} = require("json")
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 
 
@@ -24,7 +24,7 @@ function logerrOnce(text, key = null){
 }
 
 let captchaData = mkWatched(persist, "captchaData")
-const BASE_URL = "https://warthunder.com/external/captcha/"
+const BASE_URL = "https://warthunder.com/external/captcha"
 
 let url_CAPTCHA_GET = $"{BASE_URL}/captcha/json"
 let url_CAPTCHA_VERIFY = $"{BASE_URL}//captcha/verify"
@@ -42,7 +42,7 @@ let requestCaptcha = function(){
         }
         let {image, token} = parse_json(response.body.as_string())
         //dlog(token)
-        captchaData({image, token})
+        captchaData.set({image, token})
       }
       catch(err) {
         logerrOnce(err)
@@ -51,14 +51,14 @@ let requestCaptcha = function(){
     }
   })
 }
-if (captchaData.value==null)
+if (captchaData.get()==null)
   requestCaptcha()
 let image = function(){
   return {
     watch = captchaData
     rendObj = ROBJ_IMAGE
-    size = [hdpxi(300), hdpxi(120)]
-    image = captchaData.value != null ? Picture($"b64://{captchaData.value.image}.png:256:256:K") : null
+    size = static [hdpxi(300), hdpxi(120)]
+    image = captchaData.get() != null ? Picture($"b64://{captchaData.get().image}.png:256:256:K") : null
   }
 }
 
@@ -88,7 +88,7 @@ let testCaptcha = function(code, token){
   })
 }
 let code = mkWatched(persist, "code", "")
-let codeTest = textInput(code, {placeholder = "enter code", onReturn = @() testCaptcha(code.value, captchaData.value.token)})
+let codeTest = textInput(code, {placeholder = "enter code", onReturn = @() testCaptcha(code.get(), captchaData.get().token)})
 
 return {
   size = flex()

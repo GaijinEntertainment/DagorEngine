@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/rendererFeatures.h>
 
-inline eastl::optional<dabfg::VirtualResourceHandle<const BaseTexture, true, false>> read_prev_frame_tex(dabfg::Registry registry,
-  dabfg::Stage stage = dabfg::Stage::PS)
+inline eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, false>> read_prev_frame_tex(dafg::Registry registry,
+  dafg::Stage stage = dafg::Stage::PS)
 {
   const char *prevFrameTexName = nullptr;
   const char *prevFrameSamplerName = nullptr;

@@ -88,7 +88,6 @@ METHODDEF(boolean) empty_output_buffer(j_compress_ptr cinfo)
     dest->cwr->tryWrite(dest->buffer, OUTPUT_BUF_SIZE);
     // todo: made return false on every error which we encounted during write process, without any memory leaks.
     // For now if we want to return false, it cause  memory leaks
-    // https://youtrack.gaijin.team/issue/38-35383
   }
   DAGOR_CATCH(const IGenSave::SaveException &) { ERREXIT(cinfo, JERR_FILE_WRITE); }
 

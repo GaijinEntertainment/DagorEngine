@@ -49,14 +49,14 @@ macro USE_FSR(code)
         return uint2(distortedToLinearTc(tc) * size);
       }
 
-      float2 getLinearTc(float2 pos)
+      float2 getDistortedTc(float2 pos)
       {
         return (pos - fsr_viewport.xy) / fsr_viewport.zw;
       }
 
-      float2 getLinearTc(float2 pos, float2 tc)
+      float2 getDistortedTc(float2 pos, float2 tc)
       {
-        return getLinearTc(pos);
+        return getDistortedTc(pos);
       }
 
       #define FSR_DISTORTION 1
@@ -86,7 +86,7 @@ macro USE_FSR(code)
         return tc;
       }
 
-      float2 getLinearTc(float2 pos, float2 tc)
+      float2 getDistortedTc(float2 pos, float2 tc)
       {
         return tc;
       }

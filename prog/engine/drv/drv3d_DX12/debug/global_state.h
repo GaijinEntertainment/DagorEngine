@@ -18,13 +18,6 @@ namespace drv3d_dx12
 struct Direct3D12Enviroment;
 namespace debug
 {
-enum class BreadcrumbMode
-{
-  NONE,
-  DRED,
-  SOFTWARE,
-};
-
 class GlobalState
 {
 private:

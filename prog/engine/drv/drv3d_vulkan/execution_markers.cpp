@@ -96,7 +96,7 @@ void ExecutionMarkers::check()
       return;
     }
     debug("Found %u markers", count);
-    eastl::vector<VkCheckpointDataNV> checkpoints;
+    dag::Vector<VkCheckpointDataNV> checkpoints;
     checkpoints.resize(count);
     // this extension mechanism for output data is awkward
     for (auto &&checkpoint : checkpoints)

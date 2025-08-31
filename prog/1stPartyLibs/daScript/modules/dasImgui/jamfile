@@ -28,5 +28,6 @@ UseProgLibs +=
   3rdPartyLibs/imgui
   3rdPartyLibs/imgui-node-editor
 ;
+if $(DAS_AOT_COMPILER) { UseProgLibs += $(LibPath)/daslib ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -480,6 +480,9 @@ void GuillotineBinPack::freeUsedRect(const Rect &rect, bool merge_it)
   if (!merge_it)
   {
     freeRectangles.push_back(rect);
+#ifdef _DEBUG
+    disjointRects.RemoveContainedIn(rect);
+#endif
     return;
   }
 
@@ -515,6 +518,9 @@ void GuillotineBinPack::freeUsedRect(const Rect &rect, bool merge_it)
   	}
   }
   freeRectangles.push_back(rect);
+#ifdef _DEBUG
+  disjointRects.RemoveContainedIn(rect);
+#endif
 }
 
 

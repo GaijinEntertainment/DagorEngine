@@ -10,7 +10,7 @@
 namespace stcode
 {
 
-inline ShaderVarType shexpr_value_to_shadervar_type(shexpr::ValueType shvt, bool is_integer = false)
+inline ShaderVarType shexpr_value_to_shadervar_type(shexpr::ValueType shvt, bool is_integer)
 {
   switch (shvt)
   {
@@ -31,16 +31,18 @@ inline const char *shadervar_type_to_stcode_type(ShaderVarType shvt)
     case SHVT_INT4: return "int4";
     case SHVT_COLOR4: return "float4";
     case SHVT_FLOAT4X4: return "float4x4";
-    case SHVT_TEXTURE: return "uint";
-    case SHVT_BUFFER: return "uint";
+    case SHVT_BUFFER:
+    case SHVT_TEXTURE:
     case SHVT_SAMPLER:
-    case SHVT_TLAS: return "void"; // void * to d3d::SamplerHandle or RaytraceTopAccelerationStructure * as global, invalid as local
+    case SHVT_TLAS:
+      return "void"; // void * to d3d::SamplerHandle or RaytraceTopAccelerationStructure * as global, invalid as local. For tex/buf
+                     // points to a shader_internal::Tex/Buf structure.
 
     default: G_ASSERT_RETURN(0, nullptr);
   }
 }
 
-inline const char *value_type_to_stcode_type(shexpr::ValueType vt, bool is_integer = false)
+inline const char *value_type_to_stcode_type(shexpr::ValueType vt, bool is_integer)
 {
   return shadervar_type_to_stcode_type(shexpr_value_to_shadervar_type(vt, is_integer));
 }

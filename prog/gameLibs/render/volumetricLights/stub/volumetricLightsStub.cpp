@@ -31,15 +31,17 @@ bool VolumeLight::performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &pro
 void VolumeLight::performFroxelFogOcclusion() {}
 void VolumeLight::performFroxelFogFillMedia() {}
 void VolumeLight::performVolfogShadow() {}
-void VolumeLight::performDistantFogRaymarch() {}
+void VolumeLight::performDistantFogRaymarch(const bool) {}
+void VolumeLight::generateDistantFogOcclusionWeightsMips() {}
 void VolumeLight::performFroxelFogPropagate() {}
 void VolumeLight::performDistantFogReconstruct() {}
+void VolumeLight::performDistantFogReconstructFxMipGen() {}
 
 void VolumeLight::volfogMediaInjectionStart(uint32_t shader_stage) {}
 void VolumeLight::volfogMediaInjectionEnd(uint32_t shader_stage) {}
 
 bool VolumeLight::updateShaders(const String &, const DataBlock &, String &) { return false; }
-void VolumeLight::initShaders(const DataBlock &) {}
+void VolumeLight::initShaders(const String &) {}
 void VolumeLight::enableOptionalShader(const String &, bool) {}
 
 void VolumeLight::onSettingsChange(VolfogQuality, VolfogShadowCasting, DistantFogQuality) {}

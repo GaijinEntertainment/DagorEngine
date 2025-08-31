@@ -2,6 +2,8 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/das_common.h"
+#include "daScript/daScriptModule.h"
 
 #include <atomic>
 
@@ -24,8 +26,6 @@ namespace das {
         SubstituteModuleRefs subs ( from, to );
         program->visit(subs,/*visitGenerics =*/true);
     }
-
-    DAS_THREAD_LOCAL unsigned ModuleKarma = 0;
 
     bool splitTypeName ( const string & name, string & moduleName, string & funcName ) {
         auto at = name.find("::");
@@ -76,6 +76,11 @@ namespace das {
         }
     }
 
+    void Module::setModuleName ( const string & n ) {
+        name = n;
+        nameHash = hash64z(n.c_str());
+    }
+
     void Module::addBuiltinDependency ( ModuleLibrary & lib, Module * m, bool pub ) {
         lib.addModule(m);
         requireModule[m] = pub;
@@ -91,7 +96,7 @@ namespace das {
         }
         intptr_t ann = (intptr_t) (info->annotation_or_name);
         if ( ann & 1 ) {
-            DAS_VERIFYF(daScriptEnvironment::bound && daScriptEnvironment::bound->modules,"missing bound environment");
+            DAS_VERIFYF(*daScriptEnvironment::bound && (*daScriptEnvironment::bound)->modules,"missing bound environment");
             // we add ~ at the beginning of the name for padding
             // if name is allocated by the compiler, it does not guarantee that it is aligned
             // we check if there is a ~ at the beginning of the name, and if it is - we skip it
@@ -101,7 +106,7 @@ namespace das {
             string moduleName, annName;
             splitTypeName(cvtbuf, moduleName, annName);
             TypeAnnotation * resolve = nullptr;
-            for ( auto pm = daScriptEnvironment::bound->modules; pm!=nullptr; pm=pm->next ) {
+            for ( auto pm = (*daScriptEnvironment::bound)->modules; pm!=nullptr; pm=pm->next ) {
                 if ( pm->name == moduleName ) {
                     if ( auto annT = pm->findAnnotation(annName) ) {
                         resolve = (TypeAnnotation *) annT.get();
@@ -109,7 +114,7 @@ namespace das {
                     break;
                 }
             }
-            if ( daScriptEnvironment::bound->g_resolve_annotations ) {
+            if ( (*daScriptEnvironment::bound)->g_resolve_annotations ) {
                 info->annotation_or_name = resolve;
             }
             return resolve;
@@ -128,16 +133,16 @@ namespace das {
         bool all = false;
         while ( !all ) {
             all = true;
-            for ( auto m = daScriptEnvironment::bound->modules; m ; m = m->next ) {
+            for ( auto m = (*daScriptEnvironment::bound)->modules; m ; m = m->next ) {
                 all &= m->initDependencies();
             }
         }
     }
 
     void Module::CollectFileInfo(das::vector<FileInfoPtr> &finfos) {
-        DAS_ASSERT(daScriptEnvironment::owned!=nullptr);
-        DAS_ASSERT(daScriptEnvironment::bound!=nullptr);
-        auto m = daScriptEnvironment::bound->modules;
+        DAS_ASSERT(*daScriptEnvironment::owned!=nullptr);
+        DAS_ASSERT(*daScriptEnvironment::bound!=nullptr);
+        auto m = (*daScriptEnvironment::bound)->modules;
         while ( m ) {
             finfos.emplace_back(das::move(m->ownFileInfo));
             m = m->next;
@@ -145,13 +150,13 @@ namespace das {
     }
 
     void Module::Shutdown() {
-        DAS_ASSERT(daScriptEnvironment::owned!=nullptr);
-        DAS_ASSERT(daScriptEnvironment::bound!=nullptr);
+        DAS_ASSERT(*daScriptEnvironment::owned!=nullptr);
+        DAS_ASSERT(*daScriptEnvironment::bound!=nullptr);
         g_envTotal --;
         if ( g_envTotal==0 ) {
             shutdownDebugAgent();
         }
-        auto m = daScriptEnvironment::bound->modules;
+        auto m = (*daScriptEnvironment::bound)->modules;
         while ( m ) {
             auto pM = m;
             m = m->next;
@@ -159,16 +164,16 @@ namespace das {
         }
         clearGlobalAotLibrary();
         resetFusionEngine();
-        daScriptEnvironment::bound = nullptr;
-        if ( daScriptEnvironment::owned ) {
-            delete daScriptEnvironment::owned;
-            daScriptEnvironment::owned = nullptr;
+        *daScriptEnvironment::bound = nullptr;
+        if ( *daScriptEnvironment::owned ) {
+            delete *daScriptEnvironment::owned;
+            *daScriptEnvironment::owned = nullptr;
         }
     }
 
     void Module::Reset(bool debAg) {
         if ( debAg ) shutdownDebugAgent();
-        auto m = daScriptEnvironment::bound->modules;
+        auto m = (*daScriptEnvironment::bound)->modules;
         while ( m ) {
             auto pM = m;
             m = m->next;
@@ -177,14 +182,14 @@ namespace das {
     }
 
     void Module::foreach ( const callable<bool (Module * module)> & func ) {
-        for (auto m = daScriptEnvironment::bound->modules; m != nullptr; m = m->next) {
+        for (auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next) {
             if (!func(m)) break;
         }
     }
 
     Module * Module::require ( const string & name ) {
-        if ( !daScriptEnvironment::bound ) return nullptr;
-        for ( auto m = daScriptEnvironment::bound->modules; m != nullptr; m = m->next ) {
+        if ( !*daScriptEnvironment::bound ) return nullptr;
+        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
             if ( m->name == name ) {
                 return m;
             }
@@ -193,8 +198,8 @@ namespace das {
     }
 
     Module * Module::requireEx ( const string & name, bool allowPromoted ) {
-        if ( !daScriptEnvironment::bound ) return nullptr;
-        for ( auto m = daScriptEnvironment::bound->modules; m != nullptr; m = m->next ) {
+        if ( !*daScriptEnvironment::bound ) return nullptr;
+        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
             if ( allowPromoted || !m->promoted ) {
                 if ( m->name == name ) {
                     return m;
@@ -215,7 +220,7 @@ namespace das {
 
     Type Module::findOption ( const string & name ) {
         Type optT = Type::none;
-        for ( auto m = daScriptEnvironment::bound->modules; m != nullptr; m = m->next ) {
+        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
             auto tt = m->getOptionType(name);
             if ( tt != Type::none ) {
                 DAS_ASSERTF(optT==Type::none, "duplicate module option %s", name.c_str());
@@ -225,9 +230,10 @@ namespace das {
         return optT;
     }
 
-    Module::Module ( const string & n ) : name(n) {
+    Module::Module ( const string & n ) {
+        setModuleName(n);
         if ( !name.empty() ) {
-            auto first = daScriptEnvironment::bound->modules;
+            auto first = (*daScriptEnvironment::bound)->modules;
             while (first != nullptr)
             {
                 if (first->name == n) {
@@ -235,8 +241,8 @@ namespace das {
                 }
                 first = first->next;
             }
-            next = daScriptEnvironment::bound->modules;
-            daScriptEnvironment::bound->modules = this;
+            next = (*daScriptEnvironment::bound)->modules;
+            (*daScriptEnvironment::bound)->modules = this;
             builtIn = true;
         }
         if ( n != "$" ) {
@@ -250,8 +256,8 @@ namespace das {
 
     void Module::promoteToBuiltin(const FileAccessPtr & access) {
         DAS_ASSERTF(!builtIn, "failed to promote. already builtin");
-        next = daScriptEnvironment::bound->modules;
-        daScriptEnvironment::bound->modules = this;
+        next = (*daScriptEnvironment::bound)->modules;
+        (*daScriptEnvironment::bound)->modules = this;
         builtIn = true;
         promoted = true;
         promotedAccess = access;
@@ -259,8 +265,8 @@ namespace das {
 
     Module::~Module() {
         if ( builtIn ) {
-            Module ** p = &daScriptEnvironment::bound->modules;
-            for ( auto m = daScriptEnvironment::bound->modules; m != nullptr; p = &m->next, m = m->next ) {
+            Module ** p = &(*daScriptEnvironment::bound)->modules;
+            for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; p = &m->next, m = m->next ) {
                 if ( m == this ) {
                     *p = m->next;
                     return;
@@ -449,6 +455,9 @@ namespace das {
         if ( fn->builtIn && fn->sideEffectFlags==uint32_t(SideEffects::none) && fn->result->isVoid() ) {
             DAS_FATAL_ERROR("can't add function %s to module %s; it has no side effects and no return type\n", mangledName.c_str(), name.c_str() );
         }
+        if ( fn->result && !fn->result->ref && fn->result->isWorkhorseType() && !fn->result->isPointer() ) {
+            fn->result->constant = true;
+        }
         if ( fn->builtIn ) {
             cumulativeHash = wyhash(mangledName.c_str(), mangledName.size(), cumulativeHash);
         }
@@ -466,7 +475,7 @@ namespace das {
             }
         }
         if ( functions.insert(mangledName, fn) ) {
-            functionsByName[hash64z(fn->name.c_str())].push_back(fn);
+            functionsByName[hash64z(fn->name.c_str())].push_back(fn.get());
             fn->module = this;
             return true;
         } else {
@@ -482,7 +491,7 @@ namespace das {
         auto mangledName = fn->getMangledName();
         fn->module = nullptr;
         if ( generics.insert(mangledName, fn) ) {
-            genericsByName[hash64z(fn->name.c_str())].push_back(fn);
+            genericsByName[hash64z(fn->name.c_str())].push_back(fn.get());
             fn->module = this;
             return true;
         } else {
@@ -515,9 +524,13 @@ namespace das {
 
     FunctionPtr Module::findUniqueFunction ( const string & mangledName ) const {
         auto it = functionsByName.find(hash64z(mangledName.c_str()));
-        if ( it==functionsByName.end() ) return nullptr;
+        if ( !it ) return nullptr;
         if ( it->second.size()!=1 ) return nullptr;
         return it->second[0];
+    }
+
+    StructurePtr Module::findStructureByMangledNameHash ( uint64_t hash ) const {
+        return structures.find(hash);
     }
 
     StructurePtr Module::findStructure ( const string & na ) const {
@@ -536,6 +549,10 @@ namespace das {
     TypeInfoMacroPtr Module::findTypeInfoMacro ( const string & na ) const {
         auto it = typeInfoMacros.find(na);
         return it != typeInfoMacros.end() ? it->second : nullptr;
+    }
+
+    EnumerationPtr Module::findEnumByMangledNameHash ( uint64_t hash ) const {
+        return enumerations.find(hash);
     }
 
     EnumerationPtr Module::findEnum ( const string & na ) const {
@@ -750,16 +767,23 @@ namespace das {
 
     // MODULE LIBRARY
 
-    ModuleLibrary::ModuleLibrary( Module * this_module )
-    {
+    ModuleLibrary::ModuleLibrary( Module * this_module ) {
         addModule(this_module);
     }
 
     void ModuleLibrary::addBuiltInModule () {
         Module * module = Module::require("$");
         DAS_ASSERTF(module, "builtin module not found? or you have forgotten to NEED_MODULE(Module_BuiltIn) be called first");
-        if (module)
-            addModule(module);
+        if (module) addModule(module);
+    }
+
+    void ModuleLibrary::renameModule ( Module * module, const string & newName ) {
+        auto oldHashLookup = moduleLookupByHash.find(module->nameHash);
+        DAS_VERIFYF(oldHashLookup!=moduleLookupByHash.end(), "module %s not found", module->name.c_str());
+        moduleLookupByHash.erase(oldHashLookup);
+        module->setModuleName(newName);
+        DAS_VERIFYF(moduleLookupByHash.find(module->nameHash)==moduleLookupByHash.end(), "duplicate module hash %s", module->name.c_str());
+        moduleLookupByHash[module->nameHash] = module;
     }
 
     bool ModuleLibrary::addModule ( Module * module ) {
@@ -767,19 +791,14 @@ namespace das {
         if ( module ) {
             thisModule = thisModule ? thisModule : module;
             if ( find(modules.begin(),modules.end(),module)==modules.end() ) {
-                if ( !module->requireModule.empty() ) {
-                    for ( auto dep : module->requireModule ) {
-                        if ( dep.first != module ) {
-                            addModule ( dep.first );
-                        }
-                    }
-                }
-                for ( auto dep : module->requireModule ) {
+                for ( auto dep : ordered(module->requireModule, [](auto m1, auto m2){ return m1->name < m2->name; }) ) {
                     if ( dep.first != module ) {
                         addModule ( dep.first );
                     }
                 }
                 modules.push_back(module);
+                DAS_VERIFYF(moduleLookupByHash.find(module->nameHash)==moduleLookupByHash.end(), "duplicate module hash %s", module->name.c_str());
+                moduleLookupByHash[module->nameHash] = module;
                 module->addPrerequisits(*this);
                 return true;
             }
@@ -788,39 +807,52 @@ namespace das {
     }
 
     void ModuleLibrary::foreach ( const callable<bool (Module * module)> & func, const string & moduleName ) const {
-        bool any = moduleName=="*";
-        for ( auto pm : modules ) {
-            if ( !any && pm->name!=moduleName ) continue;
-            if ( !func(pm) ) break;
+        DAS_ASSERT(moduleName!="_" && moduleName!="__");
+        if (  moduleName=="*" ) {
+            for ( auto pm : modules ) {
+                if ( !func(pm) ) break;
+            }
+        } else {
+            if ( auto pm = findModule(moduleName) ) {
+                func(pm);
+            }
         }
     }
 
     void ModuleLibrary::foreach_in_order ( const callable<bool (Module * module)> & func, Module * thisM ) const {
         DAS_ASSERT(modules.size());
         // {builtin} {THIS_MODULE} {require1} {require2} ...
-        for ( auto m = modules.begin(), ms=modules.end(); m!=ms; ++m ) {
-            if ( *m==thisM ) continue;
-            if ( !func(*m) ) return;
+        for (auto module : modules) {
+            if ( module==thisM ) continue;
+            if ( !func(module) ) return;
         }
-        func(thisM);
+        if (thisM) {
+            func(thisM);
+        }
+    }
+
+    Module * ModuleLibrary::findModuleByMangledNameHash ( uint64_t hash ) const {
+        auto it = moduleLookupByHash.find(hash);
+        return it != moduleLookupByHash.end() ? it->second : nullptr;
     }
 
     Module * ModuleLibrary::findModule ( const string & mn ) const {
-        auto it = find_if(modules.begin(), modules.end(), [&](Module * mod){
-            return mod->name == mn;
-        });
-        return it!=modules.end() ? *it : nullptr;
+        auto hash = hash64z(mn.c_str());
+        auto it = moduleLookupByHash.find(hash);
+        return it != moduleLookupByHash.end() ? it->second : nullptr;
     }
 
     void ModuleLibrary::findWithCallback ( const string & name, Module * inWhichModule, const callable<void (Module * pm, const string &name, Module * inWhichModule)> & func ) const {
         string moduleName, funcName;
         splitTypeName(name, moduleName, funcName);
-        foreach([&](Module * pm) -> bool {
-            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) ) {
-                func(pm, funcName, inWhichModule);
-            }
-            return true;
-        }, moduleName);
+        if ( moduleName!="_" && moduleName!="__") { // those are never found. in reality we may want to support this one day with "*" and "thisModuleName" accordingly
+            foreach([&](Module * pm) -> bool {
+                if ( inWhichModule->isVisibleDirectly(pm) ) {
+                    func(pm, funcName, inWhichModule);
+                }
+                return true;
+            }, moduleName);
+        }
     }
 
     void ModuleLibrary::findAnnotation ( vector<AnnotationPtr> & ptr, Module * pm, const string & annotationName, Module * ) const {
@@ -1017,6 +1049,7 @@ namespace das {
             }
         }
         modules.clear();
+        moduleLookupByHash.clear();
     }
 
     // Module group
@@ -1046,11 +1079,6 @@ namespace das {
         return true;
     }
 
-    bool Module::isVisibleDirectly ( Module * objModule ) const {
-        if ( objModule==this ) return true;
-        return requireModule.find(objModule) != requireModule.end();
-    }
-
     using ModulesPullers = das::vector<module_pull_t>;
 
     static ModulesPullers & get_pullers() {
@@ -1064,7 +1092,7 @@ namespace das {
 
     void pull_all_auto_registered_modules() {
         for (module_pull_t pull : get_pullers()) {
-            das::ModuleKarma += unsigned(intptr_t(pull()));
+            *das::ModuleKarma += unsigned(intptr_t(pull()));
         }
     }
 }

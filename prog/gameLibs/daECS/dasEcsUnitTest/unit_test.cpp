@@ -71,6 +71,7 @@ ECS_REGISTER_EVENT(EventEmpty)
 
 static bool had_errors = 0;
 
+
 void os_debug_break()
 {
   logerr("script break");
@@ -86,7 +87,7 @@ static void my_fatal_handler(const char *title, const char *msg, const char *cal
 static int log_callback(int lev_tag, const char * /*fmt*/, const void * /*arg*/, int /*anum*/, const char * /*ctx_file*/,
   int /*ctx_line*/)
 {
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL)
+  if (!ignore_log_errors && (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL))
     had_errors = true;
   return 1;
 }
@@ -192,13 +193,14 @@ int myMain(int startArgC)
   // bind_dascript::set_das_root("../../../1stPartyLibs/daScript/"); // use current dir as root path
   bind_dascript::init_systems(NEED_DAS_AOT_COMPILE ? bind_dascript::AotMode::AOT : bind_dascript::AotMode::NO_AOT,
     bind_dascript::HotReload::ENABLED, bind_dascript::LoadDebugCode::YES,
-    DAGOR_DBGLEVEL > 0 ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO);
+    DAGOR_DBGLEVEL > 0 ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO, bind_dascript::DasSyntax::V1_5);
   NEED_MODULE(DagorFiles)
   NEED_MODULE(DasEcsUnitTest)
 
   int ret = myMain2(startArgC);
 
   bind_dascript::shutdown_systems();
+  g_entity_mgr->getTemplateDB().clear();
   g_entity_mgr.demandDestroy();
   return ret;
 }

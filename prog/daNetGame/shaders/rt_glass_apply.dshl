@@ -1,0 +1,7 @@
+include"rt_glass_apply_inc.dshl"
+
+texture glass_rt_reflection;
+
+macro RT_GLASS_APPLY(stage)
+  RT_GLASS_APPLY_BASE(stage, glass_rt_reflection, glass_hole_mask)
+endmacro

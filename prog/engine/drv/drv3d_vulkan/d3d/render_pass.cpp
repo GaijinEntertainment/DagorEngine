@@ -65,14 +65,15 @@ void d3d::delete_render_pass(d3d::RenderPass *rp)
 
 void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, const RenderPassTarget *targets)
 {
-  G_ASSERTF(drv_rp, "vulkan: can't start null render pass");
+  D3D_CONTRACT_ASSERTF(drv_rp, "vulkan: can't start null render pass");
   using Bind = StateFieldRenderPassTarget;
   LocalAccessor la;
 
   RenderPassResource *rp = (RenderPassResource *)drv_rp;
   for (uint32_t i = 0; i < rp->getTargetsCount(); ++i)
   {
-    G_ASSERTF(targets[i].resource.tex, "vulkan: trying to start render pass %s with missing target %u", rp->getDebugName(), i);
+    D3D_CONTRACT_ASSERTF(targets[i].resource.tex, "vulkan: trying to start render pass %s with missing target %u", rp->getDebugName(),
+      i);
     la.pipeState.set<StateFieldRenderPassTargets, Bind::IndexedRaw, FrontGraphicsState, FrontRenderPassState>({i, targets[i]});
   }
 
@@ -110,7 +111,7 @@ void d3d::end_render_pass()
 
   RenderPassResource *rp =
     la.pipeState.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>();
-  G_ASSERTF(rp, "vulkan: trying to end render pass when there is no active one");
+  D3D_CONTRACT_ASSERTF(rp, "vulkan: trying to end render pass when there is no active one");
 
   la.pipeState.set<StateFieldRenderPassSubpassIdx, StateFieldRenderPassSubpassIdx::Invalid, FrontGraphicsState, FrontRenderPassState>(
     {});
@@ -123,4 +124,5 @@ void d3d::end_render_pass()
     Frontend::replay->nativeRPDrawCounter.back() = Frontend::State::pod.drawsCount - Frontend::replay->nativeRPDrawCounter.back();
   }
   la.ctx.nativeRenderPassChanged();
+  la.ctx.executeDebugFlush("NativeRenderPassEnd");
 }

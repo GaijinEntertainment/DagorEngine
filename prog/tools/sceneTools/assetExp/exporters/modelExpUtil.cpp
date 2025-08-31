@@ -23,7 +23,6 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(modelExp)
 DataBlock appBlkCopy;
 DagorAsset *cur_asset = NULL;
 ILogWriter *cur_log = NULL;
-Tab<IDagorAssetRefProvider::Ref> tmp_refs(tmpmem);
 namespace modelexp
 {
 SimpleString texRefNamePrefix, texRefNameSuffix;
@@ -57,7 +56,7 @@ static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list,
   struct GatherMats : public Node::NodeEnumCB
   {
     PtrTab<MaterialData> mats;
-    virtual int node(Node &n) override
+    int node(Node &n) override
     {
       if (n.mat)
         for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)
@@ -222,7 +221,7 @@ bool add_proxymat_dep_files(const char *dag_fn, Tab<SimpleString> &files, DagorA
   struct GatherMats : public Node::NodeEnumCB
   {
     PtrTab<MaterialData> mats;
-    virtual int node(Node &n) override
+    int node(Node &n) override
     {
       if (n.mat)
         for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)

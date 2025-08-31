@@ -12,13 +12,14 @@
 #include "game/gameScripts.h"
 #include "phys/gridCollision.h"
 #include "phys/netPhys.h"
+#include "phys/lagCompensation.h"
 #include "render/skies.h"
 #include "render/fx/fx.h"
 #include "render/fx/effectEntity.h"
-#include <landMesh/lmeshHoles.h>
 #include <levelSplines/levelSplines.h>
+#include "main/gameProjConfig.h"
 
-const char *default_game_name = "aot"; // Referenced by `get_game_name`
+const char *gameproj::game_telemetry_name() { return nullptr; }
 
 float dagor_game_act_time = 0.f;
 
@@ -37,6 +38,7 @@ ITimeManager &get_time_mgr()
   static StubTimeManager stub;
   return stub;
 }
+float get_sync_time() { G_ASSERT_RETURN(false, 0.); }
 
 std::uint32_t get_current_server_route_id() { G_ASSERT_RETURN(false, {}); }
 const char *get_server_route_host(std::uint32_t) { G_ASSERT_RETURN(false, {}); }
@@ -57,7 +59,7 @@ void net_disconnect(net::IConnection &, DisconnectionCause) { G_ASSERT(0); }
 BasePhysActor *get_phys_actor(ecs::EntityId eid) { G_ASSERT_RETURN(false, nullptr); }
 const char *BasePhysActor::getPhysTypeStr() const { return nullptr; }
 
-
+int send_net_msg(ecs::EntityManager &, ecs::EntityId, net::IMessage &&, const net::MessageNetDesc *) { G_ASSERT_RETURN(false, -1); }
 int send_net_msg(ecs::EntityId, net::IMessage &&, const net::MessageNetDesc *) { G_ASSERT_RETURN(false, -1); }
 
 void send_transform_snapshots_targeted_event(ecs::EntityId, danet::BitStream &) { G_ASSERT(0); }
@@ -68,52 +70,14 @@ float get_timespeed() { G_ASSERT_RETURN(false, 0.f); }
 void set_timespeed(float) { G_ASSERT(0); }
 void toggle_pause() { G_ASSERT(0); }
 
-#include <gamePhys/props/deformMatProps.h>
-namespace physmat
-{
-void init() { G_ASSERT(0); }
-const DeformMatProps *DeformMatProps::get_props(int) { G_ASSERT_RETURN(false, nullptr); }
-} // namespace physmat
-
 #include <gui/dag_visualLog.h>
 namespace visuallog
 {
 void logmsg(const char *text, LogItemCBProc, void *, E3DCOLOR, int) { G_ASSERT(0); }
+dag::ConstSpan<SimpleString> getHistory() { G_ASSERT_RETURN(false, {}); }
 } // namespace visuallog
 
 float phys_get_timestep() { G_ASSERT_RETURN(false, 0.f); }
-
-#include <gamePhys/props/atmosphere.h>
-
-float gamephys::atmosphere::_g = 0.f;
-float gamephys::atmosphere::_water_density = 0.f;
-
-#include <gamePhys/phys/utils.h>
-namespace gamephys
-{
-namespace atmosphere
-{
-float density(float h) { G_ASSERT_RETURN(false, 0.0f); }
-Point3 get_wind() { G_ASSERT_RETURN(false, Point3()); }
-float temperature(float) { G_ASSERT_RETURN(false, 0.0f); }
-float sonicSpeed(float) { G_ASSERT_RETURN(false, 0.0f); }
-} // namespace atmosphere
-void Orient::setYP0(const Point3 &) { G_ASSERT(0); }
-void Orient::setQuat(const Quat &) { G_ASSERT(0); }
-void Orient::wrap() { G_ASSERT(0); }
-void extrapolate_circular(const Point3 &, const Point3 &, const Point3 &, float, Point3 &, Point3 &) { G_ASSERT(0); }
-} // namespace gamephys
-
-#include <gamePhys/common/mass.h>
-namespace gamephys
-{
-void Mass::setFuel(float, int, bool) { G_ASSERT(0); }
-bool Mass::hasFuel(float, int) const { G_ASSERT_RETURN(false, false); }
-float Mass::getFuelMassCurrent() const { G_ASSERT_RETURN(false, 0.f); };
-float Mass::getFuelMassCurrent(int) const { G_ASSERT_RETURN(false, 0.f); };
-float Mass::getFuelMassMax() const { G_ASSERT_RETURN(false, 0.f); };
-float Mass::getFuelMassMax(int) const { G_ASSERT_RETURN(false, 0.f); };
-} // namespace gamephys
 
 #include <ecs/phys/netPhysResync.h>
 void ECSCustomPhysStateSyncer::init(ecs::EntityId, int) {}
@@ -125,314 +89,10 @@ void ECSCustomPhysStateSyncer::registerSyncComponent(const char *, bool &) {}
 #include <gamePhys/common/fixed_dt.h>
 float gamephys::PHYSICS_UPDATE_FIXED_DT = gamephys::DEFAULT_PHYSICS_UPDATE_FIXED_DT;
 #endif
-
-#include <gamePhys/collision/collisionLib.h>
-#include <gamePhys/collision/collisionCache.h>
-#include <gamePhys/collision/collisionInstances.h>
-namespace dacoll
+namespace rendinst
 {
-bool traceray_normalized(
-  const Point3 &, const Point3 &, real &, int *, Point3 *, int flags, rendinst::RendInstDesc *out_desc, int, const TraceMeshFaces *)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool traceray_normalized_coll_type(const Point3 &p,
-  const Point3 &dir,
-  real &t,
-  int *out_pmid,
-  Point3 *out_norm,
-  int flags,
-  rendinst::RendInstDesc *out_desc,
-  int *out_coll_type,
-  int ray_mat_id,
-  const TraceMeshFaces *handle)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool tracedown_normalized(const Point3 &, real &, int *, Point3 *, int, rendinst::RendInstDesc *, int, const TraceMeshFaces *)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool traceray_normalized_frt(const Point3 &, const Point3 &, real &, int *, Point3 *) { G_ASSERT_RETURN(false, false); }
-bool traceray_normalized_lmesh(const Point3 &, const Point3 &, real &, int *, Point3 *) { G_ASSERT_RETURN(false, false); }
-bool traceray_normalized_ri(const Point3 &,
-  const Point3 &,
-  real &,
-  int *,
-  Point3 *,
-  rendinst::TraceFlags,
-  rendinst::RendInstDesc *,
-  int,
-  const TraceMeshFaces *,
-  rendinst::riex_handle_t)
-{
-  G_ASSERT_RETURN(false, false);
-}
-void validate_trace_cache(const bbox3f &, const vec3f &, float, TraceMeshFaces *) { G_ASSERT(0); }
-bool trace_game_objects(const Point3 &, const Point3 &, float &, Point3 &, int, int) { G_ASSERT_RETURN(false, false); }
-bool traceht_water(const Point3 &, float &) { G_ASSERT_RETURN(false, false); }
-float traceht_lmesh(const Point2 &) { G_ASSERT_RETURN(false, 0.f); }
-float traceht_hmap(const Point2 &) { G_ASSERT_RETURN(false, 0.f); }
-bool is_valid_heightmap_pos(const Point2 &) { G_ASSERT_RETURN(false, false); }
-bool is_valid_water_height(float) { G_ASSERT_RETURN(false, false); }
-float traceht_water_at_time(const Point3 &, float, float, bool &, float) { G_ASSERT_RETURN(false, false); }
-bool traceray_water_at_time(const Point3 &, const Point3 &, float, float &) { G_ASSERT_RETURN(false, false); }
-bool get_min_max_hmap_in_circle(const Point2 &, float, float &, float &) { G_ASSERT_RETURN(false, false); }
-void get_min_max_hmap_list_in_circle(const Point2 &, float, Tab<Point2> &) { G_ASSERT(0); };
-bool rayhit_normalized_lmesh(const Point3 &p, const Point3 &dir, real t) { G_ASSERT_RETURN(false, false); }
-bool rayhit_normalized(const Point3 &p,
-  const Point3 &dir,
-  real t,
-  int flags,
-  int ray_mat_id,
-  const TraceMeshFaces *handle,
-  rendinst::riex_handle_t skip_riex_handle)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool sphere_cast(const Point3 &, const Point3 &, float, ShapeQueryOutput &, int, const TraceMeshFaces *)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool sphere_cast_land(const Point3 &, const Point3 &, float, ShapeQueryOutput &, int) { G_ASSERT_RETURN(false, false); }
-bool sphere_cast_ex(
-  const Point3 &, const Point3 &, float, ShapeQueryOutput &, int, dag::ConstSpan<CollisionObject>, const TraceMeshFaces *, int, int)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool sphere_query_ri(const Point3 &from,
-  const Point3 &to,
-  float rad,
-  ShapeQueryOutput &out,
-  int cast_mat_id,
-  Tab<rendinst::RendInstDesc> *out_desc,
-  const TraceMeshFaces *handle,
-  RIFilterCB *)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool trace_sphere_cast_ex(const Point3 &from,
-  const Point3 &to,
-  float rad,
-  int num_casts,
-  dacoll::ShapeQueryOutput &out,
-  int cast_mat_id,
-  int ignore_game_obj_id,
-  const TraceMeshFaces *handle,
-  int flags)
-{
-  G_ASSERT_RETURN(false, false);
-}
-CollisionObject add_dynamic_collision_from_coll_resource(const DataBlock *props,
-  const CollisionResource *coll_resource,
-  void *user_ptr,
-  int flags,
-  int phys_layer,
-  int mask,
-  const TMatrix *wtm)
-{
-  G_ASSERT_RETURN(false, CollisionObject());
-}
-CollisionObject add_dynamic_collision_with_mask(
-  const DataBlock &props, void *userPtr, bool is_player, bool add_to_world, bool auto_mask, int mask, const TMatrix *wtm)
-{
-  G_ASSERT_RETURN(false, CollisionObject());
-}
-CollisionObject add_dynamic_sphere_collision(const TMatrix &tm, float rad, void *user_ptr, bool add_to_world)
-{
-  G_ASSERT_RETURN(false, CollisionObject());
-}
-CollisionObject add_dynamic_capsule_collision(const TMatrix &tm, float rad, float height, void *user_ptr, bool add_to_world)
-{
-  G_ASSERT_RETURN(false, CollisionObject());
-}
-CollisionObject add_dynamic_cylinder_collision(const TMatrix &tm, float rad, float ht, void *user_ptr, bool add_to_world)
-{
-  G_ASSERT_RETURN(false, CollisionObject());
-}
-void add_collision_hmap_custom(
-  const Point3 &collision_pos, const BBox3 &collision_box, const Point2 &hmap_offset, float hmap_scale, int hmap_step)
-{
-  G_ASSERT(0);
-}
-
-void destroy_dynamic_collision(CollisionObject co) { G_ASSERT(0); }
-bool test_pair_collision(dag::ConstSpan<CollisionObject> co_a,
-  uint64_t cof_a,
-  const TMatrix &tm_a,
-  dag::ConstSpan<CollisionObject> co_b,
-  uint64_t cof_b,
-  const TMatrix &tm_b,
-  Tab<gamephys::CollisionContactData> &out_contacts,
-  TestPairFlags flags,
-  bool set_co_tms)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool test_collision_world(dag::ConstSpan<CollisionObject> collision,
-  const TMatrix &tm,
-  float bounding_rad,
-  Tab<gamephys::CollisionContactData> &out_contacts,
-  const TraceMeshFaces *)
-{
-  G_ASSERT_RETURN(false, false);
-}
-void update_ri_cache_in_volume_to_phys_world(const BBox3 &) {}
-bool check_ri_collision_filtered(const rendinst::RendInstDesc &, const TMatrix &, const TMatrix &, int)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool test_collision_ri(const CollisionObject &coll_obj,
-  const BBox3 &box,
-  Tab<gamephys::CollisionContactData> &out_contacts,
-  const TraceMeshFaces *trace_cache,
-  int mat_id)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool test_collision_frt(const CollisionObject &coll_obj, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool test_sphere_collision_world(
-  const Point3 &pos, float radius, int mat_id, Tab<gamephys::CollisionContactData> &out_contacts, dacoll::PhysLayer group, int mask)
-{
-  G_ASSERT_RETURN(false, false);
-}
-bool test_box_collision_world(
-  const TMatrix &tm, int mat_id, Tab<gamephys::CollisionContactData> &out_contacts, dacoll::PhysLayer group, int mask)
-{
-  G_ASSERT_RETURN(false, false);
-}
-PhysBody *get_convex_shape(struct CollisionObject) { G_ASSERT_RETURN(false, nullptr); }
-void shape_query_frt(const PhysBody *, class TMatrix const &, class TMatrix const &, dacoll::ShapeQueryOutput &) { G_ASSERT(0); }
-void shape_query_lmesh(const PhysBody *, class TMatrix const &, class TMatrix const &, dacoll::ShapeQueryOutput &) { G_ASSERT(0); }
-void shape_query_ri(const PhysBody *,
-  class TMatrix const &,
-  class TMatrix const &,
-  float,
-  dacoll::ShapeQueryOutput &,
-  int,
-  Tab<struct rendinst::RendInstDesc> *,
-  struct TraceMeshFaces const *,
-  RIFilterCB *)
-{
-  G_ASSERT(0);
-}
-void fetch_sim_res(bool) { G_ASSERT(0); }
-void set_vert_capsule_shape_size(const CollisionObject &, float, float) { G_ASSERT(0); }
-void set_collision_sphere_rad(const CollisionObject &, float) { G_ASSERT(0); }
-void set_collision_object_tm(const CollisionObject &, const TMatrix &) { G_ASSERT(0); }
-void draw_collision_object(const CollisionObject &) { G_ASSERT(0); }
-
-int set_hmap_step(int) { G_ASSERT_RETURN(false, -1); }
-int get_hmap_step() { G_ASSERT_RETURN(false, -1); }
-void set_obj_motion(CollisionObject, const TMatrix &, const Point3 &, const Point3 &) { G_ASSERT(0); }
-PhysMat::MatID get_lmesh_mat_id_at_point(const Point2 &pos) { G_ASSERT_RETURN(false, PHYSMAT_INVALID); }
-CollisionObject tmpObj;
-CollisionObject &get_reusable_sphere_collision() { G_ASSERT_RETURN(false, tmpObj); }
-CollisionObject &get_reusable_capsule_collision() { G_ASSERT_RETURN(false, tmpObj); }
-CollisionObject &get_reusable_box_collision() { G_ASSERT_RETURN(false, tmpObj); }
-
-void move_ri_instance(const rendinst::RendInstDesc &, const Point3 &, const Point3 &) { G_ASSERT(0); }
-void enable_disable_ri_instance(const rendinst::RendInstDesc &, bool) { G_ASSERT(0); }
-void flush_ri_instances() { G_ASSERT(0); }
-bool is_ri_instance_enabled(const CollisionInstances *, const rendinst::RendInstDesc &) { G_ASSERT_RETURN(false, true); }
-int get_link_name_id(const char *) { G_ASSERT_RETURN(false, -1); }
-
-} // namespace dacoll
-bool LandMeshHolesCell::check(const Point2 &, const HeightmapHandler *) const { return false; }
-
-#include <gamePhys/collision/collisionResponse.h>
-namespace daphys
-{
-void resolve_penetration(DPoint3 &pos,
-  Quat &ori,
-  dag::ConstSpan<gamephys::CollisionContactData> contacts,
-  double inv_mass,
-  const DPoint3 &inv_moi,
-  double /*dt*/,
-  bool use_future_contacts,
-  int num_iter,
-  float linear_slop,
-  float erp)
-{
-  G_ASSERT(0);
-};
-void resolve_contacts(const DPoint3 &,
-  const Quat &,
-  DPoint3 &,
-  DPoint3 &,
-  dag::ConstSpan<gamephys::CollisionContactData>,
-  double,
-  const DPoint3 &,
-  const ResolveContactParams &,
-  int)
-{
-  G_ASSERT(0);
-};
-} // namespace daphys
-
-#include <gamePhys/phys/physVars.h>
-int PhysVars::registerVar(const char *, float) { G_ASSERT_RETURN(false, -1); }
-int PhysVars::registerPullVar(const char *, float) { G_ASSERT_RETURN(false, -1); }
-float PhysVars::getVar(int) const { G_ASSERT_RETURN(false, -1); }
-
-#include <gamePhys/phys/animatedPhys.h>
-void AnimatedPhys::init(const AnimV20::AnimcharBaseComponent &, const PhysVars &) { G_ASSERT(0); }
-void AnimatedPhys::appendVar(const char *, const AnimV20::AnimcharBaseComponent &, const PhysVars &) { G_ASSERT(0); }
-void AnimatedPhys::update(AnimV20::AnimcharBaseComponent &, PhysVars &) { G_ASSERT(0); }
-
-#include <gamePhys/phys/rendinstDestr.h>
-namespace rendinstdestr
-{
-bool apply_damage_to_riextra(rendinst::riex_handle_t, float, const Point3 &, const Point3 &, float) { G_ASSERT_RETURN(false, false); }
-void remove_ri_without_collision_in_radius(const Point3 &, float) { G_ASSERT(0); }
-void damage_ri_in_sphere(
-  const Point3 &, float, const Point2 &, float, float, bool, on_riextra_destroyed_callback &&, riextra_should_damage &&)
-{
-  G_ASSERT(0);
-}
-void doRIExtraDamageInBox(const BBox3 &box,
-  float at_time,
-  bool create_destr,
-  const Point3 &view_pos,
-  calc_expl_damage_cb calc_expl_dmg_cb,
-  const BSphere3 *check_sphere,
-  const TMatrix *check_itm,
-  rendinst::DestrOptionFlags destroy_flag)
-{
-  G_ASSERT(0);
-}
-rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc,
-  bool add_restorable,
-  const Point3 &pos,
-  const Point3 &impulse,
-  float at_time,
-  const rendinst::CollisionInfo *coll_info,
-  bool create_destr,
-  ApexDmgInfo *apex_dmg_info,
-  int destroy_neighbour_recursive_depth,
-  float impulse_mult_for_child,
-  on_destr_callback on_destr_cb,
-  rendinst::DestrOptionFlags destroy_flag)
-{
-  G_ASSERT_RETURN(false, rendinst::RendInstDesc());
-}
-rendinst::ri_damage_effect_cb get_ri_damage_effect_cb() { G_ASSERT_RETURN(false, nullptr); }
-const DestrSettings &get_destr_settings()
-{
-  G_ASSERT(0);
-  static DestrSettings s;
-  return s;
-}
-CachedCollisionObjectInfo *get_or_add_cached_collision_object(rendinst::RendInstDesc const &, float)
-{
-  G_ASSERT_RETURN(false, nullptr);
-}
-} // namespace rendinstdestr
-
-bool rendinst::isRiExtraLoaded() { G_ASSERT_RETURN(false, false); }
+bool isRiExtraLoaded() { G_ASSERT_RETURN(false, false); }
+} // namespace rendinst
 
 #include "main/gameObjects.h"
 void traceray_ladders(const Point3 &from, const Point3 &to, const GameObjInstCB &game_obj_inst_cb) { G_ASSERT(0); }
@@ -518,43 +178,43 @@ void TheEffect::reset() { G_ASSERT(0); }
 class AcesEffect
 {
 public:
-  void lock();
+  void unlock();
   void setFxScale(float);
   void setFxTm(const TMatrix &);
-  void setEmitterTm(const TMatrix &, bool);
+  void setEmitterTm(const TMatrix &);
   void setSpawnRate(float);
   void setColorMult(struct Color4 const &);
   void setVelocity(const Point3 &vel);
   void setGravityTm(const Matrix3 &);
+  void hide(bool);
 };
-void AcesEffect::lock() { G_ASSERT(0); }
+void AcesEffect::unlock() { G_ASSERT(0); }
 void AcesEffect::setFxScale(float) { G_ASSERT(0); }
 void AcesEffect::setFxTm(const TMatrix &) { G_ASSERT(0); }
-void AcesEffect::setEmitterTm(const TMatrix &, bool) { G_ASSERT(0); }
+void AcesEffect::setEmitterTm(const TMatrix &) { G_ASSERT(0); }
 void AcesEffect::setSpawnRate(float) { G_ASSERT(0); }
 void AcesEffect::setColorMult(struct Color4 const &) { G_ASSERT(0); }
 void AcesEffect::setVelocity(const Point3 &vel) { G_ASSERT(0); }
 void AcesEffect::setGravityTm(const Matrix3 &) { G_ASSERT(0); }
+void AcesEffect::hide(bool) { G_ASSERT(0); }
 namespace acesfx
 {
-struct SoundDesc;
-int get_type_by_name(const char *, bool) { G_ASSERT_RETURN(false, -1); }
+int get_type_by_name(const char *) { G_ASSERT_RETURN(false, -1); }
 FxQuality get_fx_target() { G_ASSERT_RETURN(false, FX_QUALITY_LOW); }
 FxQuality getFxQualityMask() { G_ASSERT_RETURN(false, FX_QUALITY_LOW); }
-AcesEffect *start_effect(int, const TMatrix &, const TMatrix &, bool, const SoundDesc *, FxErrorType *)
-{
-  G_ASSERT_RETURN(false, nullptr);
-}
+void start_effect(int, const TMatrix &, const TMatrix &, bool, float, AcesEffect **, FxErrorType *) { G_ASSERT(false); }
 float get_effect_life_time(int) { G_ASSERT_RETURN(false, 0.0f); }
 bool prefetch_effect(int) { G_ASSERT_RETURN(false, false); }
-void start_update_prepare(float, const Driver3dPerspective &, int, int) { G_ASSERT(0); }
-void start_update(float) { G_ASSERT(0); }
-void finish_update(const TMatrix4 &) { G_ASSERT(0); }
+void setup_camera_and_debug(float, const TMatrix &, const Driver3dPerspective &, int, int) { G_ASSERT(0); }
+void update_fx_managers(float) { G_ASSERT(0); }
+void flush_dafx_commands() { G_ASSERT(0); }
+void start_dafx_update(float) { G_ASSERT(0); }
+void finish_update_main_camera(const TMatrix4 &tm) { G_ASSERT(0); }
+void finish_update(const TMatrix4 &, Occlusion *) { G_ASSERT(0); }
 void stop_effect(AcesEffect *&) { G_ASSERT(0); }
-void wait_start_fx_job_done(bool) { G_ASSERT(0); }
 void setNormalsTex(const BaseTexture *tex) { G_ASSERT(0); }
 void setDepthTex(const BaseTexture *tex) { G_ASSERT(0); }
-void push_gravity_zone(GravityZoneBuffer &, const TMatrix &, const Point3 &, uint32_t, uint32_t, float, bool) { G_ASSERT(0); }
+void push_gravity_zone(GravityZoneBuffer &, const TMatrix &, const Point3 &, uint32_t, uint32_t, float, float, bool) { G_ASSERT(0); }
 void set_gravity_zones(GravityZoneBuffer &) { G_ASSERT(0); }
 } // namespace acesfx
 
@@ -637,87 +297,12 @@ void add_debug_text_mark(
 
 void add_debug_text_mark(const Point3 &wp, const char *str, int length, float line_ofs, E3DCOLOR frame_color) { G_ASSERT(0); }
 
-#include <animChar/dag_animCharacter2.h>
-#include <anim/dag_animBlendCtrl.h>
-#include <animChar/dag_animate2ndPass.h>
-namespace AnimV20
-{
-int addEnumValue(const char *) { G_ASSERT_RETURN(false, 0); }
-int getEnumValueByName(const char *) { G_ASSERT_RETURN(false, 0); }
-const char *getEnumName(int) { G_ASSERT_RETURN(false, ""); }
-void AnimcharBaseComponent::act(float, bool) { G_ASSERT(0); }
-void AnimcharBaseComponent::recalcWtm() { G_ASSERT(0); }
-void AnimcharBaseComponent::getTm(mat44f &) const { G_ASSERT(0); }
-void AnimcharBaseComponent::getTm(TMatrix &) const { G_ASSERT(0); }
-void AnimcharBaseComponent::setTm(const TMatrix &, bool) { G_ASSERT(0); }
-void AnimcharBaseComponent::setTm(const Point3 &, const Point3 &, const Point3 &) { G_ASSERT(0); }
-void AnimcharBaseComponent::setPostController(IAnimCharPostController *) { G_ASSERT(0); }
-void AnimcharBaseComponent::calcAnimWtm(bool) { G_ASSERT(0); }
-bool AnimcharBaseComponent::initAttachmentTmAndNodeWtm(int, mat44f &) const { G_ASSERT_RETURN(false, false); }
-const mat44f *AnimcharBaseComponent::getSlotNodeWtm(int) const { G_ASSERT_RETURN(false, nullptr); }
-const mat44f *AnimcharBaseComponent::getAttachmentTm(int) const { G_ASSERT_RETURN(false, nullptr); }
-int AnimcharBaseComponent::getAttachmentSlotsCount() const { G_ASSERT_RETURN(false, 0); }
-int AnimcharBaseComponent::getAttachmentSlotId(const int) const { G_ASSERT_RETURN(false, 0); }
-void AnimcharBaseComponent::resetFastPhysWtmOfs(const vec3f wofs) { G_ASSERT(0); }
-void AnimcharBaseComponent::setFastPhysSystemGravityDirection(const Point3 &) { G_ASSERT(0); }
-void AnimcharBaseComponent::updateFastPhys(const float dt) { G_ASSERT(0); }
-bool AnimV20::AnimcharRendComponent::calcWorldBox(bbox3f &, const AnimcharFinalMat44 &, bool) const { G_ASSERT_RETURN(false, false); }
-vec4f AnimV20::AnimcharRendComponent::prepareSphere(const AnimcharFinalMat44 &) const { G_ASSERT_RETURN(false, vec4f()); }
-const DataBlock *AnimcharBaseComponent::getDebugBlenderState(bool dump_tm) { G_ASSERT_RETURN(false, nullptr); }
-AnimV20::AnimBlender::TlsContext &AnimV20::AnimBlender::selectCtx(intptr_t (*irq)(int, intptr_t, intptr_t, intptr_t, void *),
-  void *irq_arg)
-{
-  G_ASSERT(0);
-  static TlsContext dummy;
-  return dummy;
-}
-void AnimcharBaseComponent::forcePostRecalcWtm(real) { G_ASSERT(0); }
-void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *, bool) const { G_ASSERT(0); }
-
-void AnimationGraph::enqueueState(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float, float) { G_ASSERT(0); }
-void AnimationGraph::setStateSpeed(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float) { G_ASSERT(0); }
-int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
-
-bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real, real) { G_ASSERT(0); }
-int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real) { G_ASSERT_RETURN(false, 0); }
-
-int AnimCommonStateHolder::getParamInt(int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setParamInt(int, int) { G_ASSERT(0); }
-int AnimCommonStateHolder::getParamFlags(int, int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setParamFlags(int, int, int) { G_ASSERT(0); }
-float AnimCommonStateHolder::getParamEffTimeScale(int) const { G_ASSERT_RETURN(false, 0.f); }
-int AnimCommonStateHolder::getTimeScaleParamId(int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setTimeScaleParamId(int, int) { G_ASSERT(0); }
-void AnimCommonStateHolder::advance(float) { G_ASSERT(0); }
-void AnimCommonStateHolder::term() { G_ASSERT(0); }
-
-void AnimBlender::buildNodeList() { G_ASSERT(0); }
-} // namespace AnimV20
-
-void Animate2ndPass::release() { G_ASSERT(0); }
-
-namespace AnimCharV20
-{
-int getSlotId(const char *) { G_ASSERT_RETURN(false, 0); }
-int addSlotId(const char *) { G_ASSERT_RETURN(false, 0); }
-const char *getSlotName(const int) { G_ASSERT_RETURN(false, nullptr); }
-} // namespace AnimCharV20
-
 bool check_action_precondition(ecs::EntityId, int) { G_ASSERT_RETURN(false, false); }
 
 #include <gamePhys/common/loc.h>
 void gamephys::Loc::interpolate(const Loc &, const Loc &, const float) { G_ASSERT(0); }
-
-#include <gamePhys/phys/commonPhysBase.h>
-bool CommonPhysPartialState::deserialize(const danet::BitStream &, IPhysBase &) { G_ASSERT_RETURN(false, false); }
-
-#include <statsd/statsd.h>
-namespace statsd
-{
-void counter(const char *, long, std::initializer_list<MetricTag>) { G_ASSERT(0); }
-void profile(const char *, long, const MetricTag &) { G_ASSERT(0); }
-} // namespace statsd
+void gamephys::Loc::substract(const Loc &lhs, const Loc &rhs) { G_ASSERT(0); }
+void gamephys::Loc::add(const Loc &lhs, const Loc &rhs) { G_ASSERT(0); }
 
 namespace circuit
 {
@@ -754,7 +339,7 @@ void load_regions_from_splines(LevelRegions &, dag::ConstSpan<levelsplines::Spli
 bool rayhit_smoke_occluders(const Point3 &, const Point3 &) { G_ASSERT_RETURN(false, false); }
 
 #include <main/gameLoad.h>
-bool sceneload::load_game_scene(const char *, int)
+bool sceneload::load_game_scene(const char *, int, uint32_t)
 {
   G_ASSERT(0);
   return false;
@@ -774,6 +359,15 @@ void enable_free_camera() { G_ASSERT(0); }
 void disable_free_camera() { G_ASSERT(0); }
 void force_free_camera() { G_ASSERT(0); }
 Point3 get_free_cam_speeds() { G_ASSERT_RETURN(false, Point3::ZERO); }
+
+namespace camera_in_camera
+{
+bool is_lens_only_zoom_enabled() { G_ASSERT_RETURN(false, false); }
+} // namespace camera_in_camera
+
+float get_scope_lens_magnification_limit_term() { return 1.0f; }
+
+bool is_looking_into_optics_scope() { return false; }
 
 #include "main/gameLoad.h"
 namespace sceneload
@@ -884,19 +478,6 @@ namespace sound
 /*static*/ const ActionProps *ActionProps::try_get_props(int) { G_ASSERT_RETURN(false, nullptr); }
 } // namespace sound
 
-#include <landMesh/biomeQuery.h>
-namespace biome_query
-{
-int query(const Point3 &, const float) { G_ASSERT_RETURN(false, {}); }
-GpuReadbackResultState get_query_result(int, BiomeQueryResult &) { G_ASSERT_RETURN(false, {}); }
-int get_biome_group_id(const char *) { G_ASSERT_RETURN(false, {}); }
-const char *get_biome_group_name(int) { G_ASSERT_RETURN(false, {}); }
-int get_num_biome_groups() { G_ASSERT_RETURN(false, 0); }
-} // namespace biome_query
-
-#include <gamePhys/props/physMatDamageModelProps.h>
-/*static*/ const PhysMatDamageModelProps *PhysMatDamageModelProps::get_props(int) { G_ASSERT_RETURN(false, nullptr); }
-
 bool is_level_loading() { G_ASSERT_RETURN(false, false); }
 bool is_level_loaded() { G_ASSERT_RETURN(false, false); }
 
@@ -926,12 +507,6 @@ Tab<TMatrix> get_points_on_road_route(
   G_ASSERT_RETURN(false, {});
 }
 
-
-#include "input/inputControls.h"
-namespace controls
-{
-SensScale sens_scale;
-}
 
 #include <forceFeedback/forceFeedback.h>
 namespace force_feedback
@@ -988,26 +563,6 @@ namespace uishared
 TMatrix view_tm, view_itm;
 }
 
-#include <gui/dag_imgui.h>
-ImGuiFunctionQueue *ImGuiFunctionQueue::windowHead = nullptr;
-ImGuiFunctionQueue *ImGuiFunctionQueue::functionHead = nullptr;
-
-ImGuiFunctionQueue::ImGuiFunctionQueue(
-  const char *group_, const char *name_, const char *hotkey_, int priority_, int flags_, ImGuiFuncPtr func, bool is_window)
-{}
-ImGuiState imgui_get_state() { G_ASSERT_RETURN(false, ImGuiState::OFF); }
-bool imgui_window_is_visible(const char *, const char *) { G_ASSERT_RETURN(false, false); }
-int imgui_get_menu_bar_height() { G_ASSERT_RETURN(false, 0); }
-void imgui_window_set_visible(const char *, const char *, const bool) { G_ASSERT(0); }
-DataBlock *imgui_get_blk() { G_ASSERT_RETURN(false, nullptr); }
-
-void imgui_set_default_font() { G_ASSERT(0); }
-void imgui_set_bold_font() { G_ASSERT(0); }
-void imgui_set_mono_font() { G_ASSERT(0); }
-ImFont *imgui_get_bold_font() { G_ASSERT_RETURN(false, nullptr); }
-ImFont *imgui_get_mono_font() { G_ASSERT_RETURN(false, nullptr); }
-void imgui_apply_style_from_blk() { G_ASSERT(0); }
-
 #include <daECS/scene/scene.h>
 #include <daECS/io/blk.h>
 namespace ecs
@@ -1018,14 +573,16 @@ InitOnDemand<SceneManager> g_scenes;
 
 #include <render/rendererFeatures.h>
 class BaseTexture;
+struct CameraParams;
+class CameraViewVisibilityMgr;
 namespace bind_dascript
 {
 void toggleFeature(FeatureRenderFlags, bool) { G_ASSERT(0); }
 bool worldRenderer_getWorldBBox3(BBox3 &bbox) { G_ASSERT_RETURN(false, false); }
 void worldRenderer_shadowsInvalidate(const BBox3 &bbox) { G_ASSERT(0); }
 void worldRenderer_invalidateAllShadows() { G_ASSERT(0); }
-void worldRenderer_renderDebug() { G_ASSERT(0); }
 int worldRenderer_getDynamicResolutionTargetFps() { G_ASSERT_RETURN(false, 0); }
+void worldRenderer_setDaGdpRangeScale(float) { G_ASSERT(0); }
 bool does_world_renderer_exist() { G_ASSERT_RETURN(false, 0); }
 } // namespace bind_dascript
 
@@ -1045,7 +602,17 @@ void clipmap_decals_mgr::createDecal(int, const Point2 &, float, const Point2 &,
 
 void erase_grass(const Point3 &, float) { G_ASSERT(0); }
 void invalidate_after_heightmap_change(const BBox3 &box) { G_ASSERT(0); }
+void invalidate_ssr_history(int) { G_ASSERT(0); }
 void remove_puddles_in_crater(const Point3 &, float) { G_ASSERT(0); }
+
+struct PortalParams;
+
+namespace portal_renderer_mgr
+{
+void update_portal(int, const TMatrix &, const TMatrix &, const PortalParams &) { G_ASSERT(0); }
+int allocate_portal() { G_ASSERT_RETURN(false, -1); }
+void free_portal(int) { G_ASSERT(0); }
+} // namespace portal_renderer_mgr
 
 PhysUpdateCtx PhysUpdateCtx::ctx;
 
@@ -1076,6 +643,8 @@ void add_decal(Point3, Point3)
 }
 } // namespace blood_decals
 
+#include <animChar/dag_animCharacter2.h>
+
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &, eastl::function<void(ShaderMaterial *)> &&)
 {
   G_ASSERT_RETURN(false, false);
@@ -1091,18 +660,6 @@ bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &,
   G_ASSERT_RETURN(false, false);
 }
 void screen_to_world(const Point2 &, Point3 &, Point3 &) { G_ASSERT(0); }
-
-#include <render/debug3dSolidBuffered.h>
-void flush_buffered_debug_meshes(bool) { G_ASSERT(0); }
-void draw_debug_solid_mesh_buffered(const uint16_t *, int, const float *, int, int, const TMatrix &, Color4, size_t) { G_ASSERT(0); }
-
-void draw_debug_solid_cube_buffered(const BBox3 &, const TMatrix &, const Color4 &, size_t) { G_ASSERT(0); }
-void draw_debug_solid_triangle_buffered(Point3, Point3, Point3, const Color4 &, size_t) { G_ASSERT(0); }
-void draw_debug_solid_quad_buffered(Point3, Point3, const TMatrix &, const Color4 &, size_t) { G_ASSERT(0); }
-void draw_debug_solid_quad_buffered(Point3, Point3, Point3, Point3, const Color4 &, size_t) { G_ASSERT(0); }
-void draw_debug_ball_buffered(const Point3 &, float, const Color4 &, size_t) { G_ASSERT(0); }
-void draw_debug_solid_disk_buffered(const Point3, Point3, float, int, const Color4 &, size_t) { G_ASSERT(0); }
-void clear_buffered_debug_solids() { G_ASSERT(0); }
 
 #include <ecs/phys/collRes.h>
 Point2 get_collres_slice_mean_and_dispersion(const CollisionResource &collres, float min_height, float max_height)
@@ -1167,12 +724,6 @@ void replay_play(char const *, float, sceneload::UserGameModeContext &&ugmCtx, c
 static bool any_console_command_fallback(const char *[], int argc) { return argc > 0; }
 REGISTER_CONSOLE_HANDLER(any_console_command_fallback);
 
-#include <gamePhys/phys/destructableObject.h>
-dag::ConstSpan<gamephys::DestructableObject *> destructables::getDestructableObjects()
-{
-  G_ASSERT_RETURN(false, dag::ConstSpan<gamephys::DestructableObject *>());
-}
-
 scene::TiledScene *create_ladders_scene(GameObjects &) { G_ASSERT_RETURN(false, nullptr); }
 
 #include "phys/collRes.h"
@@ -1181,19 +732,18 @@ bool get_collres_body_tm(const ecs::EntityId eid, const int coll_node_id, TMatri
   G_ASSERT_RETURN(false, false);
 }
 
-#include <landMesh/heightmapQuery.h>
-int heightmap_query::query(const Point2 &) { G_ASSERT_RETURN(false, -1); }
-GpuReadbackResultState heightmap_query::get_query_result(int, HeightmapQueryResult &)
-{
-  G_ASSERT_RETURN(false, GpuReadbackResultState::SYSTEM_NOT_INITIALIZED);
-}
-
 #include "net/dedicated/matching.h"
 const Json::Value &dedicated_matching::get_mode_info()
 {
   G_ASSERT(0);
   static Json::Value j0 = Json::nullValue;
   return j0;
+}
+const eastl::unordered_map<matching::UserId, Json::Value> &dedicated_matching::get_session_players()
+{
+  G_ASSERT(0);
+  static eastl::unordered_map<matching::UserId, Json::Value> r;
+  return r;
 }
 void dedicated_matching::on_level_loaded() { G_ASSERT(0); }
 void dedicated_matching::on_player_team_changed(matching::UserId, int) { G_ASSERT(0); }
@@ -1214,6 +764,7 @@ void clear(int, int) { G_ASSERT(0); }
 } // namespace PriorityShadervar
 
 #include <daRg/dag_properties.h>
+#include <gui/dag_stdGuiRender.h>
 namespace darg
 {
 E3DCOLOR Properties::getColor(const Sqrat::Object &, E3DCOLOR) const { G_ASSERT_RETURN(false, E3DCOLOR(0, 0, 0)); }
@@ -1222,9 +773,44 @@ bool Properties::getBool(const Sqrat::Object &, bool, bool) const { G_ASSERT_RET
 void Properties::trace_error(const char *, const Sqrat::Object &, const Sqrat::Object &) { G_ASSERT(0); }
 int Properties::getFontId() const { G_ASSERT_RETURN(false, -1); }
 float Properties::getFontSize() const { G_ASSERT_RETURN(false, 0.f); }
+Picture *Properties::getPicture(const Sqrat::Object &) const
+{
+  G_ASSERT(0);
+  return NULL;
+}
+
+DataBlock *Properties::getBlk(const Sqrat::Object &) const
+{
+  G_ASSERT(0);
+  return NULL;
+}
+
+void render_picture(StdGuiRender::GuiContext &, Picture *, Point2, Point2, E3DCOLOR, float, float, bool, bool, float) { G_ASSERT(0); }
+void render_picture(StdGuiRender::GuiContext &, Picture *, Point2, Point2, E3DCOLOR) { G_ASSERT(0); }
 } // namespace darg
 
-namespace char_random
+#include <compressionUtils/compression.h>
+
+float lag_compensation_time(ecs::EntityId avatar_eid,
+  ecs::EntityId lc_eid,
+  float at_time,
+  int interp_delay_ticks_packed,
+  float additional_interp_delay,
+  BasePhysActor **out_lc_eid_phys_actor)
 {
-int64_t generate_transaction_id() { G_ASSERT_RETURN(false, 0); };
-} // namespace char_random
+  G_ASSERT_RETURN(false, 0.f);
+}
+
+class StubLagCompensationMgr final : public ILagCompensationMgr
+{
+  void startLagCompensation(float, ecs::EntityId) override {}
+  LCError backtrackEntity(ecs::EntityId, float) override { return LCError::UnknownEntity; }
+  void finishLagCompensation() override {}
+};
+
+ILagCompensationMgr &get_lag_compensation()
+{
+  G_ASSERT(0);
+  static StubLagCompensationMgr stub;
+  return stub;
+}

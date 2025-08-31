@@ -147,6 +147,7 @@ const char *StaticGeometryNode::lightingToStr(Lighting light)
     case LIGHT_NONE: return "none";
     case LIGHT_LIGHTMAP: return "ltmap";
     case LIGHT_VLTMAP: return "vltmap";
+    case LIGHT_DEFAULT: break; // to prevent the unhandled switch case error
   }
 
   return "default";

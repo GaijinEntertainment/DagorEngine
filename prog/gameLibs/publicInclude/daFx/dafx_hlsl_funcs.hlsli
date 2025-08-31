@@ -38,10 +38,26 @@
   DAFX_INLINE float frac( float v ) { return v - floor(v); }
   DAFX_INLINE float3 frac( const float3 &v ) { return float3(frac(v.x), frac(v.y), frac(v.z)); }
   DAFX_INLINE float4 mul( const float4 &v, const float4x4 &m ) { return v*m; }
-  DAFX_INLINE float3 mul_get_f3( const float4 &v, const float4x4 &m ) { float4 r = v*m; return float3( r.x, r.y, r.z ); }
 
-  DAFX_INLINE float3 float3x3_row( const float3x3 &a, int r) { return a.getcol(r); }
+  // assumes m is a transformation matrix with no projection
+  DAFX_INLINE float3 mul_tm_pos(const float3 &pos, const float4x4 &tm) { return pos * tm; }
+  DAFX_INLINE float3 mul_tm_dir(const float3 &dir, const float4x4 &tm) { return dir % tm; }
+
+  DAFX_INLINE float4x4 get_normalized_tm(const float4x4 &tm)
+  {
+    float4x4 normalizedTm = tm;
+    normalizedTm.setrow(0, normalize(normalizedTm.getrow(0)));
+    normalizedTm.setrow(1, normalize(normalizedTm.getrow(1)));
+    normalizedTm.setrow(2, normalize(normalizedTm.getrow(2)));
+    return normalizedTm;
+  }
+
+  DAFX_INLINE float3 float3x3_row( const float3x3 &a, int r) { return a.getcol(r); } // float3x3 in cpp is TMatrix3, which has a different layout from TMatrix4, so we return columns here
   DAFX_INLINE float4 float4x4_row( const float4x4 &a, int r) { return a.getrow(r); }
+
+  DAFX_INLINE float4x4 get_identity_tm() {
+    return TMatrix::IDENT;
+  }
 
   DAFX_INLINE float pow2( float v ) { return v * v; }
   DAFX_INLINE float2 pow2( float2 v ) { return v * v; }
@@ -91,6 +107,10 @@
     return float3(half_to_float_unsafe(inp.x), half_to_float_unsafe(inp.y), half_to_float_unsafe(inp.z));
   }
   DAFX_INLINE
+  float f16tof32(uint inp) {
+    return half_to_float_unsafe(inp);
+  }
+  DAFX_INLINE
   uint3 operator>>(uint3_cref inp, uint shift) {
     return uint3(inp.x >> shift, inp.y >> shift, inp.z >> shift);
   }
@@ -99,20 +119,37 @@
     return m.col[0] * p.x + m.col[1] * p.y + m.col[2] * p.z;
   }
 
-  #define float4x4_to_3x3(from, to) {to.setcol(0, float_xyz((from).getcol(0))); to.setcol(1, float_xyz((from).getcol(1))); to.setcol(2, float_xyz((from).getcol(2)));}
   #define countbits __popcount
 #else
   #define fabsf abs
   float rsqrt_hlsl(float a) {return rsqrt(a);}
   float4 rsqrt_hlsl(float4 a) {return rsqrt(a);}
 
-  #define mul_get_f3(a,b) mul(a,b).xyz
+  #define mul_tm_pos(pos, tm) mul(float4(pos, 1), tm).xyz
+  #define mul_tm_dir(dir, tm) mul(float4(dir, 0), tm).xyz
+
+  float4x4 get_normalized_tm(float4x4 tm)
+  {
+    float4x4 normalizedTm = tm;
+    normalizedTm[0].xyz = normalize(normalizedTm[0].xyz);
+    normalizedTm[1].xyz = normalize(normalizedTm[1].xyz);
+    normalizedTm[2].xyz = normalize(normalizedTm[2].xyz);
+    return normalizedTm;
+  }
+
   #define float3x3_row(a,r) a[r]
   #define float4x4_row(a,r) a[r]
 
-  #define int_xy(a) a.xy
+  float4x4 get_identity_tm() {
+    float4x4 tm =
+      { 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1 };
+    return tm;
+  }
 
-  #define float4x4_to_3x3(from, to) from = float3x3((to)[0].xyz, (to)[1].xyz, (to)[2].xyz)
+  #define int_xy(a) a.xy
 
   float3x3 m33_ident() {
     return float3x3(float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1));

@@ -5,6 +5,7 @@
 
 #include <supp/dag_cpuControl.h>
 #include <3d/dag_resourceDump.h>
+#include <3d/dag_gpuConfig.h>
 
 
 using namespace drv3d_dx12;
@@ -176,6 +177,19 @@ Image *TextureImageFactory::adoptTexture(ID3D12Resource *texture, const char *na
   return result;
 }
 
+#if _TARGET_PC_WIN
+Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
+  D3D12_RESOURCE_STATES initialState)
+{
+  AllocationFlags allocationFlags{AllocationFlag::IS_RTV};
+  if (!canMixResources())
+    allocationFlags.set(AllocationFlag::NEW_HEAPS_ONLY_WITH_BUDGET);
+  auto res = tryCloneTexture(adapter, device, original, initialState, allocationFlags);
+  G_ASSERT(res);
+  return res;
+}
+#endif
+
 // assumes mutex is locked
 void TextureImageFactory::freeView(const ImageViewInfo &view)
 {
@@ -241,7 +255,7 @@ Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *
   original->getDebugName([=](const auto &name) { result->setDebugName(name); });
 
   updateMemoryRangeUse(memory, result);
-  result->getDebugName([=](const auto &name) {
+  result->getDebugName([DX12_CAPTURE_DEF_EQ](const auto &name) {
     recordTextureAllocated(result->getMipLevelRange(), result->getArrayLayers(), result->getBaseExtent(), result->getMemory().size(),
       result->getFormat(), name);
   });
@@ -271,7 +285,6 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures, fronten
     }
     freeView(texture->getRecentView());
     texture->getDebugName([this, texture](auto &name) {
-      logdbg("DX12: Destroy image: %p (handle: %p, name: %s)", texture, texture->getHandle(), name); // In case of RE-2274 repro case
       recordTextureFreed(texture->getMipLevelRange(), texture->getArrayLayers(), texture->getBaseExtent(),
         !texture->isAliased() ? texture->getMemory().size() : 0, texture->getFormat(), name);
     });
@@ -384,14 +397,14 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const BufferResourceDescription &
 
 D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const ResourceDescription &desc)
 {
-  switch (desc.resType)
+  switch (desc.type)
   {
-    case RES3D_TEX: return as_desc(desc.asTexRes);
-    case RES3D_CUBETEX: return as_desc(desc.asCubeTexRes);
-    case RES3D_VOLTEX: return as_desc(desc.asVolTexRes);
-    case RES3D_ARRTEX: return as_desc(desc.asArrayTexRes);
-    case RES3D_CUBEARRTEX: return as_desc(desc.asArrayCubeTexRes);
-    case RES3D_SBUF: return as_desc(desc.asBufferRes);
+    case D3DResourceType::TEX: return as_desc(desc.asTexRes);
+    case D3DResourceType::CUBETEX: return as_desc(desc.asCubeTexRes);
+    case D3DResourceType::VOLTEX: return as_desc(desc.asVolTexRes);
+    case D3DResourceType::ARRTEX: return as_desc(desc.asArrayTexRes);
+    case D3DResourceType::CUBEARRTEX: return as_desc(desc.asArrayCubeTexRes);
+    case D3DResourceType::SBUF: return as_desc(desc.asBufferRes);
   }
 
   return {};
@@ -399,7 +412,7 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const ResourceDescription &desc)
 
 DeviceMemoryClass AliasHeapProvider::get_memory_class(const ResourceDescription &desc)
 {
-  if (RES3D_SBUF == desc.resType)
+  if (D3DResourceType::SBUF == desc.type)
   {
 #if DX12_USE_ESRAM
     if ((desc.asBasicRes.cFlags & SBCF_MISC_ESRAM_ONLY) && hasESRam())
@@ -470,7 +483,7 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
     newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
   }
   const ResourceHeapProperties allocatedProperties{newPHeap.memory.getHeapID().group};
-  if (!newPHeap.memory)
+  if (!newPHeap.memory && !device.isIll())
   {
     return nullptr;
   }
@@ -482,6 +495,8 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
 #endif
   recordNewUserResourceHeap(size, !allocatedProperties.isCPUVisible());
   uintptr_t index = 0;
+  if (device.isIll())
+    return reinterpret_cast<UserResourceHeapType *>(0xFFFFFFFF);
 
   {
     auto aliasHeapsAccess = aliasHeaps.access();
@@ -530,7 +545,7 @@ void AliasHeapProvider::freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr)
 
   ResourceHeapProperties properties;
   properties.raw = heap.memory.getHeapID().group;
-  recordDeletedUserResouceHeap(heap.memory.size(), !properties.isCPUVisible());
+  recordDeletedUserResourceHeap(heap.memory.size(), !properties.isCPUVisible());
 
   G_ASSERTF(heap.images.empty() && heap.buffers.empty(), "DX12: Resources of a resource heap should be destroyed before the heap is "
                                                          "destroyed");
@@ -573,6 +588,10 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
   ImageCreateResult result{};
   auto dxDesc = as_desc(desc);
   auto fmt = FormatStore::fromCreateFlags(desc.asBasicRes.cFlags);
+#if _TARGET_XBOX
+  if (fmt.isDepth())
+    dxDesc.Flags |= D3D12XBOX_RESOURCE_FLAG_DENY_DEPTH_COMPRESSION_EXPCLEAR;
+#endif
   switch (desc.asBasicTexRes.activation)
   {
     case ResourceActivationAction::REWRITE_AS_COPY_DESTINATION: result.state = D3D12_RESOURCE_STATE_COPY_DEST; break;
@@ -580,13 +599,13 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
     case ResourceActivationAction::CLEAR_F_AS_UAV:
     case ResourceActivationAction::CLEAR_I_AS_UAV:
     case ResourceActivationAction::DISCARD_AS_UAV:
-      G_ASSERT(TEXCF_UNORDERED & desc.asBasicRes.cFlags);
+      D3D_CONTRACT_ASSERT(TEXCF_UNORDERED & desc.asBasicRes.cFlags);
       result.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
       break;
     case ResourceActivationAction::REWRITE_AS_RTV_DSV:
     case ResourceActivationAction::CLEAR_AS_RTV_DSV:
     case ResourceActivationAction::DISCARD_AS_RTV_DSV:
-      G_ASSERT(TEXCF_RTARGET & desc.asBasicRes.cFlags);
+      D3D_CONTRACT_ASSERT(TEXCF_RTARGET & desc.asBasicRes.cFlags);
       if (fmt.isColor())
       {
         result.state = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -616,13 +635,13 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
 
   D3D12_CLEAR_VALUE *clearValuePtr = nullptr;
   D3D12_CLEAR_VALUE clearValue{};
-  if ((ResourceActivationAction::CLEAR_AS_RTV_DSV == desc.asBasicTexRes.activation) ||
-      (ResourceActivationAction::CLEAR_F_AS_UAV == desc.asBasicTexRes.activation) ||
-      (ResourceActivationAction::CLEAR_I_AS_UAV == desc.asBasicTexRes.activation))
+  if (((ResourceActivationAction::CLEAR_AS_RTV_DSV == desc.asBasicTexRes.activation) ||
+        (ResourceActivationAction::CLEAR_F_AS_UAV == desc.asBasicTexRes.activation) ||
+        (ResourceActivationAction::CLEAR_I_AS_UAV == desc.asBasicTexRes.activation)) &&
+      (dxDesc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)))
   {
-    // TODO: may be wrong for UAV stuff
     clearValuePtr = &clearValue;
-    clearValue.Format = dxDesc.Format;
+    clearValue.Format = fmt.asDxGiFormat();
     if (fmt.isColor())
     {
       clearValue.Color[0] = desc.asBasicTexRes.clearValue.asFloat[0];
@@ -714,7 +733,7 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
     }
   }
   // On PC there is currently no HW where we could access and control usage of on chip memory
-  result.isOnChip = false;
+  result.isDedicatedFastGPULocal = false;
 
   result.maxResourceSize = result.maxHeapSize;
   // Suggested optimal size on the DX discord by some MS representatives. Windows may not be able to
@@ -741,14 +760,14 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
 #if DX12_USE_ESRAM
   if (properties.isESRAM)
   {
-    result.isOnChip = true;
+    result.isDedicatedFastGPULocal = true;
     result.maxResourceSize = result.maxHeapSize = getFreeEsram();
   }
   else
 #endif
   {
     G_UNUSED(properties);
-    result.isOnChip = false;
+    result.isDedicatedFastGPULocal = false;
     size_t gameLimit = 0, gameUsed = 0;
     xbox_get_memory_status(gameUsed, gameLimit);
     result.maxResourceSize = result.maxHeapSize = gameLimit;
@@ -818,7 +837,7 @@ void AliasHeapProvider::processAutoFree()
     }
     ResourceHeapProperties properties;
     properties.raw = heap.memory.getHeapID().group;
-    recordDeletedUserResouceHeap(heap.memory.size(), !properties.isCPUVisible());
+    recordDeletedUserResourceHeap(heap.memory.size(), !properties.isCPUVisible());
     free(heap.memory, false);
     heap.reset();
   }
@@ -863,7 +882,7 @@ BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Dev
   }
 
   // Leave free ranges empty so that sub allocation never tries to use our buffers
-  newHeap.flags = dxDesc.Flags;
+  newHeap.setFlags(dxDesc.Flags);
 
   BufferGlobalId resultID;
   {
@@ -871,18 +890,15 @@ BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Dev
     resultID = bufferHeapStateAccess->adoptBufferHeap(eastl::move(newHeap));
     heapRef.buffers.push_back(resultID);
 
-    auto &selectedHeap = bufferHeapStateAccess->bufferHeaps[resultID.index()];
-    result.buffer = selectedHeap.buffer.Get();
+    auto &selectedHeap = bufferHeapStateAccess->getConstHeap(resultID.index());
+    result.buffer = selectedHeap.getResourcePtr();
     result.size = dxDesc.Width;
     result.discardCount = 1;
     result.resourceId = resultID;
-#if _TARGET_PC_WIN
-    result.cpuPointer = selectedHeap.getCPUPointer();
-#endif
-    result.gpuPointer = selectedHeap.getGPUPointer();
+    result.memoryLocation = selectedHeap.getBufferMemory();
   }
 
-  recordBufferPlacedInUserResouceHeap(result.size, !heapProperties.isCPUVisible(), name);
+  recordBufferPlacedInUserResourceHeap(result.size, !heapProperties.isCPUVisible(), name);
 
   return result;
 }
@@ -893,12 +909,12 @@ bool AliasHeapProvider::detachBuffer(const BufferState &buf)
   {
     auto bufferHeapStateAccess = bufferHeapState.access();
     auto bufferIndex = buf.resourceId.index();
-    if (bufferIndex >= bufferHeapStateAccess->bufferHeaps.size())
+    if (bufferIndex >= bufferHeapStateAccess->getHeapCount())
     {
       return false;
     }
-    auto &buffer = bufferHeapStateAccess->bufferHeaps[buf.resourceId.index()];
-    heapID = buffer.bufferMemory.getHeapID();
+    auto &buffer = bufferHeapStateAccess->getConstHeap(buf.resourceId.index());
+    heapID = buffer.getHeapID();
   }
   if (heapID.isAlias)
   {
@@ -986,18 +1002,20 @@ ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12De
     bool isAdoptedHeap = heap.flags.test(AliasHeap::Flag::AUTO_FREE);
     if (isAdoptedHeap && allocInfo.SizeInBytes > heap.memory.size())
     {
-      logwarn("DX12: Tried to create aliasing texture with insufficient memory from base, base "
-              "can provide %u bytes but alias needs %u bytes",
-        heap.memory.size(), allocInfo.SizeInBytes);
+      base->getDebugName([&](auto &base_name) {
+        logwarn("DX12: Tried to create aliasing texture %s with insufficient memory from base %s, base "
+                "can provide %u bytes but alias needs %u bytes",
+          name, base_name, heap.memory.size(), allocInfo.SizeInBytes);
+      });
       return result;
     }
 
     uint32_t offsetInHeap = isAdoptedHeap ? 0 : heap.memory.calculateOffset(baseMemory);
     if (!isAdoptedHeap && offsetInHeap + allocInfo.SizeInBytes > heap.memory.size())
     {
-      logwarn("DX12: Tried to create aliasing texture on insufficient memory region of heap, "
+      logwarn("DX12: Tried to create aliasing texture %s on insufficient memory region of heap, "
               "heap can provide %u bytes but alias needs %u bytes at offset %u",
-        heap.memory.size(), allocInfo.SizeInBytes, offsetInHeap);
+        name, heap.memory.size(), allocInfo.SizeInBytes, offsetInHeap);
       return result;
     }
 
@@ -1118,10 +1136,12 @@ const char *MetricsProviderBase::event_type_name_table[static_cast<uint32_t>(Met
     "User placed texture",
     "Scratch buffer allocate",
     "Scratch buffer free",
-    "Raytrace bottom acceleration structure allocate",
-    "Raytrace bottom acceleration structure free",
-    "Raytrace top acceleration structure allocate",
-    "Raytrace top acceleration structure free",
+    "Ray trace acceleration structure pool allocate",
+    "Ray trace acceleration structure pool free",
+    "Ray trace bottom acceleration structure allocate",
+    "Ray trace bottom acceleration structure free",
+    "Ray trace top acceleration structure allocate",
+    "Ray trace top acceleration structure free",
 };
 
 // IMGUI debug UI
@@ -1271,7 +1291,7 @@ uint32_t iterate_buffers_for_heap(T &buffers, H &heap, uint32_t offset, U action
       continue;
     }
     action(buffer);
-    nextOffset = max(nextOffset, offset + buffer.bufferMemory.size());
+    nextOffset = max(nextOffset, offset + buffer.bufferMemory.size);
   }
   return nextOffset;
 }
@@ -1431,13 +1451,13 @@ bool filter_object_name(const eastl::string &object_name, const char *object_fil
 template <typename T>
 void draw_persisten_buffer_table_rows(const T &buffer)
 {
-  auto sizeUnits = size_to_unit_table(buffer.bufferMemory.size());
+  auto sizeUnits = size_to_unit_table(buffer.getBufferMemorySize());
   size_t freeMem = eastl::accumulate(begin(buffer.freeRanges), end(buffer.freeRanges), size_t(0),
     [](auto first, auto range) { return first + range.size(); });
-  size_t usage = buffer.bufferMemory.size() - freeMem;
+  size_t usage = buffer.getBufferMemorySize() - freeMem;
   auto usageUnits = size_to_unit_table(usage);
   char strBuf[32];
-  sprintf_s(strBuf, "%p", buffer.buffer.Get());
+  sprintf_s(strBuf, "%p", buffer.getResourcePtr());
   ImGui::TableNextRow();
   ImGui::TableSetColumnIndex(0);
   bool open = ImGui::TreeNodeEx(strBuf, ImGuiTreeNodeFlags_SpanFullWidth);
@@ -1448,13 +1468,13 @@ void draw_persisten_buffer_table_rows(const T &buffer)
   ImGui::TableSetColumnIndex(3);
   ImGui::Text("%.2f %s", compute_unit_type_size(usage, usageUnits), get_unit_name(usageUnits));
   ImGui::TableSetColumnIndex(4);
-  ImGui::Text("%.2f %s", compute_unit_type_size(buffer.bufferMemory.size(), sizeUnits), get_unit_name(sizeUnits));
+  ImGui::Text("%.2f %s", compute_unit_type_size(buffer.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
 
   if (open)
   {
     if (buffer.freeRanges.empty())
     {
-      draw_segment_row(buffer.getCPUPointer(), buffer.getGPUPointer(), 0, buffer.bufferMemory.size(), "Allocated");
+      draw_segment_row(buffer.getCPUPointer(), buffer.getGPUPointer(), 0, buffer.getBufferMemorySize(), "Allocated");
     }
     else
     {
@@ -1469,9 +1489,9 @@ void draw_persisten_buffer_table_rows(const T &buffer)
         draw_segment_row(buffer.getCPUPointer(), buffer.getGPUPointer(), segment.front(), segment.back() + 1, "Free");
         lastSegmentEnd = segment.back() + 1;
       }
-      if (lastSegmentEnd < buffer.bufferMemory.size())
+      if (lastSegmentEnd < buffer.getBufferMemorySize())
       {
-        draw_segment_row(buffer.getCPUPointer(), buffer.getGPUPointer(), lastSegmentEnd, buffer.bufferMemory.size(), "Allocated");
+        draw_segment_row(buffer.getCPUPointer(), buffer.getGPUPointer(), lastSegmentEnd, buffer.getBufferMemorySize(), "Allocated");
       }
     }
     ImGui::TreePop();
@@ -1854,8 +1874,8 @@ bool MetricsVisualizer::drawEvent(const MetricsState::ActionInfo &event, uint64_
     case MetricsState::ActionInfo::Type::FREE_PERSISTENT_BIDIRECTIONAL_MEMORY:
     case MetricsState::ActionInfo::Type::SCRATCH_BUFFER_ALLOCATE:
     case MetricsState::ActionInfo::Type::SCRATCH_BUFFER_FREE:
-    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE:
-    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_FREE:
+    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_POOL_ALLOCATE:
+    case MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_POOL_FREE:
     case MetricsState::ActionInfo::Type::RAYTRACE_BOTTOM_STRUCTURE_ALLOCATE:
     case MetricsState::ActionInfo::Type::RAYTRACE_BOTTOM_STRUCTURE_FREE:
     case MetricsState::ActionInfo::Type::RAYTRACE_TOP_STRUCTURE_ALLOCATE:
@@ -3252,13 +3272,13 @@ void MetricsVisualizer::drawRaytracePlot()
 
       if (plotData.hasAnyData())
       {
-        struct GetHeapSize
+        struct GetPoolSize
         {
-          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructHeap.size); }
+          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructPool.size); }
         };
-        struct GetHeapCount
+        struct GetPoolCount
         {
-          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructHeap.count); }
+          static double get(const PerFrameData &frame) { return double(frame.netCounters.raytraceAccelStructPool.count); }
         };
         struct GetTopSize
         {
@@ -3279,7 +3299,7 @@ void MetricsVisualizer::drawRaytracePlot()
         {
           ScopedPlotStyleVar shadedAlpha{ImPlotStyleVar_FillAlpha, 0.25f};
 
-          plot_shaded("Acceleration Structure Heap Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetHeapSize>,
+          plot_shaded("Acceleration Structure Pool Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetPoolSize>,
             getPlotPointFrameBase<ImPlotPoint>, plotData);
 
           plot_shaded("Top Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetTopSize>, getPlotPointFrameBase<ImPlotPoint>,
@@ -3289,14 +3309,14 @@ void MetricsVisualizer::drawRaytracePlot()
             getPlotPointFrameBase<ImPlotPoint>, plotData);
         }
 
-        plot_line("Acceleration Structure Heap Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetHeapSize>,
+        plot_line("Acceleration Structure Pool Memory (top + bottom + reserved)", getPlotPointFrameValue<ImPlotPoint, GetPoolSize>,
           plotData);
         plot_line("Top Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetTopSize>, plotData);
         plot_line("Bottom Structure Memory", getPlotPointFrameValue<ImPlotPoint, GetBottomSize>, plotData);
 
         ImPlot::SetAxis(ImAxis_Y2);
 
-        plot_line("Acceleartion Structure Heap Count", getPlotPointFrameValue<ImPlotPoint, GetHeapCount>, plotData);
+        plot_line("Acceleration Structure Pool Count", getPlotPointFrameValue<ImPlotPoint, GetPoolCount>, plotData);
         plot_line("Top Structure Count", getPlotPointFrameValue<ImPlotPoint, GetTopCount>, plotData);
         plot_line("Bottom Structure Count", getPlotPointFrameValue<ImPlotPoint, GetBottomCount>, plotData);
 
@@ -3325,10 +3345,10 @@ void MetricsVisualizer::drawRaytracePlot()
               ImGui::SameLine();
               ImGui::Text("Bottom Structure Memory: %.2f %s", bottomSize.units(), bottomSize.name());
 
-              ByteUnits heapSize = frame.netCounters.raytraceAccelStructHeap.size;
+              ByteUnits heapSize = frame.netCounters.raytraceAccelStructPool.size;
               ImPlot::ItemIcon(ImPlot::GetColormapColor(2));
               ImGui::SameLine();
-              ImGui::Text("Accelearation Structure Heap Memory: %.2f %s", heapSize.units(), heapSize.name());
+              ImGui::Text("Acceleration Structure Pool Memory: %.2f %s", heapSize.units(), heapSize.name());
 
               ImPlot::ItemIcon(ImPlot::GetColormapColor(3));
               ImGui::SameLine();
@@ -3340,7 +3360,7 @@ void MetricsVisualizer::drawRaytracePlot()
 
               ImPlot::ItemIcon(ImPlot::GetColormapColor(5));
               ImGui::SameLine();
-              ImGui::Text("Accelearation Structure Heap Count: %I64u", frame.netCounters.raytraceAccelStructHeap.count);
+              ImGui::Text("Acceleration Structure Heap Count: %I64u", frame.netCounters.raytraceAccelStructPool.count);
             }
           }
         }
@@ -3612,19 +3632,19 @@ void MetricsVisualizer::drawRaytraceSummaryTable()
   auto metricsAccess = accessMetrics();
   const auto &frameCounters = metricsAccess->getLastFrameMetrics();
 
-  begin_selectable_row("Acceleration structure heap memory size");
-  ByteUnits heapSize = frameCounters.netCounters.raytraceAccelStructHeap.size;
+  begin_selectable_row("Acceleration structure pool memory size");
+  ByteUnits poolSize = frameCounters.netCounters.raytraceAccelStructPool.size;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", heapSize.units(), heapSize.name());
-  heapSize = frameCounters.netCountersPeak.raytraceAccelStructHeap.size;
+  ImGui::Text("%.2f %s", poolSize.units(), poolSize.name());
+  poolSize = frameCounters.netCountersPeak.raytraceAccelStructPool.size;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", heapSize.units(), heapSize.name());
+  ImGui::Text("%.2f %s", poolSize.units(), poolSize.name());
 
-  begin_selectable_row("Acceleration structure heap count");
+  begin_selectable_row("Acceleration structure pool count");
   ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCounters.raytraceAccelStructHeap.count);
+  ImGui::Text("%I64u", frameCounters.netCounters.raytraceAccelStructPool.count);
   ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceAccelStructHeap.count);
+  ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceAccelStructPool.count);
 
   begin_selectable_row("Top structure memory size");
   ByteUnits topSize = frameCounters.netCounters.raytraceTopStructure.size;
@@ -3736,11 +3756,11 @@ void DebugView::drawPersistenUploadMemorySegmentTable()
       decltype(&uploadMemoryAccess->buffers.front()) candidate = nullptr;
       for (auto &buffer : uploadMemoryAccess->buffers)
       {
-        if (buffer.buffer.Get() <= lastBuf)
+        if (buffer.getResourcePtr() <= lastBuf)
         {
           continue;
         }
-        if (candidate && candidate->buffer.Get() < buffer.buffer.Get())
+        if (candidate && candidate->getResourcePtr() < buffer.getResourcePtr())
         {
           continue;
         }
@@ -3751,7 +3771,7 @@ void DebugView::drawPersistenUploadMemorySegmentTable()
       {
         break;
       }
-      lastBuf = candidate->buffer.Get();
+      lastBuf = candidate->getResourcePtr();
       draw_persisten_buffer_table_rows(*candidate);
     }
   }
@@ -3770,11 +3790,11 @@ void DebugView::drawPersistenReadBackMemorySegmentTable()
       decltype(&readBackMemoryAccess->buffers.front()) candidate = nullptr;
       for (auto &buffer : readBackMemoryAccess->buffers)
       {
-        if (buffer.buffer.Get() <= lastBuf)
+        if (buffer.getResourcePtr() <= lastBuf)
         {
           continue;
         }
-        if (candidate && candidate->buffer.Get() < buffer.buffer.Get())
+        if (candidate && candidate->getResourcePtr() < buffer.getResourcePtr())
         {
           continue;
         }
@@ -3785,7 +3805,7 @@ void DebugView::drawPersistenReadBackMemorySegmentTable()
       {
         break;
       }
-      lastBuf = candidate->buffer.Get();
+      lastBuf = candidate->getResourcePtr();
       draw_persisten_buffer_table_rows(*candidate);
     }
   }
@@ -3804,11 +3824,11 @@ void DebugView::drawPersistenBidirectioanlMemorySegmentTable()
       decltype(&bidirectionalMemoryAccess->buffers.front()) candidate = nullptr;
       for (auto &buffer : bidirectionalMemoryAccess->buffers)
       {
-        if (buffer.buffer.Get() <= lastBuf)
+        if (buffer.getResourcePtr() <= lastBuf)
         {
           continue;
         }
-        if (candidate && candidate->buffer.Get() < buffer.buffer.Get())
+        if (candidate && candidate->getResourcePtr() < buffer.getResourcePtr())
         {
           continue;
         }
@@ -3819,7 +3839,7 @@ void DebugView::drawPersistenBidirectioanlMemorySegmentTable()
       {
         break;
       }
-      lastBuf = candidate->buffer.Get();
+      lastBuf = candidate->getResourcePtr();
       draw_persisten_buffer_table_rows(*candidate);
     }
   }
@@ -3925,20 +3945,20 @@ void DebugView::drawUserHeapsTable()
             auto bufferHeapStateAccess = bufferHeapState.access();
             for (auto bufferID : heap.buffers)
             {
-              auto &buffer = bufferHeapStateAccess->bufferHeaps[bufferID.index()];
+              auto &buffer = bufferHeapStateAccess->getConstHeap(bufferID.index());
 
               char resnameBuffer[MAX_OBJECT_NAME_LENGTH];
-              begin_selectable_row(get_resource_name(buffer.buffer.Get(), resnameBuffer));
+              begin_selectable_row(get_resource_name(buffer.getResourcePtr(), resnameBuffer));
 
-              auto &mem = buffer.bufferMemory;
+              auto &mem = buffer.getBufferMemory();
               auto offset = heap.memory.calculateOffset(mem);
               ImGui::TableSetColumnIndex(2);
               ImGui::Text("%016llX", offset);
               ImGui::TableSetColumnIndex(3);
-              ImGui::Text("%016llX", offset + mem.size());
+              ImGui::Text("%016llX", offset + mem.size);
               ImGui::TableSetColumnIndex(4);
-              auto sizeUnits = size_to_unit_table(mem.size());
-              ImGui::Text("%.f %s", compute_unit_type_size(mem.size(), sizeUnits), get_unit_name(sizeUnits));
+              auto sizeUnits = size_to_unit_table(mem.size);
+              ImGui::Text("%.f %s", compute_unit_type_size(mem.size, sizeUnits), get_unit_name(sizeUnits));
             }
           }
           ImGui::TreePop();
@@ -3985,8 +4005,8 @@ void DebugView::drawUserHeapsSummaryTable()
 
         for (auto bufferID : heap.buffers)
         {
-          auto &buffer = bufferHeapStateAccess->bufferHeaps[bufferID.index()];
-          bufferSize += buffer.bufferMemory.size();
+          auto &buffer = bufferHeapStateAccess->getConstHeap(bufferID.index());
+          bufferSize += buffer.getBufferMemorySize();
         }
       }
     }
@@ -4026,13 +4046,14 @@ void DebugView::drawRaytraceTopStructureTable()
   }
 
   // address from, address to, size
-  if (ImGui::BeginTable("DX12-top-structure-table", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+  if (ImGui::BeginTable("DX12-top-structure-table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
   {
-    make_table_header({"Address start", "Address end", "Size"});
+    make_table_header({"Pool", "Address start", "Address end", "Size"});
 
-    {
-      OSSpinlockScopedLock lock{rtasSpinlock};
-      accelStructPool.iterateAllocated([](RaytraceAccelerationStructure *as) //
+    iterateRayTraceAccelerationStructurePools([=](auto &pool) {
+      char poolName[64];
+      sprintf_s(poolName, "%016p", pool.poolResource.Get());
+      pool.subStructures.iterateAllocated([&](RaytraceAccelerationStructure *as) //
         {
           // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
           // not if not then its bottom
@@ -4041,9 +4062,11 @@ void DebugView::drawRaytraceTopStructureTable()
             return;
           }
 
-          char buf[64];
-          sprintf_s(buf, "%016I64X", as->gpuAddress);
-          begin_selectable_row(buf);
+          begin_selectable_row(poolName);
+          strcpy(poolName, "^");
+
+          ImGui::TableNextColumn();
+          ImGui::Text("%016I64X", as->gpuAddress);
 
           ImGui::TableNextColumn();
           ImGui::Text("%016I64X", as->gpuAddress + as->size);
@@ -4052,7 +4075,7 @@ void DebugView::drawRaytraceTopStructureTable()
           ImGui::TableNextColumn();
           ImGui::Text("%.2f %s", sz.units(), sz.name());
         });
-    }
+    });
 
     ImGui::EndTable();
   }
@@ -4069,13 +4092,14 @@ void DebugView::drawRaytraceBottomStructureTable()
   }
 
   // address from, address to, size
-  if (ImGui::BeginTable("DX12-bottom-structure-table", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+  if (ImGui::BeginTable("DX12-bottom-structure-table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
   {
-    make_table_header({"Address start", "Address end", "Size"});
+    make_table_header({"Pool", "Address start", "Address end", "Size"});
 
-    {
-      OSSpinlockScopedLock lock{rtasSpinlock};
-      accelStructPool.iterateAllocated([](RaytraceAccelerationStructure *as) //
+    iterateRayTraceAccelerationStructurePools([=](auto &pool) {
+      char poolName[64];
+      sprintf_s(poolName, "%016p", pool.poolResource.Get());
+      pool.subStructures.iterateAllocated([&](RaytraceAccelerationStructure *as) //
         {
           // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
           // not if not then its bottom
@@ -4084,9 +4108,11 @@ void DebugView::drawRaytraceBottomStructureTable()
             return;
           }
 
-          char buf[64];
-          sprintf_s(buf, "%016I64X", as->gpuAddress);
-          begin_selectable_row(buf);
+          begin_selectable_row(poolName);
+          strcpy(poolName, "^");
+
+          ImGui::TableNextColumn();
+          ImGui::Text("%016I64X", as->gpuAddress);
 
           ImGui::TableNextColumn();
           ImGui::Text("%016I64X", as->gpuAddress + as->size);
@@ -4095,7 +4121,7 @@ void DebugView::drawRaytraceBottomStructureTable()
           ImGui::TableNextColumn();
           ImGui::Text("%.2f %s", sz.units(), sz.name());
         });
-    }
+    });
 
     ImGui::EndTable();
   }
@@ -4120,9 +4146,9 @@ void DebugView::drawTempuraryUploadMemorySegmentsTable()
         // candidate
         auto updateCandidate = [&candidate, &lastBuf](auto &contender) //
         {
-          if (contender.buffer.Get() <= lastBuf)
+          if (contender.getResourcePtr() <= lastBuf)
             return;
-          if (candidate && candidate->buffer.Get() < contender.buffer.Get())
+          if (candidate && candidate->getResourcePtr() < contender.getResourcePtr())
             return;
           candidate = &contender;
         };
@@ -4143,18 +4169,18 @@ void DebugView::drawTempuraryUploadMemorySegmentsTable()
           break;
         }
         auto &buffer = *candidate;
-        lastBuf = buffer.buffer.Get();
-        auto sizeUnits = size_to_unit_table(buffer.bufferMemory.size());
+        lastBuf = buffer.getResourcePtr();
+        auto sizeUnits = size_to_unit_table(buffer.getBufferMemorySize());
         auto usageUnits = size_to_unit_table(buffer.fillSize);
         char strBuf[32];
-        sprintf_s(strBuf, "%p", buffer.buffer.Get());
+        sprintf_s(strBuf, "%p", buffer.getResourcePtr());
         begin_selectable_row(strBuf);
         ImGui::TableNextColumn();
         ImGui::Text("%p", buffer.getCPUPointer());
         ImGui::TableNextColumn();
         ImGui::Text("%016I64X", buffer.getGPUPointer());
         ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(buffer.bufferMemory.size(), sizeUnits), get_unit_name(sizeUnits));
+        ImGui::Text("%.2f %s", compute_unit_type_size(buffer.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
         ImGui::TableNextColumn();
         ImGui::Text("%u", buffer.allocations);
         ImGui::TableNextColumn();
@@ -4176,10 +4202,10 @@ void DebugView::drawUploadRingSegmentsTable()
       auto uploadRingAccess = uploadRing.access();
       for (auto &segment : uploadRingAccess->ringSegments)
       {
-        auto sizeUnits = size_to_unit_table(segment.bufferMemory.size());
+        auto sizeUnits = size_to_unit_table(segment.getBufferMemorySize());
         auto allocatedUnits = size_to_unit_table(segment.allocationSize);
         char bufPtr[32];
-        sprintf_s(bufPtr, "%p", segment.buffer.Get());
+        sprintf_s(bufPtr, "%p", segment.getResourcePtr());
         begin_selectable_row(bufPtr);
         if (ImGui::IsItemHovered())
         {
@@ -4194,7 +4220,7 @@ void DebugView::drawUploadRingSegmentsTable()
         ImGui::TableNextColumn();
         ImGui::Text("%016I64X", segment.getGPUPointer());
         ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.bufferMemory.size(), sizeUnits), get_unit_name(sizeUnits));
+        ImGui::Text("%.2f %s", compute_unit_type_size(segment.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
         ImGui::TableNextColumn();
         ImGui::Text("%08X", segment.allocationOffset);
         ImGui::TableNextColumn();
@@ -4216,10 +4242,10 @@ void DebugView::drawConstRingSegmentsTable()
       auto pushRingAccess = pushRing.access();
       for (auto &segment : pushRingAccess->ringSegments)
       {
-        auto sizeUnits = size_to_unit_table(segment.bufferMemory.size());
+        auto sizeUnits = size_to_unit_table(segment.getBufferMemorySize());
         auto allocatedUnits = size_to_unit_table(segment.allocationSize);
         char bufPtr[32];
-        sprintf_s(bufPtr, "%p", segment.buffer.Get());
+        sprintf_s(bufPtr, "%p", segment.getResourcePtr());
         begin_selectable_row(bufPtr);
         if (ImGui::IsItemHovered())
         {
@@ -4234,7 +4260,7 @@ void DebugView::drawConstRingSegmentsTable()
         ImGui::TableNextColumn();
         ImGui::Text("%016I64X", segment.getGPUPointer());
         ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.bufferMemory.size(), sizeUnits), get_unit_name(sizeUnits));
+        ImGui::Text("%.2f %s", compute_unit_type_size(segment.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
         ImGui::TableNextColumn();
         ImGui::Text("%08X", segment.allocationOffset);
         ImGui::TableNextColumn();
@@ -4249,7 +4275,7 @@ void DebugView::drawTextureTable()
 {
   // sum of all texels, not a very useful, but interesting metric
   ByteUnits texutreSize;
-  uint64_t subresouceCount = 0;
+  uint64_t subresourceCount = 0;
   uint64_t texelSummaryCount = 0;
   uint32_t textureCount = 0;
   if (ImGui::BeginTable("DX12-Texture-Table", 7,
@@ -4258,7 +4284,7 @@ void DebugView::drawTextureTable()
     make_table_header( //
       {"Name", "Subresource ID Range", "Extents", "Arrays", "MipMaps", "Format", "Size"});
 
-    visitImageObjects([&texelSummaryCount, &textureCount, &texutreSize, &subresouceCount](auto image) {
+    visitImageObjects([&texelSummaryCount, &textureCount, &texutreSize, &subresourceCount](auto image) {
       ++textureCount;
 
       image->getDebugName([](auto &name) { begin_selectable_row(name); });
@@ -4291,7 +4317,7 @@ void DebugView::drawTextureTable()
       // skip DXGI_FORMAT_ section
       ImGui::TextUnformatted(format.getNameString() + 12);
 
-      subresouceCount += (mipCount * layerCount * format.getPlanes()).count();
+      subresourceCount += (mipCount * layerCount * format.getPlanes()).count();
 
       ImGui::TableSetColumnIndex(6);
       auto mem = image->getMemory();
@@ -4341,12 +4367,12 @@ void DebugView::drawTextureTable()
         ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
   {
     make_table_header( //
-      {"Total subresrouce count", "Tracked Subresource ID Limit", "Tracked free Subresouce IDs", "Tracked used Subresouce IDs"});
+      {"Total subresrouce count", "Tracked Subresource ID Limit", "Tracked free Subresource IDs", "Tracked used Subresource IDs"});
     auto limit = getGlobalSubresourceIdRangeLimit();
     auto freeCount = getFreeGlobalSubresourceIdRangeValues();
 
     char strBuf[32];
-    sprintf_s(strBuf, "%I64u", subresouceCount);
+    sprintf_s(strBuf, "%I64u", subresourceCount);
     begin_selectable_row(strBuf);
 
     ImGui::TableSetColumnIndex(1);
@@ -4356,7 +4382,7 @@ void DebugView::drawTextureTable()
     ImGui::Text("%u", freeCount);
 
     ImGui::TableSetColumnIndex(3);
-    ImGui::Text("%u (%.2f %%)", limit - freeCount, (limit - freeCount) * 100.f / subresouceCount);
+    ImGui::Text("%u (%.2f %%)", limit - freeCount, (limit - freeCount) * 100.f / subresourceCount);
     ImGui::EndTable();
   }
 }
@@ -4371,25 +4397,25 @@ void DebugView::drawBuffersTable()
       {"Id", "Object", "GPU Address From", "CPU Pointer", "Can Suballoc", "Free Size", "Ready Size", "Allocated Size", "Total Size"});
     {
       auto bufferHeapStateAccess = bufferHeapState.access();
-      for (const auto &heap : bufferHeapStateAccess->bufferHeaps)
+      for (const auto &heap : bufferHeapStateAccess->getBufferHeaps())
       {
         char strBuf[32];
-        sprintf_s(strBuf, "%u", heap.resId.index());
+        sprintf_s(strBuf, "%u", heap.index());
 
         if (heap)
         {
-          ByteUnits freeSize = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0ull,
+          ByteUnits freeSize = eastl::accumulate(cbegin(heap.getFreeRanges()), cend(heap.getFreeRanges()), 0ull,
             [](uint64_t size, ValueRange<uint64_t> range) { return size + range.size(); });
-          ByteUnits readySize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-            end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
-            [id = heap.resId.index()](size_t size, auto &info) { return size + ((info.index == id) ? info.range.size() : 0); });
-          ByteUnits totalSize = heap.bufferMemory.size();
+          ByteUnits readySize = eastl::accumulate(cbegin(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
+            cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()), 0ull,
+            [id = heap.index()](size_t size, auto &info) { return size + ((info.index == id) ? info.range.size() : 0); });
+          ByteUnits totalSize = heap.getBufferMemorySize();
           ByteUnits allocatedSize = totalSize - freeSize - readySize;
 
           begin_selectable_row(strBuf);
 
           ImGui::TableNextColumn();
-          ImGui::Text("%p", heap.buffer.Get());
+          ImGui::Text("%p", heap.getResourcePtr());
 
           ImGui::TableNextColumn();
           ImGui::Text("%016I64X", heap.getGPUPointer());
@@ -4449,24 +4475,24 @@ void DebugView::drawBuffersTable()
 
     {
       auto bufferHeapStateAccess = bufferHeapState.access();
-      gpuStandbyAllocateSize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
+      gpuStandbyAllocateSize = eastl::accumulate(cbegin(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
+        cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()), 0ull,
         [&bufferHeapStateAccess](size_t size, auto &info) //
-        { return size + ((nullptr == bufferHeapStateAccess->bufferHeaps[info.index].getCPUPointer()) ? info.range.size() : 0); });
-      systemStandbyAllocateSize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
+        { return size + ((nullptr == bufferHeapStateAccess->getConstHeap(info.index).getCPUPointer()) ? info.range.size() : 0); });
+      systemStandbyAllocateSize = eastl::accumulate(cbegin(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
+        cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()), 0ull,
         [&bufferHeapStateAccess](size_t size, auto &info) //
-        { return size + ((nullptr != bufferHeapStateAccess->bufferHeaps[info.index].getCPUPointer()) ? info.range.size() : 0); });
+        { return size + ((nullptr != bufferHeapStateAccess->getConstHeap(info.index).getCPUPointer()) ? info.range.size() : 0); });
 
-      for (const auto &heap : bufferHeapStateAccess->bufferHeaps)
+      for (const auto &heap : bufferHeapStateAccess->getBufferHeaps())
       {
         if (heap)
         {
-          auto freeMem = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0ull,
+          auto freeMem = eastl::accumulate(cbegin(heap.getFreeRanges()), cend(heap.getFreeRanges()), 0ull,
             [](size_t size, auto range) { return size + range.size(); });
           if (heap.getCPUPointer())
           {
-            systemSize += heap.bufferMemory.size();
+            systemSize += heap.getBufferMemorySize();
             if (heap.canSubAllocateFrom())
             {
               systemFreeSize += freeMem;
@@ -4478,7 +4504,7 @@ void DebugView::drawBuffersTable()
           }
           else
           {
-            gpuSize += heap.bufferMemory.size();
+            gpuSize += heap.getBufferMemorySize();
             if (heap.canSubAllocateFrom())
             {
               gpuFreeSize += freeMem;
@@ -4800,15 +4826,15 @@ void DebugView::drawHeapsTable()
                   else if (eastl::holds_alternative<BufferGlobalId>(res))
                   {
                     auto id = eastl::get<BufferGlobalId>(res);
-                    auto &buffer = bufferHeapStateAccess->bufferHeaps[id.index()];
-                    auto standbyRef = eastl::find_if(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-                      end(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
+                    auto &buffer = bufferHeapStateAccess->getConstHeap(id.index());
+                    auto standbyRef = eastl::find_if(cbegin(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
+                      cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
                       [idx = id.index()](auto info) { return idx == info.index; });
-                    if (standbyRef == end(bufferHeapStateAccess->bufferHeapDiscardStandbyList))
+                    if (standbyRef == cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()))
                     {
                       char resnameBuffer[MAX_OBJECT_NAME_LENGTH];
                       draw_segment(heap->heapPointer(), *segment, heap->totalSize,
-                        get_resource_name(buffer.buffer.Get(), resnameBuffer));
+                        get_resource_name(buffer.getResourcePtr(), resnameBuffer));
                     }
                     else
                     {
@@ -4849,10 +4875,6 @@ void DebugView::drawHeapsTable()
                   else if (eastl::holds_alternative<PersistentBidirectionalBufferReference>(res))
                   {
                     draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Persistent bidirectional buffer");
-                  }
-                  else if (eastl::holds_alternative<RaytraceAccelerationStructureHeapReference>(res))
-                  {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Raytracing acceleration structure heap");
                   }
                   else
                   {
@@ -4928,7 +4950,7 @@ void DebugView::drawManagerBehaviorInfoView()
   {
     maxOffsetSize = getDeviceLocalRawBudget() - 1;
     uint64_t offset = getDeviceLocalHeapBudgetOffset();
-    ImGui::SliderScalar("Device Memory Budged Offset", ImGuiDataType_U64, &offset, &minOffsetSize, &maxOffsetSize, nullptr,
+    ImGui::SliderScalar("Device Memory Budget Offset", ImGuiDataType_U64, &offset, &minOffsetSize, &maxOffsetSize, nullptr,
       ImGuiSliderFlags_AlwaysClamp);
     setDeviceLocalHeapBudgetOffset(offset);
   }
@@ -4936,7 +4958,7 @@ void DebugView::drawManagerBehaviorInfoView()
   {
     maxOffsetSize = getHostLocalRawBudget() - 1;
     uint64_t offset = getHostLocalHeapBudgetOffset();
-    ImGui::SliderScalar("Host Memory Budged Offset", ImGuiDataType_U64, &offset, &minOffsetSize, &maxOffsetSize, nullptr,
+    ImGui::SliderScalar("Host Memory Budget Offset", ImGuiDataType_U64, &offset, &minOffsetSize, &maxOffsetSize, nullptr,
       ImGuiSliderFlags_AlwaysClamp);
     setHostLocalHeapBudgetOffset(offset);
   }
@@ -4959,24 +4981,24 @@ void DebugView::drawManagerBehaviorInfoView()
   make_table_header({"Metric", "Value"});
   if (!isUMASystem())
   {
-    begin_selectable_row("Adjusted Device Memory Budged");
+    begin_selectable_row("Adjusted Device Memory Budget");
     ImGui::TableNextColumn();
     ByteUnits budget = getDeviceLocalBudget();
     ImGui::Text("%.2f %s", budget.units(), budget.name());
 
-    begin_selectable_row("Adjusted Available Device Memory Budged");
+    begin_selectable_row("Adjusted Available Device Memory Budget");
     ImGui::TableNextColumn();
     budget = getDeviceLocalAvailablePoolBudget();
     ImGui::Text("%.2f %s", budget.units(), budget.name());
   }
 
   {
-    begin_selectable_row("Adjusted Host Memory Budged");
+    begin_selectable_row("Adjusted Host Memory Budget");
     ImGui::TableNextColumn();
     ByteUnits budget = getHostLocalBudget();
     ImGui::Text("%.2f %s", budget.units(), budget.name());
 
-    begin_selectable_row("Adjusted Available Host Memory Budged");
+    begin_selectable_row("Adjusted Available Host Memory Budget");
     ImGui::TableNextColumn();
     budget = getHostLocalAvailablePoolBudget();
     ImGui::Text("%.2f %s", budget.units(), budget.name());
@@ -5300,26 +5322,6 @@ void MetricsProvider::shutdown()
 }
 #endif
 
-#if DX12_USE_ESRAM
-void resource_manager::ESRamPageMappingProvider::fetchMovableTextures(DeviceContext &context)
-{
-  WinAutoLock lock{esramMutex};
-  for (Image *tex : movableTextures)
-  {
-    context.copyImage(tex->getEsramResource().dramStorage, tex, make_whole_resource_copy_info());
-  }
-}
-
-void resource_manager::ESRamPageMappingProvider::writeBackMovableTextures(DeviceContext &context)
-{
-  WinAutoLock lock{esramMutex};
-  for (Image *tex : movableTextures)
-  {
-    context.copyImage(tex, tex->getEsramResource().dramStorage, make_whole_resource_copy_info());
-  }
-}
-#endif
-
 namespace
 {
 const char *filter_type_to_string(D3D12_FILTER_TYPE type)
@@ -5391,12 +5393,6 @@ struct ResourceHeapReportVisitor
   {
     ByteUnits size = range.size();
     target("%016llX with %6.2f %7s Buffer #%u", range.front(), size.units(), size.name(), buffer.index());
-  }
-
-  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &)
-  {
-    ByteUnits size = range.size();
-    target("%016llX with %6.2f %7s Accel Struct Heap", range.front(), size.units(), size.name());
   }
 
   void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::AliasHeapReference &a_heap)
@@ -5487,14 +5483,6 @@ struct ResourceHeapDumpVisitor
     buffersPresent.insert(eastl::make_pair(b.index(), HeapDescPair({range.front(), resourceHeapId})));
   }
 
-  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &as)
-  {
-    ByteUnits size = range.size();
-
-    dumpInfo.emplace_back(
-      ResourceDumpRayTrace({as.as->GetGPUVirtualAddress(), (uint64_t)resourceHeapId, range.front(), (int)size.value(), true, false}));
-  }
-
   void visitHeapUsedRange(ValueRange<uint64_t> range, const ResourceMemoryHeap::AnyResourceReference &res)
   {
     eastl::visit([this, range](const auto &e) { visitResourceInHeap(range, e); }, res);
@@ -5573,11 +5561,11 @@ struct SbufferReportVisitor
   void endVisit()
   {
     eastl::sort(begin(buffers), end(buffers), [](auto l, auto r) {
-      if (l->ressize() > r->ressize())
+      if (l->getSize() > r->getSize())
       {
         return true;
       }
-      if (l->ressize() < r->ressize())
+      if (l->getSize() < r->getSize())
       {
         return false;
       }
@@ -5594,15 +5582,15 @@ struct SbufferReportVisitor
     {
       const BufferState &deviceBuffer = buffer->getDeviceBuffer();
       ByteUnits size = deviceBuffer.totalSize();
-      publicSize += buffer->ressize();
+      publicSize += buffer->getSize();
       bufferTotalSize += size;
       ByteUnits copySize;
       if (buffer->hasSystemCopy())
       {
-        copySize = buffer->ressize();
+        copySize = buffer->getSize();
         bufferSysCopySize += copySize.value();
       }
-      target("%12llu, %6.2f %7s, %6.2f %7s,   %s   , #%-10u, %016llX, %4u/%-4u, %016p, %s", buffer->ressize(), size.units(),
+      target("%12llu, %6.2f %7s, %6.2f %7s,   %s   , #%-10u, %016llX, %4u/%-4u, %016p, %s", buffer->getSize(), size.units(),
         size.name(), copySize.units(), copySize.name(), buffer->getFlags() & SBCF_DYNAMIC ? "X" : "0", deviceBuffer.resourceId.index(),
         deviceBuffer.offset, deviceBuffer.currentDiscardIndex, deviceBuffer.discardCount, deviceBuffer.currentCPUPointer(),
         buffer->getBufName());
@@ -5638,8 +5626,8 @@ struct SbufferDumpVisitor
     dumpInfo.emplace_back(
       ResourceDumpBuffer({(uint64_t)deviceBuffer.currentGPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentGPUPointer(),
         heapId, heapAddress, deviceBuffer.offset,
-        (uint64_t)deviceBuffer.currentCPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentCPUPointer(), buffer->ressize(),
-        buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), (int)deviceBuffer.currentDiscardIndex, -1,
+        (uint64_t)deviceBuffer.currentCPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentCPUPointer(), buffer->getSize(),
+        buffer->hasSystemCopy() ? buffer->getSize() : -1, buffer->getFlags(), (int)deviceBuffer.currentDiscardIndex, -1,
         (int)deviceBuffer.discardCount, (int)deviceBuffer.resourceId.index(), buffer->getBufName(), ""}));
   }
 };
@@ -5711,17 +5699,17 @@ struct BaseTexReportVisitor
   void endVisit()
   {
     eastl::sort(eastl::begin(textures), eastl::end(textures), [](auto &l, auto &r) {
-      if (l->ressize() > r->ressize())
+      if (l->getSize() > r->getSize())
       {
         return true;
       }
-      if (l->ressize() < r->ressize())
+      if (l->getSize() < r->getSize())
       {
         return false;
       }
 
-      auto ln = l->getResName();
-      auto rn = r->getResName();
+      auto ln = l->getName();
+      auto rn = r->getName();
       if (ln && rn)
       {
         return strcmp(ln, rn) < 0;
@@ -5755,35 +5743,35 @@ struct BaseTexReportVisitor
         }
       }
       const char *typeName = "?";
-      switch (tex->resType)
+      switch (tex->type)
       {
-        case RES3D_TEX: typeName = "2d"; break;
-        case RES3D_CUBETEX: typeName = "cube"; break;
-        case RES3D_VOLTEX: typeName = "vol"; break;
-        case RES3D_ARRTEX: typeName = "array"; break;
-        case RES3D_CUBEARRTEX: typeName = "cube array"; break;
+        case D3DResourceType::TEX: typeName = "2d"; break;
+        case D3DResourceType::CUBETEX: typeName = "cube"; break;
+        case D3DResourceType::VOLTEX: typeName = "vol"; break;
+        case D3DResourceType::ARRTEX: typeName = "array"; break;
+        case D3DResourceType::CUBEARRTEX: typeName = "cube array"; break;
       }
       if (!isAliased)
       {
-        switch (tex->resType)
+        switch (tex->type)
         {
-          case RES3D_TEX:
+          case D3DResourceType::TEX:
             ++tex2DCount;
             tex2DSize += imageSize.value();
             break;
-          case RES3D_CUBETEX:
+          case D3DResourceType::CUBETEX:
             ++texCubeCount;
             texCubeSize += imageSize.value();
             break;
-          case RES3D_VOLTEX:
+          case D3DResourceType::VOLTEX:
             ++texVolCount;
             texVolSize += imageSize.value();
             break;
-          case RES3D_ARRTEX:
+          case D3DResourceType::ARRTEX:
             ++texArrayCount;
             texArraySize += imageSize.value();
             break;
-          case RES3D_CUBEARRTEX:
+          case D3DResourceType::CUBEARRTEX:
             // currently counts as array tex
             ++texArrayCount;
             texArraySize += imageSize.value();
@@ -5798,41 +5786,42 @@ struct BaseTexReportVisitor
 #define NORMAL_SIZE    "%12llu, %6.2f %7s"
 #define TEXTURE_FIRST  ", %2d, %10s"
 #define TEXTURE_SECOND ", %3d, %5d, %6s, %10s, %26s, %016p, %5d, %30s, %s"
-      if (RES3D_TEX == tex->resType || RES3D_CUBETEX == tex->resType)
+      if (D3DResourceType::TEX == tex->type || D3DResourceType::CUBETEX == tex->type)
       {
         if (isAliased)
         {
-          target(ALIASED_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->ressize(), ql, typeName, tex->width, tex->height,
+          target(ALIASED_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->getSize(), ql, typeName, tex->width, tex->height,
             tex->level_count(), tex->samplerState.getAniso(), skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
             skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getResName(), extraInfo);
+            viewCount, tex->getName(), extraInfo);
         }
         else
         {
-          target(NORMAL_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->ressize(), imageSize.units(), imageSize.name(), ql,
+          target(NORMAL_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->getSize(), imageSize.units(), imageSize.name(), ql,
             typeName, tex->width, tex->height, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
             skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getResName(), extraInfo);
+            viewCount, tex->getName(), extraInfo);
         }
       }
-      else // if (RES3D_VOLTEX == tex->resType || RES3D_ARRTEX == tex->resType || RES3D_CUBEARRTEX == tex->resType)
+      else // if (D3DResourceType::VOLTEX == tex->type || D3DResourceType::ARRTEX == tex->type || D3DResourceType::CUBEARRTEX ==
+           // tex->type)
       {
         if (isAliased)
         {
-          target(ALIASED_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->ressize(), ql, typeName, tex->width, tex->height,
+          target(ALIASED_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->getSize(), ql, typeName, tex->width, tex->height,
             tex->depth, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
             skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getResName(), extraInfo);
+            viewCount, tex->getName(), extraInfo);
         }
         else
         {
-          target(NORMAL_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->ressize(), imageSize.units(), imageSize.name(), ql,
+          target(NORMAL_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->getSize(), imageSize.units(), imageSize.name(), ql,
             typeName, tex->width, tex->height, tex->depth, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
             skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getResName(), extraInfo);
+            viewCount, tex->getName(), extraInfo);
         }
       }
 #undef ALIASED_SIZE
@@ -5864,13 +5853,14 @@ struct BaseTexDumpVisitor
   void visitTexture(const drv3d_dx12::BaseTex *tex)
   {
     resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
-    switch (tex->resType)
+    switch (tex->type)
     {
-      case RES3D_TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
-      case RES3D_CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
-      case RES3D_VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
-      case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
-      case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+      case D3DResourceType::TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
+      case D3DResourceType::CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
+      case D3DResourceType::VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
+      case D3DResourceType::ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
+      case D3DResourceType::CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+      case D3DResourceType::SBUF: G_ASSERT(false); break;
     }
     uint64_t heapOffset = (uint64_t)-1;
     uint64_t heapId = (uint64_t)-1;
@@ -5885,9 +5875,9 @@ struct BaseTexDumpVisitor
     }
 
     dumpInfo.emplace_back(ResourceDumpTexture({(uint64_t)-1, heapId, heapOffset, tex->width, tex->height, tex->level_count(),
-      (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers().count() : -1), tex->ressize(),
-      tex->cflg, tex->getFormat().asTexFlags(), type, tex->getFormat().isColor(), tex->getResName(), ""}));
+      (tex->type == D3DResourceType::VOLTEX || tex->type == D3DResourceType::CUBEARRTEX) ? tex->depth : -1,
+      (tex->type == D3DResourceType::TEX || tex->type == D3DResourceType::VOLTEX) ? -1 : (img ? img->getArrayLayers().count() : -1),
+      tex->getSize(), tex->cflg, tex->getFormat().asTexFlags(), type, tex->getFormat().isColor(), tex->getName(), ""}));
   }
 };
 
@@ -5983,7 +5973,7 @@ struct FrameCompletionReportVisitor
       for (auto &mem : data.uploadMemoryFrees)
       {
         ByteUnits size = mem.range.size();
-        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.cpuPointer(),
           to_string(mem.source));
       }
     }
@@ -5995,7 +5985,7 @@ struct FrameCompletionReportVisitor
       for (auto &mem : data.readBackFrees)
       {
         ByteUnits size = mem.range.size();
-        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.cpuPointer(),
           to_string(mem.source));
       }
     }
@@ -6007,7 +5997,7 @@ struct FrameCompletionReportVisitor
       for (auto &mem : data.bidirectionalFrees)
       {
         ByteUnits size = mem.range.size();
-        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.pointer,
+        target("%016p, %016llX, %6.2f %7s, %016p, %s", mem.buffer, mem.range.front(), size.units(), size.name(), mem.cpuPointer(),
           to_string(mem.source));
       }
     }
@@ -6042,8 +6032,8 @@ struct FrameCompletionReportVisitor
       target("Scratch buffer freed");
       for (auto &buf : data.deletedScratchBuffers)
       {
-        ByteUnits size = buf.bufferMemory.size();
-        target("%016p, %6.2f %7s", buf.buffer.Get(), size.units(), size.name());
+        ByteUnits size = buf.getBufferMemorySize();
+        target("%016p, %6.2f %7s", buf.getResourcePtr(), size.units(), size.name());
       }
     }
 
@@ -6290,12 +6280,12 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   ScopedCommitLock ctxLock{ctx};
   OSSpinlockScopedLock bindlessStateLock{get_resource_binding_guard()};
   auto bufferHeapStateAccess = bufferHeapState.access();
-  auto &bufferHeaps = bufferHeapStateAccess->bufferHeaps;
+  auto &bufferHeaps = bufferHeapStateAccess->getBufferHeaps();
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move buffer %u from %u:%u", buffer_id.index(),
-    bufferHeaps[buffer_id.index()].bufferMemory.getHeapID().group, bufferHeaps[buffer_id.index()].bufferMemory.getHeapID().index);
+    bufferHeaps[buffer_id.index()].getHeapID().group, bufferHeaps[buffer_id.index()].getHeapID().index);
   if (bufferHeaps[buffer_id.index()].getCPUPointer() != nullptr && !is_emergency_defragmentation)
   {
-    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, buffer is mapable", buffer_id.index());
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, buffer is mappable", buffer_id.index());
     return ResourceMoveResolution::STAYING;
   }
   auto movedBuffer = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags);
@@ -6305,7 +6295,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     // If we can't clone the buffer, then there is no space
     return ResourceMoveResolution::NO_SPACE;
   }
-  if (moveStandbyBufferEntries(buffer_id, movedBuffer, bufferHeapStateAccess))
+  if (bufferHeapStateAccess->moveStandbyBufferEntries(buffer_id, movedBuffer))
   {
     onMoveStandbyBufferEntriesSuccess(bufferHeaps, bufferHeapStateAccess, buffer_id, movedBuffer, heap_id,
       is_emergency_defragmentation);
@@ -6319,7 +6309,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     {
       // we fail to lock the buffer list we have to revert everything we done so far, otherwise we risk
       // having dangling stuff
-      moveStandbyBufferEntries(movedBuffer, buffer_id, bufferHeapStateAccess);
+      bufferHeapStateAccess->moveStandbyBufferEntries(movedBuffer, buffer_id);
       // fall through to clean up and tell the caller something happened
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: bufferPoolGuard lock failed");
     }
@@ -6355,8 +6345,8 @@ void HeapFragmentationManager::onMoveStandbyBufferEntriesSuccess(const dag::Vect
   G_UNUSED(heap_id);
 
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved standby buffer %u from %u:%u to %u:%u", old_buffer.index(),
-    oldBuffer.bufferMemory.getHeapID().group, oldBuffer.bufferMemory.getHeapID().index, newBuffer.bufferMemory.getHeapID().group,
-    newBuffer.bufferMemory.getHeapID().index, heap_id.group, heap_id.index);
+    oldBuffer.getHeapID().group, oldBuffer.getHeapID().index, newBuffer.getHeapID().group, newBuffer.getHeapID().index, heap_id.group,
+    heap_id.index);
 
   // If the current buffer was only referenced by the standby list we have to tidy it instead of the moved buffer.
   tidyCloneBuffer(old_buffer, buffer_heap_state_access);
@@ -6411,7 +6401,7 @@ void HeapFragmentationManager::moveBufferDeviceObject(GenericBufferInterface *bu
 #endif
 
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved buffer %u to %u (%s)", currentBuffer.resourceId.index(),
-    newBuffer.resourceId.index(), buffer_object->getResName());
+    newBuffer.resourceId.index(), buffer_object->getName());
   // copy contents from the old to the new buffer
   ctx.moveBuffer(currentBuffer, newBuffer);
 
@@ -6426,7 +6416,7 @@ void HeapFragmentationManager::findBufferOwnersAndReplaceDeviceObjects(BufferGlo
 {
   bool isUsed = false;
   bufferPool.iterateAllocatedBreakable(
-    [=, &ctx, &bindless_manager, &buffer_heap_state_access, &isUsed](GenericBufferInterface *buffer_object) { //-V657
+    [DX12_CAPTURE_DEF_EQ, &ctx, &bindless_manager, &buffer_heap_state_access, &isUsed](GenericBufferInterface *buffer_object) { //-V657
       auto &currentBuffer = buffer_object->getDeviceBuffer();
       if (currentBuffer.resourceId != old_buffer)
       {
@@ -6442,6 +6432,13 @@ void HeapFragmentationManager::findBufferOwnersAndReplaceDeviceObjects(BufferGlo
       // TODO we can be smart about it and stop if sub alloc is off or unsupported.
       return true;
     });
+  {
+    auto &newBuffer = buffer_heap_state_access->getConstHeap(moved_buffer.index());
+    BufferResourceReference buffer;
+    buffer.buffer = newBuffer.getResourcePtr();
+    buffer.resourceId = moved_buffer;
+    ctx.transitionBuffer(buffer, D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE);
+  }
   if (isUsed)
     return;
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Owner of buffer %u has not been found", old_buffer.index());
@@ -6526,6 +6523,16 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     });
     return ResourceMoveResolution::STAYING;
   }
+  // There is an issue on Intel Arc A770 which causes graphics artifacts.
+  if (d3d_get_gpu_cfg().primaryVendor == GpuVendor::INTEL && baseTex->isRenderTarget() && texture->getFormat().isDepth() &&
+      !is_emergency_defragmentation)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, it is a depth RT", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
   const auto bindlessInfo = bindless_manager.checkTextureImagePairNoLock(baseTex, texture);
   if (bindlessInfo.mismatchFound || baseTex->memSize == 0)
   {
@@ -6541,7 +6548,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     G_UNUSED(name);
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move texture <%s>", name.c_str());
   });
-  const D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET;
+  const D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COPY_DEST;
   auto newTexture = tryCloneTexture(adapter, device, texture, initialState, allocation_flags);
   if (!newTexture)
   {
@@ -6565,7 +6572,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   }
   if (!tryDestroyTextureOnFrameCompletion(texture))
   {
-    texture->getDebugName([=](const auto &name) {
+    texture->getDebugName([DX12_CAPTURE_DEF_EQ](const auto &name) {
       G_UNUSED(name);
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Texture <%s> queued for deletion", name.c_str());
       destroyTextureOnFrameCompletion(newTexture);
@@ -6574,9 +6581,12 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   }
   if (bindlessInfo.matchCount > 0)
   {
-    bindless_manager.updateTextureReferencesNoLock(ctx, baseTex, texture, bindlessInfo.firstFound, bindlessInfo.matchCount, false);
+    bindless_manager.updateTextureReferencesNoLock(ctx, baseTex, texture, bindlessInfo.firstFound, bindlessInfo.matchCount);
   }
   ctx.moveTextureNoLock(texture, newTexture);
+
+  if (baseTex->isRenderTarget())
+    ctx.checkFramebufferIntegityNoLock(texture);
 
   texture->getDebugName([=](const auto &name) {
     G_UNUSED(name);
@@ -6611,7 +6621,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
 
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move scratch buffer");
   auto scratchBufferAccess = tempScratchBufferState.access();
-  if (scratchBufferAccess->buffer.buffer.Get() != ref.buffer)
+  if (scratchBufferAccess->buffer.getResourcePtr() != ref.buffer)
   {
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Failed to move scratch buffer, is not current one");
     // If we try to move a scratch buffer that is not the current one, then the one we want to move
@@ -6732,21 +6742,6 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   G_UNUSED(ref);
   G_UNUSED(allocation_flags);
   DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move persistent bidirectional buffer (not implemented)");
-  return ResourceMoveResolution::STAYING;
-}
-
-HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
-  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, RaytraceAccelerationStructureHeapReference ref,
-  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
-{
-  G_UNUSED(ctx);
-  G_UNUSED(adapter);
-  G_UNUSED(device);
-  G_UNUSED(bindless_manager);
-  G_UNUSED(heap_id);
-  G_UNUSED(ref);
-  G_UNUSED(allocation_flags);
-  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move raytrace acceleration structure heap (not implemented)");
   return ResourceMoveResolution::STAYING;
 }
 
@@ -6963,7 +6958,7 @@ bool HeapFragmentationManager::processDefragmentationStep(DeviceContext &ctx, DX
   else
     selectedHeap.lock(selectedRange);
 
-  auto tryMoveRangeResource = [=, &ctx, &bindless_manager, &successCount](
+  auto tryMoveRangeResource = [DX12_CAPTURE_DEF_EQ, &ctx, &bindless_manager, &successCount](
                                 ResourceHeap::UsedRangeSetType::iterator selectedRes) DAG_TS_REQUIRES(heapGroupMutex) {
     AllocationFlags allocFlags{AllocationFlag::DISALLOW_LOCKED_RANGES, AllocationFlag::DEFRAGMENTATION_OPERATION,
       AllocationFlag::EXISTING_HEAPS_ONLY, AllocationFlag::DISABLE_ALTERNATE_HEAPS};
@@ -7085,6 +7080,17 @@ void drv3d_dx12::resource_manager::HeapFragmentationManager::processEmergencyDef
     if (!isCompatible)
       continue;
     processEmergencyDefragmentationForGroup(device, adapter, bindless_manager, currentProperties.raw);
+  }
+}
+
+void drv3d_dx12::resource_manager::HeapFragmentationManager::processDefragmentationForAllGroups(Device &device, DXGIAdapter *adapter,
+  frontend::BindlessManager &bindless_manager)
+{
+  logdbg("DX12: Processing defragmentation for all groups");
+
+  for (uint32_t grp = 0; grp < groups.size(); ++grp)
+  {
+    tryDefragmentHeap(device.getContext(), adapter, device.getDevice(), bindless_manager, grp, false);
   }
 }
 

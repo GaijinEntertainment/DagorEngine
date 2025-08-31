@@ -55,7 +55,7 @@ def get_bots_list(id : uint64)
   send_response(JV(res), id)
 
 
-[es(tag=dasDebug, after=walker_agent_es, REQUIRE=beh_tree__track_mind)]
+[es(tag=dasWebui, after=walker_agent_es, REQUIRE=beh_tree__track_mind)]
 def ai_log_mind_update(act : UpdateStageInfoAct; eid : EntityId; beh_tree : BehaviourTree)
   if beh_tree.changeNodeReason != null || beh_tree.resetReason != null
     let name = (beh_tree.changeNodeReason != null
@@ -68,19 +68,19 @@ def get_beh_tree(eid : uint; id : uint64)
   query(EntityId(eid)) <| $ [es] (var beh_tree : BehaviourTree)
     var nodes : array<tuple<node : BehNode?; jv : JsonValue?>>
     find_beh_node(*(beh_tree.root)) <| $(node)
-      var jv = JV({{ "name" => JV(node.name);  "typeName" => JV(node.typeName); "isReaction" => JV(node.getType == BN_REACTION)}})
+      var jv = JV({ "name" => JV(node.name),  "typeName" => JV(node.typeName), "isReaction" => JV(node.getType == BN_REACTION)})
       if node.getType == BN_REACTION
         let reaction = ReactionNode(*node)
         insert((jv as _object), "reactionName", JV(*reaction |> reaction_getEventId() |> get_reaction_name()))
       var describe : array<JsonValue?>
       *node |> beh_node_describeDebug() <| $(name; value)
-        describe |> push(JV([{JsonValue? JV(name); JV(value)}]))
+        describe |> push(JV(array<JsonValue?>(JV(name), JV(value))))
       insert((jv as _object), "describe", JV(describe))
       let wrapper = DebugWrapperNode(*node)
       if wrapper != null
         insert((jv as _object), "id", JV(wrapper.id))
         insert((jv as _object), "forceResult", JV(wrapper.forceResult))
-      nodes |> push([[auto node, jv]])
+      nodes |> push((node, jv))
 
       if node.parent == null
         return false
@@ -98,7 +98,7 @@ def get_beh_tree(eid : uint; id : uint64)
           found = true
           val as _array |> push(jv)
         if !found
-          insert((parentJv as _object), "children", JV([{auto[] jv}]))
+          insert((parentJv as _object), "children", JV([ jv]))
       return false
 
     send_response(nodes[0].jv, id)
@@ -131,13 +131,13 @@ def compile_update_result(act : UpdateStageInfoAct; eid : EntityId; var beh_tree
   find_beh_node(*(beh_tree.root)) <| $(node)
     let wrapper = DebugWrapperNode(*node)
     if wrapper != null && wrapper.wasUpdated
-      var state <- [[DebugWrapperNodeState
+      var state <- DebugWrapperNodeState(
         updateResult = wrapper.lastUpdateResult,
         reactResult = wrapper.lastReactResult,
         forceResult = wrapper.forceResult
-      ]]
+      )
       *node |> beh_node_describeDebug() <| $(name; value)
-        state.describe |> emplace([{auto[] name; value}])
+        state.describe |> emplace([ name, value])
       res[string(wrapper.id)] <- state
     return false
 
@@ -158,7 +158,7 @@ def force_set_result(eid : uint; id : uint; value : int)
     logerr("unable to set node force result {int(eid)}: node id: {int(id)} = {value}")
 
 
-[es(tag=dasDebug, before=(walker_agent_es), REQUIRE=behTreeDebugWrapped)]
+[es(tag=dasWebui, before=(walker_agent_es), REQUIRE=behTreeDebugWrapped)]
 def beh_tree_before_debug_update(act : UpdateStageInfoAct; var beh_tree : BehaviourTree&)
   find_beh_node(*(beh_tree.root)) <| $(node)
     var wrapper = DebugWrapperNode(*node)

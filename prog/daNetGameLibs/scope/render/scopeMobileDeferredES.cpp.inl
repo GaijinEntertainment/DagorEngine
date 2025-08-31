@@ -1,13 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeMobileNodes.h"
 
 #include <drv/3d/dag_renderPass.h>
 #include <drv/3d/dag_driver.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/rendererFeatures.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
@@ -50,13 +50,13 @@ enum
 };
 
 static void reset_mobile_deferred_scope_rendering(ScopeMobileDeferredManager &scopeMobileDeferredManager,
-  dabfg::NodeHandle &scopeMobileDeferredBeginRpNode,
-  dabfg::NodeHandle &scopeMobileDeferredPrepassNode,
-  dabfg::NodeHandle &scopeMobileDeferredNode,
-  dabfg::NodeHandle &scopeMobileDeferredLensMaskNode,
-  dabfg::NodeHandle &scopeMobileDeferredDepthCutNode,
-  dabfg::NodeHandle &scopeLensMobileNode,
-  dabfg::NodeHandle &setupScopeAimRenderingDataNode)
+  dafg::NodeHandle &scopeMobileDeferredBeginRpNode,
+  dafg::NodeHandle &scopeMobileDeferredPrepassNode,
+  dafg::NodeHandle &scopeMobileDeferredNode,
+  dafg::NodeHandle &scopeMobileDeferredLensMaskNode,
+  dafg::NodeHandle &scopeMobileDeferredDepthCutNode,
+  dafg::NodeHandle &scopeLensMobileNode,
+  dafg::NodeHandle &setupScopeAimRenderingDataNode)
 {
   const uint32_t rtFmt = get_frame_render_target_format() | TEXCF_RTARGET;
   const uint32_t depthFmt = get_gbuffer_depth_format() | TEXCF_RTARGET;
@@ -154,13 +154,13 @@ ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
 static void create_mobile_deferred_scope_render_pass_es_event_handler(const ecs::Event &,
   ScopeMobileDeferredManager &scope__mobile_deferred__manager,
-  dabfg::NodeHandle &scope__mobile_deferred__begin_rp_node,
-  dabfg::NodeHandle &scope__mobile_deferred__prepass_node,
-  dabfg::NodeHandle &scope__mobile_deferred__node,
-  dabfg::NodeHandle &scope__mobile_deferred__lens_mask_node,
-  dabfg::NodeHandle &scope__mobile_deferred__depth_cut_node,
-  dabfg::NodeHandle &scope__lens_mobile_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node)
+  dafg::NodeHandle &scope__mobile_deferred__begin_rp_node,
+  dafg::NodeHandle &scope__mobile_deferred__prepass_node,
+  dafg::NodeHandle &scope__mobile_deferred__node,
+  dafg::NodeHandle &scope__mobile_deferred__lens_mask_node,
+  dafg::NodeHandle &scope__mobile_deferred__depth_cut_node,
+  dafg::NodeHandle &scope__lens_mobile_node,
+  dafg::NodeHandle &setup_scope_aim_rendering_data_node)
 {
   if (!renderer_has_feature(FeatureRenderFlags::MOBILE_DEFERRED))
     return;
@@ -174,13 +174,13 @@ ECS_TAG(render)
 ECS_ON_EVENT(ChangeRenderFeatures)
 static void mobile_deferred_scope_render_features_changed_es_event_handler(const ecs::Event &evt,
   ScopeMobileDeferredManager &scope__mobile_deferred__manager,
-  dabfg::NodeHandle &scope__mobile_deferred__begin_rp_node,
-  dabfg::NodeHandle &scope__mobile_deferred__prepass_node,
-  dabfg::NodeHandle &scope__mobile_deferred__node,
-  dabfg::NodeHandle &scope__mobile_deferred__lens_mask_node,
-  dabfg::NodeHandle &scope__mobile_deferred__depth_cut_node,
-  dabfg::NodeHandle &scope__lens_mobile_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node)
+  dafg::NodeHandle &scope__mobile_deferred__begin_rp_node,
+  dafg::NodeHandle &scope__mobile_deferred__prepass_node,
+  dafg::NodeHandle &scope__mobile_deferred__node,
+  dafg::NodeHandle &scope__mobile_deferred__lens_mask_node,
+  dafg::NodeHandle &scope__mobile_deferred__depth_cut_node,
+  dafg::NodeHandle &scope__lens_mobile_node,
+  dafg::NodeHandle &setup_scope_aim_rendering_data_node)
 {
   auto *changedFeatures = evt.cast<ChangeRenderFeatures>();
   if (!changedFeatures)

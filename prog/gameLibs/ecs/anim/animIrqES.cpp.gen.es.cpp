@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animIrqES.cpp.inl"
 ECS_DEF_PULL_VAR(animIrq);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc anim_init_irq_listener_es_event_handler_comps[] =
 {

@@ -539,7 +539,7 @@ public:
     if (index < 0 || index >= devices.size())
       index = append_items(devices, 1);
 
-    // required for XR-112, since https://cvs1.gaijin.lan/#/c/dagor4/+/126931/
+    // required for XR-112
     if (firstX360Index < 0 && stricmp(dev->getDeviceID(), "x360") == 0)
       firstX360Index = index;
     if (index == firstX360Index || stricmp(dev->getDeviceID(), "x360") != 0)

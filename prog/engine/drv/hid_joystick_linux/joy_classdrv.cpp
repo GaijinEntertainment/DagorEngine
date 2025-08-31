@@ -2,6 +2,7 @@
 
 #include "joy_classdrv.h"
 #include "joy_device.h"
+#include "joy_device_xinput.h"
 #include <generic/dag_sort.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -18,7 +19,7 @@ Tab<HidJoystickClassDriver *> HidJoystickClassDriver::udev_users;
 
 
 HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_360) :
-  device(midmem), enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360)
+  enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360)
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -45,11 +46,7 @@ bool HidJoystickClassDriver::init()
   for (int i = 0; i < device.size(); i++)
   {
     if (i > 0 && strcasestr(device[i]->getName(), "stick") != 0)
-    {
-      HidJoystickDevice *first = device[0];
-      device[0] = device[i];
-      device[i] = first;
-    }
+      eastl::swap(device[0], device[i]);
   }
 
   if (getDeviceCount() > 0)
@@ -61,8 +58,6 @@ void HidJoystickClassDriver::destroyDevices()
 {
   setDefaultJoystick(NULL);
   unacquireDevices();
-  for (int i = 0; i < device.size(); i++)
-    delete device[i];
   clear_and_shrink(device);
 }
 
@@ -109,7 +104,7 @@ void HidJoystickClassDriver::updateDevices()
     {
       if (device[i]->updateState(dt, false) && !defJoy)
       {
-        setDefaultJoystick(device[i]);
+        setDefaultJoystick(device[i].get());
 
         if (defJoy->getClient())
           defJoy->getClient()->stateChanged(defJoy, i);
@@ -117,7 +112,7 @@ void HidJoystickClassDriver::updateDevices()
     }
   else
     for (int i = 0; i < device.size(); i++)
-      device[i]->updateState(dt, device[i] == defJoy);
+      device[i]->updateState(dt, device[i].get() == defJoy);
 
   if (secDrv)
   {
@@ -133,7 +128,7 @@ IGenJoystick *HidJoystickClassDriver::getDevice(int idx) const
   if (idx >= device.size() && secDrv)
     return secDrv->getDevice(idx - device.size());
   if (idx >= 0 && idx < device.size())
-    return device[idx];
+    return device[idx].get();
   return NULL;
 }
 void HidJoystickClassDriver::useDefClient(IGenJoystickClient *cli)
@@ -149,7 +144,7 @@ IGenJoystick *HidJoystickClassDriver::getDeviceByUserId(unsigned short userId) c
 {
   for (int i = 0; i < device.size(); i++)
     if (device[i]->getUserId() == userId)
-      return device[i];
+      return device[i].get();
   return secDrv ? secDrv->getDeviceByUserId(userId) : NULL;
 }
 
@@ -169,11 +164,11 @@ void HidJoystickClassDriver::setDefaultJoystick(IGenJoystick *ref)
 }
 
 
-static int cmp_dev_name(HumanInput::HidJoystickDevice *const *a, HumanInput::HidJoystickDevice *const *b)
+static int cmp_dev_name(eastl::unique_ptr<HumanInput::UDevJoystick> const *a, eastl::unique_ptr<HumanInput::UDevJoystick> const *b)
 {
-  if (int d = strcmp(a[0]->getDeviceID(), b[0]->getDeviceID()))
+  if (int d = strcmp((*a)->getDeviceID(), (*b)->getDeviceID()))
     return d;
-  return (a[0] > b[0]) ? 1 : ((a[0] < b[0]) ? -1 : 0);
+  return (a->get() > b->get()) ? 1 : ((a->get() < b->get()) ? -1 : 0);
 }
 
 void HidJoystickClassDriver::refreshDeviceList()
@@ -193,6 +188,8 @@ void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Actio
   if (dev.devClass != UDev::JOYSTICK)
     return;
 
+  JOY_LOG("DEVICE EVENT node: %s model: '%s' name: '%s' action: %s this: %p devices count, %lu, excludeXInput %d", dev.devnode,
+    dev.model, dev.name, action == UDev::Action::ADDED ? "added" : "removed", this, device.size(), excludeXInput);
   if (action == UDev::ADDED)
   {
     int found = -1;
@@ -209,12 +206,19 @@ void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Actio
 
     if (found < 0)
     {
-      HidJoystickDevice *hidDev = new HidJoystickDevice(dev, remapAsX360);
+      eastl::unique_ptr<HidJoystickDevice> hidDev(new HidJoystickDevice(dev));
 
-      if ((hidDev->isRemappedAsX360() && !excludeXInput) || (!hidDev->isRemappedAsX360() && !remapAsX360))
-        device.push_back(hidDev);
+      bool isXinputCompat = HidJoystickDeviceXInput::device_xinput_compatable(hidDev.get());
+      eastl::unique_ptr<UDevJoystick> hidDevXinput;
+      if (remapAsX360 && isXinputCompat)
+        hidDevXinput.reset(new HidJoystickDeviceXInput(eastl::move(hidDev)));
+
+      if (hidDevXinput)
+        device.push_back(eastl::move(hidDevXinput));
+      else if ((!isXinputCompat || !excludeXInput) && !remapAsX360)
+        device.push_back(eastl::move(hidDev));
       else
-        delete hidDev;
+        JOY_LOG("discard device '%s'. excludeXInput %d, xinput compatable %d", dev.name, (int)isXinputCompat, (int)excludeXInput);
     }
   }
   else
@@ -223,8 +227,8 @@ void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Actio
     {
       if (dev.devnode == device[i]->getNode() && dev.model == device[i]->getModel())
       {
-        debug("joystick %s removed", device[i]->getName());
-        delete device[i];
+        JOY_LOG("device %s removed", device[i]->getName());
+        device[i]->setConnected(false);
         erase_items(device, i, 1);
         break;
       }
@@ -244,17 +248,5 @@ void HidJoystickClassDriver::on_device_action(const UDev::Device &dev, UDev::Act
     act.action = action;
     pthis->delayedActions.push_back(act);
     pthis->deviceConfigChanged = true;
-
-    if (action == UDev::REMOVED)
-    {
-      for (int i = 0; i < pthis->device.size(); i++)
-      {
-        if (dev.devnode == pthis->device[i]->getNode() && dev.model == pthis->device[i]->getModel())
-        {
-          pthis->device[i]->setConnected(false);
-          break;
-        }
-      }
-    }
   }
 }

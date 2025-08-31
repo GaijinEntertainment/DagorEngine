@@ -17,7 +17,7 @@
 #include <libTools/util/strUtil.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/menu.h>
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <perfMon/dag_visClipMesh.h>
 #include <scene/dag_physMat.h>
@@ -325,8 +325,8 @@ bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
       streamingScene->invalidateClipmap((bool)userData);
     }
   }
-  if (ev_huid == HUID_PostRenderObjects && isVisible && showFrt && PhysMat::physMatCount() && streamingScene &&
-      streamingScene->frtDump.isDataValid())
+  else if (ev_huid == HUID_PostRenderObjects && isVisible && showFrt && PhysMat::physMatCount() && streamingScene &&
+           streamingScene->frtDump.isDataValid())
   {
     float prev_rad = get_vcm_rad();
     bool prev_vis = is_vcm_visible();
@@ -338,7 +338,7 @@ bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
     set_vcm_visible(prev_vis);
     set_vcm_draw_type(prev_type);
   }
-  if (ev_huid == HUID_AfterProjectLoad && isVisible)
+  else if (ev_huid == HUID_AfterProjectLoad && isVisible)
   {
     if (streamingFolder.length() && !de3_late_scene_select)
       loadScene(streamingFolder);
@@ -502,12 +502,12 @@ bool BinSceneViewPlugin::onPluginMenuClick(unsigned id)
           // ImGui::GetMainViewport()->GetCenter() is still zero at this point, let ImGui auto center it for us.
           autoSize(/*auto_center = */ false);
         }
-        virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+        void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
         {
           if (pcb_id == PID_BIN_FILE)
             panel->setInt(PID_RECENT_RG, -1);
         }
-        virtual void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+        void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
         {
           if (pcb_id == PID_RECENT_RG && panel->getInt(PID_RECENT_RG) != -1)
             clickDialogButton(PropPanel::DIALOG_ID_OK);

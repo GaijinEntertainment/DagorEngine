@@ -1,5 +1,5 @@
 require ecs
-require app
+require app // get_sync_time
 
 
 [es(tag=server, on_appear)]

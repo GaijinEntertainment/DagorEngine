@@ -16,24 +16,24 @@ struct SpotLight
   alignas(16) Point4 pos_radius;
   alignas(16) Color4 color_atten;
   alignas(16) Point4 dir_tanHalfAngle; // .xyz: normalized dir, w: tan(angle/2)
-  alignas(16) Point4 texId_scale;
+  alignas(16) Point4 texId_scale_illuminatingPlane;
   float culling_radius;
   bool shadows = false;
   bool contactShadows = false;
   bool requiresCullRadiusOptimization = true;
-  SpotLight() : culling_radius(-1.0f), texId_scale(-1, 0, 0, 0) {}
+  SpotLight() : culling_radius(-1.0f), texId_scale_illuminatingPlane(-1, 0, 0, 0) {}
   SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
     bool shadows) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir_tanHalfAngle(dir.x, dir.y, dir.z, angle),
-    texId_scale(-1, 0, 0, 0),
+    texId_scale_illuminatingPlane(-1, 0, 0, 0),
     culling_radius(-1.0f),
     shadows(shadows),
     contactShadows(contact_shadows)
   {}
   SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
-    bool shadows, int tex, float texture_scale, bool tex_rotation) :
+    bool shadows, int tex, float texture_scale, bool tex_rotation, float illuminating_plane_offset = 0) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir_tanHalfAngle(dir.x, dir.y, dir.z, angle),
@@ -41,9 +41,12 @@ struct SpotLight
     shadows(shadows),
     contactShadows(contact_shadows)
   {
-    setTexture(tex, texture_scale, tex_rotation);
+    setTextureAndPlane(tex, texture_scale, tex_rotation, illuminating_plane_offset);
   }
-  void setTexture(int tex, float scale, bool rotation) { texId_scale = Point4(tex, rotation ? -scale : scale, 0, 0); }
+  void setTextureAndPlane(int tex, float scale, bool rotation, float illuminating_plane_offset)
+  {
+    texId_scale_illuminatingPlane = Point4(tex, rotation ? -scale : scale, illuminating_plane_offset, 0);
+  }
   void setPos(const Point3 &p)
   {
     pos_radius.x = p.x;
@@ -63,7 +66,7 @@ struct SpotLight
     pos_radius = Point4(0, 0, 0, 0);
     color_atten = Color4(0, 0, 0, 0);
     dir_tanHalfAngle = Point4(0, 0, 1, 1);
-    texId_scale = Point4(-1, 0, 0, 0);
+    texId_scale_illuminatingPlane = Point4(-1, 0, 0, 0);
   }
   static SpotLight create_empty()
   {

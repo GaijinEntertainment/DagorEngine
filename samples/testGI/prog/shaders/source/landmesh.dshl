@@ -1,0 +1,127 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "lmesh_normalmap.dshl"
+
+shader land_mesh_landclass_detailed{dont_render;}
+shader land_mesh_combined_decal{dont_render;}
+shader land_mesh_height_decal{dont_render;}
+shader land_mesh_landclass_trivial{dont_render;}
+shader land_mesh_landclass_mega_nonormal{dont_render;}
+shader land_mesh_landclass_simple{dont_render;}
+shader land_mesh_water_decal {dont_render;}
+shader land_mesh_combined_detailed_decal, land_mesh_combined_mixed_decal, land_mesh_combined {dont_render;}
+
+int lmesh_vs_const__mul_offset_base     = 50 always_referenced; // 4 mul + 4 offset parameters: 228-235, 236 maptexcoord
+int lmesh_sampler__land_detail_map = 6 always_referenced;
+int lmesh_sampler__land_detail_map2 = 7 always_referenced;
+int lmesh_sampler__land_detail_tex1 = 8 always_referenced;
+int lmesh_sampler__max_used_sampler = 15 always_referenced;
+int lmesh_hc_detail_array_elements = 96 always_referenced;
+int lmesh_vs_const__pos_to_world        = 62 always_referenced;
+int lmesh_ps_const__mirror_scale        = 62 always_referenced;
+
+shader water_aces, simple_aces_detailed
+{
+  dont_render;
+}
+
+float4 landCellShortDecodeXZ;
+float4 landCellShortDecodeY;
+
+hlsl(vs) {
+  float4 pos_to_world_scale : register(c62);
+  float4 pos_to_world_ofs : register(c63);
+  float4 decode_pos_landmesh_or_combined(int4 inpos)
+  {
+    float2 posXZ = inpos.xz*landCellShortDecodeXZ.xx + landCellShortDecodeXZ.zw;
+    int cellXZ = (inpos.w);
+    int cellZ = (cellXZ>>6)&0x3F;
+    int cellX = cellXZ&0x3F;
+
+    float3 pos1 = float3(posXZ.x+cellX*landCellShortDecodeXZ.y, inpos.y*landCellShortDecodeY.x+landCellShortDecodeY.y, posXZ.y+cellZ*landCellShortDecodeXZ.y);
+    return float4(pos1 * pos_to_world_scale.xyz + pos_to_world_ofs.xyz, (cellXZ>>12)*(1.0/7));
+  }
+}
+
+int landmesh_patch_render;
+interval landmesh_patch_render:off < 1, on;
+
+shader land_mesh
+{
+  channel short4 pos[0] = extra[7] mul_32767;//pos[0];
+  supports global_frame;
+  supports none;
+
+  (vs) {
+    globtm@f44 = globtm;
+    landCellShortDecodeXZ@f4 = landCellShortDecodeXZ;
+    landCellShortDecodeY@f2 = landCellShortDecodeY;
+    world_view_pos@f3 = world_view_pos;
+  }
+  if (landmesh_patch_render == on)
+  {
+    blend_src = sa;blend_dst = isa;
+    z_test = false;
+    cull_mode = none;
+  }
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      ##if landmesh_patch_render == on
+      float2 clipPos: TEXCOORD1;
+      ##else
+      float3 pointToEye : TEXCOORD0;
+      ##endif
+    };
+  }
+  hlsl(vs) {
+    VsOutput land_mesh_render_vs(int4 inputpos:POSITION)
+    {
+      VsOutput output;
+      float4 worldPosA = decode_pos_landmesh_or_combined(inputpos);
+      float3 worldPos = worldPosA.xyz;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      ##if landmesh_patch_render == on
+      output.clipPos = float2(output.pos.z, worldPosA.w);
+      ##else
+      output.pointToEye = world_view_pos.xyz - worldPos.xyz;
+      ##endif
+
+      return output;
+    }
+  }
+
+  WRITE_GBUFFER()
+  INIT_LMESH_NORMALMAP(ps)
+  USE_LMESH_NORMALMAP(ps)
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+  }
+  hlsl(ps) {
+  ##if landmesh_patch_render == on
+    float4 land_mesh_render_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      return input.clipPos.xxxy;
+    }
+  ##else
+    GBUFFER_OUTPUT land_mesh_render_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float3 worldPos = world_view_pos - input.pointToEye.xyz;
+      half ao;
+      half3 worldNormal = get_lmesh_normalmap(worldPos.xz, ao);
+
+      UnpackedGbuffer gbuffer;
+      init_gbuffer(gbuffer);
+      init_albedo(gbuffer, float3(0.5,0.5,0.5));
+      init_smoothness(gbuffer, 0);
+      init_normal(gbuffer, worldNormal);
+      init_ao(gbuffer, ao);
+
+      return encode_gbuffer(gbuffer, input.pointToEye, input.pointToEye);
+    }
+  ##endif
+  }
+  compile("target_vs", "land_mesh_render_vs");
+  compile("target_ps", "land_mesh_render_ps");
+}

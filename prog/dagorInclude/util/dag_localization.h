@@ -18,6 +18,9 @@ const char *get_current_language();
 const char *get_force_language();
 void set_language_to_settings(const char *lang);
 
+int getLangId(const char *lnag);
+const char *getLangById(int id);
+
 LocTextId get_localized_text_id(const char *key, bool ci = false);
 LocTextId get_localized_text_id_silent(const char *key, bool ci = false);
 LocTextId get_optional_localized_text_id(const char *key, bool ci = false);
@@ -63,6 +66,7 @@ __forceinline const char *get_localized_text(const char *key, const char *def, b
 bool does_localized_text_exist(const char *key, bool ci = false);
 
 const char *get_localized_text_for_lang(const char *key, const char *lang);
+const char *get_localized_text_for_lang_id(const char *key, int lang_id);
 
 bool load_localization_table_from_csv(const char *csv_filename, int lang_col = 0);
 bool load_localization_table_from_csv(MemGeneralLoadCB *cb, int lang_col = 0);

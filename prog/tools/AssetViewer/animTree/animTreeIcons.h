@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-// Icon names located at <CVS_REPO>/tools/dagor_cdk/commonData/gui16x16
+// Icon names located at <CVS_REPO>/tools/dagor_cdk/commonData/icons
 static const char *ASSET_SKELETON_ICON = "asset_skeleton";
 static const char *RES_ANIMBNL_ICON = "res_animbnl";
 static const char *SHOW_PANEL_ICON = "show_panel";
@@ -15,14 +15,10 @@ static const char *A2D_NAME_ICON = "blend_nodes_group";
 static const char *NODE_MASK_ICON = "anim_node_mask1";
 static const char *NODE_MASK_LEAF_ICON = ASSET_SKELETON_ICON;
 static const char *ANIM_BLEND_CTRL_ICON = RES_ANIMBNL_ICON;
-static const char *STATE_ICON = "anim_states";
-static const char *STATE_LEAF_ICON = "anim_state_leaf";
-static const char *ENUMS_ROOT_ICON = FOLDER_ICON;
-static const char *ENUM_ICON = SHOW_PANEL_ICON;
-static const char *ENUM_ITEM_ICON = CREATE_SPHERE_ICON;
 static const char *IRQ_ICON = "irq";
 static const char *LEAF_WITH_LOOP = "unknown_circle";
 
+// Icon names for controllers
 static const char *CTRL_COND_HIDE_ICON = "ctrl_cond_hide";
 static const char *CTRL_ATTACH_NODE_ICON = "ctrl_attach_node";
 static const char *CTRL_HUB_ICON = "ctrl_hub";
@@ -36,6 +32,15 @@ static const char *CTRL_SET_PARAM_ICON = "ctrl_set_param";
 static const char *CTRL_MOVE_NODE_ICON = "move";
 static const char *CTRL_ROTATE_NODE_ICON = "rotate";
 static const char *CTRL_ROTATE_AROUND_NODE_ICON = "rotation_y";
+
+// Icon names for states
+static const char *STATE_ICON = "anim_states";
+static const char *STATE_LEAF_ICON = "anim_state_leaf";
+static const char *CHANNEL_LEAF_ICON = CTRL_FIFO3_ICON;
+static const char *ALIAS_LEAF_ICON = SHOW_PANEL_ICON;
+static const char *ENUMS_ROOT_ICON = FOLDER_ICON;
+static const char *ENUM_ICON = SHOW_PANEL_ICON;
+static const char *ENUM_ITEM_ICON = CREATE_SPHERE_ICON;
 
 static const char *BLEND_NODE_SINGLE_ICON = "blend_node";
 static const char *BLEND_NODE_CONTINUOUS_ICON = "rotate";

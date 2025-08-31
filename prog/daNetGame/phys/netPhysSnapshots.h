@@ -35,7 +35,6 @@ struct PhysActorSendRecord
   {
     return (flags & LOW_FREQ_TICKRATE) ? PhysTickRateType::LowFreq : PhysTickRateType::Normal;
   }
-  PhysActorSendRecord() = delete; //< constructed via aggregate init
 };
 
 typedef void (BasePhysActor::*serialize_phys_snap_t)(danet::BitStream &, PhysSnapSerializeType) const;

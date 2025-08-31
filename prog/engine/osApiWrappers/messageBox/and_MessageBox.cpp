@@ -31,7 +31,7 @@ static int show_alert(const char *utf8_text, const char *utf8_caption, int flags
 
   JNIEnv *jni = NULL;
 
-  if (app->activity->vm->AttachCurrentThread(&jni, NULL) == JNI_ERR)
+  if (android::attach_current_thread(app->activity->vm, &jni, NULL) != JNI_OK)
   {
     debug("%s Can't connect to JVM", __FUNCTION__);
     return GUI_MB_FAIL;

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "riGpuObjectsES.cpp.inl"
 ECS_DEF_PULL_VAR(riGpuObjects);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ri_gpu_object_create_es_event_handler_comps[] =
 {

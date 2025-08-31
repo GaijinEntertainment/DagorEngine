@@ -14,7 +14,7 @@ class AVScriptPanelEditor : public IScriptPanelEventHandler, public IScriptPanel
 {
 public:
   AVScriptPanelEditor(const char *script_path, const char *panel_caption);
-  ~AVScriptPanelEditor();
+  ~AVScriptPanelEditor() override;
 
   static void initVars();
 
@@ -25,14 +25,14 @@ public:
   bool scriptExists();
 
   // IScriptPanelEventHandler
-  virtual void onScriptPanelChange();
+  void onScriptPanelChange() override;
 
   // ITimerCallBack
-  virtual void update();
+  void update() override;
 
   // IScriptPanelTargetCB
-  virtual const char *getTarget(const char *old_choise, const char *type, const char filter[]);
-  virtual const char *validateTarget(const char *name, const char *type);
+  const char *getTarget(const char *old_choise, const char *type, const char filter[]) override;
+  const char *validateTarget(const char *name, const char *type) override;
 
 private:
   const char *selectAsset(const char *old_choise, dag::ConstSpan<int> masks);

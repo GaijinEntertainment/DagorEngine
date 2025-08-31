@@ -18,18 +18,18 @@ int Vsnprintf(char* pDestination, size_t n, const char* pFormat, va_list argumen
 
 int Vsnprintf(char16_t* pDestination, size_t n, const char16_t* pFormat, va_list arguments)
 {
-  return vswprintf((wchar_t*)pDestination, n, (wchar_t*)pFormat, arguments);
+  return vswprintf((wchar_t*)pDestination, n, (const wchar_t*)pFormat, arguments);
 }
 
 int Vsnprintf(char32_t* pDestination, size_t n, const char32_t* pFormat, va_list arguments)
 {
-  return vswprintf((wchar_t*)pDestination, n, (wchar_t*)pFormat, arguments);
+  return vswprintf((wchar_t*)pDestination, n, (const wchar_t*)pFormat, arguments);
 }
 
 #if defined(EA_CHAR8_UNIQUE) && EA_CHAR8_UNIQUE
 int Vsnprintf(char8_t *pDestination, size_t n, const char8_t *pFormat, va_list arguments)
 {
-  return vsnprintf((char*)pDestination, n, (char*)pFormat, arguments);
+  return vsnprintf((char*)pDestination, n, (const char*)pFormat, arguments);
 }
 #endif
 

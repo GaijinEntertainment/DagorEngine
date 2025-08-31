@@ -1,0 +1,227 @@
+include "shader_global.dshl"
+include "use_volfog.dshl"
+include "frustum.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+include "static_shadow.dshl"
+
+texture perlin_noise3d;
+
+int laser_decals_debug_mode = 0;
+interval laser_decals_debug_mode: off<1, boxes;
+
+shader laser_decal_cull {
+  INIT_AND_USE_FRUSTUM_CHECK_CS()
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    numDecals@u4 : register(projective_decals_original_count_const_no);
+    original@uav : register(projective_decals_original_uav_no) hlsl {
+      #include <projectiveDecals/projective_decals.hlsli>
+      RWStructuredBuffer<ProjectiveDecalInstance> original@uav;
+    };
+    target@uav : register(projective_decals_target_uav_no) hlsl {
+      RWStructuredBuffer<ProjectiveDecalInstance> target@uav;
+    };
+    count@uav : register(projective_decals_target_count_uav_no) hlsl {
+      RWByteAddressBuffer count@uav;
+    };
+  }
+
+  hlsl(cs) {
+    #include "projectiveDecals/blood_decals_const.hlsli"
+
+    [numthreads( DECALS_MAX_CULL_X, 1, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x;
+      if (id >= numDecals.x || structuredBufferAt(original, id).pos_size.w == 0)
+        return;
+
+      float3 normal, du;
+      decode_normal_up(structuredBufferAt(original, id).normal_du_id_matrixId, normal, du);
+
+      float decalSize = structuredBufferAt(original, id).pos_size.w;
+
+      uint matrixId = (structuredBufferAt(original, id).normal_du_id_matrixId.y>>(16+7))&511;
+      bool alwaysVisible = matrixId == 1;
+
+      float radius = 4 * decalSize;
+      float3 center = structuredBufferAt(original, id).pos_size.xyz - normal * radius;
+      if (!alwaysVisible && !testSphereB(center, radius))
+        return;
+
+      uint at;
+      count.InterlockedAdd(1 * 4, 1, at);
+      structuredBufferAt(target, at) = structuredBufferAt(original, id);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader laser_point_decal {
+  supports global_frame;
+  z_write = false;
+  z_test = true;
+  blend_src = sa; blend_dst = isa;
+
+  hlsl {
+    #define BLEND_GBUFFER 1
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation float4 normal : NORMAL;
+      nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
+      nointerpolation float4 tang_id : TEXCOORD2;
+      float3 pointToEye : TEXCOORD3;
+      nointerpolation float3 color : TEXCOORD4;
+    };
+  }
+
+  PROJECTIVE_DECALS_VS_COMMON()
+
+  (vs) {
+    globtm@f44 = globtm;
+    decals@buf = decal_buffer hlsl {
+      #include "projectiveDecals/projective_decals.hlsli"
+      StructuredBuffer<ProjectiveDecalInstance> decals@buf;
+    }
+  }
+
+  hlsl(vs) {
+    #include "projectiveDecals/projective_decals_const.hlsli"
+
+    VsOutput projective_decals_vs(uint decalId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float3 decalPos = structuredBufferAt(decals, decalId).pos_size.xyz; //depends on laser ray length
+      float decalSize = structuredBufferAt(decals, decalId).pos_size.w;
+      uint2 normal_du_id_matrixId = structuredBufferAt(decals, decalId).normal_du_id_matrixId;
+      float width = 0.3;
+      float4 params = decode_float4(structuredBufferAt(decals, decalId).params);
+      float3 normal, du;
+      decode_normal_up(normal_du_id_matrixId, normal, du);
+      uint id = (normal_du_id_matrixId.y>>16)&127, matrixId = (normal_du_id_matrixId.y>>(16+7))&511;
+
+      const float rayLength = params.w;
+      const bool alwaysVisible = matrixId == 1;
+      const float sizeMult = 2.0;
+      const float normalMult = alwaysVisible? 0.1f : 4.f;
+
+      ProjectiveDecalData decal;
+      if (alwaysVisible)
+      {
+        float3 cameraDir = normalize(decalPos - world_view_pos);
+        float rayLength = length(decalPos - world_view_pos);
+        decal.pos_size = float4(world_view_pos + min(0.3, rayLength) * cameraDir, 0.025f);
+      }
+      else
+        decal.pos_size = float4(decalPos, sizeMult * decalSize);
+
+      decal.normal_width = float4(normal, normalMult * decalSize);
+      decal.tang_bias = float4(du, 0);
+      decal.matrixId = matrixId;
+
+      float3 worldDu, worldNormal, worldPos, worldDecalPos;
+      calc_world_values(decal, vertexId, 1.0, //input
+                        worldDu, worldNormal, worldPos, worldDecalPos); //output
+
+      output.tang_id = float4(worldDu, alwaysVisible? 1.f : 0.f);
+      output.normal.xyz = worldNormal;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.normal.w = alwaysVisible? (1.0/params.w) : width;
+      output.patchCenter__inv_size.xyz = decalPos;
+      output.patchCenter__inv_size.w = 1.0 / decalSize;
+      output.pointToEye.xyz = world_view_pos - worldPos;
+      output.color = params.xyz;
+      return output;
+    }
+  }
+
+  INIT_ZNZFAR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  INIT_BRUNETON_FOG(ps)
+  USE_BRUNETON_FOG()
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  USE_AND_INIT_VIEW_VEC_PS()
+  ENABLE_ASSERT(ps)
+
+  (ps) {
+    screen_pos_to_texcoord@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    depth_gbuf@smp2d = downsampled_far_depth_tex;//depth_gbuf;
+  }
+
+  hlsl(ps) {
+
+    float3 get_decal_world_pos(float4 screen)
+    {
+      int2 tci = screen.xy;
+
+      float sceneDepth = linearize_z(texelFetch(depth_gbuf, tci, 0).x, zn_zfar.zw);
+      float2 scrTc = screen.xy * screen_pos_to_texcoord.zw;
+
+      float3 viewVect = lerp_view_vec(scrTc.xy);
+      return world_view_pos.xyz + sceneDepth * viewVect;
+    }
+
+    float3 get_decal_tex_coord(float4 screen, float3 patch_center, float3 norm, float3 tangent)
+    {
+      return get_decal_tex_coord_from_world_pos(get_decal_world_pos(screen), patch_center, norm, tangent);
+    }
+  }
+
+  (ps) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
+
+  hlsl(ps) {
+
+    fixed4 projective_decals_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+      int2 tci = screen.xy;
+      float2 scrTc = screen.xy * screen_pos_to_texcoord.zw;
+      float sceneDepth = linearize_z(tex2Dlod(depth_gbuf, float4(scrTc,0,0)).x, zn_zfar.zw);
+      float3 viewVect = lerp_view_vec(scrTc.xy);
+      float3 worldPos = world_view_pos.xyz + sceneDepth * viewVect;
+
+      float3 sceneNormal = normalize(cross(ddx(worldPos), ddy(worldPos)));
+      if (dot(sceneNormal, input.normal.xyz) < 0.000001f)
+        discard;
+
+      float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, input.normal.xyz, input.tang_id.xyz);
+      float3 noise = abs(tex3D(perlin_noise3d, worldPos * 1000.f).xyz);
+      const bool alwaysVisible = (input.tang_id.w > 0.f);
+      const float INTENSITY_BIAS = 0.01;
+
+      const float3 invSizeMult = alwaysVisible?
+        float3(input.patchCenter__inv_size.w, input.patchCenter__inv_size.w, input.normal.w) :
+        0.5 * float3(input.patchCenter__inv_size.w, input.patchCenter__inv_size.w, input.patchCenter__inv_size.w);
+
+      float invSigma2 = 9 * input.patchCenter__inv_size.w * input.patchCenter__inv_size.w;
+      float3 tc = abs(decalTC * invSizeMult);
+
+      float fade = smoothstep(0, 1, 2*(1 - dot(tc, tc)));
+      float intensity = fade*exp(-0.5 * dot(decalTC.xy, decalTC.xy) * invSigma2);
+      half alpha = clamp((intensity - INTENSITY_BIAS), 0, 0.9);
+      intensity += 0.1 * noise.x;
+
+      half3 color = input.color.xyz;
+
+    ##if laser_decals_debug_mode == boxes
+      if (alpha <= 0.00001)
+      {
+        color = half3(0, 1, 0);
+        alpha = 0.5;
+      }
+    ##endif
+
+      apply_volfog_with_scattering(color, scrTc, scrTc, input.pointToEye.xyz, sceneDepth);
+      return half4(pack_hdr(color), alpha);
+    }
+  }
+
+  compile("target_vs", "projective_decals_vs");
+  compile("target_ps", "projective_decals_ps");
+}

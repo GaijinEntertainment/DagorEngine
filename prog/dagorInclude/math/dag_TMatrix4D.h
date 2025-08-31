@@ -316,6 +316,11 @@ INLINE TMatrix4D dmatrix_perspective(double wk, double hk, double z_near, double
   return dmatrix_perspective_reverse(wk, hk, z_near, z_far);
 }
 
+INLINE void dmatrix_perspective_add_jitter(TMatrix4D &proj, const double ox, const double oy)
+{
+  proj(2, 0) += ox;
+  proj(2, 1) += oy;
+}
 
 INLINE TMatrix4D orthonormalized_inverse(const TMatrix4D &a)
 {

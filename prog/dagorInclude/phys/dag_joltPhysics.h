@@ -18,6 +18,7 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_relocatableFixedVector.h>
 
 #include <phys/dag_physCollision.h>
 #include <phys/dag_physBodyCreationData.h>
@@ -150,6 +151,14 @@ public:
       return safeinv(lock.GetBody().GetMotionProperties()->GetInverseMass());
     return 0;
   }
+  real getInvMass() const
+  {
+    JPH::BodyLockRead lock(jolt_api::body_lock(), bodyId);
+    if (lock.Succeeded() && !lock.GetBody().IsStatic())
+      return lock.GetBody().GetMotionProperties()->GetInverseMass();
+    return 0;
+  }
+
   void getMassMatrix(real &mass, real &ixx, real &iyy, real &izz);
   void getInvMassMatrix(real &mass, real &ixx, real &iyy, real &izz);
 
@@ -179,11 +188,14 @@ public:
   Point3 getAngularVelocity() const { return to_point3(api().GetAngularVelocity(bodyId)); }
 
   Point3 getPointVelocity(const Point3 &world_pt) { return to_point3(api().GetPointVelocity(bodyId, to_jVec3(world_pt))); }
+  Point3 getCenterOfMassPosition() const { return to_point3(api().GetCenterOfMassPosition(bodyId)); }
 
   void setAcceleration(const Point3 & /*acc*/, bool /*activate*/ = true) { G_ASSERT(0); }
   void setGravity(const Point3 &grav, bool activate = true);
+  void setDamping(float linDamping, float angDamping);
 
   void addImpulse(const Point3 &p, const Point3 &force_x_dt, bool activate = true);
+  void addForce(const Point3 &p, const Point3 &force, bool activate = true);
 
   void setContinuousCollisionMode(bool use);
 
@@ -286,11 +298,13 @@ public:
   static JPH::PhysicsSystem &phys_sys() { return jolt_api::phys_sys(); }
   static JPH::BodyInterface &body_api() { return jolt_api::body_api(); }
 
-  PhysWorld(real default_static_friction, real default_dynamic_friction, real default_restitution, real default_softness);
+  PhysWorld(real default_static_friction = 0.9f, real default_restitution = 0.2f);
   ~PhysWorld();
 
   // interaction layers
   void setInteractionLayers(unsigned int mask1, unsigned int mask2, bool make_contacts);
+
+  constexpr bool isControledByCurThread() const { return true; }
 
 public:
   void startSim(real dt, bool wake_up_thread = true);
@@ -455,7 +469,7 @@ public:
   };
 
   template <typename C>
-  void contactTest(const PhysBody *shape, C &contact_cb, int filter_grp = 1u, int filter_mask = 0xFFFFu)
+  static void contactTest(const PhysBody *shape, C &contact_cb, int filter_grp = 1u, int filter_mask = 0xFFFFu)
   {
     ContactResultCB<C> cb(contact_cb, shape);
     phys_sys().GetNarrowPhaseQuery().CollideShape(shape->getShape(), JPH::Vec3::sReplicate(1.0f),
@@ -463,7 +477,8 @@ public:
       PhysBody::ObjFilter(filter_grp, filter_mask), cb);
   }
   template <typename C>
-  void contactTestPair(const PhysBody *shape, const PhysBody *shapeB, C &contact_cb, int filter_grp = 1u, int filter_mask = 0xFFFFu)
+  static void contactTestPair(const PhysBody *shape, const PhysBody *shapeB, C &contact_cb, int filter_grp = 1u,
+    int filter_mask = 0xFFFFu)
   {
     ContactResultCB<C> cb(contact_cb, shape, shapeB);
     if (needsCollision(shapeB, contact_cb, filter_grp, filter_mask))
@@ -484,8 +499,7 @@ protected:
   int maxSubSteps = 3;
   float fixedTimeStep = 1.f / 60.f;
 
-  // materials
-  Tab<Material> materials;
+  dag::RelocatableFixedVector<Material, 1> materials;
 
   PhysJoint *regJoint(PhysJoint *j);
 

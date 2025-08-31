@@ -2,7 +2,6 @@
 #pragma once
 
 #include <osApiWrappers/dag_threads.h>
-#include <EASTL/vector.h>
 #include <atomic>
 #include <timeline.h>
 #include "compiler_scratch_data.h"
@@ -37,7 +36,7 @@ struct PipelineCompileQueueItem
 struct PipelineCompilerWork
 {
   static constexpr size_t RING_SIZE = 128;
-  eastl::vector<PipelineCompileQueueItem> queue;
+  dag::Vector<PipelineCompileQueueItem> queue;
 
   void init();
   void submit();
@@ -127,7 +126,7 @@ public:
 
   size_t getQueueLength();
 
-  void compileBlock(eastl::vector<PipelineCompileQueueItem> &block);
+  void compileBlock(dag::Vector<PipelineCompileQueueItem> &block);
   void asyncCompileLoop();
 
   void startSecondaryWorkers();

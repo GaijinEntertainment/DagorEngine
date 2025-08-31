@@ -2,7 +2,7 @@
 
 #include "frameGraphNodes.h"
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <3d/dag_texStreamingContext.h>
 #include <daECS/core/entityManager.h>
 
@@ -12,17 +12,20 @@
 #include <render/world/frameGraphNodes/prevFrameTexRequests.h>
 #include <render/world/frameGraphHelpers.h>
 
-dabfg::NodeHandle makeTransparentSceneLateNode()
+dafg::NodeHandle makeTransparentSceneLateNode()
 {
-  return dabfg::register_node("transparent_scene_late_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("transparent_scene_late_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
     {
-      registry.requestRenderPass().color({"target_for_transparency"}).depthRo("depth_for_transparency");
+      registry.requestRenderPass()
+        .color({"target_for_transparency"})
+        .depthRoAndBindToShaderVars("depth_for_transparency", {"effects_depth_tex"});
+      registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
       use_current_camera(registry);
     }
     else
       registry.requestRenderPass()
-        .color({registry.rename("target_after_under_water_fog", "target_after_transparent_scene_late", dabfg::History::No).texture()})
+        .color({registry.rename("target_after_under_water_fog", "target_after_transparent_scene_late", dafg::History::No).texture()})
         .depthRo("depth_for_transparent_effects");
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
@@ -49,10 +52,22 @@ dabfg::NodeHandle makeTransparentSceneLateNode()
 
 extern void render_mainhero_trans(const TMatrix &view_tm);
 
-dabfg::NodeHandle makeMainHeroTransNode()
+dafg::NodeHandle makeMainHeroTransNode()
 {
-  return dabfg::register_node("main_hero_trans", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("main_hero_trans", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("transparent_scene_late_node");
+    (registry.root() / "transparent" / "close")
+      .read("glass_depth_for_merge")
+      .texture()
+      .atStage(dafg::Stage::POST_RASTER)
+      .bindToShaderVar("glass_hole_mask")
+      .optional();
+    (registry.root() / "transparent" / "close")
+      .read("glass_target")
+      .texture()
+      .atStage(dafg::Stage::POST_RASTER)
+      .bindToShaderVar("glass_rt_reflection")
+      .optional();
     if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
     {
       registry.requestRenderPass().color({"target_for_transparency"}).depthRo("depth_for_transparency");
@@ -65,8 +80,12 @@ dabfg::NodeHandle makeMainHeroTransNode()
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
 
-    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+    auto cameraHndl = read_camera_in_camera(registry).handle();
 
-    return [cameraHndl] { render_mainhero_trans(cameraHndl.ref().viewTm); };
+    return [cameraHndl](const dafg::multiplexing::Index multiplex_index) {
+      const camera_in_camera::ApplyMasterState camcam{multiplex_index};
+      render_mainhero_trans(cameraHndl.ref().viewTm);
+    };
   });
 }

@@ -96,7 +96,7 @@ void DynamicResolution::trackCpuTime()
     return;
   float prevFrameTimeMs = 0.001 * workcycleperf::last_cpu_only_cycle_time_usec;
   // CPU time is quite unstable, so add some smoothing
-  currentCpuMsPerFrame = lerp(currentCpuMsPerFrame, prevFrameTimeMs, 0.05);
+  currentCpuMsPerFrame = lerp(currentCpuMsPerFrame, prevFrameTimeMs, 0.05f);
 }
 
 void DynamicResolution::beginFrame()
@@ -188,6 +188,8 @@ void DynamicResolution::adjustResolution()
 
   currentResolutionWidth = targetResolutionWidth * resolutionScale;
   currentResolutionHeight = targetResolutionHeight * resolutionScale;
+  currentResolutionWidth &= ~1;
+  currentResolutionHeight &= ~1;
 }
 
 

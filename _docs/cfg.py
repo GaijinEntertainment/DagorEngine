@@ -1,9 +1,23 @@
 import re
-import json
+JSON5_LOADED = False
+try:
+  import pyjson5 as json
+  JSON5_LOADED = true
+  print("Using Json5")
+except:
+  try:
+    import thirdparty.pyjson5 as json
+    print("Using Json5")
+  except:
+    import json
+    print("No Json5")
+
 cmt = re.compile(r"(.*)\/\/.*")
 
 def read_commented_json(fpath):
   with open(fpath, "rt", encoding="utf-8") as f:
+    if JSON5_LOADED:
+      return json.loads(f)
     data = f.read()
     data = data.splitlines()
     res = []
@@ -23,9 +37,11 @@ def validated_qdox_cfg(config):
     recursive = e.get("recursive", False)
     exclude_dirs_re = e.get("exclude_dirs_re", [""])
     chapter_desc = e.get("chapter_desc", "")
+    chapter_desc_files = e.get("chapter_desc_files", [])
     exclude_files_re = e.get("exclude_files_re", [""])
     chapter_title = e.get("chapter_title", doc_chapter.replace("_", " "))
     extensions = e.get("extensions", [""])
+    start_path = e.get("start_path", "")
     if not isinstance(doc_chapter, str):
       log.error("no 'doc_chapter' in given config or it is not string")
       log.error(config)
@@ -49,11 +65,19 @@ def validated_qdox_cfg(config):
     if not isinstance(chapter_desc, str):
       log.warning("'chapter_desc' in given config is not string, skipping it")
       chapter_desc = ""
+    if not isinstance(chapter_desc_files, list):
+      log.warning("'chapter_desc_files' in given config is not list, skipping it")
+      chapter_desc_files = []
     if not isinstance(recursive, bool):
       log.warning("'recursive' in given config is not boolean, skipping it")
       recursive = True
+    for i, desc_file in enumerate(chapter_desc_files):
+      if not isinstance(desc_file, str):
+        log.warning(f"'chapter_desc_file' {desc_file} is not string, skipping it")
+        chapter_desc_files[i] = ""
 
     all_cfg.append({
+      "start_path":start_path,
       "paths":paths,
       "extensions":extensions,
       "doc_chapter":doc_chapter,
@@ -61,6 +85,7 @@ def validated_qdox_cfg(config):
       "exclude_dirs_re":exclude_dirs_re,
       "exclude_files_re":exclude_files_re,
       "chapter_desc":chapter_desc,
+      "chapter_desc_files":chapter_desc_files,
       "chapter_title":chapter_title
     })
   return all_cfg

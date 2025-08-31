@@ -4,7 +4,6 @@
 #include <propPanel/focusHelper.h>
 #include "../contextMenuInternal.h"
 #include <ioSys/dag_dataBlock.h>
-#include <sepGui/wndMenuInterface.h>
 #include <imgui/imgui_internal.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -16,7 +15,7 @@ class PanelWindowContextMenuEventHandler : public IMenuEventHandler
 public:
   PanelWindowContextMenuEventHandler(PanelWindowPropertyControl &panel_window) : panelWindow(panel_window) {}
 
-  virtual int onMenuItemClick(unsigned id) override
+  int onMenuItemClick(unsigned id) override
   {
     auto it = menuIdToContainerMap.find(id);
     if (it == menuIdToContainerMap.end())
@@ -111,20 +110,32 @@ void PanelWindowPropertyControl::setScrollPos(int pos)
   }
 }
 
-int PanelWindowPropertyControl::saveState(DataBlock &datablk)
+int PanelWindowPropertyControl::saveState(DataBlock &datablk, bool by_name)
 {
-  DataBlock *_block = datablk.addNewBlock(String(64, "panel_%d", getID()).str());
+  String panelId;
+  if (by_name)
+    panelId.printf(64, "panel_%s", getStringCaption().c_str());
+  else
+    panelId.printf(64, "panel_%d", getID());
+
+  DataBlock *_block = datablk.addNewBlock(panelId.c_str());
   _block->addInt("vscroll", getScrollPos());
 
-  ContainerPropertyControl::saveState(datablk);
+  ContainerPropertyControl::saveState(datablk, by_name);
   return 0;
 }
 
-int PanelWindowPropertyControl::loadState(DataBlock &datablk)
+int PanelWindowPropertyControl::loadState(DataBlock &datablk, bool by_name)
 {
-  ContainerPropertyControl::loadState(datablk);
+  ContainerPropertyControl::loadState(datablk, by_name);
 
-  DataBlock *_block = datablk.getBlockByName(String(64, "panel_%d", getID()).str());
+  String panelId;
+  if (by_name)
+    panelId.printf(64, "panel_%s", getStringCaption().c_str());
+  else
+    panelId.printf(64, "panel_%d", getID());
+
+  DataBlock *_block = datablk.getBlockByName(panelId.c_str());
   if (_block)
     setScrollPos(_block->getInt("vscroll", 0));
 

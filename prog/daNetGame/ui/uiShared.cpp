@@ -22,7 +22,7 @@
 #include <gui/dag_visualLog.h>
 #include <gui/dag_stdGuiRender.h>
 #include <3d/dag_picMgr.h>
-
+#include <drv/3d/dag_decl.h>
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <drv/hid/dag_hiJoystick.h>
@@ -164,7 +164,8 @@ static void apply_resolution_change()
 void on_settings_changed(const FastNameMap &changed_fields, bool apply_after_device_reset)
 {
   if (changed_fields.getNameId("video/monitor") >= 0 || changed_fields.getNameId("video/resolution") >= 0 ||
-      changed_fields.getNameId("video/vsync") >= 0 || changed_fields.getNameId("video/latency") >= 0 ||
+      changed_fields.getNameId("video/vsync") >= 0 || changed_fields.getNameId("video/nvidia_latency") >= 0 ||
+      changed_fields.getNameId("video/amd_latency") >= 0 || changed_fields.getNameId("video/intel_latency") >= 0 ||
       changed_fields.getNameId("video/mode") >= 0 || changed_fields.getNameId("video/enableHdr") >= 0)
   {
     if (apply_after_device_reset)

@@ -1,5 +1,5 @@
 int rtsm_render_mode;
-interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent;
+interval rtsm_render_mode : hard < 1, denoised < 2, denoised_translucent < 3, rr;
 
 hlsl(cs) {
   #include "NRDEncoding.hlsli"
@@ -30,7 +30,17 @@ shader nrd_sigma_shadow_smooth_tiles
 {
   HANDLE_TRANSLUCENCY()
   hlsl(cs) {
-    #include "SIGMA_Shadow_SmoothTiles.cs.hlsl"
+    #include "SIGMA_SmoothTiles.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_sigma_shadow_copy
+{
+  HANDLE_TRANSLUCENCY()
+  hlsl(cs) {
+    #include "SIGMA_Copy.cs.hlsl"
   }
 
   compile("cs_6_5", "main");

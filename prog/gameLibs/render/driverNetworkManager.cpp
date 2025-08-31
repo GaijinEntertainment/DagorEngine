@@ -23,24 +23,28 @@ public:
 };
 } // namespace
 
+namespace circuit
+{
+const DataBlock *get_conf();
+}
+
 void DriverNetworkManager::sendPsoCacheBlkSync(const DataBlock &cache_blk)
 {
   if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("pso_cache_sending_enabled", true))
     return;
+  const DataBlock *circuitCfg = circuit::get_conf();
+  const char *baseurl = circuitCfg ? circuitCfg->getStr("pso_cache_download_url", nullptr) : nullptr;
+  const char *appkey = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_app_key", nullptr);
+  if (!baseurl || !appkey)
+    return;
   httprequests::AsyncRequestParams request;
-  const char *defaultUrl =
-#if DAGOR_DBGLEVEL > 0
-    "https://beta.pso-cache.gaijin.net/data"
-#else
-    "https://pso-cache.gaijin.net/data"
-#endif
-    ;
-  request.url = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_server_url", defaultUrl);
+  String url(0, "%s/data", baseurl);
+  request.url = url;
   request.reqType = httprequests::HTTPReq::POST; // -V1048
   request.needResponseHeaders = false;
   request.headers = {
     {"Content-Type", "text/plain"},
-    {"game", gameName.c_str()},
+    {"game", appkey},
     {"version", gameVersion.c_str()},
   };
   WaitableCallback waitableCallback;

@@ -13,7 +13,6 @@
 #include <de3_hmapService.h>
 #include <de3_hmapStorage.h>
 #include <util/dag_hierBitMap2d.h>
-#include <math/random/dag_random.h>
 #include <debug/dag_debug.h>
 #include <coolConsole/coolConsole.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -180,8 +179,9 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
   int minGridCellCount = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getInt("minGridCellCount", 4);
 
   int ri_cell_sz = meshCellSize / gridCellSize;
+  float riMaxCellSz = HmapLandPlugin::self->getRIMaxCellSz();
   while (ri_cell_sz > 1 && ri_cell_sz * gridCellSize >= minGridCellSize * 2 &&
-         ((lcmap_w / ri_cell_sz) * (lcmap_h / ri_cell_sz) < minGridCellCount || ri_cell_sz * gridCellSize > 2048 ||
+         ((lcmap_w / ri_cell_sz) * (lcmap_h / ri_cell_sz) < minGridCellCount || ri_cell_sz * gridCellSize > riMaxCellSz ||
            (lcmap_w % ri_cell_sz) || (lcmap_h % ri_cell_sz)))
     ri_cell_sz /= 2;
 
@@ -629,7 +629,8 @@ void LandClassSlotsManager::exportEntityGenDataToFile(MapStorage<uint32_t> &land
 
   DataBlock fileBlk;
   fileBlk.setBool("gen", true);
-  fileBlk.setStr("target", mkbindump::get_target_str(target_code));
+  uint64_t tc_storage = 0;
+  fileBlk.setStr("target", mkbindump::get_target_str(target_code, tc_storage));
 
   for (int layer = 0; layer < rigenSrv->getRIGenLayers(); layer++)
     exportEntityGenDataLayer(land_cls_map, target_code, appBlk, base,
@@ -672,11 +673,12 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
   }
 
   int ri_cell_sz = meshCellSize / gridCellSize;
+  float riMaxCellSz = HmapLandPlugin::self->getRIMaxCellSz();
   while (ri_cell_sz > 1 && ri_cell_sz * gridCellSize >= minGridCellSize * 2 &&
-         ((lcmap_w / ri_cell_sz) * (lcmap_h / ri_cell_sz) < minGridCellCount || ri_cell_sz * gridCellSize > 2048 ||
+         ((lcmap_w / ri_cell_sz) * (lcmap_h / ri_cell_sz) < minGridCellCount || ri_cell_sz * gridCellSize > riMaxCellSz ||
            (lcmap_w % ri_cell_sz) || (lcmap_h % ri_cell_sz)))
     ri_cell_sz /= 2;
-  if (int div = rigenSrv->getRIGenLayerCellSizeDivisor(layer_idx))
+  if (int div = min(rigenSrv->getRIGenLayerCellSizeDivisor(layer_idx), HmapLandPlugin::self->getRIMaxGenLayerCellDiv()))
     ri_cell_sz = ri_cell_sz >= div ? ri_cell_sz / div : 1;
 
   Tab<int> msq(tmpmem);
@@ -747,7 +749,11 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
     for (int j = pl.cls.size() - 1; j >= 0; j--)
     {
       if (!pl.cls[j] || pl.cls[j]->tmpBmpIdx < 0)
+      {
+        if (pl.cls[j] && pl.cls[j]->landClass->detTex)
+          fileBlk.addStr("detOnlyLand", pl.cls[j]->name);
         continue;
+      }
       if (rec_remap[pl.cls[j]->tmpBmpIdx] < 0)
       {
         DAEDITOR3.conWarning("skip land <%s> from empty layer", pl.cls[j]->name);

@@ -125,6 +125,7 @@ namespace das
         virtual bool rtti_node_isJit() const { return false; }
         virtual bool rtti_node_isKeepAlive() const { return false; }
         virtual bool rtti_node_isCallBase() const { return false; }
+        virtual bool rtti_node_isErrorMessage() const { return false; }
     protected:
         virtual ~SimNode() {}
     };
@@ -266,8 +267,8 @@ namespace das
         virtual void onAllocate ( Context *, void *, uint64_t, const LineInfo & ) {}
         virtual void onReallocate ( Context *, void *, uint64_t, void *, uint64_t, const LineInfo & ) {}
         virtual void onFree ( Context *, void *, const LineInfo & ) {}
-        virtual void onAllocateString ( Context *, void *, uint64_t, const LineInfo & ) {}
-        virtual void onFreeString ( Context *, void *, const LineInfo & ) {}
+        virtual void onAllocateString ( Context *, void *, uint64_t, bool, const LineInfo & ) {}
+        virtual void onFreeString ( Context *, void *, bool, const LineInfo & ) {}
         bool isThreadLocal = false;
     };
     typedef smart_ptr<DebugAgent> DebugAgentPtr;
@@ -303,6 +304,10 @@ namespace das
 
     typedef shared_ptr<Context> ContextPtr;
 
+    // todo: Move this structs to separate file
+    struct CodeOfPolicies;
+    struct AnnotationArgumentList;
+
     class Context : public ptr_ref_count, public enable_shared_from_this<Context> {
         template <typename TT> friend struct SimNode_GetGlobalR2V;
         friend struct SimNode_GetGlobal;
@@ -325,6 +330,7 @@ namespace das
         Context(const Context &) = delete;
         Context & operator = (const Context &) = delete;
         virtual ~Context();
+        void setup(int totalVars, uint32_t globalStringHeapSize, CodeOfPolicies policies, AnnotationArgumentList options);
         void strip();
         void logMemInfo(TextWriter & tw);
 
@@ -332,10 +338,14 @@ namespace das
 
         uint64_t getGlobalSize() const { return globalsSize; }
         uint64_t getSharedSize() const { return sharedSize; }
+        void updateSharedGlobalSize(uint64_t sharedDiff, uint64_t globalDiff) {
+            sharedSize += sharedDiff;
+            globalsSize += globalDiff;
+        }
         uint64_t getInitSemanticHash();
 
-        void onAllocateString ( void * ptr, uint64_t size, const LineInfo & at );
-        void onFreeString ( void * ptr, const LineInfo & at );
+        void onAllocateString ( void * ptr, uint64_t size, bool tempString, const LineInfo & at );
+        void onFreeString ( void * ptr, bool tempString, const LineInfo & at );
         void onAllocate ( void * ptr, uint64_t size, const LineInfo & at );
         void onReallocate ( void * ptr, uint64_t size, void * newPtr, uint64_t newSize, const LineInfo & at );
         void onFree ( void * ptr, const LineInfo & at );
@@ -380,34 +390,44 @@ namespace das
             heap->impl_free(ptr, size);
         }
 
-        __forceinline char * allocateString ( const char * text, uint32_t length, const LineInfo * at ) {
+        __forceinline char * allocateString ( const char * text, uint32_t length, const LineInfo * at, bool tempString = false ) {
             if ( instrumentAllocations ) {
                 auto astr = stringHeap->impl_allocateString(this, text, length, at);
-                onAllocateString(astr, length, at ? *at : LineInfo());
+                onAllocateString(astr, length, tempString, at ? *at : LineInfo());
                 return astr;
             } else {
                 return stringHeap->impl_allocateString(this, text, length, at);
             }
         }
 
-        __forceinline char * allocateString ( const string & str, const LineInfo * at ) {
+        __forceinline char * allocateString ( const string & str, const LineInfo * at, bool tempString = false ) {
             if ( instrumentAllocations ) {
                 auto astr = stringHeap->impl_allocateString(this, str.c_str(), uint32_t(str.size()), at);
-                onAllocateString(astr, str.size(), at ? *at : LineInfo());
+                onAllocateString(astr, str.size(), tempString, at ? *at : LineInfo());
                 return astr;
             } else {
                 return stringHeap->impl_allocateString(this, str.c_str(), uint32_t(str.size()), at);
             }
         }
 
-        __forceinline void freeString ( char * ptr, uint32_t length, const LineInfo * at) {
-            if ( instrumentAllocations ) onFreeString(ptr, at ? *at : LineInfo());
-            stringHeap->impl_freeString(ptr, length);
+        __forceinline char * allocateTempString ( const char * text, uint32_t length, const LineInfo * at ) {
+            return allocateString(text, length, at, /*temp*/true);
+        }
+
+        __forceinline bool freeString ( char * ptr, uint32_t length, const LineInfo * at, bool tempString = false ) {
+            uint32_t size = length + 1;
+            size = (size + 15) & ~15;
+            if (stringHeap->isOwnPtr(ptr, size)) {
+                if ( instrumentAllocations ) onFreeString(ptr, tempString, at ? *at : LineInfo());
+                stringHeap->impl_freeString(ptr, length);
+                return true;
+            }
+            return false;
         }
 
         __forceinline void freeTempString ( char * ptr, const LineInfo * at ) {
             if ( stringHeap->isIntern() ) return;
-            if ( stringDisposeQue ) freeString(stringDisposeQue,(uint32_t)strlen(stringDisposeQue),at);
+            if ( stringDisposeQue ) freeString(stringDisposeQue,(uint32_t)strlen(stringDisposeQue),at, /*temp*/true);
             stringDisposeQue = ptr;
         }
 
@@ -431,6 +451,7 @@ namespace das
         __forceinline void restart( ) {
             DAS_ASSERTF(insideContext==0,"can't reset locked context");
             stopFlags = 0;
+            fastCallDepth = 0;
             exception = nullptr;
             last_exception = nullptr;
         }
@@ -516,8 +537,14 @@ namespace das
         void runInitScript ();
         bool runShutdownScript ();
 
-        virtual void to_out ( const LineInfo * at, const char * message );   // output to stdout or equivalent
-        virtual void to_err ( const LineInfo * at, const char * message );   // output to stderr or equivalent
+        virtual void to_out ( const LineInfo * at, int level, const char * message );   // output to stdout or equivalent
+        void to_out ( const LineInfo * at, const char * message ) {
+            to_out(at, LogLevel::defaultPrint, message);
+        }
+        virtual void to_err ( const LineInfo * at, const char * message ) {
+            // output to stderr or equivalent
+            to_out(at, LogLevel::error, message);
+        }
         virtual void breakPoint(const LineInfo & info, const char * reason = "breakpoint", const char * text = ""); // what to do in case of breakpoint
 
         __forceinline vec4f * abiArguments() {
@@ -567,11 +594,16 @@ namespace das
 
         DAS_EVAL_ABI __forceinline vec4f callOrFastcall(const SimFunction * fn, vec4f * args, LineInfo * line) {
             if ( fn->fastcall ) {
+                if ( fastCallDepth * sizeof(Prologue) > stack.free_size() ) { // this is to catch stack overflow
+                    throw_error_at(line, "stack overflow, fast call depth limit exceeded while calling %s", fn->mangledName);
+                }
+                fastCallDepth ++;
                 auto aa = abiArg;
                 abiArg = args;
                 result = fn->code->eval(*this);
                 stopFlags = 0;
                 abiArg = aa;
+                fastCallDepth --;
                 return result;
             } else {
                 // PUSH
@@ -722,6 +754,8 @@ namespace das
         void clearInstruments();
         void runVisitor ( SimVisitor * vis ) const;
 
+        void freeGlobalsAndShared();
+        void allocateGlobalsAndShared();
         uint64_t getSharedMemorySize() const;
         uint64_t getUniqueMemorySize() const;
 
@@ -782,6 +816,7 @@ namespace das
         char *                          globals = nullptr;
         char *                          shared = nullptr;
         StackAllocator                  stack;
+        uint32_t                        fastCallDepth = 0;
         uint32_t                        insideContext = 0;
         bool                            persistent = false;
         bool                            ownStack = false;
@@ -789,7 +824,10 @@ namespace das
         bool                            breakOnException = false;
         bool                            alwaysErrorOnException = false;
         bool                            alwaysStackWalkOnException = false;
+        bool                            showLocalVariablesOnException = false;
+        bool                            showArgumentsOnException = false;
         bool                            instrumentAllocations = false;
+        bool                            gcEnabled = false;
         bool                            failed = false;
         bool                            verySafeContext = false;    // when true, array and table reserves don't free memory
     public:
@@ -847,6 +885,7 @@ namespace das
 #if DAS_ENABLE_SMART_PTR_TRACKING
         static vector<smart_ptr<ptr_ref_count>> sptrAllocations;
 #endif
+        vector<FileInfo*>  deleteUponFinish;
     };
 
     struct DebugAgentInstance {
@@ -861,6 +900,7 @@ namespace das
     void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context );
     void installThreadLocalDebugAgent ( DebugAgentPtr newAgent, LineInfoArg * at, Context * context );
     void shutdownDebugAgent();
+    void shutdownThreadLocalDebugAgent();
     void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo );
     bool isInDebugAgentCreation();
     bool hasDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
@@ -873,19 +913,19 @@ namespace das
 
     class SharedStackGuard {
     public:
-        DAS_THREAD_LOCAL static StackAllocator *lastContextStack;
+        inline static DAS_THREAD_LOCAL(StackAllocator *) lastContextStack;
         SharedStackGuard() = delete;
         SharedStackGuard(const SharedStackGuard &) = delete;
         SharedStackGuard & operator = (const SharedStackGuard &) = delete;
         __forceinline SharedStackGuard(Context & currentContext, StackAllocator & shared_stack) : savedStack(0) {
             savedStack.copy(currentContext.stack);
-            currentContext.stack.copy(lastContextStack ? *lastContextStack : shared_stack);
-            saveLastContextStack = lastContextStack;
-            lastContextStack = &currentContext.stack;
+            currentContext.stack.copy(*lastContextStack ? **lastContextStack : shared_stack);
+            saveLastContextStack = *lastContextStack;
+            *lastContextStack = &currentContext.stack;
         }
         __forceinline ~SharedStackGuard() {
-            lastContextStack->copy(savedStack);
-            lastContextStack = saveLastContextStack;
+            (*lastContextStack)->copy(savedStack);
+            *lastContextStack = saveLastContextStack;
             savedStack.letGo();
         }
     protected:
@@ -1010,9 +1050,18 @@ __forceinline void profileNode ( SimNode * node ) {
 
 #endif
 
+    // ERROR MESSAGE
+    struct SimNode_WithErrorMessage : SimNode {
+        SimNode_WithErrorMessage ( const LineInfo & at, const char * em )
+            : SimNode(at), errorMessage(em) {}
+        virtual bool rtti_node_isErrorMessage() const override { return true; }
+        virtual SimNode * copyNode ( Context & context, NodeAllocator * code ) override;
+        const char * errorMessage = "";
+    };
+
     // FUNCTION CALL
-    struct SimNode_CallBase : SimNode {
-        SimNode_CallBase ( const LineInfo & at ) : SimNode(at) {}
+    struct SimNode_CallBase : SimNode_WithErrorMessage {
+        SimNode_CallBase ( const LineInfo & at, const char * msg ) : SimNode_WithErrorMessage(at,msg) {}
         virtual bool rtti_node_isCallBase() const override { return true; }
         virtual SimNode * copyNode ( Context & context, NodeAllocator * code ) override;
         void visitCall ( SimVisitor & vis );
@@ -1129,9 +1178,9 @@ __forceinline void profileNode ( SimNode * node ) {
         uint32_t    totalSources;
     };
 
-    struct SimNode_Delete : SimNode {
-        SimNode_Delete ( const LineInfo & a, SimNode * s, uint32_t t )
-            : SimNode(a), subexpr(s), total(t) {}
+    struct SimNode_Delete : SimNode_WithErrorMessage {
+        SimNode_Delete ( const LineInfo & a, SimNode * s, uint32_t t, const char * em )
+            : SimNode_WithErrorMessage(a,em), subexpr(s), total(t) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         SimNode *   subexpr;
         uint32_t    total;

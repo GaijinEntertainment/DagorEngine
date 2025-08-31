@@ -6,7 +6,7 @@
 
 #include "globals.h"
 #include "resource_manager.h"
-
+#include "vulkan_allocation_callbacks.h"
 using namespace drv3d_vulkan;
 
 namespace
@@ -25,16 +25,10 @@ struct MemoryPropertiesTableEntry
 
 
 
-
-
-
 #else
 #define MAKE_MEMORY_PROPERTY_ENTRY(req_ded, req_sh_a, req_sh_m, des_ded, des_sh_a, des_sh_m, udes_ded, udes_sh_a, udes_sh_m) \
   {                                                                                                                          \
-    {req_ded, req_sh_a, req_sh_m}, {des_ded, des_sh_a, des_sh_m},                                                            \
-    {                                                                                                                        \
-      udes_ded, udes_sh_a, udes_sh_m                                                                                         \
-    }                                                                                                                        \
+    {req_ded, req_sh_a, req_sh_m}, {des_ded, des_sh_a, des_sh_m}, { udes_ded, udes_sh_a, udes_sh_m }                         \
   }
 G_STATIC_ASSERT(static_cast<uint32_t>(DeviceMemoryConfiguration::COUNT) == 3);
 #endif
@@ -265,7 +259,9 @@ bool DeviceMemoryPool::checkAllocationLimits(const DeviceMemoryTypeAllocationInf
     return false;
 
   // check heap size limit
-  if ((targetHeap->inUse + info.size) > targetHeap->size)
+  // avoid stopping here if at least VK_EXT_memory_priority supported,
+  // but best should be with also VK_EXT_pageable_device_local_memory supported
+  if ((targetHeap->inUse + info.size) > targetHeap->size && !Globals::VK::phy.hasMemoryPriority)
   {
     logAllocationError(info, "heap size limit");
     return false;
@@ -363,7 +359,8 @@ DeviceMemory DeviceMemoryPool::allocate(const DeviceMemoryTypeAllocationInfo &in
   const VkMemoryAllocateInfo allocInfo = //
     {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, chainPtr, info.size, info.typeIndex};
 
-  const VkResult errorCode = VULKAN_CHECK_RESULT(vkDev.vkAllocateMemory(vkDev.get(), &allocInfo, nullptr, ptr(result.memory)));
+  const VkResult errorCode =
+    VULKAN_CHECK_RESULT(vkDev.vkAllocateMemory(vkDev.get(), &allocInfo, VKALLOC(device_memory), ptr(result.memory)));
   if (VULKAN_CHECK_OK(errorCode))
   {
     result.size = info.size;
@@ -373,7 +370,7 @@ DeviceMemory DeviceMemoryPool::allocate(const DeviceMemoryTypeAllocationInfo &in
       VULKAN_EXIT_ON_FAIL(vkDev.vkMapMemory(vkDev.get(), result.memory, 0, VK_WHOLE_SIZE, 0, (void **)&result.pointer));
       if (!result.pointer)
       {
-        vkDev.vkFreeMemory(vkDev.get(), result.memory, nullptr);
+        vkDev.vkFreeMemory(vkDev.get(), result.memory, VKALLOC(device_memory));
         logAllocationError(info, "vulkan map memory silent fail (mapped to nullptr!)", true /*verbose*/);
         return DeviceMemory{};
       }
@@ -390,7 +387,7 @@ void DeviceMemoryPool::free(const DeviceMemory &memory)
 {
   VulkanDevice &vkDev = Globals::VK::dev;
   types[memory.type].heap->inUse -= memory.size;
-  VULKAN_LOG_CALL(vkDev.vkFreeMemory(vkDev.get(), memory.memory, nullptr));
+  VULKAN_LOG_CALL(vkDev.vkFreeMemory(vkDev.get(), memory.memory, VKALLOC(device_memory)));
   ++frees;
 }
 
@@ -465,5 +462,13 @@ int DeviceMemoryPool::MemoryClassCompare::order(uint32_t l, uint32_t r) const
 uint32_t DeviceMemoryPool::getCurrentAvailableDeviceKb()
 {
   // TODO: use cached values if reading takes too much time
-  return Globals::VK::phy.getCurrentAvailableMemoryKb(Globals::VK::dev.getInstance());
+  return Globals::VK::phy.getCurrentAvailableMemoryKb(Globals::VK::inst);
+}
+
+bool drv3d_vulkan::isMemoryClassHostResident(DeviceMemoryClass dmc)
+{
+  if ((dmc == DeviceMemoryClass::DEVICE_RESIDENT_IMAGE) || (dmc == DeviceMemoryClass::DEVICE_RESIDENT_BUFFER) ||
+      (dmc == DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER) || (dmc == DeviceMemoryClass::TRANSIENT_IMAGE))
+    return false;
+  return true;
 }

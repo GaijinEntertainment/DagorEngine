@@ -1,9 +1,11 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t camera__lookDir_get_type();
 static ecs::LTComponentList camera__lookDir_component(ECS_HASH("camera__lookDir"), camera__lookDir_get_type(), "prog/gameLibs/ecs/camera/sphereCam.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "sphereCam.cpp.inl"
 ECS_DEF_PULL_VAR(sphereCam);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc sphere_cam_es_comps[] =
 {

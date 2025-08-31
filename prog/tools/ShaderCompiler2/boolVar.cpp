@@ -2,69 +2,46 @@
 
 #include "boolVar.h"
 #include "globVarSem.h"
+#include "commonUtils.h"
+#include "shErrorReporting.h"
 #include <EASTL/string.h>
 #include <EASTL/unordered_map.h>
 
-static eastl::unordered_map<eastl::string, BoolVar> g_global_bool_vars;
-static eastl::unordered_map<eastl::string, BoolVar> g_local_bool_vars;
-static int g_id = 0;
-
-static BoolVar *find_bool_var(const char *name)
+static const BoolVarTable::Record *find_bool_var(const char *name, const auto &table)
 {
-  auto localFound = g_local_bool_vars.find(name);
-  if (localFound != g_local_bool_vars.end())
-    return &localFound->second;
-  auto globalFound = g_global_bool_vars.find(name);
-  if (globalFound != g_global_bool_vars.end())
-    return &globalFound->second;
+  auto found = table.find(name);
+  if (found != table.end())
+    return &found->second;
   return nullptr;
 }
 
-void BoolVar::add(bool is_local, ShaderTerminal::bool_decl &var, ShaderTerminal::ShaderSyntaxParser &parser, bool ignore_dup)
+void BoolVarTable::add(ShaderTerminal::bool_decl &var, Parser &parser, bool ignore_dup)
 {
   G_ASSERT(var.expr);
-  auto &map = is_local ? g_local_bool_vars : g_global_bool_vars;
-  auto [it, inserted] = map.emplace(var.name->text, BoolVar(var.expr));
+  auto [it, inserted] = vars.emplace(var.name->text, Record{BoolVar(var.expr), 1});
   if (!inserted)
   {
     if (ignore_dup)
+    {
+      report_debug_message(parser, *var.name,
+        "Variant-dependent redeclaration of bool var '%s'. If this is not your intention, please refactor the usage, as some passes "
+        "are required to evaluate such bool vars as depending on dynamic variants.",
+        var.name->text);
+      ++it->second.declCount;
       return;
-    eastl::string message(eastl::string::CtorSprintf{}, "Bool variable '%s' already declared in ", var.name->text);
-    message += parser.get_lex_parser().get_symbol_location(it->second.id, SymbolType::BOOL_VARIABLE);
-    ShaderParser::error(message.c_str(), var.name, parser);
+    }
+    auto message = string_f("Bool variable '%s' already declared in ", var.name->text);
+    message += parser.get_lexer().get_symbol_location(it->second.var.id, SymbolType::BOOL_VARIABLE);
+    report_error(parser, var.name, message.c_str());
     return;
   }
 
-  it->second.id = g_id++;
-  parser.get_lex_parser().register_symbol(it->second.id, SymbolType::BOOL_VARIABLE, var.name);
+  it->second.var.id = id++;
+  parser.get_lexer().register_symbol(it->second.var.id, SymbolType::BOOL_VARIABLE, var.name);
 }
 
-ShaderTerminal::bool_expr *BoolVar::get_expr(ShaderTerminal::SHTOK_ident &ident, ShaderTerminal::ShaderSyntaxParser &parser)
+BoolVarTable::QueryResult BoolVarTable::tryGetExpr(ShaderTerminal::SHTOK_ident &ident) const
 {
-  auto found = find_bool_var(ident.text);
-  if (!found)
-  {
-    eastl::string message(eastl::string::CtorSprintf{}, "Bool variable '%s' not found", ident.text);
-    ShaderParser::error(message.c_str(), &ident, parser);
-    return nullptr;
-  }
-  return found->mExpr;
-}
-
-ShaderTerminal::bool_expr *BoolVar::maybe(ShaderTerminal::SHTOK_ident &ident)
-{
-  auto found = find_bool_var(ident.text);
-  if (!found)
-    return nullptr;
-  return found->mExpr;
-}
-
-void BoolVar::clear(bool clear_only_local)
-{
-  g_local_bool_vars.clear();
-  if (!clear_only_local)
-  {
-    g_global_bool_vars.clear();
-    g_id = 0;
-  }
+  auto found = find_bool_var(ident.text, vars);
+  return found ? QueryResult{found->var.mExpr, found->declCount > 1} : QueryResult{};
 }

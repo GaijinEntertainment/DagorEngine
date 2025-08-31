@@ -6,14 +6,17 @@
 #include "animation_sampling.h"
 #include "inertial_blending.h"
 
-void inertialize_pose_transition(
-  BoneInertialInfo &offset, const BoneInertialInfo &current, const BoneInertialInfo &goal, const dag::Vector<float> &node_weights)
+void inertialize_pose_transition(BoneInertialInfo &offset,
+  const BoneInertialInfo &current,
+  const BoneInertialInfo &goal,
+  const dag::Vector<float> &node_weights,
+  const dag::Vector<float> &goal_node_mask)
 {
 
   // Transition all the inertializers for each other bone
   for (int i = 0, n = offset.position.size(); i < n; i++)
   {
-    if (node_weights[i] > 0.0f)
+    if (node_weights[i] > 0.0f && goal_node_mask[i] > 0.0f)
     {
       vec3f goalVelocity = goal.velocity[i];
       inertialize_transition_v3(offset.position[i], offset.velocity[i], current.position[i], current.velocity[i], goal.position[i],
@@ -66,7 +69,7 @@ void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &in
 {
   constexpr int TIME_FramesPerSec = AnimV20::TIME_TicksPerSec >> AnimV20::TIME_SubdivExp;
 
-  int a2dTime1 = t * AnimV20::TIME_TicksPerSec;
+  int a2dTime1 = t * (float)AnimV20::TIME_TicksPerSec;
   int a2dTime2 = a2dTime1 + AnimV20::TIME_TicksPerSec / TIME_FramesPerSec;
 
   vec4f dtInv = v_safediv(V_C_ONE, v_splats(TIME_FramesPerSec));

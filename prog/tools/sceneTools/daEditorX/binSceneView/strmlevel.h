@@ -41,21 +41,20 @@ struct BBoxTreeElement
 };
 
 
-class AcesScene : public BaseStreamingSceneHolder
+class AcesScene final : public BaseStreamingSceneHolder
 {
 public:
   AcesScene();
-  ~AcesScene();
+  ~AcesScene() override;
 
   void setEnvironmentSettings(DataBlock &enviBlk);
 
   void loadLevel(const char *fname);
   void clear();
 
-  virtual bool bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::ConstSpan<TEXTUREID> texId);
+  bool bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::ConstSpan<TEXTUREID> texId) override;
 
-  virtual void delBinDump(unsigned bindump_id);
-  virtual void unloadAllBinDumps();
+  void delBinDump(unsigned bindump_id) override;
 
   void update(const Point3 &observer, float dt);
   void beforeRender();

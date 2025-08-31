@@ -339,8 +339,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
 
   Tab<AssetPack *> grp_pack(tmpmem), tex_pack(tmpmem);
   FastNameMapEx addPackages;
-  char target_str[6];
-  strcpy(target_str, mkbindump::get_target_str(targetCode));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
   makePack(mgr, mgr.getAssets(), exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str,
     profile);
 
@@ -572,7 +572,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
                 }
 
                 tex_total++;
-                if (texconvcache::validate_tex_asset_cache(*tex, targetCode, profile, NULL, false) == 1)
+                if (AssetExportCache::sharedDataIsAssetInForceRebuildList(*asset_list[j]) || // skip it here to build in texExport.cpp
+                    texconvcache::validate_tex_asset_cache(*tex, targetCode, profile, NULL, false) == 1)
                 {
                   tex_checked_cnt++;
                   continue;
@@ -997,8 +998,8 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
 
   Tab<AssetPack *> grp_pack(tmpmem), tex_pack(tmpmem);
   FastNameMapEx addPackages;
-  char target_str[6];
-  strcpy(target_str, mkbindump::get_target_str(targetCode));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
   makePack(mgr, mgr.getAssets(), exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
 
   AssetExportCache::setSdkRoot(app_dir, "develop");
@@ -1174,44 +1175,32 @@ bool cmp_data_eq(const void *data, int sz, const char *pack_fname)
 
 static void scan_pack_files(const char *folder_path, Tab<String> &packs)
 {
-  alefind_t ff;
   String tmpPath;
 
   tmpPath.printf(260, "%s/*.grp", folder_path);
-  if (::dd_find_first(tmpPath, 0, &ff))
+  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
   {
-    do
-    {
-      if (ff.name[0] != '.')
-        packs.push_back().printf(0, "%s/%s", folder_path, ff.name);
-    } while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    if (ff.name[0] != '.')
+      packs.push_back().printf(0, "%s/%s", folder_path, ff.name);
   }
   tmpPath.printf(260, "%s/*.dxp.bin", folder_path);
-  if (::dd_find_first(tmpPath, 0, &ff))
+  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
   {
-    do
-    {
-      if (ff.name[0] != '.')
-        packs.push_back().printf(0, "%s/%s", folder_path, ff.name);
-    } while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    if (ff.name[0] != '.')
+      packs.push_back().printf(0, "%s/%s", folder_path, ff.name);
   }
 
   // scan for sub-folders
   tmpPath.printf(260, "%s/*", folder_path);
-  if (::dd_find_first(tmpPath, DA_SUBDIR, &ff))
+  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
   {
-    do
-      if (ff.attr & DA_SUBDIR)
-      {
-        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
-          continue;
+    if (ff.attr & DA_SUBDIR)
+    {
+      if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
+        continue;
 
-        scan_pack_files(String(260, "%s/%s", folder_path, ff.name), packs);
-      }
-    while (dd_find_next(&ff));
-    dd_find_close(&ff);
+      scan_pack_files(String(260, "%s/%s", folder_path, ff.name), packs);
+    }
   }
 }
 
@@ -1228,8 +1217,8 @@ void dabuild_list_extra_packs(const char *app_dir, const DataBlock &appblk, Dago
   String dest_base, pack_fname_prefix, pack_fname;
   Tab<AssetPack *> grp_pack(tmpmem), tex_pack(tmpmem);
   FastNameMapEx addPackages;
-  char target_str[6];
-  strcpy(target_str, mkbindump::get_target_str(targetCode));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
   makePack(mgr, mgr.getAssets(), expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
 
   if (!assethlp::validate_exp_blk(addPackages.nameCount() > 0, expblk, target_str, profile, log))
@@ -1314,8 +1303,8 @@ void dabuild_list_packs(const char *app_dir, const DataBlock &appblk, DagorAsset
   String dest_base, pack_fname_prefix, pack_fname;
   Tab<AssetPack *> grp_pack(tmpmem), tex_pack(tmpmem);
   FastNameMapEx addPackages;
-  char target_str[6];
-  strcpy(target_str, mkbindump::get_target_str(targetCode));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
   makePack(mgr, mgr.getAssets(), expTypesMask, expblk, tex_pack, grp_pack, addPackages, log, export_tex, export_res, target_str,
     profile);
 
@@ -1549,8 +1538,9 @@ void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock
         if (!src_blk.blockCount())
           continue;
 
+        uint64_t tc_storage = 0;
+        const char *ts = mkbindump::get_target_str(tc, tc_storage);
         String mntPoint;
-        String ts(mkbindump::get_target_str(tc));
         String profile_suffix;
         if (profile && *profile)
           profile_suffix.printf(0, ".%s", profile);

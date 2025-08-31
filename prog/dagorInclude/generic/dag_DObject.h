@@ -15,11 +15,9 @@
 */
 
 // #define DEBUG_DOBJECTS
-#ifndef DEBUG_DOBJECTS
-#include <debug/dag_fatal.h>
-#endif
 #include <osApiWrappers/dag_atomic.h>
 #include <dag/dag_relocatable.h>
+#include <util/dag_globDef.h>
 
 #include <supp/dag_define_KRNLIMP.h>
 
@@ -63,6 +61,8 @@ public:
 #ifdef DEBUG_DOBJECTS
   KRNLIMP DObject();
   KRNLIMP DObject(const DObject &src) : ref_count(0), dobject_flags(src.dobject_flags) {}
+  DObject &operator=(const DObject &) = delete;
+  DObject &operator=(DObject &&) = default;
 
   KRNLIMP virtual ~DObject();
   KRNLIMP void addRef();
@@ -217,7 +217,8 @@ public:
     }
   }
 
-  inline bool operator==(T *other_ptr) const { return ptr == other_ptr; }
+  bool operator==(T *other_ptr) const { return ptr == other_ptr; }
+  bool operator==(const Ptr<T> &other_ptr) const { return ptr == other_ptr.get(); }
 
 protected:
   T *ptr;
@@ -243,19 +244,13 @@ typedef Ptr<DObject> DObjectPtr;
   {                                           \
   public:
 
-#define decl_class_name(classname)        \
-  const char *class_name() const override \
-  {                                       \
-    return #classname;                    \
-  }
+#define decl_class_name(classname) \
+  const char *class_name() const override { return #classname; }
 
-#define decl_issubof(classname, baseclass)                 \
-  static constexpr DClassID CLASS_ID = classname##CID;     \
-  static constexpr const char *CLASS_NAME = #classname;    \
-  bool isSubOf(DClassID id) override                       \
-  {                                                        \
-    return id == classname##CID || baseclass::isSubOf(id); \
-  }
+#define decl_issubof(classname, baseclass)              \
+  static constexpr DClassID CLASS_ID = classname##CID;  \
+  static constexpr const char *CLASS_NAME = #classname; \
+  bool isSubOf(DClassID id) override { return id == classname##CID || baseclass::isSubOf(id); }
 
 #define decl_dclass(cn, bc) \
   decl_dclass_hdr(cn, bc)   \

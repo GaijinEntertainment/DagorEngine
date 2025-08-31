@@ -1,11 +1,8 @@
 require ecs
 require danetlibs.blood_decals.render.blood_decals_common
 require ProjectiveDecals
+require danetlibs.renderer.includes.pufd_events
 
-[cpp_event(broadcast)]
-struct ParallelUpdateFrameDelayed // TODO: move to shared module
-  curTime : float
-  dt : float
 
 [es(tag=gameClient, no_order)]
 def blood_decals_manager_add_decal(evt : CmdAddBloodDecalInternal;

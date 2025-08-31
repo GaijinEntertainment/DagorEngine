@@ -23,14 +23,14 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption), masks("All|*.*||")
   {}
 
-  virtual unsigned getTypeMaskForSet() const override
+  unsigned getTypeMaskForSet() const override
   {
     return CONTROL_DATA_TYPE_STRING | CONTROL_CAPTION | CONTROL_DATA_TYPE_USER | CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT;
   }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
 
-  virtual void setTextValue(const char value[]) override
+  void setTextValue(const char value[]) override
   {
     const bool clearActiveId = textInputActive && strcmp(value, controlValue) != 0;
 
@@ -55,9 +55,9 @@ public:
     }
   }
 
-  virtual void setBoolValue(bool value) override { setIntValue(value ? FS_DIALOG_DIRECTORY : FS_DIALOG_OPEN_FILE); }
+  void setBoolValue(bool value) override { setIntValue(value ? FS_DIALOG_DIRECTORY : FS_DIALOG_OPEN_FILE); }
 
-  virtual void setIntValue(int value) override
+  void setIntValue(int value) override
   {
     if (value == FS_DIALOG_NONE || value == FS_DIALOG_OPEN_FILE || value == FS_DIALOG_SAVE_FILE || value == FS_DIALOG_DIRECTORY)
       dialogMode = value;
@@ -65,9 +65,9 @@ public:
       G_ASSERT_LOG(false, "Invalid dialog mode: %d.", value);
   }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setStringsValue(const Tab<String> &vals) override
+  void setStringsValue(const Tab<String> &vals) override
   {
     masks.clear();
 
@@ -80,27 +80,27 @@ public:
     masks += "|";
   }
 
-  virtual void setUserDataValue(const void *value) override
+  void setUserDataValue(const void *value) override
   {
     if (value)
       basePath = (const char *)value;
   }
 
-  virtual int getTextValue(char *buffer, int buflen) const override
+  int getTextValue(char *buffer, int buflen) const override
   {
     return ImguiHelper::getTextValueForString(controlValue, buffer, buflen);
   }
 
-  virtual void reset() override
+  void reset() override
   {
     controlValue.clear();
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -128,7 +128,7 @@ public:
   }
 
 private:
-  virtual void onWcClick(WindowBase *source) override
+  void onWcClick(WindowBase *source) override
   {
     if (dialogMode == FS_DIALOG_NONE)
     {
@@ -185,7 +185,7 @@ private:
     }
   }
 
-  virtual void onImguiDelayedCallback(void *user_data) override
+  void onImguiDelayedCallback(void *user_data) override
   {
     PropertyControlBase::onWcClick(nullptr);
     onWcChange(nullptr);

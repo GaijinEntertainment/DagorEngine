@@ -1,4 +1,4 @@
-# Shader: dynamic_painted_by_mask
+# `dynamic_painted_by_mask`
 
 ## Overview
 

@@ -6,7 +6,6 @@
 
 #include <stdint.h>
 #include <EASTL/numeric_limits.h>
-#include <EASTL/functional.h>
 
 namespace net
 {
@@ -35,7 +34,7 @@ inline T seq_diff(T big, T small)
     return (eastl::numeric_limits<sequence_t>::max() - small) + big + 1;
 }
 
-struct LessSeq : public eastl::binary_function<sequence_t, sequence_t, bool>
+struct LessSeq
 {
   EA_CPP14_CONSTEXPR bool operator()(sequence_t a, sequence_t b) const { return is_seq_lt(a, b); }
 };

@@ -46,7 +46,7 @@ public:
     blurYFx.clear();
   }
   void init(const char *shaderXName, const char *shaderYName, const IPoint2 texSize);
-  void render(TEXTUREID srcTexId, Texture *tempTex, TEXTUREID tempTexId, Texture *targTex, unsigned update_state);
+  void render(ManagedTex src_tex, ManagedTex tmp_tex, ManagedTex target_tex, unsigned update_state);
 };
 
 
@@ -61,38 +61,41 @@ void PseudoGaussBlur::init(const char *shaderXName, const char *shaderYName, con
   blurXFx.getMat()->set_color4_param(texSzVarId, Color4(0.5f, -0.5f, 1.0f / texSize.x, 1.0f / texSize.y));
 
   blurYFx.getMat()->set_color4_param(texSzVarId, Color4(0.5f, -0.5f, 1.0f / texSize.x, 1.0f / texSize.y));
-  // set up weights
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    int samplerVarId = ::get_shader_variable_id("tex_samplerstate");
+    blurXFx.getMat()->set_sampler_param(samplerVarId, smp);
+    blurYFx.getMat()->set_sampler_param(samplerVarId, smp);
+  }
 }
 
-void PseudoGaussBlur::render(TEXTUREID srcTexId, Texture *tempTex, TEXTUREID tempTexId, Texture *targTex, unsigned update_state)
+void PseudoGaussBlur::render(ManagedTex src_tex, ManagedTex tmp_tex, ManagedTex target_tex, unsigned update_state)
 {
   if (!blurXFx.getMat())
     return;
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   if (update_state & UPDATE_BLUR_X)
   {
-    d3d::set_render_target(tempTex, 0);
-    blurXFx.getMat()->set_texture_param(texVarId, srcTexId);
+    d3d::set_render_target(tmp_tex.getTex2D(), 0);
+    blurXFx.getMat()->set_texture_param(texVarId, src_tex.getTexId());
     blurXFx.render();
     blurXFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
   }
   if (update_state & UPDATE_BLUR_Y)
   {
-    d3d::set_render_target(targTex, 0);
-    tempTex->texaddr(TEXADDR_CLAMP);
-    blurYFx.getMat()->set_texture_param(texVarId, tempTexId);
+    d3d::set_render_target(target_tex.getTex2D(), 0);
+    blurYFx.getMat()->set_texture_param(texVarId, tmp_tex.getTexId());
     blurYFx.render();
-    tempTex->texaddr(TEXADDR_BORDER);
-    d3d::resource_barrier({targTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    blurYFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({target_tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 }
 
 Variance::Variance() : vsm_shadowmapVarId(-1)
 {
   blur = NULL;
-  temp_tex = targ_tex = dest_tex = NULL;
-  temp_wrtex = targ_wrtex = NULL;
-  temp_texId = targ_texId = dest_texId = BAD_TEXTUREID;
   updateBox.setempty();
   updateLightDir.zero();
   updateShadowDist = 0.f;
@@ -123,8 +126,6 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
 
   width = w;
   height = h;
-  blur = new PseudoGaussBlur();
-  blur->init("vsm_shadow_blur_x", "vsm_shadow_blur_y", IPoint2(w, h));
   debug("initing vsm %dx%d", w, h);
   unsigned int flags_vsm = TEXCF_RTARGET;
   unsigned usage = d3d::USAGE_FILTER | d3d::USAGE_RTARGET;
@@ -152,13 +153,7 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
       logerr("vsm falling to argb8");
   }
 
-  temp_tex = d3d::create_tex(NULL, w, h, flags_vsm, 1, "temp_vsm_tex");
-  d3d_err(temp_tex);
-  targ_tex = d3d::create_tex(NULL, w, h, flags_vsm, 1, "targ_vsm_tex");
-  d3d_err(targ_tex);
-
-  temp_wrtex = temp_tex;
-  targ_wrtex = targ_tex;
+  vsmRTPool = RTargetPool::get(w, h, flags_vsm, 1);
 
   unsigned int flags = TEXCF_RTARGET;
   // although depth it is completely working on DirectX,  it will take more memory (since it is 32 bit, instead of 16 bit)
@@ -188,37 +183,14 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
 
   if (vsmType != VSM_BLEND)
   {
-    dest_tex = d3d::create_tex(NULL, w, h, flags, 1, "dest_vsm_tex");
-    d3d_err(dest_tex);
+    dest_tex = dag::create_tex(NULL, w, h, flags, 1, "dest_vsm_tex");
   }
   else
   {
-    dest_tex = NULL;
-    dest_texId = BAD_TEXTUREID;
+    dest_tex.close();
   }
 
   debug("VSM hwDepthBuffer = %d hwDepth16bit=%d", vsmType == VSM_HW, (flags & TEXFMT_MASK) == TEXFMT_DEPTH16);
-  if (dest_tex)
-  {
-    dest_tex->texfilter(TEXFILTER_POINT);
-    dest_tex->texmipmap(TEXMIPMAP_POINT);
-
-    dest_texId = ::register_managed_tex(String(64, "vsm_dest_tex@shadowTex"), dest_tex);
-    dest_tex->texaddr(TEXADDR_CLAMP);
-  }
-  temp_texId = ::register_managed_tex(String(64, "vsm_temp_tex@shadowTex"), temp_tex);
-  temp_tex->texaddr(TEXADDR_BORDER);
-  targ_texId = ::register_managed_tex(String(64, "vsm_targ_tex@shadowTex"), targ_tex);
-  targ_tex->texaddr(TEXADDR_BORDER);
-  temp_tex->texbordercolor(0xFFFFFFFF);
-  targ_tex->texbordercolor(0xFFFFFFFF);
-
-  /*Driver3dRenderTarget oldrt;
-  d3d::get_render_target(oldrt);
-  d3d::set_render_target(targ_tex, 0, false);
-  d3d::clearview(CLEAR_TARGET,0xFFFFFFFF,1,0);
-  d3d::set_render_target(oldrt);*/
-
 
   vsm_shadowmapVarId = ::get_shader_glob_var_id("vsm_shadowmap", true);
   ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, BAD_TEXTUREID);
@@ -226,29 +198,18 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
   vsmShadowProjYVarId = ::get_shader_glob_var_id("vsm_shadow_tm_y", true);
   vsmShadowProjZVarId = ::get_shader_glob_var_id("vsm_shadow_tm_z", true);
   vsmShadowProjWVarId = ::get_shader_glob_var_id("vsm_shadow_tm_w", true);
-  vsm_hw_filterVarId = ::get_shader_glob_var_id("vsm_hw_filter", true);
   vsm_shadow_tex_sizeVarId = ::get_shader_glob_var_id("vsm_shadow_tex_size", true);
   vsm_positiveVarId = ::get_shader_glob_var_id("vsm_positive", true);
-  bool filter = (d3d::get_texformat_usage(flags_vsm) & d3d::USAGE_FILTER);
-  ShaderGlobal::set_int_fast(vsm_hw_filterVarId, filter ? 1 : 0);
 
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
   smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
 
-  // todo: check on non- hw filter supported!
-  if (!filter)
-  {
-    temp_tex->texfilter(TEXFILTER_POINT); ///< just to be sure, that result still valid
-    temp_tex->texmipmap(TEXMIPMAP_POINT);
-    targ_tex->texfilter(TEXFILTER_POINT); ///< just to be sure, that result still valid
-    targ_tex->texmipmap(TEXMIPMAP_POINT);
-    smpInfo.filter_mode = d3d::FilterMode::Point;
-    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
-    debug("non filtered vsm map");
-  }
-  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vsm_shadowmap_samplerstate", true), d3d::request_sampler(smpInfo));
+  vsmSampler = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vsm_shadowmap_samplerstate", true), vsmSampler);
 
+  blur = new PseudoGaussBlur();
+  blur->init("vsm_shadow_blur_x", "vsm_shadow_blur_y", IPoint2(w, h));
 
   ShaderGlobal::set_color4_fast(vsm_shadow_tex_sizeVarId, Color4(width, height, 1.0 / width, 1.0 / height));
   light_full_update_threshold = 0.04;
@@ -259,6 +220,8 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
   oldLightDir = Point3(0, 0, 0);
   oldBox.setempty();
   forceUpdate();
+
+  inited = true;
 }
 
 void Variance::close()
@@ -266,11 +229,12 @@ void Variance::close()
   setOff();
   del_it(blur);
   ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, BAD_TEXTUREID);
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(temp_texId, temp_tex);
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(targ_texId, targ_tex);
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(dest_texId, dest_tex);
+  temp_tex = nullptr;
+  targ_tex = nullptr;
+  dest_tex.close();
   shaders::overrides::destroy(blendOverride);
   shaders::overrides::destroy(depthOnlyOverride);
+  inited = false;
 }
 
 void Variance::endShadowMap()
@@ -284,21 +248,25 @@ void Variance::endShadowMap()
   if ((update_state & UPDATE_BLUR))
   {
     ShaderGlobal::set_int_fast(vsm_positiveVarId, vsmType == VSM_HW ? 1 : 0);
+    if (temp_tex == nullptr)
+    {
+      temp_tex = vsmRTPool->acquire();
+    }
+    if (targ_tex == nullptr)
+    {
+      targ_tex = vsmRTPool->acquire();
+    }
+
     TIME_D3D_PROFILE(blurVsm);
     if (dest_tex)
     {
-      blur->render(dest_texId, temp_wrtex, temp_texId, targ_wrtex, update_state);
+      blur->render(dest_tex, *temp_tex, *targ_tex, update_state);
     }
     else
     {
       update_state |= UPDATE_BLUR; // we have to blur both stages in the same time, since both textures become invalid
-      // blur->render(targ_texId, temp_wrtex, temp_texId, targ_wrtex, update_state);
-      temp_tex->texaddr(TEXADDR_CLAMP);
-      blur->render(temp_texId, targ_wrtex, targ_texId, temp_wrtex, update_state);
-      temp_tex->texaddr(TEXADDR_BORDER);
-      eastl::swap(temp_wrtex, targ_wrtex);
       eastl::swap(temp_tex, targ_tex);
-      eastl::swap(temp_texId, targ_texId);
+      blur->render(*targ_tex, *temp_tex, *targ_tex, update_state);
     }
   }
 
@@ -330,9 +298,10 @@ void Variance::endShadowMap()
     update_state = UPDATE_BLUR_Y;
   else if (update_state & UPDATE_SCENE)
     update_state = UPDATE_BLUR_X;
-  ShaderGlobal::set_texture(vsm_shadowmapVarId, targ_texId);
+  ShaderGlobal::set_texture(vsm_shadowmapVarId, targ_tex->getTexId());
   ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, width, height, 1.0 / width, 1.0 / height);
   d3d_set_view_proj(savedViewProj);
+  temp_tex = nullptr;
 }
 
 void Variance::setOff()
@@ -341,6 +310,8 @@ void Variance::setOff()
   {
     ShaderGlobal::set_texture(vsm_shadowmapVarId, BAD_TEXTUREID);
     ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, 0, 0);
+    temp_tex = nullptr;
+    targ_tex = nullptr;
   }
   update_state = UPDATE_NONE;
   forceUpdateFrameDelay = -1;
@@ -413,7 +384,13 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     return false;
   }
   else
-    ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, targ_texId);
+  {
+    if (targ_tex == nullptr)
+    {
+      targ_tex = vsmRTPool->acquire();
+    }
+    ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, targ_tex->getTexId());
+  }
 
   oldLightDir = updateLightDir;
   oldBox = updateBox;
@@ -484,12 +461,16 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   if (vsmType == VSM_HW)
   {
     d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
-    d3d_err(d3d::set_depth(dest_tex, DepthAccess::RW));
+    d3d_err(d3d::set_depth(dest_tex.getTex2D(), DepthAccess::RW));
     shaders::overrides::set(depthOnlyOverride);
   }
   else // VSM_BLEND
   {
-    d3d_err(d3d::set_render_target(temp_tex, 0));
+    if (temp_tex == nullptr)
+    {
+      temp_tex = vsmRTPool->acquire();
+    }
+    d3d_err(d3d::set_render_target(temp_tex->getTex2D(), 0));
     clearFlags |= CLEAR_TARGET;
   }
 

@@ -1,0 +1,19 @@
+include "modfx_bboard_render_inc.dshl"
+
+shader dafx_modfx_bboard_distortion
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_bboard_distortion)
+  USE_MODFX_UBERSHADER()
+}
+
+shader dafx_modfx_ribbon_distortion
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_ribbon_distortion)
+  USE_MODFX_UBERSHADER()
+}
+
+shader dafx_modfx_ribbon_distortion_side_only
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_ribbon_distortion_side_only)
+  USE_MODFX_UBERSHADER()
+}

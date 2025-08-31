@@ -25,6 +25,7 @@
 #include <util/dag_watchdog.h>
 #include <util/dag_string.h>
 #include <workCycle/dag_delayedAction.h>
+#include <drv/3d/dag_viewScissor.h>
 
 #include <EASTL/bitvector.h>
 #include <EASTL/vector.h>
@@ -150,7 +151,7 @@ eastl::vector<const shaderbindump::ShaderClass *> gather_shader_classes(const Ta
   return shaderClasses;
 }
 
-#define MS(us) (int)((us)*1000)
+#define MS(us) (int)((us) * 1000)
 static const int COMPILE_TIME_LIMIT_DEFAULT = 100;
 static const int TAIL_WAIT_TIME = 100;
 static bool is_loading_thread = false;
@@ -165,6 +166,15 @@ enum
 static volatile int was_present = NOT_PRESENTED;
 static void (*prev_on_swap_cb)() = nullptr;
 static int lastPresentAt = 0;
+
+struct WarmupCompletionStatus
+{
+  uint32_t completed;
+  uint32_t total;
+  uint32_t summaryCompleted;
+  bool done;
+};
+static WarmupCompletionStatus warmupCompletionStatus = {0, 0, 0, true};
 
 static void on_present()
 {
@@ -198,6 +208,7 @@ public:
   {
     G_ASSERT(gpuLocked);
 
+    ++warmupCompletionStatus.completed;
     compiledPipelinesCount += 1;
     size_t queued = d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH);
     perPipeFlush = compiledPipelinesCount == flushEveryNPipelines;
@@ -324,6 +335,14 @@ public:
     elements.clear();
   }
 
+  uint32_t getAmount(const eastl::vector<const shaderbindump::ShaderClass *> &shader_classes)
+  {
+    uint32_t ret = 0;
+    for (const auto &shaderClass : shader_classes)
+      ret += countAmount(*shaderClass);
+    return ret;
+  }
+
   void warmupShaders(const eastl::vector<const shaderbindump::ShaderClass *> &shader_classes)
   {
     for (const auto &shaderClass : shader_classes)
@@ -389,6 +408,46 @@ private:
         ++variantCode;
       }
     }
+  }
+
+  uint32_t countAmount(const shaderbindump::ShaderClass &shaderClass)
+  {
+    uint32_t ret = 0;
+    if (invalidIntervals.empty())
+    {
+      for (size_t stVariantId = 0; stVariantId < shaderClass.code.size(); ++stVariantId)
+      {
+        const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
+        for (size_t dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
+        {
+          const shaderbindump::ShaderCode::Pass &variantPasses = code.passes[dynVariantId];
+          if (isValidShader(variantPasses.rpass->vprId, variantPasses.rpass->fshId))
+            ++ret;
+        }
+      }
+    }
+    else
+    {
+      enumerateVariants(shaderClass.stVariants, shaderClass.code.size(), usedStVariants);
+      for (int stVariantId = 0; stVariantId < shaderClass.code.size(); ++stVariantId)
+      {
+        if (!usedStVariants[stVariantId])
+          continue;
+
+        const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
+        enumerateVariants(code.dynVariants, code.passes.size(), usedDynVariants);
+        for (int dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
+        {
+          if (!usedDynVariants[dynVariantId])
+            continue;
+
+          const shaderbindump::ShaderCode::Pass &variantPasses = code.passes[dynVariantId];
+          if (isValidShader(variantPasses.rpass->vprId, variantPasses.rpass->fshId))
+            ++ret;
+        }
+      }
+    }
+    return ret;
   }
 
   void warmup(const shaderbindump::ShaderClass &shaderClass)
@@ -637,18 +696,27 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     }
 
     const auto graphicsShaderClasses = gather_shader_classes(graphics_shader_names);
+    const auto computeShaderClasses = gather_shader_classes(compute_shader_names);
+
+    GraphicsShadersWarmup graphics(d3dFlusher, invalidIntervals, params.colorTarget, params.depthTarget);
+    ComputeShadersWarmup compute(d3dFlusher, invalidIntervals);
+
+    d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+    warmupCompletionStatus.completed = 0;
+    warmupCompletionStatus.total = graphics.getAmount(graphicsShaderClasses) + compute.getAmount(computeShaderClasses);
+    warmupCompletionStatus.summaryCompleted = 0;
+    warmupCompletionStatus.done = false;
+    d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
+
     if (!graphicsShaderClasses.empty())
     {
       TIME_PROFILE(warmup_shaders_gr);
-      GraphicsShadersWarmup graphics(d3dFlusher, invalidIntervals, params.colorTarget, params.depthTarget);
       graphics.warmupShaders(graphicsShaderClasses);
     }
 
-    const auto computeShaderClasses = gather_shader_classes(compute_shader_names);
     if (!computeShaderClasses.empty())
     {
       TIME_PROFILE(warmup_shaders_cs);
-      ComputeShadersWarmup compute(d3dFlusher, invalidIntervals);
       compute.warmupShaders(computeShaderClasses);
     }
   }
@@ -667,6 +735,10 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     d3d::driver_command(Drv3dCommand::SAVE_PIPELINE_CACHE);
   }
 
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+  warmupCompletionStatus.done = true;
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
+
   mark_cache_warmed_up();
 
   time = profile_time_usec(time);
@@ -679,4 +751,35 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
   statsd::histogram("render.shader_cache_warmup.max_flush_s", maxFlushS);
 
   debug("shaders warmup took %f sec, max flush time %f sec", dltS, maxFlushS);
+}
+
+bool shadercache::get_warmup_status(uint32_t &completed, uint32_t &total)
+{
+  if (warmupCompletionStatus.done)
+    return false;
+
+  uint32_t queued = (uint32_t)d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH);
+  uint32_t asyncCorrectedCompleted = warmupCompletionStatus.completed > queued ? (warmupCompletionStatus.completed - queued) : 0;
+  // do not make it smaller than last visible one, to not confuse API user with "rollbacks"
+  warmupCompletionStatus.summaryCompleted = max(warmupCompletionStatus.summaryCompleted, asyncCorrectedCompleted);
+  completed = warmupCompletionStatus.completed;
+  total = warmupCompletionStatus.total;
+  return total > 0;
+}
+
+void shadercache::draw_warmup_status()
+{
+  uint32_t completed;
+  uint32_t total;
+  if (shadercache::get_warmup_status(completed, total))
+  {
+    int w = 0, h = 0;
+    d3d::get_target_size(w, h);
+    int barH = 32;
+    int barW = (completed * 100 / total) * w / 100;
+    d3d::setview(0, h - barH, w, barH, 0, 1);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
+    d3d::setview(0, h - barH, barW, barH, 0, 1);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+  }
 }

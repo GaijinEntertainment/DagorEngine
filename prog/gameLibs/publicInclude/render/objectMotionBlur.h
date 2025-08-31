@@ -4,12 +4,19 @@
 //
 #pragma once
 
-#include <3d/dag_resMgr.h>
-#include <3d/dag_resPtr.h>
-
 class BaseTexture;
 typedef BaseTexture Texture;
-
+class D3DRESID;
+using TEXTUREID = D3DRESID;
+namespace resptr_detail // TODO: move to engine header (something like dag_resPtrDecl.h)
+{
+template <typename ResType>
+class ManagedRes;
+template <typename ManagedResType>
+class ManagedResView;
+}; // namespace resptr_detail
+using ManagedTex = resptr_detail::ManagedRes<BaseTexture>;
+using ManagedTexView = resptr_detail::ManagedResView<ManagedTex>;
 class IPoint2;
 
 namespace objectmotionblur

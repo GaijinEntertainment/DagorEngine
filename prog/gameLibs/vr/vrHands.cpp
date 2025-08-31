@@ -8,6 +8,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <animChar/dag_animCharacter2.h>
 #include <render/dynmodelRenderer.h>
 #include <shaders/dag_dynSceneRes.h>
 
@@ -166,9 +167,11 @@ static TMatrix make_orthonomalized_tm(const Point3 &a, const Point3 &b, const Po
 
 
 static TMatrix get_aligned_hand_tm(const Point3 &fist_axis_dir, const Point3 &attachment_dir, const float attachment_radius,
-  const Point3 &attachment_pos, const Point3 &palm_normal, const Point3 &grab_pos, const Point3 &fixed_point_pos)
+  const Point3 &attachment_pos, const Point3 &palm_normal, const Point3 &grab_pos, const Point3 &fixed_point_pos,
+  const bool is_one_sided = false, const Point3 &hand_dir = Point3(), const Point3 &wish_hand_dir = Point3(),
+  const float max_hand_dir_deviation_angle = -1.f)
 {
-  const Point3 &attachmentDir = fist_axis_dir * attachment_dir >= 0.f ? attachment_dir : -attachment_dir;
+  const Point3 &attachmentDir = (is_one_sided || (fist_axis_dir * attachment_dir >= 0.f)) ? attachment_dir : -attachment_dir;
   const float cosBetweenAxes = fist_axis_dir * attachmentDir;
 
   constexpr float MAX_ANGLE = DEG_TO_RAD * 15.f;
@@ -176,6 +179,18 @@ static TMatrix get_aligned_hand_tm(const Point3 &fist_axis_dir, const Point3 &at
   TMatrix tiletdTm = (cosBetweenAxes < MAX_ANGLE_COS)
                        ? quat_to_matrix(Quat(fist_axis_dir % attachmentDir, safe_acos(cosBetweenAxes) - MAX_ANGLE))
                        : TMatrix::IDENT;
+
+  if (max_hand_dir_deviation_angle >= 0.)
+  {
+    Point3 handDir = tiletdTm % hand_dir;
+    handDir = normalize(handDir - (attachment_dir * handDir) * attachment_dir);
+    Point3 wishHandDir = normalize(wish_hand_dir - (attachment_dir * wish_hand_dir) * attachment_dir);
+
+    const float difAngle = safe_acos(handDir * wishHandDir);
+
+    if (difAngle > max_hand_dir_deviation_angle)
+      tiletdTm = quat_to_matrix(Quat(handDir % wishHandDir, difAngle - max_hand_dir_deviation_angle)) % tiletdTm;
+  }
 
   const Point3 attachPos = attachment_pos - (tiletdTm * palm_normal) * attachment_radius;
   const Point3 offset = attachPos - tiletdTm * grab_pos;
@@ -195,7 +210,7 @@ static TMatrix get_aligned_hand_tm(const Point3 &fist_axis_dir, const Point3 &at
 
 
 static TMatrix get_attachment_tm(const GeomNodeTree &tree, const VrHands::GeomNodeTreeJointIndices &joint_indices, VrInput::Hands side,
-  const VrHands::OneHandState::Attachment &attachment, Point3 &out_attachment_pos, Point3 &out_grab_axis_dir,
+  const Point3 hand_dir, const VrHands::OneHandState::Attachment &attachment, Point3 &out_attachment_pos, Point3 &out_grab_axis_dir,
   float &out_attachment_radius)
 {
   using AttachmentShape = VrHands::OneHandState::Attachment::Shape;
@@ -263,6 +278,35 @@ static TMatrix get_attachment_tm(const GeomNodeTree &tree, const VrHands::GeomNo
       attachmentAxisAnchorPoint = palmPosProjectionOnAxis;
       toNewRootTm =
         get_aligned_hand_tm(fistAxis, grabAxisDir, attachment.r, attachmentAxisAnchorPoint, palmNormal, grabPos, indexProximalWpos);
+      break;
+    }
+    case AttachmentShape::CYLINDER_TOP:
+    {
+      const Point3 cylinderAxisDir = grabAxisDir;
+      attachmentAxisAnchorPoint = palmPosProjectionOnAxis;
+      {
+        // Align hand dir with attachment dir
+        Quat rotQuat = quat_rotation_arc(hand_dir, attachment.dir);
+
+        // Then rotate around hand dir so the palm normal is aligned with the cylinder axis
+        Point3 handNorm = rotQuat * palmNormal;
+        handNorm = normalize(handNorm - (attachment.dir * handNorm) * attachment.dir);
+        const Point3 cylinderAxis = normalize(grabAxisDir - (attachment.dir * grabAxisDir) * attachment.dir);
+
+        float difAngle = safe_acos(handNorm * cylinderAxis);
+        if (difAngle > FLT_EPSILON)
+        {
+          if (difAngle < (PI - FLT_EPSILON) && (normalize(handNorm % cylinderAxis) * attachment.dir < 0.f))
+            difAngle = -difAngle;
+          rotQuat = Quat(attachment.dir, difAngle) * rotQuat;
+        }
+
+        // This is new axis for hand to grab
+        grabAxisDir = rotQuat * fistAxis;
+      }
+
+      toNewRootTm = get_aligned_hand_tm(fistAxis, grabAxisDir, attachment.r, attachmentAxisAnchorPoint, palmNormal, grabPos,
+        indexProximalWpos, true, palmNormal, cylinderAxisDir, DEG_TO_RAD * 30.f);
       break;
     }
   }
@@ -628,13 +672,15 @@ void VrHands::updateAttachment(VrInput::Hands side, const TMatrix &ref_rot_tm, c
   attachment.pos = ref_rot_tm * attachment.pos;
   attachment.a = ref_rot_tm * attachment.a;
   attachment.b = ref_rot_tm * attachment.b;
+  attachment.dir = ref_rot_tm % attachment.dir;
 
   auto &tree = animChar[side]->getNodeTree();
 
   Point3 attachmentPos, attachmentDir;
   float attachmentRadius;
+  const Point3 handDir = ref_rot_tm % handsState[side].aim.getcol(1);
   const TMatrix &toNewRootTm =
-    get_attachment_tm(tree, jointIndices[side], side, attachment, attachmentPos, attachmentDir, attachmentRadius);
+    get_attachment_tm(tree, jointIndices[side], side, handDir, attachment, attachmentPos, attachmentDir, attachmentRadius);
 
   place_fingers_on_attachment(tree, side, jointIndices[side], attachmentPos, attachmentDir, attachmentRadius, fingertipLength,
     is_fold_forced);
@@ -681,6 +727,8 @@ void VrHands::update(float dt, const TMatrix &local_ref_space_tm, HandsState &&h
 
   for (auto side : {VrInput::Hands::Left, VrInput::Hands::Right})
   {
+    bool wasTouchingPanel = isTouchingPanel[side];
+    isTouchingPanel[side] = false;
     auto &state = handsState[side];
     if (!state.isActive || !animChar[side])
     {
@@ -789,6 +837,55 @@ void VrHands::update(float dt, const TMatrix &local_ref_space_tm, HandsState &&h
       const Point3 &indexFingerAttachPos = state.indexFingerAttachmentPoint.value();
       const Point3 offset = refRotTm * (indexFingerAttachPos - fingertipRealTm.getcol(3));
       tree.translate(v_ld(&offset.x));
+    }
+    const VrInput::Hands otherSide = (side == VrInput::Hands::Right) ? VrInput::Hands::Left : VrInput::Hands::Right;
+    auto &otherHandState = handsState[otherSide];
+    if (otherHandState.panel.isHoldingPanel && !otherHandState.attachment.isAttached && !state.attachment.isAttached)
+    {
+      TMatrix fingerProximalWtmRel, fingerTipWtmRel;
+      tree.getNodeWtmRelScalar(jointIndices[side][Joints::VRIN_HAND_JOINT_INDEX_PROXIMAL], fingerProximalWtmRel);
+      tree.getNodeWtmRelScalar(jointIndices[side][Joints::VRIN_HAND_JOINT_INDEX_DISTAL], fingerTipWtmRel);
+      fingerTipWtmRel.orthonormalize();
+      convertDistalToFingertipTm(fingerTipWtmRel);
+
+      const Point3 fingerDir = fingerTipWtmRel.getcol(3) - fingerProximalWtmRel.getcol(3);
+
+      auto &otherHandTree = animChar[otherSide]->getNodeTree();
+
+      const Point3 &panelAngles = otherHandState.panel.angles;
+      const Point3 &panelPosition = otherHandState.panel.position;
+      const Point2 &panelHalfSize = otherHandState.panel.halfSize;
+
+      Quat rotation;
+      euler_to_quat(panelAngles.y, panelAngles.x, panelAngles.z, rotation);
+      TMatrix matRotation = quat_to_matrix(rotation);
+      TMatrix matTranslation = TMatrix::IDENT;
+      matTranslation.setcol(3, panelPosition);
+      TMatrix handTm;
+      otherHandTree.getNodeWtmRelScalar(GeomNodeTree::Index16(0), handTm);
+      handTm.orthonormalize();
+      const TMatrix panelTm = handTm * matTranslation * matRotation;
+      const Point3 &panelX = panelTm.getcol(0);
+      const Point3 &panelY = panelTm.getcol(1);
+
+      const Point3 fingertipPos = fingerTipWtmRel.getcol(3);
+      const Point3 panelPos = panelTm.getcol(3);
+      const Point3 panelNorm = normalize(panelTm.getcol(2)) * (fingerDir * panelTm.getcol(2) > 0.f ? -1.f : 1.f);
+      const float projectionToNormal = panelNorm * (fingertipPos - panelPos);
+
+      const bool wasAbovePanel = isAbovePanel[side];
+      isAbovePanel[side] = projectionToNormal > 0.f;
+      if ((wasTouchingPanel || wasAbovePanel) && !isAbovePanel[side] && projectionToNormal > -maxPanelTouchDepth)
+      {
+        const Point3 touchPos = fingertipPos - panelNorm * projectionToNormal;
+        const Point3 panelCenterToTouchPos = touchPos - panelPos;
+        if (abs(panelCenterToTouchPos * panelX) < panelHalfSize.x && abs(panelCenterToTouchPos * panelY) < panelHalfSize.y)
+        {
+          const Point3 offset = touchPos - fingertipPos;
+          isTouchingPanel[side] = true;
+          tree.translate(v_ld(&offset.x));
+        }
+      }
     }
 
     animChar[side]->copyNodes();
@@ -1038,11 +1135,15 @@ void VrHands::beforeRender(const Point3 &playspace_to_cam_vec, const Point3 &cam
   {
     if (handsState[side].isActive && animChar[side])
     {
-      animChar[side]->beforeRender();
-      if (auto scene = animChar[side]->getSceneInstance())
+      auto scene = animChar[side]->getSceneInstance();
+      if (scene)
       {
         scene->savePrevNodeWtm();
         scene->setOrigin(cam_pos_in_world);
+      }
+      animChar[side]->beforeRender();
+      if (scene)
+      {
         auto &nodeMap = nodeMaps[side];
         auto &tree = animChar[side]->getNodeTree();
         for (unsigned int i = 0; i < nodeMap.size(); ++i)
@@ -1067,7 +1168,7 @@ void VrHands::render(TexStreamingContext texCtx)
       if (auto scene = animChar[side]->getSceneInstance())
       {
         G_ASSERT_RETURN(dynrend::can_render(scene), );
-        dynrend::render_one_instance(scene, dynrend::RenderMode::Opaque, texCtx, nullptr, nullptr);
+        dynrend::render_one_instance(scene, ShaderMesh::Stage::STG_opaque, texCtx, nullptr, nullptr);
       }
 }
 

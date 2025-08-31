@@ -21,12 +21,21 @@ struct VolumeVariant
   dag::RelocatableFixedVector<PlacerObjectGroup, 4> objectGroups;
   float density = 0.0f;
   float minTriangleArea = 0.0f;
+  Point2 distBasedScale = Point2(1, 1);
+  Point3 distBasedCenter = Point3(0, 0, 0);
+  float distBasedRange = 1;
+  float sampleRange = -1;
+  bool axisAbs = false;
 };
 
 struct VolumeMappingItem
 {
   uint32_t variantIndex;
   float density;
+  float maxDrawDistance;
+  int targetMeshLod;
+  Point3 axis;
+  bool axisLocal;
 };
 
 using VolumeMapping = dag::VectorMap<ecs::EntityId, VolumeMappingItem>;
@@ -42,8 +51,11 @@ struct VolumeManager
   VolumeBuilder currentBuilder; // Only valid while building a view.
 };
 
-void create_volume_nodes(
-  const ViewInfo &view_info, const ViewBuilder &view_builder, const VolumeManager &volume_manager, NodeInserter node_inserter);
+void create_volume_nodes(const ViewInfo &view_info,
+  const ViewBuilder &view_builder,
+  const VolumeManager &volume_manager,
+  NodeInserter node_inserter,
+  const RulesBuilder &rules_builder);
 
 struct MeshToProcess
 {
@@ -62,6 +74,7 @@ void gather(const VolumeMapping &volume_mapping,
   const ViewInfo &view_info,
   const Viewport &viewport,
   float max_bounding_radius,
+  int target_mesh_lod,
   RiexProcessor &riex_processor,
   RelevantMeshes &out_meshes,
   RelevantTiles &out_tiles,

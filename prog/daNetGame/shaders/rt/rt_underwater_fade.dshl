@@ -1,0 +1,77 @@
+include "water_heightmap.dshl"
+include "rt/rt_underwater_fade_inc.dshl"
+
+texture water_heightmap_lowres;
+
+float bvh_max_water_distance;
+float bvh_max_water_depth;
+
+macro INIT_BVH_WATER_LEVEL(stage)
+  INIT_WORLD_TO_WATER_HEIGHTMAP(stage)
+  (stage){
+    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
+    water_level@f1 = water_level;
+  }
+endmacro
+
+macro USE_BVH_WATER_LEVEL(stage)
+  hlsl(stage)
+  {
+    float get_water_level(float3 worldPos)
+    {
+      if (water_heightmap_lowres_exists)
+      {
+        float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+        float waterLevel = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
+        return waterLevel;
+      }
+      return water_level;
+    }
+  }
+endmacro
+
+macro INIT_BVH_WATER_FADE_BASE(stage)
+  INIT_BVH_WATER_LEVEL(stage)
+  (stage) {
+    bvh_max_water_distance_sq@f1 = bvh_max_water_distance * bvh_max_water_distance;
+    bvh_max_water_depth@f1 = bvh_max_water_depth;
+  }
+endmacro
+
+macro USE_BVH_WATER_FADE_BASE(stage)
+  USE_BVH_WATER_LEVEL(stage)
+  USE_CALC_WORLD_POS(stage)
+  hlsl(stage) {
+    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
+    {
+      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
+      float3 pointToEye = view_pos - worldPos;
+      if (dot(pointToEye, pointToEye) < bvh_max_water_distance_sq)
+        return 1;
+      float waterLevel = get_water_level(worldPos);
+      float depth = worldPos.y - waterLevel;
+      return smoothstep(-bvh_max_water_depth, 0.0, depth);
+    }
+  }
+endmacro
+
+macro INIT_BVH_WATER_FADE_RTR(stage)
+  INIT_BVH_WATER_LEVEL(stage)
+  INIT_BVH_WATER_FADE_RTR_MATH(stage)
+endmacro
+
+macro USE_BVH_WATER_FADE_RTR(stage)
+  USE_BVH_WATER_LEVEL(stage)
+  USE_CALC_WORLD_POS(stage)
+  USE_BVH_WATER_FADE_RTR_MATH(stage)
+  hlsl(stage) {
+    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
+    {
+      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
+      float waterLevel = get_water_level(worldPos);
+      float depth = worldPos.y - waterLevel;
+      return calc_underwater_fade_rtr(depth);
+    }
+  }
+endmacro

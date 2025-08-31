@@ -71,7 +71,7 @@ constexpr float TRACKBAR_DEFAULT_POWER = 1.0f;
 
 struct GradientKey
 {
-  GradientKey(){};
+  GradientKey() {}
   GradientKey(float _position, E3DCOLOR _color) : position(_position), color(_color) {}
 
   float position = 0;
@@ -80,7 +80,7 @@ struct GradientKey
 
 struct TextGradientKey
 {
-  TextGradientKey(){};
+  TextGradientKey() {}
   TextGradientKey(float _position, const char *_text) : position(_position), text(_text) {}
   TextGradientKey(const TextGradientKey &new_key) { operator=(new_key); }
   TextGradientKey &operator=(const TextGradientKey &new_key)

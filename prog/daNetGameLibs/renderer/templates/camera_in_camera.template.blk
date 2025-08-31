@@ -1,0 +1,14 @@
+camera_in_camera {
+  _singleton:b=yes
+  _tags:t="render"
+
+  camcam__lens_render_active:b=no
+  camcam__lens_only_zoom_enabled:b=no // zoom only in lens area
+  camcam__uv_remapping:p4=1,1,1,1
+
+  _group{
+    _tags:t="dev,render"
+    _track:b=yes
+    camcam__has_pending_validation:b=no
+  }
+}

@@ -123,6 +123,7 @@ bool NodeBasedShaderManager::compileShaderProgram(const DataBlock &shader_blk, S
 #elif !NBSM_COMPILE_ONLY
 
   G_ASSERT(platform_id == NodeBasedShaderManager::PLATFORM::ALL);
+  G_UNUSED(platform_id);
   compileShaderForPlatform(get_nbsm_platform());
 
 #else
@@ -171,15 +172,18 @@ void NodeBasedShaderManager::saveToFile(const String &shader_path, PLATFORM plat
     {
       DataBlock parameters; // TODO: maybe only R/W once for all variants
       parameters.addNewBlock(currentIntParametersBlk.get(), "inputs_int");
+      parameters.addNewBlock(currentInt4ParametersBlk.get(), "inputs_int4");
       parameters.addNewBlock(currentFloatParametersBlk.get(), "inputs_float");
       parameters.addNewBlock(currentFloat4ParametersBlk.get(), "inputs_float4");
+      parameters.addNewBlock(currentFloat4x4ParametersBlk.get(), "inputs_float4x4");
       parameters.addNewBlock(currentTextures2dBlk.get(), "inputs_texture2D");
       parameters.addNewBlock(currentTextures3dBlk.get(), "inputs_texture3D");
+      parameters.addNewBlock(currentTextures2dArrayBlk.get(), "inputs_texture2DArray");
       parameters.addNewBlock(currentTextures2dShdArrayBlk.get(), "inputs_texture2D_shdArray");
       parameters.addNewBlock(currentTextures2dNoSamplerBlk.get(), "inputs_texture2D_nosampler");
       parameters.addNewBlock(currentTextures3dNoSamplerBlk.get(), "inputs_texture3D_nosampler");
+      parameters.addNewBlock(currentCBuffersBlk.get(), "inputs_CBuffer");
       parameters.addNewBlock(currentBuffersBlk.get(), "inputs_Buffer");
-      parameters.addNewBlock(metadataBlk.get(), "metadata");
 
       parameters.saveToStream(shaderFile);
       const ShaderBin &permutation = shaderBin[platform_id][variantId][permutationId];
@@ -206,6 +210,7 @@ void NodeBasedShaderManager::saveToFile(const String &shader_path, PLATFORM plat
 #elif !NBSM_COMPILE_ONLY
 
   G_ASSERT(platform_id == NodeBasedShaderManager::PLATFORM::ALL);
+  G_UNUSED(platform_id);
   saveCompiledShaderToFile(get_nbsm_platform());
 
 #else

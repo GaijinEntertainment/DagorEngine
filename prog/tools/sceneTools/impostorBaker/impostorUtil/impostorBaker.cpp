@@ -24,6 +24,7 @@
 #include <ioSys/dag_fileIo.h>
 #include <assets/asset.h>
 #include <assets/assetHlp.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include <render/noiseTex.h>
 #include <shaders/pack_impostor_texture.hlsl>
 #include <shaders/dag_IRenderWrapperControl.h>
@@ -33,6 +34,7 @@
 #include <image/dag_tiff.h>
 #include <image/dag_texPixel.h>
 #include <perfMon/dag_statDrv.h>
+#include <workCycle/dag_workCycle.h>
 
 #include <de3_interface.h>
 #include <rendInst/rendInstGenRender.h>
@@ -47,8 +49,10 @@
 #include <regex>
 #include "impostorTexturePacker.h"
 
+#include <gameMath/objgenPrng.h>
 #include <rendInst/impostorTextureMgr.h>
 
+using namespace objgenerator; // prng
 namespace rendinst
 {
 namespace render
@@ -72,6 +76,7 @@ extern Vbuffer *oneInstanceTmVb;
   VAR(impostor_packed_normal_translucency) \
   VAR(impostor_packed_ao_smoothness)       \
   VAR(impostor_branch_mask_tex)            \
+  VAR(impostor_depth_scale)                \
   VAR(branch_mask_render)                  \
   VAR(slice_id)
 
@@ -279,6 +284,73 @@ static void perform_padding(const PostFxRenderer &padder, ImpostorBaker::Imposto
   padder.render();
 }
 
+static inline bool prefetch_textures(dag::ConstSpan<TEXTUREID> tex_list, int timeout = 60000000 /*start with 1 minute*/)
+{
+  static constexpr int timeout_max = 10 * 60 * 1000000 /*10 minutes max!*/, timeout_inc = 60 * 1000000 /*1 min increment*/;
+  int64_t reft = ref_time_ticks(), reft_report = reft;
+  auto reportTextureState = [](dag::ConstSpan<TEXTUREID> tex_list) {
+    for (TEXTUREID tid : tex_list)
+      debug("  0x%x = %d = %s", tid, tid.index(), get_managed_texture_name(tid));
+    debug("dumping state of textures:");
+    for (TEXTUREID tid : tex_list)
+      dump_managed_tex_state(tid);
+
+    AsyncTextureLoadingState ld_state;
+    if (texconvcache::get_tex_factory_current_loading_state(ld_state) && ld_state.pendingLdTotal > 0)
+    {
+      String text;
+      const unsigned *c = ld_state.pendingLdCount;
+      text.printf(0, "Loading textures: %d pending [%d %s], %d tex loaded, %d tex updated", //
+        ld_state.pendingLdTotal, c[0] ? c[0] : (c[1] ? c[1] : (c[2] ? c[2] : c[3])),
+        c[0] ? "TQ" : (c[1] ? "BQ" : (c[2] ? "HQ" : "UHQ")), ld_state.totalLoadedCount, ld_state.totalCacheUpdated);
+      debug(text);
+    }
+  };
+
+  while (!prefetch_and_check_managed_textures_loaded(tex_list, true))
+  {
+    if (is_main_thread())
+    {
+      dagor_work_cycle();
+      d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED);
+    }
+    if (get_time_usec(reft) > timeout)
+    {
+      if (timeout < timeout_max)
+      {
+        AsyncTextureLoadingState ld_state;
+        if (texconvcache::get_tex_factory_current_loading_state(ld_state) && ld_state.pendingLdTotal > 0)
+        {
+          timeout += timeout_inc;
+          debug("increase timeout to %.2f sec due to %d pending tex loading", timeout / 1e6f, ld_state.pendingLdTotal);
+        }
+      }
+      if (get_time_usec(reft) > timeout)
+        break;
+    }
+
+    if (get_time_usec(reft_report) > 5 * 1000000) // 5 sec
+    {
+      reft_report = ref_time_ticks();
+      debug("prefetching %d textures (on frame %d) for %.2f sec - not ready yet:", tex_list.size(), dagor_frame_no(),
+        get_time_usec(reft) / 1e6f);
+      reportTextureState(tex_list);
+    }
+    sleep_msec(10);
+  }
+
+  if (prefetch_and_check_managed_textures_loaded(tex_list, true))
+  {
+    if (get_time_usec(reft) > 10 * 1000000) // 10 sec
+      debug("finally prefetched %d textures for %.3f sec", tex_list.size(), get_time_usec(reft) / 1e6f);
+    return true;
+  }
+
+  debug("failed to prefetch %d textures (on frame %d):", tex_list.size(), dagor_frame_no());
+  reportTextureState(tex_list);
+  return false;
+}
+
 ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const ImpostorTextureManager::GenerationData &gen_data,
   RenderableInstanceLodsResource *res, const String &asset_name, DataBlock *impostor_blk)
 {
@@ -298,9 +370,9 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
   {
     TextureIdSet usedTexIds;
     res->gatherUsedTex(usedTexIds);
-    if (!prefetch_and_check_managed_textures_loaded(usedTexIds))
+    if (!prefetch_textures(usedTexIds))
     {
-      conerror("There was a problem loading the textures");
+      conerror("There was a problem loading %d textures", usedTexIds.size());
       return {};
     }
   }
@@ -331,8 +403,8 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
   d3d::GpuAutoLock gpuLock;
   SCOPE_VIEW_PROJ_MATRIX;
 
-  prepareTextures(gen_data);
   IPoint2 extent = get_extent(gen_data);
+  prepareTextures(extent);
 
   int sliceHeight = SLICE_SIZE;
   int sliceWidth = SLICE_SIZE;
@@ -341,7 +413,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
   exportData.vertexOffset.resize(NUM_SCALED_VERTICES, Point2{0, 0});
 
   UniqueTex impostorMask =
-    dag::create_tex(nullptr, sliceWidth, sliceHeight, TEXFMT_L8 | TEXCF_RTARGET | TEXCF_READABLE, 1, (asset_name + "_mask").c_str());
+    dag::create_tex(nullptr, sliceWidth, sliceHeight, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_READABLE, 1, (asset_name + "_mask").c_str());
 
   PackedImpostorSlices sliceLayout =
     PackedImpostorSlices(asset->getName(), gen_data.horizontalSamples, IPoint2(sliceWidth, sliceHeight));
@@ -627,7 +699,7 @@ AOData ImpostorBaker::generateAOData(RenderableInstanceLodsResource *res, const 
     vd->getVB()->copyTo(dstVB.get(), 0, elem.baseVertex * elem.vertexData->getStride(), elem.vertexData->getVbSize());
 
     uint8_t *memVB;
-    if (dstVB->lock(0, dstVB->ressize(), (void **)&memVB, VBLOCK_READONLY))
+    if (dstVB->lock(0, dstVB->getSize(), (void **)&memVB, VBLOCK_READONLY))
     {
       Sbuffer *ib = elem.vertexData->getIB();
       uint8_t *memIB;
@@ -640,7 +712,7 @@ AOData ImpostorBaker::generateAOData(RenderableInstanceLodsResource *res, const 
       else
         G_ASSERT(0);
 #endif
-      if (dstIB->lock(0, dstIB->ressize(), (void **)&memIB, VBLOCK_READONLY))
+      if (dstIB->lock(0, dstIB->getSize(), (void **)&memIB, VBLOCK_READONLY))
       {
         for (int k = start * 3, i = 0; k < start * 3 + count * 3; k += 3, ++i)
         {
@@ -839,10 +911,10 @@ ImpostorBaker::ImpostorTextureData ImpostorBaker::prepareRt(IPoint2 extent, Stri
   return ret;
 }
 
-void ImpostorBaker::prepareTextures(const ImpostorTextureManager::GenerationData &gen_data) noexcept
+void ImpostorBaker::prepareTextures(IPoint2 resolution) noexcept
 {
   static unsigned int textureCount = 0; // this helps with debugging
-  const IPoint2 extent = get_rt_extent(gen_data);
+  const IPoint2 extent = resolution * RENDER_OVERSCALE;
   // These are temporary textures used as render targets
   if (rt && rt->getWidth() == extent.x && rt->getHeight() == extent.y)
     return;
@@ -856,7 +928,7 @@ void ImpostorBaker::prepareTextures(const ImpostorTextureManager::GenerationData
   textureCount++;
 
   impostorBranchMaskTex =
-    dag::create_tex(nullptr, gen_data.textureWidth, gen_data.textureHeight, TEXFMT_R8 | TEXCF_RTARGET, 1, "impostor_branch_mask_tex");
+    dag::create_tex(nullptr, resolution.x, resolution.y, TEXFMT_R8 | TEXCF_RTARGET, 1, "impostor_branch_mask_tex");
 }
 
 IPoint2 ImpostorBaker::get_extent(const ImpostorTextureManager::GenerationData &gen_data)
@@ -878,24 +950,37 @@ TexturePackingProfilingInfo ImpostorBaker::exportImpostor(DagorAsset *asset, con
     conerror("Could not load rendInst: %s", asset->getName());
     return {};
   }
-  ImpostorTextureManager::GenerationData genData;
-  genData = ImpostorTextureManager::load_data(&asset->props, res, smallestMipSize, preshadowsEnabled, mipOffsets_hq_mq_lq,
-    mobileMipOffsets_hq_mq_lq, defaultTextureQualityLevels.size(), defaultTextureQualityLevels.data());
-  conlog(" Settings: textureWidth=%d, textureHeight=%d, horizontalSamples=%d, verticalSamples=%d", genData.textureWidth,
-    genData.textureHeight, genData.horizontalSamples, genData.verticalSamples);
-  ImpostorData impostorData = exportToFile(genData, asset, res, options.forceRebake, impostor_blk);
-  if (!impostorData.textures)
+
+  TexturePackingProfilingInfo quality;
+
+  if (asset->props.blockExists("impostor"))
   {
-    conerror("Impostor could not be rendered: %s", asset->getName());
-    return {};
+    ImpostorTextureManager::GenerationData genData;
+    genData = ImpostorTextureManager::load_data(&asset->props, res, smallestMipSize, preshadowsEnabled, mipOffsets_hq_mq_lq,
+      mobileMipOffsets_hq_mq_lq, defaultTextureQualityLevels.size(), defaultTextureQualityLevels.data());
+    conlog(" Settings: textureWidth=%d, textureHeight=%d, horizontalSamples=%d, verticalSamples=%d", genData.textureWidth,
+      genData.textureHeight, genData.horizontalSamples, genData.verticalSamples);
+    ImpostorData impostorData = exportToFile(genData, asset, res, options.forceRebake, impostor_blk);
+    if (!impostorData.textures)
+    {
+      conerror("Impostor could not be rendered: %s", asset->getName());
+      return {};
+    }
+    if (displayExportedImages)
+    {
+      lastExportedAlbedoAlpha = eastl::move(impostorData.textures.albedo_alpha);
+      dagor_work_cycle(); // we expect that current scene will call drawLastExportedImage() from its drawScene()
+    }
+    quality = impostorData.quality;
   }
-  if (displayExportedImages)
-  {
-    d3d::GpuAutoLock gpuLock;
-    d3d::stretch_rect(impostorData.textures.albedo_alpha.getTex2D(), nullptr);
-    d3d::update_screen();
-  }
-  return impostorData.quality;
+
+  return quality;
+}
+
+void ImpostorBaker::drawLastExportedImage() const
+{
+  if (auto *tex = lastExportedAlbedoAlpha.getTex2D())
+    d3d::stretch_rect(tex, d3d::get_backbuffer_tex());
 }
 
 eastl::string ImpostorBaker::getDDSxPackName(const char *folder_path)
@@ -961,50 +1046,53 @@ static int to_sh(float v) { return int(round(v * 1000.f)); }
 ska::flat_hash_map<eastl::string, int> ImpostorBaker::getHashes(DagorAsset *asset) const
 {
   ska::flat_hash_map<eastl::string, int> ret;
-  const DataBlock *impostorBlock = asset->props.getBlockByNameEx("impostor");
 
-  IPoint3 mipOffsets =
-    impostorBlock->paramExists("mipOffsets_hq_mq_lq") ? impostorBlock->getIPoint3("mipOffsets_hq_mq_lq") : mipOffsets_hq_mq_lq;
-  IPoint3 mobileMipOffsets = impostorBlock->paramExists("mobileMipOffsets_hq_mq_lq")
-                               ? impostorBlock->getIPoint3("mobileMipOffsets_hq_mq_lq")
-                               : mobileMipOffsets_hq_mq_lq;
-  int impostorNormalMip = impostorBlock->paramExists("impostorNormalMip") ? impostorBlock->getInt("impostorNormalMip") : 0;
-  float bottomGradientValue = impostorBlock->paramExists("bottomGradient") ? impostorBlock->getReal("bottomGradient") : 0.0;
+  if (const DataBlock *impostorBlock = asset->props.getBlockByName("impostor"))
+  {
+    IPoint3 mipOffsets =
+      impostorBlock->paramExists("mipOffsets_hq_mq_lq") ? impostorBlock->getIPoint3("mipOffsets_hq_mq_lq") : mipOffsets_hq_mq_lq;
+    IPoint3 mobileMipOffsets = impostorBlock->paramExists("mobileMipOffsets_hq_mq_lq")
+                                 ? impostorBlock->getIPoint3("mobileMipOffsets_hq_mq_lq")
+                                 : mobileMipOffsets_hq_mq_lq;
+    int impostorNormalMip = impostorBlock->paramExists("impostorNormalMip") ? impostorBlock->getInt("impostorNormalMip") : 0;
+    float bottomGradientValue = impostorBlock->paramExists("bottomGradient") ? impostorBlock->getReal("bottomGradient") : 0.0;
 
-  ret["mipHq"] = mipOffsets.x;
-  ret["mipMq"] = mipOffsets.y;
-  ret["mipLq"] = mipOffsets.z;
-  ret["mobileMipHq"] = mobileMipOffsets.x;
-  ret["mobileMipMq"] = mobileMipOffsets.y;
-  ret["mobileMipLq"] = mobileMipOffsets.z;
-  ret["smallestMip"] = smallestMipSize;
-  ret["impostorNormalMip"] = impostorNormalMip;
-  ret["bottomGradient"] = bottomGradientValue;
-  ret["normalMipOffset"] = normalMipOffset;
-  ret["aoSmoothnessMipOffset"] = aoSmoothnessMipOffset;
-  ret["preshadow"] = impostorBlock->paramExists("preshadowEnabled") ? impostorBlock->getBool("preshadowEnabled") : preshadowsEnabled;
-  ret["width"] = impostorBlock->paramExists("textureWidth") ? impostorBlock->getInt("textureWidth") : -1;
-  if (impostorBlock->paramExists("textureHeight"))
-  {
-    ret["height"] = impostorBlock->getInt("textureHeight");
-    ret["heightHash"] = -1;
+    ret["mipHq"] = mipOffsets.x;
+    ret["mipMq"] = mipOffsets.y;
+    ret["mipLq"] = mipOffsets.z;
+    ret["mobileMipHq"] = mobileMipOffsets.x;
+    ret["mobileMipMq"] = mobileMipOffsets.y;
+    ret["mobileMipLq"] = mobileMipOffsets.z;
+    ret["smallestMip"] = smallestMipSize;
+    ret["impostorNormalMip"] = impostorNormalMip;
+    ret["bottomGradient"] = bottomGradientValue;
+    ret["normalMipOffset"] = normalMipOffset;
+    ret["aoSmoothnessMipOffset"] = aoSmoothnessMipOffset;
+    ret["preshadow"] = impostorBlock->paramExists("preshadowEnabled") ? impostorBlock->getBool("preshadowEnabled") : preshadowsEnabled;
+    ret["width"] = impostorBlock->paramExists("textureWidth") ? impostorBlock->getInt("textureWidth") : -1;
+    if (impostorBlock->paramExists("textureHeight"))
+    {
+      ret["height"] = impostorBlock->getInt("textureHeight");
+      ret["heightHash"] = -1;
+    }
+    else
+    {
+      ret["height"] = -1;
+      int heightHash = 0;
+      for (const auto &qualityLevel : defaultTextureQualityLevels)
+        heightHash ^= to_sh(qualityLevel.minHeight) * qualityLevel.textureHeight;
+      heightHash = heightHash > 0 ? -heightHash : heightHash;
+      ret["heightHash"] = heightHash;
+    }
+    float aoBrightnessLocal, aoFalloffStartLocal, aoFalloffStopLocal;
+    aoBrightnessLocal = impostorBlock->getReal("aoBrightness", aoBrightness);
+    aoFalloffStartLocal = impostorBlock->getReal("aoFalloffStart", aoFalloffStart);
+    aoFalloffStopLocal = impostorBlock->getReal("aoFalloffStop", aoFalloffStop);
+    ret["aoBrightness"] = to_sh(aoBrightnessLocal);
+    ret["aoFalloffStart"] = to_sh(aoFalloffStartLocal);
+    ret["aoFalloffStart"] = to_sh(aoFalloffStopLocal);
   }
-  else
-  {
-    ret["height"] = -1;
-    int heightHash = 0;
-    for (const auto &qualityLevel : defaultTextureQualityLevels)
-      heightHash ^= to_sh(qualityLevel.minHeight) * qualityLevel.textureHeight;
-    heightHash = heightHash > 0 ? -heightHash : heightHash;
-    ret["heightHash"] = heightHash;
-  }
-  float aoBrightnessLocal, aoFalloffStartLocal, aoFalloffStopLocal;
-  aoBrightnessLocal = impostorBlock->getReal("aoBrightness", aoBrightness);
-  aoFalloffStartLocal = impostorBlock->getReal("aoFalloffStart", aoFalloffStart);
-  aoFalloffStopLocal = impostorBlock->getReal("aoFalloffStop", aoFalloffStop);
-  ret["aoBrightness"] = to_sh(aoBrightnessLocal);
-  ret["aoFalloffStart"] = to_sh(aoFalloffStartLocal);
-  ret["aoFalloffStart"] = to_sh(aoFalloffStopLocal);
+
   return ret;
 }
 
@@ -1061,12 +1149,15 @@ void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, St
 
   String baseFolder = getAssetFolder(asset);
 
-  files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), ALBEDO_ALPHA_NAME));
-  files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
-  files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), AO_SMOOTHNESS_NAME));
-  files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), ALBEDO_ALPHA_NAME));
-  files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
-  files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), AO_SMOOTHNESS_NAME));
+  if (asset->props.blockExists("impostor"))
+  {
+    files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), ALBEDO_ALPHA_NAME));
+    files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
+    files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), AO_SMOOTHNESS_NAME));
+    files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), ALBEDO_ALPHA_NAME));
+    files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
+    files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), AO_SMOOTHNESS_NAME));
+  }
 }
 
 void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOptions &options)
@@ -1084,11 +1175,8 @@ void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOpt
     if (folders.count(folder) > 0 || !::dd_dir_exist(folder.c_str()))
       continue;
     folders.insert(folder);
-    alefind_t tex;
-    if (!::dd_find_first(String(0, "%s/*", folder.c_str()).c_str(), DA_FILE, &tex))
-      continue;
     conlog("Cleaning %s/*", folder.c_str());
-    do
+    for (const alefind_t &tex : dd_find_iterator(String(0, "%s/*", folder.c_str()).c_str(), DA_FILE))
     {
       // .folder.blk files are allowed
       if (strcmp(tex.name, ".folder.blk") == 0)
@@ -1110,8 +1198,7 @@ void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOpt
           if (::dd_erase(file.c_str()))
             removedFiles.insert(file.c_str());
       }
-    } while (!stop && ::dd_find_next(&tex));
-    ::dd_find_close(&tex);
+    }
   }
 }
 
@@ -1268,7 +1355,11 @@ bool ImpostorBaker::generateAssetTexBlk(DagorAsset *asset, const ImpostorTexture
 
 bool ImpostorBaker::updateAssetTexBlk(DagorAsset *asset, int &out_processed, int &out_changed)
 {
-  const eastl::array<const char *, 3> tex_suff = {ALBEDO_ALPHA_NAME, NORMAL_TRANSLUCENCY_NAME, AO_SMOOTHNESS_NAME};
+  const eastl::array<const char *, 5> tex_suff = {
+    ALBEDO_ALPHA_NAME,
+    NORMAL_TRANSLUCENCY_NAME,
+    AO_SMOOTHNESS_NAME,
+  };
   eastl::string packName, old_packName;
   DataBlock blk;
 

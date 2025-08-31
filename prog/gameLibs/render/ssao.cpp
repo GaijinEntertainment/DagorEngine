@@ -41,23 +41,25 @@ static int ssaoBlurTexelOffsetVarId = -1;
 // enable or disable SSAO blur
 bool g_ssao_blur = true;
 
-SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use_own_textures, const char *tag) : tag(tag)
+SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use_own_textures, const char *tag,
+  bool use_own_reprojection_params) :
+  tag(tag)
 {
   aoWidth = w;
   aoHeight = h;
   useOwnTextures = use_own_textures;
+  useOwnReprojectionParams = use_own_reprojection_params;
 
   if (useOwnTextures)
   {
     uint32_t format = ssao_detail::creation_flags_to_format(ssao_detail::consider_shader_assumes(flags));
+    ssaoRTPool = RTargetPool::get(aoWidth, aoHeight, format | TEXCF_RTARGET, 1);
+
     viewSpecific.forTheFirstN(num_views, [&](ViewSpecific &view, int view_ix) {
-      for (int i = 0; i < (ssao_prev_texVarId >= 0 ? 3 : 2); ++i)
-      {
-        String name(128, "%sssao_tex_%d_%d", tag, view_ix, i);
-        view.ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str());
-        view.ssaoTex[i]->disableSampler();
-      }
+      G_UNUSED(view_ix);
+      view.ssaoTex = ssaoRTPool->acquire();
     });
+
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
@@ -97,7 +99,6 @@ void SSAORenderer::initRandomPattern()
   randomPatternTex = UniqueTexHolder(
     dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, name.data()),
     "random_pattern_tex");
-  randomPatternTex.getTex2D()->texfilter(TEXFILTER_POINT);
   renderRandomPattern();
 }
 
@@ -136,7 +137,6 @@ void SSAORenderer::reset()
     view.prevViewVecRB = Point4(0, 0, 0, 0);
     view.prevWorldPos = DPoint3(0, 0, 0);
     view.frameNo = 0;
-    view.currentSSAOid = 0;
   });
 
   if (randomPatternTex.getTex2D())
@@ -152,21 +152,20 @@ SSAORenderer::~SSAORenderer()
   ShaderGlobal::set_texture(ssao_prev_texVarId, BAD_TEXTUREID);
   if (useOwnTextures)
   {
-    viewSpecific.forEach([&](ViewSpecific &view) {
-      for (auto &tex : view.ssaoTex)
-        tex.close();
-    });
+    viewSpecific.forEach([&](ViewSpecific &view) { view.ssaoTex = nullptr; });
   }
   poissonPoints.close();
   clearRandomPattern();
 }
 
-void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex)
+void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex, bool clear_rt)
 {
   G_UNUSED(depth_to_use);
   ShaderGlobal::set_texture(ssao_prev_texVarId, prevSsaoTex);
   d3d::set_render_target(ssaoTex.getTex2D(), 0);
-  d3d::clearview(CLEAR_DISCARD, 0xFFFFFFFF, 1.0, 0);
+
+  if (clear_rt)
+    d3d::clearview(CLEAR_DISCARD, 0xFFFFFFFF, 1.0, 0);
 
   aoRenderer->render();
 }
@@ -209,55 +208,96 @@ void SSAORenderer::applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex
   ssaoBlurRenderer->render();
 }
 
-void SSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex,
-  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
+void SSAORenderer::renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use,
+  const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
-  G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
+  G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex));
   TIME_D3D_PROFILE(SSAO_total)
-  Driver3dRenderTarget prevRt;
-  d3d::get_render_target(prevRt);
+  SCOPE_RENDER_TARGET;
 
   G_ASSERT(depth_tex_to_use);
 
-  updateViewSpecific(view_tm, proj_tm, world_pos);
+  if (useOwnReprojectionParams)
+    updateViewSpecific(view_tm, proj_tm, world_pos);
+
   if (sub_sample == SubFrameSample::Single || sub_sample == SubFrameSample::First)
   {
-    viewSpecific->currentSSAOid = 1 - viewSpecific->currentSSAOid; // 0 or 1
     updateFrameNo();
   }
 
-  const int ownBlurTexId = ssao_prev_texVarId >= 0 ? 2 : (1 - viewSpecific->currentSSAOid);
-  const ManagedTex &ssaoTex = ssao_tex ? *ssao_tex : viewSpecific->ssaoTex[viewSpecific->currentSSAOid];
-  const ManagedTex &prevSsaoTex = prev_ssao_tex ? *prev_ssao_tex : viewSpecific->ssaoTex[1 - viewSpecific->currentSSAOid];
-  const ManagedTex &tmpTex = tmp_tex ? *tmp_tex : viewSpecific->ssaoTex[ownBlurTexId];
+  const ManagedTex *prevSsaoTex = prev_ssao_tex;
+  const ManagedTex *ssaoTex = ssao_tex;
+  RTarget::Ptr prevSsaoTarget;
+  if (useOwnTextures)
+  {
+    prevSsaoTarget = viewSpecific->ssaoTex;
+    viewSpecific->ssaoTex = ssaoRTPool->acquire();
+    prevSsaoTex = prevSsaoTarget.get();
+    ssaoTex = viewSpecific->ssaoTex.get();
+  }
 
   if (randomPatternTex.getTex2D())
     randomPatternTex.setVar();
 
   {
     TIME_D3D_PROFILE(SSAO_render)
-    renderSSAO(depth_tex_to_use, ssaoTex, prevSsaoTex);
+    renderSSAO(depth_tex_to_use, *ssaoTex, *prevSsaoTex, clear_rt);
   }
 
-  d3d::resource_barrier({ssaoTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  if (useOwnTextures)
+  {
+    prevSsaoTarget = nullptr;
+  }
+}
+
+void SSAORenderer::applySSAOBlur(const ManagedTex *ssao_tex, const ManagedTex *tmp_tex)
+{
+  G_ASSERT(useOwnTextures || (ssao_tex && tmp_tex));
+
+  const ManagedTex *ssaoTex = useOwnTextures ? viewSpecific->ssaoTex.get() : ssao_tex;
+  SCOPE_RENDER_TARGET;
+
+  d3d::resource_barrier({ssaoTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   if (g_ssao_blur)
   {
-    TIME_D3D_PROFILE(blurSSAO)
-    applyBlur(ssaoTex, tmpTex);
-
-    d3d::resource_barrier({ssaoTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    TIME_D3D_PROFILE(blurSSAO);
+    RTarget::Ptr tmpSsao;
+    const ManagedTex *tmpTex = tmp_tex;
+    if (useOwnTextures)
+    {
+      tmpSsao = ssaoRTPool->acquire();
+      tmpTex = tmpSsao.get();
+    }
+    applyBlur(*ssaoTex, *tmpTex);
+    if (useOwnTextures)
+      tmpSsao = nullptr;
+    d3d::resource_barrier({ssaoTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   // Restore state
-  d3d::set_render_target(prevRt);
-  ShaderGlobal::set_texture(ssao_texVarId, ssaoTex);
+  ShaderGlobal::set_texture(ssao_texVarId, *ssaoTex);
 }
 
-Texture *SSAORenderer::getSSAOTex() { return viewSpecific->ssaoTex[viewSpecific->currentSSAOid].getTex2D(); }
+void SSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex,
+  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
+{
+  renderSSAO(view_tm, proj_tm, depth_tex_to_use, ssao_tex, prev_ssao_tex, world_pos, sub_sample, true);
+  applySSAOBlur(ssao_tex, tmp_tex);
+}
 
-TEXTUREID SSAORenderer::getSSAOTexId() { return viewSpecific->ssaoTex[viewSpecific->currentSSAOid].getTexId(); };
+Texture *SSAORenderer::getSSAOTex()
+{
+  G_ASSERT(viewSpecific->ssaoTex);
+  return viewSpecific->ssaoTex->getTex2D();
+}
+
+TEXTUREID SSAORenderer::getSSAOTexId()
+{
+  G_ASSERT(viewSpecific->ssaoTex);
+  return viewSpecific->ssaoTex->getTexId();
+};
 
 void SSAORenderer::setCurrentView(int view) { viewSpecific.setCurrentView(view); }
 #undef GLOBAL_VARS_LIST

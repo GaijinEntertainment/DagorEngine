@@ -28,6 +28,7 @@ class TwoBodyConstraintSettings;
 class TwoBodyConstraint;
 class BroadPhaseLayerFilter;
 class AABox;
+class CollisionGroup;
 
 /// Class that provides operations on bodies using a body ID. Note that if you need to do multiple operations on a single body, it is more efficient to lock the body once and combine the operations.
 /// All quantities are in world space unless otherwise specified.
@@ -83,10 +84,12 @@ public:
 	/// @param outBodies If not null on input, this will contain a list of body pointers corresponding to inBodyIDs that can be destroyed afterwards (caller assumes ownership over these).
 	void						UnassignBodyIDs(const BodyID *inBodyIDs, int inNumber, Body **outBodies);
 
-	/// Destroy a body
+	/// Destroy a body.
+	/// Make sure that you remove the body from the physics system using BodyInterface::RemoveBody before calling this function.
 	void						DestroyBody(const BodyID &inBodyID);
 
 	/// Destroy multiple bodies
+	/// Make sure that you remove the bodies from the physics system using BodyInterface::RemoveBody before calling this function.
 	void						DestroyBodies(const BodyID *inBodyIDs, int inNumber);
 
 	/// Add body to the physics system.
@@ -109,15 +112,28 @@ public:
 	/// @return Created body ID or an invalid ID when out of bodies
 	BodyID						CreateAndAddSoftBody(const SoftBodyCreationSettings &inSettings, EActivation inActivationMode);
 
-	/// Broadphase add state handle, used to keep track of a batch while adding to the broadphase.
+	/// Add state handle, used to keep track of a batch of bodies while adding them to the PhysicsSystem.
 	using AddState = void *;
 
-	///@name Batch adding interface, see Broadphase for further documentation.
-	/// Note that ioBodies array must be kept constant while the add is in progress.
+	///@name Batch adding interface
 	///@{
+
+	/// Prepare adding inNumber bodies at ioBodies to the PhysicsSystem, returns a handle that should be used in AddBodiesFinalize/Abort.
+	/// This can be done on a background thread without influencing the PhysicsSystem.
+	/// ioBodies may be shuffled around by this function and should be kept that way until AddBodiesFinalize/Abort is called.
 	AddState					AddBodiesPrepare(BodyID *ioBodies, int inNumber);
+
+	/// Finalize adding bodies to the PhysicsSystem, supply the return value of AddBodiesPrepare in inAddState.
+	/// Please ensure that the ioBodies array passed to AddBodiesPrepare is unmodified and passed again to this function.
 	void						AddBodiesFinalize(BodyID *ioBodies, int inNumber, AddState inAddState, EActivation inActivationMode);
+
+	/// Abort adding bodies to the PhysicsSystem, supply the return value of AddBodiesPrepare in inAddState.
+	/// This can be done on a background thread without influencing the PhysicsSystem.
+	/// Please ensure that the ioBodies array passed to AddBodiesPrepare is unmodified and passed again to this function.
 	void						AddBodiesAbort(BodyID *ioBodies, int inNumber, AddState inAddState);
+
+	/// Remove inNumber bodies in ioBodies from the PhysicsSystem.
+	/// ioBodies may be shuffled around by this function.
 	void						RemoveBodies(BodyID *ioBodies, int inNumber);
 	///@}
 
@@ -148,14 +164,14 @@ public:
 	/// @param inBodyID Body ID of body that had its shape changed
 	/// @param inShape The new shape
 	/// @param inUpdateMassProperties When true, the mass and inertia tensor is recalculated
-	/// @param inActivationMode Weather or not to activate the body
+	/// @param inActivationMode Whether or not to activate the body
 	void						SetShape(const BodyID &inBodyID, const Shape *inShape, bool inUpdateMassProperties, EActivation inActivationMode) const;
 
 	/// Notify all systems to indicate that a shape has changed (usable for MutableCompoundShapes)
 	/// @param inBodyID Body ID of body that had its shape changed
 	/// @param inPreviousCenterOfMass Center of mass of the shape before the alterations
 	/// @param inUpdateMassProperties When true, the mass and inertia tensor is recalculated
-	/// @param inActivationMode Weather or not to activate the body
+	/// @param inActivationMode Whether or not to activate the body
 	void						NotifyShapeChanged(const BodyID &inBodyID, Vec3Arg inPreviousCenterOfMass, bool inUpdateMassProperties, EActivation inActivationMode) const;
 	///@}
 
@@ -256,6 +272,12 @@ public:
 	///@{
 	void						SetUseManifoldReduction(const BodyID &inBodyID, bool inUseReduction);
 	bool						GetUseManifoldReduction(const BodyID &inBodyID) const;
+	///@}
+
+	///@name Collision group
+	///@{
+	void						SetCollisionGroup(const BodyID &inBodyID, const CollisionGroup &inCollisionGroup);
+	const CollisionGroup &		GetCollisionGroup(const BodyID &inBodyID) const;
 	///@}
 
 	/// Get transform and shape for this body, used to perform collision detection

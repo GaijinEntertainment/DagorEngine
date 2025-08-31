@@ -17,8 +17,8 @@ public:
   void setName(const char *s);
   void setLocation(const char *s);
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual bool onOk();
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  bool onOk() override;
 
 private:
   String mName, mLocation;

@@ -1,0 +1,51 @@
+include "bvh.dshl"
+
+int use_hw_rt_gi;
+interval use_hw_rt_gi : off < 1, on;
+
+macro PROJECT_TRACE(code)
+  if (use_hw_rt_gi == on)
+  {
+    INIT_MAIN_BVH(code, 0, true) //fixme 32 waves support
+    USE_MAIN_BVH(code, 1, 1, 1, 0, 1, 0, 1, 1)
+
+    hlsl (code) {
+      #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
+      #define DAGI_PROJECT_TRACE_HAS_ALBEDO 1
+      #define DAGI_HAS_PROJECT_TRACE 1
+      //#define DAGI_PROJECT_DOES_NOT_NEED_SCREEN_TRACE 1
+      #define USE_TRACE_TO_INF 1
+      struct DaGiProjectHitRes
+      {
+        float3 hitCamPos, hitNormal;
+        float3 hitAlbedo, hitRadiance;
+        float hitAt; bool hasRadiance;
+      };
+      bool dagi_project_trace_surface(float3 cam_from, float3 origin, float3 worldDir, float maxT, inout DaGiProjectHitRes hit)
+      {
+        HitInfo hitInfo;
+        //fixme: (sp_world_view_pos - bvh_origin) is constant that should be calculated in doubles!
+        float3 bvhFrom = (origin - bvh_origin) + cam_from;
+        if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupAll, hitInfo, 0.5))
+        {
+          hit.hitAt = hitInfo.t;
+          hit.hitCamPos = cam_from + worldDir*hit.hitAt;
+          hit.hitNormal = hitInfo.normal;
+          hit.hitAlbedo = hitInfo.vertexColor;
+          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+            hit.hitAlbedo = 0.5; // fixme: should be material color
+          else if (hitInfo.albedoTextureIndex != 0xFFFF)
+          {
+            SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
+            float4 texel = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+            hit.hitAlbedo = texel.rgb;
+          }
+          return true;
+        }
+        return false;
+      }
+    }
+
+    compile("cs_set_target", "cs_6_5");
+  }
+endmacro

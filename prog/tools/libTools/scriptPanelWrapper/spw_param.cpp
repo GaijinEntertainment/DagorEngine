@@ -22,7 +22,7 @@ class SPText : public ScriptPanelParam
 public:
   SPText(ScriptPanelContainer *parent, const char *name, const char *caption) : ScriptPanelParam(parent, name, caption), mValue("") {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -30,7 +30,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -51,10 +51,10 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param) { param.SetValue("value", mValue); }
+  void setToScript(SquirrelObject &param) override { param.SetValue("value", mValue); }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -64,13 +64,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setStr(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -95,7 +95,7 @@ public:
     ScriptPanelParam(parent, name, caption), mValue(0), mMin(INT_MIN), mMax(INT_MAX), mStep(1)
   {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -103,7 +103,7 @@ public:
     mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     mMin = (param.Exists("min")) ? param.GetInt("min") : mMin;
     mMax = (param.Exists("max")) ? param.GetInt("max") : mMax;
@@ -129,7 +129,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     param.SetValue("value", mValue);
     param.SetValue("min", mMin);
@@ -138,7 +138,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -148,13 +148,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setInt(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -183,7 +183,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -191,7 +191,7 @@ public:
     mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     mMin = (param.Exists("min")) ? param.GetFloat("min") : mMin;
     mMax = (param.Exists("max")) ? param.GetFloat("max") : mMax;
@@ -217,7 +217,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     param.SetValue("value", mValue);
     param.SetValue("min", mMin);
@@ -226,7 +226,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -236,13 +236,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setReal(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -269,14 +269,14 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
     mPanel->createCheckBox(mPid, mCaption, mValue);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -296,10 +296,10 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) { param.SetValue("value", mValue); }
+  void setToScript(SquirrelObject &param) override { param.SetValue("value", mValue); }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -309,13 +309,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setBool(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -342,7 +342,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -359,7 +359,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -379,7 +379,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -394,7 +394,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -404,13 +404,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setE3dcolor(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -435,7 +435,7 @@ public:
   SPRangedInt(ScriptPanelContainer *parent, const char *name, const char *caption) : SPInt(parent, name, caption) {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -452,7 +452,7 @@ class SPRangedReal : public SPReal
 public:
   SPRangedReal(ScriptPanelContainer *parent, const char *name, const char *caption) : SPReal(parent, name, caption) {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -472,7 +472,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -488,7 +488,7 @@ public:
     return Point2(0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -508,7 +508,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -521,7 +521,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -531,13 +531,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setPoint2(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -564,7 +564,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -579,7 +579,7 @@ public:
     return Point3(0, 0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -598,7 +598,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -612,7 +612,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -622,13 +622,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setPoint3(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -655,7 +655,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -671,7 +671,7 @@ public:
     return Point4(0, 0, 0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -690,7 +690,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -705,7 +705,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -715,13 +715,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setPoint4(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -748,7 +748,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -766,7 +766,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -785,7 +785,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -798,7 +798,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -809,13 +809,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setIPoint2(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -843,7 +843,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -861,7 +861,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -880,7 +880,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -894,7 +894,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -905,13 +905,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setIPoint3(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -937,7 +937,7 @@ public:
     ScriptPanelParam(parent, name, caption), mValue(TMatrix::IDENT)
   {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -960,7 +960,7 @@ public:
     return val;
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -979,7 +979,7 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     if (param.GetValue("value").IsNull())
     {
@@ -1000,7 +1000,7 @@ public:
       }
   }
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -1010,13 +1010,13 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
       blk.setTm(paramName, mValue);
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1041,7 +1041,7 @@ public:
   SPTargetFile(ScriptPanelContainer *parent, const char *name, const char *caption) : SPText(parent, name, caption), mFilter(midmem) {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1051,7 +1051,7 @@ public:
     mPanel->setUserData(mPid, mBaseFolder.str());
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     clear_and_shrink(mFilter);
     SquirrelObject options = param.GetValue("options");
@@ -1088,7 +1088,7 @@ public:
   SPTargetFolder(ScriptPanelContainer *parent, const char *name, const char *caption) : SPText(parent, name, caption) {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1098,7 +1098,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     SquirrelObject folder = param.GetValue("folder");
     if (!folder.IsNull())
@@ -1125,14 +1125,14 @@ public:
   SPEnumText(ScriptPanelContainer *parent, const char *name, const char *caption) : SPText(parent, name, caption), mVals(midmem) {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
     mPanel->createCombo(mPid, mCaption, mVals, mValue);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (mPanel)
     {
@@ -1166,14 +1166,14 @@ public:
   SPEnumInt(ScriptPanelContainer *parent, const char *name, const char *caption) : SPInt(parent, name, caption), mVals(midmem) {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
     mPanel->createCombo(mPid, mCaption, mVals, String(32, "%d", mValue));
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (mPanel)
     {
@@ -1192,7 +1192,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -1203,7 +1203,7 @@ public:
   }
 
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1227,14 +1227,14 @@ class SPEnumReal : public SPReal
 public:
   SPEnumReal(ScriptPanelContainer *parent, const char *name, const char *caption) : SPReal(parent, name, caption), mVals(midmem) {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
     mPanel->createCombo(mPid, mCaption, mVals, formatFloat(mValue));
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (mPanel)
     {
@@ -1253,7 +1253,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -1264,7 +1264,7 @@ public:
   }
 
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1309,7 +1309,7 @@ public:
   {}
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1317,7 +1317,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("value"))
     {
@@ -1349,7 +1349,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid && mCB)
     {
@@ -1363,7 +1363,7 @@ public:
       logerr("Panel script error: SPTarget callback is empty [%s]", mCaption);
   }
 
-  virtual bool onMessage(int pid, int msg, void *arg)
+  bool onMessage(int pid, int msg, void *arg) override
   {
     if (pid == 0 || pid == mPid)
     {
@@ -1380,9 +1380,9 @@ public:
     return false;
   }
 
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel) {}
+  void onClick(int pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1395,7 +1395,7 @@ public:
 
   void setCB(IScriptPanelTargetCB *cb) { mCB = cb; }
 
-  void validate()
+  void validate() override
   {
     if (mCB)
     {
@@ -1415,7 +1415,7 @@ public:
     }
   }
 
-  virtual void getTargetList(Tab<SimpleString> &list) { list.push_back(mValue); }
+  void getTargetList(Tab<SimpleString> &list) override { list.push_back(mValue); }
 
 protected:
   bool clearInvalid() { return true; }
@@ -1432,7 +1432,7 @@ class SPCustomTarget : public SPTarget
 public:
   SPCustomTarget(ScriptPanelContainer *parent, const char *name, const char *caption) : SPTarget(parent, name, caption) {}
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1440,9 +1440,9 @@ public:
     mPanel->setInt(mPid, PropPanel::FS_DIALOG_NONE);
   }
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel) { SPText::onChange(pid, panel); }
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override { SPText::onChange(pid, panel); }
 
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onClick(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid && mCB)
     {
@@ -1473,7 +1473,7 @@ public:
   }
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1509,7 +1509,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     int min = (param.Exists("min")) ? param.GetInt("min") : mMin;
     int max = (param.Exists("max")) ? param.GetInt("max") : mMax;
@@ -1556,7 +1556,7 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
@@ -1581,7 +1581,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -1591,7 +1591,7 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1610,7 +1610,7 @@ public:
     }
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1656,7 +1656,7 @@ public:
   }
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1685,7 +1685,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     int min = (param.Exists("min")) ? param.GetInt("min") : mMin;
     int max = (param.Exists("max")) ? param.GetInt("max") : mMax;
@@ -1749,7 +1749,7 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
@@ -1768,7 +1768,7 @@ public:
     }
   }
 
-  long onChanging(int pid, PropPanel::ContainerPropertyControl &panel)
+  long onChanging(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (isTarget)
     {
@@ -1786,7 +1786,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -1797,7 +1797,7 @@ public:
   }
 
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1817,7 +1817,7 @@ public:
   }
 
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -1844,7 +1844,7 @@ public:
     }
   }
 
-  void validate()
+  void validate() override
   {
     if (isTarget && mCB)
     {
@@ -1864,7 +1864,7 @@ public:
   }
 
 
-  virtual void getTargetList(Tab<SimpleString> &list)
+  void getTargetList(Tab<SimpleString> &list) override
   {
     if (isTarget)
       for (int i = 0; i < mValue.size(); ++i)
@@ -1903,7 +1903,7 @@ public:
   }
 
 
-  void createControl()
+  void createControl() override
   {
     if (!mPanel)
       return;
@@ -1930,7 +1930,7 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     if (param.Exists("height"))
     {
@@ -1997,7 +1997,7 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param)
+  void setToScript(SquirrelObject &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
@@ -2016,7 +2016,7 @@ public:
   }
 
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     if (pid == mPid)
     {
@@ -2027,7 +2027,7 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -2042,7 +2042,7 @@ public:
     }
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (!paramName.empty())
     {
@@ -2088,7 +2088,7 @@ public:
     ScriptPanelContainer(wrapper, parent, name, caption), isExt(is_ext), isRenameble(false), namePid(-1)
   {}
 
-  void createControl()
+  void createControl() override
   {
     PropPanel::ContainerPropertyControl *grp =
       (!mPanel) ? NULL : ((isExt) ? mPanel->createExtGroup(mPid, mCaption) : mPanel->createGroup(mPid, mCaption));
@@ -2106,7 +2106,7 @@ public:
       grp->setBoolValue(isMinimized);
   }
 
-  void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     isMinimized = param.Exists("def") ? !param.GetBool("def") : false;
     mControls = param.GetValue("controls");
@@ -2114,7 +2114,7 @@ public:
       isRenameble = param.GetBool("is_renameble");
   }
 
-  void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     if (isRenameble)
       mPanel->setText(namePid, paramName);
@@ -2130,7 +2130,7 @@ public:
       mPanel->setBool(mPid, is_minim);
   }
 
-  void onChange(int pid, PropPanel::ContainerPropertyControl &panel)
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
   {
     IScriptPanelTargetCB *cb = mPanelWrapper->getObjectCB();
     if (isRenameble && pid == namePid && cb)
@@ -2160,14 +2160,14 @@ public:
     ScriptPanelContainer(wrapper, parent, name, caption)
   {}
 
-  void createControl()
+  void createControl() override
   {
     PropPanel::ContainerPropertyControl *grp = (!mPanel) ? NULL : mPanel->createGroupBox(mPid, mCaption);
     if (!mControls.IsNull())
       ScriptPanelContainer::fillParams(grp, mPanelWrapper->getFreePid(), mControls);
   }
 
-  void getValueFromScript(SquirrelObject param) { mControls = param.GetValue("controls"); }
+  void getValueFromScript(SquirrelObject param) override { mControls = param.GetValue("controls"); }
 
 protected:
   bool isExt;
@@ -2184,7 +2184,7 @@ public:
     ScriptPanelContainer(wrapper, parent, name, caption)
   {}
 
-  virtual void createControl()
+  void createControl() override
   {
     PropPanel::ContainerPropertyControl *grp = !mPanel ? NULL : mPanel->createGroup(mPid, mCaption);
     if (!controls.IsNull())
@@ -2193,13 +2193,13 @@ public:
       grp->setBoolValue(isMinimized);
   }
 
-  virtual void getValueFromScript(SquirrelObject param)
+  void getValueFromScript(SquirrelObject param) override
   {
     controls = param.GetValue("controls");
     isMinimized = param.Exists("def") ? !param.GetBool("def") : false;
   }
 
-  virtual void load(const DataBlock &blk)
+  void load(const DataBlock &blk) override
   {
     for (int i = 0; i < mItems.size(); ++i)
     {
@@ -2207,7 +2207,7 @@ public:
     }
   }
 
-  virtual void save(DataBlock &blk)
+  void save(DataBlock &blk) override
   {
     for (int i = 0; i < mItems.size(); ++i)
     {

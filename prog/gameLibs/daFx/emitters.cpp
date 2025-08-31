@@ -190,7 +190,7 @@ void create_emitter_randomizer(EmitterRandomizer &randomizer, const EmitterData 
   randomizer.globalLifeLimitMax = data.globalLifeLimitMax;
 }
 
-void apply_emitter_randomizer(const EmitterRandomizer &randomizer, EmitterState &state, int &rng)
+void apply_emitter_randomizer(const EmitterRandomizer &randomizer, EmitterState &state, int &rng, float life_time)
 {
   if (randomizer.countMin != randomizer.countMax)
   {
@@ -211,12 +211,21 @@ void apply_emitter_randomizer(const EmitterRandomizer &randomizer, EmitterState 
       _rnd_float(rng, randomizer.globalLifeLimitMin, max(randomizer.globalLifeLimitMin, randomizer.globalLifeLimitMax));
     state.globalLifeLimitRef = state.globalLifeLimit;
   }
+
+  if (life_time > 0)
+  {
+    state.globalLifeLimit = state.globalLifeLimit > 0 ? min(state.globalLifeLimit, life_time) : life_time;
+    state.globalLifeLimitRef = state.globalLifeLimit;
+  }
 }
 
 void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
 {
   TIME_PROFILE(dafx_update_emitters);
+  DA_PROFILE_TAG(dafx_update_emitters, "workers: %d", (int)end_sid - begin_sid);
   InstanceGroups &stream = ctx.instances.groups;
+
+  float distanceBasedTravelLimitSq = ctx.cfg.emitter_max_distance_travelled * ctx.cfg.emitter_max_distance_travelled;
 
   for (int i = begin_sid; i < end_sid; ++i)
   {
@@ -226,7 +235,6 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
       continue;
 
     G_FAST_ASSERT(flags & SYS_VALID);
-    stat_inc(ctx.stats.updateEmitters);
 
     EmitterState &emitter = stream.get<INST_EMITTER_STATE>(i);
     if (emitter.globalLifeLimitRef > 0)
@@ -235,6 +243,7 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
     if (!(flags & SYS_EMITTER_REQ))
       continue;
 
+    interlocked_increment(ctx.asyncStats.updateEmitters);
     float ldt = dt * emitter.totalTickRate;
 
     InstanceState &instState = stream.get<INST_ACTIVE_STATE>(i);
@@ -267,6 +276,8 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
       emitter.spawnTick += allowSpawn ? ldt : 0;
       spawnStep = emitter.shrinkTick > 0 ? int(emitter.spawnTick / emitter.shrinkTick) : 0;
 
+      allowSpawn &= distSq <= distanceBasedTravelLimitSq; // prevents units teleported from emitting
+
       allowSpawn &= emitter.spawnTick >= 0; // delay
       if (!allowSpawn)                      // first anchor point should be when delay is done, not the acutal first one
         lp = np;
@@ -276,6 +287,7 @@ void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid)
         lp = np;
         int distSpawnStep = int(sqrtf(distSq) / emitter.dist);
         spawnStep = max(spawnStep, ctx.app_was_inactive ? min(distSpawnStep, 1) : distSpawnStep);
+        spawnStep = min(spawnStep, instState.aliveLimit);
 
         emitter.timeStamps.get_container().resize(emitter.timeStamps.size() + spawnStep, emitter.generation);
 

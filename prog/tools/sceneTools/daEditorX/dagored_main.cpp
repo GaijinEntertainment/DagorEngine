@@ -3,6 +3,8 @@
 #include "de_appwnd.h"
 #include "de_batch.h"
 #include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_imguiInitialization.h>
+#include <EditorCore/ec_input.h>
 
 #include <workCycle/dag_gameSettings.h>
 #include <startup/dag_globalSettings.h>
@@ -15,24 +17,26 @@
 #include <osApiWrappers/dag_cpuJobs.h>
 
 #include <EditorCore/ec_mainWindow.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/dtx/ddsxPlugin.h>
 
-#include <sepGui/wndGlobal.h>
-#include <winGuiWrapper/wgw_busy.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_delayedAction.h>
-#include <windows.h>
-#include <winreg.h>
 #include <stdio.h>
+#include <time.h>
 #undef ERROR
 
 #include "splashScreen.h"
 
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_daProfilerSettings.h>
+
+#if _TARGET_PC_LINUX
+#include <unistd.h>
+#endif
 
 using editorcore_extapi::dagConsole;
 
@@ -94,7 +98,7 @@ static void quiet_report_fatal_error(const char *title, const char *msg, const c
 class AppManager : public IWndManagerEventHandler
 {
 public:
-  virtual void onInit(IWndManager *manager)
+  void onInit(IWndManager *manager) override
   {
     G_ASSERT(manager);
 
@@ -103,24 +107,24 @@ public:
     const char *useWorkspace = NULL;
 
     // test switches
-    for (int i = 1; i < __argc; ++i)
+    for (int i = 1; i < dgs_argc; ++i)
     {
-      if (__argv[i][0] != '/' && __argv[i][0] != '-')
+      if (dgs_argv[i][0] != '/' && dgs_argv[i][0] != '-')
       {
-        const char *ext = ::get_file_ext(__argv[i]);
+        const char *ext = ::get_file_ext(dgs_argv[i]);
 
         if (ext && !stricmp(ext, "dcmd"))
         {
-          if (::dd_file_exist(__argv[i]))
-            batchFname = __argv[i];
+          if (::dd_file_exist(dgs_argv[i]))
+            batchFname = dgs_argv[i];
           else
-            logwarn("Batch file \"%s\" does not exist!", __argv[i]);
+            logwarn("Batch file \"%s\" does not exist!", dgs_argv[i]);
         }
-        else if (!openFname && ::dd_file_exist(__argv[i]))
-          openFname = __argv[i];
       }
-      if (strnicmp(__argv[i], "-ws:", 4) == 0)
-        useWorkspace = __argv[i] + 4;
+      if (strnicmp(dgs_argv[i], "-ws:", 4) == 0)
+        useWorkspace = dgs_argv[i] + 4;
+      else if (!openFname && trail_strcmp(dgs_argv[i], ".level.blk") && ::dd_file_exist(dgs_argv[i]))
+        openFname = dgs_argv[i];
     }
 
     //----------------------------------
@@ -148,6 +152,15 @@ public:
       SplashScreen::kill();
       batch.runBatch(global_batch_fn);
     }
+    else if (d3d::get_driver_code().is(d3d::stub))
+    {
+      SplashScreen::kill();
+      const char *message = "The stub driver can only be used in batch mode but no batch file (a file with .dcmd extension) has been "
+                            "specified in the command line arguments.";
+      logerr("%s", message);
+      wingw::message_box(wingw::MBS_EXCL, "Fatal error", message);
+      _exit(14);
+    }
     else
     {
       SplashScreen::kill();
@@ -167,20 +180,20 @@ public:
   }
 
 
-  virtual bool onClose()
+  bool onClose() override
   {
     G_ASSERT(app);
     return app->canClose();
   }
 
 
-  virtual void onDestroy() { del_it(app); }
+  void onDestroy() override { del_it(app); }
 
   bool onDropFiles(const dag::Vector<String> &files) { return app && app->onDropFiles(files); }
 
   static void clearBusy()
   {
-    wingw::set_busy(false);
+    ec_set_busy(false);
     SplashScreen::kill();
   }
 
@@ -222,6 +235,16 @@ bool de3_default_fatal_handler(const char *msg, const char *call_stack, const ch
   return prev_dev_fatal_handler ? prev_dev_fatal_handler(msg, call_stack, file, line) : true;
 }
 
+static E3DCOLOR load_window_background_color()
+{
+  const String settingsPath = make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
+  DataBlock settingsBlock;
+  dblk::load(settingsBlock, settingsPath, dblk::ReadFlag::ROBUST);
+  const DataBlock *settingsThemeBlock = settingsBlock.getBlockByNameEx("theme");
+  const char *themeName = settingsThemeBlock->getStr("name", "light");
+  return editor_core_load_window_background_color(String::mk_str_cat(themeName, ".blk"));
+}
+
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
   AppManager appManager;
@@ -232,16 +255,12 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   dgs_fatal_handler = de3_default_fatal_handler;
 
   EditorMainWindow mainWindow(appManager);
-  mainWindow.run("DaEditorX", "RES_DE_ICON",
-    [&appManager](const dag::Vector<String> &files) -> bool { return appManager.onDropFiles(files); });
+  mainWindow.run(
+    "DaEditorX", "RES_DE_ICON", [&appManager](const dag::Vector<String> &files) -> bool { return appManager.onDropFiles(files); },
+    load_window_background_color());
 
   return 0;
 }
-
-#define __UNLIMITED_BASE_PATH 1
-#define __DEBUG_FILEPATH      NULL
-#define DAGOR_NO_DPI_AWARE    -1
-#include <startup/dag_winMain.inc.cpp>
 
 extern bool nvtt_estimate_single_rgb_color_only;
 
@@ -251,51 +270,51 @@ void DagorWinMainInit(int, bool)
   nvtt_estimate_single_rgb_color_only = true;
 
   bool classic_dbg = false;
-  for (int i = 1; i < __argc; i++)
-    if (stricmp(__argv[i], "-debug:classic") == 0)
+  for (int i = 1; i < dgs_argc; i++)
+    if (stricmp(dgs_argv[i], "-debug:classic") == 0)
     {
       classic_dbg = true;
       break;
     }
-    else if (stricmp(__argv[i], "-no_dabuild") == 0)
+    else if (stricmp(dgs_argv[i], "-no_dabuild") == 0)
       dabuild_usage_allowed = false;
-    else if (stricmp(__argv[i], "-min_dabuild") == 0)
+    else if (stricmp(dgs_argv[i], "-min_dabuild") == 0)
       minimize_dabuild_usage = true;
-    else if (stricmp(__argv[i], "-no_src_assets") == 0)
+    else if (stricmp(dgs_argv[i], "-no_src_assets") == 0)
       src_assets_scan_allowed = false;
-    else if (strnicmp(__argv[i], "-enable:", 8) == 0)
-      cmdline_force_enabled_plugins.addNameId(__argv[i] + 8);
-    else if (strnicmp(__argv[i], "-disable:", 9) == 0)
-      cmdline_force_disabled_plugins.addNameId(__argv[i] + 9);
-    else if (strnicmp(__argv[i], "-include_dll_re:", 16) == 0)
-      cmdline_include_dll_re.addNameId(__argv[i] + 16);
-    else if (strnicmp(__argv[i], "-exclude_dll_re:", 16) == 0)
-      cmdline_exclude_dll_re.addNameId(__argv[i] + 16);
-    else if (strnicmp(__argv[i], "-drv:", 5) == 0)
+    else if (strnicmp(dgs_argv[i], "-enable:", 8) == 0)
+      cmdline_force_enabled_plugins.addNameId(dgs_argv[i] + 8);
+    else if (strnicmp(dgs_argv[i], "-disable:", 9) == 0)
+      cmdline_force_disabled_plugins.addNameId(dgs_argv[i] + 9);
+    else if (strnicmp(dgs_argv[i], "-include_dll_re:", 16) == 0)
+      cmdline_include_dll_re.addNameId(dgs_argv[i] + 16);
+    else if (strnicmp(dgs_argv[i], "-exclude_dll_re:", 16) == 0)
+      cmdline_exclude_dll_re.addNameId(dgs_argv[i] + 16);
+    else if (strnicmp(dgs_argv[i], "-drv:", 5) == 0)
     {
-      de3_drv_name = __argv[i] + 5;
+      de3_drv_name = dgs_argv[i] + 5;
       if (strcmp(de3_drv_name, "stub") == 0)
         minimize_dabuild_usage = true;
     }
-    else if (stricmp(__argv[i], "-lateSceneSelect") == 0)
+    else if (stricmp(dgs_argv[i], "-lateSceneSelect") == 0)
       de3_late_scene_select = true;
-    else if (strnicmp(__argv[i], "-profiler:", 10) == 0)
+    else if (strnicmp(dgs_argv[i], "-profiler:", 10) == 0)
     {
       DataBlock profilerSettings;
-      profilerSettings.addStr("profiler", __argv[i] + 10);
+      profilerSettings.addStr("profiler", dgs_argv[i] + 10);
       da_profiler::set_profiling_settings(profilerSettings);
     }
 
   if (classic_dbg)
     start_classic_debug_system("debug");
   else
-    start_debug_system(__argv[0]);
+    start_debug_system(dgs_argv[0]);
 
   char stamp_buf[256], start_time_buf[32] = {0};
   time_t start_at_time = time(nullptr);
-  if (asctime_s(start_time_buf, sizeof(start_time_buf), gmtime(&start_at_time)) != 0)
-    strcpy(start_time_buf, "???");
-  else if (char *p = strchr(start_time_buf, '\n'))
+  const char *asctimeResult = asctime(gmtime(&start_at_time));
+  strcpy(start_time_buf, asctimeResult ? asctimeResult : "???");
+  if (char *p = strchr(start_time_buf, '\n'))
     *p = '\0';
   debug("%s [started at %s UTC+0]\n", dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), ""), start_time_buf);
   if (d3d::get_driver_code().is(d3d::stub))
@@ -310,4 +329,16 @@ void DagorWinMainInit(int, bool)
 void daeditor3_init_globals(IDagorEd2Engine &) {}
 String editorcore_extapi::make_full_start_path(const char *rel_path) { return ::make_full_path(sgg::get_exe_path(), rel_path); }
 #include <namedPtr.cpp>
+#endif
+
+#define __UNLIMITED_BASE_PATH 1
+#define __DEBUG_FILEPATH      NULL
+#define DAGOR_NO_DPI_AWARE    -1
+
+#if _TARGET_PC_WIN
+#include <startup/dag_winMain.inc.cpp>
+#elif _TARGET_PC_LINUX
+#include <startup/dag_linuxMain.inc.cpp>
+#else
+#error "Unsupported platform"
 #endif

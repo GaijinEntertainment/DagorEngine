@@ -6,7 +6,7 @@
 #include <daECS/net/connection.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 
 enum class PossessionResult
 {
@@ -129,7 +129,7 @@ static net::CompReplicationFilter filter_possessed_spectated_and_attachables(
     return net::CompReplicationFilter::ReplicateNow;
   if (ECS_GET_OR(plrEid, specTarget, ecs::INVALID_ENTITY_ID) != eid && ECS_GET_OR(plrEid, possessed, ecs::INVALID_ENTITY_ID) != eid)
   {
-    ecs::EntityId attachedTo = ECS_GET_OR(eid, slot_attach__attachedTo, ecs::INVALID_ENTITY_ID);
+    ecs::EntityId attachedTo = ECS_GET_OR(eid, animchar_attach__attachedTo, ecs::INVALID_ENTITY_ID);
     if (attachedTo && attachedTo != eid)
       return filter_possessed_spectated_and_attachables(attachedTo, cntrl_by, conn);
     ecs::EntityId gunOwner = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
@@ -194,7 +194,7 @@ static net::CompReplicationFilter filter_possessed_spectated_attachables_and_veh
       (turretVehicle && (turretVehicle == plrVehicle || turretVehicle == spectatedVehicle)))
     return net::CompReplicationFilter::ReplicateNow;
 
-  ecs::EntityId attachedTo = ECS_GET_OR(eid, slot_attach__attachedTo, ecs::INVALID_ENTITY_ID);
+  ecs::EntityId attachedTo = ECS_GET_OR(eid, animchar_attach__attachedTo, ecs::INVALID_ENTITY_ID);
   if (attachedTo && attachedTo != eid)
     return filter_possessed_spectated_and_attachables(attachedTo, cntrl_by, conn);
   ecs::EntityId gunOwner = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);

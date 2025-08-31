@@ -66,7 +66,7 @@ static void tabPrintf(Tab<TCHAR> &tab, const TCHAR *fmt, ...)
   va_end(ap);
 
   if (!tab.Count())
-    tab.Append(1, _T(""));
+    tab.Append(1, (TCHAR *)_T(""));
 
 
   tab.Insert(tab.Count() - 1, (int)_tcslen(buf), buf);
@@ -320,7 +320,7 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
   }
   else if (missingNodes.Count())
   {
-    missingNodes.Append(1, _T(""));
+    missingNodes.Append(1, (TCHAR *)_T(""));
     TSTR msg;
     msg = _T("Missing bones:\n");
     msg += &missingNodes[0];

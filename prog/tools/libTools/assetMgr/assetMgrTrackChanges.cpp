@@ -477,6 +477,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
       {
         // re-split and update HQ part
         SimpleString hq_a_pkg(hq_a->props.getStr("forcePackage", NULL));
+        SimpleString hq_a_texpack(hq_a->props.getStr("ddsxTexPack", NULL));
 
         a.props.setInt("splitAt", split_at);
 
@@ -485,10 +486,16 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
         hq_a->props.removeBlock("package");
         hq_a->props.removeParam("package");
         hq_a->props.removeParam("rtMipGenBQ");
+        hq_a->props.removeParam("splitVer");
+        hq_a->props.removeParam("forceZlib");
         if (hq_a_pkg.empty())
           hq_a->props.removeParam("forcePackage");
         else
           hq_a->props.setStr("forcePackage", hq_a_pkg);
+        if (hq_a_texpack.empty())
+          hq_a->props.removeParam("ddsxTexPack");
+        else
+          hq_a->props.setStr("ddsxTexPack", hq_a_texpack);
         hq_a->props.compact();
 
         a.props.setInt("splitVer", split_ver);

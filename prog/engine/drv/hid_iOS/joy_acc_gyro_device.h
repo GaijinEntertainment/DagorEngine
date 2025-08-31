@@ -7,10 +7,7 @@
 
 namespace HumanInput
 {
-enum
-{
-  IOS_SENSOR_ADDITIONAL_AXIS_NUM = 8
-};
+static int constexpr IOS_SENSOR_ADDITIONAL_AXIS_NUM = 8;
 } // namespace HumanInput
 
 class iOSGamepadEx : public HumanInput::IGenJoystick

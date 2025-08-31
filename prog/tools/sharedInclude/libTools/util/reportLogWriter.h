@@ -22,14 +22,14 @@ public:
   ReportLogWriter() : list(tmpmem), errors(false), warnings(false) {}
 
   /// Add formatted message.
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum);
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override;
 
   /// Test whether messages list has error messages.
   /// @return @b true if messages list has error messages, @b false in other case
-  virtual bool hasErrors() const { return errors; }
+  bool hasErrors() const override { return errors; }
 
-  virtual void startLog() {}
-  virtual void endLog() {}
+  void startLog() override {}
+  void endLog() override {}
 
   /// Clear messages list.
   /// (for reusing one log writer object for several operations)

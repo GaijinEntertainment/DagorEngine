@@ -1,8 +1,8 @@
-# .composit.blk
+# `.composit.blk`
 
 ## What is a Composite Object?
 
-A composite object is not an object, but a text file in the `.blk` format, which
+A composite object is not an object, but a text file in the BLK format, which
 contains a list of reference objects and some of their parameters. These files
 are named according to specific conventions and always include one of the
 following suffixes:
@@ -27,7 +27,7 @@ objects themselves (render instances, prefabs, etc.) are exported into the game
 level. Composite files (`.blk` files) are not used beyond the editor.
 ```
 
-## Contents of .composit.blk Files
+## Contents of `.composit.blk` Files
 
 Composite objects consist of an enumeration of objects with certain parameters:
 
@@ -38,7 +38,7 @@ Composite objects consist of an enumeration of objects with certain parameters:
 
 ## Example of Declaring a Single Object
 
-```
+```text
 className:t="composit"
 node{
   name:t="obj_name:rendInst"
@@ -48,18 +48,18 @@ node{
 
 In this example:
 
-- **className:t="composit"**: Indicates that this `.blk` file will be treated as
-  a composite by the engine.
-- **node{}**: Represents an individual building block of our composite object
+- `className:t="composit"`: Indicates that this `.blk` file will be treated as a
+  composite by the engine.
+- `node{}`: Represents an individual building block of our composite object
   (node). Ensure all curly braces are correctly matched; a missing or extra
   brace will break the composite.
-- **name:t="obj_name:rendInst"**: Specifies the name and type of the node. Here,
+- `name:t="obj_name:rendInst"`: Specifies the name and type of the node. Here,
   "obj_name" is a render instance.
 
 If there are no "duplicates" (objects with the same name but different types),
 you can simply specify the name without a type:
 
-```
+```text
 name:t="obj_name"
 ```
 
@@ -87,39 +87,37 @@ list of objects placed in certain places. Names are given without extensions.
 That is, instead of `table_a.lod00.dag`, you should just specify `table_a`. Or,
 instead of `table_a_plates_cmp.composit.blk`, we set `table_a_plates_cmp`.
 
-```{warning}
-
+```{important}
 For the tools, the **asset that was found earlier is prioritized**. For example,
 from two objects in the same directory `table_a.composit.blk` and
 `table_a.lod00.dag` the engine will call `table_a.composit.blk` (in alphabetical
 order `.composit` will be found before `.lod`), but if the composite, for
-example, is in the subdirectory "/composits/", then the first will be the
+example, is in the subdirectory `composits/`, then the first will be the
 `.lod`. Thus, simply rearranging resources in a new way can break a
 compositor referring to "namesakes" without an explicitly specified type.
 
 For this reason, it is often an error when a composite refers to a `.dag` of
-the same name. That is, a `table_a` rendInst is specified inside
- `table_a.composit.blk`. The engine will not call the `table_a` rendInst – it
- will call the  `table_a` composite. Because of this, we get into recursion
- (when an object refers to itself an infinite number of times).
+the same name. That is, a `table_a` rendinst is specified inside
+`table_a.composit.blk`. The engine will not call the `table_a` rendInst – it
+will call the  `table_a` composite. Because of this, we get into recursion
+(when an object refers to itself an infinite number of times).
 
 So always call composites by content. For example,
 `is_table_a_dinner_chairs_cmp.composit.blk` (a dining table with chairs), or
 `is_book_case_shelf_0_7m_a_cmp.composit.blk` (a 0.7-meter shelf for a bookcase).
 
 However, there are still situations when you want to set the same names. For
-example, we already have `table_a` (rendInst) in multiple places. And, after 2
+example, we already have `table_a` (rendinst) in multiple places. And, after two
 years, it became necessary to put plates on it.
 
 We can make a composite `table_a_plates_cmp.composit.blk`, in which to add
 plates and replace it in these multiple places (and then overwrite it with
 future edits).
-
 ```
 
 This is the matrix of the object:
 
-```
+```text
 tm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 ```
 
@@ -147,7 +145,7 @@ always the case. More on this later.
 If we want one of several variants to be placed in the specified coordinates
 instead of one particular asset, then we need to specify the node differently.
 
-```
+```text
 node{
   ent{
     name:t="obj_name1"; weight:r=1;
@@ -162,7 +160,7 @@ Here, instead of always having the same asset, we randomly choose one of the two
 with equal probability. There can also be other parameters inside `node{}`, such
 as a matrix. Only `"name:t"` cannot be specified at the same time as `ent{}`.
 
-```
+```text
 ent{}
 ```
 
@@ -193,7 +191,7 @@ also by jumping to the new line. The two methods in the example below are
 equivalent. Tabulation is used only to improve readability, in fact it will work
 without indentation, and all blocks are separated only by curly braces.
 
-```
+```text
 ent{name:t="obj_name"; weight:r=1;}
 
 ent{
@@ -209,7 +207,7 @@ What should we do if we want to sometimes not spawn anything? Add the empty
 entity mentioned earlier. As we remember, an empty name or no `name:t` parameter
 will give us an empty node:
 
-```
+```text
 node{
   ent{
     name:t="obj_name1"; weight:r=1;
@@ -234,7 +232,7 @@ composite object.
 
 It will work without it. But this composite will be arranged by a human, and the
 search needs a meaningful name that explains what is inside without having to
-open each `.blk` and check the contents.
+open each `.blk` file and check the contents.
 
 ## Example of Declaring Multiple Objects
 
@@ -242,7 +240,7 @@ Let's reinforce our knowledge by going through the same steps multiple times. In
 practice, it's unnecessary to use different node formats side by side (as it can
 complicate readability), but each method works.
 
-```
+```text
 className:t="composit"
 
 // Standard object declaration. Without a specified matrix, it will have zero
@@ -283,11 +281,11 @@ node{
 
 As we discussed earlier, using a different format is required to select from
 multiple entities. The process is similar for random object placement – rather
-than a matrix, we use special parameters:
+than a matrix, we use special parameters.
 
 ### Available Parameters for Randomization
 
-```
+```text
 node{
   offset_x:p2=0, 0
   offset_y:p2=0, 0
@@ -303,23 +301,20 @@ node{
 All the parameters are optional but cannot be used simultaneously with a
 matrix. If a matrix is specified, any of these will be ignored.
 
-- `offset_*:p2` - Specifies the object's position along the corresponding axes in
+- `offset_*:p2`: Specifies the object's position along the corresponding axes in
   meters. Replace the `*` with the axis letter. The first value is the absolute
   offset, and the second is the allowed deviation in both directions after that.
   For example, a value of `3, 0.5` means the final coordinate will be between
   2.5 and 3.5 meters. If unspecified, it defaults to `0, 0`.
-
-- `rot_*:p2` - Similarly specifies rotation in degrees. To set any random
+- `rot_*:p2`: Similarly specifies rotation in degrees. To set any random
   rotation around an axis, just input `0, 180` – random values will cover a full
   rotation around the axis (from −180° to 180°). Defaults to `0, 0` if
   unspecified.
-
-- `yScale:p2` - Unlike rotation and offset, scaling on all axes cannot be
+- `yScale:p2`: Unlike rotation and offset, scaling on all axes cannot be
   randomized independently. The exception is the Y-axis, which points upward in
   Dagor. The first value is the initial scale, and the second is the deviation.
   Defaults to `1, 0` if unspecified.
-
-- `scale:p2` - Uniform scaling on all axes. Defaults to `1, 0` and can be used
+- `scale:p2`: Uniform scaling on all axes. Defaults to `1, 0` and can be used
   alongside Y-axis scaling.
 
 ### Random Transforms for Multiple Composites Simultaneously
@@ -343,7 +338,7 @@ directions, add the suffixes `_l` and `_r` accordingly.
 For example, for left window shutters, it makes sense to create a file
 `_shutter_rot_l.blk` with:
 
-```
+```text
 rot_y:p2=85, 5
 rot_z:p2=0, 0.8
 ```
@@ -352,7 +347,7 @@ for the right side. This file can then be included in the composite of the
 shutter, for example,
 `name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk`:
 
-```
+```text
 className:t="composit"
 
 node{
@@ -362,18 +357,16 @@ node{
 ```
 
 ```{important}
-
 - The path to the `_shutter_rot_l.blk` file is absolute. In the example above,
-the including file is in the same directory as the composite. If you place this
-file elsewhere, specify the full path in the command line format.
-- We are effectively substituting the shutter's `.dag` file
-`name_city_house_window_shutter_1200x1900_a_l.lod00.dag` with a composite that
-has a random rotation,
-`name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk`. This means we
-include this `_shutter_rot_l.blk` in the composite of a single shutter – nothing
-else is there. This is the composite that will later be placed in the windows,
-instead of the shutter itself.
-
+  the including file is in the same directory as the composite. If you place
+  this file elsewhere, specify the full path in the command line format.
+- We are effectively substituting the shutter's
+  `name_city_house_window_shutter_1200x1900_a_l.lod00.dag` file with a composite
+  that has a random rotation,
+  `name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk`. This means we
+  include this `_shutter_rot_l.blk` in the composite of a single shutter –
+  nothing else is there. This is the composite that will later be placed in the
+  windows, instead of the shutter itself.
 ```
 
 ### Why Use Includes in Nested Composites?
@@ -384,7 +377,7 @@ instead of the shutter itself.
 
 - **Avoid Doing This in the "Outer" Composite, Though It Works:**
 
-```
+```text
 className:t="composit"
 node{
   name:t="name_city_house_window_shutter_1200x1900_a_l"
@@ -415,7 +408,7 @@ blind manual `.blk` editing – not the most convenient or fastest method.
 
 Here's how inattentiveness can break things:
 
-```
+```text
 className:t="composit"
 node{
   name:t="name_city_house_window_shutter_1200x1900_a_l"
@@ -438,7 +431,7 @@ Another `node{}` can be placed inside. In this case, the inner node is
 considered a child, and its transforms are calculated not from zero but from the
 parent's matrix.
 
-```
+```text
 className:t="composit"
 
 node{
@@ -458,10 +451,10 @@ the composite's center, it will be offset along both Y and Z. We can set other
 coordinates for it, add another block with different objects next to it, etc.
 
 It's not frequently used, but it's possible. Composites are exported from
-*daEditor* this way – all nodes are parented to an empty node with a default
-matrix. In text form, such composites are harder to perceive, and until
-recently, we didn't have the ability to visually edit composites, so practical
-use is still rare.
+[daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md) this way – all nodes
+are parented to an empty node with a default matrix. In text form, such
+composites are harder to perceive, and until recently, we didn't have the
+ability to visually edit composites, so practical use is still rare.
 
 ### Practical Example of Node Hierarchy Use
 
@@ -471,7 +464,7 @@ also be chosen randomly, placed near one side, and shifted only along the
 table's length. They should also rotate and, perhaps, sometimes not appear at
 all. We can implement this as follows:
 
-```
+```text
 className:t="composit"
 
 node{
@@ -517,15 +510,14 @@ Breaking it down:
   is from −0.25 to 0.25 meters.
 - Finally, we add a completely random rotation – from −180° to 180°.
 
-![Randomized rotation](_images/comp_blk_table_cup.jpg)
+<img src="_images/composit_blk_01.jpg" alt="Randomized rotation" align="center" width="30em">
 
 ```{important}
-
 For one-time use, this approach is faster than the old method, where a separate
 subcomposite was created for each random element. One for selecting cups and
 their rotation. Another for choosing the table. Then one for placing the cup on
 the table with an offset. And finally, the top-level one, which slightly rotates
-the table with the cup on it. But here – just one! However, if cups are to be
+the table with the cup on it. But here – just one. However, if cups are to be
 placed, for example, on shelves or in cabinets, it makes more sense to store
 them in their own subcomposite so you don't have to add a third cup to the
 table, cabinet, and shelf composites one by one. If cups are only found on these
@@ -542,7 +534,6 @@ If composite parts might be needed elsewhere, move them to a subcomposite to
 simplify reuse and potential future edits. If a node with certain transforms and
 randomness is only required once, for example, as part of a unique object, the
 single composite approach is preferable.
-
 ```
 
 ## Game Objects
@@ -559,7 +550,7 @@ tables, chairs, shelves, and cabinets.
 
 ### Example Node Description
 
-```
+```text
 node{
   name:t="loot_box:gameObj"
   tm:m=[[0.3, 0, 0] [0, 0.3, 0] [0, 0, 0.3] [0, 0.6, 0]]
@@ -576,15 +567,17 @@ errors.
 
 ### Creation Process
 
-Unfortunately, these nodes are not generated automatically through *dag2riRes*
-or the *daEditor*. They must be manually scripted.
+Unfortunately, these nodes are not generated automatically through
+[dag2riRes](../../dagor-tools/dag2rires/dag2rires.md) or the
+[daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md). They must be
+manually scripted.
 
 You can (and should) place a cube named `loot_box` at the desired locations in
 your scene/editor and then export them into a composite. The placement process
 is identical to that of regular render instances. However, all these cubes will
 initially be recorded as:
 
-```
+```text
 name:t="loot_box"
 ```
 
@@ -633,37 +626,37 @@ not support additional logic beyond these rules.
 
 Let's take an example, where we have an urn as a *parent*:
 
-![Urn as a parent](_images/comp_blk_parent.jpg)
+<img src="_images/composit_blk_02.jpg" alt="Urn as a parent" align="center" width="20em">
 
 and an amphora as a *child*:
 
-![Amphora as a child](_images/comp_blk_child.jpg)
+<img src="_images/composit_blk_03.jpg" alt="Amphora as a child" align="center" width="20em">
 
-**Placement Scenario 1:** All correct. The *child’s* collision (the "spike"
+**Placement Scenario 1:** All correct. The *child's* collision (the "spike"
 at the bottom) enters the bounding box of the *parent* urn. Destroy the
 *parent*, and the amphora will also be destroyed.
 
-![Placement Scenario 1](_images/comp_blk_option_1.jpg)
+<img src="_images/composit_blk_04.jpg" alt="Placement Scenario 1" align="center" width="20em">
 
 **Placement Scenario 2:** Ambiguous. If we want to destroy the amphora
 through the urn, it's correct – the side collision of the amphora enters the
 urn's bounding box. But if we don't want that (since the amphora is just
-standing next to the urn, not on it), it’s incorrect. The amphora will be
+standing next to the urn, not on it), it's incorrect. The amphora will be
 destroyed because of the urn.
 
-![Placement Scenario 2](_images/comp_blk_option_2.jpg)
+<img src="_images/composit_blk_05.jpg" alt="Placement Scenario 2" align="center" width="20em">
 
 **Placement Scenario 3:** Incorrect. The *parent* urn is hanging in the air.
 Destroy it, and the amphora will collapse too. But if we destroy the amphora,
 the *parent* urn will remain hanging.
 
-![Placement Scenario 3](_images/comp_blk_option_3.jpg)
+<img src="_images/composit_blk_06.jpg" alt="Placement Scenario 3" align="center" width="20em">
 
 **Placement Scenario 4:** Incorrect. When the *parent* urn is destroyed, only
 the middle amphora will be destroyed because its collision enters the *parent's*
 bounding box. The top amphora will remain hanging in the air.
 
-![Placement Scenario 4](_images/comp_blk_option_4.jpg)
+<img src="_images/composit_blk_07.jpg" alt="Placement Scenario 4" align="center" width="20em">
 
 **Placement Scenario 5:** As an exception, *parents* can destroy other *parents*
 following the same rules (and only within the immediate "circle" – collision
@@ -671,7 +664,7 @@ contact with the first destroyed *parent* is required). A special parameter must
 be manually defined in the properties (in the same `.blk` files) to enable this.
 It is not a default behavior for all *parents*, but a specific feature.
 
-![Placement Scenario 5](_images/comp_blk_option_5.jpg)
+<img src="_images/composit_blk_08.jpg" alt="Placement Scenario 5" align="center" width="50em">
 
 ```{important}
 Do not overuse this feature, as it is difficult to predict how and where objects
@@ -697,7 +690,7 @@ Similarly, objects cannot just destroy their neighbors arbitrarily. Only
 *parents* destroy *children* (and sometimes other *parents*).
 
 Thus, do not create composites where objects are stacked mindlessly on top of
-each other! **A composite is not magic.** It’s merely a list of objects – it
+each other! **A composite is not magic.** It's merely a list of objects – it
 won't assist with destruction mechanics!
 
 #### Examples
@@ -708,7 +701,7 @@ destroyed. It turns out that the cans lie on top of each other and they are not
 *parents*. If we shoot the bottom can – the top one will remain hanging in the
 air.
 
-![Placement Scenario 1](_images/comp_blk_option_6.jpg)
+<img src="_images/composit_blk_09.jpg" alt="Placement Scenario 1" align="center" width="50em">
 
 **Placement Scenario 2:** On top of the closet are individual *non-parent*
 objects: an upside-down shoebox lid, the shoe box itself inside the shoe box lid
@@ -718,7 +711,7 @@ the shoe. But here the thicknesses and dimensions are so small that this can be
 neglected. This is an acceptable violation that in most cases will never be
 noticed.
 
-![Placement Scenario 2](_images/comp_blk_option_7.jpg)
+<img src="_images/composit_blk_10.jpg" alt="Placement Scenario 2" align="center" width="50em">
 
 **Placement Scenario 3:** The issue has already been resolved, so here is an old
 screenshot that doesn't quite capture the correct angle. In the center, we can
@@ -729,7 +722,7 @@ artistic stacking of basins on top of the wardrobe. It looks impressive, but it
 will be 100% noticeable when the lower basins start getting destroyed before the
 upper ones.
 
-![Placement Scenario 3](_images/comp_blk_option_8.jpg)
+<img src="_images/composit_blk_11.jpg" alt="Placement Scenario 3" align="center" width="50em">
 
 ```{important}
 **Summary:**
@@ -763,7 +756,7 @@ becomes obsolete, and all work shifts to the `.blk` file.
 
 This can lead to significant issues. For example, consider a composite:
 
-![Interior](_images/comp_blk_interior_1.jpg)
+<img src="_images/composit_blk_12.jpg" alt="Interior" align="center" width="50em">
 
 Imagine that every object here is not part of a subcomposite but is instead
 manually placed within this composite (for the sake of example, though this is
@@ -772,17 +765,17 @@ not actually the case).
 Let's examine the typical problems that might arise using this setup. Take this
 cabinet with vases:
 
-![Cabinet with vases](_images/comp_blk_interior_2.jpg)
+<img src="_images/composit_blk_13.jpg" alt="Cabinet with vases" align="center" width="20em">
 
-Notice that it’s placed in several locations:
+Notice that it's placed in several locations:
 
-![Cabinet with vases at several places](_images/comp_blk_interior_3.jpg)
+<img src="_images/composit_blk_14.jpg" alt="Cabinet with vases at several places" align="center" width="50em">
 
 The designer, seeking efficiency, may simply copy and paste the entire setup
 elsewhere in the scene. The result is identical arrangements throughout the
 house, with perhaps one or two vases changed to give the illusion of randomness.
 
-We've previously discussed chain destruction. Now, imagine you didn’t quite
+We've previously discussed chain destruction. Now, imagine you didn't quite
 align one of the vases with the cabinet, and it ends up hanging in the air when
 the cabinet below is destroyed.
 
@@ -792,7 +785,7 @@ This introduces several problems:
 - Some vases may also be standing independently, scattered on the floor, for
   instance.
 
-You’ll need to painstakingly search through the composite, identify each vase,
+You'll need to painstakingly search through the composite, identify each vase,
 and adjust their positions individually.
 
 Now, consider needing to place this cabinet with vases outside, with the
@@ -805,17 +798,17 @@ tweaked after tools like *daEditor* or *dag2riRes*. In a large composite, this
 becomes utterly impractical.
 
 Additionally, performing simple randomization, such as swapping one cabinet for
-another, becomes highly inconvenient. You’ll have to sift through hundreds of
+another, becomes highly inconvenient. You'll have to sift through hundreds of
 lines.
 
-The root cause of these problems is the unreadability of the composite. It’s
+The root cause of these problems is the unreadability of the composite. It's
 nearly impossible to quickly make any adjustments in such a tangled mess. In
-extreme cases, an entire house’s furnishings (minus the house itself) might be
+extreme cases, an entire house's furnishings (minus the house itself) might be
 crammed into a single composite, like this:
 
-![Entire house's furniture](_images/comp_blk_interior_4.jpg)
+<img src="_images/composit_blk_15.jpg" alt="Entire house's furniture" align="center" width="50em">
 
-Typically, we don’t assign tasks to "create a composite for a single house."
+Typically, we don't assign tasks to "create a composite for a single house."
 More often, the tasks involve "creating 15 houses with full furnishings,"
 handled by 5-8 different team members. Each person ends up spending an enormous
 amount of time individually setting up unique render instances for their houses,
@@ -856,7 +849,7 @@ rules.
 #### Proper Hierarchy
 
 The hierarchy of composites should be broken down to the smallest procedural
-modification of an object. Let’s use the example of vases and cabinets:
+modification of an object. Let's use the example of vases and cabinets:
 
 1. **Create composites for each small procedural modification of an object:**
 
@@ -867,22 +860,22 @@ modification of an object. Let’s use the example of vases and cabinets:
    groups.**
    - Create several variations of vases arranged on a cabinet.
    - Combine these variations into a single random composite like "random vase
-     arrangement on cabinet."
+     arrangement on cabinet".
 
 3. **From the composites created in step 2, create a random composite for
-   "cabinets with random vase arrangements."**
+   "cabinets with random vase arrangements".**
 
 4. **From the composites created in step 3, assemble a composite for furnishing
    a large object, such as "random cabinets with vases placed around the
-   object."**
+   object".**
 
 5. **Finally, include the composite from step 3 in the overall "house"
-   composite, along with similar composites for "windows-doors," "exterior
-   decor," "interior decor," etc.**
+   composite, along with similar composites for "windows-doors", "exterior
+   decor", "interior decor", etc.**
 
 ```{note}
 Unfortunately, there is no universal composite structure – it all depends on
-what you’re creating. If you need a random composite for a single cabinet, you
+what you're creating. If you need a random composite for a single cabinet, you
 might only need one level of hierarchy – a random composite for that cabinet,
 where you can specify shifts, rotations, and randomization.
 
@@ -904,9 +897,9 @@ beginning, let's clarify a few key points:
 
 1. **Composites vs. Render Instances:** Unlike render instances, composites
    don't take up space in the game client (they simply aren't included).
-   Therefore, it’s not a significant issue if you copy successful composites
+   Therefore, it's not a significant issue if you copy successful composites
    from other maps and rename them for your own purposes. This approach helps
-   you avoid potential problems if the original composite’s creator decides to
+   you avoid potential problems if the original composite's creator decides to
    modify it, which could disrupt your setup.
 
 2. **Detailed Naming:** Always name composites as descriptively as possible,
@@ -936,7 +929,7 @@ You might have noticed that when exporting composites from the editor, they
 often include an additional parameter, `place_type:i=1`, in the nodes. For
 example:
 
-```
+```text
 node{
   name:t="fachwerk_horse_cart_a_cmp"
   tm:m=[[0.999018, 0, -0.0443057] [0, 1, 0] [0.0443057, 0, 0.999018] [-6.7688, 0.0028134, -1.22241]]
@@ -954,18 +947,18 @@ These values can range from 1 to 6 (or potentially even higher).
 This occurs because you exported objects that were placed on the terrain
 according to specific rules.
 
-![Object properties](_images/comp_blk_object_prop.jpg)
+<img src="_images/composit_blk_16.jpg" alt="Object properties" align="center" width="20em">
 
 **Placement Types:**
 
-- **place pivot - place_type:i=1:** Vertical placement of the object's pivot on
+- **place pivot: `place_type:i=1:`** Vertical placement of the object's pivot on
   the terrain (pivot in Dagger is at 0.0.0). Suitable for large, tall objects
   that extend deep into the ground (buildings, poles, large piles of
   debris)—essentially anything unaffected by terrain height variations.
 
-![place_type:i=1](_images/comp_blk_place_type_1.jpg)
+  <img src="_images/composit_blk_17.jpg" alt="place_type:i=1" align="center" width="20em">
 
-- **place pivot and use normal - place_type:i=2:** Placement of the pivot on the
+- **place pivot and use normal: `place_type:i=2:`** Placement of the pivot on the
   terrain, using the normal at the pivot point (if the terrain is uneven, the
   object will tilt according to the normal). Best for smaller items that need to
   conform to the terrain's shape (e.g., barrels, buckets, bicycles, cans). Large
@@ -973,17 +966,17 @@ according to specific rules.
   causing part of the object to float in the air. Use this only for small
   assets.
 
-![place_type:i=2](_images/comp_blk_place_type_2.jpg)
+  <img src="_images/composit_blk_18.jpg" alt="place_type:i=2" align="center" width="20em">
 
-- **place 3-point (bbox) - place_type:i=3:** Placement using three points of the
+- **place 3-point (bbox): `place_type:i=3:`** Placement using three points of the
   object's bounding box. The bounding box is built based on the object's maximum
   geometry limits, and the object is placed on the ground at three of its
   extreme points, accounting for terrain height variations. This method is more
-  precise than type 2 but slightly more demanding on the editor. It’s needed for
+  precise than type 2 but slightly more demanding on the editor. It's needed for
   large objects that must conform to terrain undulations (e.g., haystacks, piles
   of boards, ladders, carts, vehicles).
 
-  ![place_type:i=3](_images/comp_blk_place_type_3.jpg)
+  <img src="_images/composit_blk_19.jpg" alt="place_type:i=3" align="center" width="20em">
 
   ```{note}
   If the object extends below zero (e.g., piles, foundations), it may be pushed
@@ -991,43 +984,44 @@ according to specific rules.
   outermost geometry points. For such objects, use types 1 or 2.
   ```
 
-- **place foundation (bbox) - place_type:i=4:** Vertical placement on the
+- **place foundation (bbox): `place_type:i=4:`** Vertical placement on the
   terrain so that the entire base of the bounding box is **not above** the
   terrain. The object may partially extend below the terrain but will never
   float above it.
 
-  ![place_type:i=4](_images/comp_blk_place_type_4.jpg)
+  <img src="_images/composit_blk_20.jpg" alt="place_type:i=4" align="center" width="20em">
 
-- **place on water (floatable) - place_type:i=5:** Vertical placement on a water
+- **place on water (floatable): `place_type:i=5:`** Vertical placement on a water
   plane (yes, water has a plane).
 
-  ![place_type:i=5](_images/comp_blk_place_type_5.jpg)
+  <img src="_images/composit_blk_21.jpg" alt="place_type:i=5" align="center" width="20em">
 
-- **place pivot with rendInst collision - place_type:i=6:** Vertical placement
-  of the render instance’s pivot on the collision of another render instance.
+- **place pivot with rendInst collision: `place_type:i=6:`** Vertical placement
+  of the render instance's pivot on the collision of another render instance.
 
-  ![place_type:i=6](_images/comp_blk_place_type_6.jpg)
+  <img src="_images/composit_blk_22.jpg" alt="place_type:i=6" align="center" width="20em">
 
   Works well on simple objects:
 
-  ![place_type:i=6](_images/comp_blk_place_type_6_1.jpg)
+  <img src="_images/composit_blk_23.jpg" alt="place_type:i=6" align="center" width="20em">
 
   but struggles with complex ones as it may not correctly identify the collision
   surface:
 
-  ![place_type:i=6](_images/comp_blk_place_type_6_2.jpg)
+  <img src="_images/composit_blk_24.jpg" alt="place_type:i=6" align="center" width="40em">
 
 ```{important}
-When exporting composites from the *daEditor*, ensure you set the placement
-types for each component of the future composite (e.g., every barrel, bucket,
-and vehicle).
+When exporting composites from the
+[daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md), ensure you set the
+placement types for each component of the future composite (e.g., every barrel,
+bucket, and vehicle).
 
-When exporting composites from a *3ds Max* scene, manually assign these
+When exporting composites from a *ds Max scene, manually assign these
 parameters to the appropriate objects in the final composite.
 
 Do not export composites without these parameters and then apply them to the
 entire composite afterward (e.g., setting the entire exterior decoration
-composite of a house to `place_type:i=3`). This often leads to bugs, as it’s
+composite of a house to `place_type:i=3`). This often leads to bugs, as it's
 unclear what is used as the pivot or bounding box.
 
 Always assign the correct placement types to the objects intended for them.
@@ -1045,30 +1039,32 @@ the composite has no rotation or offset.
 
 For instance, a house with DP (dynamic positioning) components will remain
 perfectly aligned regardless of rotation or displacement because both the
-house’s base and its DP components are exported relative to zero at the correct
+house's base and its DP components are exported relative to zero at the correct
 positions. They are exported this way to ensure optimal placement.
 
 However, objects like windows, doors, or paintings that are hung on walls made
 of debris or bricks may "drift" when the composite is rotated or moved,
 especially paintings. But don't worry.
 
-In *War Thunder*, the placement grid isn't precise enough for this to cause
-significant issues – we have large margins for error. In *daNetGame-based*
-games, this "drifting" only happens in the *Asset Viewer* and *daEditor*. When
-the location is exported, a much higher level of precision is used than in the
-tools, so objects generally align correctly. While you should check the final
-placement, you don't need to worry that it will be "just as bad" as it appears
-in the *daEditor*.
+In War Thunder, the placement grid isn't precise enough for this to cause
+significant issues – we have large margins for error. In daNetGame-based games,
+this "drifting" only happens in the [Asset
+Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md) and
+[daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md). When the location
+is exported, a much higher level of precision is used than in the tools, so
+objects generally align correctly. While you should check the final placement,
+you don't need to worry that it will be "just as bad" as it appears in the
+[daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md).
 
 ### Examples
 
 - **Editor View**:
 
-![Editor view](_images/comp_blk_editor_view.jpg)
+  <img src="_images/composit_blk_25.jpg" alt="Editor view" align="center" width="50em">
 
 - **In-Game View:**
 
-![In-game view](_images/comp_blk_in_game_view.jpg)
+  <img src="_images/composit_blk_26.jpg" alt="In-game view" align="center" width="50em">
 
 ### Special Parameters
 
@@ -1076,7 +1072,7 @@ Composites have several parameters designed for specific, limited-use cases.
 
 #### War Thunder
 
-**`quantizeTm:b=yes`**: This parameter should be applied outside the nodes
+The `quantizeTm:b=yes` parameter should be applied outside the nodes
 (immediately after the line `className:t="composit"`) when combining the
 geometry of a render instance with the collision of a prefab in a composite.
 
@@ -1088,7 +1084,7 @@ always fails to align with the visual geometry.
 This parameter forces the prefab to align exactly with the coordinates of the
 render instance.
 
-```
+```text
 className:t="composit"
 quantizeTm:b=yes
 node{
@@ -1106,10 +1102,10 @@ node{
 
 #### daNetGame-based Games
 
-**Random Object Seeds**: In *daNetGame-based* game, all objects within a
-composite, for example, share the same color scheme. This means you won’t find a
+**Random Object Seeds**: In daNetGame-based game, all objects within a
+composite, for example, share the same color scheme. This means you won't find a
 house with windows and doors of varying colors – the colors differ as you move
-across the map, but each house’s windows and doors will always share a uniform
+across the map, but each house's windows and doors will always share a uniform
 color.
 
 This is intentional – each composite is assigned exactly one seed (a randomly
@@ -1118,7 +1114,7 @@ down to the most nested object.
 
 This approach has pros and cons. For instance, all the furniture, toys, and
 dishes inside a house will be uniformly colored. This makes it impossible to
-create something like a fabric shop, where you’d expect fabrics of different
+create something like a fabric shop, where you'd expect fabrics of different
 colors, because all the fabrics will share one color. Similarly, identical
 furniture items will show the same level of wear.
 
@@ -1134,7 +1130,7 @@ will have a different seed, but the objects within it will share a single seed.
 **Correct Example**: The shoe and its box will have different seeds and
 therefore different colors.
 
-```
+```text
 node{
   name:t="is_high_heel_shoe_a"
   ignoreParentInstSeed:b=yes
@@ -1151,7 +1147,7 @@ node{
 different seed from the main composite, all items within it will share the same
 seed.
 
-```
+```text
 node{
   name:t="city_1_department_store_shops_stuff_cmp"
   ignoreParentInstSeed:b=yes
@@ -1165,16 +1161,17 @@ Apply this parameter to specific render instances or composites that need to
 have a different seed from the main composite.
 
 **Do not** apply it to the entire composite expecting everything inside to
-become randomized – it won’t. All nested objects will still share a common seed,
-even if it differs from the main composite’s seed.
+become randomized – it won't. All nested objects will still share a common seed,
+even if it differs from the main composite's seed.
 ```
 
 ### Checklist
 
 Before considering composites as finished, you should verify the following:
 
-- **Correct display of the composite object in Asset Viewer**: Ensure nothing is
-  misplaced or missing, and everything appears as intended.
+- **Correct display of the composite object in [Asset
+  Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md)**: Ensure
+  nothing is misplaced or missing, and everything appears as intended.
 
 - **Correct generation of variable objects using the "Generate Random Seed"
   button in the right panel**: Check that nothing overlaps or disappears
@@ -1184,13 +1181,13 @@ Before considering composites as finished, you should verify the following:
   related to asset display issues in the composite due to incorrect naming,
   missing textures, or other unfinished work.
 
-  The composite log typically only indicates that an object isn’t displaying.
-  You’ll need to open the problematic object itself to see what the log says
+  The composite log typically only indicates that an object isn't displaying.
+  You'll need to open the problematic object itself to see what the log says
   about it.
 
 ## Creating a Standard Composite Object
 
-Having discussed the structure and theory behind composite objects, let’s now
+Having discussed the structure and theory behind composite objects, let's now
 delve into the actual creation process. There are several methods available for
 creating a composite object, each with its own advantages and disadvantages:
 
@@ -1220,7 +1217,7 @@ at the house's "zero" point).
 
 **Cons:**
 
-- **Blind Work:** You can’t see the result while working, making it challenging
+- **Blind Work:** You can't see the result while working, making it challenging
   to align objects correctly.
 - **Matrix Definitions:** Manually defining matrices is virtually impossible –
   let the computer handle that.
@@ -1232,12 +1229,13 @@ composite objects generated by other means.
 
 This method is simple:
 
-1. Place the necessary objects in the editor as desired.
+1. Place the necessary objects in the
+   [daEditor](../../dagor-tools/daeditor/daeditor/daeditor.md) as desired.
 2. Select the objects, starting with the central one (which will later become
-   the composite’s center).
+   the composite's center).
 3. In the **Landscape** tab, select the **Export as Composit** option:
 
-    ![Using daEditor](_images/comp_blk_using_editor.jpg)
+   <img src="_images/composit_blk_27.jpg" alt="Using daEditor" align="center" width="30em">
 
 **Pros:**
 
@@ -1247,13 +1245,13 @@ This method is simple:
 
 **Cons:**
 
-- **Composite Center:** You can't control the composite’s center. When selecting
-  multiple objects with a frame, it’s impossible to predict which one will
+- **Composite Center:** You can't control the composite's center. When selecting
+  multiple objects with a frame, it's impossible to predict which one will
   become the "zero" point. When selecting objects sequentially, the first
   selected object becomes the "zero" coordinate, which isn't always convenient.
-  You can’t set a center outside of an object.
+  You can't set a center outside of an object.
 - **Random Transformations:** Only fixed matrices and specific assets are
-  allowed; you can’t set random transformations or objects.
+  allowed; you can't set random transformations or objects.
 
 A workaround is to add an additional object at the desired center, start
 selecting from it, and then delete this placeholder after exporting the final
@@ -1265,13 +1263,14 @@ refinement by other methods.
 
 ### Using the dag2riRes Script
 
-This is another relatively simple method. While the description may seem
-complex, after trying it out, the steps will become logical and clear, requiring
-minimal effort from the developer. The key is to follow the steps in order, as
-missing one will force you to start over.
+Using the [dag2riRes](../../dagor-tools/dag2rires/dag2rires.md) script is
+another relatively simple method. While the description may seem complex, after
+trying it out, the steps will become logical and clear, requiring minimal effort
+from the developer. The key is to follow the steps in order, as missing one will
+force you to start over.
 
-The idea behind this method is to assemble the composite from objects in *3ds
-Max*, export them as a `.dag` file, and then use the script to convert `.dag`
+The idea behind this method is to assemble the composite from objects in 3ds
+Max, export them as a `.dag` file, and then use the script to convert `.dag`
 into `.composit.blk`. The script also allows you to split all objects exported
 into one `.dag` file into individual `.dag` files.
 
@@ -1283,34 +1282,34 @@ into one `.dag` file into individual `.dag` files.
 
 **Cons:**
 
-- **No Randomization:** You can’t define random transformations or entities.
+- **No Randomization:** You can't define random transformations or entities.
 - **No Include Statements:** Unable to include general transformations.
 
 **Workflow:**
 
-1. Import all the base-level LODs of models into one scene that you plan to use
-   in the composite.
+1. Import all the base Levels of Details (LODs) of models into one scene that
+   you plan to use in the composite.
 2. Attach each model into a single object (if they were split across multiple
    objects in their scenes).
-3. Name each model as its corresponding DAG, minus the `.lod00.dag` suffix
-   (e.g., if the DAG is `table_a.lod00.dag`, name the model `table_a`).
+3. Name each model as its corresponding `.dag` file, minus the `.lod00.dag`
+   suffix (e.g., if the DAG is `table_a.lod00.dag`, name the model `table_a`).
 4. Reset the model's pivot to `0.0.0`, and zero out rotation and scale. Failing
    to do so will result in incorrect matrix calculations in the final composite
    (non-zeroed parameters will affect the matrices).
-   - For example, if the pivot isn’t at `0.0.0` but remains a meter along the
+   - For example, if the pivot isn't at `0.0.0` but remains a meter along the
      X-axis, the model will shift that distance in the composite.
 5. Assign a three-digit postfix to each object: `*_000` (e.g., `table_a` becomes
    `table_a_000`).
    - When cloning, ensure the three-digit postfix remains intact: `table_a_001`,
      `table_a_002`, etc.
-6. The object that will serve as the composite’s center should have the postfix
+6. The object that will serve as the composite's center should have the postfix
    `*_origin` instead of `_000` (e.g., `table_origin`).
 7. Position the objects as desired, cloning them within the scene as references
    or instances. Ensure the rotation, position, and scale match your intended
    adjustments.
 8. Export the final layout as a single `.dag` into the directory with the
-   *dag2riRes* script. It’s easier to keep the DAG name consistent to avoid
-   confusion later.
+   [dag2riRes](../../dagor-tools/dag2rires/dag2rires.md) script. It's easier to
+   keep the DAG name consistent to avoid confusion later.
 9. Run the script, which will generate a `composit.res.blk` file alongside the
    `.dag` (more details below).
 10. Rename and move the `composit.res.blk` file to the desired location. Ensure
@@ -1318,51 +1317,51 @@ into one `.dag` file into individual `.dag` files.
     naming conventions.
 
 ```{important}
-If several nodes in the *3ds Max* scene are linked into a hierarchy before
-export, the script will treat the entire hierarchy as a single node named after
-the root object.
+If several nodes in the 3ds Max scene are linked into a hierarchy before export,
+the script will treat the entire hierarchy as a single node named after the root
+object.
 ```
 
-**Running the dag2riRes Script:**
+**Running the [dag2riRes](../../dagor-tools/dag2rires/dag2rires.md) Script**
 
 1. Open FAR or the command line.
-2. Navigate to the `_Dag2riRes` directory.
+2. Navigate to the `_Dag2riRes/` directory.
 3. Enter the following command:
 
-   ```
+   ```text
    dag2riRes-dev.exe -s:<name.dag> -d:simple_dags -no_tex
    ```
 
-   where `<name.dag>` is your DAG file’s name. You can assign any name.
+   where `<name.dag>` is your `.dag` file's name. You can assign any name.
 
-**Naming Reminder:**
+**Naming Reminder:** make sure to name the final composite correctly! Not just
+the name but also the postfixes.
 
-Make sure to name the final composite correctly! Not just the name but also the
-postfixes.
-
-- `*_cmp.composit.blk` – Simple composite object.
-- `*_random.composit.blk` – Composite object with randomization (object
+- `*_cmp.composit.blk`: Simple composite object.
+- `*_random.composit.blk`: Composite object with randomization (object
   substitution, object disappearance).
-- `*_gameobj.composit.blk` – Composite object containing game objects.
+- `*_gameobj.composit.blk`: Composite object containing game objects.
 
 ### Using the Composite Editor in Asset Viewer
 
-It's a relatively new option, still under development, so some basic features
+Using the [Composite Editor in Asset
+Viewer](../../dagor-tools/asset-viewer/asset-viewer-comp-editor/asset_viewer_comp_editor.md)
+is a relatively new option, still under development, so some basic features
 might be missing at the time of writing and will be added over time.
 
 **Pros:**
 
 - **Highly Visual:** You can see the results of your work in real-time in the
   viewport.
-- **Works with .composit.blk:** Allows editing existing composites without
-  needing the original *3ds Max* scene.
+- **Works with `.composit.blk`:** Allows editing existing composites without
+  needing the original 3ds Max scene.
 - **Randomization:** Nodes can be created with random entity selection.
 - **Transform Randomization:** Nodes can be created with random transforms.
 
 **Cons:**
 
 - **In Development:** Performance issues when editing large composites
-  (thousands of nodes), especially noticeable in *daNetGame-based* games due to
+  (thousands of nodes), especially noticeable in daNetGame-based games due to
   frequent use of multiple nested structures.
 - **No Multi-Node Selection:** Can only move nodes one by one.
 - **No Undo:** If you move a node and change your mind, you must either manually
@@ -1378,19 +1377,23 @@ composites.
 
 ### Using the dag4blend Add-on in Blender
 
-It's part of the *dag4blend* add-on, which was previously a simple
-importer-exporter. It's a new option, also under development.
+[dag4blend Composite
+Editor](../../dagor-tools/addons/blender/dag4blend-comp-editor/dag4blend_comp_editor.md)
+is a part of the
+[dag4blend](../../dagor-tools/addons/blender/dag4blend/dag4blend.md) add-on,
+which was previously a simple importer-exporter. It's a new option, also under
+development.
 
 **Pros:**
 
 - **Composite Import:** You can import composites without needing the original
-  *blend* scene. All you need is the `.composit.blk` file and the asset DAGs
-  (applicable only to the version with geometry import).
+  `.blend` scene. All you need is the `.composit.blk` file and the asset `.dag`
+  files (applicable only to the version with geometry import).
 - **High Visual Clarity:** The workflow is highly visual, making it easier to
   see and manage your changes.
 - **Convenient Workflow:** Features like snapping, multi-node selection, and
   more make it significantly easier to work with, similar to the ease of use in
-  *3ds Max*.
+  3ds Max.
 - **Random Entity Nodes:** You can directly create nodes that include random
   entity selection.
 - **Random Transform Nodes:** You can directly create nodes with randomized
@@ -1399,9 +1402,9 @@ importer-exporter. It's a new option, also under development.
   final position within the parent composite, allowing you to see the exact
   final node placements.
 - **Composite-to-DAG Conversion:** Offers the ability to convert composites into
-  DAGs.
+  `.dag` files.
 - **Game Object Conversion:** Allows converting `gameObj` nodes into meshes and
-  converting a mesh’s bounding box into a `gameObj` node, which simplifies the
+  converting a mesh's bounding box into a `gameObj` node, which simplifies the
   placement of elements like indoor walls, wall holes, environmental probes,
   etc.
 
@@ -1415,14 +1418,15 @@ importer-exporter. It's a new option, also under development.
   configured; otherwise, they appear as empty nodes.
 - **No Random Transform Preview:** There is no preview available for randomized
   transforms.
-- **Axis Confusion:** *Blender* uses the Z-axis as the upward direction, whereas
-  the Dagor Engine uses the Y-axis. This difference must be considered when
-  defining parameters for random transforms.
+- **Axis Confusion:** [Blender uses the Z-axis as the upward
+  direction](https://docs.blender.org/manual/en/latest/scene_layout/object/editing/transform/control/axis_locking.html),
+  whereas the Dagor Engine uses the Y-axis. This difference must be considered
+  when defining parameters for random transforms.
 
 ### Creating Random Composites in 3ds Max
 
 When planning to use random objects in nodes, it's best to prepare for this in
-advance, during the composite assembly in *3ds Max*. This is crucial to avoid
+advance, during the composite assembly in 3ds Max. This is crucial to avoid
 randomization issues later. If you skip this step, you might find a chair
 clipping through a table, or a table through a dresser in the final composite.
 
@@ -1431,11 +1435,12 @@ around a table, with the chairs being of different sizes and shapes. You would
 combine them into one object and name it after the final random composite (e.g.,
 `chairs_abc_random` for a composite named `chairs_abc_random.composit.blk`).
 
-![Using 3ds Max](_images/comp_blk_using_3ds_max.jpg)
+<img src="_images/composit_blk_28.jpg" alt="Using 3ds Max" align="center" width="30em">
 
 You should use this combined geometry during placement to see the boundaries of
 the objects that will be randomized in the node.
 
 To configure the randomization itself, further refinement of the composite by
 other methods is necessary.
+
 

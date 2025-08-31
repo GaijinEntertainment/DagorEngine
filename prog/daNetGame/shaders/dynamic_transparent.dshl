@@ -1,18 +1,17 @@
 include "dynamic_trans_inc.dshl"
 include "normaldetail.dshl"
 include "glass.dshl"
+include "rt_glass_apply.dshl"
+include "glass_icon_render_inc.dshl"
+include "camera_in_camera.dshl"
 
 include "indoor_light_probes.dshl"
 
 include "gbuffer_to_temperature.dshl"
 
-int render_to_icon = 0;
-interval render_to_icon : no < 1, yes;
-float background_alpha = 0;
-float4 icon_silhouette_color = (0,0,0,2);
-
 shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
 {
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
   ENABLE_ASSERT(ps)
   if (dyn_model_render_pass != render_pass_normal)
   {
@@ -31,6 +30,7 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
   else
   {
     INIT_SIMPLE_GLASS()
+    INIT_GLASS_HOLE_MASK(ps)
   }
 
   if (gi_quality != off)
@@ -63,20 +63,12 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
     };
   }
   OPTIONAL_SKINNING_SHADER()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
-  (ps)
-  {
-    background_alpha@f1 = (background_alpha);
-    icon_silhouette_color@f4 = icon_silhouette_color;
+  if (render_to_icon == yes && glass_normal_pass != no) {
+    dont_render;
   }
-  if (render_to_icon == yes)
-  {
-    hlsl { #define ICON_RENDER 1 }
-  }
-  else
-  {
-    hlsl { #define ICON_RENDER 0 }
-  }
+  INIT_AND_USE_GLASS_ICON_RENDER(ps)
   hlsl(vs) {
     VsOutput glass_vs(VsInput input HW_USE_INSTANCE_ID)
     {
@@ -93,7 +85,7 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
       float3 worldDu;
       float3 worldDv;
       float3 worldNormal;
-      float3 localNormal = input.normal.xyz;
+      float3 localNormal = unpack_unit_vector(input.normal.xyz);
 
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       instance_skinning(
@@ -173,5 +165,6 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
       blend_adst = one;
     }
   }
+  RT_GLASS_APPLY(ps)
   GLASS_PS()
 }

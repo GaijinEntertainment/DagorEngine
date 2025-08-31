@@ -202,11 +202,16 @@ public:
   virtual void updateAfterSimulate(float dt, float at_time) = 0;
 
   static void applyCarPhysModeChangesBullet();
+  static void applyCarPhysModeChangesJolt();
 
   static inline void applyCarPhysModeChanges()
   {
 #if defined(USE_BULLET_PHYSICS)
     applyCarPhysModeChangesBullet();
+#elif defined(USE_JOLT_PHYSICS)
+    applyCarPhysModeChangesJolt();
+#else
+    DAG_FATAL("unsupported physics!");
 #endif
   }
 #ifndef NO_3D_GFX
@@ -297,16 +302,21 @@ IPhysCar *create_bullet_raywheel_car(const char *car_name, PhysBody *car_body, c
   const TMatrix &tm, bool simple_phys);
 IPhysCar *create_bullet_raywheel_car(const char *res_name, const TMatrix &tm, void *phys_world, bool simple_phys, bool allow_deform);
 
+//! creates Jolt implementation of RayCar
+IPhysCar *create_jolt_raywheel_car(const char *car_name, PhysBody *car_body, const BBox3 &bbox, const BSphere3 &bsphere,
+  const TMatrix &tm, bool simple_phys);
+IPhysCar *create_jolt_raywheel_car(const char *res_name, const TMatrix &tm, void *phys_world, bool simple_phys, bool allow_deform);
+
 //! creates phys-dependant implementation of RayCar (without IPhysCarLegacyRender support)
 inline IPhysCar *create_raywheel_car(const char *car_name, PhysBody *car_body, const BBox3 &bbox, const BSphere3 &bsphere,
   const TMatrix &tm, bool simple_phys)
 {
 #if defined(USE_BULLET_PHYSICS)
   return create_bullet_raywheel_car(car_name, car_body, bbox, bsphere, tm, simple_phys);
-
+#elif defined(USE_JOLT_PHYSICS)
+  return create_jolt_raywheel_car(car_name, car_body, bbox, bsphere, tm, simple_phys);
 #else
-  return NULL;
-
+  return nullptr;
 #endif
 }
 
@@ -315,10 +325,10 @@ inline IPhysCar *create_raywheel_car(const char *res_name, const TMatrix &tm, vo
 {
 #if defined(USE_BULLET_PHYSICS)
   return create_bullet_raywheel_car(res_name, tm, phys_world, simple_phys, allow_deform);
-
+#elif defined(USE_JOLT_PHYSICS)
+  return create_jolt_raywheel_car(res_name, tm, phys_world, simple_phys, allow_deform);
 #else
-  return NULL;
-
+  return nullptr;
 #endif
 }
 

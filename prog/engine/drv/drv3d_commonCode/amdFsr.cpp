@@ -59,7 +59,23 @@ bool FSR::isSupported()
   return false;
 }
 
+int FSR::getMaximumNumberOfGeneratedFrames()
+{
+#if _TARGET_PC_WIN
+  if (d3d::get_driver_desc().shaderModel >= 6.2_sm && d3d::get_driver_code().is(d3d::dx12 || d3d::vulkan) &&
+      is_uav_load_supported(
+        {TEXFMT_R8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F, TEXFMT_G16R16F, TEXFMT_R32UI, TEXFMT_R8G8B8A8}))
+    return 1;
+#elif _TARGET_XBOX
+  return 0;
+#endif
+
+  return 0;
+}
+
 void FSR::applyUpscaling(const UpscalingArgs &args) { d3d::driver_command(Drv3dCommand::EXECUTE_FSR, this, (void *)&args); }
+
+void FSR::scheduleGeneratedFrames(const FrameGenArgs &args) { d3d::driver_command(Drv3dCommand::EXECUTE_FSR_FG, this, (void *)&args); }
 
 FSR *createFSR()
 {

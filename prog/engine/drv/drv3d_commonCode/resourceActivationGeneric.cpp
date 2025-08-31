@@ -4,17 +4,18 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_texture.h>
+#include "drv_assert_defs.h"
 
-void res_act_generic::activate_buffer(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline)
+void res_act_generic::activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipeline)
 {
-  G_ASSERTF_RETURN(buf != nullptr, , "Trying to activate a nullptr buffer!");
+  D3D_CONTRACT_ASSERTF_RETURN(buf != nullptr, , "Trying to activate a nullptr buffer!");
 
   using RAA = ResourceActivationAction;
   switch (action)
   {
     case RAA::DISCARD_AS_RTV_DSV:
     case RAA::REWRITE_AS_RTV_DSV:
-    case RAA::CLEAR_AS_RTV_DSV: G_ASSERTF(false, "Tried to activate a buffer with a render target action!"); break;
+    case RAA::CLEAR_AS_RTV_DSV: D3D_CONTRACT_ASSERT_FAIL("Tried to activate a buffer with a render target action!"); break;
 
     case RAA::DISCARD_AS_UAV:
     case RAA::REWRITE_AS_UAV:
@@ -22,15 +23,14 @@ void res_act_generic::activate_buffer(Sbuffer *buf, ResourceActivationAction act
       // No action required: generic implementations have no aliases
       break;
 
-    case RAA::CLEAR_F_AS_UAV: d3d::clear_rwbuff(buf, value.asFloat); break;
-
-    case RAA::CLEAR_I_AS_UAV: d3d::clear_rwbufi(buf, value.asUint); break;
+    case RAA::CLEAR_F_AS_UAV:
+    case RAA::CLEAR_I_AS_UAV: d3d::zero_rwbufi(buf); break;
   }
 }
 
 void res_act_generic::activate_texture(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline)
 {
-  G_ASSERTF_RETURN(tex != nullptr, , "Trying to activate a nullptr texture!");
+  D3D_CONTRACT_ASSERTF_RETURN(tex != nullptr, , "Trying to activate a nullptr texture!");
 
   TextureInfo info{};
   tex->getinfo(info);
@@ -74,10 +74,10 @@ void res_act_generic::activate_texture(BaseTexture *tex, ResourceActivationActio
 
 void res_act_generic::deactivate_buffer(Sbuffer *buf, GpuPipeline)
 {
-  G_ASSERTF(buf != nullptr, "Tried to deactivate a nullptr buffer!");
+  D3D_CONTRACT_ASSERTF(buf != nullptr, "Tried to deactivate a nullptr buffer!");
 }
 
 void res_act_generic::deactivate_texture(BaseTexture *tex, GpuPipeline)
 {
-  G_ASSERTF(tex != nullptr, "Tried to deactivate a nullptr texture!");
+  D3D_CONTRACT_ASSERTF(tex != nullptr, "Tried to deactivate a nullptr texture!");
 }

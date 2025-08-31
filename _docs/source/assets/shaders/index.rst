@@ -17,6 +17,3 @@ Shaders
    land_mesh_combined_decal_family.md
    dng-shaders/index.rst
 
-
-
-

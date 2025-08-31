@@ -23,6 +23,35 @@ ModfxDeclPosInitSphere ModfxDeclPosInitSphere_load( BufferData_cref buf, uint of
 }
 
 DAFX_INLINE
+ModfxDeclParticleHeightLimit ModfxDeclParticleHeightLimit_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclParticleHeightLimit*)( buf + ofs );
+#else
+  ModfxDeclParticleHeightLimit pp;
+  pp.height_limit = dafx_load_1f( buf, ofs );
+  return pp;
+#endif
+}
+
+DAFX_INLINE
+bool modfx_pos_under_height_limit(ModfxParentSimData_cref parent_sdata, BufferData_cref buf, float3_ref o_pos)
+{
+  uint ofs = parent_sdata.mods_offsets[MODFX_SMOD_HEIGHT_LIMIT];
+  if (!ofs)
+    return true;
+
+  ModfxDeclParticleHeightLimit pp = ModfxDeclParticleHeightLimit_load(buf, ofs);
+
+  float height_offset = 0;
+#if DAFX_USE_HMAP
+  height_offset = getWorldHeight(float2(o_pos.x, o_pos.z));
+#endif
+
+  return o_pos.y < pp.height_limit + height_offset;
+}
+
+DAFX_INLINE
 void modfx_pos_init_sphere( BufferData_cref buf, uint ofs, rnd_seed_ref rnd_seed, float3_ref o_p, float3_ref o_v )
 {
   ModfxDeclPosInitSphere pp = ModfxDeclPosInitSphere_load( buf, ofs );
@@ -215,7 +244,7 @@ bool modfx_pos_gpu_placement(ModfxParentSimData_cref parent_sdata, BufferData_cr
 #if DAFX_USE_DEPTH_ABOVE
   if (pp.flags & MODFX_GPU_PLACEMENT_DEPTH_ABOVE)
   {
-    float h = getWorldBlurredDepth(o_pos, vignette);
+    float h = get_depth_above_fast(o_pos, vignette);
     r = lerp(r, h, 1.f - vignette);
   }
 #endif

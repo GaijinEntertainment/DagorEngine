@@ -1,6 +1,7 @@
 include "deferred_shadow_common.dshl"
 include "use_gi.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "portal_rendering_inc.dshl"
 
 int depth_bounds_support = 0;
 interval depth_bounds_support: no<1, yes;
@@ -9,7 +10,7 @@ int allow_satellite_rendering;
 interval allow_satellite_rendering: no<1, yes;
 float satellite_rendering_shadow_multiplier = 1;
 
-shader deferred_simple, satellite_render_resolve
+shader deferred_simple, portal_render_resolve, satellite_render_resolve
 {
   if (allow_satellite_rendering == no && shader == satellite_render_resolve)
   {
@@ -20,6 +21,12 @@ shader deferred_simple, satellite_render_resolve
   {
     (ps) {
       satellite_rendering_shadow_multiplier@f1 = satellite_rendering_shadow_multiplier;
+    }
+  }
+  else if (shader == portal_render_resolve)
+  {
+    (ps) {
+      envi_probe_specular@smpCube = envi_probe_specular;
     }
   }
 
@@ -58,9 +65,9 @@ shader deferred_simple, satellite_render_resolve
     {
       VS_OUT_POSITION(pos)
       float2 texcoord     : TEXCOORD0;
-      #if NO_OBLIQUE_TRANSFORMATIONS
+      ##if shader == portal_render_resolve
       float3 viewVect     : TEXCOORD1;
-      #endif
+      ##endif
     };
   }
 
@@ -77,7 +84,7 @@ shader deferred_simple, satellite_render_resolve
     half getFOMShadow(float3 worldPos) { return 1.0h; }
   }
 
-  if (shader == satellite_render_resolve)
+  if (shader == satellite_render_resolve || shader == portal_render_resolve)
   {
     FULL_TONEMAP_LUT_APPLY(ps)
   }
@@ -111,19 +118,23 @@ shader deferred_simple, satellite_render_resolve
       float2 pos = get_fullscreen_inpos(vertexId);
       output.pos = float4(pos.xy, 1, 1);
       output.texcoord = screen_to_texcoords(pos);
-      #if NO_OBLIQUE_TRANSFORMATIONS
+      ##if shader == portal_render_resolve
       output.viewVect = get_view_vec_by_vertex_id(vertexId);
-      #endif
-
+      ##endif
       return output;
     }
   }
 
+  if (shader == portal_render_resolve)
+  {
+    INIT_AND_USE_PORTAL_RENDERING(ps)
+  }
+
   hlsl(ps) {
-    float getWorldBlurredAO(float3 worldPos)
+    float get_depth_above_ao(float3 worldPos)
     {
       float vignetteEffect;
-      float depthHt = getWorldBlurredDepth(worldPos, vignetteEffect);
+      float depthHt = get_depth_above_fast(worldPos, vignetteEffect);
       const float height_bias = 0.05;
       const float height_scale = 0.5f;
       float occlusion = rcp((max(0.01, (depthHt - height_bias - worldPos.y)*(height_scale)+1)));
@@ -133,16 +144,16 @@ shader deferred_simple, satellite_render_resolve
 
     float4 deferred_simple_ps(VsOutput input) : SV_Target0
     {
+      float4 clearColor = 0;
+      ##if shader == portal_render_resolve
+        if (portal_use_dense_fog)
+          clearColor = float4(portal_fog_color, 1);
+        else
+          clearColor = float4(texCUBElod(envi_probe_specular, float4(normalize(input.viewVect), 0)).rgb, 1);
+      ##endif
       float rawDepth = readGbufferDepth(input.texcoord.xy);
-      #if NO_OBLIQUE_TRANSFORMATIONS
-      float w = linearize_z(rawDepth, zn_zfar.zw);
-      if (w>=zn_zfar.y)
-        return 0;
-      float3 pointToEye = -input.viewVect * w;
-      float4 worldPos = float4(world_view_pos - pointToEye, 1);
-      #else
       if (rawDepth<=0)
-        return 0;
+        return clearColor;
       float4 farpos = float4(input.texcoord.xy * 2 - 1, rawDepth, 1.);
       farpos.y = -farpos.y;
       float4 worldpos_prj = mul(farpos, globtm_inv);
@@ -151,7 +162,6 @@ shader deferred_simple, satellite_render_resolve
       ##if shader == satellite_render_resolve
         pointToEye.xz = float2(0,0);
       ##endif
-      #endif
 
       float distSq = dot(pointToEye,pointToEye);
       float invRsqrt = rsqrt(distSq);
@@ -208,7 +218,7 @@ shader deferred_simple, satellite_render_resolve
       half3 backLight = GetSkySHDiffuse(-gbuffer.normal);
 
       ##if shader != satellite_render_resolve
-        enviLight *= getWorldBlurredAO(worldPos.xyz);
+        enviLight *= get_depth_above_ao(worldPos.xyz);
         bool hasAmbient = false;
         ##if (gi_quality != off)
           ##if (gi_quality == only_ao)
@@ -247,13 +257,19 @@ shader deferred_simple, satellite_render_resolve
       result += gbuffer.emissionColor;
 
       //envi-
-      ##if shader != satellite_render_resolve
+      ##if shader != satellite_render_resolve && shader != portal_render_resolve
         apply_bruneton_fog(-view, dist, result.rgb);
       ##endif
       //result.rgb = apply_fog(result.rgb, pointToEye);
+
+      ##if shader == portal_render_resolve
+        apply_portal_rendering_fog(dist, result.rgb);
+      ##endif
+
       result.rgb = pack_hdr(result.rgb).rgb;
+
       ##if shader == satellite_render_resolve
-      result.rgb = performLUTTonemap(result.rgb);
+        result.rgb = performLUTTonemap(result.rgb);
       ##endif
       return float4(result,1);
     }

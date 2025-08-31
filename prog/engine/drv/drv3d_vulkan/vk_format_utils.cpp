@@ -5,15 +5,19 @@
 #include "vulkan_device.h"
 #include "driver.h"
 #include "physical_device_set.h"
+#include "driver_config.h"
 
 using namespace drv3d_vulkan;
 
 bool FormatUtil::support(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags,
   VkSampleCountFlags samples)
 {
+  if (!Globals::cfg.formatSupportMask[format])
+    return false;
+
   VkImageFormatProperties properties;
-  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::dev.getInstance().vkGetPhysicalDeviceImageFormatProperties(
-    Globals::VK::phy.device, format, type, tiling, usage, flags, &properties));
+  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format,
+    type, tiling, usage, flags, &properties));
   if (VULKAN_FAIL(result))
     return false;
   // needed ?
@@ -27,22 +31,22 @@ bool FormatUtil::support(VkFormat format, VkImageType type, VkImageTiling tiling
 VkFormatFeatureFlags FormatUtil::features(VkFormat format)
 {
   VkFormatProperties props;
-  VULKAN_LOG_CALL(Globals::VK::dev.getInstance().vkGetPhysicalDeviceFormatProperties(Globals::VK::phy.device, format, &props));
+  VULKAN_LOG_CALL(Globals::VK::inst.vkGetPhysicalDeviceFormatProperties(Globals::VK::phy.device, format, &props));
   return props.optimalTilingFeatures;
 }
 
 VkFormatFeatureFlags FormatUtil::buffer_features(VkFormat format)
 {
   VkFormatProperties props;
-  VULKAN_LOG_CALL(Globals::VK::dev.getInstance().vkGetPhysicalDeviceFormatProperties(Globals::VK::phy.device, format, &props));
+  VULKAN_LOG_CALL(Globals::VK::inst.vkGetPhysicalDeviceFormatProperties(Globals::VK::phy.device, format, &props));
   return props.bufferFeatures;
 }
 
 VkSampleCountFlags FormatUtil::samples(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage)
 {
   VkImageFormatProperties properties;
-  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::dev.getInstance().vkGetPhysicalDeviceImageFormatProperties(
-    Globals::VK::phy.device, format, type, tiling, usage, 0, &properties));
+  VkResult result = VULKAN_CHECK_RESULT(
+    Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format, type, tiling, usage, 0, &properties));
 
   return VULKAN_OK(result) ? properties.sampleCounts : 0;
 }

@@ -1,0 +1,102 @@
+include "rtsm_use.dshl"
+
+int rtr_use_rasterize_cockpit_reflection = 0;
+
+macro RT_GLASS_APPLY_BASE(stage, transparent_target, transparent_depth)
+  if (transparent_target != NULL && hardware.fsh_5_0)
+  {
+    (stage) {
+      inv_resolution@f2 = (1.0 / get_viewport().zw);
+      rt_glass_gbuffer@smp2d = transparent_target;
+      rt_glass_gbuffer_depth@tex2d = transparent_depth;
+      rt_glass_gbuffer_dim@f4 = (get_dimensions(transparent_target, 0).xy, 1.0 / get_dimensions(transparent_target, 0).xy);
+      rtr_use_rasterize_cockpit_reflection@i1 = rtr_use_rasterize_cockpit_reflection;
+    }
+
+    INIT_LOAD_DEPTH_GBUFFER_BASE(stage)
+    USE_LOAD_DEPTH_GBUFFER_BASE(stage)
+    USING_RTSM(stage)
+
+    hlsl(stage) {
+      float2 RTReflectionDepthRange(float2 tc)
+      {
+        float4 rtDepth4 = rt_glass_gbuffer_depth.GatherRed(rt_glass_gbuffer_samplerstate, tc);
+
+        float4 rtw4;
+        rtw4.x = linearize_z(rtDepth4.x, zn_zfar.zw);
+        rtw4.y = linearize_z(rtDepth4.y, zn_zfar.zw);
+        rtw4.z = linearize_z(rtDepth4.z, zn_zfar.zw);
+        rtw4.w = linearize_z(rtDepth4.w, zn_zfar.zw);
+
+        float2 rtwMinMax = float2(1000000, 0);
+        rtwMinMax.x = min(rtwMinMax.x, rtw4.x > 0 ? rtw4.x : 1000000);
+        rtwMinMax.y = max(rtwMinMax.y, rtw4.x > 0 ? rtw4.x : 0);
+        rtwMinMax.x = min(rtwMinMax.x, rtw4.y > 0 ? rtw4.y : 1000000);
+        rtwMinMax.y = max(rtwMinMax.y, rtw4.y > 0 ? rtw4.y : 0);
+        rtwMinMax.x = min(rtwMinMax.x, rtw4.z > 0 ? rtw4.z : 1000000);
+        rtwMinMax.y = max(rtwMinMax.y, rtw4.z > 0 ? rtw4.z : 0);
+        rtwMinMax.x = min(rtwMinMax.x, rtw4.w > 0 ? rtw4.w : 1000000);
+        rtwMinMax.y = max(rtwMinMax.y, rtw4.w > 0 ? rtw4.w : 0);
+
+        return rtwMinMax;
+      }
+
+      half3 AdaptiveSampleRTReflection(float2 pos)
+      {
+        uint2 dim;
+        rt_glass_gbuffer.GetDimensions(dim.x, dim.y);
+        float2 texSize = rt_glass_gbuffer_dim.xy;
+        float2 invSize = rt_glass_gbuffer_dim.zw;
+        half2 halfInvSize = 0.5 * invSize.xy;
+        float2 dir;
+        float4 fxaaConsolePosPos = float4(pos - invSize, pos + invSize);
+        half4 Nw = h4tex2Dlod(rt_glass_gbuffer, float4(fxaaConsolePosPos.xy, 0, 0));
+        half4 Sw = h4tex2Dlod(rt_glass_gbuffer, float4(fxaaConsolePosPos.xw, 0, 0));
+        half4 Ne = h4tex2Dlod(rt_glass_gbuffer, float4(fxaaConsolePosPos.zy, 0, 0));
+        half4 Se = h4tex2Dlod(rt_glass_gbuffer, float4(fxaaConsolePosPos.zw, 0, 0));
+
+        half lumaNw = luminance(Nw.rgb);
+        half lumaSw = luminance(Sw.rgb);
+        half lumaNe = luminance(Ne.rgb);
+        half lumaSe = luminance(Se.rgb);
+
+        half dirSwMinusNe = lumaSw - lumaNe;
+        half dirSeMinusNw = lumaSe - lumaNw;
+
+        dir.x = dirSwMinusNe + dirSeMinusNw;
+        dir.y = dirSwMinusNe - dirSeMinusNw;
+        half4 centerTap = h4tex2Dlod(rt_glass_gbuffer, float4(pos, 0, 0));
+
+        dir *= invSize;
+        dir = clamp(dir, -halfInvSize.xy, halfInvSize.xy);//limit halo
+
+        half4 rgbyN1 = h4tex2Dlod(rt_glass_gbuffer, float4(pos.xy - dir, 0, 0));
+        half4 rgbyP1 = h4tex2Dlod(rt_glass_gbuffer, float4(pos.xy + dir, 0, 0));
+
+        half4 rgbyA = (rgbyN1 + rgbyP1) * 0.5;
+        float2 maxDXDY = fwidth(pos);
+        half weight = saturate(max(maxDXDY.x * texSize.x, maxDXDY.y * texSize.y));
+        return lerp(rgbyA, centerTap, weight).rgb;
+      }
+
+      float GetShadowFromRTSM(uint2 tci, float w)
+      {
+        if (isRTSMEnabled())
+        {
+          float gbufferDepth = loadGbufferDepth(tci);
+          float gbufferW = linearize_z(gbufferDepth, zn_zfar.zw);
+          float dw = abs(w - gbufferW);
+          float wt = 1.0 - saturate(dw * 0.1);
+
+          // If the gbuffer surface is close enough, use the RTSM for csmShadow
+          if (wt > 0)
+            return lerp(1, getRTSM(tci).r, wt);
+        }
+
+        return 1;
+      }
+
+      #define HAS_RT_GLASS_FUNCTIONS 1
+    }
+  }
+endmacro

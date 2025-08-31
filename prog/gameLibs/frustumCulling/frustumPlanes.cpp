@@ -2,6 +2,7 @@
 
 #include <shaders/dag_shaders.h>
 #include <frustumCulling/frustumPlanes.h>
+#include <math/dag_color.h>
 
 #define GLOBAL_VARS_LIST \
   VAR(frustumPlane03X)   \

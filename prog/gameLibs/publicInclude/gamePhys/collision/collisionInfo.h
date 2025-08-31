@@ -15,7 +15,8 @@ struct MaterialData;
 
 namespace gamephys
 {
-using ImpulseLogFunc = eastl::fixed_function<sizeof(void *) * 4, void(const char *name, float impulse, float damage, float hp)>;
+using ImpulseLogFunc =
+  eastl::fixed_function<sizeof(void *) * 5, void(const char *name, const char *actor_name, float impulse, float damage, float hp)>;
 struct CollisionObjectInfo
 {
   enum CollisionImpulseFlags : uint32_t
@@ -24,15 +25,11 @@ struct CollisionObjectInfo
     CIF_NO_DAMAGE = 1 << 0,
   };
 
-  float collisionHardness; // used for damage multiplier
-
-  CollisionObjectInfo() : collisionHardness(1.f) {}
-
-  virtual ~CollisionObjectInfo() {}
+  virtual ~CollisionObjectInfo() = default;
 
   virtual float onImpulse(float impulse, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
     const Point3 & /*collision_normal*/, uint32_t /*flags*/ = CIF_NONE, int32_t /* user_data */ = -1,
-    ImpulseLogFunc /*log_func*/ = nullptr)
+    ImpulseLogFunc /*log_func*/ = nullptr, const char * /*actor_name*/ = nullptr)
   {
     return impulse;
   }

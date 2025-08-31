@@ -2,6 +2,7 @@
 #pragma once
 
 #include <shaders/dag_shaderVariableInfo.h>
+#include <shaders/dag_shaderBlock.h>
 #define GLOBAL_VARS_LIST                \
   VAR(dissolve_frame_counter)           \
   VAR(sun_color_0)                      \
@@ -31,7 +32,6 @@
   VAR(downsampled_far_depth_tex)        \
   VAR(downsample_depth_type)            \
   VAR(from_sun_direction)               \
-  VAR(lmesh_rendering_mode)             \
   VAR(world_to_hmap_tex_ofs)            \
   VAR(world_to_hmap_ofs)                \
   VAR(world_to_hmap_patches_tex_ofs)    \
@@ -52,6 +52,7 @@
   VAR(shore__waves_depth_fade_interval) \
   VAR(shore_width_k)                    \
   VAR(shore_gerstner_speed)             \
+  VAR(shore_rivers_wave_multiplier)     \
   VAR(clipmap_writes_height_only)       \
   VAR(solid_color)                      \
   VAR(envi_probe_specular)              \
@@ -102,10 +103,6 @@
   VAR(lens_brighthness)                       \
   VAR(jitteredCamPosToUnjitteredHistoryClip)  \
   VAR(prev_to_cur_origin_move)                \
-  VAR(prevViewProjTm0)                        \
-  VAR(prevViewProjTm1)                        \
-  VAR(prevViewProjTm2)                        \
-  VAR(prevViewProjTm3)                        \
   VAR(prevOrigoRelativeViewProjTm0)           \
   VAR(prevOrigoRelativeViewProjTm1)           \
   VAR(prevOrigoRelativeViewProjTm2)           \
@@ -116,7 +113,8 @@
   VAR(matrices_stride)                        \
   VAR(has_motion_vectors)                     \
   VAR(mip_bias)                               \
-  VAR(use_custom_fog)                         \
+  VAR(disable_volfog_on_stars)                \
+  VAR(volfog_froxel_range_params)             \
   VAR(projection_center)                      \
   VAR(downsampled_motion_vectors_tex)         \
   VAR(prev_downsampled_motion_vectors_tex)    \
@@ -171,12 +169,21 @@
   VAR(voxelize_world_to_rasterize_space_add)  \
   VAR(glass_dynamic_light)                    \
   VAR(disable_dynmat_params)                  \
-  VAR(camera_base_offset)
+  VAR(camera_base_offset)                     \
+  VAR(use_contact_shadows)
+
+#define GLOBAL_BLOCKS_LIST \
+  VAR(globalFrame)         \
+  VAR(globalConst)         \
+  VAR(rendinstDepth)       \
+  VAR(rendinstDepthScene)  \
+  VAR(dynamicScene)        \
+  VAR(dynamicDepthScene)
 
 #define VAR(a) extern ShaderVariableInfo a##VarId;
 GLOBAL_VARS_LIST
 GLOBAL_VARS_OPTIONAL_LIST
 #undef VAR
-
-extern int globalFrameBlockId;
-extern int globalConstBlockId;
+#define VAR(a) extern ShaderBlockIdHolder a##BlockId;
+GLOBAL_BLOCKS_LIST;
+#undef VAR

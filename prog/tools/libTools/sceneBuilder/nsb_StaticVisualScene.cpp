@@ -864,11 +864,13 @@ bool StaticSceneBuilder::StaticVisualScene::buildAndSave1(LightmappedScene &scen
   pbar.setActionDesc("Saving scene");
   String scene_fname(foldername);
 
+  uint64_t tc_storage = 0;
+  const char *tc_str = mkbindump::get_target_str(target_code, tc_storage);
   if (scene_format == SCENE_FORMAT_LdrTga || scene_format == SCENE_FORMAT_LdrDds || scene_format == SCENE_FORMAT_LdrTgaDds ||
       scene_format == SCENE_FORMAT_AO_DXT1 || scene_format == SCENE_FORMAT_SunBump)
-    scene_fname.aprintf(0, "/scene-%s.scn", mkbindump::get_target_str(target_code));
+    scene_fname.aprintf(0, "/scene-%s.scn", tc_str);
   else
-    scene_fname.aprintf(0, "/scene_XXX-%s.scn", mkbindump::get_target_str(target_code));
+    scene_fname.aprintf(0, "/scene_XXX-%s.scn", tc_str);
 
   debug("lightmaps: scn=%d light=%d", scene.lightmaps.size(), lighting.getLightmapCount());
 
@@ -1554,15 +1556,15 @@ void StaticSceneBuilder::StaticVisualScene::connectVertexData(IGenericProgressIn
 
     UpdateInfo(IGenericProgressIndicator &w) : pbar(w) {}
 
-    virtual void beginConnect(int total_count)
+    void beginConnect(int total_count) override
     {
       pbar.setDone(0);
       pbar.setTotal(total_count);
     }
 
-    virtual void update(int processed_count, int total_count) { pbar.setDone(processed_count); }
+    void update(int processed_count, int total_count) override { pbar.setDone(processed_count); }
 
-    virtual void endConnect(int before_count, int after_count) {}
+    void endConnect(int before_count, int after_count) override {}
   };
 
   UpdateInfo uinfo(pbar);

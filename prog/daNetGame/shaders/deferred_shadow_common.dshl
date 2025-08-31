@@ -25,14 +25,16 @@ include "vr_reprojection.dshl"
 include "gbuffer_resolve_modifier.dshl"
 include "ssss/ssss_transmittance_profile.dshl"
 include "clustered/simple_point_light.dshl"
-include "deferred_snow_cover.dshl"
+include "envi_cover_inc.dshl"
 include "water_heightmap.dshl"
 include "use_gi.dshl"
 include "night_light.dshl"
 include "rtao_use.dshl"
 include "rtr_use.dshl"
+include "rt/rt_underwater_fade_inc.dshl"
 include "screen_gi_encoding.dshl"
 include "apply_shadow_modifications.dshl"
+include "ptgi_use.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -62,13 +64,18 @@ int combined_shadows_has_caustics;
 
 float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
-int use_rtr = 0;
+texture dynamic_lighting_texture;
+int has_any_dynamic_lights = 0;
+float4 hero_cockpit_vec = (0, 0, 0, 0);
+int bvh_usable = 0;
 
 macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
     leaves_ss_profile_gamb@f4 = (leaves_ss_profile.x, leaves_ss_profile.y, leaves_ss_profile.z, grass_ambient_ss_shadow);
     blood_ss_profile@f3 = blood_ss_profile;
     water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
+    water_level_ocean@f1 = water_level;
     sheen_color@f3 = sheen_color;
     shadow_frame@f1 = shadow_frame;
   }
@@ -120,7 +127,13 @@ macro COMMON_RESOLVE_EXTENDED(code)
   USE_SSAO_UPSCALE_BASE_WITH_SMP(code, ssao_tex_samplerstate)
   USING_RTAO(code, 3)
   USING_RTR(code)
-  (code) {use_rtr@i1 = use_rtr;}
+  INIT_BVH_WATER_FADE_RTR_MATH(code)
+  USE_BVH_WATER_FADE_RTR_MATH(code)
+  USING_PTGI(code)
+  (code) {
+    hero_cockpit_vec@f4 = hero_cockpit_vec;
+    bvh_usable@i1 = bvh_usable;
+  }
 
   hlsl(code) {
     #define SSR_UPSCALE_MODE SSR_UPSCALE_MISS_HIT_AWARE
@@ -180,7 +193,18 @@ macro COMMON_RESOLVE_EXTENDED(code)
 
   if (in_editor_assume == no)
   {
-    INIT_AND_USE_TILED_LIGHTS(code)
+    if (dynamic_lighting_texture == NULL)
+    {
+      INIT_AND_USE_TILED_LIGHTS(code)
+    }
+    else
+    {
+      if (dynamic_lights_count != lights_off) {dont_render;}
+      (code){
+        has_any_dynamic_lights@i1 = has_any_dynamic_lights;
+        dynamic_lighting_texture@tex2d = dynamic_lighting_texture;
+      }
+    }
   }
   else
   {
@@ -207,21 +231,8 @@ macro COMMON_RESOLVE_EXTENDED(code)
     }
   }
 
-  if (envi_cover == envi_cover_on)
-  {
-    INIT_BLURRED_DEPTH_ABOVE(code)
-    USE_BLURRED_DEPTH_ABOVE(code)
-    INIT_DEFERRED_SNOW_COVER(code, true, false, 0)
-    USE_DEFERRED_SNOW_COVER(code)
-  }
-
   (code) {
-    underwater_light_fade_params@f4 = (underwater_fade.x, underwater_fade.y,  underwater_fade.z, water_level);
-  }
-  hlsl(code) {
-    #define underwater_fade (underwater_light_fade_params.xyz)
-  }
-  (code) {
+    underwater_fade@f3 = underwater_fade;
     lightning_color@f3 = (lightning_scene_illumination_color);
     lightning_dir@f3 = (lightning_scene_illumination_dir);
     lightning_scene_illumination@i1 = (lightning_scene_illumination);
@@ -253,6 +264,8 @@ macro SPECIAL_RESOLVE_EXTENDED(code)
 endmacro
 
 macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
+  assume_if_not_assumed use_contact_shadows = use_shadows;
+
   USE_SHADOW_MODIFICATIONS(code)
   hlsl(code) {
     #define __XBOX_WAVESIM_ITERATION 1
@@ -268,14 +281,19 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       return max(AO, ((AO * A + B) * AO + C) * AO);
     }
 
-    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float base_caustics, out float cloudShadow)
+    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float ssssTransmittance, out float base_caustics, out float cloudShadow)
     {
       ##if (combined_shadows == NULL) && (in_editor_assume == yes)
         csmShadow = 1;
-        base_caustics = cloudShadow = 0;
+        ssssTransmittance = base_caustics = cloudShadow = 0;
       ##else
         float4 sampledValues = tex2Dlod(combined_shadows, float4(uv, 0, 0));
         csmShadow = sampledValues.x;
+        ##if use_ssss != off
+          ssssTransmittance = decode_ssss_transmittance(sampledValues.y);
+        ##else
+          ssssTransmittance = 0;
+        ##endif
         base_caustics = combined_shadows_has_caustics ? sampledValues.z : 0;
         cloudShadow = combined_shadows_has_caustics ? sampledValues.w : 0;
       ##endif
@@ -292,13 +310,9 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       return caustics;
     }
 
-    half4 deferred_shadow_per_sample(float2 screenpos, float3 viewVect, float2 curViewTc, float w,
+    half4 deferred_shadow_per_sample(float2 screenpos, float3 viewVect, float2 curViewTc, float3 pointToEye, float4 worldPos, float w,
                                      ProcessedGbuffer gbuffer, float rawDepth)
     {
-      float3 pointToEye = -viewVect * w;
-      float3 pointToEyeOfs = pointToEye;
-      float4 worldPos = float4(world_view_pos.xyz - pointToEyeOfs, 1);
-
       float distSq = dot(pointToEye,pointToEye);
       float invRsqrt = rsqrt(distSq);
       float3 view  = pointToEye*invRsqrt;
@@ -307,50 +321,25 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       // Translucency is used to store SSS eye fake shadow mask, so we must assume SSS eye material to have 0 translucency.
       half sssEyeFakeShadowMask = gbuffer.translucency;
 
-##if (envi_cover == envi_cover_on)
-      if (!isEmissiveShader(gbuffer.material) && (!gbuffer.dynamic || isFoliageShader(gbuffer.material)) && !gbuffer.isLandscape)
-      {
-        float snowInfluence = apply_snow_cover(worldPos.xyz, gbuffer.normal, skylight_progress, gbuffer.diffuseColor, gbuffer.specularColor,
-          gbuffer.translucencyColor, gbuffer.translucency, gbuffer.linearRoughness, gbuffer.ggx_alpha);
-        if (snowInfluence > 0)
-          gbuffer.material = SHADING_SUBSURFACE;
-      }
-##endif
-
-      /*float waterLevel = 0;//fixme:
-      float wetnessAbove = 0.1;
-      float wetness = saturate((waterLevel+wetnessAbove-worldPos.y)/wetnessAbove);
-      apply_wetness(wetness, gbuffer.diffuseColor, gbuffer.linearRoughness, gbuffer.ao, gbuffer.normal);
-      gbuffer.ggx_alpha = gbuffer.linearRoughness*gbuffer.linearRoughness;
-      wetness_metalness(wetness, gbuffer.metalness);
-      wetness_specular(wetness, gbuffer.specularColor);*/
-
-      //float viewWaterDepth = abs(view.y)>0.001 ? (waterLevel-worldPos.y)/view.y : (worldPos.y>waterLevel ? 0 : 10000);
-      //float sunWaterDepth = (waterLevel-worldPos.y)/-from_sun_direction.y;
-
-      /*
-        fixme: apply underwater
-        half waterDepth = (water_depth_to_opacity__water_level.w-worldPos.y);
-        half3 waterLightOpacity = saturate(pow(water_depth_to_opacity__water_level.xyz, waterDepth));
-        ao *= waterLightOpacity;
-      */
       float4 weights = sampleCloseUpscaleWeight(screenpos);
       SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenpos);
       half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, weights);
-      //SSAO_TYPE ssao = getSSAO(w, screenpos);
 
-      if (isRTAOEnabled())
+      half cockpitFade = half(saturate(dot(float4(worldPos.xyz, 1), hero_cockpit_vec)));
+
+      if (isRTAOEnabled()  && bvh_usable)
       {
         float rtao = getRTAO(uint2(screenpos));
-        ssao.x = rtao;
+        if (gbuffer.isHeroCockpit)
+        {
+          ssao.x = lerp(rtao, 1, cockpitFade);
+          ssao.y = lerp(ssao. CONTACT_SHADOWS_ATTR, 1, cockpitFade);
+        }
+        else
+          ssao.x = rtao;
       }
 
       patch_gbuffer(gbuffer, worldPos.xyz, ssao.x);
-      //ssao = 1;
-      //gbuffer.diffuseColor = 0.5;
-      //gbuffer.translucencyColor = gbuffer.diffuseColor*gbuffer.translucency;
-
-      //gbuffer.specularColor = 0;
 
       float geometryFactor = 1;
 
@@ -369,20 +358,18 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half enviAO = gbuffer.ao*ssao.x;//we still modulate by albedo color, so we don't need micro AO
 
       half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
-      //return enviAO;
-      //specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);//this should not be needed if ao is correct
       half3 specularColor = gbuffer.specularColor*specularAOcclusion;
       //SUN
       float3 lightDir = -from_sun_direction.xyz;
       half3 lightColor = sun_color_0.rgb;
 
       float3 verticalUnderwaterMul = float3(1.0, 1.0, 1.0);
-      ##if water_heightmap_lowres != NULL
-      float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
-      float water_level = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
-      ##else
-      #define water_level (underwater_light_fade_params.w)
-      ##endif
+      float water_level = water_level_ocean;
+      if (water_heightmap_lowres_exists)
+      {
+        float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+        water_level = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
+      }
       FLATTEN
       if (water_level > worldPos.y)
       {
@@ -395,11 +382,9 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half3 result = 0;
       bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
 
-      float csmShadow, base_caustics, cloudShadow;
-      get_combined_shadows_sample(curViewTc, csmShadow, base_caustics, cloudShadow);
+      float csmShadow, ssssTransmittance, base_caustics, cloudShadow;
+      get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, base_caustics, cloudShadow);
 
-      //half trees_shadow = min(cloudShadow, vsmShadow);
-      //float apperture = 2*pow2(gbuffer.ao);
       FLATTEN
       if (!isValidSubsurface)
         gbuffer.shadow *= calc_micro_shadow(NoL, gbuffer.ao);
@@ -408,11 +393,6 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       ##if ssao_contact_shadows
       half contactShadows = ssao. CONTACT_SHADOWS_ATTR;
-      //FLATTEN
-      //contactShadows = (gbuffer.material == SHADING_FOLIAGE) ? contactShadows*0.8 + 0.2 : contactShadows;
-      //contactShadows = (gbuffer.material == SHADING_FOLIAGE) ? contactShadows*0.8 + 0.2 : contactShadows;
-      //contactShadows = contactShadows*0.8 + 0.2 : contactShadows;
-      //contactShadows = contactShadows*0.8 + 0.2;
       csmShadow *= lerp(contactShadows*contactShadows, contactShadows, translucencyStrength);
       SSSshadow *= lerp(contactShadows, contactShadows*0.75 + 0.25, translucencyStrength);
       ##endif
@@ -428,41 +408,6 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float2 caustics = resolve_caustics(base_caustics, worldPos.xyz, water_level);
 
-      //make sss shadow less visible closer to caster
-      /*
-      //very high-end (can be moved to combine shadows though, if we have separate channel for SSSshadow)
-      //we not just sample and compare shadow, but also assume that closer obstacles do not obscure SSSshadow
-      float4 camldPos4 = float4(-pointToEye, 1);
-      float3 t0 = float3(dot(camldPos4, shadow_cascade_tm[0*3]), dot(camldPos4, shadow_cascade_tm[0*3+1]), dot(camldPos4, shadow_cascade_tm[0*3+2]));
-      float3 t1 = float3(dot(camldPos4, shadow_cascade_tm[1*3]), dot(camldPos4, shadow_cascade_tm[1*3+1]), dot(camldPos4, shadow_cascade_tm[1*3+2]));
-      float3 t2 = float3(dot(camldPos4, shadow_cascade_tm[2*3]), dot(camldPos4, shadow_cascade_tm[2*3+1]), dot(camldPos4, shadow_cascade_tm[2*3+2]));
-      float3 t3 = float3(dot(camldPos4, shadow_cascade_tm[3*3]), dot(camldPos4, shadow_cascade_tm[3*3+1]), dot(camldPos4, shadow_cascade_tm[3*3+2]));
-      int cascade_id = 6;
-      bool b3 = all(abs(t3)<HALF);
-      bool b2 = all(abs(t2)<HALF);
-      bool b1 = all(abs(t1)<HALF);
-      bool b0 = all(abs(t0)<HALF);
-      cascade_id = b3 ? 3 : cascade_id;
-      cascade_id = b2 ? 2 : cascade_id;
-      cascade_id = b1 ? 1 : cascade_id;
-      cascade_id = b0 ? 0 : cascade_id;
-      float3 t = 2;
-      t = b3 ? t3 : t;
-      t = b2 ? t2 : t;
-      t = b1 ? t1 : t;
-      t = b0 ? t0 : t;
-      float3 uv = cascade_id < 4 ? TRANSFORM(t, cascade_id) : 2;
-      if ( uv.z<1)
-      {
-        float shadowD = shadow_cascade_depth_tex.SampleLevel(combined_shadows_samplerstate, uv, 0).x;
-        float4x4 shadowTM4 = float4x4(shadow_cascade_tm[cascade_id*3+0], shadow_cascade_tm[cascade_id*3+1], shadow_cascade_tm[cascade_id*3+2], float4(0,0,0,1));
-        shadowTM4 = inverse(shadowTM4);
-        float4 shadowcamLdPos4 = mul(shadowTM4, float4(t.xy, shadowD-0.5,1));
-        float3 move = shadowcamLdPos4.xyz+pointToEye.xyz;
-        float depth2=dot(move,move)*pow2(1);
-        SSSshadow = 1-saturate(depth2)*(1-SSSshadow);
-      }*/
-
       //SUN
       BRANCH
       if (shadow > 0)
@@ -475,56 +420,21 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
           result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
         }
       }
-      result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, specularColor, curViewTc, enviAO);
+      ##if dynamic_lighting_texture == NULL || in_editor_assume == yes
+        result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, specularColor, curViewTc, enviAO);
+      ##else
+        if (has_any_dynamic_lights)
+          result += texelFetch(dynamic_lighting_texture, screenpos, 0).rgb;
+      ##endif
       result += gbuffer.diffuseColor*caustics.y*lightColor*cloudShadow*pow3(saturate(enviAO*1.3));
-
-      /*BRANCH
-      if (gbuffer.material == SHADING_SUBSURFACE && (SSSshadow > 0))
-      {
-        //SSSshadow = 1;
-        float3 H = normalize(view + lightDir);
-
-        // to get an effect when you see through the material
-        // hard coded pow constant
-        float InScatter = pow(saturate(dot(lightDir, -view)), 12) * lerp(3, .1f, gbuffer.translucency);
-        // wrap around lighting, /(PI*2) to be energy consistent (hack do get some view dependnt and light dependent effect)
-        float OpacityFactor = gbuffer.translucency;
-        // Opacity of 0 gives no normal dependent lighting, Opacity of 1 gives strong normal contribution
-        float NormalContribution = saturate(dot(gbuffer.normal, H) * OpacityFactor + 1 - OpacityFactor);
-        float BackScatter = gbuffer.ao * NormalContribution / (PI * 2);
-
-        half backShading = lerp(BackScatter, 1, InScatter);
-        result += (gbuffer.ao * backShading * SSSshadow) * lightColor * gbuffer.translucencyColor;
-        // lerp to never exceed 1 (energy conserving)
-      }*/
-
-      //return 0;
       //SUN-
+
       //envi
-      //specularColor *=specularAOcclusion;
-      //specularColor *= 0.5+0.5*specularAOcclusion;//hack: other
       float3 lightProbeReflectionVec = reflectionVec;
-      //half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
       half3 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV);
       half3 enviBRDF = gbuffer.specularColor * AB.x + saturate( 50 * gbuffer.specularColor.g ) * AB.y;
 
-      /*FLATTEN
-      if (gbuffer.material == SHADING_FOLIAGE)
-      {
-        enviBRDF *= float3(0.3,0.5,0.3);
-      }
-        enviBRDF = 1;
-        roughMip = 0;
-        roughR = reflectionVec;*/
-      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
-      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      //environmentAmbientReflection *= 0.8 + 0.2*shadow;
-      //return environmentAmbientReflection.rgbr;
-      //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
-
       float3 enviLightingNormal = normalize(getDiffuseDominantDir(gbuffer.normal, view, saturated_NdotV, ggx_alpha ));
-      //half3 environmentAmbientUnoccludedLighting = lerp3(localLightProbeAmbient1, localLightProbeAmbient2, GetSkySHDiffuse(enviLightingNormal), ambientWeights) * gbuffer.diffuseColor;
       float fake_light_strength = 0.25;
       ##if (gi_quality != off)
         half3 enviLight, giSpecular;
@@ -542,17 +452,27 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       fake_light_strength *= fragmentNotInCockpit;
       fake_light_strength += tank_cockpit_fake_ambient_light_strength * (1. - fragmentNotInCockpit);
 
-      half3 environmentAmbientUnoccludedLighting =  enviLight * gbuffer.diffuseColor;
+      enviLight *= enviAO;
+      if (isPTGIEnabled() && bvh_usable)
+      {
+        half3 ptgi = half3(getPTGI(curViewTc, w));
+        if (gbuffer.isHeroCockpit)
+          enviLight = lerp(ptgi, enviLight, cockpitFade);
+        else {
+          // PTGI does not need additional AO
+          enviLight = ptgi;
+        }
+      }
+
+      half3 environmentAmbientLighting =  enviLight * gbuffer.diffuseColor;
       //use albedo instead of diffuseColor, so fake light affects metal
-      environmentAmbientUnoccludedLighting += fakeNightLight(gbuffer.albedo, fake_light_strength, saturated_NdotV, distSq);
+      environmentAmbientLighting += enviAO * fakeNightLight(gbuffer.albedo, fake_light_strength*(1-gbuffer.metalness*(1-gbuffer.linearRoughness)), saturated_NdotV, distSq);
 
       //from GTAO paper. Result doesn't seem to be correct (too bright).
       // If we square ssao, result is also incorrect (dark places become too dark)
       //use SSGI instead.
       //half3 environmentAmbientLighting = (geometryFactor*gbuffer.ao) * MultiBounce(ssao.x, gbuffer.diffuseColor)*environmentAmbientUnoccludedLighting;
-      half3 environmentAmbientLighting = (enviAO * geometryFactor)*environmentAmbientUnoccludedLighting;
-      environmentAmbientLighting *= AB.z;
-      //environmentAmbientReflection *= lerp(1, enviAO, gbuffer.translucency);//g.amelihin asked for that hack
+      environmentAmbientLighting = (AB.z * geometryFactor)*environmentAmbientLighting;
       ##if (gi_quality != off)
         half3 totalReflection = (giSpecular*(specularAOcclusion*enviSSR) + ssrReflections.rgb)*enviBRDF;
       ##else
@@ -560,13 +480,15 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
         half3 environmentAmbientReflection = sample_envi_probe(float4(roughR, roughMip)).rgb;
         half3 totalReflection = (environmentAmbientReflection*enviSSR*specularAOcclusion + ssrReflections.rgb)*enviBRDF;//enviBRDF
-        //totalReflection *= specularAOcclusion;
       ##endif
 
-      // isRTREnabled returns true when SSR denoiser is used, so use_rtr works around that
-      if (isRTREnabled() && use_rtr)
+      if (isRTREnabled() && bvh_usable)
       {
-        totalReflection = getRTR(uint2(screenpos)) * enviBRDF;
+        half3 rtr = getRTRFiltered(uint2(screenpos)) * enviBRDF;
+        half underwaterComponent = calc_underwater_fade_rtr(worldPos.y - water_level);
+        half cockpit = gbuffer.isHeroCockpit ? 1-cockpitFade : 1;
+        half s = cockpit * underwaterComponent;
+        totalReflection = lerp(totalReflection, rtr, s);
       }
 
 
@@ -575,9 +497,16 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         translucencyStrength > 1.0/255;
 
       BRANCH
-      if (isTranslucent)
+      if (gbuffer.material == SHADING_SUBSURFACE && isSubSurfaceProfileValid(gbuffer.sss_profile))
       {
-        if ((SSSshadow > 0)) {
+        ##if use_ssss != off
+          result += gbuffer.diffuseColor * lightColor * ssss_get_profiled_transmittance(gbuffer.normal, lightDir, ssssTransmittance);
+        ##endif
+      }
+      else if (isTranslucent)
+      {
+        if ((SSSshadow > 0))
+        {
           result += (gbuffer.ao * foliageSSS(NoL, view, lightDir) * SSSshadow) * lightColor * gbuffer.translucencyColor;
         }
         half3 backAmbientLight = GetSkySHDiffuse(-gbuffer.normal);
@@ -601,9 +530,6 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
             giAmount = 1;
           }
         ##endif
-        //half giAmount = get_ambient3d_unfiltered_cascade(worldPos.xyz, gbuffer.normal*gbuffer.normal, gbuffer.normal>0 ? 1./6.0 : 0, backAmbientLight, giBackAmbient, 1, 0, false);
-        //giAmount *= get_gi_param(curViewTc.x) * eclipse_gi_weight_atten;
-        //backAmbientLight = lerp(backAmbientLight, giBackAmbient, giAmount);
         backAmbientLight = giBackAmbient * skylight_gi_weight_atten;
         environmentAmbientLighting += enviAO*backAmbientLight*gbuffer.translucencyColor;
       }
@@ -623,7 +549,10 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       // Also, to avoid sharp changes with emissive eye material (eg. for caustics), its effect is masked where the material changes.
       if (gbuffer.sss_profile == SSS_PROFILE_EYES)
       {
-        half effectiveEyeSsao = lerp(pow2(ssao.x), ssao.x, saturate(w - 0.5));
+        // PTGI forces low SSAO qulity so that it is better to hack it with a constant.
+        half effectiveEyeSsao = 0.25f;
+        if (!isPTGIEnabled())
+          effectiveEyeSsao = lerp(pow2(ssao.x), ssao.x, saturate(w - 0.5));
         result *= lerp(effectiveEyeSsao, 1, sssEyeFakeShadowMask);
       }
 

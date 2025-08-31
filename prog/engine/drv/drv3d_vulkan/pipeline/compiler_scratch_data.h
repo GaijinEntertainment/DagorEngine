@@ -38,6 +38,7 @@ struct GraphicsPipelineCompileScratchData
   bool nonDrawCompile;
   bool failIfNotCached;
   RenderPassResource *nativeRP;
+  VkResult compileResult;
 
   // for actual create pipe API
   carray<VkVertexInputBindingDescription, MAX_VERTEX_INPUT_STREAMS> inputStreams;

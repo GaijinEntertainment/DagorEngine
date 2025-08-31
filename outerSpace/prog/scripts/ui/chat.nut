@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 import "%dngscripts/ecs.nut" as ecs
 
 let { EventSqChatMessage, mkCmdChatMessage } = require("%scripts/globs/sqevents.nut")
-let { userName } = require("login.nut")
+let { userName } = require("%scripts/ui/login.nut")
 
 let chatLines = persist("chatLines", @() [])
 let linesGen = mkWatched(persist, "linesGen", 0)
@@ -46,21 +46,21 @@ let itemAnim = freeze([
 function chatItem(item) {
   let {name, text} = item
   let rowChildren = {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
     text = $"{name}: {text}"
   }
 
   return @() {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     rendObj = ROBJ_SOLID
     color = Color(0,0,0,80)
     key = item
     children = {
       flow = FLOW_HORIZONTAL
       key = item
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       children = rowChildren
     }
     padding = hdpx(2)
@@ -98,7 +98,7 @@ function inputBox() {
 
     children = @() {
       rendObj = ROBJ_TEXT
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       margin = fsh(0.5)
       text = outMessage.get()
       watch = outMessage
@@ -127,7 +127,7 @@ function chatUi() {
   return {
     key = "chat"
     flow = FLOW_VERTICAL
-    size = [sw(20), fsh(20)]
+    size = static [sw(20), fsh(20)]
 //    rendObj = ROBJ_DEBUG
     vplace = ALIGN_BOTTOM
     watch = showChatInput
@@ -136,26 +136,27 @@ function chatUi() {
   }
 }
 
+
+const ChatUpdatePeriod = 1.0
+
+function updateChat() {
+  local needToClear = false
+  foreach (rec in chatLines){
+    rec.ttl -= ChatUpdatePeriod
+    if (rec.ttl < 0)
+      needToClear = true
+  }
+  if (!needToClear)
+    return
+  chatLines.replace(chatLines.filter(@(rec) rec.ttl > 0))
+  linesGen.modify(@(v) v+1)
+}
+
 function mkChatUi() {
   outMessage.set("")
   chatLines.clear()
   showChatInput.set(false)
-
-  const ChatUpdatePeriod = 1.0
-
-  function updateChat() {
-    local needToClear = false
-    foreach (rec in chatLines){
-      rec.ttl -= ChatUpdatePeriod
-      if (rec.ttl < 0)
-        needToClear = true
-    }
-    if (!needToClear)
-      return
-    chatLines.replace(chatLines.filter(@(rec) rec.ttl > 0))
-    linesGen.modify(@(v) v+1)
-  }
-
+  gui_scene.clearTimer(updateChat)
   gui_scene.setInterval(ChatUpdatePeriod, updateChat)
 
   return {chatUi, showChatInput}

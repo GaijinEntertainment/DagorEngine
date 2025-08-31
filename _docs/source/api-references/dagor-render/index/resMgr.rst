@@ -1,9 +1,9 @@
 Managed Resources
 =================================================
 
-Dagor provides a resource management system built on top of the d3d API.
+Dagor provides a resource management system built on top of the D3D API.
 This system handles streaming of texture assets (through integration with
-the d3d API drivers), resource lifetime management, and indirect access
+the D3D API drivers), resource lifetime management, and indirect access
 to resources through managed IDs or string names.
 
 .. toctree::

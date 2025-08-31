@@ -4,7 +4,7 @@ zone_force_field{
   _tags:t="render"
 
   "zone_force_field:ZoneForceFieldRenderer"{}
-  "forcefield_rendering_node:dabfg::NodeHandle"{}
-  "forcefield_copy_distortion_node:dabfg::NodeHandle"{}
-  "forcefield_applying_node:dabfg::NodeHandle"{}
+  "forcefield_rendering_node:dafg::NodeHandle"{}
+  "forcefield_copy_distortion_node:dafg::NodeHandle"{}
+  "forcefield_applying_node:dafg::NodeHandle"{}
 }

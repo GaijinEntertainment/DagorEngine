@@ -132,13 +132,13 @@ struct GetMeshesCB : public ENodeCB
     snode = sn;
     sbox = sb;
   }
-  ~GetMeshesCB()
+  ~GetMeshesCB() override
   {
     for (int i = 0; i < mesh.Count(); ++i)
       if (mesh[i])
         delete (mesh[i]);
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;

@@ -14,6 +14,7 @@ public:
   bool externalSource;
 
   void *dll;
+  String dllPath;
 
   String externalPath;
 

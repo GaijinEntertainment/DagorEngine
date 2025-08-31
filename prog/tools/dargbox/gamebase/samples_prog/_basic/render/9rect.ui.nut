@@ -35,20 +35,20 @@ let tex = mkBitmapPicture(gradCircFullSize, gradCircFullSize,
   })
 
 let mkGrad = @(header, ovr) {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   flow = FLOW_HORIZONTAL
   gap = hdpx(20)
   valign = ALIGN_CENTER
   children = [
     {
-      size = [flex(1.5), SIZE_TO_CONTENT]
+      size = static [flex(1.5), SIZE_TO_CONTENT]
       rendObj = ROBJ_TEXTAREA
       behavior = Behaviors.TextArea
       halign = ALIGN_RIGHT
       text = header
     }
     {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       children = {
         size = [objWidth, objHeight]
         rendObj = ROBJ_9RECT

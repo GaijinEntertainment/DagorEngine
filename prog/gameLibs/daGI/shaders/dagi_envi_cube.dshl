@@ -1,4 +1,4 @@
-include "hardware_defines.dshl"
+include "shader_global.dshl"
 //todo: instead of two-step reduction with fixed amount of groups, we can just use atomic adds (InterlockedAdd) (and 6 uint3 instead of 6 float3 for intermediate results + 1 uint for total count of groups)
 //2nd dispatch just converts from 16.16 (or, say, 12.20) to 6*float3
 //this would allow up to almost infinite scaling (from one group to many, as needed (but to keep inside the range of fixed point) ), simplifies 2nd step (very simple, instead of averaging)
@@ -8,7 +8,6 @@ hlsl {
 }
 
 //32 group is minimum for 2-stage reduction, 8192 rays. Or just one group
-texture envi_probe_specular;
 hlsl {
   #define WRITE_RESULT \
   if (tid == 0)\
@@ -43,8 +42,6 @@ shader ssgi_calc_envi_ambient_cube_cs
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    float clampedPow(float X,float Y) { return pow(max(abs(X),0.000001f),Y); }
-
     #include <fibonacci_sphere.hlsl>
     #include <pcg_hash.hlsl>
     #include <hammersley.hlsl>
@@ -96,6 +93,7 @@ shader ssgi_average_ambient_cube_cs//32 group is minimum for 2-stage reduction, 
       StructuredBuffer<AmbientCube> gi_ambient_cubes@buf;
     }
     ambient_cubes@uav: register(ssgi_average_ambient_cube_cs_ambient_cubes_uav_no) hlsl {
+      #include <dagi_envi_cube_consts.hlsli>
       RWStructuredBuffer<AmbientCube> ambient_cubes@uav;
     };
   }

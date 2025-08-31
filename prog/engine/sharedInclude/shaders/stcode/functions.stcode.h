@@ -24,17 +24,11 @@ inline float vmax(float a, float b) { return max(a, b); }
 inline float vmin(float a, float b) { return min(a, b); }
 inline float vfsel(float a, float b, float c) { return fsel(a, b, c); }
 
-#define DECLARE_ONE_ARG_VEC_FUNC(_func)                            \
-  inline float4 _func(float4 v)                                    \
-  {                                                                \
-    return float4(_func(v.r), _func(v.g), _func(v.b), _func(v.a)); \
-  }
+#define DECLARE_ONE_ARG_VEC_FUNC(_func) \
+  inline float4 _func(float4 v) { return float4(_func(v.r), _func(v.g), _func(v.b), _func(v.a)); }
 
-#define DECLARE_TWO_ARG_VEC_FUNC(_func)                                                \
-  inline float4 _func(float4 v, float4 u)                                              \
-  {                                                                                    \
-    return float4(_func(v.r, u.r), _func(v.g, u.g), _func(v.b, u.b), _func(v.a, u.a)); \
-  }
+#define DECLARE_TWO_ARG_VEC_FUNC(_func) \
+  inline float4 _func(float4 v, float4 u) { return float4(_func(v.r, u.r), _func(v.g, u.g), _func(v.b, u.b), _func(v.a, u.a)); }
 
 #define DECLARE_THREE_ARG_VEC_FUNC(_func)                                                                  \
   inline float4 _func(float4 v, float4 u, float4 w)                                                        \

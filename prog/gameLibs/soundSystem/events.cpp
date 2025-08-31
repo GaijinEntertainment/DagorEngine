@@ -9,17 +9,20 @@
 #include <util/dag_hash.h>
 #include <stdio.h>
 #include <fmod_studio.hpp>
+
 #include <soundSystem/soundSystem.h>
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/vars.h>
-#include <soundSystem/debug.h>
 #include <soundSystem/visualLabels.h>
 #include <soundSystem/banks.h>
+#include <soundSystem/debug.h>
+
 #include "internal/fmodCompatibility.h"
 #include "internal/framememString.h"
 #include "internal/attributes.h"
 #include "internal/banks.h"
 #include "internal/delayed.h"
+#include "internal/releasing.h"
 #include "internal/visualLabels.h"
 #include "internal/vars.h"
 #include "internal/events.h"
@@ -86,6 +89,20 @@ void increment_programmer_sounds_generation()
 
 void block_programmer_sounds(bool do_block) { g_block_programmer_sounds = do_block; }
 
+static debug_init_event_failed_cb_t g_debug_init_event_failed_cb = nullptr;
+
+void set_debug_init_event_failed_cb(debug_init_event_failed_cb_t cb) { g_debug_init_event_failed_cb = cb; }
+
+static void debug_init_event_failed(const char *event_path, const char *fmod_error_message, bool as_oneshot = false)
+{
+  if (g_debug_init_event_failed_cb != nullptr)
+    g_debug_init_event_failed_cb(event_path, fmod_error_message, as_oneshot);
+  else if (as_oneshot)
+    debug_trace_err_once("init event '%s' (as oneshot) failed: '%s'", event_path, fmod_error_message);
+  else
+    debug_trace_err_once("init event '%s' failed: '%s'", event_path, fmod_error_message);
+}
+
 static FrameStr guid_to_str(const FMODGUID &id)
 {
   char hex[2 * sizeof(id) + 1] = {0};
@@ -96,20 +113,33 @@ static FrameStr guid_to_str(const FMODGUID &id)
   return str;
 }
 
-static inline sound_handle_t get_sound_handle(const FMOD::Studio::EventInstance &event_instance)
+EventHandle debug_get_event_handle_from_instance(const FMOD::Studio::EventInstance *event_instance)
 {
-  uintptr_t event_handle = 0;
-  if (FMOD_OK != event_instance.getUserData((void **)&event_handle) || event_handle == INVALID_SOUND_HANDLE)
-    return INVALID_SOUND_HANDLE;
-  return (sound_handle_t)event_handle;
+  SNDSYS_POOL_BLOCK;
+  EventHandle ret = {};
+  all_events.enumerate([&](const Event &event, sound_handle_t handle) {
+    if (event_instance == &event.eventInstance)
+      ret = handle;
+  });
+  return ret;
+}
+
+static inline const Event *get_event_from_instance_unsafe(const FMOD::Studio::EventInstance *event_instance)
+{
+  const Event *ret = nullptr;
+  all_events.enumerate([&](const Event &event, sound_handle_t) {
+    if (event_instance == &event.eventInstance)
+      ret = &event;
+  });
+  return ret;
 }
 
 static inline eastl::pair<EventInstanceCallback, void *> get_instance_cb_with_data(const FMOD::Studio::EventInstance &event_instance)
 {
-  const sound_handle_t handle = get_sound_handle(event_instance);
   SNDSYS_POOL_BLOCK;
-  const Event *event = all_events.get(handle);
-  return eastl::make_pair(event ? event->instanceCb : nullptr, event ? event->instanceCbData : nullptr);
+  if (const Event *event = get_event_from_instance_unsafe(&event_instance))
+    return eastl::make_pair(event->instanceCb, event->instanceCbData);
+  return {};
 }
 
 static FMOD_RESULT F_CALLBACK event_instance_callback(FMOD_STUDIO_EVENT_CALLBACK_TYPE callback_type,
@@ -163,9 +193,12 @@ static FMOD_RESULT F_CALLBACK event_instance_callback(FMOD_STUDIO_EVENT_CALLBACK
   }
   else if (FMOD::Studio::EventInstance *eventInstance = (FMOD::Studio::EventInstance *)event_instance)
   {
-    auto cbd = get_instance_cb_with_data(*eventInstance);
-    if (cbd.first && cbd.first(callback_type, eventInstance, parameters, cbd.second))
-      return FMOD_OK;
+    if (eventInstance->isValid())
+    {
+      auto cbd = get_instance_cb_with_data(*eventInstance);
+      if (cbd.first && cbd.first(callback_type, eventInstance, parameters, cbd.second))
+        return FMOD_OK;
+    }
   }
 
   return FMOD_OK;
@@ -178,13 +211,17 @@ static inline FMOD::Studio::EventInstance *get_valid_event_instance_impl(Event &
 
 static inline FMOD::Studio::EventInstance *get_valid_event_instance_impl(EventHandle event_handle)
 {
+  if (!event_handle)
+    return nullptr;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   return event ? get_valid_event_instance_impl(*event) : nullptr;
 }
 
-static inline FMOD::Studio::EventDescription *get_event_description_impl(EventHandle event_handle)
+static inline FMOD::Studio::EventDescription *get_event_description_nullable(EventHandle event_handle)
 {
+  if (!event_handle)
+    return nullptr;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   return event ? &event->eventDescription : nullptr;
@@ -218,6 +255,8 @@ static inline FMOD::Studio::EventDescription *get_event_description_impl(const c
 
 static inline EventAttributes get_event_attributes_impl(EventHandle event_handle)
 {
+  if (!event_handle)
+    return EventAttributes();
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   return event ? event->attributes : EventAttributes();
@@ -226,6 +265,8 @@ static inline EventAttributes get_event_attributes_impl(EventHandle event_handle
 static inline bool get_valid_event_impl(EventHandle event_handle, FMOD::Studio::EventDescription *&event_description,
   FMOD::Studio::EventInstance *&event_instance, EventAttributes &attributes)
 {
+  if (!event_handle)
+    return false;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   if (event && event->eventInstance.isValid())
@@ -240,6 +281,8 @@ static inline bool get_valid_event_impl(EventHandle event_handle, FMOD::Studio::
 
 static inline bool get_valid_event_attributes_impl(EventHandle event_handle, EventAttributes &attributes)
 {
+  if (!event_handle)
+    return false;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   if (event && event->eventInstance.isValid())
@@ -257,19 +300,23 @@ static inline void stop_impl(FMOD::Studio::EventInstance &event_instance, bool a
 
 static inline void release_event_instance(const EventAttributes *attributes, FMOD::Studio::EventInstance &event_instance, bool is_stop)
 {
-  if (event_instance.isValid())
+  if (!event_instance.isValid())
+    return;
+
+  if (is_stop)
   {
-    if (is_stop)
-      stop_impl(event_instance);
-
-    if (attributes && attributes->hasOcclusion())
-    {
-      if (occlusion::release(&event_instance))
-        return;
-    }
-
+    stop_impl(event_instance);
     event_instance.release();
+    return;
   }
+
+  if (attributes && attributes->hasOcclusion())
+  {
+    if (occlusion::release(&event_instance))
+      return;
+  }
+
+  releasing::track(&event_instance);
 }
 
 void release_all_instances(const char *path)
@@ -361,7 +408,6 @@ static EventHandle create_event_handle(DescAndInstance &desc_and_instance, const
     return eventHandle;
   }
 
-  SOUND_VERIFY(desc_and_instance.second->setUserData((void *)(uintptr_t)(sound_handle_t)eventHandle));
   SOUND_VERIFY(desc_and_instance.second->setCallback(event_instance_callback, CALLBACKS_TO_HANDLE));
 
   return eventHandle;
@@ -436,7 +482,8 @@ static bool allow_event_init(ieff_t flags, const Point3 *position, const EventAt
   return true;
 }
 
-static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, const Point3 *position, EventAttributes &attributes)
+static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, const Point3 *position, EventAttributes &attributes,
+  bool as_oneshot)
 {
   TIME_PROFILE_DEV(init_event_impl);
   SNDSYS_IF_NOT_INITED_RETURN_({});
@@ -447,7 +494,7 @@ static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, 
   {
     if (!banks::is_valid_event(full_path.c_str()))
     {
-      debug_trace_err_once("init event '%s' failed: event is not valid", full_path.c_str());
+      debug_init_event_failed(full_path.c_str(), "event is not valid", as_oneshot);
       return {};
     }
     eventDescription = get_event_description_impl(full_path.c_str());
@@ -502,7 +549,7 @@ EventHandle init_event(const char *name, const char *path, ieff_t flags, const P
 {
   FrameStr fullPath = make_path(name, path);
   EventAttributes attributes;
-  DescAndInstance descAndInstance = init_event_impl(fullPath, flags, position, attributes);
+  DescAndInstance descAndInstance = init_event_impl(fullPath, flags, position, attributes, false);
   if (!descAndInstance.second)
     return {};
 
@@ -547,7 +594,7 @@ int get_num_event_instances(const char *name, const char *path)
 
 int get_num_event_instances(EventHandle event_handle)
 {
-  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle))
   {
     int numInstances = 0;
     if (FMOD_OK == eventDescription->getInstanceCount(&numInstances))
@@ -643,8 +690,34 @@ bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID
   return true;
 }
 
+bool get_event_id_and_length(const char *name, const char *path, int &out_length, bool is_snapshot, FMODGUID &event_id,
+  bool debug_trace)
+{
+  G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
+  SNDSYS_IF_NOT_INITED_RETURN_(false);
+  char completeEventPath[DAGOR_MAX_PATH];
+  const char *type = is_snapshot ? "snapshot" : "event";
+  if (path && *path)
+    SNPRINTF(completeEventPath, DAGOR_MAX_PATH, "%s:/%s/%s", type, path, name);
+  else
+    SNPRINTF(completeEventPath, DAGOR_MAX_PATH, "%s:/%s", type, name);
+  FMOD::Studio::EventDescription *eventDescription = nullptr;
+  FMOD_RESULT fmodResult = get_studio_system()->getEvent(completeEventPath, &eventDescription);
+  if (FMOD_OK != fmodResult)
+  {
+    if (debug_trace)
+      debug_trace_warn("get event\"%s\" failed: '%s'", completeEventPath, FMOD_ErrorString(fmodResult));
+    return false;
+  }
+  SOUND_VERIFY_AND_DO(eventDescription->getID((FMOD_GUID *)&event_id), return false);
+  SOUND_VERIFY_AND_DO(eventDescription->getLength(&out_length), return false);
+  return true;
+}
+
 static inline FMOD::Studio::EventInstance *release_event_impl(EventHandle event_handle, EventAttributes &attributes)
 {
+  if (!event_handle)
+    return nullptr;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   if (!event)
@@ -819,8 +892,8 @@ static inline bool keyoff_impl(FMOD::Studio::EventInstance &event_instance, cons
     {
 #if FMOD_VERSION >= 0x00020200
       SOUND_VERIFY_AND_DO(event_instance.keyOff(), return false);
-      event_instance.keyOff(); // workaround for https://youtrack.gaijin.team/issue/EEX-749,
-                               // https://youtrack.gaijin.team/issue/MCT-10202
+      event_instance.keyOff(); // workaround for issues like "The endless sound of a flamethrower jet"
+                               // one may be not enough. the actual cause of this cannot be eliminated at this time
 #else
       SOUND_VERIFY_AND_DO(event_instance.triggerCue(), return false);
 #endif
@@ -834,6 +907,8 @@ static inline bool keyoff_impl(FMOD::Studio::EventInstance &event_instance, cons
 
 static inline FMOD::Studio::EventInstance *abandon_event_impl(EventHandle event_handle, EventAttributes &attributes)
 {
+  if (!event_handle)
+    return nullptr;
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   if (!event)
@@ -891,6 +966,8 @@ void abandon(EventHandle &event_handle, float delay /* = 0.f*/)
 
 bool is_valid_handle(EventHandle event_handle)
 {
+  if (!event_handle)
+    return false;
   SNDSYS_POOL_BLOCK;
   return all_events.get((sound_handle_t)event_handle) != nullptr;
 }
@@ -958,11 +1035,11 @@ bool keyoff(EventHandle event_handle)
   return keyoff_impl(*eventInstance, attributes);
 }
 
-bool play_one_shot(const char *name, const char *path, const Point3 *position, ieff_t flags, float delay /* = 0.f*/)
+bool play_oneshot(const char *name, const char *path, const Point3 *position, ieff_t flags, float delay /* = 0.f*/)
 {
   FrameStr fullPath = make_path(name, path);
   EventAttributes attributes;
-  DescAndInstance descAndInstance = init_event_impl(fullPath, flags, position, attributes);
+  DescAndInstance descAndInstance = init_event_impl(fullPath, flags, position, attributes, true);
   if (!descAndInstance.second)
     return false;
 
@@ -980,6 +1057,9 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
       return false;
     }
 
+    if (attributes.hasOcclusion() && position)
+      occlusion::append(descAndInstance.second, descAndInstance.first, *position);
+
     delayed::start(handle, delay);
     delayed::abandon(handle, 0.f);
     return true;
@@ -993,18 +1073,18 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
   abandon_impl(*descAndInstance.second, attributes);
 
   if (!attributes.isOneshot() || attributes.hasSustainPoint())
-    debug_trace_warn("non oneshot event \"%s\" played with play_one_shot", fullPath.c_str());
+    debug_trace_warn("non oneshot event \"%s\" played with play_oneshot", fullPath.c_str());
 
   return true;
 }
 
-bool is_one_shot(EventHandle event_handle)
+bool is_oneshot(EventHandle event_handle)
 {
   const EventAttributes attributes = get_event_attributes_impl(event_handle);
 #if DAGOR_DBGLEVEL > 0
-  // result should match value from attributes https://cvs1.gaijin.lan/c/dagor4/+/535697
+  // result should match value from attributes
   if ((attributes.isOneshot() && !attributes.hasSustainPoint()) != attributes.isOneshot())
-    logerr("events.cpp::is_one_shot(): event treated as oneshot has sustain pt '%s'",
+    logerr("events.cpp::is_oneshot(): event treated as oneshot has sustain pt '%s'",
       get_description(event_handle) ? get_debug_name(*get_description(event_handle)).c_str() : "");
 #endif
   return attributes.isOneshot();
@@ -1022,7 +1102,7 @@ bool has_occlusion(EventHandle event_handle)
   return attributes.hasOcclusion();
 }
 
-bool is_one_shot(const FMODGUID &event_id)
+bool is_oneshot(const FMODGUID &event_id)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
   FMOD::Studio::EventDescription *eventDescription = nullptr;
@@ -1119,7 +1199,7 @@ bool get_property(const FMODGUID &event_id, int prop_id, int &value)
 
 float get_property(EventHandle event_handle, const char *name, float def_val)
 {
-  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle))
     return get_property_impl(*eventDescription, name, def_val);
   return def_val;
 }
@@ -1226,6 +1306,8 @@ void set_node_id(EventHandle event_handle, dag::Index16 node_id)
 
 dag::Index16 get_node_id(EventHandle event_handle)
 {
+  if (!event_handle)
+    return dag::Index16();
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   return event ? event->nodeId : dag::Index16();
@@ -1246,14 +1328,14 @@ void get_info(size_t &used_handles, size_t &total_handles)
 
 bool has_sustain_point(EventHandle event_handle)
 {
-  const FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle);
+  const FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle);
   return eventDescription && has_sustain_point_impl(*eventDescription);
 }
 
 bool get_length(EventHandle event_handle, int &length)
 {
   length = 0;
-  FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle);
+  FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle);
   if (!eventDescription)
     return false;
   SOUND_VERIFY_AND_DO(eventDescription->getLength(&length), return false);
@@ -1416,21 +1498,21 @@ bool unload_sample_data(const char *path)
 
 const char *get_sample_loading_state(EventHandle event_handle)
 {
-  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle))
     return get_sample_loading_state(*eventDescription);
   return "";
 }
 
 bool load_sample_data(EventHandle event_handle)
 {
-  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle))
     return load_sample_data_impl(*eventDescription);
   return false;
 }
 
 bool unload_sample_data(EventHandle event_handle)
 {
-  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
+  if (FMOD::Studio::EventDescription *eventDescription = get_event_description_nullable(event_handle))
     return unload_sample_data_impl(*eventDescription);
   return false;
 }
@@ -1460,6 +1542,8 @@ bool is_3d(EventHandle event_handle) { return get_event_attributes_impl(event_ha
 
 bool are_of_the_same_desc(EventHandle first_handle, EventHandle second_handle)
 {
+  if (!first_handle || !second_handle)
+    return false;
   SNDSYS_POOL_BLOCK;
   if (Event *first = all_events.get((sound_handle_t)first_handle))
     if (Event *second = all_events.get((sound_handle_t)second_handle))
@@ -1560,9 +1644,11 @@ static inline auto events_close_impl()
 {
   SNDSYS_POOL_BLOCK;
   eastl::vector<FMOD::Studio::EventInstance *, framemem_allocator> instances;
-  all_events.enumerate([&](Event &event) {
+  all_events.enumerate([&](Event &event, sound_handle_t handle) {
 #if DAGOR_DBGLEVEL > 0
-    debug_trace_warn("Event was not released: \"%s\"", get_debug_name(event.eventDescription).c_str());
+    debug_trace_warn("Event handle %lld was not released: \"%s\"", int64_t(handle), get_debug_name(event.eventDescription).c_str());
+#else
+    G_UNREFERENCED(handle);
 #endif
     instances.push_back(&event.eventInstance);
   });
@@ -1610,6 +1696,8 @@ FrameStr get_debug_name(const FMOD::Studio::EventInstance &event_instance)
 
 FrameStr get_debug_name(EventHandle event_handle)
 {
+  if (!event_handle)
+    return "";
 #if DAGOR_DBGLEVEL > 0
   SNDSYS_POOL_BLOCK;
   if (const Event *event = all_events.get((sound_handle_t)event_handle))
@@ -1672,18 +1760,18 @@ bool get_instance_cb_data(FMOD::Studio::EventInstance *event_instance, void *&cb
   cb_data = nullptr;
   if (!event_instance)
     return false;
-  const sound_handle_t handle = get_sound_handle(*event_instance);
   SNDSYS_POOL_BLOCK;
-  const Event *event = all_events.get(handle);
-  if (!event)
-    return false;
-  cb_data = event->instanceCbData;
-  return true;
+  if (const Event *event = get_event_from_instance_unsafe(event_instance))
+  {
+    cb_data = event->instanceCbData;
+    return true;
+  }
+  return false;
 }
 
 FMOD::Studio::EventInstance *get_instance(EventHandle event_handle) { return get_valid_event_instance_impl(event_handle); }
 
-FMOD::Studio::EventDescription *get_description(EventHandle event_handle) { return get_event_description_impl(event_handle); }
+FMOD::Studio::EventDescription *get_description(EventHandle event_handle) { return get_event_description_nullable(event_handle); }
 
 FMOD::Studio::EventDescription *get_description(const FMODGUID &event_id) { return get_event_description_impl(event_id); }
 

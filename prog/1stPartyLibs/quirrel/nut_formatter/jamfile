@@ -14,7 +14,7 @@ Sources =
 UseProgLibs =
 ;
 
-CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 ;
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;

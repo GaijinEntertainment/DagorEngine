@@ -1,8 +1,16 @@
 Array R: false
-Arrat F: true
+Array F: true
 Table R: false
 Table F: true
 Class R: false
 Class F: true
 Instance R: false
 Instance F: true
+Array foreach 0: true
+Array foreach 1: true
+Array each 0: true
+Array each 1: true
+Table foreach: true true
+Table foreach: true true
+Table each: true true
+Table each: true true

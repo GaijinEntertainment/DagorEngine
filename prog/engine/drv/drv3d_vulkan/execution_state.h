@@ -65,7 +65,7 @@ public:
       case ExtendedShaderStage::VS: return getData().stageState[ShaderStage::STAGE_VS];
       default: break;
     }
-    G_ASSERTF(0, "vulkan: unkown extended shader stage %u:%s", (uint32_t)stage, formatExtendedShaderStage(stage));
+    G_ASSERTF(0, "vulkan: unknown extended shader stage %u:%s", (uint32_t)stage, formatExtendedShaderStage(stage));
     return getData().stageState[ShaderStage::STAGE_VS];
   }
 

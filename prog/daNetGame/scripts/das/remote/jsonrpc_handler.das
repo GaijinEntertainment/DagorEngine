@@ -46,7 +46,7 @@ class JsonRpcMatch : Matcher
     self->clean()
 
     if find(str, "\"jsonrpc\"") < 0
-      return <- [[MatchResult invalid = true]]
+      return <- MatchResult(invalid = true)
 
     let strLen = length(str)
     var start = 0
@@ -75,8 +75,8 @@ class JsonRpcMatch : Matcher
         end = strLen
 
     if length(requests) == 0
-      return <- [[MatchResult invalid = true]]
-    return <- [[MatchResult success = end]]
+      return <- MatchResult(invalid = true)
+    return <- MatchResult(success = end)
 
   def parseReq(str : string) : bool
     var res = false
@@ -112,7 +112,7 @@ class JsonRpcMatch : Matcher
       var failed = false
       js as _object |> get("method") <| $(ptr)
         if ptr is _string
-          req.reqType = [[JsonRpcReqType method=ptr as _string]]
+          req.reqType = JsonRpcReqType(method = ptr as _string)
           js as _object |> get("params") <| $(par)
             req.params = par
         else
@@ -124,7 +124,7 @@ class JsonRpcMatch : Matcher
 
       if req.reqType is none
         js as _object |> get("result") <| $(ptr)
-          req.reqType = [[JsonRpcReqType result=null]]
+          req.reqType = JsonRpcReqType(result = null)
           req.params = ptr
 
       if req.reqType is method || req.reqType is result
@@ -141,7 +141,7 @@ class JsonRpcMatch : Matcher
 
       if req.reqType is none
         js as _object |> get("error") <| $(ptr)
-          req.reqType = [[JsonRpcReqType error=null]]
+          req.reqType = JsonRpcReqType(error = null)
           req.params = ptr
 
       if !(req.reqType is none)
@@ -231,13 +231,13 @@ class JsonRpcHandler
     server->sendStr(res)
 
   def sendResponse(var server : WebServer?; var msg : JsonValue?; id : uint64)
-    var res = JV({{ "jsonrpc" => JV("2.0"); "id" => JV(double(id)); "result" => msg }})
+    var res = JV({ "jsonrpc" => JV("2.0"), "id" => JV(double(id)), "result" => msg })
     server->sendStr(write_json(res))
     unsafe
       delete res
 
   def sendRequestRaw(var server : WebServer?; method : string; var params : JsonValue?; id : uint64) : void
-    var res = JV({{ "jsonrpc" => JV("2.0"); "id" => JV(double(id)); "method" => JV(method); "params" => params }})
+    var res = JV({ "jsonrpc" => JV("2.0"), "id" => JV(double(id)), "method" => JV(method), "params" => params })
     server->sendStr(write_json(res))
     unsafe
       delete res
@@ -263,13 +263,13 @@ class JsonRpcHandler
     server->sendStr(res)
 
   def sendNotification(var server : WebServer?; method : string; var params : JsonValue?)
-    var res = JV({{ "jsonrpc" => JV("2.0"); "method" => JV(method); "params" => params }})
+    var res = JV({ "jsonrpc" => JV("2.0"), "method" => JV(method), "params" => params })
     server->sendStr(write_json(res))
     unsafe
       delete res
 
   def getError(error : string; code : double; var data : JsonValue? = null; id : uint64 = 0ul) : JsonValue?
-    var res <- {{ "jsonrpc" => JV("2.0"); "error" => JV({{ "code" => JV(code); "message" => JV(error) }}) }}
+    var res <- { "jsonrpc" => JV("2.0"), "error" => JV({ "code" => JV(code), "message" => JV(error) }) }
     if id != 0ul
       insert(res, "id", JV(double(id)))
     if data != null

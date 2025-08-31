@@ -1,0 +1,125 @@
+include "wetness_inc.dshl"
+include "depth_above.dshl"
+
+float dynamics_underwater_porosity = 0.0;
+float statics_underwater_porosity = 0.7;
+float statics_water_border_height = 0.2;
+
+macro INIT_DYNAMICS_WETNESS()
+  INIT_WETNESS_BASE(ps)
+  INIT_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  (ps) {
+    wetness_blend_porosity_params@f4 = (wetness_blend_params.x,
+      wetness_blend_params.y, wetness_blend_params.z, dynamics_underwater_porosity);
+    // We don't need wetness by water level for dynamic objects.
+    wf90__disable_wetness_shore@f4 = (wetness_f90.x, wetness_f90.y, wetness_f90.z, 1.0);
+  }
+endmacro
+
+macro INIT_STATICS_WETNESS()
+  INIT_WETNESS_BASE(ps)
+  INIT_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  (ps) {
+    wetness_blend_porosity_params@f4 = (statics_water_border_height,
+      wetness_blend_params.y, wetness_blend_params.z, statics_underwater_porosity);
+    wf90__disable_wetness_shore@f4 = (wetness_f90.x, wetness_f90.y, wetness_f90.z, disable_wetness_shore);
+  }
+endmacro
+
+macro USE_MICRODETAIL_BASED_POROSITY(code)
+hlsl(code){
+  float get_porosity_by_microdetail_base(int micro_detail_layer)
+  {
+    float p = 0.0;
+    //Porosities for character microdetails.
+    FLATTEN
+    if (micro_detail_layer == 0)
+      p = 0.1;
+    FLATTEN
+    if (micro_detail_layer == 1 || micro_detail_layer == 2)
+      p = 0.7;
+    FLATTEN
+    if (micro_detail_layer == 3)
+      p = 0.9;
+    FLATTEN
+    if (micro_detail_layer == 4)
+      p = 1.0;
+    FLATTEN
+    if (micro_detail_layer == 5)
+      p = 0.2;
+    FLATTEN
+    if (micro_detail_layer == 6)
+      p = 0.0;
+    FLATTEN
+    if (micro_detail_layer == 7)
+      p = 0.4;
+
+    return p;
+  }
+}
+endmacro
+
+macro USE_MICRODETAIL_BASED_WETNESS()
+USE_MICRODETAIL_BASED_POROSITY(ps)
+USE_WETNESS_BASE()
+USE_DEPTH_ABOVE(ps, blurred_depth_transparent)
+hlsl(ps){
+#include "wetness_functions.hlsl"
+
+  void apply_wetness_base(float water_border, float wetness, half porosity, half3 world_pos,
+    inout half3 diffuse, inout half3 normal, inout half reflectance, inout half smoothness, inout half ao)
+  {
+    BRANCH
+    if (wetness <= 0)
+      return;
+
+    float depthVignette = 0;
+    float3 biasedWorldPos = world_pos + normal;
+    float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
+
+    float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+    BRANCH
+    if (depthInfl < 0.0001)
+      return;
+
+    float wetMaterial = get_wet_material(wetness, water_border);
+    wetness_diffuse(wetness, porosity, diffuse);
+    wetness_ao(wetness, ao);
+    wetness_normal_ws(wetness, normal);
+    wetness_smoothness(wetMaterial, smoothness);
+    wetness_reflectance(wetMaterial, reflectance);
+  }
+
+  float get_porosity_by_microdetail(int micro_detail_layer, float water_border)
+  {
+    float p = get_porosity_by_microdetail_base(micro_detail_layer);
+    p = lerp(max(p, wetness_blend_porosity_params.w), p, max(water_border, 0.0));
+    return p;
+  }
+
+  void apply_wetness_by_porosity(half porosity, half3 world_pos, inout half3 diffuse, inout half3 normal, inout half reflectance, inout half smoothness, inout half ao)
+  {
+    float waterBorder;
+    float wetness = get_base_wetness(world_pos, normal, waterBorder);
+    apply_wetness_base(waterBorder, wetness, porosity, world_pos, diffuse, normal, reflectance, smoothness, ao);
+  }
+
+  void apply_wetness_by_microdetail(int micro_detail_layer, half3 world_pos, inout half3 diffuse, inout half3 normal, inout half reflectance, inout half smoothness, inout half ao)
+  {
+    float waterBorder;
+    float wetness = get_base_wetness(world_pos, normal, waterBorder);
+    float porosity = get_porosity_by_microdetail(micro_detail_layer, waterBorder);
+    apply_wetness_base(waterBorder, wetness, porosity, world_pos, diffuse, normal, reflectance, smoothness, ao);
+  }
+
+  void apply_wetness_by_two_microdetails(int micro_detail_layer1, int micro_detail_layer2, float weight2, half3 world_pos, inout half3 diffuse, inout half3 normal, inout half reflectance, inout half smoothness, inout half ao)
+  {
+    float waterBorder;
+    float wetness = get_base_wetness(world_pos, normal, waterBorder);
+    float porosity1 = get_porosity_by_microdetail(micro_detail_layer1, waterBorder);
+    float porosity2 = get_porosity_by_microdetail(micro_detail_layer2, waterBorder);
+    float porosity = lerp(porosity1, porosity2, weight2);
+    apply_wetness_base(waterBorder, wetness, porosity, world_pos, diffuse, normal, reflectance, smoothness, ao);
+  }
+}
+endmacro

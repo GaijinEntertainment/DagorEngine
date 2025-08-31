@@ -1,5 +1,6 @@
 require ecs
 require math
+require DasEcsUnitTest
 
 [sideeffects]
 def get_izero() : int
@@ -14,12 +15,13 @@ def test_division_by_zero(evt : Event)
   let izero = get_izero()
   verify(izero == 0)
   var izeroDivIsError = false
-  try
-    print("div by izero")
-    verify(1 / izero == 0)
-  recover
-    print("div by izero - error")
-    izeroDivIsError = true
+  ignore_log_errors() <| $()
+    try
+      print("div by izero")
+      verify(1 / izero == 0)
+    recover
+      print("div by izero - error")
+      izeroDivIsError = true
   verify(izeroDivIsError)
 
 /*

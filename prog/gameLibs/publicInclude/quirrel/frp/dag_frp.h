@@ -13,6 +13,7 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/string.h>
 #include <EASTL/intrusive_list.h>
+#include <util/dag_bitArray.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 #include <memory/dag_framemem.h>
@@ -56,6 +57,7 @@ struct SubscriberCall
 {
   Sqrat::Function func;
   Sqrat::Object value;
+  bool check;
 };
 
 
@@ -161,6 +163,9 @@ public:
   bool defaultDeferredWatched = true;
   bool doCollectSourcesRecursively = false;
   bool needRecalc = false;
+  bool reportedSlowUpdate = false;
+  bool callingSubscriber = false;
+  bool checkSubscribers = false;
 
 private:
   Tab<ComputedValue *> sortedGraph;
@@ -171,6 +176,17 @@ private:
   int triggerNestDepth = 0;
   int recalcNestDepth = 0;
   int slowUpdateFrames = 0;
+#if DAGOR_DBGLEVEL > 0
+  int64_t timeTotalDeps = 0;
+  int64_t timeTotalWatchers = 0;
+  int64_t timeTotalRecalc = 0;
+  int64_t timeTotalNotify = 0;
+  int timeMaxDeps = 0;
+  int timeMaxWatchers = 0;
+  int timeMaxRecalc = 0;
+  int timeMaxNotify = 0;
+  int numGraphRebuilds = 0;
+#endif
 
   eastl::vector<Sqrat::Object> stubObservableClases;
 };
@@ -196,7 +212,7 @@ public:
   void subscribeWatcher(IStateWatcher *watcher);
   void unsubscribeWatcher(IStateWatcher *watcher);
 
-  static SQInteger subscribe(HSQUIRRELVM vm);
+  static SQInteger subscribe(HSQUIRRELVM vm, bool check_behavior);
   static SQInteger unsubscribe(HSQUIRRELVM vm);
   static SQInteger sqTrigger(HSQUIRRELVM vm);
   static SQInteger dbgGetListeners(HSQUIRRELVM vm);
@@ -244,6 +260,7 @@ protected:
       bool isMarked : 1;
       bool isCollected : 1;
       bool wasUpdated : 1;
+      bool wasComputed : 1;
       bool isStateValid : 1;
       bool needRecalc : 1;
       bool maybeRecalc : 1;
@@ -259,6 +276,7 @@ public:
 
 protected:
   dag::Vector<Sqrat::Function> scriptSubscribers;
+  Bitarray subscriberNoCheck;
   ObservablesGraph *graph;
 
 public:
@@ -284,6 +302,7 @@ public:
     onValueRequested();
     return value;
   }
+  Sqrat::Object getValueDeprecated();
   int getTimeChangeReq() { return timeChangeReq; }
   int getTimeChanged() { return timeChanged; }
   const Sqrat::Object &getValueRef()
@@ -304,6 +323,7 @@ public:
   static SQInteger update(HSQUIRRELVM vm, int arg_pos);
   static SQInteger updateViaCallMm(HSQUIRRELVM vm);
   static SQInteger updateViaMethod(HSQUIRRELVM vm);
+  static SQInteger updateViaMethodDeprecated(HSQUIRRELVM vm);
   static SQInteger mutate(HSQUIRRELVM vm);
   static SQInteger modify(HSQUIRRELVM vm);
   bool mutateCurValue(HSQUIRRELVM vm, SQInteger closure_pos);
@@ -346,8 +366,7 @@ class ComputedValue final : public ScriptValueObservable, public IStateWatcher, 
   };
 
   // Note: expected to be called only by `ObservablesGraph::allocComputed`
-  ComputedValue(ObservablesGraph *g, Sqrat::Function func, dag::Vector<ComputedSource> &&sources_, Sqrat::Object initial_value,
-    bool pass_cur_val_to_cb);
+  ComputedValue(ObservablesGraph *g, Sqrat::Function func, dag::Vector<ComputedSource> &&sources_, bool pass_cur_val_to_cb);
 
 public:
   ComputedValue(const ComputedValue &) = delete;
@@ -355,6 +374,7 @@ public:
   virtual ~ComputedValue();
   void operator delete(void *ptr) noexcept; // Frees from graph's `computedPool`
 
+  void setupComputed(Sqrat::Object initial_value);
   virtual ComputedValue *getComputed() override { return this; }
 
   // Sorted from leaves to root to reduce memory copying on insertions
@@ -413,6 +433,7 @@ protected:
   Sqrat::Function func;
   dag::Vector<ComputedSource> sources;
   eastl::vector_set<ComputedValue *> implicitSources;
+  int lastComputeUsec;
 };
 
 void bind_frp_classes(SqModules *module_mgr);

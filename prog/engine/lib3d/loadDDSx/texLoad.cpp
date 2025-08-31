@@ -10,6 +10,8 @@
 #include <3d/ddsFormat.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
+#include <errno.h>
+
 
 // #define RMGR_TRACE debug  // trace resource manager's DDSx loads
 #ifndef RMGR_TRACE
@@ -51,13 +53,20 @@ static bool load_ddsx_slice(IGenLoad &crd, char *dst, int dst_pitch, int mip_lev
   {
     if (dst_pitch == mip_data_pitch)
     {
-      crd.readExact(dst, mip_data_pitch * mip_data_lines);
+      bool res = crd.readExact(dst, mip_data_pitch * mip_data_lines);
+      if (!res)
+        return false;
       convert_bc7_to_dxt5(dst, mip_data_w, mip_data_h, 1);
     }
     else
     {
       char *tmpdst = (char *)memalloc(mip_data_pitch * mip_data_lines, tmpmem);
-      crd.readExact(tmpdst, mip_data_pitch * mip_data_lines);
+      bool res = crd.readExact(tmpdst, mip_data_pitch * mip_data_lines);
+      if (!res)
+      {
+        memfree(tmpdst, tmpmem);
+        return false;
+      }
       convert_bc7_to_dxt5(tmpdst, mip_data_w, mip_data_h, 1);
       if (dst_pitch > mip_data_pitch)
         for (char *src = tmpdst, *src_e = src + mip_data_lines * mip_data_pitch; src < src_e; dst += dst_pitch, src += mip_data_pitch)
@@ -68,10 +77,18 @@ static bool load_ddsx_slice(IGenLoad &crd, char *dst, int dst_pitch, int mip_lev
   }
 
   if (dst_pitch == mip_data_pitch)
-    crd.readExact(dst, mip_data_pitch * mip_data_lines);
+  {
+    bool res = crd.readExact(dst, mip_data_pitch * mip_data_lines);
+    if (!res)
+      return false;
+  }
   else if (dst_pitch > mip_data_pitch)
     for (int hi = mip_data_lines; hi > 0; hi--, dst += dst_pitch)
-      crd.readExact(dst, mip_data_pitch);
+    {
+      bool res = crd.readExact(dst, mip_data_pitch);
+      if (!res)
+        return false;
+    }
   return true;
 }
 
@@ -154,9 +171,16 @@ static TexLoadRes load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID pa
   d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(tex, tex_level, dest_slice);
   if (!rub)
     return TexLoadRes::ERR_RUB;
-  if (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level, mip_data_pitch,
-        mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
+  int retry = 1;
+  while (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
+    mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
   {
+    logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
+    if (errno == EFAULT && retry--)
+    {
+      memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
+      continue;
+    }
     d3d::release_update_buffer(rub);
     return TexLoadRes::ERR;
   }
@@ -191,9 +215,16 @@ static TexLoadRes load_ddsx_faces_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID 
       d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(tex, tex_level, face_idx);
       if (!rub)
         return TexLoadRes::ERR_RUB;
-      if (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
-            mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
+      int retry = 1;
+      while (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
+        mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
       {
+        logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
+        if (errno == EFAULT && retry--)
+        {
+          memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
+          continue;
+        }
         d3d::release_update_buffer(rub);
         return TexLoadRes::ERR;
       }
@@ -229,9 +260,16 @@ static TexLoadRes load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, 
         return TexLoadRes::ERR_RUB;
       char *dst = rub_data ? rub_data : d3d::get_update_buffer_addr_for_write(rub);
       uint32_t dst_pitch = rub_data ? d3d::get_update_buffer_pitch(rub_slice) : d3d::get_update_buffer_pitch(rub);
-      if (!load_ddsx_slice(crd, dst, dst_pitch, src_level, mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg,
-            tex))
+      int retry = 1;
+      while (!load_ddsx_slice(crd, dst, dst_pitch, src_level, mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat,
+        cflg, tex))
       {
+        logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", tex ? tex->getTexName() : "", errno);
+        if (errno == EFAULT && retry--)
+        {
+          memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
+          continue;
+        }
         if (rub)
           d3d::release_update_buffer(rub);
         return TexLoadRes::ERR;
@@ -277,9 +315,9 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
   }
 
   RMGR_TRACE("tex=%p(%s) cflg=0x%08x type=%d %dx%dx%d,L%d fmt=0x%x (to read to %dx%dx%d,L%d)", tex, TEX_NAME(tex, tid), ti.cflg,
-    tex ? tex->restype() : RES3D_TEX, max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1), max<int>(hdr.depth >> skip_lev, ti.a),
-    rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1), max(ti.h >> start_lev, 1), max<int>(ti.d >> start_lev, ti.a),
-    min(rd_lev, ti.mipLevels - start_lev));
+    tex ? tex->getType() : D3DResourceType::TEX, max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1),
+    max<int>(hdr.depth >> skip_lev, ti.a), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1), max(ti.h >> start_lev, 1),
+    max<int>(ti.d >> start_lev, ti.a), min(rd_lev, ti.mipLevels - start_lev));
   if (start_lev + rd_lev > ti.mipLevels)
     rd_lev = ti.mipLevels - start_lev;
 
@@ -289,10 +327,12 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
   // loading a texture gradually (e.g. TQ/BQ first, then HQ/UHQ after some frames)
   // because we do "live patching" of a texture that is already being used for rendering
   // and calling texaddru or other modifying stuff on it would be a data race.
-  if (!tex_props_inited && tex->isSamplerEnabled())
+  if (!tex_props_inited && tid != BAD_TEXTUREID)
   {
-    tex->texaddru(hdr.getAddrU());
-    tex->texaddrv(hdr.getAddrV());
+    d3d::SamplerInfo smpInfo = get_sampler_info(get_texture_meta_data(tid));
+    smpInfo.address_mode_u = (d3d::AddressMode)hdr.getAddrU();
+    smpInfo.address_mode_v = (d3d::AddressMode)hdr.getAddrV();
+    set_texture_separate_sampler(tid, smpInfo);
   }
 
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
@@ -300,7 +340,7 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
 
     // force uncompressed texture for mip vizualisation
 #if DAGOR_DBGLEVEL > 0
-  if (isDiffuseTextureSuitableForMipColorization(tex->getTexName()) && tex->restype() == RES3D_TEX)
+  if (isDiffuseTextureSuitableForMipColorization(tex->getTexName()) && tex->getType() == D3DResourceType::TEX)
   {
     uint32_t colors[4] = {0x800000ff, 0x8000ff00, 0x80ff0000, 0x8000ffff};
     for (int mip = 0; mip < tex->level_count(); ++mip)
@@ -327,17 +367,21 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
 #endif
 
   TexLoadRes loadStatus = TexLoadRes::ERR;
-  switch (tex->restype())
+  switch (tex->getType())
   {
-    case RES3D_TEX:
-    case RES3D_CUBETEX:
+    case D3DResourceType::TEX:
+    case D3DResourceType::CUBETEX:
       loadStatus =
         load_ddsx_faces_2d(tex, tid, paired_tid, hdr, *ucrd, ti.a, start_lev, rd_lev, skip_lev, ti.cflg, q_id, on_tex_slice_loaded_cb);
       break;
 
-    case RES3D_VOLTEX:
+    case D3DResourceType::VOLTEX:
       loadStatus = load_ddsx_faces_3d(tex, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg, on_tex_slice_loaded_cb);
       break;
+
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
+    case D3DResourceType::SBUF: break;
   }
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
     RMGR.decBaseTexRc(tid);
@@ -362,7 +406,7 @@ static TexLoadRes load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::He
   }
 
   RMGR_TRACE("tex=%p(%s) cflg=0x%08x type=%d %dx%d,L%d fmt=0x%x (to read to %dx%d,L%d) to slice %d", tex, tex->getTexName(), ti.cflg,
-    tex->restype(), max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1),
+    tex->getType(), max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1),
     max(ti.h >> start_lev, 1), rd_lev, slice);
 
   UnifiedTexGenLoad ucrd(crd, hdr);

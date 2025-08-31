@@ -15,28 +15,33 @@
 #include <de3_genObjUtil.h>
 #include <util/dag_string.h>
 #include <util/dag_globDef.h>
-#include <de3_baseInterfaces.h>
+#include <gameMath/objgenPrng.h>
 #include <de3_randomSeed.h>
 #include <de3_cableSrv.h>
 
 namespace objgenerator
 {
+
+namespace spl
+{
 static int seed = 1;
 static int gen_inst_seed = 0;
+} // namespace spl
 
 static Tab<Point3> prevCablePoints;
 static ICableService *cableSrv;
-inline real getRandom(const Point2 &r) { return (*(int *)&r.y) ? r.x + _srnd(seed) * r.y : r.x; }
+inline real getSplRandom(const Point2 &r) { return (*(int *)&r.y) ? getRandom(spl::seed, r) : r.x; }
 
 inline const splineclass::SingleGenEntityGroup::GenEntityRec &selectGeom(const splineclass::SingleGenEntityGroup &gItem,
   int &inout_ord, bool last_obj)
 {
+  using spl::seed;
   int tag = -1;
   if (inout_ord == -1)
   {
     // first
     if (gItem.genTagFirst.size())
-      tag = gItem.genTagFirst[_rnd(seed) % gItem.genTagFirst.size()];
+      tag = gItem.genTagFirst[rnd(seed) % gItem.genTagFirst.size()];
     else
     {
       inout_ord++;
@@ -47,7 +52,7 @@ inline const splineclass::SingleGenEntityGroup::GenEntityRec &selectGeom(const s
   else if (last_obj && gItem.genTagLast.size())
   {
     // last
-    tag = gItem.genTagLast[_rnd(seed) % gItem.genTagLast.size()];
+    tag = gItem.genTagLast[rnd(seed) % gItem.genTagLast.size()];
   }
   else if (gItem.genTagSeq.size())
     tag = gItem.genTagSeq[inout_ord % gItem.genTagSeq.size()];
@@ -55,11 +60,11 @@ inline const splineclass::SingleGenEntityGroup::GenEntityRec &selectGeom(const s
 
   if (gItem.genEntRecs.size() - gItem.integralLastEntCount == 1)
   {
-    _rnd(seed);
+    rnd(seed);
     return gItem.genEntRecs[0];
   }
 
-  float w = _frnd(seed) * (tag < 0 ? gItem.sumWeight : gItem.genTagSumWt[tag]);
+  float w = frnd(seed) * (tag < 0 ? gItem.sumWeight : gItem.genTagSumWt[tag]);
 
   for (int i = 0; i < gItem.genEntRecs.size() - gItem.integralLastEntCount; ++i)
   {
@@ -77,6 +82,7 @@ inline void getTm(TMatrix &tm, const splineclass::SingleGenEntityGroup &groop,
   const splineclass::SingleGenEntityGroup::GenEntityRec &gen, const Point3 &pos, const Point3 &tang, float xofs, float zofs,
   float force_x_scale = 0)
 {
+  using spl::seed;
   Point3 dx = normalizeDef(tang, Point3(1, 0, 0));
   Point3 dz = normalizeDef(Point3(-dx.z, 0, dx.x), Point3(0, 0, 1));
   TMatrix spline_tm = TMatrix::IDENT;
@@ -164,7 +170,7 @@ inline void getTm(TMatrix &tm, const splineclass::SingleGenEntityGroup &groop,
   if (is_multi_place)
     rotate_multipoint(tm, mppRec);
   calc_matrix_33(gen, tm, seed, force_x_scale);
-  tm.setcol(3, worldPos + normalize(tm.getcol(1)) * getRandom(gen.yOffset));
+  tm.setcol(3, worldPos + normalize(tm.getcol(1)) * getSplRandom(gen.yOffset));
 }
 inline Point3 calcOffsettedSplinePoint(BezierSplinePrec3d &bezierSpline, float pos, float xofs, float zofs)
 {
@@ -181,6 +187,7 @@ inline void placeCables(Tab<cable_handle_t> &cablesPool, const TMatrix &tm,
   const splineclass::SingleGenEntityGroup::GenEntityRec::CablePoints &cablePoints, const splineclass::SingleGenEntityGroup &gItem,
   bool last_obj)
 {
+  using spl::seed;
   if (!cableSrv)
     cableSrv = EDITORCORE->queryEditorInterface<ICableService>();
   if (!cableSrv)
@@ -194,10 +201,10 @@ inline void placeCables(Tab<cable_handle_t> &cablesPool, const TMatrix &tm,
       int savedSeed = seed; // to save random calcuted things when artists add ragged cables on existing spline
       for (int i = 0; i < cablePoints.in.size(); ++i)
       {
-        cablesPool.push_back(
-          cableSrv->addCable(cablePoints.in[i] * tm, cablePoints.in[i] * tm + Point3(0, -getRandom(gItem.cableRaggedDistribution), 0),
-            -getRandom(gItem.cableRadius), // ragged cable bit is a sign bit of cable radius
-            0));
+        cablesPool.push_back(cableSrv->addCable(cablePoints.in[i] * tm,
+          cablePoints.in[i] * tm + Point3(0, -getRandom(seed, gItem.cableRaggedDistribution), 0),
+          -getRandom(seed, gItem.cableRadius), // ragged cable bit is a sign bit of cable radius
+          0));
       }
       seed = savedSeed;
     }
@@ -207,7 +214,7 @@ inline void placeCables(Tab<cable_handle_t> &cablesPool, const TMatrix &tm,
   for (int i = 0; i < n; ++i)
   {
     cable_handle_t id =
-      cableSrv->addCable(prevCablePoints[i], cablePoints.in[i] * tm, getRandom(gItem.cableRadius), getRandom(gItem.cableSag));
+      cableSrv->addCable(prevCablePoints[i], cablePoints.in[i] * tm, getSplRandom(gItem.cableRadius), getSplRandom(gItem.cableSag));
     cablesPool.push_back(id);
   }
   prevCablePoints.clear();
@@ -223,8 +230,8 @@ inline void placeCables(Tab<cable_handle_t> &cablesPool, const TMatrix &tm,
       for (int i = 0; i < n; ++i)
       {
         cablesPool.push_back(cableSrv->addCable(cablePoints.out[i] * tm,
-          cablePoints.out[i] * tm + Point3(0, -getRandom(gItem.cableRaggedDistribution), 0),
-          -getRandom(gItem.cableRadius), // ragged cable bit is a sign bit of cable radius
+          cablePoints.out[i] * tm + Point3(0, -getRandom(seed, gItem.cableRaggedDistribution), 0),
+          -getRandom(seed, gItem.cableRadius), // ragged cable bit is a sign bit of cable radius
           0));
       }
       seed = savedSeed;
@@ -235,11 +242,12 @@ inline float placeObject1(const splineclass::SingleGenEntityGroup &gItem, int &i
   Tab<splineclass::SingleEntityPool> &pools, Tab<cable_handle_t> *cablesPool, splineclass::GenEntities &ent,
   BezierSplinePrec3d &bezierSpline, bool last_obj = false)
 {
+  using spl::seed, spl::gen_inst_seed;
   const splineclass::SingleGenEntityGroup::GenEntityRec *objGen = &selectGeom(gItem, inout_ord, last_obj);
   float ret_step = pos_max - pos;
 
   TMatrix tm;
-  float xofs = getRandom(objGen->xOffset), zofs = getRandom(objGen->zOffset) + gItem.offset.y;
+  float xofs = getSplRandom(objGen->xOffset), zofs = getSplRandom(objGen->zOffset) + gItem.offset.y;
   if (gItem.tightFenceOrient)
   {
     bool xyz = (gItem.orientType == splineclass::SingleGenEntityGroup::ORIENT_SPLINE ||
@@ -323,15 +331,15 @@ inline float placeObject1(const splineclass::SingleGenEntityGroup &gItem, int &i
 
   IColor *ecol = e->queryInterface<IColor>();
   if (ecol)
-    ecol->setColor(gItem.colorRangeIdx), _skip_rnd_ivec4(seed);
+    ecol->setColor(gItem.colorRangeIdx), skip_rnd_ivec4(seed);
   return ret_step;
 }
-inline void placeObject(const splineclass::SingleGenEntityGroup &gItem, int &inout_ord, real &pos,
+inline void placeObject(const splineclass::SingleGenEntityGroup &gItem, int &inout_ord, real &pos, //-V669 (inout_ord)
   Tab<splineclass::SingleEntityPool> &pools, Tab<cable_handle_t> *cablesPool, splineclass::GenEntities &ent,
   BezierSplinePrec3d &bezierSpline, float eT)
 {
   // object must be placed between pos and pos + step
-  float step = getRandom(gItem.step);
+  float step = getSplRandom(gItem.step);
   float pos_max = min(pos + step, eT);
   // set flag: is it last object in spline?
   // if placeAtEnd is true, last object will be placed in separate placeObject1 call
@@ -346,6 +354,7 @@ inline void generateBySplinePart(BezierSplinePrec3d &bezierFullSpline, BezierSpl
   Tab<splineclass::SingleEntityPool> &pools, Tab<cable_handle_t> *cablesPool, bool close, int subtype, int editLayerIdx, int rseed,
   int &ord)
 {
+  using spl::seed;
   TMatrix tm;
   real startT = 0, endT = 0;
 
@@ -397,23 +406,23 @@ inline void generateBySplinePart(BezierSplinePrec3d &bezierFullSpline, BezierSpl
       if (gItem.placeAtPoint)
       {
         if (start_seg && gItem.placeAtStart)
-          placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
+          (void)placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
         if (!end_seg || gItem.placeAtEnd)
-          placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline);
+          (void)placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline);
       }
       else
       {
         if (place_at_start)
-          placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
+          (void)placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
         if (place_at_end)
-          placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline);
+          (void)placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline);
       }
       SET_SUBTYPES(subtype);
       SET_EDITLAYERIDX(editLayerIdx);
       return;
     }
 
-    real startStep = getRandom(gItem.step);
+    real startStep = getSplRandom(gItem.step);
     if (!gItem.placeAtPoint)
     {
       real k = (startT + gItem.offset.x) / startStep;
@@ -428,7 +437,7 @@ inline void generateBySplinePart(BezierSplinePrec3d &bezierFullSpline, BezierSpl
       sT += placeObject1(gItem, ord, startT, startT + gItem.step.x, pools, cablesPool, ent, bezierSpline);
     else if (start_seg && place_at_start)
     {
-      placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
+      (void)placeObject1(gItem, ord, startT, startT, pools, cablesPool, ent, bezierSpline);
       while (sT - startT < gItem.step.x * 0.5)
         sT += gItem.step.x;
     }
@@ -445,7 +454,7 @@ inline void generateBySplinePart(BezierSplinePrec3d &bezierFullSpline, BezierSpl
       placeObject(gItem, ord, pos, pools, cablesPool, ent, bezierSpline, eT);
 
     if ((end_seg && place_at_end) || (!end_seg && gItem.placeAtPoint))
-      placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline, (end_seg && place_at_end));
+      (void)placeObject1(gItem, ord, endT, endT, pools, cablesPool, ent, bezierSpline, (end_seg && place_at_end));
 
     if (close)
     {
@@ -481,7 +490,7 @@ inline void generateBySpline(BezierSplinePrec3d &bezierFullSpline, BezierSplineP
     return;
 
   splineclass::GenEntities &ent = *asset->gen;
-  objgenerator::gen_inst_seed = inst_seed;
+  objgenerator::spl::gen_inst_seed = inst_seed;
   pools.resize(ent.ent.size());
 
   for (int gi = 0; gi < ent.data.size(); ++gi)

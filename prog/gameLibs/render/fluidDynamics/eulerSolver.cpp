@@ -44,8 +44,6 @@ EulerSolver::EulerSolver(const char *solver_shader_name, uint32_t tex_width, uin
   velDensityTex[1] =
     dag::create_tex(NULL, textureWidth, textureHeight, TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, "next_velocity_density_tex");
 
-  velDensityTex[0].getVolTex()->texaddr(TEXADDR_CLAMP);
-  velDensityTex[1].getVolTex()->texaddr(TEXADDR_CLAMP);
   ShaderGlobal::set_int4(tex_sizeVarId, IPoint4(textureWidth, textureHeight, 0, 0));
   ShaderGlobal::set_real(simulation_dxVarId, spatal_step);
 }
@@ -61,7 +59,7 @@ void EulerSolver::fillInitialConditions(float standard_density, const Point2 &st
 
 void EulerSolver::solveEquations(float dt, int num_dispatches)
 {
-  TIME_D3D_PROFILE("cfd_solveEquations");
+  TIME_D3D_PROFILE(cfd_solveEquations);
 
   int currentIdx = 0;
   int currentImplicit = 0;
@@ -136,12 +134,6 @@ EulerCascadeSolver::EulerCascadeSolver(const char *solver_shader_name, IPoint3 t
 
     d3d::resource_barrier({cascades[i].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
     d3d::resource_barrier({cascades[i].velDensityTex[1].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
-
-    newCascade.velDensityTex[0].getVolTex()->texfilter(TEXFILTER_POINT);
-    newCascade.velDensityTex[1].getVolTex()->texfilter(TEXFILTER_POINT);
-
-    newCascade.velDensityTex[0].getVolTex()->texaddr(TEXADDR_CLAMP);
-    newCascade.velDensityTex[1].getVolTex()->texaddr(TEXADDR_CLAMP);
   }
 }
 
@@ -161,7 +153,7 @@ void EulerCascadeSolver::fillInitialConditions(float standard_density, const Poi
 
 bool EulerCascadeSolver::solveEquations(float dt, int base_num_dispatches)
 {
-  TIME_D3D_PROFILE("cfd_solveEquationsCascade");
+  TIME_D3D_PROFILE(cfd_solveEquationsCascade);
 
   if (curNumDispatches >= numDispatchesPerCascade[currentCascade])
     return false;

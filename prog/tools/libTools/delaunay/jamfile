@@ -5,17 +5,18 @@ TargetType  = lib ;
 Target      = tools/libTools/delaunay.lib ;
 
 AddIncludes =
-  $(Root)/prog/tools/sharedInclude/libtools
+  $(Root)/prog/tools/sharedInclude/libTools
+  $(Root)/prog/gameLibs/publicInclude
 ;
 
 Sources =
   cmdline.cpp
   greedy.cpp
-  GreedyInsert.cpp
-  Heap.cpp
+  greedyInsert.cpp
+  heap.cpp
   output.cpp
-  Quadedge.cpp
-  Subdivision.cpp
+  quadedge.cpp
+  subdivision.cpp
 ;
 
 CPPopt = -DSAFETY -FIdelmem.h ;

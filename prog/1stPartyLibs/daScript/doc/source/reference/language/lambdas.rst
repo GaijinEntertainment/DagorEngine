@@ -19,21 +19,28 @@ The lambda type can be declared with a function-like syntax::
 Lambdas can be local or global variables, and can be passed as an argument by reference.
 Lambdas can be moved, but can't be copied or cloned::
 
-    def foo ( x : lambda < (arg1:int;arg2:float&):bool > )
+    def foo ( x : lambda < (arg1:int;arg2:float&):bool > ) {
         ...
         var y <- x
         ...
+    }
 
-Lambdas can be invoked via ``invoke``::
+Lambdas can be invoked via ``invoke`` or call-like syntax::
 
-    def inv13 ( x : lambda < (arg1:int):int > )
+    def inv13 ( x : lambda < (arg1:int):int > ) {
         return invoke(x,13)
+    }
 
-Lambdas are typically declared via pipe syntax::
+    def inv14 ( x : lambda < (arg1:int):int > ) {
+        return x(14)
+    }
+
+Lambdas are typically declared via move syntax::
 
     var CNT = 0
-    let counter <- @ <| (extra:int) : int
+    let counter <- @ (extra:int) : int {
         return CNT++ + extra
+    }
     let t = invoke(counter,13)
 
 There are a lot of similarities between lambda and block declarations.
@@ -58,15 +65,17 @@ Capturing by reference requires unsafe.
 
 By default, capture by copy will be generated. If copy is not available, unsafe is required for the default capture by move::
 
-	var a1 <- [{int 1;2}]
-	var a2 <- [{int 1;2}]
-	var a3 <- [{int 1;2}]
-	unsafe  // required do to capture of a1 by reference
-		var lam <- @ <| [[&a1,<-a2,:=a3]]
+	var a1 <- [1,2]
+	var a2 <- [1,2]
+	var a3 <- [1,2]
+	unsafe { // required do to capture of a1 by reference
+		var lam <- @  capture(ref(a1),move(a2),clone(a3)) {
 			push(a1,1)
 			push(a2,1)
 			push(a3,1)
+        }
 		invoke(lam)
+    }
 
 .. _lambdas_finalizer:
 
@@ -77,10 +86,11 @@ Lambdas can be deleted, which cause finalizers to be called on all captured data
 Lambdas can specify a custom finalizer which is invoked before the default finalizer::
 
     var CNT = 0
-    var counter <- @ <| (extra:int) : int
+    var counter <- @ (extra:int) : int {
         return CNT++ + extra
-    finally
+    } finally {
         print("CNT = {CNT}\n")
+    }
     var x = invoke(counter,13)
     delete counter                  // this is when the finalizer is called
 
@@ -95,14 +105,17 @@ Lambdas are the main building blocks for implementing custom iterators (see :ref
 Lambdas can be converted to iterators via the ``each`` or ``each_ref`` functions::
 
     var count = 0
-    let lam <- @ <| (var a:int &) : bool
-        if count < 10
+    let lam <- @ (var a:int &) : bool {
+        if ( count < 10 ) {
             a = count++
             return true
-        else
+        } else {
             return false
-    for x,tx in each(lam),range(0,10)
+        }
+    }
+    for ( x,tx in each(lam),range(0,10) ) {
         assert(x==tx)
+    }
 
 To serve as an iterator, a lambda must
 
@@ -120,33 +133,38 @@ Lambdas are implemented by creating a nameless structure for the capture, as wel
 Let's review an example with a singled captured variable::
 
     var CNT = 0
-    let counter <- @ <| (extra:int) : int
+    let counter <- @ (extra:int) : int {
         return CNT++ + extra
+    }
 
 Daslang will generated the following code:
 
 Capture structure::
 
-    struct _lambda_thismodule_7_8_1
+    struct _lambda_thismodule_7_8_1 {
         __lambda : function<(__this:_lambda_thismodule_7_8_1;extra:int const):int> = @@_lambda_thismodule_7_8_1`function
         __finalize : function<(__this:_lambda_thismodule_7_8_1? -const):void> = @@_lambda_thismodule_7_8_1`finalizer
         CNT : int
+    }
 
 Body function::
 
-    def _lambda_thismodule_7_8_1`function ( var __this:_lambda_thismodule_7_8_1; extra:int const ) : int
-        with __this
+    def _lambda_thismodule_7_8_1`function ( var __this:_lambda_thismodule_7_8_1; extra:int const ) : int {
+        with ( __this ) {
             return CNT++ + extra
+        }
+    }
 
 Finalizer function::
 
-    def _lambda_thismodule_7_8_1`finalizer ( var __this:_lambda_thismodule_7_8_1? explicit )
+    def _lambda_thismodule_7_8_1`finalizer ( var __this:_lambda_thismodule_7_8_1? explicit ) {
         delete *this
         delete __this
+    }
 
 Lambda creation is replaced with the ascend of the capture structure::
 
-    let counter:lambda<(extra:int const):int> const <- new<lambda<(extra:int const):int>> [[CNT = CNT]]
+    let counter:lambda<(extra:int const):int> const <- new<lambda<(extra:int const):int>> (CNT = CNT)
 
 The C++ Lambda class contains single void pointer for the capture data::
 

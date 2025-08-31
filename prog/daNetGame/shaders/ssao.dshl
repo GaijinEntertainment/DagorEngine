@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "ssao_use.dshl"
 include "viewVecVS.dshl"
 include "monteCarlo.dshl"
+include "camera_in_camera.dshl"
 
 include "contact_shadows.dshl"
 include "gbuffer.dshl"
@@ -39,6 +40,7 @@ float contact_shadow_min_len = 0.25;
 
 float ssao_strength = 1.0;
 interval ssao_strength:modulated<1, full_strength;
+sampler global_linear_clamp_sampler;
 
 //bnao
 float sampleRadius = 0.075;
@@ -85,11 +87,10 @@ float SSAOW = 2.0;
 float SSAOOFS = -0.075;
 
 macro SS_BENT_CONES()
-  ENABLE_ASSERT(ps)
   INIT_HALF_RES_CLOSE_DEPTH_NORMALS(ps)
   (ps) {
     sampleRadius__invMaxDistance@f2 = (sampleRadius, 1.0 / (2.0*sampleRadius), 0, 0);
-    random_pattern_tex@smp2d = random_pattern_tex;
+    random_pattern_tex@tex2d = random_pattern_tex;
     bent_cones_frame_no@f2 = ssao_frame_no;
     SSAO_params@f4 = (SSAO_effect, SSAOOFS, SSAOZ, SSAOW);//???
   }
@@ -509,13 +510,14 @@ hlsl(ps) {
   }
   float3 getPosition(float2 curViewTc, float depth)
   {
-    return depth*lerp(lerp(view_vecLT, view_vecRT, curViewTc.x), lerp(view_vecLB, view_vecRB, curViewTc.x), curViewTc.y);
+    return depth*getViewVecOptimized(curViewTc);
   }
 
   float3 getOffsetPosition(float2 tc, float2 unitOffset, float ssR)
   {
     float2 curTc = tc+unitOffset*ssR*ssao_pixel_size.xy;
-    return getPosition(curTc, RetrieveDepth(curTc, 0));
+    float2 tcClamped = clamp(curTc, min_max_depth_tc.xy, min_max_depth_tc.zw);
+    return getPosition(tcClamped, RetrieveDepth(tcClamped, 0));
   }
 
 
@@ -653,7 +655,8 @@ macro USE_AWESOME_SSAO()
     }
     half getSSDO(float2 tc, float lod, float invPos, float3 wsPos, float3 wsNormal)
     {
-      float3 diff = getPosition(tc, RetrieveDepth(tc, lod)) - wsPos;
+      float2 tcClamped = clamp(tc, min_max_depth_tc.xy, min_max_depth_tc.zw);
+      float3 diff = getPosition(tcClamped, RetrieveDepth(tcClamped, lod)) - wsPos;
       float diffLen2 = dot(diff,diff);
       float invDiffLen = rsqrt(diffLen2);
       float3 v = diff*invDiffLen;
@@ -765,8 +768,14 @@ endmacro
 
 shader ssao
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   supports global_const_block;
   color_write = rgb;
+
+  assume_if_not_assumed use_contact_shadows = use_shadows;
+
+
   (ps) {
     world_view_pos@f3 = world_view_pos;
     lowres_rt_params@f4 = lowres_rt_params;
@@ -778,7 +787,14 @@ shader ssao
     contact_shadow_min_len@f1 = (contact_shadow_min_len);
     ssao_strength@f1 = (ssao_strength);
     contact_shadows_num_steps@i1 = (contact_shadows_num_steps,0,0,0);
+    min_max_depth_tc@f4 = (0.5/lowres_rt_params.x, 0.5/lowres_rt_params.y, 1-0.5/lowres_rt_params.x, 1-0.5/lowres_rt_params.y);
   }
+  (ps) {
+    downsampled_far_depth_tex_exists@i1 = exists_tex(downsampled_far_depth_tex);
+    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    global_linear_clamp_sampler@sampler = global_linear_clamp_sampler;
+  }
+
   INIT_HALF_RES_CLOSE_DEPTH(ps)
   INIT_ZNZFAR()
   ENABLE_ASSERT(ps)
@@ -863,8 +879,10 @@ shader ssao
 
     SHADER_OUT_TYPE SSAO_ps(VsOutput IN HW_USE_SCREEN_POS) : SV_Target
     {
-      float4 scrpos = GET_SCREEN_POS(IN.pos);
       float2 screenTC = IN.tc.xy;
+      DISCARD_IF_INVALID_VIEW_AREA_PS(screenTC);
+
+      float4 scrpos = GET_SCREEN_POS(IN.pos);
       float rawDepth = RetrieveRawDepth(screenTC);
       BRANCH
       if (rawDepth >= 1)
@@ -916,12 +934,18 @@ shader ssao
         BRANCH
         if (shadow_strength > 0)
         {
-          half contactShadows = 1;
-          contactShadows = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), contact_shadows_num_steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
+          half hitT;
+          int filteredSteps = 1;
+          int steps = contact_shadows_num_steps - filteredSteps;
+          if (get_downsampled_far_depth_tex_exists())
+            hitT = contactShadowFilteredRayCastWithScaleHitT(downsampled_far_depth_tex, half_res_close_depth_samplerstate, global_linear_clamp_sampler, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), filteredSteps, steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0));
+          else
+            hitT = contactShadowFilteredRayCastWithScaleHitT(half_res_close_depth, half_res_close_depth_samplerstate, global_linear_clamp_sampler, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), filteredSteps, steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0));
+          half contactShadows = 1.h - saturate(1.h - pow2(hitT));
           ssao.CONTACT_SHADOWS_ATTR = lerp(1, contactShadows, shadow_strength);
         } else
           ssao.CONTACT_SHADOWS_ATTR = 1;
-        ssao.CONTACT_SHADOWS_ATTR = getAdditionalShadow(ssao.CONTACT_SHADOWS_ATTR, cameraToPoint, wsNormal, screenTC, w);
+        ssao.CONTACT_SHADOWS_ATTR = getAdditionalShadow(ssao.CONTACT_SHADOWS_ATTR, cameraToPoint, screenTC, w);
       }
       ##endif
       ##if ssao_wsao

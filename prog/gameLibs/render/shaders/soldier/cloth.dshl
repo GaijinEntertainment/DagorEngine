@@ -1,0 +1,372 @@
+include "wind/wind_simulation_inc.dshl"
+include "cloth_inc.dshl"
+
+
+
+macro INIT_CLOTH_WIND_NOISE()
+ hlsl
+ {
+    #include "noise/Perlin2D.hlsl"
+
+    static const float NOISE_RES = 0.05;
+    static const float NOISE_MULTIPLIER = 1;
+
+    float gen_noise(float x, float y)
+    {
+      return NOISE_MULTIPLIER * (noise_Perlin2D((float2(x, y) + 10000) / NOISE_RES) + 1) / 2;
+    }
+
+    float3 gen_noise_normal(float x, float y)
+    {
+      float eps = 0.1;
+      float x_pos_eps = gen_noise(x + eps, y);
+      float y_pos_eps = gen_noise(x, y + eps);
+      float x_neg_eps = gen_noise(x - eps, y);
+      float y_neg_eps = gen_noise(x, y - eps);
+      float2 normal2 = (float2(x_pos_eps, y_pos_eps) - float2(x_neg_eps, y_neg_eps)) / (2 * eps);
+      return float3(normal2, 1);
+    }
+ }
+endmacro
+
+macro INIT_CLOTH_WIND(texture_index)
+  channel color8 vcol = vcol; // normalize(RGB) - wind influence direction, lenght(RGB) - cloth tension
+
+  texture clothNoiseCombinedTex = material.texture[texture_index];  // RGB - noise gradient, A - noise value
+  if (clothNoiseCombinedTex != NULL)
+  {
+    (vs){ clothNoiseCombinedTex@static = clothNoiseCombinedTex; }
+    (ps){ clothNoiseCombinedTex@static = clothNoiseCombinedTex; }
+  }
+
+  INIT_CLOTH_WIND_NOISE()
+
+  static float cloth_wind__noise_scale_x = 1;
+  static float cloth_wind__noise_scale_y = 1;
+  static float cloth_wind__time_scale_min = 0.2;
+  static float cloth_wind__time_scale_max = 0.4;
+  static float cloth_wind__ambient_influence = 1;
+  static float cloth_wind__noise_amp = 0.015;
+  static float cloth_wind__noise_normal_amp = 1;
+
+  (vs) {
+    cloth_wind__noise_time_scale@f4 = float4(
+      cloth_wind__noise_scale_x,
+      cloth_wind__noise_scale_y,
+      cloth_wind__time_scale_min / cloth_wind__noise_scale_y,
+      cloth_wind__time_scale_max / cloth_wind__noise_scale_y
+    );
+    cloth_wind__noise_amp@f1 = cloth_wind__noise_amp;
+    cloth_wind__ambient_influence@f1 = cloth_wind__ambient_influence;
+  }
+
+  (ps) {
+    cloth_wind__noise_time_scale@f4 = float4(
+      cloth_wind__noise_scale_x,
+      cloth_wind__noise_scale_y,
+      cloth_wind__time_scale_min / cloth_wind__noise_scale_y,
+      cloth_wind__time_scale_max / cloth_wind__noise_scale_y
+    );
+    cloth_wind__noise_normal_amp@f1 = cloth_wind__noise_normal_amp;
+  }
+
+
+  hlsl {
+    #define NEED_VCOL_MASK 1
+    #define NEED_POINT_TO_EYE 1
+    #define NEED_CLOTH_WIND 1
+
+    #define MAX_WIND_SPEED 35 // approximatly 12 beaufort
+    #define MAX_NOISE_AMP 1
+    #define MAX_NOISE_NORMAL_AMP 20
+
+    float get_cloth_wind_noise_vertical_offset(float strength, float time, float2 scale)
+    {
+      float windTimeMultiplier = lerp(scale.x, scale.y, saturate(strength / MAX_WIND_SPEED));
+      return time * windTimeMultiplier;
+    }
+
+
+    float sample_noise(float x, float y)
+    {
+      ##if (clothNoiseCombinedTex != NULL)
+        return NOISE_MULTIPLIER * tex2DLodBindless(get_clothNoiseCombinedTex(), float4(x, y, 0, 0)).a;
+      ##else
+        return gen_noise(x, y);
+      ##endif
+    }
+
+    float sample_noise_combined(float3 local_pos, float time, float strength, float2 time_scale, float2 noise_scale, float noise_blend_coef,
+                                float2 noise_offset)
+    {
+      float verticalOffset = get_cloth_wind_noise_vertical_offset(
+        strength,
+        time,
+        time_scale);
+      float y = local_pos.y + verticalOffset;
+      float noiseX = sample_noise(local_pos.x * noise_scale.x + noise_offset.x, y * noise_scale.y + noise_offset.y);
+      float noiseZ = sample_noise(local_pos.z * noise_scale.x + noise_offset.x, (y + 0.5) * noise_scale.y + noise_offset.y);
+      float noiseEffect = lerp(noiseZ, noiseX, noise_blend_coef);
+
+      return noiseEffect;
+    }
+
+    float3 sample_noise_normal(float x, float y)
+    {
+      ##if (clothNoiseCombinedTex != NULL)
+        return tex2DLodBindless(get_clothNoiseCombinedTex(), float4(x, y, 0, 0)).rgb;
+      ##else
+        return gen_noise_normal(x, y);
+      ##endif
+    }
+  }
+
+  USE_COMBINED_WIND(vs)
+endmacro
+
+define_macro_if_not_defined USE_CLOTH_COLLISION()
+
+  hlsl(vs)
+  {
+    void signed_distance_capsule( float3 position, float3 centerA, float3 centerB, float radius, out float distance, out float3 direction)
+    {
+      float3 pa = position - centerA, ba = centerB - centerA;
+      float h = saturate(dot(pa,ba)/dot(ba,ba));
+      direction = pa - ba*h;
+      distance = length(direction) - radius;
+    }
+
+    void apply_cloth_collision(inout float4 output_pos, inout float3 world_pos)
+    {
+      uint2 offset_count = get_offset_count_additional_data(AAD_CAPSULE_APPROX);
+      float minDist = 100000;
+      float3 minDir;
+      for (int i = 0, end = offset_count.y / 2; i < end; i++)
+      {
+        float4 data1 = get_additional_data_unsafe(offset_count, 2 * i);
+        float4 data2 = get_additional_data_unsafe(offset_count, 2 * i + 1);
+        float3 a = data1.xyz;
+        float3 b = data2.xyz;
+        const float rOffset = 0.01;
+        float r = data1.w + rOffset;
+        float3 dir;
+        float dist;
+        signed_distance_capsule(world_pos, a, b, r, dist, dir);
+        FLATTEN
+        if (dist < minDist)
+        {
+          minDist = dist;
+          minDir = normalize(dir);
+        }
+      }
+      if (minDist < 0)
+      {
+        output_pos -= mul(float4(minDir.xyz * minDist, 0) , viewProjTm);
+        world_pos -= minDir.xyz * minDist;
+      }
+    }
+  }
+endmacro
+
+macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
+  hlsl(vs)
+  {
+    void directional_data_skinning(VsInput input, inout float3 directional_data)
+    {
+      // TODO: This partly dublicates code from skinning_inc2.dshl
+      // Modifing original code would touch many other unrelated systems
+      // So it is needed to be done carefully
+      ##if num_bones != no_bones
+        bone_t skinnedTm = skinning_matrix(input);
+        directional_data = mul_bone3(directional_data, skinnedTm);
+      ##else
+        ##if in_editor_assume == yes || simple_skinning
+          SETUP_RENDER_VARS(input.normal.w);
+          float3 world_local_x = globtm_0.xyz;
+          float3 world_local_y = globtm_1.xyz;
+          float3 world_local_z = globtm_2.xyz;
+          float4 projNormal = directional_data.x * globtm_0 + directional_data.y * globtm_1 + directional_data.z * globtm_2;
+          directional_data = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
+        ##else
+          uint offset_id = get_immediate_dword_0();
+          offset_id += uint(input.normal.w*255.001953) * matrices_stride;
+          float4 r1 = bufferAt(instance_data_buffer, offset_id),r2 = bufferAt(instance_data_buffer, offset_id+1),r3 = bufferAt(instance_data_buffer, offset_id+2);
+          float3 world_local_x = r1.xyz;
+          float3 world_local_y = r2.xyz;
+          float3 world_local_z = r3.xyz;
+          directional_data = directional_data.x * world_local_x + directional_data.y * world_local_y + directional_data.z * world_local_z;
+        ##endif
+      ##endif
+    }
+
+    void apply_cloth_wind_position_offset(
+      VsInput input, inout float4 output_pos, inout float4 output_pos_prev, inout float2 wind_normal_blend_params,
+      float4 directional_data, float3 world_pos, float4 local_pos, float3 velocity, float3 prev_velocity, float2 noise_offset)
+    {
+      float tension = directional_data.a;
+      if (tension < 1.e-4)
+        return;
+
+      float ambientInfluence = get_cloth_wind__ambient_influence();
+      const float MIN_WIND_SPEED = 0.1;
+      float3 wind = sampleWindCurrentTime(world_pos, 0.1 , 0) * ambientInfluence;
+      wind -= velocity * cloth_wind_velocity_multiplier;
+      float fSpeed = length(wind);
+      if (fSpeed < MIN_WIND_SPEED)
+        return;
+      wind /= fSpeed;
+
+      float3 windPrev = sampleWindPreviousTime(world_pos, 0.1 , 0) * ambientInfluence;
+      windPrev -= prev_velocity * cloth_wind_velocity_multiplier;
+      float fSpeedPrev = length(windPrev);
+      windPrev /= fSpeedPrev;
+
+      float4 cloth_wind_params = get_cloth_wind__noise_time_scale();
+      float2 noiseScale = cloth_wind_params.xy;
+      float2 timeScale = cloth_wind_params.zw;
+
+      float windEffect = dot(wind, normalize(directional_data.xyz));
+      windEffect = windEffect * 0.5 + 0.5;
+
+      float2 noiseWeights = normalize(directional_data.xz);
+      float noiseBlendCoef = noiseWeights.x * noiseWeights.x;
+
+      float windStrength = ambient_wind__speed__current_time__previous_time.x;
+      float windTime = ambient_wind__speed__current_time__previous_time.y;
+      float noiseEffect = sample_noise_combined(local_pos.xyz, windTime, windStrength, timeScale, noiseScale, noiseBlendCoef, noise_offset);
+
+      float windTimePrev = ambient_wind__speed__current_time__previous_time.z;
+      float noiseEffectPrev = sample_noise_combined(local_pos.xyz, windTimePrev, windStrength, timeScale, noiseScale, noiseBlendCoef, noise_offset);
+
+      float noiseAmp = saturate(get_cloth_wind__noise_amp());
+      noiseAmp = (-pow4(noiseAmp - 1) + 1) * MAX_NOISE_AMP;
+
+      windEffect *= noiseAmp;
+      windEffect *= saturate(tension);
+      float windEffectPrev = windEffect * noiseEffectPrev * fSpeedPrev / MAX_WIND_SPEED;
+      windEffect *= noiseEffect * fSpeed / MAX_WIND_SPEED;
+
+      float3 windDelta = windEffect * normalize(directional_data.xyz);
+      float3 windDeltaPrev = windEffectPrev * normalize(directional_data.xyz);
+
+      output_pos += mul(float4(windDelta.xyz, 0), viewProjTm);
+      output_pos_prev += mul(float4(windDeltaPrev.xyz, 0), viewProjTm);
+      wind_normal_blend_params = float2(windEffect, noiseBlendCoef);
+    }
+  }
+endmacro
+
+
+macro USE_CLOTH_WIND_NORMAL_BLENDING()
+  hlsl(ps)
+  {
+    void apply_cloth_wind_normals(inout float3 normal_map, float3 local_pos, float2 wind_normal_blend_params)
+    {
+      #ifdef OPTIONAL_CLOTH_WIND
+        if (!get_cloth_wind_enabled())
+          return;
+      #endif
+
+      float4 cloth_wind_params = get_cloth_wind__noise_time_scale();
+
+      float2 noiseScale = cloth_wind_params.xy;
+      float2 timeScale = cloth_wind_params.zw;
+
+      float windStrength = ambient_wind__speed__current_time__previous_time.x;
+      float windTime = ambient_wind__speed__current_time__previous_time.y;
+      float verticalOffset = get_cloth_wind_noise_vertical_offset(windTime, windStrength, timeScale);
+      float y = local_pos.y + verticalOffset;
+
+      float3 waveNormalZ = sample_noise_normal(local_pos.x * noiseScale.x, y * noiseScale.y).xyz * 0.5 + 0.5;
+      float3 waveNormalX = sample_noise_normal(local_pos.z * noiseScale.x, (y + 0.5) * noiseScale.y).xyz * 0.5 + 0.5;
+
+      // We decrease xy normals component in places where wind is not applied
+      // This way normals are not affected by noise when blending with normal map
+      float noiseNormalAmp = saturate(get_cloth_wind__noise_normal_amp());
+      noiseNormalAmp = (-pow4(noiseNormalAmp - 1) + 1) * MAX_NOISE_NORMAL_AMP;
+      float windEffect = wind_normal_blend_params.x * noiseNormalAmp;
+      waveNormalZ.xy *= cloth_wind_params.y * windEffect;
+      waveNormalX.xy *= cloth_wind_params.y * windEffect;
+      waveNormalZ = normalize(waveNormalZ);
+      waveNormalX = normalize(waveNormalX);
+
+      float noiseBlendCoef = wind_normal_blend_params.y;
+      float3 normalNoise = lerp(waveNormalZ, waveNormalX, noiseBlendCoef);
+
+      normal_map = RNM_ndetail_normalized(normal_map, normalNoise);
+    }
+  }
+endmacro
+
+macro USE_CLOTH_WIND_VS_POST_FUNCTION(has_additional_data, use_burning_and_wounds, render_pass_normal)
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      ##if render_pass_normal
+        output.windNormalBlendParams = float2(0.0, 0.0);
+      ##endif
+
+      #ifdef OPTIONAL_CLOTH_WIND
+        if (get_cloth_wind_enabled())
+      #endif
+      {
+        float4 localPos = float4(input.pos, 0);
+        float3 eyeToPoint = -output.pointToEye;
+        float3 worldPos = eyeToPoint + world_view_pos;
+
+        float tension = pow2(length(input.vcolMask.xyz));
+        float3 dirData = tension < 1.e-4 ? float3(0, 0, 0) : normalize(input.vcolMask.xzy) * 2 - 1;
+        directional_data_skinning(input, dirData);
+        float4 dirDataW = float4(dirData, tension);
+        float3 charCurrentVelocity = float3(0, 0, 0);
+        float3 charPreviousVelocity = float3(0, 0, 0);
+        float2 noiseOffset = float2(0, 0);
+        ##if (in_editor_assume == no && has_additional_data)
+        uint2 offset_count = get_offset_count_additional_data(AAD_CLOTH_WIND_PARAMS);
+        BRANCH
+        if (offset_count.y > 0)
+        {
+          float4 data0 = get_additional_data_unsafe(offset_count, 0);
+          charCurrentVelocity = data0.xyz;
+          noiseOffset.x = data0.w;
+
+          float4 data1 = get_additional_data_unsafe(offset_count, 1);
+          charPreviousVelocity = data1.xyz;
+          noiseOffset.y = data1.w;
+        }
+        else
+        {
+          ##assert(false, "No additional data for cloth wind params");
+        }
+        ##endif
+
+        apply_cloth_collision(output.pos, worldPos);
+        ##if render_pass_normal
+          #ifdef MOTION_VECTORS_ENABLED
+            #define prevPos output.out_pos_prev
+          #else
+            float4 prevPos = 0.0;
+          #endif
+
+          apply_cloth_wind_position_offset(input, output.pos, prevPos, output.windNormalBlendParams, dirDataW, worldPos,
+                                          localPos, charCurrentVelocity, charPreviousVelocity, noiseOffset);
+          output.localPos = localPos.xyz;
+
+          #ifdef MOTION_VECTORS_ENABLED
+            output.out_pos = output.pos;
+          #endif
+        ##else
+          float2 dummyWindNormalBlendParams = float2(0.0, 0.0);
+          float4 dummyPrevPos = 0.0;
+          apply_cloth_wind_position_offset(input, output.pos, dummyPrevPos, dummyWindNormalBlendParams, dirDataW, worldPos,
+                                          localPos, charCurrentVelocity, charPreviousVelocity, noiseOffset);
+        ##endif
+      }
+
+      ##if use_burning_and_wounds
+        init_burning_and_wounds(input, output);
+      ##endif
+    }
+  }
+endmacro
+

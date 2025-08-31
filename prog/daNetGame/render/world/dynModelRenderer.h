@@ -16,6 +16,9 @@
 #include <drv/3d/dag_renderStateId.h>
 #include <3d/dag_ringDynBuf.h>
 #include <shaders/dag_shaderVarsUtils.h>
+#include <memory/dag_framemem.h>
+#include <daECS/core/componentTypes.h>
+#include "animCharRenderAdditionalData.h"
 
 
 struct UpdateStageInfoRender;
@@ -38,6 +41,7 @@ enum class RenderPriority : uint8_t
 {
   HIGH = 0,
   DEFAULT = 1,
+  LOW = 2
 };
 
 struct DynamicBufferHolder
@@ -58,11 +62,7 @@ struct RenderElement
   shaders::ConstStateIdx cstate;
   uint8_t reqTexLevel;
   RenderPriority priority;
-#if DAGOR_DBGLEVEL > 0
   uint8_t lodNo;
-#else
-  static constexpr uint8_t lodNo = 0;
-#endif
   uint32_t instanceId : 31; // uint16_t cnt;
   uint32_t needImmediateConstPS : 1;
   int si, numf, bv;              // can be 24 bit each, and so 12 bytes alltogether with instance Id, saving 4 bytes
@@ -78,9 +78,7 @@ struct RenderElement
     GlobalVertexData *vData,
     uint8_t req_tex_level,
     RenderPriority priority,
-#if DAGOR_DBGLEVEL > 0
     uint8_t lodNo,
-#endif
     uint32_t instanceId,
     int si,
     int numf,
@@ -97,9 +95,7 @@ struct RenderElement
     vData(vData),
     reqTexLevel(req_tex_level),
     priority(priority),
-#if DAGOR_DBGLEVEL > 0
     lodNo(lodNo),
-#endif
     instanceId(instanceId),
     si(si),
     numf(numf),
@@ -117,7 +113,8 @@ enum BufferType
   TRANSPARENT_MAIN = 1,
   MAIN = 2,
   DYNAMIC_SHADOW = 3,
-  SHADOWS_CSM = 4, // and further
+  BVH = 4,
+  SHADOWS_CSM = 5, // and further
 };
 
 inline BufferType get_buffer_type_from_render_pass(int render_pass)
@@ -133,6 +130,11 @@ inline BufferType get_buffer_type_from_render_pass(int render_pass)
 
 struct DynModelRenderingState
 {
+  enum Mode
+  {
+    FOR_RENDERING,
+    ONLY_PER_INSTANCE_DATA
+  };
   void swap(DynModelRenderingState &a);
   bool empty() const { return list.empty() && multidrawList.empty(); }
 
@@ -140,8 +142,7 @@ struct DynModelRenderingState
     uint32_t end_stage, // inclusive range of stages
     const DynamicRenderableSceneInstance *scene,
     const DynamicRenderableSceneResource *lodResource,
-    const Point4 *bones_additional_data,
-    uint32_t additional_data_size,
+    const animchar_additional_data::AnimcharAdditionalDataView additional_data,
     bool need_previous_matrices,
     ShaderElement *shader_override = nullptr,
     const uint8_t *path_filter = nullptr,
@@ -150,13 +151,14 @@ struct DynModelRenderingState
     bool need_immediate_const_ps = false,
     RenderPriority priority = RenderPriority::DEFAULT,
     const GlobalVariableStates *gvars_state = nullptr,
-    TexStreamingContext texCtx = TexStreamingContext(0));
+    TexStreamingContext texCtx = TexStreamingContext(0),
+    eastl::vector<int, framemem_allocator> *output_offset = nullptr);
+
   // legacy (get DynamicRenderableSceneResource* as scene->getCurSceneResource())
   void process_animchar(uint32_t start_stage,
     uint32_t end_stage, // inclusive range of stages
     const DynamicRenderableSceneInstance *scene,
-    const Point4 *bones_additional_data,
-    uint32_t additional_data_size,
+    const animchar_additional_data::AnimcharAdditionalDataView additional_data,
     bool need_previous_matrices,
     ShaderElement *shader_override = nullptr,
     const uint8_t *path_filter = nullptr,
@@ -181,6 +183,7 @@ struct DynModelRenderingState
   SmallTab<Point4> instanceData;
   static const uint32_t MATRIX_ROWS = 3;
   int matrixStride = 0;
+  Mode mode = FOR_RENDERING;
 
   struct PackedDrawCallsRange
   {
@@ -190,6 +193,7 @@ struct DynModelRenderingState
   dag::Vector<PackedDrawCallsRange> drawcallRanges;
   ska::flat_hash_map<shaders::ConstStateIdx, uint8_t> bindlessStatesToUpdateTexLevels;
 };
+
 
 // Should always return valid pointer except maybe OOM cases. And OOM has its own handling for exception.
 DynModelRenderingState *create_state(const char *name = nullptr);

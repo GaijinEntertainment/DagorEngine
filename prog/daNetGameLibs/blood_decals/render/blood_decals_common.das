@@ -71,8 +71,8 @@ def calculate_parabolic_trajectory(prev_look_at : float3; var eye, norm : float3
   eye = prev_look_at + launchDirHorizontal * arcHalfDistance + float3(0f, arcHeight, 0f)
   let newLookAt = prev_look_at + launchDirHorizontal * arcHalfDistance * (2f - PARABOLIC_FAKE_AERODYNAMIC_DRAG_OFFSET)
 
-  let pointToEye = eye - newLookAt;
-  norm = normalize(pointToEye);
+  let pointToEye = eye - newLookAt
+  norm = normalize(pointToEye)
 
 [event(broadcast)]
 struct CmdAddBloodDecalInternal
@@ -96,7 +96,7 @@ def blood_decals_add_decal(eye_pos, look_at : float3)
     var norm = normalize(pointToEye)
     let fromEyeDist = 0.01f
     // Move away a little bit from the camera, otherwise the camera can be glitch into the projective geometry causing flickering
-    var eye = eye_pos - norm * fromEyeDist;
+    var eye = eye_pos - norm * fromEyeDist
     let decalSize = min(MAX_DECAL_SIZE, (MAX_SPLASH_DISTANCE / length(pointToEye)) * HUMAN_SIZE)
     let tracesOffset = length(blood_decals_traces_result)
     resize(blood_decals_traces_result, tracesOffset + TRACE_RESULT_BUFFER_SIZE)
@@ -106,7 +106,7 @@ def blood_decals_add_decal(eye_pos, look_at : float3)
       // Prevents decal from being placed parallel to ground, it will look bad (or invisible at all)
       // because most parts of the decal will be discarded by normal of the ground in pixel shader.
       // We can still place such decals on the walls if trace results were successful enough.
-      norm = normalize(float3(0, 1, 0) + normalize(float3(pointToEye.x, 0, pointToEye.z)));
+      norm = normalize(float3(0, 1, 0) + normalize(float3(pointToEye.x, 0, pointToEye.z)))
       eye = look_at + norm * GROUND_SPLASH_OFFSET
       numHits = trace_depth_tex(blood_decals_traces_result, tracesOffset, eye, -norm, decalSize)
     elif (numHits < DEPTH_TRACE_SUCCESS_THRESHOLD && norm.y < 0f)
@@ -140,7 +140,7 @@ def blood_decals_add_decal(eye_pos, look_at : float3)
     // startTime, so decalSize and startTime is swapped. It is decoded again in the vertex shader stage of the rendering shader.
 
     // Note: intentionally not immediate since this function can be called from thread (ParallelUpdateFrameDelayed)
-    broadcastEvent([[CmdAddBloodDecalInternal tm=transform, rad=startTime, tex_id=uint16(0), mx_id=uint16(0), params=params]])
+    broadcastEvent(CmdAddBloodDecalInternal(tm = transform, rad = startTime, tex_id = uint16(0), mx_id = uint16(0), params = params))
 
     blood_decals_decals_count++
 

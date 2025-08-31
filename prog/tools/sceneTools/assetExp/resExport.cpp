@@ -111,7 +111,7 @@ public:
 
     Tab<IDagorAssetRefProvider::Ref> refList;
     if (refResv)
-      refList = refResv->getAssetRefs(res);
+      refResv->getAssetRefs(res, refList);
 
     ResData &rd = resData.push_back();
 
@@ -249,8 +249,8 @@ public:
     ResData::cmpMgr = NULL;
   }
 
-  bool saveFile(mkbindump::BinDumpSaveCB &cwr, AssetExportCache &c4, file_ptr_t fp, ILogWriter &log, IGenericProgressIndicator &pbar,
-    const char *pack_fname, const DataBlock &blk_export_props)
+  bool saveFileInternal(mkbindump::BinDumpSaveCB &cwr, AssetExportCache &c4, file_ptr_t fp, ILogWriter &log,
+    IGenericProgressIndicator &pbar, const char *pack_fname, const DataBlock &blk_export_props)
   {
     using namespace mkbindump;
     OAHashNameMap<true> nm;
@@ -408,13 +408,11 @@ public:
         debug("export %s (%d checks)", nameTypified, checks_count);
         for (int attempt = 0; attempt < CMP_ATTEMPTS_COUNT; attempt++)
         {
-          mkbindump::BinDumpSaveCB cwr0(1 << 20, cwr.getTarget(), cwr.WRITE_BE);
-          cwr0.setProfile(cwr.getProfile());
+          mkbindump::BinDumpSaveCB cwr0(1 << 20, cwr);
           comparison_passed = true;
           for (int check = 0; check < checks_count + 1; check++)
           {
-            mkbindump::BinDumpSaveCB cwr1(1 << 20, cwr.getTarget(), cwr.WRITE_BE);
-            cwr1.setProfile(cwr.getProfile());
+            mkbindump::BinDumpSaveCB cwr1(1 << 20, cwr);
             FATAL_CONTEXT_AUTO_SCOPE(nameTypified);
             if (!rrd.exp->exportAsset(*rrd.asset, check == 0 ? cwr0 : cwr1, log) || log.hasErrors())
             {
@@ -520,6 +518,14 @@ public:
 
     return true;
   }
+
+  bool saveFile(mkbindump::BinDumpSaveCB &cwr, AssetExportCache &c4, file_ptr_t fp, ILogWriter &log, IGenericProgressIndicator &pbar,
+    const char *pack_fname, const DataBlock &blk_export_props)
+  {
+    const bool result = saveFileInternal(cwr, c4, fp, log, pbar, pack_fname, blk_export_props);
+    pbar.setTotal(0);
+    return result;
+  }
 };
 
 DagorAssetMgr *GrpExporter::ResData::cmpMgr = NULL;
@@ -564,7 +570,9 @@ bool buildGameResPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
       ok = false;
 
     e->gatherSrcDataFiles(a, a_files);
-    for (int j = 0; j < a_files.size(); j++)
+    // skip first if already checked
+    bool target_file_checked = a.isVirtual() && a_files.size() && a_files[0].operator==(a.getTargetFilePath());
+    for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
       if (c4.checkFileChanged(a_files[j]))
         a_changed = true;
 
@@ -678,6 +686,7 @@ bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCa
     DagorAsset &a = *assets[i];
     String asset_name_typified(a.getNameTypified());
     int dataOfs = 0, dataLen = 0;
+    bool target_file_checked = false;
 
     IDagorAssetExporter *e = exp.mgr.getAssetExporter(a.getType());
     G_ASSERT(e);
@@ -696,12 +705,9 @@ bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCa
       goto cur_changed;
 
     e->gatherSrcDataFiles(a, a_files);
-    // A lot of assets add the asset itself to the list of src data files.
-    // checkFileChanged is quite slow and we checked this asset already above.
-    // Removing this asset from gather list is faster then calling checkFileChanged one extra time
-    if (a.isVirtual() && a_files.size() > 0 && strcmp(a_files[0].c_str(), assets[i]->getTargetFilePath().c_str()) == 0)
-      a_files.erase(a_files.begin());
-    for (int j = 0; j < a_files.size(); j++)
+    // skip first if already checked
+    target_file_checked = a.isVirtual() && a_files.size() && a_files[0].operator==(a.getTargetFilePath());
+    for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
       if (c4.checkFileChanged(a_files[j]))
         goto cur_changed;
 

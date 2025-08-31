@@ -7,9 +7,9 @@ namespace drv3d_vulkan
 {
 struct ViewportState
 {
-  VkRect2D rect2D;
-  float minZ;
-  float maxZ;
+  VkRect2D rect2D = {0, 0, 1, 1};
+  float minZ = 0.f;
+  float maxZ = 1.f;
 
   friend inline bool operator==(const ViewportState &l, const ViewportState &r)
   {
@@ -35,7 +35,7 @@ inline RegionDifference classify_rect2d_diff(const VkRect2D &from, const VkRect2
   // if all zero, then they are the same
   if (dX | dY | dW | dH)
   {
-    // can be either subset or completly different
+    // can be either subset or completely different
     if (dX >= 0 && dY >= 0 && dW <= 0 && dH <= 0)
       return RegionDifference::SUBSET;
     else

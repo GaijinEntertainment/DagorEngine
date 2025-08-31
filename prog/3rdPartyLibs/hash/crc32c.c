@@ -37,23 +37,23 @@
 #define SHORT_SHIFT 256
 
 
-
-#if _TARGET_PC_WIN && !defined(_M_ARM64)
+#if defined(_MSC_VER) && !defined(_M_ARM64)
 
 #include <intrin.h>
 #include <nmmintrin.h>
 
 #define CRC32_INLINE __inline
-#if defined(__clang__) && !defined(__SSE4_2__)
-#define CRC32_HW_SUPPORT 0
-#else
 #define CRC32_HW_SUPPORT 1
 
 static __inline int crc32c_hw_available()
 {
+#ifdef __SSE4_2__
+  return 1;
+#else
   int info[4];
   __cpuid(info, 1);
   return (info[2] >> 20) & 1;
+#endif
 }
 
 
@@ -74,9 +74,7 @@ static __inline uint64_t wrap_crc32_u64(uint64_t crc, uint64_t val)
 }
 #endif
 
-#endif
-#elif _TARGET_PC && !_TARGET_SIMD_NEON && !defined(__e2k__)
-
+#elif defined(__x86_64__) || defined(__i386__)
 
 #define CRC32_INLINE inline
 #define CRC32_HW_SUPPORT 1
@@ -84,6 +82,9 @@ static __inline uint64_t wrap_crc32_u64(uint64_t crc, uint64_t val)
 
 static inline int crc32c_hw_available()
 {
+#ifdef __SSE4_2__
+  return 1;
+#else
   uint32_t eax, ecx;
   eax = 1;
   __asm__("cpuid"
@@ -91,6 +92,7 @@ static inline int crc32c_hw_available()
           : "a"(eax)
           : "%ebx", "%edx");
   return (ecx >> 20) & 1;
+#endif
 }
 
 

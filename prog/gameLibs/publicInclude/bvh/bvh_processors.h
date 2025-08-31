@@ -24,7 +24,7 @@ struct BufferProcessor
 
   struct ProcessArgs
   {
-    uint64_t meshId;
+    uint64_t objectId;
 
     uint32_t indexStart;
     uint32_t indexCount;
@@ -74,6 +74,9 @@ struct BufferProcessor
   virtual bool process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer, ProcessArgs &args,
     bool skip_processing) const = 0;
 
+  virtual void begin() const {}
+  virtual void end() const {}
+
   eastl::unique_ptr<ComputeShaderElement> shader;
 };
 
@@ -86,6 +89,18 @@ struct IndexProcessor
 
   eastl::unique_ptr<ComputeShaderElement> shader;
   UniqueBVHBuffer outputs[32];
+  int ringCursor = 0;
+};
+
+struct AHSProcessor
+{
+  AHSProcessor() : shader(new_compute_shader("bvh_process_ahs_vertices")) {}
+
+  void process(Sbuffer *indices, Sbuffer *vertices, UniqueBVHBufferWithOffset &processed_buffer, int index_format, int index_count,
+    int texcoord_offset, int texcoord_format, int vertex_stride, int color_offset);
+
+  eastl::unique_ptr<ComputeShaderElement> shader;
+  UniqueBVHBuffer output;
   int ringCursor = 0;
 };
 
@@ -105,12 +120,20 @@ struct TreeVertexProcessor : public BufferProcessor
 {
   mutable uint32_t counter = 0;
 
+  mutable dag::Vector<UniqueBVHBuffer> cbuffers;
+  mutable int cbufferCursor = 0;
+
   TreeVertexProcessor() : BufferProcessor("bvh_process_tree_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
 
   bool process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer, ProcessArgs &args,
     bool skip_processing) const override;
+
+  void begin() const override;
+  void end() const override;
+
+  Sbuffer *getNextCbuffer() const;
 };
 
 struct LeavesVertexProcessor : public BufferProcessor
@@ -201,6 +224,13 @@ struct ProcessorInstances
     return *dynrendIndex;
   }
 
+  static AHSProcessor &getAHSProcessor()
+  {
+    if (!ahsVertex)
+      ahsVertex.reset(new AHSProcessor());
+    return *ahsVertex;
+  }
+
   static const BufferProcessor &getSkinnedVertexProcessor()
   {
     if (!skinnedVertex)
@@ -260,6 +290,7 @@ struct ProcessorInstances
   static void teardown()
   {
     dynrendIndex.reset();
+    ahsVertex.reset();
     skinnedVertex.reset();
     treeVertex.reset();
     leavesVertex.reset();
@@ -272,6 +303,7 @@ struct ProcessorInstances
 
 private:
   static inline eastl::unique_ptr<IndexProcessor> dynrendIndex = {};
+  static inline eastl::unique_ptr<AHSProcessor> ahsVertex = {};
   static inline eastl::unique_ptr<SkinnedVertexProcessor> skinnedVertex = {};
   static inline eastl::unique_ptr<TreeVertexProcessor> treeVertex = {};
   static inline eastl::unique_ptr<LeavesVertexProcessor> leavesVertex = {};

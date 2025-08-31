@@ -28,7 +28,7 @@ struct Inertia
   void save(DataBlock &blk);
 
   /// Constructor.
-  Inertia() : stop(0.05), move(0.9){};
+  Inertia() : stop(0.05), move(0.9) {}
 };
 
 
@@ -84,10 +84,10 @@ struct FpsCameraConfig : public CameraConfig
   /// Radius of the capsula (representing FPS camera).
   real radius;
 
-  /// Height above clipping for FPS camera.
+  /// Height above collision for FPS camera.
   real height;
 
-  /// Height above clipping for FPS camera with key [C] pressed (bowing mode).
+  /// Height above collision for FPS camera with key [C] pressed (bowing mode).
   real halfHeight;
 
   /// Step height FPS camera may climb up.
@@ -107,15 +107,15 @@ struct FpsCameraConfig : public CameraConfig
     strifeStep = 3.5;
   }
   /// Destructor.
-  ~FpsCameraConfig() {}
+  ~FpsCameraConfig() override {}
 
   /// Load camera parameters from BLK file.
   /// @param[in] blk - Data Block that contains data to load (see #DataBlock)
-  void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
 
   /// Save camera parameters to BLK file.
   /// @param[in] blk - Data Block that contains data to save (see #DataBlock)
-  void save(DataBlock &blk);
+  void save(DataBlock &blk) override;
 };
 
 struct TpsCameraConfig : public FpsCameraConfig
@@ -135,15 +135,15 @@ struct TpsCameraConfig : public FpsCameraConfig
     moveStep = 4.5;
   }
   /// Destructor.
-  ~TpsCameraConfig() {}
+  ~TpsCameraConfig() override {}
 
   /// Load camera parameters from BLK file.
   /// @param[in] blk - Data Block that contains data to load (see #DataBlock)
-  void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
 
   /// Save camera parameters to BLK file.
   /// @param[in] blk - Data Block that contains data to save (see #DataBlock)
-  void save(DataBlock &blk);
+  void save(DataBlock &blk) override;
 };
 
 
@@ -151,7 +151,8 @@ class FreeCameraTab
 {
 public:
   FreeCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options);
-  void onOk();
+  void fill();
+  void updateConfigFromUserInterface(int pcb_id);
 
 protected:
   PropPanel::ContainerPropertyControl *mTabPage;
@@ -163,7 +164,8 @@ class FPSCameraTab : public FreeCameraTab
 {
 public:
   FPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options);
-  void onOk();
+  void fill();
+  void updateConfigFromUserInterface(int pcb_id);
 };
 
 
@@ -171,7 +173,8 @@ class TPSCameraTab : public FPSCameraTab
 {
 public:
   TPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options);
-  void onOk();
+  void fill();
+  void updateConfigFromUserInterface(int pcb_id);
 };
 
 
@@ -179,15 +182,13 @@ class CamerasConfigDlg : public PropPanel::DialogWindow
 {
 public:
   CamerasConfigDlg(void *phandle, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc, CameraConfig *tps_cc);
+  ~CamerasConfigDlg() override;
 
-  ~CamerasConfigDlg();
-
-  // CDialogWindow interface
-
-  virtual bool onOk();
-  virtual bool onCancel() { return true; };
+  void fill();
 
 protected:
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+
   PropPanel::ContainerPropertyControl *mTabPage;
   CameraConfig *mConfig;
 

@@ -19,20 +19,20 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(rndGrass)
 class RndGrassExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "rndGrass exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "rndGrass exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return RndGrassGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return RndGrassGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override
   {
     const int base_ver = 6; // increment by 3
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  virtual void __stdcall setBuildResultsBlk(DataBlock *b) {}
+  void __stdcall setBuildResultsBlk(DataBlock *b) override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -65,17 +65,9 @@ public:
     add_shdump_deps(files);
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall buildAssetFast(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
-  {
-    ShaderMeshData::fastNoPacking = true;
-    bool ret = exportAsset(a, cwr, log);
-    ShaderMeshData::fastNoPacking = false;
-    return ret;
-  }
-
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     ShaderMeshData::reset_channel_cvt_errors();
     AutoContext auto_ctx(a, log);
@@ -171,20 +163,20 @@ public:
 class RndGrassRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "rndGrass refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "rndGrass refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
     int nid = a.props.getNameId("lod"), id = 0;
     const char *basePath = a.getFolderPath();
     String fn, sn;
 
-    tmp_refs.clear();
+    refs.clear();
 
     setup_tex_subst(a.props);
     for (int i = 0; DataBlock *blk = a.props.getBlock(i); i++)
@@ -192,9 +184,8 @@ public:
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), id++);
         fn.printf(260, "%s/%s", basePath, blk->getStr("fname", sn));
-        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a);
+        add_dag_texture_and_proxymat_refs(fn, refs, a);
       }
-    return tmp_refs;
   }
 };
 

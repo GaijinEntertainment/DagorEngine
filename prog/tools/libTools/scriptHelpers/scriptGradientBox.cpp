@@ -32,7 +32,7 @@ public:
   }
 
   void resetPropPanel() override { mPanel = nullptr; }
-  virtual void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &ppcb)
+  void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &ppcb) override
   {
     mPanel = &ppcb;
     controlPid = ++pid;
@@ -43,7 +43,7 @@ public:
 
   void initCurveControl(PropPanel::ContainerPropertyControl &ppcb) { mPanel->setGradient(controlPid, &values); }
 
-  virtual void getControlPoints(PropPanel::PGradient points)
+  void getControlPoints(PropPanel::PGradient points)
   {
     if ((controlPid > -1) && (mPanel))
       mPanel->getGradient(controlPid, points);
@@ -51,12 +51,12 @@ public:
 
   //---------------------------------------------
 
-  virtual TunedElement *cloneElem() { return new TunedGradientBoxParam(*this); }
+  TunedElement *cloneElem() override { return new TunedGradientBoxParam(*this); }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
-  virtual void getValues(int &pid, PropPanel::ContainerPropertyControl &panel)
+  void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override
   {
     ++pid;
     Tab<PropPanel::GradientKey> pts(tmpmem);
@@ -64,7 +64,7 @@ public:
     values = pts;
   }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     cwr.writeInt32e((uint32_t)values.size());
     for (size_t i = 0; i < values.size(); ++i)
@@ -74,7 +74,7 @@ public:
     }
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     for (int i = 0; i < values.size(); ++i)
     {
@@ -89,7 +89,7 @@ public:
     }
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     clear_and_shrink(values);
 

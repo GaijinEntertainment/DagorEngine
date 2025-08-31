@@ -129,6 +129,7 @@ public:
   AnimcharBaseComponent &operator=(const AnimcharBaseComponent &) = delete; // non_copyable
 
   const IAnimCharacter2Info *getCreateInfo() const { return &creationInfo; }
+  const char *getResName() const { return getCreateInfo()->resName.c_str(); }
   void reset();
 
   void setTmRel(const mat44f &tm)

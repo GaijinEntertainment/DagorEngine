@@ -22,11 +22,15 @@ namespace UnitTest {
 #endif
    }
 
-   void TestReporterStdout::ReportTestStart(TestDetails const& /*test*/)
-   {}
+   void TestReporterStdout::ReportTestStart(TestDetails const& test)
+   {
+     printf("Enter test %s.%s\n", test.suiteName, test.testName);
+   }
 
-   void TestReporterStdout::ReportTestFinish(TestDetails const& /*test*/, float)
-   {}
+   void TestReporterStdout::ReportTestFinish(TestDetails const& test, float secondsElapsed)
+   {
+     printf("Leave test %s.%s (time: %.2f seconds)\n", test.suiteName, test.testName, secondsElapsed);
+   }
 
    void TestReporterStdout::ReportSummary(int const totalTestCount, int const failedTestCount,
                                           int const failureCount, float const secondsElapsed)

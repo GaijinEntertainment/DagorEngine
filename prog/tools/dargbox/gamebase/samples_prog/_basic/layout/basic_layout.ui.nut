@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let cursors = require("samples_prog/_cursors.nut")
 
 let box = {
-  size = [SIZE_TO_CONTENT, sh(6)]
+  size = static [SIZE_TO_CONTENT, sh(6)]
   color = Color(128,128,128)
   rendObj = ROBJ_SOLID
   margin = 7
@@ -13,7 +13,7 @@ let box = {
 }
 
 let box2 = {
-  size = [SIZE_TO_CONTENT, sh(6)]
+  size = static [SIZE_TO_CONTENT, sh(6)]
   color = Color(128,128,128)
   rendObj = ROBJ_SOLID
   margin = 0
@@ -23,7 +23,7 @@ let box2 = {
 }
 
 let flexbox = {
-  size = [flex(), sh(6)]
+  size = static [flex(), sh(6)]
   color = Color(128,128,128)
   rendObj = ROBJ_SOLID
   margin = 0
@@ -64,7 +64,7 @@ function alignShow (style={}){
         valign = valign
         rendObj = ROBJ_SOLID
         color = Color(0,0,0)
-        size = [sh(16), sh(35)]
+        size = static [sh(16), sh(35)]
         children = [box,flexbox,box2]
       }
     ]

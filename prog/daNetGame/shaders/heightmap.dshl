@@ -16,6 +16,7 @@ include "edge_tesselation.dshl"
 include "static_shadow.dshl"
 include "vertex_density_overlay_inc.dshl"
 include "viewVecVS.dshl"
+include "camera_in_camera.dshl"
 
 float4 world_to_bw_mask = (1,1,0,0);
 int requires_uav = 1 always_referenced;
@@ -24,8 +25,13 @@ int hmap_puddle_enabled = 0;
 interval hmap_puddle_enabled: no<1, yes;
 int hmap_use_fake_vert_normals = 0;
 interval hmap_use_fake_vert_normals: no<1, yes;
+
 int use_satellite_rendering;
 interval use_satellite_rendering: no<1, yes;
+int use_portal_rendering;
+interval use_portal_rendering: no<1, yes;
+
+bool use_simplified_heightmap_rendering = in_editor_assume == no && (use_satellite_rendering == yes || use_portal_rendering == yes);
 
 float4 hmap_ofs_thickness_map = (1/2048,1/2048,0,0);
 texture hmap_ofs_thickness;
@@ -53,6 +59,7 @@ float4 camera_base_offset = (0, 0, 0, 0);
 
 shader heightmap
 {
+  ENABLE_ASSERT(ps)
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 
@@ -262,6 +269,8 @@ shader heightmap
     VIEW_VEC_SCREENPOS(ps)
     if (lmesh_rendering_mode == rendering_reflection)
     {
+      IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
+
       hlsl
       {
         // TODO: check if a fully forward rendering pipeline needs it
@@ -307,7 +316,7 @@ shader heightmap
         float scaledDeformedHeight          : TEXCOORD2;
         float heightForPuddle               : TEXCOORD3;
         ##endif
-        ##if use_satellite_rendering == yes
+        ##if use_simplified_heightmap_rendering
         float3 wpos                         : TEXCOORD4;
         ##endif
       };
@@ -387,23 +396,25 @@ shader heightmap
         INIT_SPARKLES()
         USE_SPARKLES()
         HEIGHTMAP_CALCULATIONS()
-        USE_AND_CALCULATE_PUDDLES()
+        INIT_AND_USE_AND_CALCULATE_PUDDLES()
         (ps) { wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0); }
       }
 
       hlsl(ps) {
 
         GLOBAL_UAV_FEEDBACK
+
+        FORCE_EARLY_DEPTH_STENCIL
         GBUFFER_OUTPUT main_ps_heightmap_land(VsOutput input HW_USE_SCREEN_POS)
         {
           float4 screenpos = GET_SCREEN_POS(input.pos);
 
-          ##if use_satellite_rendering == no
-            float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
-            float3 worldPos = world_view_pos.xyz-pointToEye.xyz;
-          ##else
+          ##if use_simplified_heightmap_rendering
             float3 worldPos = input.wpos;
             float3 pointToEye = float3(0, world_view_pos.y - worldPos.y, 0);
+          ##else
+            float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+            float3 worldPos = world_view_pos.xyz-pointToEye.xyz;
           ##endif
 
           float2 htTc = calcTcLow(worldPos.xz);
@@ -613,7 +624,7 @@ shader heightmap
         if (checkHeightmapHolesStep(worldPos.xyz, samplingStep))
           output.pos = NaN;
 
-        ##if use_satellite_rendering == yes
+        ##if use_simplified_heightmap_rendering
           output.wpos = worldPos.xyz;
         ##endif
 
@@ -733,7 +744,7 @@ shader heightmap
           if (checkHeightmapHoles(worldPos.xyz))
             output.pos = NaN;
 
-          ##if use_satellite_rendering == yes
+          ##if use_simplified_heightmap_rendering
             output.wpos = worldPos.xyz;
           ##endif
 
@@ -763,18 +774,22 @@ shader heightmap
   }
 }
 
-int num_biome_groups_slot = 10 always_referenced;
-int biome_results_offset_slot = 11 always_referenced;
+int num_biome_groups_slot = 15 always_referenced;
+int biome_results_offset_slot = 16 always_referenced;
 buffer biome_query_input_buf;
 int biome_query_results_buf_slot = 0 always_referenced;
 float min_sample_scale_radius = (9); // MIN_SAMPLE_SCALE_RADIUS_TEXEL_SPACE
 
 shader biome_query_cs
 {
+  hlsl(cs){
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+
   INIT_BIOMES(cs)
+  INIT_CLIPMAP_NORMAL_BASE(cs, false)
+  USE_CLIPMAP_NORMAL_BASE(cs)
   USE_BIOMES(cs)
-  INIT_CLIPMAP_FALLBACK_ALBEDO(cs)
-  USE_CLIPMAP_FALLBACK_ALBEDO(cs)
   ENABLE_ASSERT(cs)
 
   (cs) {
@@ -788,9 +803,25 @@ shader biome_query_cs
   hlsl(cs) {
     #include "landMesh/biome_query.hlsli"
     #include "hammersley.hlsl"
+    struct Vtex
+    {
+      half3 diffuse;
+      half2 normal_xy;
+      half reflectance, smoothness, ao, emission;
+      DetailDesc detailNo;
+    };
 
-    uint numBiomeGroups : register(c10);
-    uint resultsOffset : register(c11);
+    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip)
+    {
+      Vtex vtex = (Vtex)0;
+      sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
+        vtex.diffuse, vtex.normal_xy, vtex.smoothness, vtex.ao,
+        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip);
+      return vtex;
+    }
+
+    uint numBiomeGroups : register(c15);
+    uint resultsOffset : register(c16);
     RWStructuredBuffer<BiomeQueryResult> resultsBuffer : register(u0);
     groupshared int indexFrequencies[MAX_BIOME_GROUPS*MAX_BIOME_QUERIES_PER_DISPATCH];
 
@@ -857,84 +888,12 @@ shader biome_query_cs
       result.mostFrequentBiomeGroupWeight = float(mostFrequentBiomeCount) / sumSamples;
       result.secondMostFrequentBiomeGroupIndex = secondMostFrequentBiomeGroupIndex;
       result.secondMostFrequentBiomeGroupWeight = float(secondMostFrequentBiomeCount) / sumSamples;
-      result.averageBiomeColor = half4(sampleFallBackAlbdeoLod0(input.worldPos), 1.0f);
+      Vtex textures = sample_clipmaps(input.worldPos, 0, 0);
+      result.averageBiomeColor = half4(textures.diffuse.rgb, 1.0f);
       structuredBufferAt(resultsBuffer, dataIndex) = result;
     }
   }
 
   compile("target_cs", "biome_query_cs");
-}
-
-
-
-
-
-
-int hmap_query_dispatch_cnt_const_no = 15 always_referenced;
-int hmap_query_dispatch_results_offset_no = 16 always_referenced;
-int hmap_query_dispatch_buf_const_no = 0 always_referenced;
-buffer heightmap_query_input_buf;
-
-
-shader heightmap_query_cs
-{
-  hlsl {
-    #define NO_GRADIENTS_IN_SHADER 1
-  }
-
-  INIT_WORLD_HEIGHTMAP_BASE(cs)
-  USE_HEIGHTMAP_COMMON_BASE(cs)
-
-  INIT_HEIGHTMAP_OFS(cs)
-  USE_HEIGHTMAP_OFS(cs)
-
-  INIT_DEFORM_HMAP(cs)
-  USE_DEFORM_HMAP(cs)
-  ENABLE_ASSERT(cs)
-
-  (cs) {
-    input_buffer@buf = heightmap_query_input_buf hlsl {
-      #include "landMesh/heightmap_query.hlsli"
-      StructuredBuffer<HeightmapQueryInput> input_buffer@buf;
-    };
-  }
-
-  hlsl(cs) {
-    #include "landMesh/heightmap_query.hlsli"
-
-    uint dispatchCnt : register(c15);
-    uint resultsOffset : register(c16);
-    RWStructuredBuffer<HeightmapQueryResult> resultsBuffer : register(u0);
-
-
-    HeightmapQueryResult calcQueryResult(HeightmapQueryInput input)
-    {
-      float worldHeight = getWorldHeight(input.worldPos2d);
-      float3 worldPos = float3(input.worldPos2d.x, worldHeight, input.worldPos2d.y);
-      float3 worldNormal = getWorldNormal(worldPos);
-
-      // This is not entirely correct, because terrain is displaced along normal and not only upwards (but good enough)
-      float offsetedHeight = worldHeight + worldNormal.y * get_hmap_ofs_no_grass_vignette(input.worldPos2d);
-
-      float deformAmount = getDeformHeight(worldPos, world_to_hmap_tex_ofs.z);
-      float deformedHeight = offsetedHeight + deformAmount;
-
-      HeightmapQueryResult result = (HeightmapQueryResult)0;
-      result.heightNoOffset = worldHeight;
-      result.heightWithOffset = offsetedHeight;
-      result.heightWithOffsetDeform = deformedHeight;
-      return result;
-    }
-
-    [numthreads(HEIGHTMAP_QUERY_WARP_SIZE, 1, 1)]
-    void heightmap_query_cs(uint id : SV_DispatchThreadID)
-    {
-      if (id >= dispatchCnt)
-        return;
-      structuredBufferAt(resultsBuffer, resultsOffset + id) = calcQueryResult(structuredBufferAt(input_buffer, id));
-    }
-  }
-
-  compile("target_cs", "heightmap_query_cs");
 }
 

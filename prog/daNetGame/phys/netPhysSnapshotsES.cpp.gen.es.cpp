@@ -3,9 +3,11 @@ static constexpr ecs::component_t isInVehicle_get_type();
 static ecs::LTComponentList isInVehicle_component(ECS_HASH("isInVehicle"), isInVehicle_get_type(), "prog/daNetGame/phys/netPhysSnapshotsES.cpp.inl", "player_snapshots_ecs_query", 0);
 static constexpr ecs::component_t isTpsView_get_type();
 static ecs::LTComponentList isTpsView_component(ECS_HASH("isTpsView"), isTpsView_get_type(), "prog/daNetGame/phys/netPhysSnapshotsES.cpp.inl", "player_snapshots_ecs_query", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "netPhysSnapshotsES.cpp.inl"
 ECS_DEF_PULL_VAR(netPhysSnapshots);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc net_phys_receive_snapshots_es_event_handler_comps[] =
 {

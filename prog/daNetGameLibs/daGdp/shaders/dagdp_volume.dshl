@@ -9,6 +9,7 @@ buffer dagdp__dyn_counters;
 
 buffer dagdp_volume__volumes;
 buffer dagdp_volume__meshes;
+buffer dagdp_volume__dispatches;
 buffer dagdp_volume__draw_ranges;
 buffer dagdp_volume__placeables;
 buffer dagdp_volume__placeable_weights;
@@ -17,6 +18,7 @@ buffer dagdp_volume__variants;
 buffer dagdp_volume__volume_variants;
 buffer dagdp_volume__areas;
 buffer dagdp_volume__dispatch_args;
+buffer dagdp_volume__mesh_objects;
 
 float dagdp_volume__max_placeable_bounding_radius;
 float dagdp_volume__debug_frustum_culling_bias;
@@ -26,6 +28,7 @@ int dagdp_volume__num_placeables;
 
 int dagdp_volume__prng_seed_placeable;
 int dagdp_volume__prng_seed_slope;
+int dagdp_volume__prng_seed_occlusion;
 int dagdp_volume__prng_seed_scale;
 int dagdp_volume__prng_seed_yaw;
 int dagdp_volume__prng_seed_pitch;
@@ -37,7 +40,7 @@ float4 dagdp_volume__viewport_pos;
 float dagdp_volume__viewport_max_distance;
 int dagdp_volume__viewport_index;
 
-int dagdp_volume__mesh_index;
+int dagdp_volume__dispatch_index;
 int dagdp_volume__num_dispatches;
 
 int4 dagdp_volume__mesh_params;
@@ -104,6 +107,20 @@ macro GPU_OBJECTS_LOAD_MESH_TRIANGLE()
   }
 endmacro
 
+macro MESH_PLACER_UTILS()
+  hlsl(cs) {
+    float average_scale(float3 tm0, float3 tm1, float3 tm2)
+    {
+      return sqrt((dot(tm0, tm0) + dot(tm1, tm1) + dot(tm2, tm2)) / 3);
+    }
+
+    float average_scale(MeshIntersection mesh)
+    {
+      return average_scale(mesh.meshTmRow0.xyz, mesh.meshTmRow1.xyz, mesh.meshTmRow2.xyz);
+    }
+  }
+endmacro
+
 // gs_storage: must be groupshared float[DAGDP_PREFIX_SUM_GROUP_SIZE];
 macro INIT_PSUM()
   hlsl(cs) {
@@ -117,7 +134,7 @@ macro INIT_PSUM()
       UNROLL
       for (uint stride = 1u; stride <= DAGDP_PREFIX_SUM_GROUP_SIZE; stride *= 2u)
       {
-        uint mate = 0u;
+        float mate = 0;
 
         FLATTEN
         if (tId >= stride)
@@ -261,6 +278,7 @@ shader dagdp_volume_mesh_process_down
 shader dagdp_volume_set_args
 {
   ENABLE_ASSERT(cs)
+  MESH_PLACER_UTILS()
 
   (cs) {
     areas@buf = dagdp_volume__areas hlsl {
@@ -270,10 +288,17 @@ shader dagdp_volume_set_args
     dispatch_args@uav = dagdp_volume__dispatch_args hlsl {
       RWByteAddressBuffer dispatch_args@uav;
     }
+    mesh_objects@uav = dagdp_volume__mesh_objects hlsl {
+      RWStructuredBuffer<uint> mesh_objects@uav;
+    }
 
     meshes@buf = dagdp_volume__meshes hlsl {
       #include "dagdp_volume.hlsli"
       StructuredBuffer<MeshIntersection> meshes@buf;
+    }
+
+    dispatches@buf = dagdp_volume__dispatches hlsl {
+      StructuredBuffer<uint> dispatches@buf;
     }
 
     volumes@buf = dagdp_volume__volumes hlsl {
@@ -285,30 +310,87 @@ shader dagdp_volume_set_args
       #include "dagdp_volume.hlsli"
       StructuredBuffer<VolumeVariantGpuData> volume_variants@buf;
     }
-
-    num_dispatches@i1 = dagdp_volume__num_dispatches;
   }
 
   hlsl(cs) {
-    #define GROUP_SIZE 64
+    #define ITEMS_PER_THREAD 4
+    #define GROUP_SIZE (MAX_DISPATCH_MESHES / ITEMS_PER_THREAD)
+    groupshared uint sharedIndex[GROUP_SIZE];
 
-    [numthreads(GROUP_SIZE, 1, 1)]
-    void main(uint dtId : SV_DispatchThreadID)
+    [numthreads(1, GROUP_SIZE, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID)
     {
-      BRANCH
-      if (dtId >= num_dispatches)
-        return;
+      const uint dispatchIndex = dtId.x;
+      const uint threadId = dtId.y;
 
-      const MeshIntersection mesh = structuredBufferAt(meshes, dtId);
-      const float totalArea = structuredBufferAt(areas, mesh.areasIndex + mesh.numFaces - 1);
-      const VolumeGpuData volume = structuredBufferAt(volumes, mesh.volumeIndex);
-      const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
-      const uint groupCount = (uint(totalArea * volumeVariant.density) + GROUP_SIZE - 1) / GROUP_SIZE;
-      const uint argsByteOffset = dtId * 12; // 3 * sizeof(uint)
+      const uint meshStartIndex = structuredBufferAt(dispatches, dispatchIndex);
+      const uint meshEndIndex = structuredBufferAt(dispatches, dispatchIndex + 1);
 
-      storeBuffer(dispatch_args, argsByteOffset, groupCount);
-      storeBuffer(dispatch_args, argsByteOffset + 4, 1);
-      storeBuffer(dispatch_args, argsByteOffset + 8, 1);
+      const uint threadMeshIndex = meshStartIndex + threadId * ITEMS_PER_THREAD;
+
+      // compute object count per mesh
+      uint objCount[ITEMS_PER_THREAD];
+      uint mi, i, s;
+      for (mi = threadMeshIndex, i = 0; i < ITEMS_PER_THREAD; mi++, i++)
+      {
+        objCount[i] = 0;
+        if (mi < meshEndIndex)
+        {
+          const MeshIntersection mesh = structuredBufferAt(meshes, mi);
+          const float totalArea = structuredBufferAt(areas, mesh.areasIndex + mesh.numFaces - 1) * average_scale(mesh);
+          const VolumeGpuData volume = structuredBufferAt(volumes, mesh.volumeIndex);
+          const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
+          objCount[i] = uint(totalArea * volumeVariant.density);
+        }
+      }
+
+      // prefix-sum counts to object indices
+      uint objIndex[ITEMS_PER_THREAD];
+      for (i = 0, s = 0; i < ITEMS_PER_THREAD; i++)
+      {
+        s += objCount[i];
+        objIndex[i] = s;
+      }
+
+      sharedIndex[threadId] = objIndex[ITEMS_PER_THREAD - 1];
+      GroupMemoryBarrierWithGroupSync();
+
+      UNROLL
+      for (uint stride = 1; stride < GROUP_SIZE; stride *= 2)
+      {
+        uint mate = 0;
+
+        FLATTEN
+        if (threadId >= stride)
+          mate = sharedIndex[threadId - stride];
+
+        GroupMemoryBarrierWithGroupSync();
+        sharedIndex[threadId] += mate;
+        GroupMemoryBarrierWithGroupSync();
+      }
+
+      uint baseIndex = 0;
+      FLATTEN
+      if (threadId > 0)
+        baseIndex = sharedIndex[threadId - 1];
+      for (i = 0; i < ITEMS_PER_THREAD; i++)
+        objIndex[i] += baseIndex;
+
+      for (mi = threadMeshIndex, i = 0; i < ITEMS_PER_THREAD; mi++, i++)
+        if (mi < meshEndIndex)
+        {
+          structuredBufferAt(mesh_objects, mi * 2 + 0) = objIndex[i] - objCount[i];
+          structuredBufferAt(mesh_objects, mi * 2 + 1) = objIndex[i];
+        }
+
+      if (threadId == GROUP_SIZE - 1)
+      {
+        const uint groupCount = (objIndex[ITEMS_PER_THREAD - 1] + MESH_PLACE_GROUP_SIZE - 1) / MESH_PLACE_GROUP_SIZE;
+        const uint dispatchOffset = dispatchIndex * 12;
+        storeBuffer(dispatch_args, dispatchOffset + 0, groupCount);
+        storeBuffer(dispatch_args, dispatchOffset + 4, 1);
+        storeBuffer(dispatch_args, dispatchOffset + 8, 1);
+      }
     }
   }
   compile("target_cs", "main");
@@ -321,15 +403,17 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
 
   hlsl(cs) {
-    #define GROUP_SIZE 64
+    #include "dagdp_volume.hlsli"
+    #define GROUP_SIZE MESH_PLACE_GROUP_SIZE
     groupshared uint g_storage[GROUP_SIZE * 2];
     groupshared uint g_cond;
   }
 
   USE_DAGDP_COMMON()
   USE_DAGDP_COMMON_PLACER()
-  USE_DAGDP_COMMON_PLACER_THREADGROUP(GROUP_SIZE, g_storage, g_cond, false)
+  USE_DAGDP_COMMON_PLACER_THREADGROUP(GROUP_SIZE, g_storage, g_cond)
   USE_DAGDP_VOLUME_UTILS()
+  MESH_PLACER_UTILS()
 
   (cs) {
     areas@buf = dagdp_volume__areas hlsl {
@@ -340,9 +424,17 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
       RWBuffer<float4> instance_data@uav;
     }
 
+    mesh_objects@buf = dagdp_volume__mesh_objects hlsl {
+      StructuredBuffer<uint> mesh_objects@buf;
+    }
+
     meshes@buf = dagdp_volume__meshes hlsl {
       #include "dagdp_volume.hlsli"
       StructuredBuffer<MeshIntersection> meshes@buf;
+    }
+
+    dispatches@buf = dagdp_volume__dispatches hlsl {
+      StructuredBuffer<uint> dispatches@buf;
     }
 
     volumes@buf = dagdp_volume__volumes hlsl {
@@ -390,9 +482,11 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     max_placeable_bounding_radius@f1 = dagdp_volume__max_placeable_bounding_radius;
     num_renderables@i1 = dagdp_volume__num_renderables;
     num_placeables@i1 = dagdp_volume__num_placeables;
+    dispatch_index@u1 = dagdp_volume__dispatch_index;
 
     prng_seed_placeable@i1 = dagdp_volume__prng_seed_placeable;
     prng_seed_slope@i1 = dagdp_volume__prng_seed_slope;
+    prng_seed_occlusion@i1 = dagdp_volume__prng_seed_occlusion;
     prng_seed_scale@i1 = dagdp_volume__prng_seed_scale;
     prng_seed_yaw@i1 = dagdp_volume__prng_seed_yaw;
     prng_seed_pitch@i1 = dagdp_volume__prng_seed_pitch;
@@ -403,8 +497,6 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     viewport_pos@f3 = dagdp_volume__viewport_pos;
     viewport_max_distance@f1 = dagdp_volume__viewport_max_distance;
     viewport_index@i1 = dagdp_volume__viewport_index;
-
-    mesh_index@i1 = dagdp_volume__mesh_index;
 
     indexBuf@buf : register(dagdp_volume__index_buf_reg_no) hlsl {
       ByteAddressBuffer indexBuf@buf;
@@ -435,14 +527,51 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         ##endif
       ##endif
 
-      const MeshIntersection mesh = structuredBufferAt(meshes, mesh_index);
+      // find mesh for this instance
+      const uint meshStartIndex = structuredBufferAt(dispatches, dispatch_index);
+      const uint meshEndIndex = structuredBufferAt(dispatches, dispatch_index + 1);
+
+      const uint objectsEnd = structuredBufferAt(mesh_objects, meshEndIndex * 2 - 1);
+      const bool isMeshValid = dtId < objectsEnd;
+
+      uint meshIndex;
+      uint objLow, objHigh;
+      {
+        const uint maxIterations = firstbithigh(meshEndIndex - meshStartIndex) + 1;
+        uint meshIndexLower = meshStartIndex;
+        uint meshIndexUpper = meshEndIndex;
+        bool wasFound = !isMeshValid;
+
+        LOOP
+        for (uint i = 0; i < maxIterations; i++)
+        {
+          meshIndex = (meshIndexLower + meshIndexUpper) / 2;
+
+          objLow  = structuredBufferAt(mesh_objects, meshIndex * 2 + 0);
+          objHigh = structuredBufferAt(mesh_objects, meshIndex * 2 + 1);
+
+          FLATTEN
+          if (dtId < objLow)
+            meshIndexUpper = meshIndex;
+          else if (dtId >= objHigh)
+            meshIndexLower = meshIndex;
+          else
+            wasFound = true; // Keep iterating for uniform flow.
+        }
+
+        ##assert(wasFound, "dtId = %d / %d, meshes %d..%d -> %d..%d, objs %d..%d", dtId, objectsEnd, meshStartIndex, meshEndIndex, meshIndexLower, meshIndexUpper, objLow, objHigh);
+      }
+
+      const uint instanceIndex = dtId - objLow;
+      const uint instanceCount = objHigh - objLow;
+
+      const MeshIntersection mesh = structuredBufferAt(meshes, meshIndex);
       const float totalArea = structuredBufferAt(areas, mesh.areasIndex + mesh.numFaces - 1);
       const VolumeGpuData volume = structuredBufferAt(volumes, mesh.volumeIndex);
       const VariantGpuData variant = structuredBufferAt(variants, volume.variantIndex);
       const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
-      const uint instanceCount = uint(totalArea * volumeVariant.density);
-      const float targetSumArea = dtId / volumeVariant.density;
-      const bool isInstanceValid = dtId < instanceCount;
+      const float targetSumArea = instanceIndex * totalArea / instanceCount;
+      const bool isInstanceValid = instanceIndex < instanceCount;
 
       uint faceIndex;
       {
@@ -472,10 +601,10 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
             wasFound = true; // Keep iterating for uniform flow.
         }
 
-        ##assert(wasFound, "targetSumArea = %f, totalArea = %f, instanceCount = %d, dtId = %d", targetSumArea, totalArea, instanceCount, dtId);
+        ##assert(wasFound, "targetSumArea = %f, totalArea = %f, instanceCount = %d, instanceIndex = %d", targetSumArea, totalArea, instanceCount, instanceIndex);
       }
 
-      const int2 stablePos = int2(mesh.uniqueId, dtId);
+      const int2 stablePos = int2(mesh.uniqueId, instanceIndex);
 
       float3 instancePos;
       float3 surfaceNormal;
@@ -502,13 +631,14 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         const float4 v = float4(v0 + (v1 - v0) * a1 + (v2 - v0) * a2, 1.0);
         const float3 n = normalize(n0 + (n1 - n0) * a1 + (n2 - n0) * a2);
         instancePos = float3(dot(v, mesh.meshTmRow0), dot(v, mesh.meshTmRow1), dot(v, mesh.meshTmRow2));
-        surfaceNormal = float3(dot(n, mesh.meshTmRow0.xyz), dot(n, mesh.meshTmRow1.xyz), dot(n, mesh.meshTmRow2.xyz));
+        surfaceNormal = normalize(float3(dot(n, mesh.meshTmRow0.xyz), dot(n, mesh.meshTmRow1.xyz), dot(n, mesh.meshTmRow2.xyz)));
       }
 
+      const float3 localPos = localVolumePos(instancePos, volume);
       const bool isAreaOk = area2 >= volumeVariant.minTriangleArea2;
       const bool isViewportDistanceOk = distance(instancePos, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
       const bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
-      const bool isVolumeOk = isInsideVolume(volume.volumeType, instancePos, volume);
+      const bool isVolumeOk = isInsideVolumeLocal(localPos, volume.volumeType);
       const bool isVisible = isAreaOk && isInstanceValid && isViewportDistanceOk && isFrustumOk && isVolumeOk;
 
       uint placeableIndex = ~0u;
@@ -521,14 +651,18 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
       if (placeableIndex != ~0u)
       {
         placeable = structuredBufferAt(placeables, placeableIndex);
-        const bool isSlopeOk = checkSlope(placeable.slopeFactor, placeable.flags, surfaceNormal, stableRand(stablePos, prng_seed_slope));
+        const bool isSlopeOk = checkSlope(placeable.slopeSinMin, placeable.slopeSinMax,
+          placeable.flags | volumeVariant.flags, dot(surfaceNormal, volume.axis), stableRand(stablePos, prng_seed_slope));
+        const bool isOcclusionOk = checkOcclusion(placeable.occlusionRange, placeable.occlusionMin, placeable.occlusionMax, instancePos, surfaceNormal, stableRand(stablePos, prng_seed_occlusion));
 
         FLATTEN
-        if (!isSlopeOk)
+        if (!isSlopeOk || !isOcclusionOk)
           placeableIndex = ~0u;
       }
 
-      const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
+      float dist = localVolumeDistance(localPos - volumeVariant.distBasedCenter, volume.volumeType);
+      float scaleFactor = lerp(volumeVariant.distBasedScale.x, volumeVariant.distBasedScale.y, dist * volumeVariant.distBasedInvRange);
+      const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale)) * scaleFactor;
       const uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale);
 
       bool isPlaced = renderableIndex != ~0u;

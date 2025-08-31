@@ -7,7 +7,7 @@
 #include <drv/3d/dag_texFlags.h>
 #include <ecs/core/entitySystem.h>
 #include <render/world/cameraParams.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include "../shaders/dagdp_constants.hlsli"
 
 // Common daGDP terminology:
@@ -57,7 +57,11 @@ static constexpr float GLOBAL_MAX_DRAW_DISTANCE = 256.0f;
 struct PlaceableParams
 {
   float weight = 1.0f;
-  float slopeFactor = 0.0f;
+  float slopeMin = 99.0f; // Default behavior is to have 100% density by slope in +90..-90 range, see sin_extra() for details.
+  float slopeMax = 90.0f;
+  float occlusionMin = 0.8f;
+  float occlusionMax = 0.3f;
+  float occlusionRange = -1.0f;
   uint32_t flags = 0; // See dagdp_common.hlsli
   uint32_t riPoolOffset = 0;
   Point2 scaleMidDev = Point2(1.0f, 0.0f);
@@ -95,21 +99,20 @@ struct RulesBuilder
   dag::VectorMap<ecs::EntityId, ObjectGroupInfo> objectGroups;
   dag::VectorMap<ecs::EntityId, PlacerInfo> placers;
   RenderableId nextRenderableId = 0;
-  uint32_t maxObjects = 0; // 0 means no limit.
-  bool useHeightmapDynamicObjects = false;
+  uint32_t maxObjects = 0;
+  uint32_t maxTriangles = 1 << 20;
+  uint32_t maxMeshes = 1 << 10;
+  uint32_t maxTiles = 1 << 10;
+  uint32_t maxVolumes = 1 << 6;
+  int targetMeshLod = 2;
 };
 
 // Supposed to be immutable after building phase.
 struct ViewBuilder
 {
-  dag::RelocatableFixedVector<uint32_t, 64> renderablesMaxInstances;
-  dag::RelocatableFixedVector<InstanceRegion, 64> renderablesInstanceRegions;
-  uint32_t totalMaxInstances = 0; // static for all viewports, and dynamic.
-  uint32_t maxStaticInstancesPerViewport = 0;
+  uint32_t totalMaxInstances = 0;
   uint32_t numRenderables = 0;
-  bool hasDynamicPlacers = false;
 
-  // Additional, GPU-suballocated memory. Located directly after static regions.
   InstanceRegion dynamicInstanceRegion = {};
 };
 
@@ -121,16 +124,18 @@ enum class ViewKind
   COUNT
 };
 
-static inline void view_multiplex(dabfg::Registry registry, ViewKind kind)
+static inline dafg::multiplexing::Mode calc_view_multiplex(ViewKind kind)
 {
-  auto mode = dabfg::multiplexing::Mode::None;
+  auto mode = dafg::multiplexing::Mode::None;
 
   // Shadow rendering nodes in DNG are currently multiplexed (although they probably should not be?), and we have to account for that.
   if (kind == ViewKind::DYN_SHADOWS)
-    mode = dabfg::multiplexing::Mode::FullMultiplex;
+    mode = dafg::multiplexing::Mode::FullMultiplex;
 
-  registry.multiplex(mode);
+  return mode;
 }
+
+static inline void view_multiplex(dafg::Registry registry, ViewKind kind) { registry.multiplex(calc_view_multiplex(kind)); }
 
 static constexpr size_t VIEW_KIND_COUNT = eastl::to_underlying(ViewKind::COUNT);
 
@@ -158,7 +163,7 @@ bool set_common_params(const ecs::Object &object, ecs::EntityId eid, PlaceablePa
 bool set_object_params(const ecs::ChildComponent &child, ecs::EntityId eid, const eastl::string &field_name, PlaceableParams &result);
 
 using ViewInserter = eastl::fixed_function<sizeof(void *), ViewInfo &()>;
-using NodeInserter = eastl::fixed_function<sizeof(void *), void(dabfg::NodeHandle)>;
+using NodeInserter = eastl::fixed_function<sizeof(void *), void(dafg::NodeHandle)>;
 
 struct GlobalConfig;
 
@@ -167,7 +172,10 @@ ECS_BROADCAST_EVENT_TYPE(EventInitialize);
 ECS_BROADCAST_EVENT_TYPE(EventRecreateViews, const GlobalConfig *, ViewInserter);
 ECS_BROADCAST_EVENT_TYPE(EventInvalidateViews);
 ECS_BROADCAST_EVENT_TYPE(EventViewProcess, const RulesBuilder &, const ViewInfo &, ViewBuilder *);
-ECS_BROADCAST_EVENT_TYPE(EventViewFinalize, const ViewInfo &, const ViewBuilder &, NodeInserter);
+ECS_BROADCAST_EVENT_TYPE(EventViewFinalize, const ViewInfo &, const ViewBuilder &, NodeInserter, const RulesBuilder &);
 ECS_BROADCAST_EVENT_TYPE(EventFinalize, NodeInserter);
+
+void set_global_range_scale(float scale);
+float get_global_range_scale();
 
 } // namespace dagdp

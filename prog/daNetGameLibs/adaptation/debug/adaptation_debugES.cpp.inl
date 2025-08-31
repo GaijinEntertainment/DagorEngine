@@ -4,7 +4,7 @@
 #include <util/dag_console.h>
 #include <gui/dag_visualLog.h>
 #include <util/dag_string.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <3d/dag_ringCPUQueryLock.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
@@ -15,7 +15,7 @@ static constexpr int HISTOGRAM_BINS = 256;
 
 class AdaptationDebug
 {
-  dabfg::NodeHandle readbackNode;
+  dafg::NodeHandle readbackNode;
   RingCPUBufferLock readbackRing;
   uint32_t latestReadbackFrameRead = 0;
   uint32_t latestReadbackFrameCopied = 0;
@@ -25,12 +25,12 @@ public:
   AdaptationDebug()
   {
     readbackRing.init(sizeof(uint32_t), HISTOGRAM_BINS, 2, "adaptation_debug_readbackRing", SBCF_UA_STRUCTURED_READBACK, 0, false);
-    readbackNode = dabfg::register_node("adaptation_debug_readback", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    readbackNode = dafg::register_node("adaptation_debug_readback", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       // Note: with multiplexing, we will essentially write to the readback buffer multiple times.
       // This is slightly inaccurate, but probably fine, as on average, histograms will be the same.
-      registry.executionHas(dabfg::SideEffects::External);
+      registry.executionHas(dafg::SideEffects::External);
       const auto histogramBufferHandle =
-        registry.read("exposure_histogram").buffer().atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
+        registry.read("exposure_histogram").buffer().atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle();
 
       return [this, histogramBufferHandle]() {
         const auto &histogramBuffer = histogramBufferHandle.ref();

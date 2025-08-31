@@ -58,6 +58,7 @@ const char *MaterialParamDescr::typeToStr(MaterialParamDescr::Type type)
     case PT_E3DCOLOR: return "e3dcolor";
     case PT_COMBO: return "combo";
     case PT_CUSTOM: return "custom";
+    case PT_UNKNOWN: break; // to prevent the unhandled switch case error
   }
 
   return NULL;

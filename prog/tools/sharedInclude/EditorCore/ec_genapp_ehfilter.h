@@ -20,47 +20,35 @@ public:
   /// @param[in] m - reference to Editor window
   AppEventHandler(GenericEditorAppWindow &m) : main(m) {}
   /// Destructor.
-  virtual ~AppEventHandler() {}
-
-  //*****************************************************************
-  /// @name Keyboard commands handlers.
-  //@{
-  /// Handles key press.
-  /// Additionally the function tests for shortcuts and calls
-  /// AppEventHandler::handleCommand() if needed.
-  /// @copydoc IGenEventHandler::handleKeyPress()
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  // handles key release
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif);
-  //@}
+  ~AppEventHandler() override {}
 
   //*****************************************************************
   /// @name Mouse events handlers.
   //@{
   // handles mouse move
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // handles mouse left button press/releas
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // handles mouse right button press/releas
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // handles mouse center button press/releas
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // handles mouse wheel scroll
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif);
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override;
   // handles mouse double-click
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif);
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override;
   //@}
 
   //*****************************************************************
   /// @name Viewport redraw/change events handlers.
   //@{
   // viewport CTL window redraw
-  virtual void handleViewportPaint(IGenViewportWnd *wnd);
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
   // viewport view change notification
-  virtual void handleViewChange(IGenViewportWnd *wnd);
+  void handleViewChange(IGenViewportWnd *wnd) override;
   //@}
 
 protected:

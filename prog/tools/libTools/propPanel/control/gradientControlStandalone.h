@@ -82,7 +82,7 @@ private:
   void calculateSizes(int total_width, int total_height);
   void cancelColorPickerShowRequest();
 
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  void onImguiDelayedCallback(void *user_data) override;
 
   Tab<TrackGradientButton *> mKeys;
   float mCurValue;

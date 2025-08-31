@@ -42,9 +42,11 @@ class OutputText {
 
 
 let glob_decl_text = OutputText()
+glob_decl_text.append("// Copyright (C) Gaijin Games KFT.  All rights reserved.\n")
+glob_decl_text.append("#pragma once\n\n")
 glob_decl_text.append("// clang-format off  // generated text, do not modify!\n")
-glob_decl_text.append("#pragma once\n")
 glob_decl_text.append("#include \"readType.h\"\n\n")
+glob_decl_text.append("#include <math/dag_Point3.h>\n")
 glob_decl_text.append("#include <math/dag_curveParams.h>\n")
 glob_decl_text.append("#include <fx/dag_paramScript.h>\n\n\n")
 glob_decl_text.append("#include <fx/dag_baseFxClasses.h>\n\n\n")
@@ -55,6 +57,7 @@ glob_decl_text.append("};\n\n");
 
 
 let glob_tools_text = OutputText()
+glob_tools_text.append("// Copyright (C) Gaijin Games KFT.  All rights reserved.\n\n")
 glob_tools_text.append("// clang-format off  // generated text, do not modify!\n")
 glob_tools_text.append("#include <generic/dag_tab.h>\n")
 glob_tools_text.append("#include <scriptHelpers/tunedParams.h>\n\n")
@@ -159,7 +162,8 @@ let class CubicCurveParam (BaseParam) {
   }
 
   function generateLoadText(text) {
-    text.append($"    {this.paramName}.load(ptr, len);\n")
+    text.append($"    if (!{this.paramName}.load(ptr, len))\n")
+    text.append($"      return false;\n")
   }
 
   function generateTunedParamText() {
@@ -184,7 +188,8 @@ let class GradientBoxParam (BaseParam) {
   }
 
   function generateLoadText(text) {
-    text.append("    "+this.paramName+".load(ptr, len);\n")
+    text.append("    if (!"+this.paramName+".load(ptr, len))\n")
+    text.append("      return false;\n")
   }
 
   function generateTunedParamText() {
@@ -370,7 +375,8 @@ let class TypeRefParam (BaseParam) {
   }
 
   function generateLoadText(text) {
-    text.append("    "+this.paramName+".load(ptr, len, load_cb);\n")
+    text.append("    if (!"+this.paramName+".load(ptr, len, load_cb))\n")
+    text.append("      return false;\n")
   }
 
   function generateTunedParamText() {
@@ -411,7 +417,8 @@ let class DynArrayParam (BaseParam) {
   function generateLoadText(text) {
     text.append($"    {this.paramName}.resize(readType<int>(ptr, len));\n")
     text.append($"    for (auto &param : {this.paramName})\n")
-    text.append($"      param.load(ptr, len, load_cb);\n")
+    text.append($"      if (!param.load(ptr, len, load_cb))\n")
+    text.append($"        return false;\n")
   }
 
   function generateTunedParamText() {
@@ -520,15 +527,16 @@ let class ParamStruct (BaseParam) {
     text.append("\n\n")
     text.append("  static ScriptHelpers::TunedElement *createTunedElement(const char *name);\n")
     text.append("\n")
-    text.append("  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)\n")
+    text.append("  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)\n")
     text.append("  {\n")
     text.append("    G_UNREFERENCED(load_cb);\n")
 
-    text.append("    CHECK_FX_VERSION(ptr, len, "+this.version+");\n\n")
+    text.append("    CHECK_FX_VERSION_OPT(ptr, len, "+this.version+");\n\n")
 
     foreach (mem in this.members)
       mem.generateLoadText(text)
 
+    text.append("    return true;\n")
     text.append("  }\n")
     text.append("};\n")
   }

@@ -65,7 +65,6 @@ private:
     float fx_inst_scale,
     const Color4 &fxColorMult,
     bool is_attached,
-    bool with_sound,
     const TMatrix *restriction_box,
     FxSpawnType spawnType);
 };

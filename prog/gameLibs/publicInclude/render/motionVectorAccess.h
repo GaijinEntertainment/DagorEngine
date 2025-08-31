@@ -31,6 +31,7 @@ struct HeroMatrixParams
   bool canIgnoreBBox;
 };
 
+void set_reprojection_params_prev_to_curr(const CameraParams &currentCamera, const CameraParams &previousCamera);
 void set_params(const CameraParams &currentCamera, const CameraParams &previousCamera, const Point2 &currentJitter,
   const Point2 &previousJitter, const eastl::optional<HeroMatrixParams> &heroMatrixParams);
 

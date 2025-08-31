@@ -1,18 +1,23 @@
+options gen2
 module haha
 
-var
+var {
     all_good = false
+}
 
-struct Foo
+struct Foo {
     a : int
+}
 
-def operator delete (var f : Foo)
+def operator delete(var f : Foo) {
     all_good = true
+}
 
 [export]
-def test
+def test {
     var arr : array<Foo>
-    push(arr,[[Foo a=1]])
+    push(arr, Foo(a = 1))
     delete arr
     assert(all_good)
     return true
+}

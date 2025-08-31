@@ -48,6 +48,8 @@ bool dagor_demo_mode = false;
 WindowMode dgs_window_mode = WindowMode::FULLSCREEN_EXCLUSIVE;
 int dagor_frame_no_int = 0;
 
+uint32_t dagor_global_frame_id = 0;
+
 bool dgs_app_active = true;
 unsigned int dgs_last_suspend_at = 0;
 unsigned int dgs_last_resume_at = 0;

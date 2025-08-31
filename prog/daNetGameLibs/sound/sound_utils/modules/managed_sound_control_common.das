@@ -2,8 +2,9 @@ module managed_sound_control_common shared
 
 require ecs
 require ecs.common
+require app // get_sync_time
 require soundSystem
-require app
+require sound_utils.modules.sound_control_common
 require DagorSystem
 
 
@@ -14,14 +15,14 @@ def find_index(eid : EntityId; entities : EidList; begin, end : int)
   return -1
 
 
-def remove_managed_sound(eid : EntityId;
-                         managed_sound__idx : int)
-  if managed_sound__idx != -1
+def remove_managed_sound_instance(eid : EntityId;
+                                  managed_sound__typeIdx : int)
+  if managed_sound__typeIdx >= 0
     query() <| $ [es] (var managed_sound_control__beginPosEnd : IPoint3List&;
                        var managed_sound_control__entities : EidList&;
                        var managed_sound_control__positions : Point3List&)
 
-      let beginPosEnd = managed_sound_control__beginPosEnd[managed_sound__idx]
+      let beginPosEnd = managed_sound_control__beginPosEnd[managed_sound__typeIdx]
       assume begin = beginPosEnd.x
       assume pos = beginPosEnd.y
       assume end = beginPosEnd.z
@@ -30,24 +31,24 @@ def remove_managed_sound(eid : EntityId;
         assert(pos > begin)
         managed_sound_control__entities[idx] = managed_sound_control__entities[pos - 1]
         managed_sound_control__positions[idx] = managed_sound_control__positions[pos - 1]
-        --managed_sound_control__beginPosEnd[managed_sound__idx].y
+        --managed_sound_control__beginPosEnd[managed_sound__typeIdx].y
 
 
-def append_managed_sound(managed_sound__maxInstances : int;
-                         managed_sound__type : string;
-                         var managed_sound__idx : int&;
+def append_managed_sound_type(managed_sound__maxInstances : int;
+                              managed_sound__type : string;
+                              var managed_sound__typeIdx : int&;
 
-                         var managed_sound_control__types : StringList&;
-                         var managed_sound_control__beginPosEnd : IPoint3List&;
-                         var managed_sound_control__entities : EidList&;
-                         var managed_sound_control__positions : Point3List&)
+                              var managed_sound_control__types : StringList&;
+                              var managed_sound_control__beginPosEnd : IPoint3List&;
+                              var managed_sound_control__entities : EidList&;
+                              var managed_sound_control__positions : Point3List&)
 
   assert(length(managed_sound_control__types) == length(managed_sound_control__beginPosEnd))
   assert(length(managed_sound_control__entities) == length(managed_sound_control__positions))
 
-  managed_sound__idx = find_index(managed_sound_control__types, managed_sound__type)
-  if managed_sound__idx == -1
-    managed_sound__idx = length(managed_sound_control__types)
+  managed_sound__typeIdx = find_index(managed_sound_control__types, managed_sound__type)
+  if managed_sound__typeIdx == -1
+    managed_sound__typeIdx = length(managed_sound_control__types)
 
     let begin = length(managed_sound_control__entities)
     let pos = begin
@@ -61,7 +62,7 @@ def append_managed_sound(managed_sound__maxInstances : int;
     resize(managed_sound_control__entities, end)
     resize(managed_sound_control__positions, end)
   else
-    let maxInstances = managed_sound_control__beginPosEnd[managed_sound__idx].z - managed_sound_control__beginPosEnd[managed_sound__idx].x
+    let maxInstances = managed_sound_control__beginPosEnd[managed_sound__typeIdx].z - managed_sound_control__beginPosEnd[managed_sound__typeIdx].x
     if managed_sound__maxInstances != maxInstances
       logerr("different new maxInstances({managed_sound__maxInstances} vs existing {maxInstances}) for same managed_sound__type='{managed_sound__type}'")
 
@@ -76,22 +77,24 @@ def update_managed_sound_control(managed_sound_control__cooldown : float;
   let curTime = get_sync_time()
 
   query() <| $ [es] (eid : EntityId;
-                     managed_sound__idx : int;
+                     managed_sound__excluded : bool;
+                     managed_sound__typeIdx : int;
                      managed_sound__nextTimeToAllow : float;
-                     sound_control__inRange : bool;
+                     sound_control__state : int;
                      var sound_control__allowSound : bool&;
                      transform : float3x4;
                      isAlive : bool = true)
-    if managed_sound__idx == -1
+    if managed_sound__typeIdx == -1
       sound_control__allowSound = false
       return
 
-    if !sound_control__inRange || !isAlive
-      remove_managed_sound(eid, managed_sound__idx)
+    if !is_hearable_sound_state(sound_control__state) || !isAlive || managed_sound__excluded
+      if sound_control__allowSound // (optimization) seems if !allowSound then should not be in list
+        remove_managed_sound_instance(eid, managed_sound__typeIdx)
       sound_control__allowSound = false
       return
 
-    let beginPosEnd = managed_sound_control__beginPosEnd[managed_sound__idx]
+    let beginPosEnd = managed_sound_control__beginPosEnd[managed_sound__typeIdx]
     assume begin = beginPosEnd.x
     assume pos = beginPosEnd.y
     assume end = beginPosEnd.z
@@ -109,7 +112,7 @@ def update_managed_sound_control(managed_sound_control__cooldown : float;
       sound_control__allowSound = true
       managed_sound_control__entities[pos] = eid
       managed_sound_control__positions[pos] = transform[3]
-      ++managed_sound_control__beginPosEnd[managed_sound__idx].y
+      ++managed_sound_control__beginPosEnd[managed_sound__typeIdx].y
       return
 
     let raceAvoidTemporalDesyncFixDistMul = 1.1
@@ -122,7 +125,7 @@ def update_managed_sound_control(managed_sound_control__cooldown : float;
       let otherPos = managed_sound_control__positions[i]
       let otherDistSq = distance_sq(otherPos, listener)
       if otherDistSq > furthestDistSq && distSq < otherDistSq
-        furthestDistSq = otherDistSq;
+        furthestDistSq = otherDistSq
         furthestIdx = i
 
     if furthestIdx >= 0

@@ -106,9 +106,9 @@ inline bool dacoll_rayhit_normalized(const Point3 &p, const Point3 &dir, real t,
 }
 
 inline bool dacoll_rayhit_normalized_trace_handle(const Point3 &p, const Point3 &dir, real t, int flags, int ray_mat_id,
-  TraceMeshFaces *trace_handle)
+  TraceMeshFaces *trace_handle, rendinst::riex_handle_t skip_riex_handle)
 {
-  return dacoll::rayhit_normalized(p, dir, t, flags, ray_mat_id, trace_handle);
+  return dacoll::rayhit_normalized(p, dir, t, flags, ray_mat_id, trace_handle, skip_riex_handle);
 }
 
 inline bool dacoll_traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm)
@@ -140,7 +140,7 @@ inline void dacoll_validate_trace_cache(const bbox3f &query_box, const das::floa
 }
 
 inline void get_min_max_hmap_list_in_circle(das::float2 center, float rad,
-  const das::TBlock<void, das::TTemporary<const das::TArray<das::float2>>> &block, das::Context *context, das::LineInfoArg *at)
+  const das::TBlock<void, const das::TTemporary<const das::TArray<das::float2>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   Tab<Point2> list(framemem_ptr());
   dacoll::get_min_max_hmap_list_in_circle(Point2::xy(center), rad, list);
@@ -277,7 +277,26 @@ inline bool dacoll_test_collision_ri(const CollisionObject &coll_obj, const BBox
   const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactData>>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
-  return dacoll_test_collision_ri_ex(coll_obj, box, -1, block, context, at);
+  return dacoll_test_collision_ri_ex(coll_obj, box, PHYSMAT_INVALID, block, context, at);
+}
+
+inline bool dacoll_test_collision_ri_sph(const CollisionObject &coll_obj, const BSphere3 &sphere,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactData>>> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
+  bool result = dacoll::test_collision_ri(coll_obj, sphere, contacts, nullptr, PHYSMAT_INVALID);
+
+  das::Array arr;
+  arr.data = (char *)contacts.data();
+  arr.size = uint32_t(contacts.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+
+  return result;
 }
 
 inline bool dacoll_test_collision_frt(const CollisionObject &coll_obj, int mat_id,
@@ -324,6 +343,25 @@ inline bool dacoll_test_box_collision_world(const TMatrix &tm, int mat_id, dacol
 {
   Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
   bool result = dacoll::test_box_collision_world(tm, mat_id, contacts, group, mask);
+
+  das::Array arr;
+  arr.data = (char *)contacts.data();
+  arr.size = uint32_t(contacts.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+
+  return result;
+}
+
+inline bool dacoll_test_capsule_collision_world(const TMatrix &tm, float radius, float height, int mat_id, dacoll::PhysLayer group,
+  int mask, const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactData>>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
+  bool result = dacoll::test_capsule_collision_world(tm, radius, height, mat_id, contacts, group, mask);
 
   das::Array arr;
   arr.data = (char *)contacts.data();

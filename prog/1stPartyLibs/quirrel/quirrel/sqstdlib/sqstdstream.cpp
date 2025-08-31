@@ -1,4 +1,5 @@
 /* see copyright notice in squirrel.h */
+#include <squirrel/sqpcheader.h>
 #include <new>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +9,8 @@
 #include <sqstdblob.h>
 #include "sqstdstream.h"
 #include "sqstdblobimpl.h"
+#include "sqstdserialization.h"
+#include <squirrel/sqvm.h>
 
 #define SETUP_STREAM(v) \
     SQStream *self = NULL; \
@@ -248,10 +251,34 @@ SQInteger _stream_eos(HSQUIRRELVM v)
     return 1;
 }
 
- SQInteger _stream__cloned(HSQUIRRELVM v)
- {
-     return sq_throwerror(v,_SC("this object cannot be cloned"));
- }
+
+SQInteger _stream_writeobject(HSQUIRRELVM v)
+{
+    SETUP_STREAM(v);
+    SQObjectPtr obj = stack_get(v, 2);
+    SQObjectPtr availableClasses;
+    if (sq_gettop(v) > 2)
+        availableClasses = stack_get(v, 3);
+
+    SQRESULT res = sqstd_serialize_object_to_stream(v, self, obj, availableClasses);
+    return SQ_FAILED(res) ? res : 0;
+}
+
+SQInteger _stream_readobject(HSQUIRRELVM v)
+{
+    SETUP_STREAM(v);
+    SQObjectPtr availableClasses;
+    if (sq_gettop(v) > 1)
+        availableClasses = stack_get(v, 2);
+    SQRESULT res = sqstd_deserialize_object_from_stream(v, self, availableClasses);
+    return SQ_FAILED(res) ? res : 1;
+}
+
+
+SQInteger _stream__cloned(HSQUIRRELVM v)
+{
+    return sq_throwerror(v,_SC("this object cannot be cloned"));
+}
 
 static const SQRegFunction _stream_methods[] = {
     _DECL_STREAM_FUNC(readblob,2,_SC("xn")),
@@ -264,6 +291,8 @@ static const SQRegFunction _stream_methods[] = {
     _DECL_STREAM_FUNC(len,1,_SC("x")),
     _DECL_STREAM_FUNC(eos,1,_SC("x")),
     _DECL_STREAM_FUNC(flush,1,_SC("x")),
+    _DECL_STREAM_FUNC(writeobject,-2,_SC("x.t")),
+    _DECL_STREAM_FUNC(readobject,-1,_SC("xt")),
     _DECL_STREAM_FUNC(_cloned,0,NULL),
     {NULL,(SQFUNCTION)0,0,NULL}
 };
@@ -313,7 +342,7 @@ SQRESULT declare_stream(HSQUIRRELVM v,const SQChar* name,SQUserPointer typetag,c
         sq_newclass(v,SQTrue);
         sq_settypetag(v,-1,typetag);
         SQInteger i = 0;
-        while(methods[i].name != 0) {
+        while(methods[i].name != nullptr) {
             const SQRegFunction &f = methods[i];
             sq_pushstring(v,f.name,-1);
             sq_newclosure(v,f.f,0);
@@ -326,7 +355,7 @@ SQRESULT declare_stream(HSQUIRRELVM v,const SQChar* name,SQUserPointer typetag,c
         sq_pop(v,1);
 
         i = 0;
-        while(globals[i].name!=0)
+        while(globals[i].name != nullptr)
         {
             const SQRegFunction &f = globals[i];
             sq_pushstring(v,f.name,-1);

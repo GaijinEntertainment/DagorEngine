@@ -1,9 +1,11 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t turret__owner_get_type();
 static ecs::LTComponentList turret__owner_component(ECS_HASH("turret__owner"), turret__owner_get_type(), "prog/gameLibs/ecs/phys/turretControlES.cpp.inl", "update_turret_payload_es", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "turretControlES.cpp.inl"
 ECS_DEF_PULL_VAR(turretControl);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc update_turret_payload_es_comps[] =
 {
@@ -54,9 +56,9 @@ static ecs::CompileTimeQueryDesc turret_payload_gun_ammo_ecs_query_desc
   make_span(turret_payload_gun_ammo_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void turret_payload_gun_ammo_ecs_query(ecs::EntityId eid, Callable function)
+inline void turret_payload_gun_ammo_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, turret_payload_gun_ammo_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, turret_payload_gun_ammo_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

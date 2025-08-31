@@ -146,7 +146,7 @@ public:
 
   bool appendPtr(intptr_t value)
   {
-    using ValueType = typename eastl::type_select<sizeof(intptr_t) == sizeof(int32_t), int32_t, int64_t>::type;
+    using ValueType = typename eastl::conditional_t<sizeof(intptr_t) == sizeof(int32_t), int32_t, int64_t>;
     G_STATIC_ASSERT(sizeof(ValueType) == sizeof(intptr_t));
     return append(static_cast<ValueType>(value));
   }
@@ -177,6 +177,12 @@ public:
   {
     buf.Flush();
     return buf.GetString();
+  }
+
+  size_t result_size()
+  {
+    buf.Flush();
+    return buf.GetSize();
   }
 
   char * das_result()

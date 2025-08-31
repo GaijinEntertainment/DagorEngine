@@ -3,6 +3,10 @@
 
 #include "../av_cm.h"
 
+enum
+{
+  CM_TEXTURES_RESET_SCALE = CM_PLUGIN_BASE + 1,
+};
 
 enum
 {
@@ -32,6 +36,8 @@ enum
   ID_TEX_SIZE_LABEL,
   ID_TEX_MIPS_LABEL,
   ID_TEX_MEMSZ_LABEL,
+  ID_TEX_DIFFTEX_LABEL1,
+  ID_TEX_DIFFTEX_LABEL2,
 
   ID_SHOW_TEXQ_GRP,
   ID_SHOW_TEXQ_STUB,

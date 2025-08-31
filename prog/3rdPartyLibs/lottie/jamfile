@@ -68,6 +68,7 @@ CPPopt += -DLOTTIE_STATIC
   ;
 
 if $(PlatformSpec) in vc14 { CPPopt += /wd4577 ; }
+if $(CPPStd) >= 20 && $(PlatformSpec) = clang { CPPopt += -Wno-deprecated-volatile ; } # increment of object of volatile-qualified type 'volatile int' is deprecated
 
 ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/rapidjson ;
 

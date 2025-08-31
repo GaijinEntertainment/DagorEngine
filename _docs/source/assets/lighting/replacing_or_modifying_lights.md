@@ -137,9 +137,8 @@ any *daNetGame*-based project.
 
    ![](./_images/replacing_or_modifying_lights_21.jpg)
 
-6. **Rename the Game Object**: Follow the naming conventions as specified in the
-   [Naming Conventions](../../dagor-home/documentation/naming_conventions.md)
-   article.
+6. **Rename the Game Object**: It's recommended to follow the naming
+   conventions.
 
    ![](./_images/replacing_or_modifying_lights_22.jpg)
 

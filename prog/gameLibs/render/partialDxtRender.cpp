@@ -309,7 +309,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       // compress mip slice sliceWidth x linesPerPart to DXT
       void *rtData = NULL;
       int rtStride;
-      unsigned lockFlags = TEXLOCK_WRITE | TEXLOCK_DONOTUPDATEON9EXBYDEFAULT;
+      unsigned lockFlags = TEXLOCK_WRITE | ((mip < mipLevelsCnt - 1) ? TEXLOCK_DONOTUPDATE : TEXLOCK_DELSYSMEMCOPY);
       if (!rt->lockimg(&rtData, rtStride, mip, lockFlags))
       {
         debug("%s lockimg failed with '%s' (%d)", __FUNCTION__, d3d::get_last_error(), 1);
@@ -340,14 +340,6 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
 #if !_TARGET_PC
     eastl::swap(localRt1, localRt2);
 #endif
-  }
-  int stride;
-  rt->lockimg(NULL, stride, 0, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_DELSYSMEMCOPY);
-  rt->unlockimg();
-  if (rtn)
-  {
-    rtn->lockimg(NULL, stride, 0, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_DELSYSMEMCOPY);
-    rtn->unlockimg();
   }
   EXTERNAL_END_RENDER;
 

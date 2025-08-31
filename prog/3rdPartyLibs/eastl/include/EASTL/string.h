@@ -125,12 +125,6 @@ EA_RESTORE_ALL_VC_WARNINGS()
 EA_DISABLE_VC_WARNING(4530 4480 4571 4267 4702);
 
 
-#if defined(__GNUC__) && __GNUC__ > 11
-# define GCC_HAS_DISABLED_WARNINGS 1
-// Gaijin: gcc false-positive warnings in string append for short literals
-  EA_DISABLE_GCC_WARNING(-Wstringop-overread)
-#endif
-
 #if defined(EA_PRAGMA_ONCE_SUPPORTED)
 	#pragma once // Some compilers (e.g. VC++) benefit significantly from using this. We've measured 3-4% build speed improvements in apps as a result.
 #endif
@@ -300,7 +294,7 @@ namespace eastl
 		typedef ptrdiff_t                                       difference_type;
 		typedef Allocator                                       allocator_type;
 
-	static const size_type npos     = (size_type)-1;      /// 'npos' means non-valid position or simply non-position.
+	static const EA_CONSTEXPR size_type npos     = (size_type)-1;      /// 'npos' means non-valid position or simply non-position.
 
 	public:
 		// CtorDoNotInitialize exists so that we can create a constructor that allocates but doesn't
@@ -309,7 +303,12 @@ namespace eastl
 
 		// CtorSprintf exists so that we can create a constructor that accepts printf-style
 		// arguments but also doesn't collide with any other constructor declaration.
-		struct CtorSprintf{};
+		#ifdef EA_PLATFORM_MINGW
+			// Workaround for MinGW compiler bug: variadic arguments are corrupted if empty object is passed before it
+			struct CtorSprintf{ int dummy; };
+		#else
+			struct CtorSprintf{};
+		#endif
 
 		// CtorConvert exists so that we can have a constructor that implements string encoding
 		// conversion, such as between UCS2 char16_t and UTF8 char8_t.
@@ -782,17 +781,6 @@ namespace eastl
 			template <typename StringType>
 			void DoAssignConvert(const StringType& x, false_type);
 		#endif
-
-		// Replacements for STL template functions.
-		static const value_type* CharTypeStringFindEnd(const value_type* pBegin, const value_type* pEnd, value_type c);
-		static const value_type* CharTypeStringRFind(const value_type* pRBegin, const value_type* pREnd, const value_type c);
-		static const value_type* CharTypeStringSearch(const value_type* p1Begin, const value_type* p1End, const value_type* p2Begin, const value_type* p2End);
-		static const value_type* CharTypeStringRSearch(const value_type* p1Begin, const value_type* p1End, const value_type* p2Begin, const value_type* p2End);
-		static const value_type* CharTypeStringFindFirstOf(const value_type* p1Begin, const value_type* p1End, const value_type* p2Begin, const value_type* p2End);
-		static const value_type* CharTypeStringRFindFirstOf(const value_type* p1RBegin, const value_type* p1REnd, const value_type* p2Begin, const value_type* p2End);
-		static const value_type* CharTypeStringFindFirstNotOf(const value_type* p1Begin, const value_type* p1End, const value_type* p2Begin, const value_type* p2End);
-		static const value_type* CharTypeStringRFindFirstNotOf(const value_type* p1RBegin, const value_type* p1REnd, const value_type* p2Begin, const value_type* p2End);
-
 	}; // basic_string
 
 
@@ -877,7 +865,7 @@ namespace eastl
 
 	template <typename T, typename Allocator>
 	inline basic_string<T, Allocator>::basic_string(const view_type& sv, const allocator_type& allocator)
-	    : basic_string(sv.data(), sv.size(), allocator)
+	    : basic_string(sv.data(), static_cast<size_type>(sv.size()), allocator)
 	{
 	}
 
@@ -1536,7 +1524,7 @@ namespace eastl
 	basic_string<T, Allocator>::front()
 	{
 		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			if (EASTL_UNLIKELY(internalLayout().GetSize() <= 0)) // We assert if the user references the trailing 0 char.
+			if (EASTL_UNLIKELY(internalLayout().GetSize() == 0)) // We assert if the user references the trailing 0 char.
 				EASTL_FAIL_MSG("basic_string::front -- empty string");
 		#else
 			// We allow the user to reference the trailing 0 char without asserting.
@@ -1551,7 +1539,7 @@ namespace eastl
 	basic_string<T, Allocator>::front() const
 	{
 		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			if (EASTL_UNLIKELY(internalLayout().GetSize() <= 0)) // We assert if the user references the trailing 0 char.
+			if (EASTL_UNLIKELY(internalLayout().GetSize() == 0)) // We assert if the user references the trailing 0 char.
 				EASTL_FAIL_MSG("basic_string::front -- empty string");
 		#else
 			// We allow the user to reference the trailing 0 char without asserting.
@@ -1566,7 +1554,7 @@ namespace eastl
 	basic_string<T, Allocator>::back()
 	{
 		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			if (EASTL_UNLIKELY(internalLayout().GetSize() <= 0)) // We assert if the user references the trailing 0 char.
+			if (EASTL_UNLIKELY(internalLayout().GetSize() == 0)) // We assert if the user references the trailing 0 char.
 				EASTL_FAIL_MSG("basic_string::back -- empty string");
 		#else
 			// We allow the user to reference the trailing 0 char without asserting.
@@ -1581,7 +1569,7 @@ namespace eastl
 	basic_string<T, Allocator>::back() const
 	{
 		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
-			if (EASTL_UNLIKELY(internalLayout().GetSize() <= 0)) // We assert if the user references the trailing 0 char.
+			if (EASTL_UNLIKELY(internalLayout().GetSize() == 0)) // We assert if the user references the trailing 0 char.
 				EASTL_FAIL_MSG("basic_string::back -- empty string");
 		#else
 			// We allow the user to reference the trailing 0 char without asserting.
@@ -1799,7 +1787,9 @@ namespace eastl
 		}
 
 		if (nReturnValue >= 0)
+		{
 			internalLayout().SetSize(nInitialSize + nReturnValue);
+		}
 
 		#if EASTL_VA_COPY_ENABLED
 			// va_end for arguments will be called by the caller.
@@ -1855,7 +1845,9 @@ namespace eastl
 		}
 
 		if(nReturnValue >= 0)
+		{
 			internalLayout().SetSize(nInitialSize + nReturnValue);
+		}
 
 		#if EASTL_VA_COPY_ENABLED
 			// va_end for arguments will be called by the caller.
@@ -1959,7 +1951,8 @@ namespace eastl
 		const size_type n = (size_type)(pEnd - pBegin);
 		if(n <= internalLayout().GetSize())
 		{
-			memmove(internalLayout().BeginPtr(), pBegin, (size_t)n * sizeof(value_type));
+			if(n)
+				memmove(internalLayout().BeginPtr(), pBegin, (size_t)n * sizeof(value_type));
 			erase(internalLayout().BeginPtr() + n, internalLayout().EndPtr());
 		}
 		else
@@ -3387,226 +3380,6 @@ namespace eastl
 		#endif
 	}
 
-
-	// CharTypeStringFindEnd
-	// Specialized char version of STL find() from back function.
-	// Not the same as RFind because search range is specified as forward iterators.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringFindEnd(const value_type* pBegin, const value_type* pEnd, value_type c)
-	{
-		const value_type* pTemp = pEnd;
-		while(--pTemp >= pBegin)
-		{
-			if(*pTemp == c)
-				return pTemp;
-		}
-
-		return pEnd;
-	}
-
-
-	// CharTypeStringRFind
-	// Specialized value_type version of STL find() function in reverse.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringRFind(const value_type* pRBegin, const value_type* pREnd, const value_type c)
-	{
-		while(pRBegin > pREnd)
-		{
-			if(*(pRBegin - 1) == c)
-				return pRBegin;
-			--pRBegin;
-		}
-		return pREnd;
-	}
-
-
-	// CharTypeStringSearch
-	// Specialized value_type version of STL search() function.
-	// Purpose: find p2 within p1. Return p1End if not found or if either string is zero length.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringSearch(const value_type* p1Begin, const value_type* p1End,
-													 const value_type* p2Begin, const value_type* p2End)
-	{
-		// Test for zero length strings, in which case we have a match or a failure,
-		// but the return value is the same either way.
-		if((p1Begin == p1End) || (p2Begin == p2End))
-			return p1Begin;
-
-		// Test for a pattern of length 1.
-		if((p2Begin + 1) == p2End)
-			return eastl::find(p1Begin, p1End, *p2Begin);
-
-		// General case.
-		const value_type* pTemp;
-		const value_type* pTemp1 = (p2Begin + 1);
-		const value_type* pCurrent = p1Begin;
-
-		while(p1Begin != p1End)
-		{
-			p1Begin = eastl::find(p1Begin, p1End, *p2Begin);
-			if(p1Begin == p1End)
-				return p1End;
-
-			pTemp = pTemp1;
-			pCurrent = p1Begin;
-			if(++pCurrent == p1End)
-				return p1End;
-
-			while(*pCurrent == *pTemp)
-			{
-				if(++pTemp == p2End)
-					return p1Begin;
-				if(++pCurrent == p1End)
-					return p1End;
-			}
-
-			++p1Begin;
-		}
-
-		return p1Begin;
-	}
-
-
-	// CharTypeStringRSearch
-	// Specialized value_type version of STL find_end() function (which really is a reverse search function).
-	// Purpose: find last instance of p2 within p1. Return p1End if not found or if either string is zero length.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringRSearch(const value_type* p1Begin, const value_type* p1End,
-													  const value_type* p2Begin, const value_type* p2End)
-	{
-		// Test for zero length strings, in which case we have a match or a failure,
-		// but the return value is the same either way.
-		if((p1Begin == p1End) || (p2Begin == p2End))
-			return p1Begin;
-
-		// Test for a pattern of length 1.
-		if((p2Begin + 1) == p2End)
-			return CharTypeStringFindEnd(p1Begin, p1End, *p2Begin);
-
-		// Test for search string length being longer than string length.
-		if((p2End - p2Begin) > (p1End - p1Begin))
-			return p1End;
-
-		// General case.
-		const value_type* pSearchEnd = (p1End - (p2End - p2Begin) + 1);
-		const value_type* pCurrent1;
-		const value_type* pCurrent2;
-
-		while(pSearchEnd != p1Begin)
-		{
-			// Search for the last occurrence of *p2Begin.
-			pCurrent1 = CharTypeStringFindEnd(p1Begin, pSearchEnd, *p2Begin);
-			if(pCurrent1 == pSearchEnd) // If the first char of p2 wasn't found,
-				return p1End;           // then we immediately have failure.
-
-			// In this case, *pTemp == *p2Begin. So compare the rest.
-			pCurrent2 = p2Begin;
-			while(*pCurrent1++ == *pCurrent2++)
-			{
-				if(pCurrent2 == p2End)
-					return (pCurrent1 - (p2End - p2Begin));
-			}
-
-			// A smarter algorithm might know to subtract more than just one,
-			// but in most cases it won't make much difference anyway.
-			--pSearchEnd;
-		}
-
-		return p1End;
-	}
-
-
-	// CharTypeStringFindFirstOf
-	// Specialized value_type version of STL find_first_of() function.
-	// This function is much like the C runtime strtok function, except the strings aren't null-terminated.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringFindFirstOf(const value_type* p1Begin, const value_type* p1End,
-														  const value_type* p2Begin, const value_type* p2End)
-	{
-		for( ; p1Begin != p1End; ++p1Begin)
-		{
-			for(const value_type* pTemp = p2Begin; pTemp != p2End; ++pTemp)
-			{
-				if(*p1Begin == *pTemp)
-					return p1Begin;
-			}
-		}
-		return p1End;
-	}
-
-
-	// CharTypeStringRFindFirstOf
-	// Specialized value_type version of STL find_first_of() function in reverse.
-	// This function is much like the C runtime strtok function, except the strings aren't null-terminated.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringRFindFirstOf(const value_type* p1RBegin, const value_type* p1REnd,
-														   const value_type* p2Begin,  const value_type* p2End)
-	{
-		for( ; p1RBegin != p1REnd; --p1RBegin)
-		{
-			for(const value_type* pTemp = p2Begin; pTemp != p2End; ++pTemp)
-			{
-				if(*(p1RBegin - 1) == *pTemp)
-					return p1RBegin;
-			}
-		}
-		return p1REnd;
-	}
-
-
-
-	// CharTypeStringFindFirstNotOf
-	// Specialized value_type version of STL find_first_not_of() function.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringFindFirstNotOf(const value_type* p1Begin, const value_type* p1End,
-															 const value_type* p2Begin, const value_type* p2End)
-	{
-		for( ; p1Begin != p1End; ++p1Begin)
-		{
-			const value_type* pTemp;
-			for(pTemp = p2Begin; pTemp != p2End; ++pTemp)
-			{
-				if(*p1Begin == *pTemp)
-					break;
-			}
-			if(pTemp == p2End)
-				return p1Begin;
-		}
-		return p1End;
-	}
-
-
-	// CharTypeStringRFindFirstNotOf
-	// Specialized value_type version of STL find_first_not_of() function in reverse.
-	template <typename T, typename Allocator>
-	const typename basic_string<T, Allocator>::value_type*
-	basic_string<T, Allocator>::CharTypeStringRFindFirstNotOf(const value_type* p1RBegin, const value_type* p1REnd,
-															  const value_type* p2Begin,  const value_type* p2End)
-	{
-		for( ; p1RBegin != p1REnd; --p1RBegin)
-		{
-			const value_type* pTemp;
-			for(pTemp = p2Begin; pTemp != p2End; ++pTemp)
-			{
-				if(*(p1RBegin-1) == *pTemp)
-					break;
-			}
-			if(pTemp == p2End)
-				return p1RBegin;
-		}
-		return p1REnd;
-	}
-
-
-
-
 	// iterator operators
 	template <typename T, typename Allocator>
 	inline bool operator==(const typename basic_string<T, Allocator>::reverse_iterator& r1,
@@ -3762,25 +3535,71 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline bool operator==(const basic_string<T, Allocator>& a, const basic_string<T, Allocator>& b)
 	{
-		return ((a.size() == b.size()) && (memcmp(a.data(), b.data(), (size_t)a.size() * sizeof(typename basic_string<T, Allocator>::value_type)) == 0));
+		return ((a.size() == b.size()) && (Compare(a.data(), b.data(), (size_t)a.size()) == 0));
 	}
 
-
+#if !defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
 	template <typename T, typename Allocator>
 	inline bool operator==(const typename basic_string<T, Allocator>::value_type* p, const basic_string<T, Allocator>& b)
 	{
-		typedef typename basic_string<T, Allocator>::size_type size_type;
-		const size_type n = (size_type)CharStrlen(p);
-		return ((n == b.size()) && (memcmp(p, b.data(), (size_t)n * sizeof(*p)) == 0));
+		typedef typename basic_string<T, Allocator>::size_type string_size_type;
+		const string_size_type n = (string_size_type)CharStrlen(p);
+		return ((n == b.size()) && (Compare(p, b.data(), (size_t)n) == 0));
 	}
-
+#endif
 
 	template <typename T, typename Allocator>
 	inline bool operator==(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::value_type* p)
 	{
-		typedef typename basic_string<T, Allocator>::size_type size_type;
-		const size_type n = (size_type)CharStrlen(p);
-		return ((a.size() == n) && (memcmp(a.data(), p, (size_t)n * sizeof(*p)) == 0));
+		typedef typename basic_string<T, Allocator>::size_type string_size_type;
+		const string_size_type n = (string_size_type)CharStrlen(p);
+		return ((a.size() == n) && (Compare(a.data(), p, (size_t)n) == 0));
+	}
+	
+#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+	template <typename T, typename Allocator>
+	inline auto operator<=>(const basic_string<T, Allocator>& a, const basic_string<T, Allocator>& b)
+	{
+		return basic_string<T, Allocator>::compare(a.begin(), a.end(), b.begin(), b.end()) <=> 0;
+	}
+
+	template <typename T, typename Allocator>
+	inline auto operator<=>(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::value_type* p)
+	{
+		typedef typename basic_string<T, Allocator>::size_type string_size_type;
+		const string_size_type n = (string_size_type)CharStrlen(p);
+		return basic_string<T, Allocator>::compare(a.begin(), a.end(), p, p + n) <=> 0;
+	}
+	
+	template <typename T, typename Allocator>
+	inline auto operator<=>(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		typedef typename basic_string<T, Allocator>::view_type view_type;
+		return static_cast<view_type>(a) <=> v;
+	}
+
+#else
+
+	template <typename T, typename Allocator>
+	inline bool operator==(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		typedef typename basic_string<T, Allocator>::view_type view_type;
+		return v == static_cast<view_type>(b);
+	}
+
+	template <typename T, typename Allocator>
+	inline bool operator==(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		typedef typename basic_string<T, Allocator>::view_type view_type;
+		return static_cast<view_type>(a) == v;
 	}
 
 
@@ -3789,7 +3608,6 @@ namespace eastl
 	{
 		return !(a == b);
 	}
-
 
 	template <typename T, typename Allocator>
 	inline bool operator!=(const typename basic_string<T, Allocator>::value_type* p, const basic_string<T, Allocator>& b)
@@ -3803,6 +3621,28 @@ namespace eastl
 	{
 		return !(a == p);
 	}
+	
+	
+	template <typename T, typename Allocator>
+	inline bool operator!=(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return !(v == b);
+	}
+
+
+	template <typename T, typename Allocator>
+	inline bool operator!=(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return !(a == v);
+	}
 
 
 	// Operator< (and also >, <=, and >=).
@@ -3815,8 +3655,8 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline bool operator<(const typename basic_string<T, Allocator>::value_type* p, const basic_string<T, Allocator>& b)
 	{
-		typedef typename basic_string<T, Allocator>::size_type size_type;
-		const size_type n = (size_type)CharStrlen(p);
+		typedef typename basic_string<T, Allocator>::size_type string_size_type;
+		const string_size_type n = (string_size_type)CharStrlen(p);
 		return basic_string<T, Allocator>::compare(p, p + n, b.begin(), b.end()) < 0;
 	}
 
@@ -3824,9 +3664,33 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline bool operator<(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::value_type* p)
 	{
-		typedef typename basic_string<T, Allocator>::size_type size_type;
-		const size_type n = (size_type)CharStrlen(p);
+		typedef typename basic_string<T, Allocator>::size_type string_size_type;
+		const string_size_type n = (string_size_type)CharStrlen(p);
 		return basic_string<T, Allocator>::compare(a.begin(), a.end(), p, p + n) < 0;
+	}
+	
+	
+	template <typename T, typename Allocator>
+	inline bool operator<(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+ 
+		typedef typename basic_string<T, Allocator>::view_type view_type;
+		return v < static_cast<view_type>(b);
+	}
+
+
+	template <typename T, typename Allocator>
+	inline bool operator<(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		typedef typename basic_string<T, Allocator>::view_type view_type;
+		return static_cast<view_type>(a) < v;
 	}
 
 
@@ -3849,6 +3713,28 @@ namespace eastl
 	{
 		return p < a;
 	}
+	
+	
+	template <typename T, typename Allocator>
+	inline bool operator>(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return b < v;
+	}
+
+
+	template <typename T, typename Allocator>
+	inline bool operator>(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return v < a;
+	}
 
 
 	template <typename T, typename Allocator>
@@ -3869,6 +3755,28 @@ namespace eastl
 	inline bool operator<=(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::value_type* p)
 	{
 		return !(p < a);
+	}
+	
+	
+	template <typename T, typename Allocator>
+	inline bool operator<=(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return !(b < v);
+	}
+
+
+	template <typename T, typename Allocator>
+	inline bool operator<=(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return !(v < a);
 	}
 
 
@@ -3891,7 +3799,29 @@ namespace eastl
 	{
 		return !(a < p);
 	}
+	
+	
+	template <typename T, typename Allocator>
+	inline bool operator>=(const typename basic_string<T, Allocator>::view_type v, const basic_string<T, Allocator>& b)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
 
+		return !(v < b);
+	}
+
+
+	template <typename T, typename Allocator>
+	inline bool operator>=(const basic_string<T, Allocator>& a, const typename basic_string<T, Allocator>::view_type v)
+	{
+		// Workaround for basic_string_view comparisons that require conversions,
+		// since they are causing an internal compiler error when compiled using
+		// MSVC when certain flags are enabled (/Zi /O2 /Zc:inline).
+
+		return !(a < v);
+	}
+#endif
 
 	template <typename T, typename Allocator>
 	inline void swap(basic_string<T, Allocator>& a, basic_string<T, Allocator>& b)
@@ -4061,7 +3991,12 @@ namespace eastl
 	/// http://en.cppreference.com/w/cpp/string/basic_string/operator%22%22s
 	///
 	#if EASTL_USER_LITERALS_ENABLED && EASTL_INLINE_NAMESPACES_ENABLED
-		EA_DISABLE_VC_WARNING(4455) // disable warning C4455: literal suffix identifiers that do not start with an underscore are reserved
+		// Disabling the Clang/GCC/MSVC warning about using user
+		// defined literals without a leading '_' as they are reserved
+		// for standard libary usage.
+		EA_DISABLE_VC_WARNING(4455)
+		EA_DISABLE_CLANG_WARNING(-Wuser-defined-literals)
+		EA_DISABLE_GCC_WARNING(-Wliteral-suffix)
 	    inline namespace literals
 	    {
 		    inline namespace string_literals
@@ -4077,7 +4012,9 @@ namespace eastl
 				#endif
 		    }
 	    }
-		EA_RESTORE_VC_WARNING()  // warning: 4455
+		EA_RESTORE_GCC_WARNING()	// -Wliteral-suffix
+		EA_RESTORE_CLANG_WARNING()	// -Wuser-defined-literals
+		EA_RESTORE_VC_WARNING()		// warning: 4455
 	#endif
 
 
@@ -4085,24 +4022,43 @@ namespace eastl
 	///
 	/// https://en.cppreference.com/w/cpp/string/basic_string/erase2
 	template <class CharT, class Allocator, class U>
-	void erase(basic_string<CharT, Allocator>& c, const U& value)
+	typename basic_string<CharT, Allocator>::size_type erase(basic_string<CharT, Allocator>& c, const U& value)
 	{
 		// Erases all elements that compare equal to value from the container.
-		c.erase(eastl::remove(c.begin(), c.end(), value), c.end());
+		auto origEnd = c.end();
+		auto newEnd = eastl::remove(c.begin(), origEnd, value);
+		auto numRemoved = eastl::distance(newEnd, origEnd);
+		c.erase(newEnd, origEnd);
+
+		// Note: This is technically a lossy conversion when size_type
+		// is 32bits and ptrdiff_t is 64bits (could happen on 64bit
+		// systems when EASTL_SIZE_T_32BIT is set). In practice this
+		// is fine because if EASTL_SIZE_T_32BIT is set then the
+		// string should not have more characters than fit in a
+		// uint32_t and so the distance here should fit in a
+		// size_type.
+		return static_cast<typename basic_string<CharT, Allocator>::size_type>(numRemoved);
 	}
 
 	template <class CharT, class Allocator, class Predicate>
-	void erase_if(basic_string<CharT, Allocator>& c, Predicate predicate)
+	typename basic_string<CharT, Allocator>::size_type erase_if(basic_string<CharT, Allocator>& c, Predicate predicate)
 	{
 		// Erases all elements that satisfy the predicate pred from the container.
-		c.erase(eastl::remove_if(c.begin(), c.end(), predicate), c.end());
+		auto origEnd = c.end();
+		auto newEnd = eastl::remove_if(c.begin(), origEnd, predicate);
+		auto numRemoved = eastl::distance(newEnd, origEnd);
+		c.erase(newEnd, origEnd);
+		// Note: This is technically a lossy conversion when size_type
+		// is 32bits and ptrdiff_t is 64bits (could happen on 64bit
+		// systems when EASTL_SIZE_T_32BIT is set). In practice this
+		// is fine because if EASTL_SIZE_T_32BIT is set then the
+		// string should not have more characters than fit in a
+		// uint32_t and so the distance here should fit in a
+		// size_type.
+		return static_cast<typename basic_string<CharT, Allocator>::size_type>(numRemoved);
 	}
 } // namespace eastl
 
-#if defined(GCC_HAS_DISABLED_WARNINGS)
-  EA_RESTORE_GCC_WARNING();
-  #undef GCC_HAS_DISABLED_WARNINGS
-#endif
 
 EA_RESTORE_VC_WARNING();
 

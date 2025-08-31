@@ -5,9 +5,11 @@ static constexpr ecs::component_t node_attached__nodeId_get_type();
 static ecs::LTComponentList node_attached__nodeId_component(ECS_HASH("node_attached__nodeId"), node_attached__nodeId_get_type(), "prog/daNetGame/render/fx/animCharEffectES.cpp.inl", "start_animchar_effect_es_event_handler", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/render/fx/animCharEffectES.cpp.inl", "start_animchar_effect_es_event_handler", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animCharEffectES.cpp.inl"
 ECS_DEF_PULL_VAR(animCharEffect);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc start_animchar_effect_es_event_handler_comps[] =
 {

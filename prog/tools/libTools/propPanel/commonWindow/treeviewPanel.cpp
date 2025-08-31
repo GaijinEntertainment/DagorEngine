@@ -50,7 +50,7 @@ void TreeBaseWindow::onWcDoubleClick(WindowBase *source)
     mEventHandler->onTvDClick(*this, mTree->getSelectedLeaf());
 }
 
-TLeafHandle TreeBaseWindow::addItem(const char *name, TEXTUREID icon, TLeafHandle parent, void *user_data)
+TLeafHandle TreeBaseWindow::addItem(const char *name, IconId icon, TLeafHandle parent, void *user_data)
 {
   return mTree->addItem(name, icon, parent, user_data);
 }
@@ -60,7 +60,7 @@ TLeafHandle TreeBaseWindow::addItem(const char *name, const char *icon_name, TLe
   return mTree->addItem(name, icon_name, parent, user_data);
 }
 
-TLeafHandle TreeBaseWindow::addItemAsFirst(const char *name, TEXTUREID icon, TLeafHandle parent, void *user_data)
+TLeafHandle TreeBaseWindow::addItemAsFirst(const char *name, IconId icon, TLeafHandle parent, void *user_data)
 {
   return mTree->addItemAsFirst(name, icon, parent, user_data);
 }
@@ -74,11 +74,11 @@ void TreeBaseWindow::removeItem(TLeafHandle item) { mTree->removeItem(item); }
 
 void TreeBaseWindow::addChildName(const char *name, TLeafHandle parent) { mTree->addChildName(name, parent); }
 
-TEXTUREID TreeBaseWindow::addImage(const char *filename) { return mTree->getTexture(filename); }
+IconId TreeBaseWindow::addImage(const char *filename) { return mTree->getTexture(filename); }
 
-void TreeBaseWindow::changeItemImage(TLeafHandle item, TEXTUREID new_id) { mTree->setIcon(item, new_id); }
+void TreeBaseWindow::changeItemImage(TLeafHandle item, IconId new_id) { mTree->setIcon(item, new_id); }
 
-void TreeBaseWindow::changeItemStateImage(TLeafHandle item, TEXTUREID new_id) { mTree->setStateIcon(item, new_id); }
+void TreeBaseWindow::changeItemStateImage(TLeafHandle item, IconId new_id) { mTree->setStateIcon(item, new_id); }
 
 int TreeBaseWindow::getChildrenCount(TLeafHandle parent) const { return mTree->getChildCount(parent); }
 
@@ -122,13 +122,19 @@ void TreeBaseWindow::expand(TLeafHandle parent) { mTree->setExpanded(parent, tru
 
 void TreeBaseWindow::expandRecursive(TLeafHandle leaf, bool open) { mTree->setExpandedRecursive(leaf, open); }
 
+void TreeBaseWindow::expandTillRoot(TLeafHandle leaf, bool open) { mTree->setExpandedTillRoot(leaf, open); }
+
 void TreeBaseWindow::ensureVisible(TLeafHandle item) { mTree->ensureVisible(item); }
 
 TLeafHandle TreeBaseWindow::getRoot() const { return mTree->getRootLeaf(); }
 
+const TTreeNode &TreeBaseWindow::getUnfilteredRootNode() const { return mTree->getUnfilteredRootNode(); }
+
 TLeafHandle TreeBaseWindow::getSelectedItem() const { return mTree->getSelectedLeaf(); }
 
 void TreeBaseWindow::setSelectedItem(TLeafHandle item) { mTree->setSelectedLeaf(item); }
+
+void TreeBaseWindow::updateUnfilteredExpansionStateFromFilteredTree() { mTree->updateUnfilteredExpansionStateFromFilteredTree(); }
 
 void TreeBaseWindow::setFocus() { mTree->setFocus(); }
 

@@ -23,7 +23,7 @@ inline void generateTiledEntitiesInMaskedRect(const rendinst::gen::land::TiledEn
   int mtz = int(floorf(pos.z * world2sampler) - floorf(world2sampler * mask_ofs_z));         \
   if (!mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z))                         \
   {                                                                                          \
-    _rnd(seed);                                                                              \
+    rnd(seed);                                                                               \
     continue;                                                                                \
   }                                                                                          \
   int paletteId = 0;                                                                         \
@@ -93,7 +93,7 @@ inline void generateTiledEntitiesInMaskedRect(const rendinst::gen::land::TiledEn
     pool.addEntity(tm, posInst, ent_remap[sep.entityIdx], paletteRotation ? paletteId : -1); \
   }                                                                                          \
   else                                                                                       \
-    _rnd(seed);
+    rnd(seed);
 
   BBox2 rect(Point2(world0_x, world0_y), Point2(world0_x + box, world0_y + box));
   rect[0].x += mask_ofs_x - entity_ofs_x;

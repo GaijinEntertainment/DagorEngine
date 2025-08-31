@@ -66,7 +66,7 @@ duplicateStringValue( const char *value,
 {
    if ( length == unknown )
       length = (unsigned int)strlen(value);
-   char *newString = static_cast<char *>( malloc( length + 1 ) );
+   char *newString = new char[length + 1];
    JSON_ASSERT_MESSAGE( newString != 0, "Failed to allocate string value buffer" );
    memcpy( newString, value, length );
    newString[length] = 0;
@@ -79,8 +79,7 @@ duplicateStringValue( const char *value,
 static inline void 
 releaseStringValue( char *value )
 {
-   if ( value )
-      free( value );
+   delete [] value;
 }
 
 } // namespace Json

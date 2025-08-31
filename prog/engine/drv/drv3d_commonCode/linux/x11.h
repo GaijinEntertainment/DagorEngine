@@ -17,6 +17,7 @@
 #include <debug/dag_debug.h>
 
 #include <osApiWrappers/setProgGlobals.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <supp/dag_math.h>
 #include <math/dag_mathBase.h>
@@ -25,6 +26,7 @@
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 
 struct X11Randr
 {
@@ -406,8 +408,14 @@ struct X11
     }
   }
 
-  inline bool isMainWindow(void *wnd) const { return &mainWindow == wnd; }
-  inline void destroyMainWindow() { XDestroyWindow(rootDisplay, mainWindow); }
+  static_assert(sizeof(void *) >= sizeof(Window), "x11 window type should fit into pointer type!");
+  void *getMainWindowPtrHandle() const { return (void *)mainWindow; }
+  inline bool isMainWindow(void *wnd) const { return wnd == getMainWindowPtrHandle(); }
+  inline void destroyMainWindow()
+  {
+    XDestroyWindow(rootDisplay, mainWindow);
+    mainWindow = None;
+  }
 
   inline void setWMCCardinalProp(const char *prop_name, long value)
   {
@@ -457,7 +465,7 @@ struct X11
     mainWindow =
       XCreateWindow(rootDisplay, rootWindow, x, y, winWidth, winHeight, 0, vi->depth, InputOutput, vi->visual, valuemask, &swa);
 
-    win32_set_main_wnd(&mainWindow);
+    win32_set_main_wnd(getMainWindowPtrHandle());
     if (::dgs_get_settings()->getBool("utf8mode", false))
       setTitleUtf8(title, title);
     else

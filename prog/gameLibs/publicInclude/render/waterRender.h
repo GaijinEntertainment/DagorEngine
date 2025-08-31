@@ -100,6 +100,7 @@ protected:
   UniqueTex depthTex;
 
   int reflectionTextureVarId;
+  int reflectionTextureSmpVarId;
   int reflectionPlaneVarId;
   int waveScaleOffsetVarIdArray[WAVE_LAYERS];
 
@@ -133,4 +134,5 @@ protected:
   void *occlusionQuery;
   bool isOcclusionQueryIssued;
   int prevPixelCount;
+  d3d::SamplerHandle smp;
 };

@@ -352,7 +352,7 @@ struct StateFieldGraphicsStencilRefOverride : TrackedStateFieldBase<true, false>
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };
 
-struct StateFieldGraphicsStencilMask : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<uint8_t>
+struct StateFieldGraphicsStencilMask : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<uint16_t>
 {
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };

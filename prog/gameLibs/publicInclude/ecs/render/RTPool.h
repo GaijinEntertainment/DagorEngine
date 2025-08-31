@@ -5,6 +5,6 @@
 #pragma once
 
 #include <daECS/core/entityManager.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 
 ECS_DECLARE_RELOCATABLE_TYPE(RTargetPool::Ptr);

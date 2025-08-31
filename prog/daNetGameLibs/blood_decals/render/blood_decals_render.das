@@ -8,7 +8,7 @@ require DagorDriver3D
 require DagorResPtr
 require daProfiler
 
-let FLOAT_SIZEOF = typeinfo(sizeof type<float>)
+let FLOAT_SIZEOF = typeinfo sizeof(type<float>)
 
 [es(tag=gameClient, on_appear)]
 def blood_decals_init(evt : Event;
@@ -37,7 +37,9 @@ def blood_decals_init(evt : Event;
 
   let depthAtlasFlags = int(TEXFMT_DEPTH16 | TEXCF_RTARGET)
   blood_decals_depth_atlas |> create_tex(DEPTH_ATLAS_SIZE, DEPTH_ATLAS_SIZE, depthAtlasFlags, 1, "blood_decals_depth_atlas_tex")
-  (*blood_decals_depth_atlas.getTex2D) |> texfilter(int(TEXFILTER_COMPARE))
+  let sampler = d3d_request_sampler() <| $(var smpInfo : SamplerInfo#)
+    smpInfo.filter_mode = FilterMode Compare
+  DagorShaders::set_sampler(get_shader_variable_id("blood_decals_depth_atlas_tex_samplerstate", true), sampler)
 
 
   set_color4(get_shader_variable_id("blood_decal_timings", true),
@@ -60,13 +62,13 @@ def blood_decals_prepare_render(stg : UpdateStageInfoBeforeRender;
   if !blood_decals_traces_queue |> empty
 
     d3d_set_render_target(null, uint8(0))
-    d3d_set_depth(blood_decals_depth_atlas.getTex2D, DepthAccess RW)
+    d3d_set_depth(blood_decals_depth_atlas.getTex2D, DepthAccess.RW)
     exec_with_shader_blocks_scope_reset() <| $()
       blood_decals_depth_shader |> setStates()
       var tracesOffset = 0
       let tracesCount = TRACE_RESULT_BUFFER_SIZE
       for atlasPos in blood_decals_traces_queue
-        *getBuf(blood_decals_traces_buf) |> updateData(blood_decals_traces_result, tracesOffset, tracesCount, uint(VBLOCK_DISCARD));
+        *getBuf(blood_decals_traces_buf) |> updateData(blood_decals_traces_result, tracesOffset, tracesCount, uint(VBLOCK_DISCARD))
         d3d_setview(atlasPos.x, atlasPos.y, DEPTH_TEX_SIZE, DEPTH_TEX_SIZE, 0f, 1f)
         blood_decals_depth_shader |> render()
         tracesOffset += tracesCount

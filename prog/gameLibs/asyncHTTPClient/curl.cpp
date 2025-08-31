@@ -12,6 +12,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_delayedAction.h>
 #include <math/random/dag_random.h>
+#include <startup/dag_globalSettings.h>
 
 #include <EASTL/list.h>
 #include <EASTL/string.h>
@@ -786,6 +787,8 @@ void poll()
 
 void init_async(InitAsyncParams const &params)
 {
+  bool force_verbose_debug = (::dgs_get_argv("verbose-http-requests") != nullptr);
+
   if (!curlm)
   {
     curlm = curl_multi_init();
@@ -828,6 +831,9 @@ void init_async(InitAsyncParams const &params)
     ca_bundle_file = params.caBundleFile;
 
   verbose_debug = params.verboseDebug;
+
+  if (force_verbose_debug)
+    verbose_debug = true;
 
   debug("AsyncHTTPClient ca bundle: '%s'", ca_bundle_file.c_str());
 }

@@ -14,23 +14,23 @@
 #include <drv/3d/dag_renderTarget.h>
 
 
-dabfg::NodeHandle mk_water_prepare_mobile_node()
+dafg::NodeHandle mk_water_prepare_mobile_node()
 {
-  return dabfg::register_node("prepare_water_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("prepare_water_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("frame_data_setup_mobile");
     registry.requestState().setFrameBlock("global_frame");
     return [] { ShaderGlobal::set_real(water_depth_aboveVarId, -get_waterlevel_for_camera_pos()); };
   });
 }
 
-dabfg::NodeHandle mk_water_mobile_node()
+dafg::NodeHandle mk_water_mobile_node()
 {
-  return dabfg::register_node("water_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.rename("target_after_panorama_apply", "target_after_water", dabfg::History::No)
+  return dafg::register_node("water_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.rename("target_after_panorama_apply", "target_after_water", dafg::History::No)
       .texture()
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::COLOR_ATTACHMENT);
-    registry.read("depth_after_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::UNKNOWN);
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT);
+    registry.read("depth_after_opaque").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::UNKNOWN);
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera")
                         .bindAsView<&CameraParams::viewTm>()
@@ -47,19 +47,19 @@ dabfg::NodeHandle mk_water_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_under_water_fog_mobile_node()
+dafg::NodeHandle mk_under_water_fog_mobile_node()
 {
-  return dabfg::register_node("under_water_fog", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("under_water_fog", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().setFrameBlock("global_frame");
-    auto targetHndl = registry.rename("target_for_transparency", "target_after_under_water_fog", dabfg::History::No)
+    auto targetHndl = registry.rename("target_for_transparency", "target_after_under_water_fog", dafg::History::No)
                         .texture()
-                        .atStage(dabfg::Stage::PS)
-                        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                        .atStage(dafg::Stage::PS)
+                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
                         .handle();
     auto depthHndl = registry.read("depth_for_transparent_effects")
                        .texture()
-                       .atStage(dabfg::Stage::PS)
-                       .useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)
+                       .atStage(dafg::Stage::PS)
+                       .useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)
                        .handle();
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     return [targetHndl, depthHndl, cameraHndl, depth_gbufVarId = ::get_shader_variable_id("depth_gbuf")] {

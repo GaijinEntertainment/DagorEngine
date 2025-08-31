@@ -9,6 +9,7 @@
 #define VARS_LIST                  \
   VAR(jitter_offset_uv)            \
   VAR(uvz_to_prev_frame_uvz)       \
+  VAR(prev_frame_uvz_to_uvz)       \
   VAR(uvz_to_prev_frame_hero_bbox) \
   VAR(uvz_to_prev_frame_hero_uvz)  \
   VAR(zn_zfar_current_prev)        \
@@ -83,6 +84,14 @@ static void set_reprojection_params(const CameraParams &currentCamera, const Cam
 static void set_jitter_params(const Point2 &currentJitter, const Point2 &previousJitter)
 {
   jitter_offset_uvVarId.set_color4(currentJitter.x, currentJitter.y, previousJitter.x, previousJitter.y);
+}
+
+void set_reprojection_params_prev_to_curr(const CameraParams &currentCamera, const CameraParams &previousCamera)
+{
+  set_reprojection_params(currentCamera, previousCamera, eastl::nullopt);
+  TMatrix4 tm = uvz_to_prev_frame_uvzVarId.get_float4x4();
+  TMatrix4 itm = inverse44(tm);
+  prev_frame_uvz_to_uvzVarId.set_float4x4(itm);
 }
 
 void set_params(const CameraParams &currentCamera, const CameraParams &previousCamera, const Point2 &currentJitter,

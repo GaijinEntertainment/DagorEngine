@@ -3,7 +3,6 @@ include "viewVecVS.dshl"
 include "gbuffer.dshl"
 include "contact_shadows.dshl"
 include "depth_above.dshl"
-include "dagi_reflections.dshl"
 include "motion_vector_access.dshl"
 
 
@@ -36,9 +35,8 @@ shader render_big_light_shadows
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
   INIT_DEPTH_ABOVE(ps, blurred_depth)
-  USE_DEPTH_ABOVE_TC(ps)
+  USE_DEPTH_ABOVE(ps, blurred_depth)
   //GET_REFLECTIONS_FROM_GI(ps)
-  RAY_CAST_VOXELS_CASCADE(ps)
 
   (ps) {
     world_view_pos@f3 = world_view_pos;
@@ -69,66 +67,8 @@ shader render_big_light_shadows
   CONTACT_SHADOWS()
 
   hlsl(ps) {
-    ##if scene_voxels_alpha != NULL
-    void voxel_conesampled_shadow_cascade(uint cascade, inout half result, inout float3 worldPos, float3 wdir, inout float len, float maxDist, float threshold=0.05)
-    {
-      float2 dd = get_box_intersect_cascade(cascade, worldPos, wdir);
-      float cascadeSize = 2.*getSceneVoxelSize(cascade).x;
-      if (dd.x >= -cascadeSize || dd.y < cascadeSize)//either outside cascade or not intersect it
-        return;
-      float cStep = getSceneVoxelStep(cascade);//getSceneVoxelSize(cascade).x*0.95;//todo: mul can be removed
-      wdir *= cStep;
-      float3 coordF = sceneWorldPosToCoordF(worldPos, cascade);
-      float3 coordStepF = sceneWorldPosToCoordMoveF(wdir, cascade);
-
-      //float lenTo = min(dd.y+len, maxDist);
-      //for (; len < lenTo; len += cStep)
-      int to = int(min(dd.y-cascadeSize, maxDist-len)/cStep), i = 0;
-      for (; i<to; ++i)//for(int) loops seem to perform faster, than while loops
-      {
-        //if (any(coordF<0) || any(coordF>=VOXEL_RESOLUTION))
-        //  return false;
-        float3 wrappedTc = sceneVoxelsCoordToTc(coordF, cascade);
-        half alpha = sampleVoxelsAlpha(wrappedTc, 0);
-        result *= 1-alpha;
-        BRANCH
-        if (result<threshold)
-          break;
-        coordF += coordStepF;
-      }
-      worldPos = sceneCoordFToWorldPos(coordF, cascade);
-      len += cStep*i;
-    }
-    float voxel_conesampled_shadow(float3 worldPos, float3 wdir, inout float len, float maxLen, float threshold=0.02)
-    {
-      uint minCascade = 0;
-      float minCascadeSize = getSceneVoxelSize(minCascade).x;
-      //float3 startPos = worldPos + worldNormal*minCascadeSize*3 + minCascadeSize*wdir;//skip 3 voxels + step out 1 voxel from normal
-      float3 startPos = worldPos + (2*minCascadeSize+0.4)*wdir;//skip 2 voxels + fixed offset
-      float shadow  = 1;
-      voxel_conesampled_shadow_cascade(minCascade, shadow, startPos, wdir, len, max(maxLen/16, 2), threshold);
-      if (shadow > threshold)
-      {
-        minCascade = 1;
-        float cascadeSize = 2*getSceneVoxelSize(minCascade).x;
-        if (len < cascadeSize)
-          startPos += cascadeSize*wdir;
-        voxel_conesampled_shadow_cascade(minCascade, shadow, startPos, wdir, len, maxLen/4, threshold);
-        if (shadow > threshold)
-        {
-          minCascade = 2;
-          float cascadeSize = 2*getSceneVoxelSize(minCascade).x;
-          if (len < cascadeSize)
-            startPos += cascadeSize*wdir;
-          voxel_conesampled_shadow_cascade(minCascade, shadow, startPos, wdir, len, maxLen, threshold);
-        }
-      }
-      shadow*=shadow;
-      return shadow;
-    }
-    ##else
+    // TODO: add dagi2 SDF traversing for voxel shadows, right now we can easely fetch only sun occlusion
     float voxel_conesampled_shadow(float3 worldPos, float3 wdir, inout float len, float maxLen, float threshold=0.02){return 1;}
-    ##endif
 
     float get_big_light_shadow(float2 scrpos, float3 viewVect, float w, float3 cameraToPoint, float3 worldPos, float3 worldNormal, float3 lightPos, float light_radius)
     {
@@ -138,7 +78,7 @@ shader render_big_light_shadows
         return 0;//?? no light, but not nesessarily shadow
       float3 lightDir = lightToPoint*max(1e-6, rcp(distToLight));
       float2 hitUV;
-      float dither = interleavedGradientNoiseFramed(scrpos.xy, floor(shadow_frame));//if we have temporal aa
+      float dither = interleavedGradientNoiseFramed(scrpos.xy, shadow_frame);//if we have temporal aa
       float shadow = 1;
       float len = 0, maxLen = 32;
       shadow = voxel_conesampled_shadow(worldPos, lightDir, len, maxLen);
@@ -155,8 +95,7 @@ shader render_big_light_shadows
         {
           float3 rayPos = startPos + dist*rayDir;
           float vignette_effect;
-          float3 tc = getWorldBlurredDepthTC(rayPos, vignette_effect);
-          float rayHeightmap = decode_depth_above(tex3Dlod(blurred_depth, float4(tc, 0)).x);
+          float rayHeightmap = get_depth_above_fast(rayPos, vignette_effect);
           if (vignette_effect<0.99 && rayHeightmap - 0.25/dist > rayPos.y)// && rayHeightmap < rayPos.y + 2 + dist)//disocclusion
           {
             //shadow *= exp2(-0.1*dist);
@@ -350,7 +289,7 @@ shader temporal_big_light_shadows
       float4 ret = retV*rcp(max(totalWeight,1e-6));
       //ret = tex2Dlod(big_shadows_tex, float4(input.texcoord.xy,0,0));
       float2 screenTC = input.texcoord.xy;
-      float2 motionVector = fetch_motion_vector(screenTC, rawDepth).xy;
+      float2 motionVector = fetch_motion_vector_unjittered(screenTC, rawDepth).xy;
       float2 historyUV = screenTC + motionVector;
       bool bOffscreen = abs(historyUV.x*2-1) >= 1 || abs(historyUV.y*2-1) >= 1;
 

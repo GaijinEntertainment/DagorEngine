@@ -27,8 +27,8 @@
 #include <util/dag_watchdog.h>
 #include <statsd/statsd.h>
 #include <ioSys/dag_dataBlock.h>
-#if _TARGET_XBOX
-#include <gdk/user.h>
+#if _TARGET_C4
+
 #endif
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
@@ -64,6 +64,7 @@
 #include "netConsts.h"
 #include "netPrivate.h"
 
+#include <rendInst/riexSync.h>
 #include "game/riDestr.h"
 #include "game/player.h"
 
@@ -74,8 +75,9 @@
 #include "main/gameLoad.h"
 #include "main/vromfs.h"
 
+#include <daECS/net/urlUtils.h>
+
 ECS_REGISTER_EVENT(CmdAddInitialEntitiesInNetScope)
-ECS_REGISTER_EVENT(CmdAddDefaultEntitiesInNetScope)
 ECS_REGISTER_EVENT(OnNetControlClientCreated)
 ECS_REGISTER_EVENT(OnNetControlClientDestroyed)
 ECS_REGISTER_EVENT(OnNetControlClientInfoMsg)
@@ -122,10 +124,11 @@ ECS_NET_IMPL_MSG(SyncVromsDone,
 extern void gather_replay_meta_info();
 extern void clear_replay_meta_info();
 extern Tab<uint8_t> gen_replay_meta_data();
-extern bool try_create_replay_playback();
+extern bool try_create_replay_playback(ecs::EntityManager &mgr);
 extern void server_create_replay_record();
-net::CNetwork &net_ctx_init_client(net::INetDriver *drv);
+net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv);
 extern void finalize_replay_record(const char *rpath);
+extern void ucr_send_hello(const char *); // from daNet
 
 typedef net::INetworkObserver *(*create_net_observer_cb_t)(void *, size_t);
 
@@ -149,8 +152,8 @@ struct NetCtx
 
   net::INetworkObserver *getNetObserver() { return reinterpret_cast<net::INetworkObserver *>(&netObserverStorage); }
 
-  NetCtx(net::INetDriver *drv, create_net_observer_cb_t create_obsrv_) :
-    network(*new net::CNetwork(drv, getNetObserver(), NET_PROTO_VERSION, net::get_session_id())),
+  NetCtx(ecs::EntityManager &mgr, net::INetDriver *drv, create_net_observer_cb_t create_obsrv_) :
+    network(*new net::CNetwork(mgr, drv, getNetObserver(), NET_PROTO_VERSION, net::get_session_id())),
     zeroptr(nullptr),
     create_obsrv(create_obsrv_)
   {
@@ -279,10 +282,10 @@ static inline NetCtx &get_net_ctx_ref()
   return *net_ctx.get();
 }
 
-static void on_client_disconnected(DisconnectionCause cause)
+static void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause cause)
 {
   last_client_dc = cause;
-  g_entity_mgr->broadcastEvent(EventOnDisconnectedFromServer(cause));
+  manager.broadcastEvent(EventOnDisconnectedFromServer(cause));
 }
 
 net::ServerFlags net::get_server_flags() { return net_ctx ? net_ctx->srvFlags : net::ServerFlags::None; }
@@ -301,6 +304,7 @@ bool is_true_net_server()
 }
 bool has_network() { return get_net_internal() != NULL; }
 ITimeManager &get_time_mgr() { return *g_time.get(); }
+float get_sync_time() { return get_time_mgr().getSeconds(); }
 void set_time_internal(ITimeManager *tmgr) { g_time.reset(tmgr); }
 
 net::IConnection *get_server_conn()
@@ -377,7 +381,7 @@ int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId to_eid, net::IMessage &&
         if (net::event::try_receive(*msgPtr, mgr, to_eid))
           ;
         else
-          g_entity_mgr->sendEventImmediate(to_eid, ecs::EventNetMessage(eastl::move(msgPtr)));
+          mgr.sendEventImmediate(to_eid, ecs::EventNetMessage(eastl::move(msgPtr)));
         numSends = 1;
       }
     }
@@ -401,7 +405,7 @@ int get_no_packets_time_ms()
   return (last && curTime >= last) ? curTime - last : 0;
 }
 
-static void switch_unresponsive_server_addr(NetCtx &nctx)
+static void switch_unresponsive_server_addr(ecs::EntityManager &manager, NetCtx &nctx)
 {
   net::IConnection *sconn = (s_server_urls.size() >= 2) ? nctx.getNet().getServerConnection() : nullptr;
   if (!sconn)
@@ -423,9 +427,9 @@ static void switch_unresponsive_server_addr(NetCtx &nctx)
   G_ASSERT_RETURN(current_server_url_i < s_server_urls.size(), );
 
   logwarn("No network packets for %d ms from %s", nopktt, s_server_urls[current_server_url_i].c_str());
-  g_entity_mgr->broadcastEvent(ChangeServerRoute{/*currentIsUnresponsive*/ true});
+  manager.broadcastEvent(ChangeServerRoute{/*currentIsUnresponsive*/ true});
   eastl::string country_code;
-  g_entity_mgr->broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country_code});
+  manager.broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country_code});
   statsd::counter("net.server_addr_change", 1,
     {{"addr", get_server_route_host(current_server_url_i)}, {"country", country_code.c_str()}});
   const int timeToSwitchFast =
@@ -437,6 +441,7 @@ static void switch_unresponsive_server_addr(NetCtx &nctx)
 void flush_new_connection(net::IConnection &conn)
 {
   propsreg::flush_net_registry(conn);
+  riexsync::send_initial_snapshot_to(conn);
   ridestr::send_initial_ridestr(conn);
   if (!conn.isBlackHole())
     g_entity_mgr->broadcastEventImmediate(CmdAddInitialEntitiesInNetScope{conn.getId()});
@@ -478,12 +483,12 @@ struct NetControlClient : public net::INetworkObserver
       conn.setEncryptionKey(net_ctx->encryptionKey, net::EncryptionKeyBits::Decryption);
     debug("Connected to server, wait for msg_sink creation");
   }
-  virtual void onDisconnect(net::Connection *, DisconnectionCause cause) override
+  virtual void onDisconnect(net::Connection *, DisconnectionCause cause, ecs::EntityManager &mgr) override
   {
-    if (cause == DC_CONNECTTION_ATTEMPT_FAILED)
+    if (cause == DC_CONNECTION_ATTEMPT_FAILED)
     {
       eastl::string country_code;
-      g_entity_mgr->broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country_code});
+      mgr.broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country_code});
       statsd::counter("net.connect_failed", 1,
         {{"addr", get_server_route_host(current_server_url_i)}, {"country", country_code.c_str()}});
       if (const char *nextSurl = select_next_server_url(/*rotate*/ false))
@@ -496,9 +501,9 @@ struct NetControlClient : public net::INetworkObserver
       else // no more server urls to connect to
         statsd::counter("net.host_connect_failed", 1, {{"addr", get_server_route_host(0)}, {"country", country_code.c_str()}});
     }
-    g_entity_mgr->broadcastEventImmediate(OnNetControlClientDisconnect{});
-    on_client_disconnected(cause);
-    if (cause == DC_CONNECTTION_ATTEMPT_FAILED && dgs_get_argv("fatal_on_failed_conn"))
+    mgr.broadcastEventImmediate(OnNetControlClientDisconnect{});
+    on_client_disconnected(mgr, cause);
+    if (cause == DC_CONNECTION_ATTEMPT_FAILED && dgs_get_argv("fatal_on_failed_conn"))
       DAG_FATAL("Unable to connect to server");
   }
 
@@ -518,9 +523,9 @@ ECS_NET_IMPL_MSG(ServerInfo,
   ECS_NET_NO_DUP,
   &NetControlClient::onServerInfoMsg);
 
-net::CNetwork &net_ctx_init_client(net::INetDriver *drv)
+net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv)
 {
-  auto &cnet = net_ctx.demandInit(drv, &NetControlClient::create)->network;
+  auto &cnet = net_ctx.demandInit(mgr, drv, &NetControlClient::create)->network;
   net_ctx->createObserver();
   return cnet;
 }
@@ -638,12 +643,12 @@ struct ListenServerNetObserver final : public net::INetworkObserver // Warn: no 
     }
   }
 
-  void onDisconnect(net::Connection *conn, DisconnectionCause cause) override
+  void onDisconnect(net::Connection *conn, DisconnectionCause cause, ecs::EntityManager &mgr) override
   {
     G_FAST_ASSERT(conn != nullptr); // on server conn can't be null here
     debug("Client #%d disconnected with %s", (int)conn->getId(), describe_disconnection_cause(cause));
     // send immediately because connection might get destroyed after this
-    g_entity_mgr->broadcastEventImmediate(EventOnClientDisconnected(conn->getId(), cause));
+    mgr.broadcastEventImmediate(EventOnClientDisconnected(conn->getId(), cause));
   }
 };
 static net::INetworkObserver *create_listen_server_net_observer(void *buf, size_t bufsz)
@@ -656,7 +661,7 @@ static net::INetworkObserver *create_listen_server_net_observer(void *buf, size_
 static net::INetworkObserver *create_listen_server_net_observer(void *, size_t) { return nullptr; }
 #endif
 
-bool net_init_early()
+bool net_init_early(ecs::EntityManager &mgr)
 {
   net::INetDriver *drv = dedicated::create_listen_net_driver();
   if (const char *listen = (!dedicated::is_dedicated() && DAGOR_DBGLEVEL > 0) ? dgs_get_argv("listen") : NULL) //-V560
@@ -672,28 +677,42 @@ bool net_init_early()
     }
   }
   if (drv)
-    net_ctx.demandInit(drv, dedicated::is_dedicated() ? &dedicated::create_server_net_observer : &create_listen_server_net_observer);
+    net_ctx.demandInit(mgr, drv,
+      dedicated::is_dedicated() ? &dedicated::create_server_net_observer : &create_listen_server_net_observer);
+
+  if (dedicated::is_dedicated() && drv)
+  {
+    const char *relay_connection = dgs_get_argv("relay_connection");
+    if (relay_connection)
+    {
+      debug("initiating relay connection to host/port '%s'", relay_connection);
+      if (!drv->connect(relay_connection, 0, true))
+        DAG_FATAL("failed to initiate connection with relay host/port '%s'", relay_connection);
+      debug("initiated relay connection to host/port '%s'", relay_connection);
+    }
+  }
+
   return true;
 }
 
 static eastl::string get_platform_uid()
 {
-#if _TARGET_XBOX
-  return gdk::active_user::get_xuid_str();
+#if _TARGET_C4
+
 #else
   // To consider: what about ps4/5, nswitch?
   return eastl::string{};
 #endif
 }
 
-static void on_msg_sink_created_client(ecs::EntityId msg_sink_eid, const dag::Vector<uint8_t> &auth_key)
+static void on_msg_sink_created_client(ecs::EntityManager &manager, ecs::EntityId msg_sink_eid, const dag::Vector<uint8_t> &auth_key)
 {
   uint16_t clientFlags = app_profile::get().replay.record ? CNF_REPLAY_RECORDING : 0;
   if (DAGOR_DBGLEVEL > 0)
     clientFlags |= CNF_DEVELOPER;
 
   matching::UserId userId = net::get_user_id();
-  g_entity_mgr->broadcastEventImmediate(OnMsgSinkCreatedClient{&clientFlags});
+  manager.broadcastEventImmediate(OnMsgSinkCreatedClient{&clientFlags});
 
   debug("msg_sink created, send client info to server, client flags = 0x%x", (int)clientFlags);
 
@@ -704,17 +723,17 @@ static void on_msg_sink_created_client(ecs::EntityId msg_sink_eid, const dag::Ve
 
   ClientInfo cimsg(NET_PROTO_VERSION, userId, eastl::string(net::get_user_name()), clientFlags, auth_key,
     eastl::string(get_platform_string_id()), get_platform_uid(), get_exe_version32(), syncVromsStream);
-  send_net_msg(msg_sink_eid, eastl::move(cimsg));
+  send_net_msg(manager, msg_sink_eid, eastl::move(cimsg));
 }
 
-static void net_connect(const eastl::string &server_url, net::ConnectParams &&connect_params)
+static void net_connect(ecs::EntityManager &mgr, const eastl::string &server_url, net::ConnectParams &&connect_params)
 {
   G_ASSERT(!net_ctx);
   net::INetDriver *netDrv = net::create_net_driver_connect(server_url.c_str(), NET_PROTO_VERSION), *drv = netDrv;
   if (!netDrv)
   {
     logwarn("failed connect to '%s'", server_url);
-    on_client_disconnected(DC_CONNECTTION_ATTEMPT_FAILED);
+    on_client_disconnected(mgr, DC_CONNECTION_ATTEMPT_FAILED);
     return;
   }
   eastl::optional<eastl::string> &recordOpt = app_profile::getRW().replay.record;
@@ -733,18 +752,18 @@ static void net_connect(const eastl::string &server_url, net::ConnectParams &&co
   }
   if (drv)
   {
-    net_ctx_init_client(drv);
+    net_ctx_init_client(mgr, drv);
     net_ctx->encryptionKey = eastl::move(connect_params.encryptKey);
     net::set_msg_sink_created_cb(
-      [authKey = eastl::move(connect_params.authKey)](ecs::EntityId eid) { on_msg_sink_created_client(eid, authKey); });
+      [authKey = eastl::move(connect_params.authKey), &mgr](ecs::EntityId eid) { on_msg_sink_created_client(mgr, eid, authKey); });
     g_time.reset(create_client_time());
-    net::event::init_client();
+    net::event::init_client(&mgr);
     netstat::init();
     set_window_title("Client");
   }
 }
 
-bool net_init_late_client(net::ConnectParams &&connect_params)
+bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManager &mgr)
 {
 #if DAGOR_DBGLEVEL == 0
   if (has_in_game_editor())
@@ -760,7 +779,7 @@ bool net_init_late_client(net::ConnectParams &&connect_params)
     {
       s_server_urls.clear();
       eastl::string country;
-      g_entity_mgr->broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country});
+      mgr.broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country});
       for (int i = 0; i < connect_params.serverUrls.size(); ++i)
       {
         s_server_urls.emplace_back(eastl::move(connect_params.serverUrls[i]));
@@ -771,13 +790,15 @@ bool net_init_late_client(net::ConnectParams &&connect_params)
       }
       current_server_url_i = 0;
       if (!s_server_urls.empty())
-        net_connect(s_server_urls.front(), eastl::move(connect_params));
+        net_connect(mgr, s_server_urls.front(), eastl::move(connect_params));
       else
         logwarn("net_init_late_client failed due to empty server urls list");
+      for (int i = 1; i < s_server_urls.size(); ++i) // Note: 0th is sent on connect
+        ucr_send_hello(s_server_urls[i].c_str());
     }
     else if (!app_profile::get().replay.playFile.empty())
     {
-      if (!try_create_replay_playback())
+      if (!try_create_replay_playback(mgr))
         DAG_FATAL("incorrect replay!");
     }
     if (g_time.get() == &dummy_time)
@@ -788,7 +809,7 @@ bool net_init_late_client(net::ConnectParams &&connect_params)
 }
 
 
-void net_init_late_server()
+void net_init_late_server(ecs::EntityManager &mgr)
 {
   net::CNetwork *net = get_net_internal();
   if ((net && !net->isServer()) || !app_profile::get().replay.playFile.empty()) // client
@@ -802,24 +823,25 @@ void net_init_late_server()
     G_ASSERT(net->isServer());
     net_ctx->createObserver();
 
-    g_entity_mgr->setEidsReservationMode(true);
-    create_simple_entity("msg_sink"); // create dummy entity for sending (only for server though, on client it's created from server)
+    mgr.setEidsReservationMode(true);
+    // create dummy entity for sending (only for server though, on client it's created from server)
+    create_simple_entity(mgr, "msg_sink");
 
     g_time.reset(create_server_time()); // before adding connection because it's used on connect
 
     if (dgs_get_settings()->getBlockByNameEx("net")->getBool("enableScopeQuery", false))
-      net_ctx->getNet().setScopeQueryCb([](net::Connection *c) { g_entity_mgr->broadcastEventImmediate(EventNetScopeQuery(c)); });
+      net_ctx->getNet().setScopeQueryCb([&mgr](net::Connection *c) { mgr.broadcastEventImmediate(EventNetScopeQuery(c)); });
 
     server_create_replay_record(); // right after timer creation (with 0 async time)
 
-    net::event::init_server();
+    net::event::init_server(&mgr);
     propsreg::init_net_registry_server();
   }
   else // single player
   {
-    create_simple_entity("msg_sink");
+    create_simple_entity(mgr, "msg_sink");
     net::MessageClass::init(/*server*/ true);
-    net::event::init_server();
+    net::event::init_server(&mgr);
     g_time.reset(create_accum_time());
   }
   G_ASSERT(g_time.get() != &dummy_time);
@@ -834,8 +856,8 @@ void net_update()
   int curMs = get_time_mgr().getAsyncMillis();
   nctx->update(curMs);
   netstat::update(curMs);
-  g_entity_mgr->broadcastEventImmediate(OnNetUpdate{});
-  switch_unresponsive_server_addr(*nctx);
+  nctx->network.getEntityManager().broadcastEventImmediate(OnNetUpdate{});
+  switch_unresponsive_server_addr(nctx->network.getEntityManager(), *nctx);
 }
 
 static void net_dump_stats()
@@ -848,7 +870,7 @@ static bool net_console_handler(const char *argv[], int argc)
 {
   if (argc < 1)
     return false;
-  int found = false;
+  int found = 0;
   CONSOLE_CHECK_NAME("net", "change_server_addr", 1, 2)
   {
     if (net::IConnection *conn = get_server_conn())
@@ -875,16 +897,16 @@ void net_on_before_emgr_clear()
 
   bool wasNet = (bool)net_ctx;
   if (wasNet) // immediate send otherwise it might be lost while we unload game or close app
-    g_entity_mgr->broadcastEventImmediate(EventOnNetworkDestroyed(last_client_dc));
+    net_ctx->network.getEntityManager().broadcastEventImmediate(EventOnNetworkDestroyed(last_client_dc));
 }
 
-void net_destroy(bool final)
+void net_destroy(ecs::EntityManager &mgr, bool final)
 {
   net_dump_stats();
   net_ctx.demandDestroy();
   g_time.reset(&dummy_time);
   if (ecs::EntityId msg_sink_eid = net::get_msg_sink())
-    g_entity_mgr->destroyEntity(msg_sink_eid);
+    mgr.destroyEntity(msg_sink_eid);
   netstat::term();
   propsreg::term_net_registry();
   net::event::shutdown();
@@ -896,7 +918,7 @@ void net_destroy(bool final)
   set_window_title(nullptr);
   clear_replay_meta_info();
   last_client_dc = DC_CONNECTION_CLOSED; // reset to default
-  g_entity_mgr->broadcastEventImmediate(OnNetDestroy{final});
+  mgr.broadcastEventImmediate(OnNetDestroy{final});
 }
 
 void net_stop()

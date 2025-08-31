@@ -12,9 +12,9 @@ DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRA
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
   ST_DOWNED);
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
-DAS_BASE_BIND_ENUM(RidingState, RidingState, E_NOT_RIDING, E_RIDING_STAND, E_RIDING_WALK, E_RIDING_SPRINT);
 
 DAS_ANNOTATE_VECTOR(HumanWeaponParamsArray, HumanWeaponParamsArray)
+DAS_ANNOTATE_VECTOR(HumanPhysAlignSpeedsArray, HumanPhysAlignSpeedsArray)
 
 struct HumanControlStateAnnotation : das::ManagedStructureAnnotation<HumanControlState, false>
 {
@@ -23,6 +23,7 @@ struct HumanControlStateAnnotation : das::ManagedStructureAnnotation<HumanContro
     cppName = " ::HumanControlState";
     addField<DAS_BIND_MANAGED_FIELD(producedAtTick)>("producedAtTick");
     addField<DAS_BIND_MANAGED_FIELD(packedState)>("packedState", "packedState");
+    addField<DAS_BIND_MANAGED_FIELD(extendedState)>("extendedState");
     addField<DAS_BIND_MANAGED_FIELD(walkPacked)>("walkPacked", "walkPacked");
     addField<DAS_BIND_MANAGED_FIELD(wishLookDirPacked.val)>("wishLookDirPacked", "wishLookDirPacked.val");
     addField<DAS_BIND_MANAGED_FIELD(wishShootDirPacked.val)>("wishShootDirPacked", "wishShootDirPacked.val");
@@ -139,6 +140,7 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(spdSummaryDiff)>("spdSummaryDiff");
 
     addField<DAS_BIND_MANAGED_FIELD(deltaVelIgnoreAmount)>("deltaVelIgnoreAmount");
+    addField<DAS_BIND_MANAGED_FIELD(distFromWaterSurface)>("distFromWaterSurface");
     addField<DAS_BIND_MANAGED_FIELD(staminaDrainMult)>("staminaDrainMult");
     addField<DAS_BIND_MANAGED_FIELD(moveSpeedMult)>("moveSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(isWishToMove)>("isWishToMove");
@@ -164,12 +166,14 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     // NOTE: please add new field according to fields order
     // TODO: overrideWallClimb : 1
     addField<DAS_BIND_MANAGED_FIELD(ladderTm)>("ladderTm");
+    addField<DAS_BIND_MANAGED_FIELD(ladderNumSteps)>("ladderNumSteps");
     addField<DAS_BIND_MANAGED_FIELD(guidedByLadder)>("guidedByLadder");
     addField<DAS_BIND_MANAGED_FIELD(climbFromPos)>("climbFromPos");
     addField<DAS_BIND_MANAGED_FIELD(climbToPos)>("climbToPos");
     addField<DAS_BIND_MANAGED_FIELD(climbContactPos)>("climbContactPos");
     addField<DAS_BIND_MANAGED_FIELD(climbDir)>("climbDir");
     addField<DAS_BIND_MANAGED_FIELD(climbNorm)>("climbNorm");
+    addField<DAS_BIND_MANAGED_FIELD(climbPosBehindObstacle)>("climbPosBehindObstacle");
     addField<DAS_BIND_MANAGED_FIELD(climbDeltaHt)>("climbDeltaHt");
     addField<DAS_BIND_MANAGED_FIELD(climbStartAtTime)>("climbStartAtTime");
 
@@ -242,14 +246,155 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addProperty<DAS_BIND_MANAGED_PROP(getAuthorityApprovedState)>("authorityApprovedState", "getAuthorityApprovedState");
     addField<DAS_BIND_MANAGED_FIELD(authorityApprovedPartialState)>("authorityApprovedPartialState");
     addField<DAS_BIND_MANAGED_FIELD(visualLocation)>("visualLocation");
+    addField<DAS_BIND_MANAGED_FIELD(visualLocation)>("visualLocationError");
+    addField<DAS_BIND_MANAGED_FIELD(visualLocationErrorProductionTime)>("visualLocationErrorProductionTime");
     // NOTE: please add new field according to fields order
     // PhysicsBase end
 
     // HumanPhys begin
     // NOTE: please add new field according to fields order
+    addField<DAS_BIND_MANAGED_FIELD(alignSpeeds)>("alignSpeeds");
+    addField<DAS_BIND_MANAGED_FIELD(externalFrictionPerSpeedMult)>("externalFrictionPerSpeedMult");
+    addField<DAS_BIND_MANAGED_FIELD(minWalkSpeed)>("minWalkSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(aimingMoveSpeed)>("aimingMoveSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(moveStateThreshold)>("moveStateThreshold");
     addField<DAS_BIND_MANAGED_FIELD(speedCollisionHardness)>("speedCollisionHardness");
+
+    addField<DAS_BIND_MANAGED_FIELD(acceleration)>("acceleration");
+    addField<DAS_BIND_MANAGED_FIELD(frictionGroundCoeff)>("frictionGroundCoeff");
+    addField<DAS_BIND_MANAGED_FIELD(frictionThresSpdMult)>("frictionThresSpdMult");
+
+    addField<DAS_BIND_MANAGED_FIELD(accelSubframes)>("accelSubframes");
+
+    addField<DAS_BIND_MANAGED_FIELD(airAccelerate)>("airAccelerate");
+
+    addField<DAS_BIND_MANAGED_FIELD(minWalkControl)>("minWalkControl");
+
+    addField<DAS_BIND_MANAGED_FIELD(waterFrictionResistance)>("waterFrictionResistance");
+    addField<DAS_BIND_MANAGED_FIELD(waterJumpingResistance)>("waterJumpingResistance");
+    addField<DAS_BIND_MANAGED_FIELD(maxJumpHeight)>("maxJumpHeight");
+    addField<DAS_BIND_MANAGED_FIELD(beforeJumpDelay)>("beforeJumpDelay");
+    addField<DAS_BIND_MANAGED_FIELD(beforeJumpCrouchHeight)>("beforeJumpCrouchHeight");
+    addField<DAS_BIND_MANAGED_FIELD(canWallJump)>("canWallJump");
+    addField<DAS_BIND_MANAGED_FIELD(climber)>("climber");
+    addField<DAS_BIND_MANAGED_FIELD(isInertMovement)>("isInertMovement");
+    addField<DAS_BIND_MANAGED_FIELD(canStartSprintWithResistance)>("canStartSprintWithResistance");
+    addField<DAS_BIND_MANAGED_FIELD(additionalHeightCheck)>("additionalHeightCheck");
+
+    addField<DAS_BIND_MANAGED_FIELD(ladderClimbSpeed)>("ladderClimbSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(ladderQuickMoveUpSpeedMult)>("ladderQuickMoveUpSpeedMult");
+    addField<DAS_BIND_MANAGED_FIELD(ladderQuickMoveDownSpeedMult)>("ladderQuickMoveDownSpeedMult");
+    addField<DAS_BIND_MANAGED_FIELD(ladderZeroVelocityHeight)>("ladderZeroVelocityHeight");
+    addField<DAS_BIND_MANAGED_FIELD(ladderMaxOverHeight)>("ladderMaxOverHeight");
+
+    addField<DAS_BIND_MANAGED_FIELD(stepAccel)>("stepAccel");
+
+    addField<DAS_BIND_MANAGED_FIELD(maxObstacleHeight)>("maxObstacleHeight");
+    addField<DAS_BIND_MANAGED_FIELD(maxStepOverHeight)>("maxStepOverHeight");
+    addField<DAS_BIND_MANAGED_FIELD(maxCrawlObstacleHeight)>("maxCrawlObstacleHeight");
+    addField<DAS_BIND_MANAGED_FIELD(maxObstacleDownReach)>("maxObstacleDownReach");
+
+    addField<DAS_BIND_MANAGED_FIELD(forceDownReachDists)>("forceDownReachDists");
+    addField<DAS_BIND_MANAGED_FIELD(forceDownReachVel)>("forceDownReachVel");
+
+    addField<DAS_BIND_MANAGED_FIELD(lastCrawlingForceUpTime)>("lastCrawlingForceUpTime");
+    addField<DAS_BIND_MANAGED_FIELD(lastCrawlingOutTimer)>("lastCrawlingOutTimer");
+    addField<DAS_BIND_MANAGED_FIELD(blockForceUpCrawlingTimer)>("blockForceUpCrawlingTimer");
+
+    addField<DAS_BIND_MANAGED_FIELD(turnSpeedStill)>("turnSpeedStill");
+    addField<DAS_BIND_MANAGED_FIELD(turnSpeedWalk)>("turnSpeedWalk");
+    addField<DAS_BIND_MANAGED_FIELD(turnSpeedRun)>("turnSpeedRun");
+    addField<DAS_BIND_MANAGED_FIELD(turnSpeedSprint)>("turnSpeedSprint");
+
+    addField<DAS_BIND_MANAGED_FIELD(maxSprintSin)>("maxSprintSin");
+    addField<DAS_BIND_MANAGED_FIELD(maxRunSin)>("maxRunSin");
+
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeTauDef)>("heightChangeTauDef");
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeDeltaDef)>("heightChangeDeltaDef");
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeSprK)>("heightChangeSprK");
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeDamp)>("heightChangeDamp");
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeDeltaClampMin)>("heightChangeDeltaClampMin");
+    addField<DAS_BIND_MANAGED_FIELD(heightChangeDeltaClampMax)>("heightChangeDeltaClampMax");
+
+    addField<DAS_BIND_MANAGED_FIELD(sprintStaminaDrain)>("sprintStaminaDrain");
+    addField<DAS_BIND_MANAGED_FIELD(restStaminaRestore)>("restStaminaRestore");
+    addField<DAS_BIND_MANAGED_FIELD(jumpStaminaDrain)>("jumpStaminaDrain");
+    addField<DAS_BIND_MANAGED_FIELD(climbStaminaDrain)>("climbStaminaDrain");
+    addField<DAS_BIND_MANAGED_FIELD(sprintEndStaminaLevel)>("sprintEndStaminaLevel");
+    addField<DAS_BIND_MANAGED_FIELD(sprintStartStaminaLevel)>("sprintStartStaminaLevel");
+    addField<DAS_BIND_MANAGED_FIELD(ladderStaminaDrain)>("ladderStaminaDrain");
+
+    addField<DAS_BIND_MANAGED_FIELD(standSlideAngle)>("standSlideAngle");
+    addField<DAS_BIND_MANAGED_FIELD(crawlSlideAngle)>("crawlSlideAngle");
+    addField<DAS_BIND_MANAGED_FIELD(climbSlideAngle)>("climbSlideAngle");
+
+    addField<DAS_BIND_MANAGED_FIELD(maxStepAngle)>("maxStepAngle");
+
+    addField<DAS_BIND_MANAGED_FIELD(crawlWalkNormTau)>("crawlWalkNormTau");
+
+    addField<DAS_BIND_MANAGED_FIELD(wallJumpSpd)>("wallJumpSpd");
+    addField<DAS_BIND_MANAGED_FIELD(wallJumpOffset)>("wallJumpOffset");
+
+    addField<DAS_BIND_MANAGED_FIELD(climbOnPos)>("climbOnPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbOnRad)>("climbOnRad");
+    addField<DAS_BIND_MANAGED_FIELD(climbLadderHeight)>("climbLadderHeight");
+    addField<DAS_BIND_MANAGED_FIELD(climbPositions)>("climbPositions");
+
+    addField<DAS_BIND_MANAGED_FIELD(climbDetachProjLen)>("climbDetachProjLen");
+    addField<DAS_BIND_MANAGED_FIELD(swimOffsetForClimb)>("swimOffsetForClimb");
+    addField<DAS_BIND_MANAGED_FIELD(additionalClimbRad)>("additionalClimbRad");
+    addField<DAS_BIND_MANAGED_FIELD(additionalClimbPositions)>("additionalClimbPositions");
+    addField<DAS_BIND_MANAGED_FIELD(climbGridFrames)>("climbGridFrames");
+    addField<DAS_BIND_MANAGED_FIELD(maxClimbPositionsPerFrame)>("maxClimbPositionsPerFrame");
+
+    addField<DAS_BIND_MANAGED_FIELD(maxClimbSpeed)>("maxClimbSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(climbVertAccel)>("climbVertAccel");
+    addField<DAS_BIND_MANAGED_FIELD(climbVertBrake)>("climbVertBrake");
+    addField<DAS_BIND_MANAGED_FIELD(climbVertBrakeMaxTime)>("climbVertBrakeMaxTime");
+    addField<DAS_BIND_MANAGED_FIELD(maxClimbHorzVel)>("maxClimbHorzVel");
+    addField<DAS_BIND_MANAGED_FIELD(climbHorzAccel)>("climbHorzAccel");
+    addField<DAS_BIND_MANAGED_FIELD(climbHorzBrake)>("climbHorzBrake");
+    addField<DAS_BIND_MANAGED_FIELD(climbBrakeHeight)>("climbBrakeHeight");
+    addField<DAS_BIND_MANAGED_FIELD(climbTimeout)>("climbTimeout");
+    addField<DAS_BIND_MANAGED_FIELD(climbDistance)>("climbDistance");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverDistance)>("climbOverDistance");
+    addField<DAS_BIND_MANAGED_FIELD(climbAngleCos)>("climbAngleCos");
+    addField<DAS_BIND_MANAGED_FIELD(climbMinHorzSize)>("climbMinHorzSize");
+    addField<DAS_BIND_MANAGED_FIELD(climbOnMinVertSize)>("climbOnMinVertSize");
+    addField<DAS_BIND_MANAGED_FIELD(climbThroughMinVertSize)>("climbThroughMinVertSize");
+    addField<DAS_BIND_MANAGED_FIELD(climbThroughForwardDist)>("climbThroughForwardDist");
+    addField<DAS_BIND_MANAGED_FIELD(climbThroughPosOffset)>("climbThroughPosOffset");
+    addField<DAS_BIND_MANAGED_FIELD(climbMaxVelLength)>("climbMaxVelLength");
+    addField<DAS_BIND_MANAGED_FIELD(maxHeightForFastClimbing)>("maxHeightForFastClimbing");
+    addField<DAS_BIND_MANAGED_FIELD(fastClimbingMult)>("fastClimbingMult");
+
+    addField<DAS_BIND_MANAGED_FIELD(climbOverMaxHeight)>("climbOverMaxHeight");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverHeightThreshold)>("climbOverHeightThreshold");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverForwardOffset)>("climbOverForwardOffset");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverMinHeightBehindObstacle)>("climbOverMinHeightBehindObstacle");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverMaxHeightBehindObstacle)>("climbOverMaxHeightBehindObstacle");
+    addField<DAS_BIND_MANAGED_FIELD(climbOverStaticVelocity)>("climbOverStaticVelocity");
+
+    addField<DAS_BIND_MANAGED_FIELD(sprintStopCollisionStart)>("sprintStopCollisionStart");
+    addField<DAS_BIND_MANAGED_FIELD(sprintStopCollisionEnd)>("sprintStopCollisionEnd");
+    addField<DAS_BIND_MANAGED_FIELD(sprintStopCollisionRad)>("sprintStopCollisionRad");
+    addField<DAS_BIND_MANAGED_FIELD(enableSprintStopCollision)>("enableSprintStopCollision");
+    addField<DAS_BIND_MANAGED_FIELD(limitCcdOnAttachingToExternalGun)>("limitCcdOnAttachingToExternalGun");
+    addField<DAS_BIND_MANAGED_FIELD(attachedToExternalGunCcdPos)>("attachedToExternalGunCcdPos");
+
+    addField<DAS_BIND_MANAGED_FIELD(isTorsoInWorld)>("isTorsoInWorld");
+    addField<DAS_BIND_MANAGED_FIELD(stateChangeCollAnimSpeed)>("stateChangeCollAnimSpeed");
+
+    addFieldEx("gunNodeName", "gunNodeName", offsetof(HumanPhys, gunNodeName), das::makeType<char *>(ml));
+
+    addField<DAS_BIND_MANAGED_FIELD(gunLinkNameId)>("gunLinkNameId");
+
+    addField<DAS_BIND_MANAGED_FIELD(traceCacheOOBB)>("traceCacheOOBB");
+    addField<DAS_BIND_MANAGED_FIELD(traceCacheExpands)>("traceCacheExpands");
+
     addField<DAS_BIND_MANAGED_FIELD(crouchHeight)>("crouchHeight");
     addField<DAS_BIND_MANAGED_FIELD(standingHeight)>("standingHeight");
+    addField<DAS_BIND_MANAGED_FIELD(ladderCheckClimbHeight)>("ladderCheckClimbHeight");
     addField<DAS_BIND_MANAGED_FIELD(walkRad)>("walkRad");
     addField<DAS_BIND_MANAGED_FIELD(collRad)>("collRad");
     addField<DAS_BIND_MANAGED_FIELD(ccdRad)>("ccdRad");
@@ -265,9 +410,15 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(mass)>("mass");
     // NOTE: please add new field according to fields order
     addField<DAS_BIND_MANAGED_FIELD(swimPosOffset)>("swimPosOffset");
+    addField<DAS_BIND_MANAGED_FIELD(underwaterSwimPosOffset)>("underwaterSwimPosOffset");
 
-    addField<DAS_BIND_MANAGED_FIELD(swimmingLevelBias)>("swimmingLevelBias");
     addField<DAS_BIND_MANAGED_FIELD(waterSwimmingLevel)>("waterSwimmingLevel");
+    addField<DAS_BIND_MANAGED_FIELD(swimmingAcceleration)>("swimmingAcceleration");
+    addField<DAS_BIND_MANAGED_FIELD(swimmingLevelBias)>("swimmingLevelBias");
+    addField<DAS_BIND_MANAGED_FIELD(swimmingLookAngleSin)>("swimmingLookAngleSin");
+
+    addField<DAS_BIND_MANAGED_FIELD(maxVerticalDirChangeCosine)>("maxVerticalDirChangeCosine");
+    addField<DAS_BIND_MANAGED_FIELD(vertDirChangeTau)>("vertDirChangeTau");
 
     addField<DAS_BIND_MANAGED_FIELD(canCrawl)>("canCrawl");
     addField<DAS_BIND_MANAGED_FIELD(canCrouch)>("canCrouch");
@@ -276,6 +427,8 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(canJump)>("canJump");
     addField<DAS_BIND_MANAGED_FIELD(canMove)>("canMove");
     addField<DAS_BIND_MANAGED_FIELD(canSwitchWeapon)>("canSwitchWeapon");
+    addField<DAS_BIND_MANAGED_FIELD(isSimplifiedPhys)>("isSimplifiedPhys");
+    addField<DAS_BIND_MANAGED_FIELD(isSimplifiedQueryWalkPosition)>("isSimplifiedQueryWalkPosition");
     addField<DAS_BIND_MANAGED_FIELD(hasGuns)>("hasGuns");
     addField<DAS_BIND_MANAGED_FIELD(hasExternalHeight)>("hasExternalHeight");
     addField<DAS_BIND_MANAGED_FIELD(allowWeaponSwitchOnSprint)>("allowWeaponSwitchOnSprint");
@@ -292,6 +445,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addProperty<DAS_BIND_MANAGED_PROP(getJumpStaminaDrain)>("getJumpStaminaDrain");
     addProperty<DAS_BIND_MANAGED_PROP(getClimbStaminaDrain)>("getClimbStaminaDrain");
     addProperty<DAS_BIND_MANAGED_PROP(calcCcdPos)>("ccdPos", "calcCcdPos");
+    addProperty<DAS_BIND_MANAGED_PROP(calcGravityPivot)>("gravityPivot", "calcGravityPivot");
     addProperty<DAS_BIND_MANAGED_PROP(getMaxObstacleHeight)>("maxObstacleHeight", "getMaxObstacleHeight");
     addProperty<DAS_BIND_MANAGED_PROP(getTorsoCollision)>("torsoCollision", "getTorsoCollision");
     addProperty<DAS_BIND_MANAGED_PROP(getClimberCollision)>("climberCollision", "getClimberCollision");
@@ -322,17 +476,12 @@ public:
     addEnumeration(das::make_smart<EnumerationHumanControlThrowSlot>());
     addEnumeration(das::make_smart<EnumerationStateFlag>());
     addEnumeration(das::make_smart<EnumerationPrecomputedPresetMode>());
-    addEnumeration(das::make_smart<EnumerationHumanStatePos>());
-    addEnumeration(das::make_smart<EnumerationHumanStateMove>());
-    addEnumeration(das::make_smart<EnumerationHumanStateUpperBody>());
-    addEnumeration(das::make_smart<EnumerationStateJump>());
-    addEnumeration(das::make_smart<EnumerationRidingState>());
-    addEnumeration(das::make_smart<EnumerationHumanAnimStateFlags>());
     addEnumeration(das::make_smart<EnumerationDodgeState>());
 
     addAnnotation(das::make_smart<HumanControlStateAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponParamsAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponParamsArrayAnnotation>(lib));
+    addAnnotation(das::make_smart<HumanPhysAlignSpeedsArrayAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponEquipStateAnnotation>(lib));
     addAnnotation(das::make_smart<HumanPhysStateAnnotation>(lib));
     addAnnotation(das::make_smart<PrecomputedWeaponPositionsAnnotation>(lib));
@@ -367,6 +516,8 @@ public:
       "bind_dascript::human_phys_calcGunPos");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_calcGunTm)>(*this, lib, "human_phys_calcGunTm",
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_calcGunTm");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_isGoProneAllowed)>(*this, lib, "human_phys_isGoProneAllowed",
+      das::SideEffects::none, "bind_dascript::human_phys_isGoProneAllowed");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_can_aim)>(*this, lib, "human_phys_state_set_can_aim",
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_set_can_aim");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_can_zoom)>(*this, lib, "human_phys_state_set_can_zoom",

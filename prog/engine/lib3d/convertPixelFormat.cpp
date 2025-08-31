@@ -8,11 +8,12 @@
 static const int BATCH_PIXELS = 192;
 
 static bool convert_image_line_batch(const void *__restrict input, int width, int in_channels, int in_bits_per_channel, bool in_float,
-  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb, float *__restrict float_buf)
+  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb, bool invert,
+  float *__restrict float_buf)
 {
   unsigned in_step_bits = in_channels * in_bits_per_channel;
 
-  if (in_channels == out_channels && in_bits_per_channel == out_bits_per_channel && in_float == out_float)
+  if (in_channels == out_channels && in_bits_per_channel == out_bits_per_channel && in_float == out_float && !invert)
   {
     memcpy(output, input, width * in_step_bits / 8);
 
@@ -95,6 +96,12 @@ static bool convert_image_line_batch(const void *__restrict input, int width, in
       G_ASSERTF(0, "expected 1-bit, 8-bit, 16-bit or 32-bit integer input");
       return false;
     }
+  }
+
+  if (invert)
+  {
+    for (unsigned i = 0; i < in_count; i++)
+      float_buf[i] = 1.0f - float_buf[i];
   }
 
 
@@ -196,7 +203,7 @@ static bool convert_image_line_batch(const void *__restrict input, int width, in
 
 
 bool convert_image_line(const void *__restrict input, int width, int in_channels, int in_bits_per_channel, bool in_float,
-  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)
+  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb, bool invert)
 {
   G_ASSERT(input != output);
   G_ASSERT(input);
@@ -211,7 +218,7 @@ bool convert_image_line(const void *__restrict input, int width, int in_channels
     int inputOffset = x * in_channels * in_bits_per_channel / 8;
     int outputOffset = x * out_channels * out_bits_per_channel / 8;
     if (!convert_image_line_batch((char *)input + inputOffset, w, in_channels, in_bits_per_channel, in_float,
-          (char *)output + outputOffset, out_channels, out_bits_per_channel, out_float, swap_rb, floatBuf))
+          (char *)output + outputOffset, out_channels, out_bits_per_channel, out_float, swap_rb, invert, floatBuf))
       return false;
   }
 

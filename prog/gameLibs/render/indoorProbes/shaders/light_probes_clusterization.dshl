@@ -1,0 +1,126 @@
+include "shader_global.dshl"
+include "indoor_light_probes_inc.dshl"
+
+float indoor_probes_grid_y_center;
+float4 indoor_probes_grid_xz_center;
+buffer indoor_active_probes_data;
+
+shader light_probes_clusterization_cs
+{
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    indoor_probes_grid_center@f3 = (indoor_probes_grid_xz_center.x, indoor_probes_grid_y_center, indoor_probes_grid_xz_center.y, 0);
+    indoor_probes_data@cbuf = indoor_active_probes_data hlsl {
+      #include <indoor_probes_const.hlsli>
+      cbuffer indoor_probes_data@cbuf
+      {
+        float4 indoor_probe_boxes[MAX_ACTIVE_PROBES * 3];
+        float4 indoor_probe_pos_and_cubes[MAX_ACTIVE_PROBES];
+        float4 indoor_probe_types[QUARTER_OF_ACTIVE_PROBES];
+      }
+    }
+  }
+  ENABLE_ASSERT(cs)
+  USE_INDOOR_LIGHT_PROBE_DFS(cs)
+  hlsl(cs) {
+    #include <transform_box.hlsl>
+
+    RWStructuredBuffer<uint4> actualProbes: register(u0);
+    groupshared float distanceFromViewWeights[MAX_ACTIVE_PROBES];
+
+    [numthreads(GRID_SIDE, GRID_HEIGHT, 1)]
+    void clusterization_cs(uint3 cell_xy : SV_GroupThreadID, uint3 cell_idx : SV_GroupID)
+    {
+      uint flattenedIdx = cell_xy.x +cell_xy.y*GRID_SIDE;
+      if (flattenedIdx < MAX_ACTIVE_PROBES)
+      {
+        uint i = 3*flattenedIdx;
+        float3 col3 = indoor_probe_pos_and_cubes[flattenedIdx].xyz;
+        float3 col0 = float3(indoor_probe_boxes[i].x, indoor_probe_boxes[i + 1].x, indoor_probe_boxes[i + 2].x);
+        float3 col1 = float3(indoor_probe_boxes[i].y, indoor_probe_boxes[i + 1].y, indoor_probe_boxes[i + 2].y);
+        float3 col2 = float3(indoor_probe_boxes[i].z, indoor_probe_boxes[i + 1].z, indoor_probe_boxes[i + 2].z);
+        float3 boxSize = float3(indoor_probe_boxes[i + 0].w, indoor_probe_boxes[i + 1].w, indoor_probe_boxes[i + 2].w);
+        float3 viewPos = world_view_pos - col3;
+        viewPos = viewPos.x * col0 + viewPos.y * col1 + viewPos.z * col2;
+        float3 closest = clamp(viewPos, -0.5 * boxSize, 0.5 * boxSize);
+        float boxDist = length(closest - viewPos);
+
+        uint typeVectorIndex = flattenedIdx/4;
+        uint typePosInVector = flattenedIdx%4;
+        float dist = boxDist;
+
+        // Distance calculation for capsule
+        float width = min(boxSize.x, boxSize.y); // width is same for caps and cyl
+        float halfCapsHeight = (boxSize.z - width) * 0.5;
+        float3 a = float3(0, 0, halfCapsHeight);
+        float3 b = float3(0, 0, -halfCapsHeight);
+        dist = (indoor_probe_types[typeVectorIndex][typePosInVector] == ENVI_PROBE_CAPSULE_TYPE) ? dfCapsule(viewPos, a, b) : dist;
+
+        // Distance calculation for cylinder
+        float halfCylHeight = boxSize.z * 0.5;
+        a = float3(0, 0,  halfCylHeight);
+        b = float3(0, 0, -halfCylHeight);
+        dist = (indoor_probe_types[typeVectorIndex][typePosInVector] == ENVI_PROBE_CYLINDER_TYPE) ? sdfCylinder(viewPos, a, b, width * 0.5f) + width * 0.5f : dist;
+
+        distanceFromViewWeights[flattenedIdx] = 1.f / (dist + 0.01);
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      cell_idx = uint3(cell_xy.xy, cell_idx.z);
+      half3 cellCoords = half3(cell_idx) - 0.5 * half3(GRID_SIDE, GRID_HEIGHT, GRID_SIDE) + 0.5;
+      float3 cellSize = float3(GRID_CELL_SIZE, GRID_CELL_HEIGHT, GRID_CELL_SIZE);
+      cellCoords *= cellSize;
+      cellCoords += indoor_probes_grid_center;
+      uint bestProbes[PROBES_IN_CELL];
+      float weights[PROBES_IN_CELL];
+      for (int probeId = 0; probeId < PROBES_IN_CELL; probeId++)
+      {
+        bestProbes[probeId] = INVALID_CUBE_ID;
+        weights[probeId] = 0.0;
+      }
+      LOOP
+      for (uint i = 0; i < 3 * MAX_ACTIVE_PROBES; i += 3)
+      {
+        if (indoor_probe_boxes[i].w == 0)
+          continue;
+        uint probeId = i / 3;
+        float3 col3 = indoor_probe_pos_and_cubes[probeId].xyz;
+        float3 col0 = float3(indoor_probe_boxes[i].x, indoor_probe_boxes[i + 1].x, indoor_probe_boxes[i + 2].x);
+        float3 col1 = float3(indoor_probe_boxes[i].y, indoor_probe_boxes[i + 1].y, indoor_probe_boxes[i + 2].y);
+        float3 col2 = float3(indoor_probe_boxes[i].z, indoor_probe_boxes[i + 1].z, indoor_probe_boxes[i + 2].z);
+        float3 boxSize = float3(indoor_probe_boxes[i + 0].w, indoor_probe_boxes[i + 1].w, indoor_probe_boxes[i + 2].w);
+        boxSize += PROBE_BOX_OFFSET_FOR_BIG_BOX + PROBE_BOX_PADDING;
+        float3 tmin, tmax;
+        transform_box(tmin, tmax, cellCoords - 0.5 * cellSize - col3, cellCoords + 0.5 * cellSize - col3, col0, col1, col2);
+        float3 intersectionMin = max(tmin, -(0.5 * boxSize));
+        float3 intersectionMax = min(tmax, (0.5 * boxSize));
+
+        // No intersection
+        if (any(intersectionMin >= intersectionMax))
+          continue;
+
+        float3 intersectionSize = intersectionMax - intersectionMin;
+        float weight = intersectionSize.x * intersectionSize.y * intersectionSize.z;
+        weight *= distanceFromViewWeights[probeId];
+        UNROLL
+        for (uint j = 0; j < PROBES_IN_CELL; ++j)
+        {
+          if (bestProbes[j] == INVALID_CUBE_ID || weights[j] < weight)
+          {
+            float tmpw = weights[j];
+            weights[j] = weight;
+            weight = tmpw;
+            uint tmpi = bestProbes[j];
+            bestProbes[j] = probeId;
+            probeId = tmpi;
+          }
+        }
+      }
+      uint id = (cell_idx.x * GRID_HEIGHT + cell_idx.y) * GRID_SIDE + cell_idx.z;
+      uint4 bestProbes1 = uint4(bestProbes[0], bestProbes[1], bestProbes[2], bestProbes[3]);
+      uint4 bestProbes2 = uint4(bestProbes[4], bestProbes[5], bestProbes[6], bestProbes[7]);
+      structuredBufferAt(actualProbes, id) = (bestProbes1 << 16) | (bestProbes2);
+    }
+  }
+  compile("cs_5_0", "clusterization_cs");
+}

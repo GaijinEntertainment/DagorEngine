@@ -1,3 +1,4 @@
+options gen2
 options indenting = 4
 options no_unused_block_arguments = false
 options no_unused_function_arguments = false
@@ -5,141 +6,158 @@ options strict_smart_pointers = true
 
 module das_source_formatter shared private
 
-require fio
 require strings
 require math
 require daslib/defer
 
 
-let sorted_tokens_source <- [[auto "<<<="; ">>>=";
-    "<<="; ">>="; "&&="; "||="; "^^="; "<<<"; ">>>";
-    "::"; "+="; "-="; "/="; "*="; "%="; "|="; "&="; "^="; "<<"; ">>"; "++"; "--"; "<="; ">="; "==";
-    "!="; "->"; "<-"; "??"; "?."; "?["; "<|"; "|>"; ":="; "=>"; "@@"; "&&"; "||"; "^^";
+let sorted_tokens_source <- fixed_array("<<<=", ">>>=",
+    "<<=", ">>=", "&&=", "||=", "^^=", "<<<", ">>>",
+    "::", "+=", "-=", "/=", "*=", "%=", "|=", "&=", "^=", "<<", ">>", "++", "--", "<=", ">=", "==",
+    "!=", "->", "<-", "??", "?.", "?[", "<|", "|>", ":=", "=>", "@@", "&&", "||", "^^",
     "%%"
-    ]]
+    )
 
-let dont_need_space_around <- [[auto "("; ")"; "["; "]"; "\{"; "\}";
-    "."; ";"; ","; "`"; "::"; "++"; "--"; "?."; "?["; "@@"; "!"; "~"; "#"; "->"; "$"
-    ]]
+let dont_need_space_around <- fixed_array("(", ")", "[", "]", "\{", "\}",
+    ".", ";", ",", "`", "::", "++", "--", "?.", "?[", "@@", "!", "~", "#", "->", "$"
+    )
 
-let type_after_keyword <- [[auto "generator"; "cast"; "upcast"; "smart_ptr"; "match_type";
-    "type"; "reinterpret"; "variant"; "variant_index"; "function"; "has_field"; "default";
-    "array"; "fixed_array"; "table"; "iterator"; "tuple"; "struct_get_annotation_argument";
-    "struct_has_annotation_argument"; "class"
-    ]]
+let type_after_keyword <- fixed_array("generator", "cast", "upcast", "smart_ptr", "match_type",
+    "type", "reinterpret", "variant", "variant_index", "function", "has_field", "default",
+    "array", "fixed_array", "table", "iterator", "tuple", "struct_get_annotation_argument",
+    "struct_has_annotation_argument", "class", "block", "lambda"
+    )
 
-enum TokenType
+enum TokenType {
     UNKNOWN
     KEYWORD_OR_IDENTIFIER
     NUMBER
     COMMENT
     STRING
+}
 
 [safe_when_uninitialized]
-struct TokenTemplate
-    firstChar: int = 0
-    str: string = ""
-    codes: array<uint8>
-    length: int = 0
+struct TokenTemplate {
+    firstChar : int = 0
+    str : string = ""
+    codes : array<uint8>
+    length : int = 0
+}
 
 
-struct Token
-    str: string
-    spaces: int = 0
-    newLines: int = 0
-    lineInSource: int = 1
-    column: int = 1
-    tokenType: TokenType = TokenType UNKNOWN
-    isInFunctionParam: bool = false
-    isInType: bool = false
-    dontFormat: bool = false
-    dontAddSpacesAround: bool = false
+struct Token {
+    str : string
+    spaces : int = 0
+    newLines : int = 0
+    lineInSource : int = 1
+    column : int = 1
+    tokenType : TokenType = TokenType.UNKNOWN
+    isInFunctionParam : bool = false
+    isInType : bool = false
+    dontFormat : bool = false
+    dontAddSpacesAround : bool = false
+}
 
 
-struct FormatterToken
-    tokenIndex: int
-    command: string
+struct FormatterToken {
+    tokenIndex : int
+    command : string
+}
 
 [safe_when_uninitialized]
-struct FormatterCtx
-    tokenTemplates: array<TokenTemplate>
-    tokens: array<Token>
-    formatterTokens: array<FormatterToken>
-    pos: int             // current char pos
-    c: int               // current char
-    data: array<uint8>   // file data as array of uints
-    eof: bool
-    haveUtf8Bom: bool
-    newLineCounter: int  // new lines before current token
-    spaceCounter: int    // space characters before current token
-    srcLine: int         // current line in source
-    curColumn: int       // current column in source
-    curLineIndex: int    // index of the beginning of new line in data[]
-    debugMode: bool = false
-    indenting: int = 0   // convert tab to N spaces
-    insideOptions: bool = false
-    crCount: int = 0     // CR \r
-    lfCount: int = 0     // LF \n
+struct FormatterCtx {
+    tokenTemplates : array<TokenTemplate>
+    tokens : array<Token>
+    formatterTokens : array<FormatterToken>
+    pos : int            // current char pos
+    c : int              // current char
+    data : array<uint8>  // file data as array of uints
+    eof : bool
+    haveUtf8Bom : bool
+    newLineCounter : int // new lines before current token
+    spaceCounter : int   // space characters before current token
+    srcLine : int        // current line in source
+    curColumn : int      // current column in source
+    curLineIndex : int   // index of the beginning of new line in data[]
+    debugMode : bool = false
+    indenting : int = 0  // convert tab to N spaces
+    insideOptions : bool = false
+    crCount : int = 0    // CR \r
+    lfCount : int = 0    // LF \n
+}
 
-def initialize_token_templates(var ctx: FormatterCtx)
-    if length(ctx.tokenTemplates) > 0
+def initialize_token_templates(var ctx : FormatterCtx) {
+    if (length(ctx.tokenTemplates) > 0) {
         return
+    }
     ctx.tokenTemplates |> resize(length(sorted_tokens_source))
-    for s, tt in sorted_tokens_source, ctx.tokenTemplates
+    for (s, tt in sorted_tokens_source, ctx.tokenTemplates) {
         tt.str = s
-        tt.codes <- [{for c in s; uint8(c)}]
+        tt.codes <- [for (c in s); uint8(c)]
         tt.firstChar = int(tt.codes[0])
         tt.length = length(s)
+    }
+}
 
 
-def isUtf8Bom(var text: array<uint8>&): bool
+def isUtf8Bom(var text : array<uint8>&) : bool {
     return (length(text) >= 3 &&
         uint(text[0]) == 0xEF && uint(text[1]) == 0xBB && uint(text[2]) == 0xBF)
+}
 
 
-def eq(ctx: FormatterCtx; index: int; s: string const implicit)
+def eq(ctx : FormatterCtx; index : int; s : string const implicit) {
     return (index < 0 || index >= length(ctx.tokens)) ? false : ctx.tokens[index].str == s
+}
 
 
-def eq(ctx: FormatterCtx; index: int; s0, s1: string const implicit)
+def eq(ctx : FormatterCtx; index : int; s0, s1 : string const implicit) {
     return (index < 0 || index >= length(ctx.tokens)) ? false : (ctx.tokens[index].str == s0 ||
         ctx.tokens[index].str == s1)
+}
 
 
-def eq(ctx: FormatterCtx; index: int; s0, s1, s2: string const implicit)
+def eq(ctx : FormatterCtx; index : int; s0, s1, s2 : string const implicit) {
     return (index < 0 || index >= length(ctx.tokens)) ? false : (ctx.tokens[index].str == s0 ||
         ctx.tokens[index].str == s1 || ctx.tokens[index].str == s2)
+}
 
 
-def eq(ctx: FormatterCtx; index: int; s0, s1, s2, s3: string const implicit)
+def eq(ctx : FormatterCtx; index : int; s0, s1, s2, s3 : string const implicit) {
     return (index < 0 || index >= length(ctx.tokens)) ? false : (ctx.tokens[index].str == s0 ||
         ctx.tokens[index].str == s1 || ctx.tokens[index].str == s2 || ctx.tokens[index].str == s3)
+}
 
 
-def new_line_before(ctx: FormatterCtx; index: int)
+def new_line_before(ctx : FormatterCtx; index : int) {
     return (index <= 1 || index >= length(ctx.tokens)) ? true : ctx.tokens[index].newLines > 0
+}
 
 
-def next_char(var ctx: FormatterCtx)
+def next_char(var ctx : FormatterCtx) {
     ctx.c = int(ctx.data[ctx.pos])
-    if ctx.c == 0
+    if (ctx.c == 0) {
         ctx.eof = true
         return
+    }
 
-    if ctx.c == '\r' && int(ctx.data[ctx.pos + 1]) == '\n'
+    if (ctx.c == '\r' && int(ctx.data[ctx.pos + 1]) == '\n') {
         ctx.crCount++
         ctx.pos++
         ctx.c = int(ctx.data[ctx.pos])
+    }
 
-    if ctx.c == ' '
+    if (ctx.c == ' ') {
         ctx.spaceCounter++
+    }
 
-    if ctx.c == '\t'
+    if (ctx.c == '\t') {
         let indent = ctx.indenting != 0 ? ctx.indenting : 4
         ctx.spaceCounter += indent
         ctx.curColumn += indent - 1
+    }
 
-    if ctx.c == '\n'
+    if (ctx.c == '\n') {
         ctx.lfCount++
         ctx.pos++
         ctx.c = int(ctx.data[ctx.pos])
@@ -149,139 +167,181 @@ def next_char(var ctx: FormatterCtx)
         ctx.srcLine++
         ctx.curColumn = 0
         return
-    else
+    } else {
         ctx.pos++
         ctx.c = int(ctx.data[ctx.pos])
         ctx.curColumn++
         return
+    }
+}
 
 
-def skip_spaces(var ctx: FormatterCtx)
-    while (ctx.c == ' ' || ctx.c == '\t' || ctx.c == '\r' || ctx.c == '\n')
+def skip_spaces(var ctx : FormatterCtx) {
+    while (ctx.c == ' ' || ctx.c == '\t' || ctx.c == '\r' || ctx.c == '\n') {
         ctx |> next_char()
+    }
+}
 
 
-def on_token_added(var ctx: FormatterCtx)
+def on_token_added(var ctx : FormatterCtx) {
     assume t = ctx.tokens[length(ctx.tokens) - 1]
-    if ctx.indenting == 0 && ctx.newLineCounter > 0 && ctx.spaceCounter > 0 && t.tokenType != TokenType COMMENT
+    if (ctx.indenting == 0 && ctx.newLineCounter > 0 && ctx.spaceCounter > 0 && t.tokenType != TokenType.COMMENT) {
         ctx.indenting = ctx.spaceCounter
-    if ctx |> new_line_before(length(ctx.tokens) - 1)
+    }
+    if (ctx |> new_line_before(length(ctx.tokens) - 1)) {
         ctx.insideOptions = false
-        if t.str == "options"
+        if (t.str == "options") {
             ctx.insideOptions = true
-    if (ctx.insideOptions && t.tokenType == TokenType NUMBER && length(ctx.tokens) >= 3 &&
-            ctx.tokens[length(ctx.tokens) - 3].str == "indenting" && length(t.str) == 1)
+        }
+    }
+    if (ctx.insideOptions && t.tokenType == TokenType.NUMBER && length(ctx.tokens) >= 3 &&
+            ctx.tokens[length(ctx.tokens) - 3].str == "indenting" && length(t.str) == 1) {
         ctx.indenting = clamp(to_int(t.str), 1, 8)
+    }
+}
 
 
-def push_token(var ctx: FormatterCtx; from_char_idx, to_char_idx, space_count, new_lines, src_line, column: int; token_type: TokenType)
-    var buf <- [{ for i in range(from_char_idx, to_char_idx); uint8(ctx.data[i]) }]
-    ctx.tokens |> push([[ Token()
+def push_token(var ctx : FormatterCtx; from_char_idx, to_char_idx, space_count, new_lines, src_line, column : int; token_type : TokenType) {
+    var buf <- [ for (i in range(from_char_idx, to_char_idx)); uint8(ctx.data[i]) ]
+    ctx.tokens |> push(Token(
         str = string(buf), spaces = space_count, newLines = new_lines,
         lineInSource = src_line, column = column, tokenType = token_type
-        ]])
+        ))
 
     ctx |> on_token_added()
 
     ctx.spaceCounter = 0
     ctx.newLineCounter = 0
-finally
+} finally {
     delete buf
+}
 
 
-def parse_token(var ctx: FormatterCtx)
+def parse_token(var ctx : FormatterCtx) {
     ctx |> skip_spaces()
-    if ctx.eof
+    if (ctx.eof) {
         ctx.tokens |> push(ctx.tokens[0])
         return
+    }
 
     let from = ctx.pos
     let fromColumn = ctx.curColumn
 
     // keywords and identifiers
-    if is_alpha(ctx.c) || ctx.c == '_' || ctx.c == '`'
-        while !ctx.eof && (is_alpha(ctx.c) || is_number(ctx.c) || ctx.c == '_' || ctx.c == '`')
+    if (is_alpha(ctx.c) || ctx.c == '_' || ctx.c == '`') {
+        while (!ctx.eof && (is_alpha(ctx.c) || is_number(ctx.c) || ctx.c == '_' || ctx.c == '`')) {
             ctx |> next_char()
-        ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType KEYWORD_OR_IDENTIFIER)
+        }
+        ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType.KEYWORD_OR_IDENTIFIER)
         return
+    }
 
     // numbers
-    if is_number(ctx.c) || (ctx.c == '.' && is_number(int(ctx.data[ctx.pos + 1])))
+    if (is_number(ctx.c) || (ctx.c == '.' && is_number(int(ctx.data[ctx.pos + 1])))) {
         while (!ctx.eof && (is_number(ctx.c) || is_alpha(ctx.c) || ctx.c == '.' ||
-                ((ctx.c == '-' || ctx.c == '+') && (int(ctx.data[ctx.pos - 1]) == 'e' || int(ctx.data[ctx.pos - 1]) == 'E'))))
+                ((ctx.c == '-' || ctx.c == '+') && (int(ctx.data[ctx.pos - 1]) == 'e' || int(ctx.data[ctx.pos - 1]) == 'E')))) {
             ctx |> next_char()
-        ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType NUMBER)
+        }
+        ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType.NUMBER)
         return
+    }
 
     // characters and strings
-    if ctx.c == '"' || ctx.c == int(0x27) // TODO: fix ' symbol
-        let savedLine = ctx.newLineCounter
-        let savedSpace = ctx.spaceCounter
-        let openChar = ctx.c
-        var depth = 0
-        ctx |> next_char()
-        while !ctx.eof && (ctx.c != openChar || depth > 0)
-            if ctx.c == '{'
-                depth++
-            if ctx.c == '}'
-                depth--
-            if ctx.c == '\\'
-                ctx |> next_char()
-            ctx |> next_char()
+    if (ctx.c == '"' || ctx.c == int(0x27)) {// TODO: fix ' symbol
+        let savedLine = ctx.newLineCounter;
+        let savedSpace = ctx.spaceCounter;
+        let openChar = ctx.c;
+        var depth = 0;
+        ctx |> next_char();
+        while (!ctx.eof && (ctx.c != openChar || depth > 0)) {
+            if (ctx.c == '{' && openChar == '"') {
+                depth++;
+            }
+            if (ctx.c == '}' && openChar == '"') {
+                depth--;
+            }
+            if (ctx.c == '\\') {
+                ctx |> next_char();
+            }
+            ctx |> next_char();
+        }
 
-        if (ctx.c == openChar)
+        if (ctx.c == openChar) {
             ctx |> next_char()
+        }
 
-        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType STRING)
+        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType.STRING)
         return
+    }
 
     // single line comment
-    if ctx.c == '/' && int(ctx.data[ctx.pos + 1]) == '/'
+    if (ctx.c == '/' && int(ctx.data[ctx.pos + 1]) == '/') {
         let savedLine = ctx.newLineCounter
         let savedSpace = ctx.spaceCounter
-        while !ctx.eof && ctx.c != '\n' && ctx.c != '\r'
+        while (!ctx.eof && ctx.c != '\n' && ctx.c != '\r') {
             ctx |> next_char()
-        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType COMMENT)
+        }
+        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType.COMMENT)
         return
+    }
 
     // multi-line comment
-    if ctx.c == '/' && int(ctx.data[ctx.pos + 1]) == '*'
+    if (ctx.c == '/' && int(ctx.data[ctx.pos + 1]) == '*') {
         let savedLine = ctx.newLineCounter
         let savedSpace = ctx.spaceCounter
         ctx |> next_char()
         ctx |> next_char()
+        var depth = 1
 
-        while !ctx.eof
-            if ctx.c == '*' && int(ctx.data[ctx.pos + 1]) == '/'
-                break
+        while (!ctx.eof) {
+            if (ctx.c == '*' && int(ctx.data[ctx.pos + 1]) == '/') {
+                depth -= 1
+                if (depth == 0) {
+                    break;
+                }
+                ctx |> next_char()
+            }
+            if (ctx.c == '/' && int(ctx.data[ctx.pos + 1]) == '*') {
+                ctx |> next_char()
+                depth += 1
+            }
             ctx |> next_char()
+        }
 
         ctx |> next_char()
         ctx |> next_char()
-        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType COMMENT)
+        ctx |> push_token(from, ctx.pos, savedSpace, savedLine, ctx.srcLine, fromColumn, TokenType.COMMENT)
         return
+    }
 
     // symbolic tokens
-    for tt in ctx.tokenTemplates
-        if ctx.c == tt.firstChar
+    for (tt in ctx.tokenTemplates) {
+        if (ctx.c == tt.firstChar) {
             var match = true
-            for i, code in range(ctx.pos, ctx.pos + tt.length), tt.codes
-                if ctx.data[i] != code
+            for (i, code in range(ctx.pos, ctx.pos + tt.length), tt.codes) {
+                if (ctx.data[i] != code) {
                     match = false
                     break
-            if match
-                for _ in range(0, tt.length)
+                }
+            }
+            if (match) {
+                for (_ in range(0, tt.length)) {
                     ctx |> next_char()
-                ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType UNKNOWN)
+                }
+                ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType.UNKNOWN)
                 return
+            }
+        }
+    }
 
     // other symbols
     ctx |> next_char()
-    ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType UNKNOWN)
+    ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType.UNKNOWN)
     return
+}
 
 
-def parse_all_tokens(var ctx: FormatterCtx)
+def parse_all_tokens(var ctx : FormatterCtx) {
     ctx |> initialize_token_templates()
     let emptyToken <- Token()
     ctx.tokens |> clear()
@@ -298,199 +358,266 @@ def parse_all_tokens(var ctx: FormatterCtx)
     ctx.crCount = 0
     ctx.lfCount = 0
 
-    if isUtf8Bom(ctx.data)
+    if (isUtf8Bom(ctx.data)) {
         ctx.pos += 3
         ctx.haveUtf8Bom = true
+    }
 
     ctx.c = int(ctx.data[ctx.pos])
 
     ctx.curLineIndex = ctx.pos
-    while !ctx.eof
+    while (!ctx.eof) {
         ctx |> parse_token()
+    }
 
-    for _ in range(8)
+    for (_ in range(8)) {
         ctx.tokens |> push(emptyToken)
+    }
+}
 
 
 [safe_when_uninitialized]
-struct ParenCounter
-    angle: int = 0
-    paren: int = 0
-    square: int = 0
-    curly: int = 0
+struct ParenCounter {
+    angle : int = 0
+    paren : int = 0
+    square : int = 0
+    curly : int = 0
+}
 
 
-def update_paren(var ctx: FormatterCtx; index: int; var paren_counter: ParenCounter&)
-    if ctx |> eq(index, "<")
+def update_paren(var ctx : FormatterCtx; index : int; var paren_counter : ParenCounter&) {
+    if (ctx |> eq(index, "<")) {
         paren_counter.angle++
-    if ctx |> eq(index, ">")
+    }
+    if (ctx |> eq(index, ">")) {
         paren_counter.angle--
-    if ctx |> eq(index, ">>")
+    }
+    if (ctx |> eq(index, ">>")) {
         paren_counter.angle -= 2
-    if ctx |> eq(index, ">>>")
+    }
+    if (ctx |> eq(index, ">>>")) {
         paren_counter.angle -= 3
-    if ctx |> eq(index, "(")
-        paren_counter.paren++
-    if ctx |> eq(index, ")")
+    }
+    if (ctx |> eq(index, "(")) {
+        paren_counter.paren++;
+    }
+    if (ctx |> eq(index, ")")) {
         paren_counter.paren--
-    if ctx |> eq(index, "[")
-        paren_counter.square++
-    if ctx |> eq(index, "?[")
-        paren_counter.square++
-    if ctx |> eq(index, "]")
-        paren_counter.square--
-    if ctx |> eq(index, "\{")
-        paren_counter.curly++
-    if ctx |> eq(index, "\}")
-        paren_counter.curly--
+    }
+    if (ctx |> eq(index, "[")) {
+        paren_counter.square++;
+    }
+    if (ctx |> eq(index, "?[")) {
+        paren_counter.square++;
+    }
+    if (ctx |> eq(index, "]")) {
+        paren_counter.square--;
+    }
+    if (ctx |> eq(index, "\{")) {
+        paren_counter.curly++;
+    }
+    if (ctx |> eq(index, "\}")) {
+        paren_counter.curly--;
+    }
+}
 
 
-def find_pair_paren(var ctx: FormatterCtx; from_index: int): int
-    var pc: ParenCounter
-    for j in range(from_index + 1, length(ctx.tokens))
+def find_pair_paren(var ctx : FormatterCtx; from_index : int) : int {
+    var pc : ParenCounter
+    for (j in range(from_index + 1, length(ctx.tokens))) {
         ctx |> update_paren(j, pc)
-        if pc.paren < 0
+        if (pc.paren < 0) {
             return j
+        }
+    }
     return from_index
+}
 
 
-def find_pair_square(var ctx: FormatterCtx; from_index: int): int
-    var pc: ParenCounter
-    for j in range(from_index + 1, length(ctx.tokens))
+def find_pair_square(var ctx : FormatterCtx; from_index : int) : int {
+    var pc : ParenCounter
+    for (j in range(from_index + 1, length(ctx.tokens))) {
         ctx |> update_paren(j, pc)
-        if pc.square < 0
+        if (pc.square < 0) {
             return j
+        }
+    }
     return from_index
+}
 
 
-def find_pair_angle(var ctx: FormatterCtx; from_index: int): int
-    var pc: ParenCounter
-    for j in range(from_index + 1, length(ctx.tokens))
+def find_pair_angle(var ctx : FormatterCtx; from_index : int) : int {
+    var pc : ParenCounter
+    for (j in range(from_index + 1, length(ctx.tokens))) {
         ctx |> update_paren(j, pc)
-        if pc.angle < 0
+        if (pc.angle < 0) {
             return j
+        }
+    }
     return from_index
+}
 
 
-def mark_range_as_type(var ctx: FormatterCtx; from, to: int) // [from..to)
-    for i in range(from, to)
-        if ctx.tokens[i].tokenType != TokenType COMMENT
+def mark_range_as_type(var ctx : FormatterCtx; from, to : int) {// [from..to)
+    for (i in range(from, to)) {
+        if (ctx.tokens[i].tokenType != TokenType.COMMENT) {
             ctx.tokens[i].isInType = true
+        }
+    }
+}
 
 
-def mark_tokens_as_type(var ctx: FormatterCtx; i: int)
+def mark_tokens_as_type(var ctx : FormatterCtx; i : int) {
     var pos = i
-    if ctx |> eq(pos, "auto")
+    if (ctx |> eq(pos, "auto")) {
         pos++
-        if ctx |> eq(pos, "(")
-            pos = ctx |> find_pair_paren(pos)
-            pos++
-    else
+        if (ctx |> eq(pos, "(")) {
+            pos = ctx |> find_pair_paren(pos);
+            pos++;
+        }
+    } else {
         // 'ident :: ident ...'
-        while pos < length(ctx.tokens)
-            if ctx |> new_line_before(pos)
-                break
-            if ctx |> eq(pos, "::") || ctx.tokens[pos].tokenType == TokenType KEYWORD_OR_IDENTIFIER
-                pos++
-            else
-                break
+        while (pos < length(ctx.tokens)) {
+            if (ctx |> new_line_before(pos)) {
+                break;
+            }
+            if (ctx |> eq(pos, "::") || ctx.tokens[pos].tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
+                pos++;
+            } else {
+                break;
+            }
+        }
 
         // template <...>
-        if ctx |> eq(pos, "<")
+        if (ctx |> eq(pos, "<")) {
             pos = ctx |> find_pair_angle(pos)
             pos++
+        }
+    }
 
-    if ctx |> new_line_before(pos)
+    if (ctx |> new_line_before(pos)) {
         mark_range_as_type(ctx, i, pos)
         return
+    }
 
-    if ctx |> eq(pos, "[") && ctx |> eq(pos + 1, "]")
-        pos += 2
-
-    for j in range(pos, length(ctx.tokens))
-        if ctx |> eq(j, "-", "==") && ctx |> eq(j + 1, "const", "&", "#", "?")
-            pos = j + 2
-        elif ctx |> eq(j, "const", "&", "#", "?") || ctx |> eq(j, "implicit")
-            pos = j + 1;
-        else
+    var start = i;
+    while (pos < length(ctx.tokens)) {
+        if (ctx |> eq(pos, "-", "==") && ctx |> eq(pos + 1, "const", "&", "#", "?")) {
+            pos += 1 // skip -
+        } elif (ctx |> eq(pos, "const", "&", "#", "?") || ctx |> eq(pos, "implicit", "explicit")) {
+            // do nothing
+        } elif (ctx |> eq(pos, "[")) {
+            // ignore [expr] in T[expr]
+            mark_range_as_type(ctx, start, pos)
+            pos = ctx |> find_pair_square(pos + 1)
+            start = pos + 1
+        } else {
             break
+        }
+        pos += 1 // next token
+    }
+    mark_range_as_type(ctx, start, pos)
 
-    mark_range_as_type(ctx, i, pos)
-
-    if ctx |> eq(pos, "|")
+    if (ctx |> eq(pos, "|")) {
         ctx.tokens[pos].spaces = 1
         pos++
         mark_tokens_as_type(ctx, pos)
+    }
+}
 
 
 
-def mark_tokens_as_type_inside_angle(var ctx: FormatterCtx; i: int)
-    var pc: ParenCounter
-    for j in range(i, length(ctx.tokens))
+def mark_tokens_as_type_inside_angle(var ctx : FormatterCtx; i : int) {
+    var pc : ParenCounter
+    for (j in range(i, length(ctx.tokens))) {
         ctx |> update_paren(j, pc)
-        if (ctx.tokens[j].tokenType != TokenType COMMENT)
+        if (ctx.tokens[j].tokenType != TokenType.COMMENT) {
             ctx.tokens[j].isInType = true
-        if pc.angle <= 0
+        }
+        if (pc.angle <= 0) {
             break
+        }
+    }
+}
 
 
-def search_token_in_line(var ctx: FormatterCtx; from_index: int; str: string const): int
-    var pc: ParenCounter
-    for j in range(from_index, length(ctx.tokens))
+def search_token_in_line(var ctx : FormatterCtx; from_index : int; str : string const) : int {
+    var pc : ParenCounter
+    for (j in range(from_index, length(ctx.tokens))) {
         ctx |> update_paren(j, pc)
         if (j > from_index && ctx |> new_line_before(j) &&
-                (pc.paren <= 0 || pc.square <= 0 || pc.curly <= 0) && !eq(ctx, j - 1, ","))
+                (pc.paren <= 0 || pc.square <= 0 || pc.curly <= 0) && !eq(ctx, j - 1, ",")) {
             break
-        if pc.paren < 0 || pc.square < 0 || pc.curly < 0
+        }
+        if (pc.paren < 0 || pc.square < 0 || pc.curly < 0) {
             break
-        if ctx |> eq(j, ";") && pc.paren == 0 && pc.square == 0 && pc.curly == 0
+        }
+        if (ctx |> eq(j, ";") && pc.paren == 0 && pc.square == 0 && pc.curly == 0) {
             break
-        if ctx |> eq(j, str)
+        }
+        if (ctx |> eq(j, str)) {
             return j
+        }
+    }
     return 0
+}
 
 
-def process_formatter_tokens(var ctx: FormatterCtx)
+def process_formatter_tokens(var ctx : FormatterCtx) {
     let formatterTokenPrefix = "//fmt:"
     let formatterTokenPrefixSize = formatterTokenPrefix |> length()
-    for i in range(0, length(ctx.tokens))
+    for (i in range(0, length(ctx.tokens))) {
         let token = ctx.tokens[i]
         let str = token.str
         let strSize = str |> length()
-        if str |> starts_with(formatterTokenPrefix)
+        if (str |> starts_with(formatterTokenPrefix)) {
             let command = str |> chop(formatterTokenPrefixSize, strSize - formatterTokenPrefixSize)
-            ctx.formatterTokens |> push([[ FormatterToken
+            ctx.formatterTokens |> push(FormatterToken(
                 tokenIndex = i,
                 command = command
-                ]])
+                ))
+        }
+    }
+}
 
-def have_formatter_token(ctx: FormatterCtx; command: string)
-    for formatterToken in ctx.formatterTokens
-        if formatterToken.command == command
+def have_formatter_token(ctx : FormatterCtx; command : string) {
+    for (formatterToken in ctx.formatterTokens) {
+        if (formatterToken.command == command) {
             return true
+        }
+    }
     return false
+}
 
 
-def mark_token_context(var ctx: FormatterCtx)
+def mark_token_context(var ctx : FormatterCtx) {
     // don't format  require / expect / label
-    for i in range(0, length(ctx.tokens) - 1)
-        if ctx |> new_line_before(i) && (ctx |> eq(i, "require") || ctx |> eq(i, "expect") || ctx |> eq(i, "label") || ctx |> eq(i, "include"))
-            for j in range(i + 1, length(ctx.tokens))
-                if ctx |> new_line_before(j)
+    for (i in range(0, length(ctx.tokens) - 1)) {
+        if (ctx |> new_line_before(i) && (ctx |> eq(i, "require") || ctx |> eq(i, "expect") || ctx |> eq(i, "label") || ctx |> eq(i, "include"))) {
+            for (j in range(i + 1, length(ctx.tokens))) {
+                if (ctx |> new_line_before(j)) {
                     break
+                }
                 ctx.tokens[j].dontFormat = true
+            }
+        }
+    }
 
     // reader macro
-    for i in range(0, length(ctx.tokens) - 4)
-        if ctx |> eq(i, "%") && ctx.tokens[i + 1].tokenType == TokenType KEYWORD_OR_IDENTIFIER && ctx |> eq(i + 2, "~")
-            for j in range(i, length(ctx.tokens))
+    for (i in range(0, length(ctx.tokens) - 4)) {
+        if (ctx |> eq(i, "%") && ctx.tokens[i + 1].tokenType == TokenType.KEYWORD_OR_IDENTIFIER && ctx |> eq(i + 2, "~")) {
+            for (j in range(i, length(ctx.tokens))) {
                 ctx.tokens[j].dontFormat = true
-                if ctx |> eq(j, "%%")
+                if (ctx |> eq(j, "%%")) {
                     break
+                }
+            }
+        }
+    }
 
     // var / const declaration
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx |> new_line_before(i) && (ctx |> eq(i, "let") || ctx |> eq(i, "var"))
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx |> new_line_before(i) && (ctx |> eq(i, "let") || ctx |> eq(i, "var"))) {
             let assignPos0 = ctx |> search_token_in_line(i, "=")
             let assignPos1 = ctx |> search_token_in_line(i, ":=")
             let assignPos2 = ctx |> search_token_in_line(i, "<-")
@@ -498,435 +625,621 @@ def mark_token_context(var ctx: FormatterCtx)
             if (colonPos > 0 &&
                     (assignPos0 > colonPos || assignPos0 <= 0) &&
                     (assignPos1 > colonPos || assignPos1 <= 0) &&
-                    (assignPos2 > colonPos || assignPos2 <= 0))
+                    (assignPos2 > colonPos || assignPos2 <= 0)) {
                 ctx |> mark_tokens_as_type(colonPos + 1)
+            }
+        }
+    }
 
     // type in angle brackets
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx.tokens[i].tokenType == TokenType KEYWORD_OR_IDENTIFIER
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx.tokens[i].tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
             if (type_after_keyword |> find_index(ctx.tokens[i].str) >= 0 ||
                 ((ctx |> eq(i, "new") || ctx |> eq(i, "struct")) && ctx |> eq(i + 1, "<"))
-               )
+               ) {
                 ctx |> mark_tokens_as_type_inside_angle(i + 1)
+            }
+        }
+    }
 
     // type macros  $t(identifier)
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx |> eq(i, "$") && ctx |> eq(i + 1, "t") && ctx |> eq(i + 2, "(")
-            let endParams = ctx |> find_pair_paren(i + 2)
-            for j in range(i, endParams + 1)
-                ctx.tokens[j].isInType = true
-            for j in range(endParams + 1, length(ctx.tokens))
-                if !(ctx |> eq(j, "-", "#", "&", "?") || ctx |> eq(j, "==", "const", "implicit"))
-                    break
-                if ctx |> new_line_before(j)
-                    break
-                ctx.tokens[j].isInType = true
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx |> eq(i, "$") && ctx |> eq(i + 1, "t") && ctx |> eq(i + 2, "(")) {
+            let endParams = ctx |> find_pair_paren(i + 2);
+            for (j in range(i, endParams + 1)) {
+                ctx.tokens[j].isInType = true;
+            }
+            for (j in range(endParams + 1, length(ctx.tokens))) {
+                if (!(ctx |> eq(j, "-", "#", "&", "?") || ctx |> eq(j, "==", "const", "implicit"))) {
+                    break;
+                }
+                if (ctx |> new_line_before(j)) {
+                    break;
+                }
+                ctx.tokens[j].isInType = true;
+            }
+        }
+    }
 
     // array, table type
-    for i in range(0, length(ctx.tokens) - 3)
-        if (ctx |> eq(i, "[") && ctx |> eq(i + 1, "[", "\{")) || (ctx |> eq(i, "\{") && ctx |> eq(i + 1, "\{"))
-            ctx |> mark_tokens_as_type(i + 2)
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if ((ctx |> eq(i, "[") && ctx |> eq(i + 1, "[", "\{")) || (ctx |> eq(i, "\{") && ctx |> eq(i + 1, "\{"))) {
+            ctx |> mark_tokens_as_type(i + 2);
+        }
+    }
 
     // struct / class / variant or multiline variables
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx |> new_line_before(i)
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx |> new_line_before(i)) {
             var skip = 0
             if (ctx |> eq(i, "struct") || ctx |> eq(i, "class") || ctx |> eq(i, "variant") ||
-                ((ctx |> eq(i, "typedef") || ctx |> eq(i, "var") || ctx |> eq(i, "let")) && ctx |> new_line_before(i + 1)))
+                ((ctx |> eq(i, "typedef") || ctx |> eq(i, "var") || ctx |> eq(i, "let")) && ctx |> new_line_before(i + 1))) {
                 skip = 1
+            }
 
             if ((ctx |> eq(i, "typedef") || ctx |> eq(i, "var") || ctx |> eq(i, "let")) && (ctx |> eq(i + 1, "private") || ctx |> eq(i + 1, "public")) &&
-                ctx |> new_line_before(i + 2))
+                ctx |> new_line_before(i + 2)) {
                 skip = 2
+            }
 
-            if skip == 0
+            if (skip == 0) {
                 continue
+            }
 
             let ident = ctx.tokens[i].spaces
-            for j in range(i + skip, length(ctx.tokens) - 3)
-                if ctx |> new_line_before(j)
-                    if ctx |> eq(j, "def")
+            for (j in range(i + skip, length(ctx.tokens) - 3)) {
+                if (ctx |> new_line_before(j)) {
+                    if (ctx |> eq(j, "def")) {
                         break
-                    if (ctx.tokens[j].spaces <= ident)
+                    }
+                    if (ctx.tokens[j].spaces <= ident) {
                         break
+                    }
                     let colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
-                    if colonPos > 0
+                    if (colonPos > 0) {
                         ctx |> mark_tokens_as_type(colonPos + 1)
+                    }
+                }
+            }
+        }
+    }
 
     // oneline typedefs
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx |> new_line_before(i) && (ctx |> eq(i, "typedef") && !ctx |> new_line_before(i + 1))
-            for j in range(i + 1, length(ctx.tokens) - 3)
-                if ctx |> new_line_before(j)
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx |> new_line_before(i) && (ctx |> eq(i, "typedef") && !ctx |> new_line_before(i + 1))) {
+            for (j in range(i + 1, length(ctx.tokens) - 3)) {
+                if (ctx |> new_line_before(j)) {
                     break
+                }
                 let colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
-                if colonPos > 0
+                if (colonPos > 0) {
                     ctx |> mark_tokens_as_type(colonPos + 1)
+                }
+            }
+        }
+    }
 
     // functions
-    for i in range(0, length(ctx.tokens) - 3)
+    for (i in range(0, length(ctx.tokens) - 3)) {
         var pos = -1
-        if ctx |> new_line_before(i) && ctx |> eq(i, "def")
+        var need_in_func_param = true
+        if (ctx |> new_line_before(i) && ctx |> eq(i, "def")) {
             pos = i + 1
-        elif ctx |> eq(i, "$",  "@", "@@") && ctx |> eq(i + 1, "(", "[")
+        } elif (ctx |> eq(i, "$",  "@", "@@") && ctx |> eq(i + 1, "(", "[")) {
             pos = i
+        } elif (ctx |> eq(i, "@@") && ctx |> eq(i + 1, "<")) {
+            // handle func_addr_expr with type : @@ < (a1: int, ...) : T > func_name
+            need_in_func_param = false
+            pos = i + 1
+        }
 
-        if pos == -1
+        if (pos == -1) {
             continue
+        }
 
-        while ctx |> eq(pos, "private", "public", "const", "implicit") || ctx |> eq(pos, "abstract", "override")
+        while (ctx |> eq(pos, "private", "public", "const", "implicit") || ctx |> eq(pos, "abstract", "override")) {
             pos++
+        }
 
-        if ctx |> eq(pos, "operator")
-            pos = ctx |> search_token_in_line(pos, "(") - 1
+        if (ctx |> eq(pos, "operator")) {
+            pos = ctx |> search_token_in_line(pos, "(") - 1;
+        }
 
-        if ctx |> eq(pos + 1, "[") // skip [...]
-            pos = ctx |> find_pair_square(pos + 1)
+        if (ctx |> eq(pos + 1, "[")) {// skip [...]
+            pos = ctx |> find_pair_square(pos + 1);
+        }
 
-        if ctx |> eq(pos + 1, ":") // def [const | private | public] name:
+        if (ctx |> eq(pos + 1, ":")) {// def [const | private | public] name:
             ctx |> mark_tokens_as_type(i + 2)
-        elif ctx |> eq(pos + 1, "(") // def [const | private | public] name(
-            let beginParams = pos + 1
-            ctx.tokens[beginParams].dontAddSpacesAround = true
-            let endParams = ctx |> find_pair_paren(pos + 1)
-            for j in range(beginParams, endParams + 1)
-                ctx.tokens[j].isInFunctionParam = true
-                if j - 1 == beginParams || ctx |> eq(j - 1, ";")
-                    let colonPos = ctx |> search_token_in_line(j, ":")
-                    if colonPos > 0
-                        ctx |> mark_tokens_as_type(colonPos + 1)
-            if endParams < length(ctx.tokens) - 1
-                if ctx |> eq(endParams + 1, ":")
-                    ctx |> mark_tokens_as_type(endParams + 2)
+        } elif (ctx |> eq(pos + 1, "(")) {// def [const | private | public] name(
+            let beginParams = pos + 1;
+            ctx.tokens[beginParams].dontAddSpacesAround = true;
+            let endParams = ctx |> find_pair_paren(pos + 1);
+            for (j in range(beginParams, endParams + 1)) {
+                ctx.tokens[j].isInFunctionParam = need_in_func_param;
+                if (j - 1 == beginParams || ctx |> eq(j - 1, ";") || ctx |> eq(j - 1, ",")) {
+                    let colonPos = ctx |> search_token_in_line(j, ":");
+                    if (colonPos > 0) {
+                        ctx |> mark_tokens_as_type(colonPos + 1);
+                    }
+                }
+            }
+            if (endParams < length(ctx.tokens) - 1) {
+                if (ctx |> eq(endParams + 1, ":")) {
+                    ctx |> mark_tokens_as_type(endParams + 2);
+                }
+            }
+        }
+    }
 
     // annotations
-    for i in range(0, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "[") && !eq(ctx, i + 1, "[") && !eq(ctx, i + 1, "\{")
-            for j in range(i + 1, length(ctx.tokens))
-                if ctx |> eq(j, "]")
-                    break
-                if ctx |> eq(j, "=")
-                    ctx.tokens[j].dontAddSpacesAround = true
+    for (i in range(0, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "[") && !eq(ctx, i + 1, "[") && !eq(ctx, i + 1, "\{")) {
+            for (j in range(i + 1, length(ctx.tokens))) {
+                if (ctx |> eq(j, "]")) {
+                    break;
+                }
+                if (ctx |> eq(j, "=")) {
+                    ctx.tokens[j].dontAddSpacesAround = true;
+                }
+            }
+        }
+    }
 
-    let macroEscapes <- {{ /*ident*/"i"; /*value*/"v"; /*expr*/"e"; /*call*/"c"; /*type*/"t"; /*field*/"f"; /*block*/"b"; /*array*/"a" }}
-    for i in range(1, length(ctx.tokens))
-        if !new_line_before(ctx, i) && ctx |> eq(i - 1, "$") && key_exists(macroEscapes, ctx.tokens[i].str)
+    let macroEscapes <- { /*ident*/"i", /*value*/"v", /*expr*/"e", /*call*/"c", /*type*/"t", /*field*/"f", /*block*/"b", /*array*/"a" }
+    for (i in range(1, length(ctx.tokens))) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i - 1, "$") && key_exists(macroEscapes, ctx.tokens[i].str)) {
             ctx.tokens[i - 1].dontAddSpacesAround = true
+        }
+    }
+}
 
 
-def fmt_function_arguments(var ctx: FormatterCtx)
+def fmt_function_arguments(var ctx : FormatterCtx) {
     // function arguments
     var lastNewLineToken = 0
     var i = 0
     let n = length(ctx.tokens) - 3
-    while i < n
-        if ctx.tokens[i].newLines > 0
+    while (i < n) {
+        if (ctx.tokens[i].newLines > 0) {
             lastNewLineToken = i
+        }
 
-        if ctx.tokens[i].isInFunctionParam
+        if (ctx.tokens[i].isInFunctionParam) {
             var firstBracketColumn = -1
-            while i < n && ctx.tokens[i].isInFunctionParam
-                if ctx.tokens[i].newLines > 0
+            while (i < n && ctx.tokens[i].isInFunctionParam) {
+                if (ctx.tokens[i].newLines > 0) {
                     lastNewLineToken = i
+                }
 
-                if firstBracketColumn == -1
-                    if ctx |> eq(i, "(")
-                        firstBracketColumn = 0
-                        for k in range(lastNewLineToken, i + 1)
-                            if ctx.tokens[k].newLines > 0
-                                firstBracketColumn = 0
-                            firstBracketColumn += ctx.tokens[k].spaces + length(ctx.tokens[k].str)
-
-                elif ctx.tokens[i].newLines > 0
-                    lastNewLineToken = i
-                    ctx.tokens[i].spaces = firstBracketColumn + (ctx.tokens[i].isInType ? 2 : 0)
-                    ctx.tokens[i].column = firstBracketColumn + (ctx.tokens[i].isInType ? 2 : 0)
+                if (firstBracketColumn == -1) {
+                    if (ctx |> eq(i, "(")) {
+                        firstBracketColumn = 0;
+                        for (k in range(lastNewLineToken, i + 1)) {
+                            if (ctx.tokens[k].newLines > 0) {
+                                firstBracketColumn = 0;
+                            }
+                            firstBracketColumn += ctx.tokens[k].spaces + length(ctx.tokens[k].str);
+                        }
+                    }
+                } elif (ctx.tokens[i].newLines > 0) {
+                    lastNewLineToken = i;
+                    ctx.tokens[i].spaces = firstBracketColumn + (ctx.tokens[i].isInType ? 2 : 0);
+                    ctx.tokens[i].column = firstBracketColumn + (ctx.tokens[i].isInType ? 2 : 0);
+                }
 
                 i++
+            }
+        }
         i++
+    }
+}
 
 
-def fmt_remove_space_before_args(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "(") && !ctx.tokens[i].isInType && ctx.tokens[i - 1].isInType
-            ctx |> remove_space_before(i)
+def fmt_remove_space_before_args(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "(") && !ctx.tokens[i].isInType && ctx.tokens[i - 1].isInType) {
+            ctx |> remove_space_before(i);
+        }
+    }
+}
 
 
-def debug_print_tokens(ctx: FormatterCtx)
-    for t in ctx.tokens
-        to_log(LOG_DEBUG, "{t.isInFunctionParam ? ">" : " "}{t.isInType ? "*" : " "} '{t.str}'\n");
+def debug_print_tokens(ctx : FormatterCtx) {
+    for (t in ctx.tokens) {
+        to_log(LOG_DEBUG, "{t.isInFunctionParam ? ">" : " "}{t.isInType ? "*" : " "} '{t.str}'\n")
+    }
+}
 
 
-def generate_source(ctx: FormatterCtx): string
-    var res: array<uint8>
+def generate_source(ctx : FormatterCtx) : string {
+    var res : array<uint8>
     res |> reserve(1000 + length(ctx.tokens) * 8)
-    if ctx.haveUtf8Bom
+    if (ctx.haveUtf8Bom) {
         res |> push(uint8(0xEF))
         res |> push(uint8(0xBB))
         res |> push(uint8(0xBF))
+    }
 
-    let useCrLf: bool = ctx.crCount * 2 > ctx.lfCount
-    var column: int = 0
+    let useCrLf : bool = ctx.crCount * 2 > ctx.lfCount
+    var column : int = 0
 
-    for t in ctx.tokens
-        for _ in range(t.newLines)
-            if (useCrLf)
+    for (t in ctx.tokens) {
+        for (_ in range(t.newLines)) {
+            if (useCrLf) {
                 res |> push(uint8('\r'))
+            }
             res |> push(uint8('\n'))
             column = 0
+        }
 
         var spaces = t.spaces
-        if t.tokenType == TokenType COMMENT && t.str |> starts_with("//")
+        if (t.tokenType == TokenType.COMMENT && t.str |> starts_with("//")) {
             spaces = max(t.column - column, 0)
+        }
 
-        for _ in range(spaces)
+        for (_ in range(spaces)) {
             res |> push(uint8(' '))
             column++
+        }
 
-        for c in t.str
+        for (c in t.str) {
             res |> push(uint8(c))
             column++
+        }
+    }
 
     return string(res)
-finally
+} finally {
     delete res
+}
 
 
-def need_spaces_around(ctx: FormatterCtx; index: int): bool
+def need_spaces_around(ctx : FormatterCtx; index : int) : bool {
     assume t = ctx.tokens[index]
-    if t.tokenType != TokenType UNKNOWN || t.dontFormat || t.dontAddSpacesAround
+    if (t.tokenType != TokenType.UNKNOWN || t.dontFormat || t.dontAddSpacesAround) {
         return false
-    if dont_need_space_around |> find_index(t.str) >= 0
+    }
+    if (dont_need_space_around |> find_index(t.str) >= 0) {
         return false
-    if t.isInType && (t.str == ":" || t.str == "<" || t.str == ">" || t.str == ">>" || t.str == ">>>" || empty(t.str))
+    }
+    if (t.isInType && (t.str == ":" || t.str == "<" || t.str == ">" || t.str == ">>" || t.str == ">>>" || empty(t.str))) {
         return false
-    if index < length(ctx.tokens) - 1
+    }
+    if (index < length(ctx.tokens) - 1) {
         assume next = ctx.tokens[index + 1]
-        if t.str == "@" && next.tokenType == TokenType KEYWORD_OR_IDENTIFIER
+        if (t.str == "@" && next.tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
             return false
+        }
+    }
     return true
+}
 
 
-def need_space_only_before(ctx: FormatterCtx; index: int): bool
+def need_space_only_before(ctx : FormatterCtx; index : int) : bool {
     assume t = ctx.tokens[index]
-    if !t.isInType
+    if (!t.isInType) {
         return false
-    if t.tokenType != TokenType UNKNOWN || t.dontFormat || t.dontAddSpacesAround
+    }
+    if (t.tokenType != TokenType.UNKNOWN || t.dontFormat || t.dontAddSpacesAround) {
         return false
-    if dont_need_space_around |> find_index(t.str) >= 0
+    }
+    if (dont_need_space_around |> find_index(t.str) >= 0) {
         return false
-    if t.str == ">" || t.str == ">>" || t.str == ">>>" || t.str == "<" || empty(t.str)
+    }
+    if (t.str == ">" || t.str == ">>" || t.str == ">>>" || t.str == "<" || empty(t.str)) {
         return false
-    if index < length(ctx.tokens) - 1
+    }
+    if (index < length(ctx.tokens) - 1) {
         assume next = ctx.tokens[index + 1]
-        if next.str == ">" || next.str == ">>" || next.str == ">>>" || next.str == ";"
+        if (next.str == ">" || next.str == ">>" || next.str == ">>>" || next.str == ";") {
             return true
+        }
+    }
     return false
+}
 
 
-def add_space_before(var ctx: FormatterCtx; i)
-    if (ctx.tokens[i].dontFormat || ctx.tokens[i - 1].dontFormat) || ctx |> new_line_before(i)
+def add_space_before(var ctx : FormatterCtx; i) {
+    if ((ctx.tokens[i].dontFormat || ctx.tokens[i - 1].dontFormat) || ctx |> new_line_before(i)) {
         return
+    }
     ctx.tokens[i].spaces = 1
+}
 
 
-def remove_space_before(var ctx: FormatterCtx; i)
-    if (ctx.tokens[i].dontFormat || ctx.tokens[i - 1].dontFormat) || ctx |> new_line_before(i)
+def remove_space_before(var ctx : FormatterCtx; i) {
+    if ((ctx.tokens[i].dontFormat || ctx.tokens[i - 1].dontFormat) || ctx |> new_line_before(i)) {
         return
+    }
     ctx.tokens[i].spaces = 0
+}
 
 
-let tokens_before_unary <- [[auto "("; "["; "?["; "\{"; "auto"; "int"; "float"; "int16"; "int32"; "int8"; ";"; ",";
-    "if"; "elif"; "while"; "switch"; "return"; "yield"; "in"; "="; "!"
-    ]]
+let tokens_before_unary <- fixed_array("(", "[", "?[", "\{", "auto", "int", "float", "int16", "int32", "int8", ";", ",",
+    "if", "elif", "while", "switch", "return", "yield", "in", "=", "!"
+    );
 
-def is_unary(ctx: FormatterCtx; index: int): bool
-    if ctx |> eq(index, "!") || ctx |> eq(index, "~")
+def is_unary(ctx : FormatterCtx; index : int) : bool {
+    if (ctx |> eq(index, "!") || ctx |> eq(index, "~")) {
         return true
+    }
 
-    if ctx |> eq(index, "*") && index > 0 && ctx.tokens[index - 1].isInType
+    if (ctx |> eq(index, "*") && index > 0 && ctx.tokens[index - 1].isInType) {
         return true
+    }
 
-    if ctx |> eq(index, "+") || ctx |> eq(index, "-") || ctx |> eq(index, "*")
-        if (tokens_before_unary |> find_index(ctx.tokens[index - 1].str) >= 0) || ctx |> new_line_before(index)
+    if (ctx |> eq(index, "+") || ctx |> eq(index, "-") || ctx |> eq(index, "*")) {
+        var i = index
+        while (i - 1 >= 0 && ctx.tokens[i - 1].tokenType == TokenType.COMMENT && !ctx |> new_line_before(i)) {
+            i--
+        }
+        if ((tokens_before_unary |> find_index(ctx.tokens[i - 1].str) >= 0) || ctx |> new_line_before(i)) {
             return true
-        return ctx |> need_spaces_around(index - 1)
+        }
+        return ctx |> need_spaces_around(i - 1)
+    }
     return false
+}
 
 
-def remove_spaces_around(var ctx: FormatterCtx; index: int)
-    if !ctx |> new_line_before(index)
+def remove_spaces_around(var ctx : FormatterCtx; index : int) {
+    if (!ctx |> new_line_before(index)) {
         ctx |> remove_space_before(index)
-    if !ctx |> new_line_before(index + 1) && ctx.tokens[index + 1].tokenType != TokenType COMMENT
+    }
+    if (!ctx |> new_line_before(index + 1) && ctx.tokens[index + 1].tokenType != TokenType.COMMENT) {
         ctx |> remove_space_before(index + 1)
+    }
+}
 
 
-def make_spaces_around(var ctx: FormatterCtx; index: int)
-    if !new_line_before(ctx, index) && ctx.tokens[index].spaces == 0
+def make_spaces_around(var ctx : FormatterCtx; index : int) {
+    if (!new_line_before(ctx, index) && ctx.tokens[index].spaces == 0) {
         ctx |> add_space_before(index)
-    if !new_line_before(ctx, index + 1) && ctx.tokens[index + 1].spaces == 0
+    }
+    if (!new_line_before(ctx, index + 1) && ctx.tokens[index + 1].spaces == 0) {
         ctx |> add_space_before(index + 1)
+    }
+}
 
 
-def fmt_space_after_comma(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if !new_line_before(ctx, i) && ctx |> eq(i - 1, ",") && ctx.tokens[i].spaces == 0
+def fmt_space_after_comma(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i - 1, ",") && ctx.tokens[i].spaces == 0) {
             ctx |> add_space_before(i)
+        }
+    }
+}
 
 
-def fmt_space_after_semicolon(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if !ctx |> eq(i, "") && !new_line_before(ctx, i) && ctx |> eq(i - 1, ";") && ctx.tokens[i].spaces == 0
+def fmt_space_after_semicolon(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (!ctx |> eq(i, "") && !new_line_before(ctx, i) && ctx |> eq(i - 1, ";") && ctx.tokens[i].spaces == 0) {
             ctx |> add_space_before(i)
+        }
+    }
+}
 
 
-def fmt_remove_space_before_comma(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if !new_line_before(ctx, i) && ctx |> eq(i, ",")
+def fmt_remove_space_before_comma(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i, ",")) {
             ctx |> remove_space_before(i)
+        }
+    }
+}
 
 
-def fmt_remove_space_before_semicolon(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if !new_line_before(ctx, i) && ctx |> eq(i, ";")
+def fmt_remove_space_before_semicolon(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i, ";")) {
             ctx |> remove_space_before(i)
+        }
+    }
+}
 
 
-def fmt_type_colon(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx.tokens[i].isInType && ctx |> eq(i, ":")
+def fmt_type_colon(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx.tokens[i].isInType && ctx |> eq(i, ":")) {
             ctx |> add_space_before(i)
-            if !new_line_before(ctx, i + 1)
+            if (!new_line_before(ctx, i + 1)) {
                 ctx |> add_space_before(i + 1)
+            }
+        }
+    }
+}
 
 
-def fmt_function_decl_param_paren(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx.tokens[i].isInFunctionParam && !ctx.tokens[i - 1].isInFunctionParam && ctx |> eq(i, "(")
-            ctx |> remove_spaces_around(i)
-            if ctx |> eq(i - 1, "]")
-                ctx |> add_space_before(i)
-        if ctx.tokens[i].isInFunctionParam && !ctx.tokens[i + 1].isInFunctionParam && ctx |> eq(i, ")")
-            ctx |> remove_space_before(i)
+def fmt_function_decl_param_paren(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx.tokens[i].isInFunctionParam && !ctx.tokens[i - 1].isInFunctionParam && ctx |> eq(i, "(")) {
+            ctx |> remove_spaces_around(i);
+            if (ctx |> eq(i - 1, "]")) {
+                ctx |> add_space_before(i);
+            }
+        }
+        if (ctx.tokens[i].isInFunctionParam && !ctx.tokens[i + 1].isInFunctionParam && ctx |> eq(i, ")")) {
+            ctx |> remove_space_before(i);
+        }
+    }
+}
 
 
-def fmt_function_call_param_paren_call(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "(") && !new_line_before(ctx, i) && ctx.tokens[i - 1].tokenType == TokenType KEYWORD_OR_IDENTIFIER
-            ctx |> remove_spaces_around(i)
-            let closingParen = ctx |> find_pair_paren(i)
-            ctx |> remove_space_before(closingParen)
+def fmt_function_call_param_paren_call(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "(") && !new_line_before(ctx, i) && ctx.tokens[i - 1].tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
+            ctx |> remove_spaces_around(i);
+            let closingParen = ctx |> find_pair_paren(i);
+            ctx |> remove_space_before(closingParen);
+        }
+    }
+}
 
 
-def fmt_spaces_around_operators(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if !empty(ctx.tokens[i].str)
-            if is_unary(ctx, i) && !new_line_before(ctx, i)
+def fmt_spaces_around_operators(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (!empty(ctx.tokens[i].str)) {
+            if (is_unary(ctx, i) && !new_line_before(ctx, i)) {
                 ctx |> remove_space_before(i + 1)
-            if ctx |> need_space_only_before(i) && !is_unary(ctx, i)
+            }
+            if (ctx |> need_space_only_before(i) && !is_unary(ctx, i)) {
                 ctx |> add_space_before(i)
-            elif ctx |> need_spaces_around(i) && !is_unary(ctx, i)
+            } elif (ctx |> need_spaces_around(i) && !is_unary(ctx, i)) {
                 ctx |> make_spaces_around(i)
+            }
+        }
+    }
+}
 
 
-let space_after_keywords <- [[auto "if"; "elif"; "while"; "switch"; "with";
-        "yield"; "catch"; "static_if"; "static_elif"; "for"; "in";
-    ]]
+let space_after_keywords <- fixed_array("if", "elif", "while", "switch", "with",
+        "yield", "catch", "static_if", "static_elif", "for", "in")
 
-def fmt_space_after_keyword(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if space_after_keywords |> find_index(ctx.tokens[i].str) >= 0
-            if !new_line_before(ctx, i + 1)
+def fmt_space_after_keyword(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (space_after_keywords |> find_index(ctx.tokens[i].str) >= 0) {
+            if (!new_line_before(ctx, i + 1)) {
                 ctx |> add_space_before(i + 1)
+            }
+        }
+        if (ctx.tokens[i].spaces >= 2 && ctx.tokens[i].str == "match" && ((ctx.tokens[i + 1].str == "(" && !ctx.tokens[i + 1].isInFunctionParam))) {
+            if (!new_line_before(ctx, i + 1)) {
+                ctx |> add_space_before(i + 1)
+            }
+        }
         // add space only after 'return <expr>' expression
-        if ctx.tokens[i].str == "return" && length(ctx.tokens[i+1].str) > 0
-            if !new_line_before(ctx, i + 1)
+        if (ctx.tokens[i].str == "return" && length(ctx.tokens[i + 1].str) > 0) {
+            if (!new_line_before(ctx, i + 1)) {
                 ctx |> add_space_before(i + 1)
+            }
+        }
+    }
+}
 
 
-def fmt_space_after_paren(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx |> eq(i, ")") && (ctx.tokens[i + 1].tokenType != TokenType UNKNOWN)
-            ctx |> add_space_before(i + 1)
+def fmt_space_after_paren(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, ")") && (ctx.tokens[i + 1].tokenType != TokenType.UNKNOWN)) {
+            ctx |> add_space_before(i + 1);
+        }
+    }
+}
 
 
-def fmt_space_after_square_brackets(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "]") && (ctx.tokens[i + 1].tokenType != TokenType UNKNOWN)
-            ctx |> add_space_before(i + 1)
+def fmt_space_after_square_brackets(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "]") && (ctx.tokens[i + 1].tokenType != TokenType.UNKNOWN)) {
+            ctx |> add_space_before(i + 1);
+        }
+    }
+}
 
 
-def fmt_remove_space_inside_parens(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "(")
-            ctx |> remove_space_before(i + 1)
-        if ctx |> eq(i, ")")
+def fmt_remove_space_inside_parens(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "(")) {
+            ctx |> remove_space_before(i + 1);
+        }
+        if (ctx |> eq(i, ")")) {
             ctx |> remove_space_before(i)
+        }
+    }
+}
 
 
-def fmt_remove_space_before_as(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if !new_line_before(ctx, i) && ctx |> eq(i, "as") && ctx |> eq(i - 1, "?")
+def fmt_remove_space_before_as(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i, "as") && ctx |> eq(i - 1, "?")) {
             ctx |> remove_space_before(i)
+        }
+    }
+}
 
 
-def fmt_remove_space_before_end_of_object(var ctx: FormatterCtx)
+def fmt_remove_space_before_end_of_object(var ctx : FormatterCtx) {
     // HACK: [[array<InspectorDesc>__remove_this_space__]]
-    for i in range(1, length(ctx.tokens) - 2)
-        if !new_line_before(ctx, i) && ctx |> eq(i, "]") && ctx |> eq(i + 1, "]") && (!ctx |> eq(i - 1, "]"))
-            ctx |> remove_space_before(i)
+    for (i in range(1, length(ctx.tokens) - 2)) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i, "]") && ctx |> eq(i + 1, "]") && (!ctx |> eq(i - 1, "]"))) {
+            ctx |> remove_space_before(i);
+        }
+    }
+}
 
 
-def fmt_remove_space_before_object_type(var ctx: FormatterCtx)
+def fmt_remove_space_before_object_type(var ctx : FormatterCtx) {
     // HACK: [[__remove_this_space__array<InspectorDesc>]]
-    for i in range(2, length(ctx.tokens) - 1)
-        if !new_line_before(ctx, i) && ctx |> eq(i - 2, "[") && ctx |> eq(i - 1, "[") && ctx.tokens[i].tokenType == TokenType KEYWORD_OR_IDENTIFIER
-            ctx |> remove_space_before(i)
+    for (i in range(2, length(ctx.tokens) - 1)) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i - 2, "[") && ctx |> eq(i - 1, "[") && ctx.tokens[i].tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
+            ctx |> remove_space_before(i);
+        }
+    }
+}
 
 
-def fmt_remove_space_before_array_of_type(var ctx: FormatterCtx)
+def fmt_remove_space_before_array_of_type(var ctx : FormatterCtx) {
     // HACK: array<InspectorDesc>__remove_this_space__[16]
-    for i in range(1, length(ctx.tokens) - 2)
-        if !new_line_before(ctx, i) && ctx |> eq(i - 1, ">") && ctx.tokens[i - 1].isInType && ctx |> eq(i, "[")
-            ctx |> remove_space_before(i)
+    for (i in range(1, length(ctx.tokens) - 2)) {
+        if (!new_line_before(ctx, i) && ctx |> eq(i - 1, ">") && ctx.tokens[i - 1].isInType && ctx |> eq(i, "[")) {
+            ctx |> remove_space_before(i);
+        }
+    }
+}
 
 
-let type_specifiers = [[string "?"; "&"; "#"]]
+let type_specifiers = fixed_array<string>("?", "&", "#")
 
-def fmt_glue_type_specifiers(var ctx: FormatterCtx)
-    for i in range(1, length(ctx.tokens))
-        if ctx.tokens[i].isInType
-            if ctx.tokens[i].tokenType == TokenType UNKNOWN && type_specifiers |> find_index(ctx.tokens[i].str) >= 0
+def fmt_glue_type_specifiers(var ctx : FormatterCtx) {
+    for (i in range(1, length(ctx.tokens))) {
+        if (ctx.tokens[i].isInType) {
+            if (ctx.tokens[i].tokenType == TokenType.UNKNOWN && type_specifiers |> find_index(ctx.tokens[i].str) >= 0) {
                 ctx |> remove_space_before(i)
-            if ctx |> eq(i, "const") && ctx |> eq(i - 1, "-", "==")
+            }
+            if (ctx |> eq(i, "const") && ctx |> eq(i - 1, "-", "==")) {
                 ctx |> remove_space_before(i)
-            if ctx |> eq(i, "-", "==")
+            }
+            if (ctx |> eq(i, "-", "==")) {
                 ctx |> add_space_before(i)
-            if ctx |> eq(i - 1, "|")
+            }
+            if (ctx |> eq(i - 1, "|")) {
                 ctx |> add_space_before(i)
+            }
+        }
+    }
+}
 
 
-def fmt_space_after_cast_type(var ctx: FormatterCtx)
-    for i in range(0, length(ctx.tokens) - 3)
-        if ctx.tokens[i].tokenType == TokenType KEYWORD_OR_IDENTIFIER
-            if (type_after_keyword |> find_index(ctx.tokens[i].str) >= 0)
-                for j in range(i + 2, length(ctx.tokens))
-                    if !ctx.tokens[j].isInType && ctx.tokens[j].tokenType != TokenType COMMENT
+def fmt_space_after_cast_type(var ctx : FormatterCtx) {
+    for (i in range(0, length(ctx.tokens) - 3)) {
+        if (ctx.tokens[i].tokenType == TokenType.KEYWORD_OR_IDENTIFIER) {
+            if (type_after_keyword |> find_index(ctx.tokens[i].str) >= 0) {
+                for (j in range(i + 2, length(ctx.tokens))) {
+                    if (!ctx.tokens[j].isInType && ctx.tokens[j].tokenType != TokenType.COMMENT) {
                         ctx |> add_space_before(j)
                         break
+                    }
+                }
+            }
+        }
+    }
+}
 
-def fmt_destructure_space(var ctx: FormatterCtx)
-    for i in range(0, length(ctx.tokens) - 1)
-        if ctx |> eq(i, "let", "var") && ctx.tokens[i + 1].spaces == 0
+def fmt_destructure_space(var ctx : FormatterCtx) {
+    for (i in range(0, length(ctx.tokens) - 1)) {
+        if (ctx |> eq(i, "let", "var") && ctx.tokens[i + 1].spaces == 0) {
             ctx |> add_space_before(i + 1)
+        }
+    }
+}
 
 
-def do_format(var ctx: FormatterCtx)
+def do_format(var ctx : FormatterCtx) {
     ctx |> parse_all_tokens()
     ctx |> process_formatter_tokens()
 
-    if ctx |> have_formatter_token("ignore-file")
+    if (ctx |> have_formatter_token("ignore-file")) {
         return
+    }
 
     ctx |> mark_token_context()
     //ctx |> debug_print_tokens()
@@ -953,98 +1266,34 @@ def do_format(var ctx: FormatterCtx)
     ctx |> fmt_destructure_space()
 
     let top = length(ctx.tokens) - 1
-    for it in range(16)
+    for (it in range(16)) {
         let i = top - it
-        if i < 0 || !empty(ctx.tokens[i].str)
+        if (i < 0 || !empty(ctx.tokens[i].str)) {
             break
+        }
         ctx.tokens[i].spaces = 0
+    }
+}
 
 
-def public format_source_string(file_data: string const& implicit): string
-    var inscope ctx: FormatterCtx
-    ctx.data <- [{ for c in file_data; uint8(c) }]
+def public format_source_string(file_data : string const& implicit) : string {
+    var inscope ctx : FormatterCtx
+    ctx.data <- [ for (c in file_data); uint8(c) ]
     ctx.data |> push(uint8(0))
     ctx |> do_format()
-    return <- generate_source(ctx)
+    return generate_source(ctx)
+}
 
 
-def format_source(var ctx: FormatterCtx; file_data: array<uint8> const& implicit): string
+def format_source(var ctx : FormatterCtx; file_data : array<uint8> const& implicit) : string {
     ctx.data := file_data
     ctx.data |> push(uint8(0))
     ctx |> do_format()
-    return <- generate_source(ctx)
+    return generate_source(ctx)
+}
 
 
-def public format_source(file_data: array<uint8> const& implicit): string
-    var inscope ctx: FormatterCtx
+def public format_source(file_data : array<uint8> const& implicit) : string {
+    var inscope ctx : FormatterCtx
     return ctx |> format_source(file_data)
-
-
-def public format_file(var ctx: FormatterCtx; file_name: string const&)
-    var unformatted: string = ""
-    var formatted: string = ""
-    fopen(file_name, "rb") <| $(fr)
-        if fr == null
-            to_log(LOG_ERROR, "cannot open '{file_name}'\n")
-        else
-            fmap(fr) <| $(data)
-                unformatted = string(data)
-                formatted = ctx |> format_source(data)
-
-    if ctx.debugMode
-        to_log(LOG_DEBUG, formatted)
-
-    if !empty(formatted) && formatted != unformatted && !ctx.debugMode
-        fopen(file_name, "wb") <| $(fw)
-            if fw == null
-                to_log(LOG_ERROR, "cannot open '{file_name} for write'\n")
-            else
-                fw |> fprint(formatted)
-
-
-def public format_file(file_name: string const&)
-    var inscope ctx: FormatterCtx
-    ctx |> format_file(file_name)
-
-
-def public format_files(var ctx: FormatterCtx; file_names: array<string>&)
-    for fname in file_names
-        ctx |> format_file(fname)
-
-
-def public format_files(file_names: array<string>&)
-    var inscope ctx: FormatterCtx
-    ctx |> format_files(file_names)
-
-/*
-[export]
-def main()
-    var fileNames: array<string>
-    var filesListFn: string = ""
-    var ignore = true
-    for arg in get_command_line_arguments()
-        if arg == "--debug"
-            debugMode = true
-        if arg == "-args"
-            ignore = false
-            continue
-        if !ignore
-            if arg |> character_at(0) != '-'
-                fileNames |> push(arg)
-            if arg |> starts_with("--files:")
-                filesListFn = arg |> slice(8)
-
-    if !empty(filesListFn)
-        fopen(filesListFn, "rb") <| $(f)
-            if f == null
-                to_log(LOG_ERROR, "cannot open '{filesListFn}'\n")
-            else
-                while !feof(f)
-                    var file_name = fgets(f)
-                    if !empty(file_name)
-                        file_name = replace(file_name, "\n", "")
-                        file_name = replace(file_name, "\r", "")
-                        fileNames |> push(file_name)
-
-    format_files(fileNames)
-*/
+}

@@ -25,6 +25,7 @@ rendinst_phys_move_waiting_to_become_moved {
 
 rendinst_phys {
   collres{}
+  collres__res:t=""
   "grav_zones_affected:tag"{}
 
   net__physId:i=-1
@@ -71,7 +72,9 @@ phys_moved_rendinst_list{
   _singleton:b=yes
   _use:t="replicating"
   "phys_moved_rendinst_list:object"{}
+  "phys_moved_rendinst_pools:list<i>" {}
   "client_phys_moved_rendinst_list:object"{}
+  "client_phys_moved_rendinst_pools:list<i>" {}
 }
 
 syncable_ri_phys {

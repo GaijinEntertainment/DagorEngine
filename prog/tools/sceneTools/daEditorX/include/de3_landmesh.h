@@ -12,4 +12,5 @@ public:
   static constexpr unsigned HUID = 0xB73CF653u; // ILandmesh
 
   virtual BBox3 getBBoxWithHMapWBBox() const = 0;
+  virtual bool isLandmeshRenderingMode() const = 0;
 };

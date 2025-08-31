@@ -36,6 +36,6 @@ shader dynamic_emissive
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    EMISSIVE_PS()
+    EMISSIVE_PS(true)
   }
 }

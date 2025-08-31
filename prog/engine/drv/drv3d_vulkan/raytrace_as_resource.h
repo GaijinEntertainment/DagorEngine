@@ -1,14 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
+#include <drv/3d/rayTrace/dag_drvRayTrace.h>
 
 #include "device_resource.h"
+#include "cleanup_queue_tags.h"
 
-#if !D3D_HAS_RAY_TRACING
+#if !VULKAN_HAS_RAYTRACING
 #error raytrace acceleration structure resource header should not be included when RT is off
 #endif
-
 
 namespace drv3d_vulkan
 {
@@ -30,11 +30,6 @@ class RaytraceAccelerationStructure : public RaytraceASImplBase, public Resource
 public:
   uint64_t deviceHandle = 0;
   VulkanBufferHandle bufHandle = {};
-  enum
-  {
-    CLEANUP_DESTROY_BOTTOM = 0,
-    CLEANUP_DESTROY_TOP = 1
-  };
 
   void destroyVulkanObject();
   void createVulkanObject();
@@ -49,23 +44,23 @@ public:
   bool nonResidentCreation();
   void restoreFromSysCopy(ExecutionContext &ctx);
   void makeSysCopy(ExecutionContext &ctx);
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  template <int Tag>
-  void onDelayedCleanupBackend(){};
+  template <CleanupTag Tag>
+  void onDelayedCleanupBackend() {};
 
-  template <int Tag>
-  void onDelayedCleanupFrontend(){};
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
   RaytraceAccelerationStructure(const Description &in_desc, bool managed = true) : RaytraceASImplBase(in_desc, managed) {}
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  VkDeviceAddress getDeviceAddress(VulkanDevice &device);
+  VkDeviceAddress getDeviceAddress();
 #endif
 
   static RaytraceAccelerationStructure *create(bool top_level, VkDeviceSize size);
+  void destroyPrimaryVulkanObject();
 };
 
 inline VkBuildAccelerationStructureFlagsKHR ToVkBuildAccelerationStructureFlagsKHR(RaytraceBuildFlags flags)

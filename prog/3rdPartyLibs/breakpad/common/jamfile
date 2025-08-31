@@ -34,9 +34,9 @@ if $(Platform) in linux macOS {
 # exists  but I know of no way to do this with jam
 # It is needed to compile StabsReader properly
 if $(Platform) in linux {
-  CPPopt += -DHAVE_A_OUT_H=1 ;
+  CPPopt += -DHAVE_A_OUT_H ;
 } else if $(Platform) in macOS {
-  CPPopt += -DHAVE_MACH_O_NLIST_H=1 ;
+  CPPopt += -DHAVE_MACH_O_NLIST_H ;
 }
 
 if $(PlatformSpec) in gcc clang {

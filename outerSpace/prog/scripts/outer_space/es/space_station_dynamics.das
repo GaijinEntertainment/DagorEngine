@@ -6,32 +6,13 @@ require DagorSystem
 require DagorMath
 require DagorMathUtils
 require DngPhysObj
+require GamePhys // ECSCustomPhysStateSyncer
 require PhysObj
 require Dacoll
+require outer_space.es.space_ship_common
 
 let MAX_LIN_FORCE = 9000.f
 let MAX_ROT_FORCE = MAX_LIN_FORCE
-
-[es(tag=server)]
-def recv_control_inputs_es(evt : PassControlInputs;
-                           //eid : EntityId;
-                           var spaceship_thrust__lin : float3&;
-                           var spaceship_thrust__rot : float3&;
-                           var spaceship__rotateView_rad : float2&;
-                           var spaceship__rotateView_base_quat : float4&;
-                           var spaceship__min_target_ht : float&;
-                           var spaceship__use_stabilization : bool&;
-                           var spaceship__use_fwd_stabilization : bool&;
-                           var spaceship__free_look_around : bool&)
-  //print("recv PassControlInputs lin={evt.lin} rot={evt.rot} eid={eid}")
-  spaceship_thrust__lin = evt.lin
-  spaceship_thrust__rot = evt.rot
-  spaceship__rotateView_rad = evt.rotateView_rad
-  spaceship__rotateView_base_quat = evt.rotateView_base_quat
-  spaceship__min_target_ht = evt.min_target_ht
-  spaceship__free_look_around = evt.free_look_around
-  spaceship__use_stabilization = evt.use_stabilization
-  spaceship__use_fwd_stabilization = evt.use_fwd_stabilization
 
 def push_by_other_force_fields(var obj_net_phys : PhysObjActor&; obj_eid : EntityId;
                                obj_transform : float3x4; obj_center_of_mass : float3; obj_bound_rad : float)
@@ -59,20 +40,30 @@ def push_by_other_force_fields(var obj_net_phys : PhysObjActor&; obj_eid : Entit
 
 
 [es(before=spaceship_thrust_es_event_handler, REQUIRE=force_shield)]
-def force_field_clear_applied_force_es_event_handler(evt : CmdPostPhysUpdate; var force_shield_applied : float&)
+def force_field_clear_applied_force_es_event_handler(evt : CmdPrePhysUpdate; var force_shield_applied : float&)
   force_shield_applied = 0.0f
 
+[es(on_appear)]
+def spaceship_init_physobj(evt : Event; eid : EntityId; var phys_obj_net_phys : PhysObjActor&;
+                           var phys_state_syncer : ECSCustomPhysStateSyncer&;
+                           var spaceship__min_target_ht : float&;
+                           transform : float3x4)
+  // Init custom controls
+  phys_obj_net_phys.phys |> initCustomControls(typeinfo(sizeof type<SpaceShipControlsState>))
+  var appliedCT = get_phys_obj_applied_controls(phys_obj_net_phys)
+  appliedCT.rotateView_base_quat = math::quat(transform)
+
+  // Init custom AAS components sync
+  phys_state_syncer |> init(eid, 1)
+  phys_state_syncer |> registerSyncComponent("spaceship__min_target_ht", spaceship__min_target_ht)
+  phys_obj_net_phys.phys |> registerCustomPhysStateSyncer(phys_state_syncer)
+
 [es]
-def spaceship_thrust_es_event_handler(evt : CmdPostPhysUpdate; var phys_obj_net_phys : PhysObjActor&;
+def spaceship_thrust_es_event_handler(evt : CmdPrePhysUpdate; var phys_obj_net_phys : PhysObjActor&;
                                       eid : EntityId;
-                                      spaceship_thrust__lin : float3;
-                                      spaceship_thrust__rot : float3;
                                       transform : float3x4;
-                                      spaceship__free_look_around : bool;
-                                      spaceship__rotateView_rad : float2;
-                                      spaceship__rotateView_base_quat : float4;
-                                      spaceship__use_stabilization : bool;
-                                      spaceship__use_fwd_stabilization : bool;
+                                      var spaceship__rotateView_rad : float2&;
+                                      var spaceship__rotateView_base_quat : float4&;
                                       var spaceship__min_target_ht : float&;
                                       spaceship__min_target_dHt : float;
                                       spaceship_nozzle_pos__mainA : float3;
@@ -88,6 +79,15 @@ def spaceship_thrust_es_event_handler(evt : CmdPostPhysUpdate; var phys_obj_net_
                                       var csu_engine_agileD__thrust : float3?;
                                       var csu_engine_agileL__thrust : float3?;
                                       var csu_engine_agileR__thrust : float3?)
+
+  var appliedCT = get_phys_obj_applied_controls(phys_obj_net_phys)
+  assume spaceship_thrust__lin = appliedCT.lin
+  assume spaceship_thrust__rot = appliedCT.rot
+  spaceship__rotateView_rad = appliedCT.rotateView_rad
+  spaceship__rotateView_base_quat = appliedCT.rotateView_base_quat
+  assume spaceship__free_look_around = appliedCT.free_look_around
+  assume spaceship__use_stabilization = appliedCT.use_stabilization
+  assume spaceship__use_fwd_stabilization = appliedCT.use_fwd_stabilization
 
   var thrust_lin, thrust_lin_world : float3
   thrust_lin = spaceship_thrust__lin
@@ -117,8 +117,8 @@ def spaceship_thrust_es_event_handler(evt : CmdPostPhysUpdate; var phys_obj_net_
         land_altitude = water_altitude
 
     let trace_above_ht = 3.0f
-    var stp : float3 = transform[3] + float3(0.f, trace_above_ht, 0.f)
-    var dir : float3 = float3(0.f, -1.f, 0.f)
+    let stp = transform[3] + float3(0.f, trace_above_ht, 0.f)
+    let dir = float3(0.f, -1.f, 0.f)
     var ray_dist : float = trace_above_ht + spaceship__min_target_ht + 5.f
     var norm_ : float3
     if traceray_normalized(stp, dir, ray_dist, norm_)
@@ -131,15 +131,15 @@ def spaceship_thrust_es_event_handler(evt : CmdPostPhysUpdate; var phys_obj_net_
 
     // stabilize orientation
     if (length_sq(transform[1].xz) > 1e-6f || length_sq(local_wvel) > 1e-6f) || !spaceship__free_look_around
-      var heading, pitch, roll : float;
+      var heading, pitch, roll : float
       matrix_to_euler(transform, heading, pitch, roll)
 
       if !spaceship__free_look_around
         // compute euler angles in world frame for spaceship__rotateView_rad
-        var q : quat;
+        var q : quat
         euler_heading_attitude_to_quat(spaceship__rotateView_rad.x, spaceship__rotateView_rad.y, q)
         q = quat(quat_mul(spaceship__rotateView_base_quat, float4(q)))
-        var heading_to, pitch_to, roll_to : float;
+        var heading_to, pitch_to, roll_to : float
         quat_to_euler(q, heading_to, pitch_to, roll_to)
 
         // orient ship to spaceship__rotateView_rad direction
@@ -157,8 +157,8 @@ def spaceship_thrust_es_event_handler(evt : CmdPostPhysUpdate; var phys_obj_net_
       //print("localW={local_wvel} pitch={pitch} roll={roll} stab_pitch={stab_pitch} stab_roll={stab_roll}")
 
   elif length_sq(local_wvel) > 1e-6f || !spaceship__free_look_around
-    var d_pitch : float = 0.0f;
-    var d_heading : float = 0.0f;
+    var d_pitch : float = 0.0f
+    var d_heading : float = 0.0f
     if !spaceship__free_look_around
       // orient ship to spaceship__rotateView_rad direction
       d_pitch = -spaceship__rotateView_rad.y

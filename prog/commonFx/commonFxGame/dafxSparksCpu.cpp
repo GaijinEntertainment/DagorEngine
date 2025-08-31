@@ -3,7 +3,6 @@
 #include <daFx/dafx.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
-#include <math/dag_TMatrix4.h>
 
 #include <daFx/dafx_def.hlsli>
 #include <daFx/dafx_hlsl_funcs.hlsli>
@@ -19,10 +18,10 @@ extern GravityZoneDescriptor_buffer dafx_gravity_zone_buffer;
 
 namespace dafx_sparks
 {
-#include <dafxSparkModules/dafx_code_common_decl.hlsl>
-#include <dafxSparks_decl.hlsl>
-#include <dafxSparkModules/dafx_code_common.hlsl>
-#include <dafx_sparks.hlsl>
+#include <dafxSparkModules/dafx_code_common_decl.hlsli>
+#include <dafxSparks_decl.hlsli>
+#include <dafxSparkModules/dafx_code_common.hlsli>
+#include <dafx_sparks.hlsli>
 
 #define DAFX_EMISSION_SHADER_ENABLED   1
 #define DAFX_SIMULATION_SHADER_ENABLED 1

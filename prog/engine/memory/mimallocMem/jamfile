@@ -8,7 +8,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 if $(MimDebug) != 0 { Target = $(Target:B)~dbg$(MimDebug).lib ; }
 
-CPPopt = -D_STD_RTL_MEMORY=1 -DUSE_MIMALLOC=1 -DMI_DEBUG=$(MimDebug) ;
+CPPopt = -D_STD_RTL_MEMORY -DUSE_MIMALLOC -DMI_DEBUG=$(MimDebug) ;
 
 UseProgLibs = 3rdPartyLibs/mimalloc ;
 

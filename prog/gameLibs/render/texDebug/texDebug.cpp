@@ -59,13 +59,29 @@ struct ChannelFilter
   float max = 1.0f;
 };
 
-static eastl::hash_map<eastl::string, TextureInfo> textures;
+struct ExternalTexture
+{
+  ExternalTextureProvider &provider;
+  TextureInfo getTextureInfo() const { return provider.getTextureInfo(); }
+  TEXTUREID getTextureId() const { return provider.getTextureId(); }
+  void init() { provider.init(); }
+  void close() { provider.close(); }
+};
+
+struct TextureEntry
+{
+  TextureInfo info;
+  TEXTUREID texId;
+};
+
+using TextureInfoProvider = eastl::variant<TextureInfo, ExternalTexture>;
+static eastl::hash_map<eastl::string, TextureInfoProvider> textures;
 static eastl::vector<eastl::string> filteredTextures;
 static eastl::unordered_set<eastl::string> pinnedTextures;
 
 static bool filterRT = false;
 static bool filterDepth = false;
-static int filterTexType = RES3D_TEX;
+static D3DResourceType filterTexType = D3DResourceType::TEX;
 static char filterName[128] = "";
 
 static eastl::string selectedTextureName;
@@ -104,6 +120,35 @@ static TMatrix cubeViewMatrix;
 
 static bool selectableNeedsFocus = false;
 
+static eastl::hash_map<eastl::string, ExternalTextureProvider &> external_textures;
+
+void register_external_texture(ExternalTextureProvider &provider) { external_textures.insert({provider.getName(), provider}); }
+
+void unregister_external_texture(ExternalTextureProvider &provider) { external_textures.erase(provider.getName()); }
+
+static void init_selected_texture(eastl::string &storage, const char *name)
+{
+  const auto oldName = eastl::exchange(storage, name);
+  if (oldName != name)
+  {
+    if (auto oldTex = external_textures.find(oldName); oldTex != external_textures.end())
+      oldTex->second.close();
+    if (auto newTex = external_textures.find(name); newTex != external_textures.end())
+      newTex->second.init();
+  }
+}
+
+static void clear_selected_texture(eastl::string &storage)
+{
+  const auto oldName = storage;
+  storage.clear();
+  if (!oldName.empty())
+  {
+    if (auto oldTex = external_textures.find(oldName); oldTex != external_textures.end())
+      oldTex->second.close();
+  }
+}
+
 static void save_pinned_list()
 {
 #if _TARGET_PC | _TARGET_XBOX
@@ -133,16 +178,43 @@ static void reset_view()
   cubeViewMatrix.identity();
 }
 
-static TextureInfo *get_filtered_texture()
+static TextureEntry get_texture_entry(const eastl::string &name)
 {
-  if (selectedTextureName.empty())
-    return nullptr;
+  if (name.empty())
+    return {TextureInfo{}, BAD_TEXTUREID};
 
-  auto iter = textures.find(selectedTextureName);
+  const auto iter = textures.find(name);
   if (iter == textures.end())
-    return nullptr;
+    return {TextureInfo{}, BAD_TEXTUREID};
 
-  return &iter->second;
+  const TextureInfoProvider &entry = iter->second;
+  if (auto infoPtr = eastl::get_if<TextureInfo>(&entry))
+  {
+    TEXTUREID id = get_managed_texture_id(name.data());
+    if (id == BAD_TEXTUREID)
+    {
+      id = get_managed_texture_id(String(0, "%s*", name.data()));
+    }
+    if (id == BAD_TEXTUREID)
+    {
+      for (TEXTUREID mid = first_managed_texture(1); mid != BAD_TEXTUREID; mid = next_managed_texture(mid, 1))
+        if (auto texture = acquire_managed_tex(mid))
+        {
+          if (texture->getName() == name)
+          {
+            id = mid;
+            release_managed_tex(mid);
+            break;
+          }
+          release_managed_tex(mid);
+        }
+    }
+    return {*infoPtr, id};
+  }
+  else if (auto externalTex = eastl::get_if<ExternalTexture>(&entry))
+    return {externalTex->getTextureInfo(), externalTex->getTextureId()};
+
+  return {TextureInfo{}, BAD_TEXTUREID};
 }
 
 static bool is_depth_format_flg(uint32_t cflg)
@@ -158,11 +230,15 @@ static void update_filtered_textures()
   {
     if (iter.first.empty())
       continue;
-    if (filterTexType != iter.second.resType)
+
+    const TextureEntry entry = get_texture_entry(iter.first);
+    const TextureInfo info = entry.info;
+
+    if (filterTexType != info.type)
       continue;
-    if (filterRT && (iter.second.cflg & TEXCF_RTARGET) == 0)
+    if (filterRT && (info.cflg & TEXCF_RTARGET) == 0)
       continue;
-    if (filterDepth && !is_depth_format_flg(iter.second.cflg))
+    if (filterDepth && !is_depth_format_flg(info.cflg))
       continue;
 
     if (filterName[0] && !strstr(iter.first.data(), filterName))
@@ -170,7 +246,7 @@ static void update_filtered_textures()
 
     filteredTextures.push_back(iter.first);
   }
-  selectedTextureName.clear();
+  clear_selected_texture(selectedTextureName);
   eastl::sort(filteredTextures.begin(), filteredTextures.end());
   reset_view();
 }
@@ -178,28 +254,33 @@ static void update_filtered_textures()
 static void refresh_textures()
 {
   textures.clear();
-  selectedTextureName.clear();
+  clear_selected_texture(selectedTextureName);
   for (TEXTUREID id = first_managed_texture(1); id != BAD_TEXTUREID; id = next_managed_texture(id, 1))
   {
     if (auto texture = acquire_managed_tex(id))
     {
       TextureInfo entry;
       texture->getinfo(entry);
-      textures.insert({eastl::string(texture->getResName()), entry});
+      textures.insert({eastl::string(texture->getName()), entry});
       release_managed_tex(id);
     }
   }
+  for (auto &entry : external_textures)
+  {
+    auto &provider = entry.second;
+    textures.insert({entry.first, ExternalTexture{provider}});
+  }
 }
 
-static const char *get_tex_type_name(int type)
+static const char *get_tex_type_name(D3DResourceType type)
 {
   switch (type)
   {
-    case RES3D_TEX: return "2D";
-    case RES3D_VOLTEX: return "Volume";
-    case RES3D_CUBETEX: return "Cube";
-    case RES3D_ARRTEX: return "Array";
-    case RES3D_CUBEARRTEX: return "Cube array";
+    case D3DResourceType::TEX: return "2D";
+    case D3DResourceType::VOLTEX: return "Volume";
+    case D3DResourceType::CUBETEX: return "Cube";
+    case D3DResourceType::ARRTEX: return "Array";
+    case D3DResourceType::CUBEARRTEX: return "Cube array";
     default: return "Unknown";
   }
 }
@@ -293,39 +374,39 @@ static bool is_integer_texture(uint32_t cflg)
 
 static int tex_type_ix(TextureInfo &ti)
 {
-  switch (ti.resType)
+  switch (ti.type)
   {
-    case RES3D_TEX: return is_integer_texture(ti.cflg) ? 4 : 0;
-    case RES3D_VOLTEX: return 1;
-    case RES3D_CUBETEX: return 3;
-    case RES3D_ARRTEX: return 2;
-    case RES3D_CUBEARRTEX: return 3;
+    case D3DResourceType::TEX: return is_integer_texture(ti.cflg) ? 4 : 0;
+    case D3DResourceType::VOLTEX: return 1;
+    case D3DResourceType::CUBETEX: return 3;
+    case D3DResourceType::ARRTEX: return 2;
+    case D3DResourceType::CUBEARRTEX: return 3;
     default: return 0;
   }
 }
 
 static float tex_slice_val(const TextureInfo &ti)
 {
-  switch (ti.resType)
+  switch (ti.type)
   {
-    case RES3D_TEX: return 0;
-    case RES3D_VOLTEX: return (selectedDepthSlice + 0.5f) / ti.d;
-    case RES3D_CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
-    case RES3D_ARRTEX: return selectedArraySlice;
-    case RES3D_CUBEARRTEX: return selectedArraySlice;
+    case D3DResourceType::TEX: return 0;
+    case D3DResourceType::VOLTEX: return (selectedDepthSlice + 0.5f) / ti.d;
+    case D3DResourceType::CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
+    case D3DResourceType::ARRTEX: return selectedArraySlice;
+    case D3DResourceType::CUBEARRTEX: return selectedArraySlice;
     default: return 0;
   }
 }
 
 static float tex_sliceI_val(const TextureInfo &ti)
 {
-  switch (ti.resType)
+  switch (ti.type)
   {
-    case RES3D_TEX: return 0;
-    case RES3D_VOLTEX: return selectedDepthSlice;
-    case RES3D_CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
-    case RES3D_ARRTEX: return selectedArraySlice;
-    case RES3D_CUBEARRTEX: return selectedArraySlice;
+    case D3DResourceType::TEX: return 0;
+    case D3DResourceType::VOLTEX: return selectedDepthSlice;
+    case D3DResourceType::CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
+    case D3DResourceType::ARRTEX: return selectedArraySlice;
+    case D3DResourceType::CUBEARRTEX: return selectedArraySlice;
     default: return 0;
   }
 }
@@ -340,8 +421,8 @@ static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
     return;
   }
 
-  auto entry = get_filtered_texture();
-  if (!entry)
+  const TextureEntry texEntry = get_texture_entry(selectedTextureName);
+  if (texEntry.texId == BAD_TEXTUREID)
     return;
 
   uint32_t mask = 0;
@@ -349,8 +430,10 @@ static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
     if (channelFilters[i].active)
       mask |= 1 << i;
 
-  int texType = tex_type_ix(*entry);
-  float slice = tex_slice_val(*entry);
+  TextureInfo info = texEntry.info;
+
+  int texType = tex_type_ix(info);
+  float slice = tex_slice_val(info);
 
   ShaderGlobal::set_int(imgui_channel_maskVarId, mask);
   ShaderGlobal::set_real(imgui_r_minVarId, channelFilters[0].min);
@@ -369,16 +452,16 @@ static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
   ShaderGlobal::set_color4(imgui_cube_view_upVarId, cubeViewMatrix.getcol(1));
   ShaderGlobal::set_color4(imgui_cube_view_rightVarId, cubeViewMatrix.getcol(0));
 
-  auto diffTexId = get_managed_texture_id(selectedTextureNameForDiff.data());
-  ShaderGlobal::set_texture(imgui_tex_diff, diffTexId);
+  TextureEntry diffEntry = get_texture_entry(selectedTextureNameForDiff);
+  ShaderGlobal::set_texture(imgui_tex_diff, diffEntry.texId);
 
   d3d::set_sampler(STAGE_PS, custom_sampler_const_no, pointSampler);
 }
 
 static void reset_image_mode(const ImDrawList *, const ImDrawCmd *)
 {
-  auto entry = get_filtered_texture();
-  if (!entry)
+  auto entry = get_texture_entry(selectedTextureName);
+  if (entry.texId == BAD_TEXTUREID)
     return;
 
   ShaderGlobal::set_int(imgui_channel_maskVarId, 15);
@@ -426,41 +509,40 @@ static String cube_slice_name(int slice)
 
 static void render_selected_texture()
 {
-  auto entry = get_filtered_texture();
-  if (!entry)
+  auto entry = get_texture_entry(selectedTextureName);
+  if (entry.texId == BAD_TEXTUREID)
     return;
 
-  auto texId = get_managed_texture_id(selectedTextureName.data());
-  if (texId == BAD_TEXTUREID || get_managed_texture_refcount(texId) == 0)
-    return;
+  TEXTUREID texId = entry.texId;
+  TextureInfo info = entry.info;
 
-  auto &formatDesc = get_tex_format_desc(entry->cflg);
-  auto formatName = get_tex_format_name(entry->cflg);
+  auto &formatDesc = get_tex_format_desc(info.cflg);
+  auto formatName = get_tex_format_name(info.cflg);
 
   ImGui::Text("Name: %s", selectedTextureName.c_str());
-  ImGui::Text("Type: %s", get_tex_type_name(entry->resType));
+  ImGui::Text("Type: %s", get_tex_type_name(info.type));
   ImGui::SameLine();
   ImGui::Text("Format: %s", formatName);
   ImGui::SameLine();
-  ImGui::Text("Width: %d", entry->w);
+  ImGui::Text("Width: %d", info.w);
   ImGui::SameLine();
-  ImGui::Text("Height: %d", entry->h);
-  switch (entry->resType)
+  ImGui::Text("Height: %d", info.h);
+  switch (info.type)
   {
-    case RES3D_VOLTEX:
+    case D3DResourceType::VOLTEX:
       ImGui::SameLine();
-      ImGui::Text("Depth: %d", entry->d);
+      ImGui::Text("Depth: %d", info.d);
       break;
-    case RES3D_ARRTEX:
-    case RES3D_CUBEARRTEX:
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
       ImGui::SameLine();
-      ImGui::Text("Slices: %d", entry->a);
+      ImGui::Text("Slices: %d", info.a);
       break;
     default: break;
   }
 
   ImGui::SameLine();
-  ImGui::Text("Mip levels: %d", entry->mipLevels);
+  ImGui::Text("Mip levels: %d", info.mipLevels);
 
   ImGui::BeginGroup();
 
@@ -540,13 +622,13 @@ static void render_selected_texture()
   if (ImGui::Button("[auto]"))
     pickBufferQueryCalcRangesStart = true;
 
-  if (entry->mipLevels > 1)
+  if (info.mipLevels > 1)
   {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x / 2);
     if (ImGui::BeginCombo("##mipSelector", mip_name(selectedMipLevel)))
     {
-      for (int mipIx = 0; mipIx < entry->mipLevels; ++mipIx)
+      for (int mipIx = 0; mipIx < info.mipLevels; ++mipIx)
         if (ImGui::Selectable(mip_name(mipIx), selectedMipLevel == mipIx))
           selectedMipLevel = mipIx;
 
@@ -557,13 +639,13 @@ static void render_selected_texture()
     }
   }
 
-  if (entry->a > 1)
+  if (info.a > 1)
   {
-    auto slice_name_func = entry->resType == RES3D_ARRTEX ? array_slice_name : cube_slice_name;
-    auto slice_count = entry->resType == RES3D_ARRTEX ? entry->a : 7;
+    auto slice_name_func = info.type == D3DResourceType::ARRTEX ? array_slice_name : cube_slice_name;
+    auto slice_count = info.type == D3DResourceType::ARRTEX ? info.a : 7;
 
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(entry->mipLevels > 1 ? ImGui::GetContentRegionAvail().x : ImGui::GetContentRegionAvail().x / 2);
+    ImGui::SetNextItemWidth(info.mipLevels > 1 ? ImGui::GetContentRegionAvail().x : ImGui::GetContentRegionAvail().x / 2);
     if (ImGui::BeginCombo("##arraySliceSelector", slice_name_func(selectedArraySlice)))
     {
       for (int sliceIx = 0; sliceIx < slice_count; ++sliceIx)
@@ -574,12 +656,12 @@ static void render_selected_texture()
     }
   }
 
-  if (entry->d > 1)
+  if (info.d > 1)
   {
     ImGui::SameLine();
     if (ImGui::BeginCombo("##depthSliceSelector", depth_slice_name(selectedDepthSlice)))
     {
-      for (int sliceIx = 0; sliceIx < entry->d; ++sliceIx)
+      for (int sliceIx = 0; sliceIx < info.d; ++sliceIx)
         if (ImGui::Selectable(depth_slice_name(sliceIx), selectedDepthSlice == sliceIx))
           selectedDepthSlice = sliceIx;
 
@@ -591,7 +673,7 @@ static void render_selected_texture()
 
   ImGui::GetWindowDrawList()->AddCallback(set_image_mode, (void *)(uintptr_t)max(selectedMipLevel, 0));
 
-  float aspect = float(entry->w) / entry->h;
+  float aspect = float(info.w) / info.h;
   int width = ImGui::GetContentRegionAvail().x;
   int height = width / aspect;
 
@@ -676,7 +758,7 @@ static void render_selected_texture()
   {
     int width = (ImGui::GetContentRegionAvail().x / 3) - 2 * ImGui::GetStyle().ItemSpacing.x;
     int height = width / aspect;
-    for (int mipIx = 1; mipIx < entry->mipLevels; ++mipIx)
+    for (int mipIx = 1; mipIx < info.mipLevels; ++mipIx)
     {
       if ((mipIx - 1) % 3)
         ImGui::SameLine();
@@ -714,11 +796,12 @@ static void render_selected_texture()
 
   if (!pickBufferQueryActive && processTextureShader)
   {
-    auto diffTexId = get_managed_texture_id(selectedTextureNameForDiff.data());
+    const auto entry = get_texture_entry(selectedTextureNameForDiff);
+    auto diffTexId = entry.texId;
 
-    int texType = tex_type_ix(*entry);
-    float slice = tex_slice_val(*entry);
-    int sliceI = tex_sliceI_val(*entry);
+    int texType = tex_type_ix(info);
+    float slice = tex_slice_val(info);
+    int sliceI = tex_sliceI_val(info);
 
     ShaderGlobal::set_texture(tex_debug_textureVarId, texId);
     ShaderGlobal::set_texture(tex_debug_texture_for_diffVarId, diffTexId);
@@ -732,14 +815,18 @@ static void render_selected_texture()
 
     d3d::set_sampler(STAGE_CS, 5, pointSampler);
 
-    processTextureShader->dispatch(1, 1, 1);
+    ImGui::GetWindowDrawList()->AddCallback(
+      [](const ImDrawList *, const ImDrawCmd *) {
+        processTextureShader->dispatch(1, 1, 1);
 
-    if (pickBuffer->lock(0, 0, (void **)nullptr, VBLOCK_READONLY))
-      pickBuffer->unlock();
-    d3d::issue_event_query(pickBufferQuery.get());
-    pickBufferQueryActive = true;
-    pickBufferQueryCalcRangesRunning = pickBufferQueryCalcRangesStart;
-    pickBufferQueryCalcRangesStart = false;
+        if (pickBuffer->lock(0, 0, (void **)nullptr, VBLOCK_READONLY))
+          pickBuffer->unlock();
+        d3d::issue_event_query(pickBufferQuery.get());
+        pickBufferQueryActive = true;
+        pickBufferQueryCalcRangesRunning = pickBufferQueryCalcRangesStart;
+        pickBufferQueryCalcRangesStart = false;
+      },
+      nullptr);
   }
 
   if (processTextureShader)
@@ -784,27 +871,27 @@ static void imguiWindow()
   if (ImGui::Checkbox("Depth", &filterDepth))
     update_filtered_textures();
   ImGui::SameLine();
-  if (ImGui::RadioButton("2D", filterTexType == RES3D_TEX))
+  if (ImGui::RadioButton("2D", filterTexType == D3DResourceType::TEX))
   {
-    filterTexType = RES3D_TEX;
+    filterTexType = D3DResourceType::TEX;
     update_filtered_textures();
   }
   ImGui::SameLine();
-  if (ImGui::RadioButton("3D", filterTexType == RES3D_VOLTEX))
+  if (ImGui::RadioButton("3D", filterTexType == D3DResourceType::VOLTEX))
   {
-    filterTexType = RES3D_VOLTEX;
+    filterTexType = D3DResourceType::VOLTEX;
     update_filtered_textures();
   }
   ImGui::SameLine();
-  if (ImGui::RadioButton("Cube", filterTexType == RES3D_CUBETEX))
+  if (ImGui::RadioButton("Cube", filterTexType == D3DResourceType::CUBETEX))
   {
-    filterTexType = RES3D_CUBETEX;
+    filterTexType = D3DResourceType::CUBETEX;
     update_filtered_textures();
   }
   ImGui::SameLine();
-  if (ImGui::RadioButton("Array", filterTexType == RES3D_ARRTEX))
+  if (ImGui::RadioButton("Array", filterTexType == D3DResourceType::ARRTEX))
   {
-    filterTexType = RES3D_ARRTEX;
+    filterTexType = D3DResourceType::ARRTEX;
     update_filtered_textures();
   }
 
@@ -818,7 +905,7 @@ static void imguiWindow()
   {
     if (ImGui::Selectable("##empty", selectedTextureNameForDiff.empty()))
     {
-      selectedTextureNameForDiff.clear();
+      clear_selected_texture(selectedTextureNameForDiff);
       reset_view();
     }
 
@@ -829,7 +916,7 @@ static void imguiWindow()
         continue;
       if (!entry->first.empty() && ImGui::Selectable(entry->first.data(), entry->first == selectedTextureNameForDiff))
       {
-        selectedTextureNameForDiff = entry->first;
+        init_selected_texture(selectedTextureNameForDiff, entry->first.c_str());
         reset_view();
       }
     }
@@ -885,7 +972,7 @@ static void imguiWindow()
   {
     if (ImGui::Selectable("##empty", selectedTextureName.empty()))
     {
-      selectedTextureName.clear();
+      clear_selected_texture(selectedTextureName);
       reset_view();
     }
     for (auto &name : filteredTextures)
@@ -904,7 +991,7 @@ static void imguiWindow()
 
       if (!entry->first.empty() && ImGui::Selectable(entry->first.data(), selected))
       {
-        selectedTextureName = entry->first;
+        init_selected_texture(selectedTextureName, entry->first.c_str());
         reset_view();
       }
     }
@@ -976,12 +1063,10 @@ void init()
   ImageInfoDDS padlock_lock_icon_dds;
   load_dds((void *)padlock_lock_icon, sizeof(padlock_lock_icon), 1, 0, padlock_lock_icon_dds);
   lockImage = resptr_detail::ResPtrFactory(create_dds_texture(false, padlock_lock_icon_dds, "texDebug_lockImage"));
-  lockImage->texaddr(TEXADDR_BORDER);
 
   ImageInfoDDS padlock_unlock_icon_dds;
   load_dds((void *)padlock_unlock_icon, sizeof(padlock_unlock_icon), 1, 0, padlock_unlock_icon_dds);
   unlockImage = resptr_detail::ResPtrFactory(create_dds_texture(false, padlock_unlock_icon_dds, "texDebug_unlockImage"));
-  unlockImage->texaddr(TEXADDR_BORDER);
 
 #if _TARGET_PC | _TARGET_XBOX
   if (::dd_file_exist("tex_debug.blk"))

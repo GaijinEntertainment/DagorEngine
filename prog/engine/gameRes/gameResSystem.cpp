@@ -95,6 +95,7 @@ struct SetScopeNoFactoryFatal
   SetScopeNoFactoryFatal(bool set) : prev(noFactoryFatal) { noFactoryFatal = set; }
   ~SetScopeNoFactoryFatal() { noFactoryFatal = prev; }
 };
+static int8_t gameres_undefined_res_loglevel = LOGLEVEL_WARN;
 static int now_loading_res_id = -1;
 static enum { OGLE_ALWAYS, OGLE_ONE_ENABLED, OGLE_NOT_ENABLED } one_grp_load_enabled = OGLE_ALWAYS;
 static bool ignoreUnavailableResources = false;
@@ -527,6 +528,23 @@ void gameresprivate::scanGameResPack(const char *filename)
     gdata->patchDescOnly(ghdr.label);
     gdata->patchData();
 
+    // This function is called under gameres_cs, but load_game_resource_pack does not hold it and can run in parallel to this
+    // function. Resizing the packInfo can spoil the pointer to the GameResPackInfo used there.
+    static int maxNumberOfGameResPacks = ::dgs_get_settings()->getInt("maxNumberOfGameResPacks", 0);
+    if (maxNumberOfGameResPacks > 0 && packInfo.size() == 0)
+      packInfo.reserve(maxNumberOfGameResPacks);
+
+    if (maxNumberOfGameResPacks > 0 && packInfo.size() >= maxNumberOfGameResPacks)
+    {
+      logerr("maxNumberOfGameResPacks=%d exceeded, add '%s', packs=%d", maxNumberOfGameResPacks, filename, packInfo.size() + 1);
+      if (packInfo.size() == maxNumberOfGameResPacks)
+      {
+        debug("packs list:");
+        for (const GameResPackInfo &pack : packInfo)
+          debug("    '%s'", pack.fileName);
+      }
+    }
+
     // add pack
     int packId = append_items(packInfo, 1);
     GameResPackInfo &pack = packInfo[packId];
@@ -680,7 +698,7 @@ bool GameResPackInfo::processGrData()
   if (!grData)
     return false;
 
-  fatal_context_push(fileName);
+  FATAL_CONTEXT_AUTO_SCOPE(fileName);
   DEBUG_CTX("processing data from GRP %s", (char *)fileName);
   int this_packId = this - packInfo.data();
 
@@ -740,7 +758,6 @@ bool GameResPackInfo::processGrData()
   }
 
   DEBUG_CTX("processed data from GRP %s", (char *)fileName);
-  fatal_context_pop();
 
   return true;
 }
@@ -1239,6 +1256,8 @@ void load_game_resource_pack_by_name(const char *fname, bool only_one_gameres_pa
 
 
 void set_no_gameres_factory_fatal(bool no_factory_fatal) { noFactoryFatal = no_factory_fatal; }
+void set_gameres_undefined_res_loglevel(int8_t level) { gameres_undefined_res_loglevel = level; }
+
 
 GameResource *get_game_resource(GameResHandle handle)
 {
@@ -1608,8 +1627,10 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
   {
     SimpleString fn(df_get_abs_fname(_fn));
     dd_simplify_fname_c(fn);
-    if (!fn.empty())
-      gameresprivate::scanGameResPack(fn), grp_num++;
+    if (fn.empty() || (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(fn, false)))
+      continue;
+    gameresprivate::scanGameResPack(fn);
+    grp_num++;
   }
 
   // scan texture packs
@@ -1624,8 +1645,10 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
         continue;
       SimpleString fn(df_get_abs_fname(_fn));
       dd_simplify_fname_c(fn);
-      if (!fn.empty())
-        gameresprivate::scanDdsxTexPack(fn), dxp_num++;
+      if (fn.empty() || (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(fn, true)))
+        continue;
+      gameresprivate::scanDdsxTexPack(fn);
+      dxp_num++;
       _fn = nullptr;
     }
     for (auto &_fn : list) // process -hq in second pass
@@ -1633,23 +1656,26 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
       {
         SimpleString fn(df_get_abs_fname(_fn));
         dd_simplify_fname_c(fn);
-        if (!fn.empty())
-          gameresprivate::scanDdsxTexPack(fn), dxp_num++;
+        if (fn.empty() || (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(fn, true)))
+          continue;
+        gameresprivate::scanDdsxTexPack(fn);
+        dxp_num++;
       }
   }
   clear_and_shrink(list);
 
   gameresprivate::gameResPatchInProgress = false;
   gameresprivate::curRelFnOfs = 0;
-  debug("scan_for_game_resources(%s) processed %d GRPs and %d DxPs for %.4f sec", path, grp_num, dxp_num,
-    profile_time_usec(reft) / 1e6);
+  if (grp_num + dxp_num > 0)
+    debug("scan_for_game_resources(%s) processed %d GRPs and %d DxPs for %.4f sec", path, grp_num, dxp_num,
+      profile_time_usec(reft) / 1e6);
   G_UNUSED(reft);
 #if !(_TARGET_PC && !_TARGET_STATIC_LIB)
   if (grp_num)
     repack_real_game_res_id_table();
 #endif
 
-  if (scan_dxp)
+  if (scan_dxp && dxp_num)
     ddsx::dump_registered_tex_distribution();
 }
 
@@ -1924,7 +1950,7 @@ static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntLis
       if (::get_managed_texture_id(tmpStr) != BAD_TEXTUREID)
         return true;
     }
-    logwarn("undefined res %s", resNameMap.getName(res_id));
+    logmessage(gameres_undefined_res_loglevel, "Undefined res: <%s> (%d)", resNameMap.getName(res_id), res_id);
     return false;
   }
 
@@ -2006,7 +2032,8 @@ static bool load_resource_list_impl(dag::Span<GameResource *> in_out_list)
     if (!in_out_list[i])
     {
       ok = false;
-      LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
+      if (id != -1)
+        LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
     }
   }
   return ok;

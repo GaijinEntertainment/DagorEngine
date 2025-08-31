@@ -4,6 +4,7 @@
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_IObjectCreator.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/captureCursor.h>
@@ -19,6 +20,8 @@
 #include <debug/dag_debug.h>
 #include <de3_interface.h>
 #include <propPanel/control/panelWindow.h>
+
+using editorcore_extapi::dagInput;
 
 #define MAX_TRACE_DIST 1000
 
@@ -36,6 +39,7 @@ enum
   PROPBAR_WIDTH = 280,
 };
 
+bool ObjectEditor::placeTypeRadio = false;
 
 //==================================================================================================
 // ObjectEditor
@@ -113,6 +117,7 @@ void ObjectEditor::selectionChanged()
 {
   invalidateObjectProps();
   isGizmoValid = false;
+  gizmoRotPoint = Point3(0, 0, 0);
 
   IEditorCoreEngine::get()->updateViewports();
   IEditorCoreEngine::get()->invalidateViewportCache();
@@ -713,6 +718,35 @@ bool ObjectEditor::canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizm
   return true;
 }
 
+bool ObjectEditor::isMouseOver(IGenViewportWnd *wnd, int x, int y)
+{
+  Tab<RenderableEditableObject *> objs(tmpmem);
+  if (!pickObjects(wnd, x, y, objs))
+    return false;
+
+  RenderableEditableObject *obj;
+  if (objs.size() > 1 || !objs[0]->isSelected())
+  {
+    int i;
+    for (i = 0; i < objs.size(); ++i)
+      if (objs[i]->isSelected())
+        break;
+
+    ++i;
+    if (i >= objs.size())
+      i = 0;
+
+    obj = objs[i];
+  }
+  else
+    obj = objs[0];
+
+  if (!obj->isSelected())
+    return false;
+
+  return true;
+}
+
 
 int ObjectEditor::getAvailableTypes()
 {
@@ -747,23 +781,24 @@ IEditorCoreEngine::ModeType ObjectEditor::editModeToModeType(int editMode)
 }
 
 
-void ObjectEditor::updateGizmo(int basis)
+void ObjectEditor::updateGizmo(int basis, int *modeOverride)
 {
   if (isGizmoValid)
     return;
 
-  if (basis == IEditorCoreEngine::BASIS_None)
-    basis = IEditorCoreEngine::get()->getGizmoBasisType();
+  const int updateEditMode = modeOverride != nullptr ? *modeOverride : editMode;
+  IEditorCoreEngine::ModeType gt = editModeToModeType(updateEditMode);
 
-  IEditorCoreEngine::ModeType gt = editModeToModeType(editMode);
+  if (basis == IEditorCoreEngine::BASIS_None)
+    basis = IEditorCoreEngine::get()->getGizmoBasisTypeForMode(gt);
 
   // calc gizmoPt
   if (selection.size())
   {
-    switch (IEditorCoreEngine::get()->getGizmoCenterType())
+    switch (IEditorCoreEngine::get()->getGizmoCenterTypeForMode(gt))
     {
       case IEditorCoreEngine::CENTER_Pivot:
-        if (editMode != CM_OBJED_MODE_SURF_MOVE)
+        if (updateEditMode != CM_OBJED_MODE_SURF_MOVE)
           gizmoPt = selection[0]->getPos();
         else
           gizmoPt = selection[0]->getPos() - Point3(0, selection[0]->getSurfaceDist(), 0);
@@ -781,19 +816,23 @@ void ObjectEditor::updateGizmo(int basis)
         BBox3 box;
         getSelectionBox(box);
 
-        if (editMode == CM_OBJED_MODE_ROTATE && basis == IEditorCoreEngine::BASIS_World)
+        if (updateEditMode == CM_OBJED_MODE_ROTATE && basis == IEditorCoreEngine::BASIS_World)
         {
           if (gizmoRotPoint.length() < 1e-3)
             gizmoRotPoint = box.center();
 
           gizmoPt = gizmoRotPoint;
         }
-        else if (editMode != CM_OBJED_MODE_SURF_MOVE)
+        else if (updateEditMode != CM_OBJED_MODE_SURF_MOVE)
           gizmoPt = box.center();
         else
           gizmoPt = getSurfMoveGizmoPos(box.center());
         break;
       }
+
+      // to prevent the unhandled switch case error
+      case IEditorCoreEngine::CENTER_None:
+      case IEditorCoreEngine::CENTER_SelectionNotRotObj: break;
     }
   }
   else
@@ -801,7 +840,7 @@ void ObjectEditor::updateGizmo(int basis)
 
   if (updateViewportGizmo)
   {
-    if (IEditorCoreEngine::get()->getGizmoModeType() != (gt & IEditorCoreEngine::GIZMO_MASK_Mode))
+    if (IEditorCoreEngine::get()->getGizmoModeType() != (int(gt) & IEditorCoreEngine::GIZMO_MASK_Mode))
     {
       IEditorCoreEngine::get()->setGizmo(gt == IEditorCoreEngine::MODE_None ? NULL : this, gt);
       IEditorCoreEngine::get()->updateViewports();
@@ -831,6 +870,7 @@ void ObjectEditor::setEditMode(int mode)
 {
   editMode = mode;
   isGizmoValid = false;
+  pressedRightMouseButtonWhileCreating = false;
 
   if (mode == CM_OBJED_MODE_SURF_MOVE)
     for (int i = 0; i < selection.size(); ++i)
@@ -921,6 +961,11 @@ void ObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pane
     case CM_OBJED_DROP: dropObjects(); break;
 
     case CM_OBJED_DELETE: deleteSelectedObjects(); break;
+
+    case CM_OBJED_CANCEL_GIZMO_TRANSFORM:
+      if (isGizmoStarted)
+        EDITORCORE->endGizmo(/*apply = */ false);
+      break;
   }
 }
 
@@ -960,38 +1005,16 @@ void ObjectEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pan
 
 void ObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
 {
-  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, 'H');
-  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, 'P');
-}
-
-
-void ObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  bool isAlt = wingw::is_key_pressed(wingw::V_ALT);
-  bool isCtrl = wingw::is_key_pressed(wingw::V_CONTROL);
-  bool isShift = wingw::is_key_pressed(wingw::V_SHIFT);
-
-  if (!isAlt && !isCtrl && !isShift)
-  {
-    switch (vk)
-    {
-      case 'Q': onClick(CM_OBJED_MODE_SELECT, NULL); break;
-      case 'W': onClick(CM_OBJED_MODE_MOVE, NULL); break;
-      case 'E': onClick(CM_OBJED_MODE_ROTATE, NULL); break;
-      case 'R': onClick(CM_OBJED_MODE_SCALE, NULL); break;
-      case wingw::V_DELETE: onClick(CM_OBJED_DELETE, NULL); break;
-    }
-  }
-
-  else if (isCtrl && !isShift && isAlt)
-  {
-    switch (vk)
-    {
-      case 'D': onClick(CM_OBJED_DROP, NULL); break;
-
-      case 'W': onClick(CM_OBJED_MODE_SURF_MOVE, NULL); break;
-    }
-  }
+  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, ImGuiKey_H);
+  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, ImGuiKey_P);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SELECT, ImGuiKey_Q);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_MOVE, ImGuiKey_W);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SURF_MOVE, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_W);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_ROTATE, ImGuiKey_E);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SCALE, ImGuiKey_R);
+  wndManager.addViewportAccelerator(CM_OBJED_DROP, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D);
+  wndManager.addViewportAccelerator(CM_OBJED_DELETE, ImGuiKey_Delete);
+  wndManager.addViewportAccelerator(CM_OBJED_CANCEL_GIZMO_TRANSFORM, ImGuiKey_Escape);
 }
 
 
@@ -1005,6 +1028,7 @@ bool ObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool i
   if (sample)
   {
     justCreated = true;
+    pressedRightMouseButtonWhileCreating = dagInput->isKeyDown(ImGuiKey_MouseRight);
     return true;
   }
 
@@ -1013,7 +1037,7 @@ bool ObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool i
   {
     getUndoSystem()->begin();
 
-    if (wingw::is_key_pressed(wingw::V_ALT))
+    if (dagInput->isAltKeyDown())
     {
       // unselect first selected
       for (int i = 0; i < objs.size(); ++i)
@@ -1023,7 +1047,7 @@ bool ObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool i
           break;
         }
     }
-    else if (wingw::is_key_pressed(wingw::V_CONTROL))
+    else if (dagInput->isCtrlKeyDown())
     {
       // unselect last selected or select first
 
@@ -1162,6 +1186,14 @@ bool ObjectEditor::handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool
   if (!wnd->isActive())
     return false;
 
+  // Prevent leaving the creation mode if the right mouse button was pressed during it (for scaling) but the left mouse
+  // button got released first.
+  if (pressedRightMouseButtonWhileCreating)
+  {
+    pressedRightMouseButtonWhileCreating = false;
+    return true;
+  }
+
   if (creator || (sample && !justCreated))
   {
     setCreateMode(NULL);
@@ -1186,7 +1218,13 @@ bool ObjectEditor::handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool
 
 bool ObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
-  if (creator || (sample && !justCreated))
+  if (creator)
+  {
+    pressedRightMouseButtonWhileCreating = true;
+    return creator->handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+  }
+
+  if (sample && !justCreated)
   {
     setCreateMode(NULL);
     setCreateBySampleMode(NULL);
@@ -1194,6 +1232,14 @@ bool ObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool i
 
     return true;
   }
+  if (sample && justCreated)
+  {
+    // If an object is being created then the right mouse button might start scaling, so report the event as handled
+    // both here and the RMB release event (to prevent other actions -- such as context menu display -- from running).
+    pressedRightMouseButtonWhileCreating = true;
+    return true;
+  }
+
   return false;
 }
 
@@ -1231,7 +1277,7 @@ bool ObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
       switch (buttons)
       {
         // rotate
-        case wingw::V_LBUTTON: // This is actually MK_LBUTTON.
+        case EC_MK_LBUTTON:
           rotDy += lastY - y;
 
           if (!canTransformOnCreate && (rotDy > SAFE_TRASHOLD || rotDy < -SAFE_TRASHOLD))
@@ -1250,7 +1296,7 @@ bool ObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
           break;
 
         // scale
-        case wingw::V_LBUTTON | wingw::V_RBUTTON: // This is actually MK_LBUTTON | MK_RBUTTON.
+        case EC_MK_LBUTTON | EC_MK_RBUTTON:
           scaleDy += lastY - y;
 
           if (!canTransformOnCreate && (scaleDy > SAFE_TRASHOLD || scaleDy < -SAFE_TRASHOLD))
@@ -1614,6 +1660,7 @@ void ObjectEditor::createPanelTransform(int mode)
 void ObjectEditor::loadPropPanelSettings(const DataBlock &settings)
 {
   objectPropSettings.setFrom(&settings);
+  placeTypeRadio = objectPropSettings.getBool("PlaceTypeRadio", placeTypeRadio);
   if (objectPropBar)
     objectPropBar->loadSettings(objectPropSettings);
 }
@@ -1622,6 +1669,7 @@ void ObjectEditor::loadPropPanelSettings(const DataBlock &settings)
 void ObjectEditor::savePropPanelSettings(DataBlock &settings)
 {
   saveEditorPropBarSettings();
+  objectPropSettings.setBool("PlaceTypeRadio", placeTypeRadio);
   settings.setFrom(&objectPropSettings);
 }
 

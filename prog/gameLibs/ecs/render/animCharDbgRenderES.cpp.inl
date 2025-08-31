@@ -6,6 +6,7 @@
 #include <ecs/anim/anim.h>
 #include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
+#include <ecs/anim/animchar_visbits.h>
 
 CONSOLE_BOOL_VAL("anim", render_debug_bounds, false);
 CONSOLE_BOOL_VAL("anim", render_skeleton, false);
@@ -42,7 +43,7 @@ static __forceinline void animchar_render_debug_es(const ecs::UpdateStageInfoRen
   animchar_bounds_debug_render_ecs_query(
     [&](const AnimV20::AnimcharBaseComponent &animchar, const AnimV20::AnimcharRendComponent &animchar_render,
       const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
-      const uint8_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {
+      const animchar_visbits_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {
       if (!animchar_visbits)
         return;
 

@@ -528,7 +528,12 @@ static int __forceinline rayhit4Triangles(vec4f from, vec4f dir, float len, vec4
 
 static int __forceinline traceray4TrianglesCullCCW(vec4f from, vec4f dir, float &min_t, vec4f vertices[4][3], int count)
 {
-  return traceray4Triangles(from, dir, min_t, vertices, count, true);
+  return traceray4Triangles(from, dir, min_t, vertices, count, false /*no_cull*/);
+}
+
+static int __forceinline traceray4TrianglesNoCull(vec4f from, vec4f dir, float &min_t, vec4f vertices[4][3], int count)
+{
+  return traceray4Triangles(from, dir, min_t, vertices, count, true /*no_cull*/);
 }
 
 static int __forceinline rayhit4TrianglesCullCCW(vec4f from, vec4f dir, float len, vec4f vertices[4][3], int count)

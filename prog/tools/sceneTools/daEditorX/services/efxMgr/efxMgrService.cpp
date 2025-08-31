@@ -31,22 +31,22 @@ class VirtualExtFxEntity : public IObjEntity
 {
 public:
   VirtualExtFxEntity(int cls) : IObjEntity(cls), pool(NULL), fx(NULL), nameId(-1) {}
-  virtual ~VirtualExtFxEntity() { destroy_it(fx); }
+  ~VirtualExtFxEntity() { destroy_it(fx); }
 
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() { delete this; }
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override { delete this; }
 
-  virtual BSphere3 getBsph() const { return fx ? fx->getBsph() : BSphere3(Point3(0, 0, 0), 1.0); }
-  virtual BBox3 getBbox() const { return fx ? fx->getBbox() : BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
+  BSphere3 getBsph() const override { return fx ? fx->getBsph() : BSphere3(Point3(0, 0, 0), 1.0); }
+  BBox3 getBbox() const override { return fx ? fx->getBbox() : BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
 
-  virtual const char *getObjAssetName() const
+  const char *getObjAssetName() const override
   {
     static String buf;
     buf.printf(0, "%s:efx", fxNames.getName(nameId));
     return buf;
   }
-  virtual void *queryInterfacePtr(unsigned huid) { return NULL; }
+  void *queryInterfacePtr(unsigned huid) override { return NULL; }
 
   void setup(const DagorAsset &asset, bool virt)
   {
@@ -79,27 +79,27 @@ public:
   ExtFxEntity(int cls) : VirtualExtFxEntity(cls), idx(MAX_ENTITIES), userDataBlk(NULL) { tm.identity(); }
   ~ExtFxEntity() { clear(); }
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     tm = _tm;
     if (!fx)
       return;
     fx->setTm(tm);
   }
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void setSubtype(int t)
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void setSubtype(int t) override
   {
     VirtualExtFxEntity::setSubtype(t);
     if (fx)
       fx->setSubtype(getSubtype());
   }
-  virtual void destroy()
+  void destroy() override
   {
     pool->delEntity(this);
     clear();
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityUserDataHolder);
     RETURN_INTERFACE(huid, IEffectController);
@@ -107,16 +107,16 @@ public:
   }
 
   // IObjEntityUserDataHolder
-  virtual DataBlock *getUserDataBlock(bool create_if_not_exist)
+  DataBlock *getUserDataBlock(bool create_if_not_exist) override
   {
     if (!userDataBlk && create_if_not_exist)
       userDataBlk = new DataBlock;
     return userDataBlk;
   }
-  virtual void resetUserDataBlock() { del_it(userDataBlk); }
+  void resetUserDataBlock() override { del_it(userDataBlk); }
 
   // IEffectController
-  virtual bool isActive() const override
+  bool isActive() const override
   {
     if (!fx)
       return false;
@@ -125,7 +125,7 @@ public:
     return effectController && effectController->isActive();
   }
 
-  virtual void setSpawnRate(float rate) override
+  void setSpawnRate(float rate) override
   {
     if (!fx)
       return;
@@ -155,7 +155,6 @@ public:
 public:
   enum
   {
-    STEP = 512,
     MAX_ENTITIES = 0x7FFFFFFF
   };
 
@@ -180,26 +179,26 @@ public:
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_efxEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Ext.FX entities"; }
+  const char *getServiceName() const override { return "_efxEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Ext.FX entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService() {}
-  virtual void renderTransService() {}
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
       DAEDITOR3.conNote("ExtFxMgr: %d entities", efxPool.getUsedEntityCount());
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IBinaryDataBuilder);
@@ -207,10 +206,18 @@ public:
     return NULL;
   }
 
-  // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const { return efxEntityClassId >= 0 && efxEntityClassId == entity_class; }
+  void clearServiceData() override
+  {
+    for (auto &ent : efxPool.getEntities())
+      if (ent)
+        ent->clear();
+    efxPool.freeUnusedEntities();
+  }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  // IObjEntityMgr interface
+  bool canSupportEntityClass(int entity_class) const override { return efxEntityClassId >= 0 && efxEntityClassId == entity_class; }
+
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     if (virtual_ent)
     {
@@ -229,7 +236,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     VirtualExtFxEntity *o = reinterpret_cast<VirtualExtFxEntity *>(origin);
     ExtFxEntity *ent = efxPool.allocEntity();
@@ -243,16 +250,16 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
+  bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params) override
   {
     if (!efxPool.calcEntities(IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT)))
       log.addMessage(log.WARNING, "No ext.fx entities for export");
     return true;
   }
 
-  virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
+  bool addUsedTextures(ITextureNumerator &tn) override { return true; }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *) override
   {
     dag::Vector<SrcObjsToPlace> objs;
 
@@ -282,7 +289,7 @@ public:
     return true;
   }
 
-  virtual bool checkMetrics(const DataBlock &metrics_blk)
+  bool checkMetrics(const DataBlock &metrics_blk) override
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
     int cnt = efxPool.calcEntities(subtype_mask);
@@ -297,7 +304,7 @@ public:
   }
 
   // ILevelResListBuilder
-  virtual void addUsedResNames(OAHashNameMap<true> &res_list)
+  void addUsedResNames(OAHashNameMap<true> &res_list) override
   {
     /*== for now efx is nor gameres and is not exported
     dag::ConstSpan<ExtFxEntity*> ent = efxPool.getEntities();

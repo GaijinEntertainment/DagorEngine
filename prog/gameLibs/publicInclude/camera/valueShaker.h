@@ -16,7 +16,7 @@ private:
 
 public:
   ValueShaker();
-  ~ValueShaker(){};
+  ~ValueShaker() {}
 
   void reset();
   void setup(float fadeKoeff, float amp);

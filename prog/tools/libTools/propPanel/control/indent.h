@@ -14,10 +14,10 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0))
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return 0; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return 0; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void updateImgui() override { ImGui::Dummy(ImVec2(mW, mH)); }
+  void updateImgui() override { ImGui::Dummy(ImVec2(mW, mH)); }
 };
 
 } // namespace PropPanel

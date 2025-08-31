@@ -2,13 +2,13 @@ adaptation_manager {
   _singleton:b=true
   _tags:t="render"
   "adaptation__manager:AdaptationManager"{}
-  "adaptation__update_readback_exposure_node:dabfg::NodeHandle"{}
-  "adaptation__create_histogram_node:dabfg::NodeHandle"{}
-  "adaptation__gen_histogram_forward_node:dabfg::NodeHandle"{}
+  "adaptation__update_readback_exposure_node:dafg::NodeHandle"{}
+  "adaptation__create_histogram_node:dafg::NodeHandle"{}
+  "adaptation__gen_histogram_forward_node:dafg::NodeHandle"{}
   "adaptation__gen_histogram_node:resource_slot::NodeHandleWithSlotsAccess"{}
-  "adaptation__accumulate_histogram:dabfg::NodeHandle"{}
-  "adaptation__adapt_exposure_node:dabfg::NodeHandle"{}
-  "adaptation__set_exposure_node:dabfg::NodeHandle"{}
+  "adaptation__accumulate_histogram:dafg::NodeHandle"{}
+  "adaptation__adapt_exposure_node:dafg::NodeHandle"{}
+  "adaptation__set_exposure_node:dafg::NodeHandle"{}
   adaptation__fade_mul:r=1.0
   adaptation__exposure:r=1.0
   adaptation__track_changes:b=false

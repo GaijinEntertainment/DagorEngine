@@ -4,7 +4,11 @@
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_geneditordata.h>
 #include <EditorCore/ec_gridobject.h>
+#include <EASTL/unique_ptr.h>
 
+class IGizmoRenderer;
+#define GIZMO_PIXEL_WIDTH _pxS(4)
+#define AXIS_LEN_PIX      _pxS(100)
 
 /// Gizmo implementation.
 /// The class renders Gizmo, handles Gizmo events, calls proper
@@ -21,37 +25,36 @@ public:
     AXIS_Z = 4
   };
 
+  enum class Style : int
+  {
+    Classic = 0,
+    New = 1
+  };
+
   /// Constructor.
   /// @param[in] ged - reference to Editor's #GeneralEditorData
   /// @param[in] grid - reference to Editor grid
   GizmoEventFilter(GeneralEditorData &ged, const GridObject &grid);
 
-  // Handle key press.
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-
-  /// Handle key release\n
-  /// The function just passes event to Editor's event handler.
-  /// @copydoc IGenEventHandler::handleKeyRelease
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    if (ged.curEH)
-      ged.curEH->handleKeyRelease(wnd, vk, modif);
-  }
+  /// End the currently onging gizmo operation the same way as if the user finished it by releasing the left mouse
+  /// button or canceled it by pressing the right mouse button.
+  /// @param[in] apply - whether the apply or cancel the onging operation
+  void endGizmo(bool apply);
 
   // Handle mouse move.
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // Handle left mouse button press.
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   // Handle left mouse button release.
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   // Handle right mouse button press.
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Handle mouse right button release\n
   /// The function just passes event to Editor's event handler.
   /// @copydoc IGenEventHandler::handleMouseRBRelease
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ged.curEH)
       return ged.curEH->handleMouseRBRelease(wnd, x, y, inside, buttons, key_modif);
@@ -61,7 +64,7 @@ public:
   /// Handle mouse center button press\n
   /// The function just passes event to Editor's event handler.
   /// @copydoc IGenEventHandler::handleMouseCBPress
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ged.curEH)
       return ged.curEH->handleMouseCBPress(wnd, x, y, inside, buttons, key_modif);
@@ -70,7 +73,7 @@ public:
   /// Handle mouse center button release\n
   /// The function just passes event to Editor's event handler.
   /// @copydoc IGenEventHandler::handleMouseCBRelease
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (ged.curEH)
       return ged.curEH->handleMouseCBRelease(wnd, x, y, inside, buttons, key_modif);
@@ -79,7 +82,7 @@ public:
   /// Handle mouse scroll wheel\n
   /// The function just passes event to Editor's event handler.
   /// @copydoc IGenEventHandler::handleMouseWheel
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif)
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override
   {
     if (ged.curEH)
       return ged.curEH->handleMouseWheel(wnd, wheel_d, x, y, key_modif);
@@ -88,7 +91,7 @@ public:
   /// Handles mouse double-click\n
   /// The function just passes event to Editor's event handler.
   /// @copydoc IGenEventHandler::handleMouseDoubleClick
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif)
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override
   {
     if (ged.curEH)
       return ged.curEH->handleMouseDoubleClick(wnd, x, y, key_modif);
@@ -97,21 +100,24 @@ public:
 
   /// Render Gizmo.
   /// @copydoc IGenEventHandler::handleViewportPaint
-  virtual void handleViewportPaint(IGenViewportWnd *wnd);
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
 
   /// Rerender Gizmo in accordance with its new view in viewport.
   /// @copydoc IGenEventHandler::handleViewChange
-  virtual void handleViewChange(IGenViewportWnd *wnd);
+  void handleViewChange(IGenViewportWnd *wnd) override;
 
+  void setGizmoStyle(Style style);
   void setGizmoType(IEditorCoreEngine::ModeType type) { gizmo.type = type; }
   void setGizmoClient(IGizmoClient *client) { gizmo.client = client; }
   void zeroOverAndSelected() { gizmo.over = gizmo.selected = 0; }
 
+  Style getGizmoStyle() const;
   inline IEditorCoreEngine::ModeType getGizmoType() const { return gizmo.type; }
   inline IGizmoClient *getGizmoClient() const { return gizmo.client; }
+  inline Point3 getMoveDelta() const { return movedDelta; }
 
   void correctCursorInSurfMove(const Point3 &delta);
-  bool isStarted() { return moveStarted; }
+  bool isStarted() const { return moveStarted; }
 
 protected:
   struct GizmoParams
@@ -138,6 +144,7 @@ protected:
   Point3 scale;
   Point2 gizmoDelta;
   Point2 mousePos;
+  Point2 mouseCurrentPos;
   Point3 startPos;
   Tab<Point2> startPos2d;
   real rotAngle, startRotAngle;
@@ -148,35 +155,14 @@ protected:
 
   bool moveStarted;
   Point2 rotateDir;
+  eastl::unique_ptr<IGizmoRenderer> renderer;
 
   void startGizmo(IGenViewportWnd *wnd, int x, int y);
-  void endGizmo(bool apply);
 
   void drawGizmo(IGenViewportWnd *w);
   void recalcViewportGizmo();
 
-  void drawGizmoLine(const Point2 &from, const Point2 &delta, real offset = 0.1);
-  void drawGizmoLineFromTo(const Point2 &from, const Point2 &to, real offset = 0.1);
-  void drawGizmoArrow(const Point2 &from, const Point2 &delta, E3DCOLOR col_fill, real offset = 0.1);
-  void drawGizmoArrowScale(const Point2 &from, const Point2 &delta, E3DCOLOR col_fill, real offset = 0.1);
-  void drawGizmoQuad(const Point2 &from, const Point2 &delta1, const Point2 &delta2, E3DCOLOR col1, E3DCOLOR col2, E3DCOLOR col_sel,
-    bool sel, real div = 3.0);
-  void drawGizmoEllipse(const Point2 &center, const Point2 &a, const Point2 &b, real start = 0, real end = 2 * PI);
-  void fillGizmoEllipse(const Point2 &center, const Point2 &a, const Point2 &b, E3DCOLOR color, int fp, real start = 0,
-    real end = TWOPI);
-
-
-  void drawMoveGizmo(int vp_i, int sel);
-  void drawSurfMoveGizmo(int vp_i, int sel);
-  void drawScaleGizmo(int vp_i, int sel);
-  void drawRotateGizmo(IGenViewportWnd *w, int vp_i, int sel);
-
   bool checkGizmo(IGenViewportWnd *wnd, int x, int y);
-
-  bool isPointInEllipse(const Point2 &center, const Point2 &a, const Point2 &b, real width, const Point2 &point, real start = 0,
-    real end = TWOPI);
-
-  void correctScaleGizmo(int index, const Point3 &x_dir, const Point3 &y_dir, const Point3 &z_dir, Point2 &ax, Point2 &ay, Point2 &az);
 
 private:
   inline void repaint()

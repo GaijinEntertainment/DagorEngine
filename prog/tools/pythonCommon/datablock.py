@@ -25,7 +25,7 @@ def getTokensEndLoc():
         del fstack
 
 class DataBlock:
-    def __init__(self, fname = None, name = None, include_includes = False, preserve_formating = False, root_directory = None):
+    def __init__(self, fname = None, name = None, include_includes = False, preserve_formating = False, root_directory = None, mount_points = None, file_encoding = 'utf-8'):
       self.blocks = []
       self.params   = []
       self.includes = []
@@ -37,9 +37,11 @@ class DataBlock:
       else:
         self.name = name
       self.root_directory = root_directory if root_directory else "."
+      self.mount_points = mount_points
       self.parent = None
+      self.file_encoding = file_encoding
       if fname != None:
-        self.parseFile(fname, include_includes = include_includes, preserve_formating = preserve_formating)
+        self.parseFile(fname, include_includes = include_includes, preserve_formating = preserve_formating, file_encoding = file_encoding)
 
     def sortInAlphabeticalOrder(self):
       self.blocks = sorted(self.blocks, key = lambda block: (block[1].name, block[1].getParam("name")))
@@ -79,6 +81,7 @@ class DataBlock:
       blk.name = name
       blk.parent = self
       blk.root_directory = self.root_directory
+      blk.mount_points = self.mount_points
       return self.addBlock(blk, line)
 
     def addInclude(self, include, line = -1, include_includes = False):
@@ -86,10 +89,22 @@ class DataBlock:
         line = self.lastLine() + 1
       blk = DataBlock()
       blk.root_directory = self.root_directory
+      blk.mount_points = self.mount_points
       if include[0] == "#":
         include = os.path.normpath(self.root_directory+os.sep+include[1:])
+      elif include[0] == "%":
+        mountPointNameEndPos = include.find("/")
+        if self.mount_points != None:
+          if mountPointNameEndPos >= 0:
+            mountPointName = include[1:mountPointNameEndPos]
+            mountPointDirExt = include[mountPointNameEndPos + 1:]
+            include = os.path.join(self.mount_points[mountPointName], mountPointDirExt) if mountPointName in self.mount_points else mountPointDirExt
+          else:
+            include = ""
+        else:
+          include = include[mountPointNameEndPos + 1:] if mountPointNameEndPos >= 0 else ""
 
-      blk.parseFile(include, False, include_includes)
+      blk.parseFile(include, False, include_includes, self.file_encoding)
       if (include_includes):
         for block in blk.getBlocks():
           self.addBlock(block)
@@ -214,6 +229,11 @@ class DataBlock:
           return
       self.addParam(name, typ, value, line)
 
+    def setParamByIdxWithoutIncludes(self, idx, typ, value):
+      if idx < 0 or idx >= len(self.params):
+        return
+      self.params[idx] = (self.params[idx][0], (self.params[idx][1][0], typ, value))
+
     def addParam(self, name, typ, value, line=-1):
       if typ == 'i':
         value = int(value)
@@ -242,7 +262,10 @@ class DataBlock:
       else:
         fileDir = "./"
 
-      open(filename, "w").write(self.makeStr())
+      if sys.version_info[0] == 2:
+        open(filename, "w").write(self.makeStr())
+      else:
+        open(filename, "w", encoding=self.file_encoding).write(self.makeStr())
       if save_includes:
         curDir = os.getcwd()
         os.chdir(fileDir)
@@ -394,7 +417,7 @@ class DataBlock:
             return [toks[0]]
 
         name      = dblQuotedString | Word(alphanums + '_' + '-' + '.')
-        varType   = Literal('i64') | 'r' | 'b' | 't' | 'p4' | 'p3' | 'p2' | 'ip3' | 'ip2' | 'm' | 'c' | 'i'
+        varType   = Literal('i64') | 'r' | 'b' | 't' | 'p4' | 'p3' | 'p2' | 'ip3' | 'ip2' | 'ip4' | 'm' | 'c' | 'i'
         typedVar  = name + Optional(Suppress(':') + varType)
         realNum   = Regex(r"[+-]?\d+(:?\.\d*)?(:?[eE][+-]?\d+)?").setParseAction(lambda s,l,t: [ float(t[0]) ])
         realNum.setName("real")
@@ -434,12 +457,12 @@ class DataBlock:
         #blockContent.setDebug()
         self.parser = blockContent
 
-    def parseFile(self, fname, preserve_formating = False, include_includes = False):
+    def parseFile(self, fname, preserve_formating = False, include_includes = False, file_encoding = 'utf-8'):
       self.loadedFrom = fname
       curDir = os.getcwd()
       newDir = os.path.dirname(os.path.normpath(fname))
 
-      with open(fname) if sys.version_info[0] == 2 else open(fname, encoding='utf8') as f:
+      with open(fname) if sys.version_info[0] == 2 else open(fname, encoding=file_encoding) as f:
         content = f.read()
       content = content.lstrip(codecs.BOM_UTF8 if sys.version_info[0] == 2 else codecs.BOM_UTF8.decode())
       if os.path.isdir(newDir):

@@ -9,9 +9,12 @@
 #include "shader_program_id.h"
 #include "tagged_handles.h"
 
+#include <perfMon/dag_autoFuncProf.h>
 #include <dag/dag_vectorSet.h>
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <drv/shadersMetaData/dxil/utility.h>
+#include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 #include <EASTL/array.h>
 #include <EASTL/sort.h>
 #include <EASTL/unordered_set.h>
@@ -288,6 +291,7 @@ struct VertexShaderModule : StageShaderModule
   eastl::unique_ptr<StageShaderModule> geometryShader;
   eastl::unique_ptr<StageShaderModule> hullShader;
   eastl::unique_ptr<StageShaderModule> domainShader;
+  DynamicArray<dxil::StreamOutputComponentInfo> streamOutputDesc;
 };
 
 #if _TARGET_XBOXONE
@@ -315,26 +319,26 @@ struct RaytraceProgram
 using RaytraceShaderModule = StageShaderModule;
 #endif
 
-struct ShaderStageResouceUsageMask
+struct ShaderStageResourceUsageMask
 {
   Bitset<dxil::MAX_B_REGISTERS> bRegisterMask;
   Bitset<dxil::MAX_T_REGISTERS> tRegisterMask;
   Bitset<dxil::MAX_S_REGISTERS> sRegisterMask;
   Bitset<dxil::MAX_U_REGISTERS> uRegisterMask;
 
-  ShaderStageResouceUsageMask() = default;
-  ShaderStageResouceUsageMask(const ShaderStageResouceUsageMask &) = default;
-  ShaderStageResouceUsageMask &operator=(const ShaderStageResouceUsageMask &) = default;
+  ShaderStageResourceUsageMask() = default;
+  ShaderStageResourceUsageMask(const ShaderStageResourceUsageMask &) = default;
+  ShaderStageResourceUsageMask &operator=(const ShaderStageResourceUsageMask &) = default;
   // broadcast a single value to all masks
-  explicit ShaderStageResouceUsageMask(uint32_t v) : bRegisterMask{v}, tRegisterMask{v}, sRegisterMask{v}, uRegisterMask{v} {}
-  explicit ShaderStageResouceUsageMask(const dxil::ShaderHeader &header) :
+  explicit ShaderStageResourceUsageMask(uint32_t v) : bRegisterMask{v}, tRegisterMask{v}, sRegisterMask{v}, uRegisterMask{v} {}
+  explicit ShaderStageResourceUsageMask(const dxil::ShaderHeader &header) :
     bRegisterMask{header.resourceUsageTable.bRegisterUseMask},
     tRegisterMask{header.resourceUsageTable.tRegisterUseMask},
     sRegisterMask{header.resourceUsageTable.sRegisterUseMask},
     uRegisterMask{header.resourceUsageTable.uRegisterUseMask}
   {}
 
-  ShaderStageResouceUsageMask &operator|=(const ShaderStageResouceUsageMask &other)
+  ShaderStageResourceUsageMask &operator|=(const ShaderStageResourceUsageMask &other)
   {
     bRegisterMask |= other.bRegisterMask;
     tRegisterMask |= other.tRegisterMask;
@@ -343,9 +347,9 @@ struct ShaderStageResouceUsageMask
     return *this;
   }
 
-  ShaderStageResouceUsageMask operator&(const ShaderStageResouceUsageMask &other) const
+  ShaderStageResourceUsageMask operator&(const ShaderStageResourceUsageMask &other) const
   {
-    ShaderStageResouceUsageMask cpy{*this};
+    ShaderStageResourceUsageMask cpy{*this};
     cpy.bRegisterMask &= other.bRegisterMask;
     cpy.tRegisterMask &= other.tRegisterMask;
     cpy.sRegisterMask &= other.sRegisterMask;
@@ -353,7 +357,7 @@ struct ShaderStageResouceUsageMask
     return cpy;
   }
 
-  ShaderStageResouceUsageMask &operator^=(const ShaderStageResouceUsageMask &other)
+  ShaderStageResourceUsageMask &operator^=(const ShaderStageResourceUsageMask &other)
   {
     bRegisterMask ^= other.bRegisterMask;
     tRegisterMask ^= other.tRegisterMask;
@@ -490,9 +494,11 @@ struct GraphicsProgramInstance
   }
 };
 
-template <bool VisitOnce = false, typename T>
+template <typename T>
 void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspector)
 {
+  AutoFuncProfT<AFP_MSEC, 50> _prof("DX12: 'inspect_scripted_shader_bin_dump' takes %d ms");
+
   auto v2 = dump->getDumpV2();
   if (!v2)
   {
@@ -500,37 +506,45 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
   }
   inspector.vertexShaderCount(v2->vprCount);
   inspector.pixelOrComputeShaderCount(v2->fshCount);
-  eastl::conditional_t<VisitOnce, dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>, uint32_t> visited;
+
+  static constexpr uint32_t BucketCount = 32;
+  class UniquePrograms
+  {
+    eastl::array<dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>, BucketCount> buckets;
+
+  public:
+    UniquePrograms()
+    {
+      for (auto &bucket : buckets)
+        bucket.reserve(1024);
+    }
+
+    bool tryAddProgram(uint16_t vpr_id, uint16_t fsh_id)
+    {
+      G_STATIC_ASSERT(is_pow2(BucketCount));
+
+      uint32_t programId = (uint32_t(vpr_id) << 16) | fsh_id;
+      uint32_t bucketIndex = (uint32_t(vpr_id) + fsh_id) & (BucketCount - 1);
+
+      return buckets[bucketIndex].insert(programId).second;
+    }
+  } uniquePrograms;
+
   for (auto &cls : v2->classes)
   {
-    if constexpr (VisitOnce)
-      visited.reserve(visited.capacity() + cls.shrefStorage.size());
     for (auto &prog : cls.shrefStorage)
     {
       ::watchdog_kick(); // REMOVEME: dirty, dirty hack to work around watchdog killing us during pipeline cache loading
 
-      if constexpr (VisitOnce)
-        if (!visited.insert((uint32_t(prog.vprId) << 16) | prog.fshId).second)
-          continue;
+      if (!uniquePrograms.tryAddProgram(prog.vprId, prog.fshId))
+        continue;
 
-      if (prog.vprId != 0xFFFF)
-      {
-        if (prog.fshId != 0xFFFF)
-        {
-          inspector.addGraphicsProgram(prog.vprId, prog.fshId);
-        }
-        else
-        {
-          inspector.addGraphicsProgramWithNullPixelShader(prog.vprId);
-        }
-      }
+      if (prog.vprId != 0xFFFF && prog.fshId != 0xFFFF)
+        inspector.addGraphicsProgram(prog.vprId, prog.fshId);
+      else if (prog.vprId != 0xFFFF)
+        inspector.addGraphicsProgramWithNullPixelShader(prog.vprId);
       else
-      {
-        if (prog.fshId != 0xFFFF)
-        {
-          inspector.addComputeProgram(prog.fshId);
-        }
-      }
+        inspector.addComputeProgram(prog.fshId);
     }
   }
 }
@@ -565,25 +579,12 @@ class ShaderProgramGroup
         target->pixelShaderComputeProgramIDMap[ps_index] = psID;
       }
       auto vsID = ShaderID::make(groupID, vs_index);
-      auto ref = eastl::find_if(begin(target->graphicsProgramTemplates), end(target->graphicsProgramTemplates),
-        [vsID, psID](auto &prog) { return vsID == prog.vertexShader && psID == prog.pixelShader; });
-      if (end(target->graphicsProgramTemplates) == ref)
-      {
-        GraphicsProgramTemplate prog{vsID, psID};
-        target->graphicsProgramTemplates.push_back(prog);
-      }
+      target->graphicsProgramTemplates.push_back({vsID, psID});
     }
     void addGraphicsProgramWithNullPixelShader(uint16_t vs_index)
     {
-      auto psID = nullPixelShader;
       auto vsID = ShaderID::make(groupID, vs_index);
-      auto ref = eastl::find_if(begin(target->graphicsProgramTemplates), end(target->graphicsProgramTemplates),
-        [vsID, psID](auto &prog) { return vsID == prog.vertexShader && psID == prog.pixelShader; });
-      if (end(target->graphicsProgramTemplates) == ref)
-      {
-        GraphicsProgramTemplate prog{vsID, psID};
-        target->graphicsProgramTemplates.push_back(prog);
-      }
+      target->graphicsProgramTemplates.push_back({vsID, nullPixelShader});
     }
     void addComputeProgram(uint32_t shader_index)
     {
@@ -1155,7 +1156,7 @@ public:
   }
 };
 
-StageShaderModule shader_layout_to_module(const bindump::Mapper<dxil::Shader> *layout);
+StageShaderModule shader_layout_to_module(const bindump::Mapper<dxil::Shader> &layout);
 template <typename ModuleType>
 inline ModuleType decode_shader_layout(const void *data)
 {
@@ -1164,48 +1165,93 @@ inline ModuleType decode_shader_layout(const void *data)
   if (!container)
     return result;
 
-  if (container->type == dxil::StoredShaderType::combinedVertexShader)
+  dag::ConstSpan<uint8_t> containerData = container->data;
+  const bindump::Mapper<dxil::ShaderWithStreamOutput> *programWithSo = nullptr;
+  if (container->type.hasStreamOutput)
+  {
+    programWithSo = bindump::map<dxil::ShaderWithStreamOutput>(containerData.data());
+    containerData = programWithSo->data;
+  }
+
+  if (container->type.shaderType == dxil::StoredShaderType::combinedVertexShader)
   {
     if constexpr (eastl::is_same_v<ModuleType, VertexShaderModule>)
     {
-      auto *combined = bindump::map<dxil::VertexShaderPipeline>(container->data.data());
-      result = shader_layout_to_module(&*combined->vertexShader);
-      result.ident.shaderHash = container->dataHash;
-      result.ident.shaderSize = container->data.size();
-      if (combined->geometryShader)
+      if (auto *combined = bindump::map<dxil::VertexShaderPipeline>(containerData.data()))
       {
-        result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(&*combined->geometryShader));
+        result = shader_layout_to_module(*combined->vertexShader);
+        if (programWithSo)
+        {
+          result.streamOutputDesc.resize(programWithSo->streamOutputComponents.size());
+          eastl::copy(programWithSo->streamOutputComponents.begin(), programWithSo->streamOutputComponents.end(),
+            result.streamOutputDesc.begin());
+        }
+        result.ident.shaderHash = container->dataHash;
+        result.ident.shaderSize = containerData.size();
+        if (combined->geometryShader)
+        {
+          result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->geometryShader));
+        }
+        if (combined->hullShader)
+        {
+          result.hullShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->hullShader));
+        }
+        if (combined->domainShader)
+        {
+          result.domainShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->domainShader));
+        }
       }
-      if (combined->hullShader)
+      else
       {
-        result.hullShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(&*combined->hullShader));
-      }
-      if (combined->domainShader)
-      {
-        result.domainShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(&*combined->domainShader));
+        G_ASSERTF(false, "Couldn't map to dxil::VertexShaderPipeline.");
       }
     }
   }
-  else if (container->type == dxil::StoredShaderType::meshShader)
+  else if (container->type.shaderType == dxil::StoredShaderType::meshShader)
   {
     if constexpr (eastl::is_same_v<ModuleType, VertexShaderModule>)
     {
-      auto *combined = bindump::map<dxil::MeshShaderPipeline>(container->data.data());
-      result = shader_layout_to_module(&*combined->meshShader);
-      result.ident.shaderHash = container->dataHash;
-      result.ident.shaderSize = container->data.size();
-      if (combined->amplificationShader)
+      if (auto *combined = bindump::map<dxil::MeshShaderPipeline>(containerData.data()))
       {
-        result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(&*combined->amplificationShader));
+        result = shader_layout_to_module(*combined->meshShader);
+        if (programWithSo)
+        {
+          result.streamOutputDesc.resize(programWithSo->streamOutputComponents.size());
+          eastl::copy(programWithSo->streamOutputComponents.begin(), programWithSo->streamOutputComponents.end(),
+            result.streamOutputDesc.begin());
+        }
+        result.ident.shaderHash = container->dataHash;
+        result.ident.shaderSize = containerData.size();
+        if (combined->amplificationShader)
+        {
+          result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->amplificationShader));
+        }
+      }
+      else
+      {
+        G_ASSERTF(false, "Couldn't map to dxil::MeshShaderPipeline.");
       }
     }
   }
   else
   {
-    auto *shader = bindump::map<dxil::Shader>(container->data.data());
-    result = shader_layout_to_module(shader);
-    result.ident.shaderHash = container->dataHash;
-    result.ident.shaderSize = container->data.size();
+    if (auto *shader = bindump::map<dxil::Shader>(containerData.data()))
+    {
+      result = shader_layout_to_module(*shader);
+      if constexpr (eastl::is_same_v<ModuleType, VertexShaderModule>)
+        if (programWithSo)
+        {
+          result.streamOutputDesc.resize(programWithSo->streamOutputComponents.size());
+          eastl::copy(programWithSo->streamOutputComponents.begin(), programWithSo->streamOutputComponents.end(),
+            result.streamOutputDesc.begin());
+        }
+      result.ident.shaderHash = container->dataHash;
+      result.ident.shaderSize = containerData.size();
+    }
+    else
+    {
+      G_ASSERTF(false, "Couldn't map to dxil::Shader.");
+    }
   }
   return result;
 }
@@ -1229,9 +1275,10 @@ struct VertexShaderModuleInBinaryRef : StageShaderModuleInBinaryRef
   StageShaderModuleInBinaryRef geometryShader;
   StageShaderModuleInBinaryRef hullShader;
   StageShaderModuleInBinaryRef domainShader;
+  eastl::span<const dxil::StreamOutputComponentInfo> streamOutputDesc;
 };
 
-StageShaderModuleInBinaryRef shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> *layout);
+StageShaderModuleInBinaryRef shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> &layout);
 template <typename ModuleType>
 inline ModuleType decode_shader_layout_ref(const void *data)
 {
@@ -1240,48 +1287,81 @@ inline ModuleType decode_shader_layout_ref(const void *data)
   if (!container)
     return result;
 
-  if (container->type == dxil::StoredShaderType::combinedVertexShader)
+  dag::ConstSpan<uint8_t> containerData = container->data;
+  const bindump::Mapper<dxil::ShaderWithStreamOutput> *programWithSo = nullptr;
+  if (container->type.hasStreamOutput)
+  {
+    programWithSo = bindump::map<dxil::ShaderWithStreamOutput>(containerData.data());
+    containerData = programWithSo->data;
+  }
+
+  if (container->type.shaderType == dxil::StoredShaderType::combinedVertexShader)
   {
     if constexpr (eastl::is_same_v<ModuleType, VertexShaderModuleInBinaryRef>)
     {
-      auto *combined = bindump::map<dxil::VertexShaderPipeline>(container->data.data());
-      static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(&*combined->vertexShader);
-      result.ident.shaderHash = container->dataHash;
-      result.ident.shaderSize = container->data.size();
-      if (combined->geometryShader)
+      if (auto *combined = bindump::map<dxil::VertexShaderPipeline>(containerData.data()))
       {
-        result.geometryShader = shader_layout_to_module_ref(&*combined->geometryShader);
+        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->vertexShader);
+        if (programWithSo)
+          result.streamOutputDesc = programWithSo->streamOutputComponents;
+        result.ident.shaderHash = container->dataHash;
+        result.ident.shaderSize = containerData.size();
+        if (combined->geometryShader)
+        {
+          result.geometryShader = shader_layout_to_module_ref(*combined->geometryShader);
+        }
+        if (combined->hullShader)
+        {
+          result.hullShader = shader_layout_to_module_ref(*combined->hullShader);
+        }
+        if (combined->domainShader)
+        {
+          result.domainShader = shader_layout_to_module_ref(*combined->domainShader);
+        }
       }
-      if (combined->hullShader)
+      else
       {
-        result.hullShader = shader_layout_to_module_ref(&*combined->hullShader);
-      }
-      if (combined->domainShader)
-      {
-        result.domainShader = shader_layout_to_module_ref(&*combined->domainShader);
+        G_ASSERTF(false, "Couldn't map to dxil::VertexShaderPipeline.");
       }
     }
   }
-  else if (container->type == dxil::StoredShaderType::meshShader)
+  else if (container->type.shaderType == dxil::StoredShaderType::meshShader)
   {
     if constexpr (eastl::is_same_v<ModuleType, VertexShaderModuleInBinaryRef>)
     {
-      auto *combined = bindump::map<dxil::MeshShaderPipeline>(container->data.data());
-      static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(&*combined->meshShader);
-      result.ident.shaderHash = container->dataHash;
-      result.ident.shaderSize = container->data.size();
-      if (combined->amplificationShader)
+      if (auto *combined = bindump::map<dxil::MeshShaderPipeline>(containerData.data()))
       {
-        result.geometryShader = shader_layout_to_module_ref(&*combined->amplificationShader);
+        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->meshShader);
+        if (programWithSo)
+          result.streamOutputDesc = programWithSo->streamOutputComponents;
+        result.ident.shaderHash = container->dataHash;
+        result.ident.shaderSize = containerData.size();
+        if (combined->amplificationShader)
+        {
+          result.geometryShader = shader_layout_to_module_ref(*combined->amplificationShader);
+        }
+      }
+      else
+      {
+        G_ASSERTF(false, "Couldn't map to dxil::MeshShaderPipeline.");
       }
     }
   }
   else
   {
-    auto *shader = bindump::map<dxil::Shader>(container->data.data());
-    static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(shader);
-    result.ident.shaderHash = container->dataHash;
-    result.ident.shaderSize = container->data.size();
+    if (auto *shader = bindump::map<dxil::Shader>(containerData.data()))
+    {
+      static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*shader);
+      if constexpr (eastl::is_same_v<ModuleType, VertexShaderModuleInBinaryRef>)
+        if (programWithSo)
+          result.streamOutputDesc = programWithSo->streamOutputComponents;
+      result.ident.shaderHash = container->dataHash;
+      result.ident.shaderSize = containerData.size();
+    }
+    else
+    {
+      G_ASSERTF(false, "Couldn't map to dxil::MeshShaderPipeline.");
+    }
   }
   return result;
 }
@@ -1402,8 +1482,13 @@ public:
     {
       return nullLayoutID;
     }
-    G_ASSERTF(externalToInternalMap.size() > id.get(), "dx12: trying to use invalid input layout ID %u registered layouts %u",
-      id.get(), externalToInternalMap.size());
+
+    if (externalToInternalMap.size() <= id.get())
+    {
+      D3D_ERROR("dx12: trying to use invalid input layout ID %u registered layouts %u", id.get(), externalToInternalMap.size());
+      return nullLayoutID;
+    }
+
     auto &e = externalToInternalMap[id.get()];
     auto ref = eastl::find_if(begin(e.mapTable), end(e.mapTable), [layout_mask](auto &value) { return value.mask == layout_mask; });
     if (end(e.mapTable) != ref)
@@ -1751,6 +1836,7 @@ struct VertexShaderModuleHeader
   dxil::ShaderHeader header = {};
   eastl::unique_ptr<dxil::ShaderHeader[]> subShaders;
   eastl::string debugName;
+  DynamicArray<dxil::StreamOutputComponentInfo> streamOutputDesc;
   bool hasGsOrAs : 1;
   bool hasDsAndHs : 1;
 
@@ -2039,9 +2125,9 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
         }
         if (variableValues.hasValues())
         {
-          beginVariableBlock(true);
+          beginVariableBlock(false);
           variableValues.appendToString(finalName);
-          endVariableBlock(true);
+          endVariableBlock(false);
         }
         finalName.push_back('\n');
       }
@@ -2421,6 +2507,50 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
     }
   }
 
+  void iterateShaderClassesForGraphicsShadersWithNullPixelShaderWithAnyRenderState(const dxil::HashValue &vertex_shader,
+    eastl::string &out_name)
+  {
+    uint32_t totalCount = 0;
+    uint32_t lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, {}, out_name,
+        [shader = vShader](auto &pass) { return shader == pass.vprId && 0xFFFF == pass.fshId; });
+
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 != totalCount)
+    {
+      // found at least one instance, we are done here
+      return;
+    }
+
+    // we where unable to find anything, so this uses some shader class combined with the null pixel shader as an "override"
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, "[null pixel shader override]", out_name,
+        [shader = vShader](auto &pass) { return shader == pass.vprId; });
+
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+  }
+
   void iterateShaderClassesForGraphicsShaders(const dxil::HashValue &vertex_shader, const dxil::HashValue &pixel_shader,
     const RenderStateSystem::StaticState &static_state, eastl::string &out_name)
   {
@@ -2568,6 +2698,96 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
         count = generateNamesForMatchingRenderPasses(pGroup, "[Render state override]", {}, out_name,
           [shader = pShader](auto &pass) { return shader == pass.fshId; });
       }
+      totalCount += count;
+      lastGroup = pGroup + 1;
+    }
+
+    if (0 == totalCount)
+    {
+      out_name += "[pixel shader not in dump]";
+      char buf[sizeof(dxil::HashValue) * 2 + 1];
+      pixel_shader.convertToString(buf, sizeof(buf));
+      out_name += "{";
+      out_name += buf;
+      out_name += "}";
+      vertex_shader.convertToString(buf, sizeof(buf));
+      out_name += "{";
+      out_name += buf;
+      out_name += "}";
+    }
+  }
+
+  void iterateShaderClassesForGraphicsShadersWithAnyRenderState(const dxil::HashValue &vertex_shader,
+    const dxil::HashValue &pixel_shader, eastl::string &out_name)
+  {
+    uint32_t totalCount = 0;
+    uint32_t lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [pGroup, pShader] = findPixelShader(vGroup, pixel_shader);
+      if (pGroup != vGroup)
+      {
+        lastGroup = pGroup;
+        continue;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, {}, out_name,
+        [vert = vShader, pix = pShader](auto &pass) { return vert == pass.vprId && pix == pass.fshId; });
+
+      totalCount = count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 != totalCount)
+    {
+      return;
+    }
+
+    // we where unable to find anything, so this uses some shader class combined with the null pixel shader as an "override"
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, "[with pixel shader override]", out_name,
+        [shader = vShader](auto &pass) { return shader == pass.vprId; });
+
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 == totalCount)
+    {
+      // if we end up here, something in the shader dump is broken, as a vertex shader is in the dump, but is not used by
+      // and shader class / pass.
+      return;
+    }
+
+    totalCount = 0;
+
+    // now try to find paired pixel shader
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [pGroup, pShader] = findPixelShader(lastGroup, pixel_shader);
+      if (pGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(pGroup, {}, {}, out_name,
+        [shader = pShader](auto &pass) { return shader == pass.fshId; });
+
       totalCount += count;
       lastGroup = pGroup + 1;
     }
@@ -2860,7 +3080,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
     }
 
     if (0 == totalCount)
-    { /*
+    {
+      /*
        out_name += "[pixel shader not in dump]";
        char buf[sizeof(dxil::HashValue) * 2 + 1];
        pixel_shader.convertToString(buf, sizeof(buf));
@@ -2870,7 +3091,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
        vertex_shader.convertToString(buf, sizeof(buf));
        out_name += "{";
        out_name += buf;
-       out_name += "}";*/
+       out_name += "}";
+      */
     }
   }
 
@@ -2950,6 +3172,38 @@ public:
       outName += "}";
       auto stateText = static_state.toString();
       outName += stateText;
+    }
+
+    return outName;
+  }
+
+  eastl::string generateGraphicsPipelineNameWithAnyRenderState(const VertexShaderModuleRefStore &vertex_shader,
+    const PixelShaderModuleRefStore &pixel_shader)
+  {
+    eastl::string outName;
+    if (isNullPixelShader(pixel_shader))
+    {
+      iterateShaderClassesForGraphicsShadersWithNullPixelShaderWithAnyRenderState(vertex_shader.header.hash, outName);
+    }
+    else
+    {
+      iterateShaderClassesForGraphicsShadersWithAnyRenderState(vertex_shader.header.hash, pixel_shader.header.hash, outName);
+    }
+
+    if (outName.empty())
+    {
+      outName = "NotInDump={";
+      char buf[sizeof(dxil::HashValue) * 2 + 1];
+      vertex_shader.header.hash.convertToString(buf, sizeof(buf));
+      outName += buf;
+      bool isRaw = eastl::holds_alternative<VertexShaderModuleBytecodeRef>(vertex_shader.bytecode);
+      outName += isRaw ? "[raw]" : "[dump]";
+      outName += "}{";
+      pixel_shader.header.hash.convertToString(buf, sizeof(buf));
+      outName += buf;
+      isRaw = eastl::holds_alternative<PixelShaderModuleBytecodeRef>(pixel_shader.bytecode);
+      outName += isRaw ? "[raw]" : "[dump]";
+      outName += "}";
     }
 
     return outName;

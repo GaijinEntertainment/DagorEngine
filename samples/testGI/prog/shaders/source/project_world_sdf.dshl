@@ -28,11 +28,14 @@ macro PROJECT_WORLD_SDF_CLEAR(code)
   DAGI_ALBEDO_SAMPLE(code)
 
   PROJECT_LIGHT_POINT_VOXELIZE(code)//currently no dynamic lights!
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
   hlsl(code) {
     #define PROJECT_SDF_HAS_RADIANCE PROJECT_DAGI_HMAP_ALBEDO
     void get_project_world_sdf_radiance(float3 worldPos, inout float3 radiance, inout float alpha) {
       #if PROJECT_DAGI_HMAP_ALBEDO
-      radiance = project_get_lit_color_at_voxelize(worldPos, getNormalLod(calcTcLow(worldPos.xz), 0), getProjectAlbedoAt(worldPos));
+      float3 worldNormal = getNormalLod(calcTcLow(worldPos.xz), 0);
+      radiance = project_get_lit_color_at_voxelize(worldPos, worldNormal, getProjectAlbedoAt(worldPos), 1, GetSkySHDiffuseSimple(worldNormal));
       alpha = 32./256;
       #endif
     }

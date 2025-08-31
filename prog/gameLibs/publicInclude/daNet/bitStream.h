@@ -5,10 +5,10 @@
 #pragma once
 
 #include <string.h>
-#include <stddef.h>
 #include <generic/dag_span.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/utility.h>
+#include <dag/dag_relocatable.h>
 #include <debug/dag_assert.h>
 #include <util/dag_globDef.h>
 
@@ -75,11 +75,7 @@ using supports_read_type = decltype(supports_read_type_test(eastl::declval<T>())
 class BitStream
 {
 public:
-  BitStream(IMemAlloc *a = defaultmem)
-  {
-    memset(this, 0, offsetof(BitStream, allocator)); // !!!
-    allocator = a;
-  }
+  BitStream(IMemAlloc *a = defaultmem) : bitsUsed(0), dataOwner(0), allocator(a) {}
   BitStream(const uint8_t *_data, size_t lenInBytes, bool copy, IMemAlloc *a = defaultmem) :
     bitsUsed((uint32_t)bytes2bits(lenInBytes)), dataOwner((uint32_t)copy ? 1 : 0), readOffset(0), allocator(a)
   {
@@ -115,7 +111,9 @@ public:
   BitStream(BitStream &&bs)
   {
     memcpy(this, &bs, sizeof(*this));
-    memset(&bs, 0, offsetof(BitStream, allocator));
+    auto bsa = bs.allocator;
+    memset(&bs, 0, sizeof(bs));
+    bs.allocator = bsa;
   }
 
   BitStream &operator=(const BitStream &bs)
@@ -132,7 +130,9 @@ public:
     {
       this->~BitStream();
       memcpy(this, &bs, sizeof(*this));
-      memset(&bs, 0, offsetof(BitStream, allocator));
+      auto bsa = bs.allocator;
+      memset(&bs, 0, sizeof(bs));
+      bs.allocator = bsa;
     }
     return *this;
   }
@@ -663,11 +663,12 @@ protected:
 
   uint32_t bitsUsed : 31;
   uint32_t dataOwner : 1;
-  uint32_t bitsAllocated;
-  mutable uint32_t readOffset;
-  uint8_t *data;
-  IMemAlloc *allocator; // TODO: rework to allocator class
+  uint32_t bitsAllocated = 0;
+  mutable uint32_t readOffset = 0;
+  uint8_t *data = nullptr;
+  IMemAlloc *allocator; // TODO: rework to (stateless by default) allocator class
 };
 }; // namespace danet
-
 EA_RESTORE_VC_WARNING()
+
+DAG_DECLARE_RELOCATABLE(danet::BitStream);

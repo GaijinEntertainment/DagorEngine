@@ -2,7 +2,7 @@
 #pragma once
 
 #include <render/resourceSlot/state.h>
-#include <render/daBfg/nameSpace.h>
+#include <render/daFrameGraph/nameSpace.h>
 
 #include <detail/nodeDeclaration.h>
 #include <detail/resSlotNameMap.h>
@@ -31,7 +31,7 @@ struct Storage
   Storage &operator=(const Storage &) = delete;
 };
 
-using StorageList = eastl::vector_map<dabfg::NameSpace, Storage>;
+using StorageList = eastl::vector_map<dafg::NameSpace, Storage>;
 extern StorageList storage_list;
 extern ResSlotNameMap<SlotId> slot_map;
 extern ResSlotNameMap<ResourceId> resource_map;

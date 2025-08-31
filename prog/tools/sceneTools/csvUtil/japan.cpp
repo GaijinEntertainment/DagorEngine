@@ -83,7 +83,7 @@ static bool can_break(unsigned short first, unsigned short second)
   return false;
 }
 
-unsigned short read_utf8(const char *&ptr)
+unsigned short read_utf8(const dag_char8_t *&ptr)
 {
   unsigned short ret = 0;
   unsigned char c = *ptr++;
@@ -122,7 +122,7 @@ void write_utf8(unsigned short val, char *&ptr)
   {
     *ptr++ = 0xE0 + ((val >> 12) & 0x0F);
     *ptr++ = 0x80 + ((val >> 6) & 0x3F);
-    *ptr++ = 0x80 + ((val)&0x3F);
+    *ptr++ = 0x80 + ((val) & 0x3F);
   }
 }
 
@@ -150,7 +150,7 @@ const char *process_japanese_string(const char *str, wchar_t sep_char)
     strcpy(out, str);
     return out;
   }
-  const char *src = str;
+  auto src = (const dag_char8_t *)str;
   char *dst = out;
   unsigned first = read_utf8(src);
   unsigned second = 0;

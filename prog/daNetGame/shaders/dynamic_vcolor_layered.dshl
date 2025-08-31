@@ -9,7 +9,7 @@ shader dynamic_vcolor_layered
 {
   ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
-  INIT_VCOLOR_LAYERED()
+  INIT_VCOLOR_LAYERED(true)
   INIT_RANDOMIZED_TC(vs)
   if (in_editor_assume == no)
   {
@@ -63,7 +63,7 @@ shader dynamic_vcolor_layered
       void vs_post_function(VsInput input, inout VsOutput output)
       {
         #if COLOR_NEEDED
-          output.colorMul = getColorMul(get_per_instance_hashval());
+          output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
         #endif
         output.pointToEye.w = 1.0;
         output.vcolMask = input.vcolMask;

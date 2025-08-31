@@ -72,7 +72,7 @@ void RenderPass::addSubpassToList(const RenderPassDesc &rp_desc, int32_t subpass
 
 void RenderPass::execute(uint32_t idx)
 {
-  G_ASSERT(idx < actions.size());
+  D3D_CONTRACT_ASSERT(idx < actions.size());
   RenderPassBind &bind = actions[idx];
   RenderPassTarget &target = rp_impl::targets[bind.target];
 
@@ -96,7 +96,7 @@ void RenderPass::execute(uint32_t idx)
     }
     else
     {
-      G_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
+      D3D_CONTRACT_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
       set_depth(target.resource.tex, target.resource.layer, DepthAccess::SampledRO);
     }
   }
@@ -106,7 +106,7 @@ void RenderPass::execute(uint32_t idx)
       set_render_target(bind.slot, target.resource.tex, target.resource.layer, target.resource.mip_level);
     else
     {
-      G_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
+      D3D_CONTRACT_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
       set_depth(target.resource.tex, target.resource.layer, DepthAccess::RW);
     }
 
@@ -150,12 +150,12 @@ static bool validate_renderpass_action(RenderPassTargetAction action, const char
 
   bool noErrors = true;
 
-  G_ASSERTF_AND_DO(__popcount(action & RP_TA_SUBPASS_MASK) <= 1, noErrors &= false,
+  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_SUBPASS_MASK) <= 1, noErrors &= false,
     "'%s' action consists of multiple subpass operations", what);
-  G_ASSERTF_AND_DO(__popcount(action & RP_TA_LOAD_MASK) <= 1, noErrors &= false, "'%s' action consists of multiple load operations",
-    what);
-  G_ASSERTF_AND_DO(__popcount(action & RP_TA_STORE_MASK) <= 1, noErrors &= false, "'%s' action consists of multiple store operations",
-    what);
+  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_LOAD_MASK) <= 1, noErrors &= false,
+    "'%s' action consists of multiple load operations", what);
+  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_STORE_MASK) <= 1, noErrors &= false,
+    "'%s' action consists of multiple store operations", what);
 
   return noErrors;
 }
@@ -169,7 +169,7 @@ static bool validate_renderpass_desc(const RenderPassDesc &rp_desc)
   for (uint32_t i = 0; i < rp_desc.bindCount; ++i)
   {
     noErrors &= validate_renderpass_action(rp_desc.binds[i].action, rp_desc.debugName);
-    G_ASSERTF_AND_DO(rp_desc.binds[i].target < rp_desc.targetCount, noErrors &= false,
+    D3D_CONTRACT_ASSERTF_AND_DO(rp_desc.binds[i].target < rp_desc.targetCount, noErrors &= false,
       "target index is out of bounds in bind %u of render pass '%s'", i, rp_desc.debugName);
   }
 
@@ -178,7 +178,7 @@ static bool validate_renderpass_desc(const RenderPassDesc &rp_desc)
 
 RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
 {
-  G_ASSERTF_RETURN(rp_desc.bindCount > 0, nullptr, "render pass '%s' bindCount is 0", rp_desc.debugName);
+  D3D_CONTRACT_ASSERTF_RETURN(rp_desc.bindCount > 0, nullptr, "render pass '%s' bindCount is 0", rp_desc.debugName);
   if (!validate_renderpass_desc(rp_desc))
     return nullptr;
 
@@ -196,7 +196,7 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
       ret->subpassCnt = bind.subpass;
   }
   ++ret->subpassCnt;
-  G_ASSERTF_AND_DO(
+  D3D_CONTRACT_ASSERTF_AND_DO(
     ret->subpassCnt > 0,
     {
       delete ret;
@@ -217,16 +217,16 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
 
 void delete_render_pass(RenderPass *rp)
 {
-  G_ASSERTF(activeRP != rp, "trying to delete active render pass %s", rp->getDebugName());
+  D3D_CONTRACT_ASSERTF(activeRP != rp, "trying to delete active render pass %s", rp->getDebugName());
   delete rp;
 }
 
 void next_subpass()
 {
-  G_ASSERT(activeRP);
+  D3D_CONTRACT_ASSERT(activeRP);
 
   const auto &seq = activeRP->sequence;
-  G_ASSERTF(rp_impl::subpass + 1 < seq.size(), "trying to run non existent subpass %u of rp %s", rp_impl::subpass,
+  D3D_CONTRACT_ASSERTF(rp_impl::subpass + 1 < seq.size(), "trying to run non existent subpass %u of rp %s", rp_impl::subpass,
     activeRP->getDebugName());
 
   // bind fully empty RT/DS set
@@ -259,15 +259,15 @@ bool is_generic_render_pass_validation_enabled()
 
 void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
 {
-  G_ASSERTF(!activeRP, "render pass %s already started", activeRP->getDebugName());
-  G_ASSERTF(nullptr != rp, "'rp' of begin_render_pass was nullptr");
+  D3D_CONTRACT_ASSERTF(!activeRP, "render pass %s already started", activeRP->getDebugName());
+  D3D_CONTRACT_ASSERTF(nullptr != rp, "'rp' of begin_render_pass was nullptr");
 
   rp_impl::activeRenderArea = area;
   activeRP = rp;
   for (auto &target : dag::Span{targets, rp->targetCnt})
   {
     if (!target.resource.tex)
-      logerr("begin_render_pass for %s received a nullptr texture!", activeRP->getDebugName());
+      D3D_CONTRACT_ERROR("begin_render_pass for %s received a nullptr texture!", activeRP->getDebugName());
     rp_impl::targets.push_back(target);
   }
 
@@ -279,7 +279,7 @@ void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPa
 
 void end_render_pass()
 {
-  G_ASSERTF(activeRP, "render pass was not started");
+  D3D_CONTRACT_ASSERTF(activeRP, "render pass was not started");
 
   if (is_generic_render_pass_validation_enabled())
     d3d::driver_command(Drv3dCommand::END_GENERIC_RENDER_PASS_CHECKS);

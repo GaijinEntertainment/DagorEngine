@@ -2,6 +2,7 @@
 
 #include <dag/dag_vectorMap.h>
 #include <EASTL/fixed_string.h>
+#include <EASTL/string.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/array.h>
 #include <generic/dag_span.h>
@@ -24,6 +25,7 @@
 #include "internal/framememString.h"
 #include "internal/attributes.h"
 #include "internal/delayed.h"
+#include "internal/releasing.h"
 #include "internal/events.h"
 #include "internal/streams.h"
 #include "internal/soundSystem.h"
@@ -74,6 +76,7 @@ static eastl::array<FMOD::Studio::EventInstance *, 1024> instance_list;
 static eastl::array<FMOD::Studio::Bank *, 256> banks_list;
 
 static eastl::fixed_vector<const FMOD::Studio::EventDescription *, 16> g_3d_instances_in_zero;
+static eastl::basic_string<char> g_cur_scene_name;
 
 static int g_first_message_id = 0;
 static int g_num_messages = 0;
@@ -92,7 +95,7 @@ static const E3DCOLOR g_background_none = E3DCOLOR(0, 0, 0, 0);
 static const E3DCOLOR g_background_def = E3DCOLOR(0, 0, 0, 200);
 static const E3DCOLOR g_background_err = E3DCOLOR(0xff, 0x40, 0, 0xff);
 
-static inline int print(int x, int y, const E3DCOLOR &color, const char *text, int len = -1, int line_index = 0,
+static int print(int x, int y, const E3DCOLOR &color, const char *text, int len = -1, int line_index = 0,
   E3DCOLOR background = g_background_none)
 {
   if (text && *text)
@@ -121,14 +124,14 @@ static inline int print(int x, int y, const E3DCOLOR &color, const char *text, i
 }
 
 template <typename String>
-static inline int print(int x, int y, const E3DCOLOR &color, const String &text, int len = -1, int line_index = 0,
+static int print(int x, int y, const E3DCOLOR &color, const String &text, int len = -1, int line_index = 0,
   E3DCOLOR background = g_background_none)
 {
   return print(x, y, color, text.c_str(), len, line_index, background);
 }
 
 template <typename String, bool Print = true>
-static inline int print_multiline_impl(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background)
+static int print_multiline_impl(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background)
 {
   G_UNREFERENCED(x);
   G_UNREFERENCED(y);
@@ -154,13 +157,13 @@ static inline int print_multiline_impl(int x, int y, const E3DCOLOR &color, cons
 }
 
 template <typename String>
-static inline int print_multiline(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background = g_background_none)
+static int print_multiline(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background = g_background_none)
 {
   return print_multiline_impl(x, y, color, text, background);
 }
 
 template <typename String>
-static inline int print_multiline_bottom_align(int x, int y, const E3DCOLOR &color, const String &text,
+static int print_multiline_bottom_align(int x, int y, const E3DCOLOR &color, const String &text,
   E3DCOLOR background = g_background_none)
 {
   const int height = print_multiline_impl<String, false>(x, y, color, text, background);
@@ -169,59 +172,58 @@ static inline int print_multiline_bottom_align(int x, int y, const E3DCOLOR &col
 }
 
 template <typename... Args>
-static inline int print_format(int x, int y, const E3DCOLOR &color, const char *format, Args... args)
+static int print_format(int x, int y, const E3DCOLOR &color, const char *format, Args... args)
 {
   FrameString text;
   text.sprintf(format ? format : "", args...);
   return print_multiline(x, y, color, text);
 }
 
-static inline bool is_playing(const FMOD::Studio::EventInstance &event_instance)
+static bool is_playing(const FMOD::Studio::EventInstance &event_instance)
 {
   FMOD_STUDIO_PLAYBACK_STATE playbackState = FMOD_STUDIO_PLAYBACK_STOPPED;
   event_instance.getPlaybackState(&playbackState);
   return playbackState == FMOD_STUDIO_PLAYBACK_PLAYING || playbackState == FMOD_STUDIO_PLAYBACK_STARTING ||
          playbackState == FMOD_STUDIO_PLAYBACK_SUSTAINING;
 }
-static inline bool is_stopping(const FMOD::Studio::EventInstance &event_instance)
+static bool is_stopping(const FMOD::Studio::EventInstance &event_instance)
 {
   FMOD_STUDIO_PLAYBACK_STATE playbackState = FMOD_STUDIO_PLAYBACK_STOPPED;
   event_instance.getPlaybackState(&playbackState);
   return playbackState == FMOD_STUDIO_PLAYBACK_STOPPING;
 }
-static inline bool is_sustaining(const FMOD::Studio::EventInstance &event_instance)
+static bool is_sustaining(const FMOD::Studio::EventInstance &event_instance)
 {
   FMOD_STUDIO_PLAYBACK_STATE playbackState = FMOD_STUDIO_PLAYBACK_STOPPED;
   event_instance.getPlaybackState(&playbackState);
   return playbackState == FMOD_STUDIO_PLAYBACK_SUSTAINING;
 }
-static inline bool is_virtual(const FMOD::Studio::EventInstance &event_instance)
+static bool is_virtual(const FMOD::Studio::EventInstance &event_instance)
 {
   bool isVirtual = false;
   event_instance.isVirtual(&isVirtual);
   return isVirtual;
 }
-static inline bool is_muted(const FMOD::Studio::EventInstance &event_instance)
+static bool is_muted(const FMOD::Studio::EventInstance &event_instance)
 {
   float volume = 0.f;
   event_instance.getVolume(&volume);
   return volume == 0.f;
 }
-static inline bool is_snapshot(const FMOD::Studio::EventDescription &event_description)
+static bool is_snapshot(const FMOD::Studio::EventDescription &event_description)
 {
   bool snapshot = false;
   event_description.isSnapshot(&snapshot);
   return snapshot;
 }
-static inline bool is_loading(const FMOD::Studio::EventDescription &event_description)
+static bool is_loading(const FMOD::Studio::EventDescription &event_description)
 {
   if (const char *sampleLoadingState = get_sample_loading_state(event_description))
     return strcmp(sampleLoadingState, "loading") == 0;
   return false;
 }
 
-static inline E3DCOLOR make_color(const FMOD::Studio::EventInstance &event_instance,
-  const FMOD::Studio::EventDescription &event_description)
+static E3DCOLOR make_color(const FMOD::Studio::EventInstance &event_instance, const FMOD::Studio::EventDescription &event_description)
 {
   return !event_instance.isValid()        ? g_invalid_color
          : is_sustaining(event_instance)  ? g_sustaining_color
@@ -232,27 +234,24 @@ static inline E3DCOLOR make_color(const FMOD::Studio::EventInstance &event_insta
                                           : g_def_color;
 }
 
-static class
+static class GlobalInstances
 {
-  enum
-  {
-    capacity = 32,
-    max_time = 16,
-  };
+  static constexpr int capacity = 32;
+  static constexpr int max_time = 16;
   struct Desc
   {
     const FMOD::Studio::EventDescription *desc = nullptr;
     const FMOD::Studio::EventInstance *instance = nullptr;
+    uint32_t updateId = 0;
     uint8_t numInstances = 0;
     uint8_t numPlaying = 0;
     uint8_t numVirtual = 0;
     uint8_t numMuted = 0;
     uint8_t numDuplicated = 0;
     uint8_t time = 0;
-    bool odd = false;
   };
   eastl::fixed_vector<Desc, capacity> descs;
-  bool odd = false;
+  uint32_t updateId = 0;
 
 public:
   void push(const FMOD::Studio::EventInstance &event_instance, const FMOD::Studio::EventDescription &event_description,
@@ -261,7 +260,7 @@ public:
     Desc *desc = eastl::find_if(descs.begin(), descs.end(), [&](const auto &it) { return it.desc == &event_description; });
     if (desc != descs.end())
     {
-      if (desc->odd == odd && desc->numDuplicated < 0xff)
+      if (desc->updateId == updateId && desc->numDuplicated < 0xff)
         ++desc->numDuplicated;
       if (desc->numInstances < num_instances)
         desc->time = 0;
@@ -280,9 +279,7 @@ public:
     desc->numPlaying = min(num_playing, 0xff);
     desc->numVirtual = min(num_virtual, 0xff);
     desc->numMuted = min(num_muted, 0xff);
-    desc->odd = odd;
-    if (desc->time < max_time)
-      ++desc->time;
+    desc->updateId = updateId;
   }
 
   E3DCOLOR getColor(const Desc &desc, const FMOD::Studio::EventInstance &event_instance)
@@ -303,11 +300,17 @@ public:
     return make_color(event_instance, event_description);
   }
 
+  bool isObsolete(const Desc &desc) const { return updateId > desc.updateId + 60; }
+
   void advance()
   {
-    auto pred = [&](const Desc &it) { return it.odd != odd; };
+    auto pred = [&](const Desc &it) { return isObsolete(it); };
     descs.erase(eastl::remove_if(descs.begin(), descs.end(), pred), descs.end());
-    odd = !odd;
+    ++updateId;
+
+    for (auto &desc : descs)
+      if (desc.time < max_time)
+        ++desc.time;
   }
 
   const Desc *begin() const { return descs.begin(); }
@@ -315,10 +318,21 @@ public:
 
 } g_instances;
 
-static inline void get_name_audibility(const FMOD::Studio::EventInstance &event_instance,
+static FrameString get_debug_name_handle(const FMOD::Studio::EventInstance &event_instance,
+  const FMOD::Studio::EventDescription &event_description)
+{
+  FrameString text;
+  if (debug_get_event_handle_from_instance(&event_instance) != EventHandle())
+    text.sprintf("{%s}", get_debug_name(event_description).c_str());
+  else
+    text.sprintf("%s", get_debug_name(event_description).c_str());
+  return text;
+}
+
+static void get_name_audibility(const FMOD::Studio::EventInstance &event_instance,
   const FMOD::Studio::EventDescription &event_description, FrameString &text)
 {
-  text.sprintf("[%s]", get_debug_name(event_description).c_str());
+  text = get_debug_name_handle(event_instance, event_description);
 
   FMOD_STUDIO_PARAMETER_DESCRIPTION paramDesc;
   if (FMOD_OK == event_description.getParameterDescriptionByName("Distance", &paramDesc))
@@ -333,10 +347,10 @@ static inline void get_name_audibility(const FMOD::Studio::EventInstance &event_
   text.append_sprintf("  (%f)", audibility);
 }
 
-static inline void get_event_name(const FMOD::Studio::EventInstance &event_instance,
-  const FMOD::Studio::EventDescription &event_description, FrameString &text)
+static void get_event_name(const FMOD::Studio::EventInstance &event_instance, const FMOD::Studio::EventDescription &event_description,
+  FrameString &text)
 {
-  text.sprintf("[%s]", get_debug_name(event_description).c_str());
+  text = get_debug_name_handle(event_instance, event_description);
 
   int paramDescCount = 0;
   event_description.getParameterDescriptionCount(&paramDescCount);
@@ -348,14 +362,17 @@ static inline void get_event_name(const FMOD::Studio::EventInstance &event_insta
       float value = 0;
       float finalValue = 0;
       event_instance.getParameterByID(paramDesc.id, &value, &finalValue);
-      text.append_sprintf(" [%s %.2f]", paramDesc.name, finalValue);
+      if (paramDesc.flags & FMOD_STUDIO_PARAMETER_GLOBAL)
+        text.append_sprintf(" [%s(global) %.2f]", paramDesc.name, finalValue);
+      else
+        text.append_sprintf(" [%s %.2f]", paramDesc.name, finalValue);
     }
   float volume = 0.f, finalVolume = 0.f;
   if (FMOD_OK == event_instance.getVolume(&volume, &finalVolume) && volume != 1.f)
     text.append_sprintf(" vol=%.2f", volume);
 }
 
-static inline void print_samples_instances(int offset)
+static void print_samples_instances(int offset)
 {
   const auto samples = dbg_get_sample_data_refs();
 
@@ -373,8 +390,8 @@ static inline void print_samples_instances(int offset)
         if (const FMOD::Studio::EventDescription *evtDesc = get_description(it.first))
         {
           int len = 0;
-          evtDesc->getPath(eventName.begin(), eventName.count, &len);
-          eventName[eventName.count - 1] = 0;
+          evtDesc->getPath(eventName.begin(), eventName.size(), &len);
+          eventName[eventName.size() - 1] = 0;
           offset += print_format(g_offset.x, offset, g_def_color, "(%d) %s", it.second, eventName.begin());
         }
         else
@@ -394,9 +411,9 @@ static inline void print_samples_instances(int offset)
 
   FrameString text;
   int numBanks = 0;
-  SOUND_VERIFY(get_studio_system()->getBankList(banks_list.begin(), banks_list.count, &numBanks));
-  G_ASSERT(numBanks <= banks_list.count);
-  numBanks = min(numBanks, (int)banks_list.count);
+  SOUND_VERIFY(get_studio_system()->getBankList(banks_list.begin(), banks_list.size(), &numBanks));
+  G_ASSERT(numBanks <= banks_list.size());
+  numBanks = min(numBanks, (int)banks_list.size());
   dag::VectorMap<int, int, eastl::less<int>, framemem_allocator> commonPos;
   const int bottom = StdGuiRender::get_viewport().rightBottom.y;
 
@@ -404,19 +421,19 @@ static inline void print_samples_instances(int offset)
   for (const FMOD::Studio::Bank *bank : banksSlice)
   {
     int numDescs = 0;
-    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.count, &numDescs))
+    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.size(), &numDescs))
       continue;
-    G_ASSERT(numDescs <= events_list.count);
-    numDescs = min(numDescs, (int)events_list.count);
+    G_ASSERT(numDescs <= events_list.size());
+    numDescs = min(numDescs, (int)events_list.size());
 
     const auto descsSlice = make_span(events_list.begin(), numDescs);
     for (const FMOD::Studio::EventDescription *evtDesc : descsSlice)
     {
       int numInstances = 0;
-      if (FMOD_OK != evtDesc->getInstanceList(instance_list.begin(), instance_list.count, &numInstances))
+      if (FMOD_OK != evtDesc->getInstanceList(instance_list.begin(), instance_list.size(), &numInstances))
         continue;
-      G_ASSERT(numInstances <= instance_list.count);
-      numInstances = min(numInstances, (int)instance_list.count);
+      G_ASSERT(numInstances <= instance_list.size());
+      numInstances = min(numInstances, (int)instance_list.size());
       if (!numInstances)
         continue;
 
@@ -524,6 +541,9 @@ static inline void print_samples_instances(int offset)
     if (it.numDuplicated > 1)
       text.append_sprintf(" (--DUPLICATED IN BANKS (%d)--) ", it.numDuplicated);
 
+    if (!instance.isValid())
+      text.append_sprintf(" (not valid)");
+
     offset += print(g_offset.x, offset, g_instances.getColor(it), text, -1, 0, g_background_def);
 
     if (offset >= bottom)
@@ -531,13 +551,13 @@ static inline void print_samples_instances(int offset)
   }
 }
 
-static inline int get_channels_x()
+static int get_channels_x()
 {
   constexpr int rightOffset = 400;
   return StdGuiRender::get_viewport().rightBottom.x - rightOffset;
 }
 
-static inline void print_channels(int max_y)
+static void print_channels(int max_y)
 {
   int numChannelsPlaying = 0;
   SOUND_VERIFY(get_system()->getChannelsPlaying(&numChannelsPlaying));
@@ -592,13 +612,13 @@ static constexpr uint32_t g_warn_color = 0xffffffff;
 static constexpr uint32_t g_err_color = 0xff000000;
 static constexpr uint32_t g_log_color = 0xffffd000;
 
-static inline void print_messages()
+static void print_messages()
 {
   SNDSYS_DEBUG_TRACE_BLOCK;
   int offset = StdGuiRender::get_viewport().rightBottom.y - 20;
   for (int i = 0; i < g_num_messages; ++i)
   {
-    const DebugMessage &msg = debug_messages[(i + g_first_message_id) % debug_messages.count];
+    const DebugMessage &msg = debug_messages[(i + g_first_message_id) % debug_messages.size()];
     const uint32_t color = (msg.level == TraceLevel::warn) ? g_warn_color : (msg.level == TraceLevel::err) ? g_err_color : g_log_color;
     const auto background = msg.level == TraceLevel::err ? g_background_err : g_background_none;
     if (msg.count <= 1)
@@ -612,7 +632,7 @@ static inline void print_messages()
   }
 }
 
-static inline void draw_streams()
+static void draw_streams()
 {
   streams::debug_enum([](const char *info, const Point3 &pos, bool is_3d) {
     if (is_3d && lengthSq(pos) == 0.f && !g_have_3d_stream_in_zero)
@@ -626,7 +646,7 @@ static inline void draw_streams()
   });
 }
 
-static inline void draw_cpu_stat(int &offset)
+static void draw_cpu_stat(int &offset)
 {
   sndsys::FmodCpuUsage fcpu = {};
   get_cpu_usage(fcpu);
@@ -634,7 +654,7 @@ static inline void draw_cpu_stat(int &offset)
     fcpu.dspusage, fcpu.geometryusage, fcpu.streamusage, fcpu.studiousage, fcpu.updateusage);
 }
 
-static inline void draw_mem_stat(int &offset)
+static void draw_mem_stat(int &offset)
 {
   sndsys::FmodMemoryUsage fmem = {};
   get_mem_usage(fmem);
@@ -710,11 +730,11 @@ void debug_draw()
 
   uint32_t streamHandles = 0, streamsToRelease = 0;
   streams::debug_get_info(streamHandles, streamsToRelease);
-  offset += print_format(g_offset.x, offset, g_def_color, "Stream handles (used,releasing): %d/%d", streamHandles, streamsToRelease);
+  offset += print_format(g_offset.x, offset, g_def_color, "Stream handles (used,releasing): %d, %d", streamHandles, streamsToRelease);
 
   size_t delayedEvents = 0, delayedActions = 0, maxDelayedEvents = 0, maxDelayedActions = 0;
   delayed::get_debug_info(delayedEvents, delayedActions, maxDelayedEvents, maxDelayedActions);
-  offset += print_format(g_offset.x, offset, g_def_color, "Delayed events (current,max): %d/%d, actions (current,max): %d/%d",
+  offset += print_format(g_offset.x, offset, g_def_color, "Delayed events (current/max): %d/%d, actions (current/max): %d/%d",
     delayedEvents, maxDelayedEvents, delayedActions, maxDelayedActions);
 
   offset += print_format(g_offset.x, offset, g_def_color, "Cached event attributes: %d(path), %d(guid)",
@@ -722,6 +742,15 @@ void debug_draw()
 
   draw_cpu_stat(offset);
   draw_mem_stat(offset);
+
+  const int releasingEvents = releasing::debug_get_num_events();
+  offset += print_format(g_offset.x, offset, g_def_color, "Releasing events: %d", releasingEvents);
+
+  if (!g_cur_scene_name.empty())
+    offset += print_format(g_offset.x, offset, g_def_color, "Scene: %s", g_cur_scene_name.c_str());
+
+  const Point3 listener = get_3d_listener_pos();
+  offset += print_format(g_offset.x, offset, g_def_color, "Listener: %.1f, %.1f, %.1f", listener.x, listener.y, listener.z);
 
   offset += g_interligne;
 
@@ -754,28 +783,28 @@ void debug_enum_events()
   int totalEvents = 0;
 
   int numBanks = 0;
-  SOUND_VERIFY(get_studio_system()->getBankList(banks_list.begin(), banks_list.count, &numBanks));
-  G_ASSERT(numBanks <= banks_list.count);
-  numBanks = min(numBanks, (int)banks_list.count);
+  SOUND_VERIFY(get_studio_system()->getBankList(banks_list.begin(), banks_list.size(), &numBanks));
+  G_ASSERT(numBanks <= banks_list.size());
+  numBanks = min(numBanks, (int)banks_list.size());
   const auto banksSlice = make_span(banks_list.begin(), numBanks);
   for (const FMOD::Studio::Bank *bank : banksSlice)
   {
     int len = 0;
-    bank->getPath(bankName.begin(), bankName.count, &len);
-    bankName[bankName.count - 1] = 0;
+    bank->getPath(bankName.begin(), bankName.size(), &len);
+    bankName[bankName.size() - 1] = 0;
 
     int numDescs = 0;
-    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.count, &numDescs))
+    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.size(), &numDescs))
       continue;
-    G_ASSERT(numDescs <= events_list.count);
-    numDescs = min(numDescs, (int)events_list.count);
+    G_ASSERT(numDescs <= events_list.size());
+    numDescs = min(numDescs, (int)events_list.size());
     totalEvents += numDescs;
     const auto descsSlice = make_span(events_list.begin(), numDescs);
     for (const FMOD::Studio::EventDescription *desc : descsSlice)
     {
       len = 0;
-      desc->getPath(eventName.begin(), eventName.count, &len);
-      eventName[eventName.count - 1] = 0;
+      desc->getPath(eventName.begin(), eventName.size(), &len);
+      eventName[eventName.size() - 1] = 0;
 
       bool is3d = false;
       desc->is3D(&is3d);
@@ -819,21 +848,21 @@ void debug_enum_events(const char *bank_name, eastl::function<void(const char *)
   }
 
   int numDescs = 0;
-  result = bank->getEventList(events_list.begin(), events_list.count, &numDescs);
+  result = bank->getEventList(events_list.begin(), events_list.size(), &numDescs);
   if (FMOD_OK != result)
   {
     logerr("Get event list from bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
     return;
   }
 
-  G_ASSERT(numDescs <= events_list.count);
-  numDescs = min(numDescs, (int)events_list.count);
+  G_ASSERT(numDescs <= events_list.size());
+  numDescs = min(numDescs, (int)events_list.size());
   const auto descsSlice = make_span(events_list.begin(), numDescs);
   for (const FMOD::Studio::EventDescription *desc : descsSlice)
   {
     int len = 0;
-    result = desc->getPath(eventName.begin(), eventName.count, &len);
-    eventName[eventName.count - 1] = 0;
+    result = desc->getPath(eventName.begin(), eventName.size(), &len);
+    eventName[eventName.size() - 1] = 0;
     if (FMOD_OK != result)
     {
       logerr("Get event name from bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
@@ -850,7 +879,7 @@ static constexpr size_t g_max_log_message_types = 32;
 static eastl::fixed_vector<str_hash_t, g_max_log_message_types, false> g_log_message_types;
 static bool g_suppress_logerr_once = false;
 
-static inline bool can_log_once(const char *text)
+static bool can_log_once(const char *text)
 {
   const str_hash_t hash = SND_HASH_SLOW(text);
   auto it = eastl::find(g_log_message_types.begin(), g_log_message_types.end(), hash);
@@ -862,7 +891,7 @@ static inline bool can_log_once(const char *text)
   return true;
 }
 
-static inline void debug_trace_impl(TraceLevel cur_level, bool log_once, const char *format, va_list args)
+static void debug_trace_impl(TraceLevel cur_level, bool log_once, const char *format, va_list args)
 {
   G_ASSERT_RETURN(format, );
   SNDSYS_DEBUG_TRACE_BLOCK;
@@ -898,12 +927,12 @@ static inline void debug_trace_impl(TraceLevel cur_level, bool log_once, const c
       return;
     }
 
-  if (g_num_messages < debug_messages.count)
+  if (g_num_messages < debug_messages.size())
     ++g_num_messages;
   else
-    g_first_message_id = (g_first_message_id + 1) % debug_messages.count;
+    g_first_message_id = (g_first_message_id + 1) % debug_messages.size();
 
-  auto &msg = debug_messages[(g_first_message_id + g_num_messages - 1) % debug_messages.count];
+  auto &msg = debug_messages[(g_first_message_id + g_num_messages - 1) % debug_messages.size()];
   msg.text = eastl::move(text);
   msg.level = cur_level;
   msg.count = 1;
@@ -920,9 +949,13 @@ static inline void debug_trace_impl(TraceLevel cur_level, bool log_once, const c
 
 DEBUG_TRACE_IMPL(debug_trace_info, info, false)
 DEBUG_TRACE_IMPL(debug_trace_warn, warn, false)
+DEBUG_TRACE_IMPL(debug_trace_warn_once, warn, true)
 DEBUG_TRACE_IMPL(debug_trace_err, err, false)
 DEBUG_TRACE_IMPL(debug_trace_err_once, err, true)
 DEBUG_TRACE_IMPL(debug_trace_log, log, false)
+DEBUG_TRACE_IMPL(debug_trace_log_once, log, true)
+
+void debug_set_cur_scene_name(const char *scene_name) { g_cur_scene_name = scene_name; }
 
 void debug_init(const DataBlock &blk)
 {

@@ -10,7 +10,7 @@ enum class AntiAliasingMode
   DLSS = 4,
   MSAA = 5,
   XESS = 6,
-  FSR = 7,
+  FSR2 = 7,
   SSAA = 8,
   PSSR = 9
 };

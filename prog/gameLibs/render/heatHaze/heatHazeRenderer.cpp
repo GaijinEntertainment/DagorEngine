@@ -25,6 +25,7 @@ static int global_frame_block_id = -1;
 static int texsz_consts_id = -1;
 static int apply_haze_passVarId = -1;
 static int source_texVarId = -1;
+static int source_tex_samplerstateVarId = -1;
 static int haze_source_tex_uv_transformVarId = -1;
 static int haze_scene_depth_texVarId = -1;
 static int haze_scene_depth_tex_lodVarId = -1;
@@ -50,6 +51,7 @@ void HeatHazeRenderer::setUp(int haze_resolution_divisor)
   texsz_consts_id = ::get_shader_variable_id("texsz_consts", true);
   apply_haze_passVarId = ::get_shader_variable_id("apply_haze_pass", true);
   source_texVarId = ::get_shader_variable_id("source_tex", true);
+  source_tex_samplerstateVarId = ::get_shader_variable_id("source_tex_samplerstate", true);
   haze_source_tex_uv_transformVarId = ::get_shader_variable_id("haze_source_tex_uv_transform", true);
   haze_scene_depth_texVarId = ::get_shader_variable_id("haze_scene_depth_tex", true);
   haze_scene_depth_tex_lodVarId = ::get_shader_variable_id("haze_scene_depth_tex_lod", true);
@@ -67,6 +69,7 @@ void HeatHazeRenderer::setUp(int haze_resolution_divisor)
   shaders::OverrideState state;
   state.set(shaders::OverrideState::Z_TEST_DISABLE);
   state.set(shaders::OverrideState::Z_WRITE_DISABLE);
+  zDisabledStateId = shaders::overrides::create(state);
   state.set(shaders::OverrideState::BLEND_OP);
   state.blendOp = BLENDOP_MIN;
   zDisabledBlendMinStateId = shaders::overrides::create(state);
@@ -92,6 +95,18 @@ void HeatHazeRenderer::setUp(int haze_resolution_divisor)
   smpInfo.filter_mode = d3d::FilterMode::Point;
   ShaderGlobal::set_sampler(get_shader_variable_id("haze_scene_depth_tex_samplerstate", true), d3d::request_sampler(smpInfo));
   ShaderGlobal::set_sampler(get_shader_variable_id("haze_noise_tex_samplerstate", true), d3d::request_sampler({}));
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    sourceLinearTexSampler = d3d::request_sampler(smpInfo);
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    sourcePointTexSampler = d3d::request_sampler(smpInfo);
+  }
 }
 
 void HeatHazeRenderer::tearDown()
@@ -105,7 +120,7 @@ void HeatHazeRenderer::tearDown()
 }
 
 void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_offset, TEXTUREID depth_tex_id, int depth_tex_lod,
-  RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze)
+  RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze, Texture *stencil)
 {
   if (!areShadersValid())
     return;
@@ -116,7 +131,10 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
 
   TextureInfo hazeOffsetInfo;
   haze_offset->getinfo(hazeOffsetInfo);
-  d3d::set_render_target({}, DepthAccess::RW, {{haze_offset, 0, 0}, {haze_depth, 0, 0}});
+  d3d::set_render_target({stencil}, DepthAccess::SampledRO, {{haze_offset, 0, 0}, {haze_depth, 0, 0}});
+
+  if (stencil)
+    shaders::overrides::set(zDisabledStateId);
 
   ShaderGlobal::set_color4(inv_distortion_resolutionVarId, 1.0f / hazeOffsetInfo.w, 1.0f / hazeOffsetInfo.h);
   ShaderGlobal::set_int(rendering_distortion_colorVarId, 0);
@@ -134,14 +152,17 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
   if (fx_render_modeVarId >= 0)
     ShaderGlobal::set_int(fx_render_modeVarId, 0);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
+
+  if (stencil)
+    shaders::overrides::reset();
 }
 
 void HeatHazeRenderer::renderColorHaze(Texture *haze_color, RenderHazeParticlesCallback render_haze_particles,
-  RenderCustomHazeCallback render_ri_haze)
+  RenderCustomHazeCallback render_ri_haze, Texture *stencil)
 {
   SCOPE_RENDER_TARGET;
 
-  d3d::set_render_target({nullptr, 0, 0}, DepthAccess::RW, {{haze_color, 0, 0}});
+  d3d::set_render_target({stencil, 0, 0}, DepthAccess::SampledRO, {{haze_color, 0, 0}});
 
   ShaderGlobal::set_int(rendering_distortion_colorVarId, 1);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
@@ -191,8 +212,8 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
         float(back_buffer_area->left) / back_buffer_resolution.x, float(back_buffer_area->top) / back_buffer_resolution.y);
 
     d3d::set_render_target(haze_temp, 0);
-    back_buffer->texfilter(TEXFILTER_POINT);
     ShaderGlobal::set_texture(source_texVarId, back_buffer_id);
+    ShaderGlobal::set_sampler(source_tex_samplerstateVarId, sourcePointTexSampler);
     ShaderGlobal::set_color4(haze_source_tex_uv_transformVarId, uvt);
     d3d::set_depth(nullptr, DepthAccess::RW);
 
@@ -201,7 +222,6 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
     ShaderGlobal::set_int(apply_haze_passVarId, APPLY_HAZE_DOWNSCALE);
     hazeFxRenderer->render();
 
-    back_buffer->texfilter(TEXFILTER_DEFAULT);
     d3d::set_render_target(back_buffer, 0);
     d3d::set_depth(NULL, DepthAccess::RW);
     if (back_buffer_area)
@@ -211,8 +231,7 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
       d3d::setscissor(ba->left, ba->top, ba->right - ba->left, ba->bottom - ba->top);
     }
 
-    haze_temp->texaddr(TEXADDR_CLAMP);
-    haze_temp->texfilter(TEXFILTER_LINEAR);
+    ShaderGlobal::set_sampler(source_tex_samplerstateVarId, sourceLinearTexSampler);
     ShaderGlobal::set_texture(source_texVarId, haze_temp_id);
 
     ShaderGlobal::set_color4(haze_paramsVarId,

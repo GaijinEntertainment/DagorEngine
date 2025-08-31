@@ -11,7 +11,7 @@
 - Full runtime information on the event structure (reflection) is available.
 - C++ API support is provided for handling these events, if required.
 
-## Declaring an Event
+## Declaring Event
 
 Each game directory contains an event declaration file, named in the format
 `events_<game_name>.das` (e.g., `events_cuisine_royale.das`). The event
@@ -35,14 +35,14 @@ should be placed in this file. Although not mandatory for other events, it is
 recommended for consistency.
 ```
 
-## Creating an Event
+## Creating Event
 
 - **daScript:** An event is created like any regular instance structure, e.g.,
   `[[RqUseAbility ability_type=ability_type]]`.
 - **Quirrel:** Here, strict validation ensures no typographical errors or
   extraneous fields are included, `RqUseAbility({ability_type="ultimate"})`.
 
-## Subscribing to an Event
+## Subscribing to Event
 
 - **daScript:** Use `on_event=RqUseAbility`, or explicitly set the type of the
   first argument in the system (e.g., `evt: RqUseAbility...`).
@@ -59,7 +59,7 @@ recommended for consistency.
 - **Quirrel:** Similarly, use `::ecs.g_entity_mgr.sendEvent`,
   `::ecs.g_entity_mgr.broadcastEvent`.
 
-## Sending Events Over the Network
+## Sending Events Over Network
 
 When declaring an event, specify the routing to determine its network path,
 e.g., `[event(unicast, routing=ROUTING_SERVER_TO_CLIENT)]`,
@@ -135,7 +135,7 @@ Sending events from Quirrel follows a similar process:
 
 **Example:** `code.nut`
 
-```nut
+```text
 let {CompObject} = require("ecs")
 let {TestEvent, broadcastNetEvent} = require("dasevents")
 ...
@@ -182,7 +182,7 @@ script or C++ code.
 
 **Example:** `describe_event.nut`
 
-```nut
+```text
 local function describeEvent(evt) {
   if (evt == null) {
     ::dlog("null event")
@@ -274,7 +274,7 @@ is an example filter implemented in Squirrel:
 
 **Example:** `sq_filter.nut`
 
-```nut
+```text
 local filtered_by_team_query = ecs.SqQuery("filtered_by_team_query", {comps_ro=[["team", ecs.TYPE_INT], ["connid",ecs.TYPE_INT]], comps_rq=["player"], comps_no=["playerIsBot"]})
 
 local function filter_connids_by_team(team){
@@ -290,7 +290,7 @@ And here is an example of sending an event using this filter:
 
 **Example:** `sq_send_event.nut`
 
-```nut
+```text
 sendNetEvent(eid, RequestNextRespawnEntity({memberEid=eid}), filter_connids_by_team(target_team))
 ```
 
@@ -343,7 +343,7 @@ utility now supports generating Squirrel code with enums directly from daScript.
 
 ## FAQ
 
-###### I have a C++ network event and want to move its declaration to daScript while keeping the event in C++. (Example: `ECS_REGISTER_NET_EVENT(EventUserMarkDisabled, net::Er::Unicast, net::ROUTING_SERVER_TO_CLIENT, (&rcptf::entity_ctrl_conn<EventUserMarkDisabledNetMsg, rcptf::TARGET_ENTITY>));`
+### I have a C++ network event and want to move its declaration to daScript while keeping the event in C++. (Example: `ECS_REGISTER_NET_EVENT(EventUserMarkDisabled, net::Er::Unicast, net::ROUTING_SERVER_TO_CLIENT, (&rcptf::entity_ctrl_conn<EventUserMarkDisabledNetMsg, rcptf::TARGET_ENTITY>));`
 
 Define the event in daScript with the `[cpp_event(unicast, with_scheme,
 routing=ROUTING_SERVER_TO_CLIENT, filter=direct_connection)]` annotation, then
@@ -353,7 +353,7 @@ generation).
 
 ---
 
-###### I have a C++ network event and want to move it entirely to scripts (no need for it in C++).
+### I have a C++ network event and want to move it entirely to scripts (no need for it in C++).
 
 Follow the same steps as above, but use `[event(unicast,
 routing=ROUTING_SERVER_TO_CLIENT)]`. Replace all `sendEvent` calls with
@@ -363,7 +363,7 @@ still be necessary to generate the stubs.
 
 ---
 
-###### I have a script-based event and need to migrate it to C++.
+### I have a script-based event and need to migrate it to C++.
 
 Simply change the event annotation from `event` to `cpp_event`. Then, replace
 all `send_net_event` calls with standard `sendEvent` calls. Run
@@ -371,7 +371,7 @@ all `send_net_event` calls with standard `sendEvent` calls. Run
 
 ---
 
-###### I added an event, but I see the following error in Squirrel: `[E] daRg: the index 'CmdHeroSpeech' does not exist`.
+### I added an event, but I see the following error in Squirrel: `[E] daRg: the index 'CmdHeroSpeech' does not exist`.
 
 Make sure the event is registered in the system before Quirrel loads. Each game
 has an initialization script (e.g., `<game>_init.das`). Load the script
@@ -379,7 +379,7 @@ containing the event in this initialization script to resolve the error.
 
 ---
 
-###### `genDasevents.bat` shows compilation errors and won't run.
+### `genDasevents.bat` shows compilation errors and won't run.
 
 Rebuild the compiler.
 

@@ -26,7 +26,8 @@ public:
   {
     enum
     {
-      ST_restoring = 0x7FFEu,
+      ST_restoring = 0x7FFDu,
+      ST_waitPictureFactoryFirstRender = 0x7FFEu,
       ST_discarded = 0x7FFFu
     };
     float u0, v0, u1, v1;
@@ -86,7 +87,6 @@ public:
         tex.first.set(d3d::create_tex(NULL, texSz.x, texSz.y, tex_fmt, 1, tex_name), String(0, "$%s", tex_name));
         if (tex.first.getTex2D())
         {
-          tex.first.getTex2D()->disableSampler();
           d3d::SamplerInfo smpInfo;
           smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
           tex.second = d3d::request_sampler(smpInfo);

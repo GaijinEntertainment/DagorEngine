@@ -33,6 +33,8 @@ static ska::flat_hash_map</*hash*/ uint64_t, DriverRenderStateId, ska::power_of_
 static dag::Vector<DriverRenderStateId> overriddenRenderStates;
 static int numFreeOverridenRenderStates = 0;
 
+// @TODO: add ability to set blendfactor & disable/enable it's use from override states.
+
 static RenderState apply_override(RenderState state, const OverrideState &override_state)
 {
   if (override_state.isOn(OverrideState::BLEND_SRC_DEST))
@@ -76,8 +78,8 @@ static RenderState apply_override(RenderState state, const OverrideState &overri
     for (auto &blendParam : state.blendParams)
     {
       blendParam.sepablend = 1;
-      blendParam.sepablendFactors.src = override_state.sblend;
-      blendParam.sepablendFactors.dst = override_state.dblend;
+      blendParam.sepablendFactors.src = override_state.sblenda;
+      blendParam.sepablendFactors.dst = override_state.dblenda;
     }
   }
   const bool forcedSampleCountEnabled =
@@ -222,6 +224,9 @@ void set(RenderStateId id)
   }
 
   d3d::set_render_state(drsid);
+
+  if (DAGOR_UNLIKELY(rstate.first.blendFactorUsed))
+    d3d::set_blend_factor(rstate.first.blendFactor);
 
 #if !_TARGET_C1 && !_TARGET_C2
   d3d::setstencil(stencilRef);

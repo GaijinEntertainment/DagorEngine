@@ -1,11 +1,14 @@
+options gen2
 require UnitTest
 
-struct MyStruct
+struct MyStruct {
     a : int8
-    b : SomeDummyType   // { int; float }
+    @safe_when_uninitialized b : SomeDummyType   // { int; float }
+}
 
 [export]
-def test
-    assert(typeinfo(sizeof type<MyStruct>)==12)
-    assert(typeinfo(alignof type<MyStruct>)==4)
+def test {
+    assert(typeinfo sizeof(type<MyStruct>) == 12)
+    assert(typeinfo alignof(type<MyStruct>) == 4)
     return true
+}

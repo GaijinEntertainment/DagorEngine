@@ -28,7 +28,8 @@ struct VkAnyDescriptorInfo
     TYPE_IMG = 1,
     TYPE_BUF = 2,
     TYPE_BUF_VIEW = 3,
-    TYPE_AS = 4
+    TYPE_SAMPLER = 4,
+    TYPE_AS = 5
   };
   uint8_t type : 3;
 
@@ -55,7 +56,8 @@ struct VkAnyDescriptorInfo
 
   VkAnyDescriptorInfo &operator+=(VulkanSamplerHandle i)
   {
-    G_ASSERTF(type == TYPE_IMG, "vulkan: setting sampler for non image descriptor");
+    G_ASSERTF(type == TYPE_IMG || type == TYPE_SAMPLER || type == TYPE_NULL, "vulkan: setting sampler for non image descriptor");
+    G_ASSERTF(!is_null(i), "vulkan: setting null sampler is not allowed");
     image.sampler = i;
     return *this;
   };

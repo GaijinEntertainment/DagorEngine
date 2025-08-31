@@ -21,28 +21,28 @@ RenderSceneManager::~RenderSceneManager()
 
 void RenderSceneManager::set_checked_frustum(bool checked)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->set_checked_frustum(checked);
 }
 
 void RenderSceneManager::doPrepareVisCtx(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask /*=0xFFFFFFFFU*/)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->doPrepareVisCtx(vf, render_id, render_flags_mask);
 }
 
 void RenderSceneManager::allocPrepareVisCtx(int render_id)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->allocPrepareVisCtx(render_id);
 }
 
 void RenderSceneManager::setPrepareVisCtxToRender(int render_id)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->setPrepareVisCtxToRender(render_id);
 }
@@ -56,28 +56,42 @@ void RenderSceneManager::pushPreparedVisCtx()
 
 void RenderSceneManager::popPreparedVisCtx()
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->popPreparedVisCtx();
 }
 
-void RenderSceneManager::render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask)
+void RenderSceneManager::savePreparedVisCtx(int render_id)
 {
   for (int i = 0; i < rs.size(); i++)
+    if (rs[i] && rsInfo[i].renderable)
+      rs[i]->savePreparedVisCtx(render_id);
+}
+
+void RenderSceneManager::restorePreparedVisCtx(int render_id)
+{
+  for (int i = 0; i < rs.size(); i++)
+    if (rs[i] && rsInfo[i].renderable)
+      rs[i]->restorePreparedVisCtx(render_id);
+}
+
+void RenderSceneManager::render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask)
+{
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->render(vf, render_id, render_flags_mask);
 }
 
 void RenderSceneManager::renderTrans()
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
       rs[i]->render_trans();
 }
 
 bool RenderSceneManager::setSceneRenderable(unsigned rs_id, bool renderable)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
   {
     if (rsInfo[i].rsId == rs_id) // do not skip loading rs[i]
     {
@@ -90,7 +104,7 @@ bool RenderSceneManager::setSceneRenderable(unsigned rs_id, bool renderable)
 }
 bool RenderSceneManager::isSceneRenderable(unsigned rs_id)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
   {
     if (rs[i] && rsInfo[i].rsId == rs_id)
       return rsInfo[i].renderable;
@@ -109,7 +123,7 @@ int RenderSceneManager::addScene(RenderScene *_rs, unsigned rs_id)
 {
   int id = -1;
 
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (!rs[i])
     {
       id = i;
@@ -129,7 +143,7 @@ int RenderSceneManager::addScene(RenderScene *_rs, unsigned rs_id)
 }
 void RenderSceneManager::delScene(unsigned rs_id)
 {
-  for (int i = 0; i < rs.size(); i++)
+  for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].rsId == rs_id)
     {
       RenderScene *sc = rs[i];

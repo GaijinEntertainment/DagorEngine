@@ -4,6 +4,7 @@
 #include "command_list_storage.h"
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
+#include "trace_checkpoint.h"
 
 #include <EASTL/span.h>
 
@@ -25,43 +26,22 @@ class Trace
 {
   struct TraceRecording
   {
-    struct TraceConfig
-    {
-      using OperationTraceData = CommandListTraceRecorder::TraceID;
-      struct EventTraceBase
-      {
-        constexpr CommandListTraceBase::TraceCompareResult compare(OperationTraceData) const
-        {
-          return CommandListTraceBase::TraceCompareResult::IgnoreForProgress;
-        }
-      };
-      using EventTraceData = EventTraceBase;
-      struct OperationTraceBase
-      {
-        OperationTraceData traceID;
-
-        CommandListTraceBase::TraceCompareResult compare(OperationTraceData id) const
-        {
-          return traceID == id ? CommandListTraceBase::TraceCompareResult::Matching
-                               : CommandListTraceBase::TraceCompareResult::Mismatching;
-        }
-      };
-    };
-    CommandListTraceRecorder traceRecodring;
-    CommandListTrace<TraceConfig> traceList;
+    CommandListTrace traceList;
+    CommandListTraceRecorderPool::RecorderID recorder;
 
     TraceRecording() = default;
-    TraceRecording(ID3D12Device3 *device) : traceRecodring{device} {}
+    TraceRecording(CommandListTraceRecorderPool::RecorderID r) : recorder{r} {}
 
     ~TraceRecording() = default;
     TraceRecording(TraceRecording &&) = default;
     TraceRecording &operator=(TraceRecording &&) = default;
   };
   CommandListStorage<TraceRecording> commandListTable;
+  CommandListTraceRecorderPool traceRecoderingPool;
+  TraceCheckpoint lastCheckpoint = {};
 
   void walkBreadcumbs(call_stack::Reporter &reporter);
   static bool try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env);
-
 
 public:
   // Have to delete move constructor, otherwise compiler / templated stuff of variant tries to be smart and results in compile errors.
@@ -70,11 +50,11 @@ public:
   Trace() = default;
   ~Trace() { logdbg("DX12: Shutting down DAGOR GPU Trace"); }
   void configure() {}
-  void beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *);
-  void endCommandBuffer(ID3D12GraphicsCommandList *);
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, const eastl::string &);
-  void endEvent(ID3D12GraphicsCommandList *, const eastl::string &);
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *);
+  void endCommandBuffer(D3DGraphicsCommandList *);
+  void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, const eastl::string &);
+  void endEvent(D3DGraphicsCommandList *, const eastl::string &);
+  void marker(D3DGraphicsCommandList *, eastl::span<const char>);
   void draw(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, const PipelineStageStateBase &,
     BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t, D3D12_PRIMITIVE_TOPOLOGY);
   void drawIndexed(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
@@ -103,12 +83,22 @@ public:
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
   bool sendGPUCrashDump(const char *, const void *, uintptr_t);
   void onDeviceShutdown();
-  bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &);
+  bool onDeviceSetup(D3DDevice *, const Configuration &, const Direct3D12Enviroment &);
+  template <typename K>
+  bool onDeviceSetup(D3DDevice *device, const Configuration &config, const Direct3D12Enviroment &env, const K &)
+  {
+    return onDeviceSetup(device, config, env);
+  }
+  template <typename... Ts>
+  auto onDeviceCreated(Ts &&...ts)
+  {
+    return onDeviceSetup(eastl::forward<Ts>(ts)...);
+  }
 
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; }
 
   template <typename T>
-  static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &target)
+  static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &&target)
   {
     if (!try_load(config, d3d_env))
     {
@@ -117,6 +107,39 @@ public:
     target.template emplace<Trace>();
     return true;
   }
+
+  template <typename T, typename K>
+  static bool load(const Configuration &config, const Direct3D12Enviroment &e, const K &, T &&target)
+  {
+    return load(config, e, target);
+  }
+
+  TraceCheckpoint getCheckpoint() { return lastCheckpoint; }
+
+  TraceRunStatus getTraceRunStatusFor(const TraceCheckpoint &cp)
+  {
+    auto list = commandListTable.getOptionalList(cp.commandList);
+    if (!list)
+    {
+      logdbg("DX12: getDeviceProgressFor(%p) -> NoTraceData", cp.commandList);
+      return TraceRunStatus::NoTraceData;
+    }
+
+    return traceRecoderingPool.getTraceRunStatus(list->recorder);
+  }
+
+  TraceStatus getTraceStatusFor(const TraceCheckpoint &cp)
+  {
+    auto list = commandListTable.getOptionalList(cp.commandList);
+    if (!list)
+    {
+      return TraceStatus::NotLaunched;
+    }
+
+    return traceRecoderingPool.readTraceStatus(list->recorder, cp.progress);
+  }
+
+  void reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter);
 };
 
 } // namespace gpu_postmortem::dagor

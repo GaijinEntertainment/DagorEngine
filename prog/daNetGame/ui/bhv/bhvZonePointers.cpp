@@ -9,6 +9,7 @@
 #include <daRg/dag_stringKeys.h>
 
 #include <gui/dag_stdGuiRender.h>
+#include <drv/3d/dag_decl.h>
 #include <3d/dag_render.h>
 #include <math/dag_mathUtils.h>
 

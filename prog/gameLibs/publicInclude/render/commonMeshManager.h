@@ -29,9 +29,14 @@ public:
   void clear();
   void setMesh(ManagedMesh &m);
   ManagedMesh registerOrReferenceMesh(const char *mesh_name, DynamicRenderableSceneLodsResource *resource);
+  void addReferenceToMesh(const ManagedMesh &m);
   void dereferenceMesh(ManagedMesh &m);
+  void debugAllMeshes();
 
 private:
+  friend struct ManagedMeshRef;
+  int registerOrReferenceMeshImpl(const char *mesh_name, DynamicRenderableSceneLodsResource **in_out_resource);
+
   struct ManagedMeshRecord
   {
     ManagedMeshRecord() : meshName(NULL), res(NULL), refCount(0) {}
@@ -60,3 +65,36 @@ inline DynamicRenderableSceneInstance *get_mesh_managed(ManagedMesh &mesh, Commo
   mesh_manager.setMesh(mesh);
   return mesh.mesh;
 }
+
+struct ManagedMeshRef
+{
+  ManagedMeshRef() = default;
+  explicit ManagedMeshRef(CommonMeshManager &mgr) : mgr(&mgr) { mMesh.clear(); }
+  explicit ManagedMeshRef(CommonMeshManager &mgr, const char *name, DynamicRenderableSceneLodsResource *res) : ManagedMeshRef(mgr)
+  {
+    initMesh(name, res);
+  }
+  ManagedMeshRef(const ManagedMeshRef &) = delete;
+  void operator=(const ManagedMeshRef &) = delete;
+  ManagedMeshRef(ManagedMeshRef &&rhs) : mgr(rhs.mgr), resPtr(rhs.resPtr), mMesh(rhs.mMesh)
+  {
+    rhs.resPtr = nullptr;
+    rhs.mMesh.clear();
+  }
+  ManagedMeshRef &operator=(ManagedMeshRef &&rhs);
+  ~ManagedMeshRef() { clear(); }
+  ManagedMeshRef copyRef() const;
+  void initMesh(const char *mesh_name, DynamicRenderableSceneLodsResource *res = nullptr);
+  void initMesh(CommonMeshManager &mgr, const char *mesh_name, DynamicRenderableSceneLodsResource *res = nullptr);
+
+  bool isValid() const { return mMesh.isValid(); }
+  void clear();
+  DynamicRenderableSceneLodsResource *getMeshRes() const { return resPtr; }
+  DynamicRenderableSceneInstance *newInstanceRawPtr() const;
+  eastl::unique_ptr<DynamicRenderableSceneInstance, eastl::default_delete<DynamicRenderableSceneInstance>> newInstance() const;
+
+private:
+  CommonMeshManager *mgr = nullptr;
+  DynamicRenderableSceneLodsResource *resPtr = nullptr;
+  ManagedMesh mMesh;
+};

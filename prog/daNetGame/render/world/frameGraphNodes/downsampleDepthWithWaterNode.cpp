@@ -1,9 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/downsampleDepth.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_textureIDHolder.h>
+#include <memory/dag_framemem.h>
+
+#include <EASTL/fixed_string.h>
 
 #include "frameGraphNodes.h"
 #include <render/world/frameGraphHelpers.h>
@@ -11,23 +14,31 @@
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
 
-dabfg::NodeHandle makeDownsampleDepthWithWaterNode()
+
+using SmallString = eastl::fixed_string<char, 42, false, framemem_allocator>;
+dafg::NodeHandle makeDownsampleDepthWithWaterNode()
 {
-  return dabfg::register_node("downsample_depth_with_water_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("downsample_depth_with_water_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     read_gbuffer_motion(registry).optional();
 
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
     bool makeCheckerboardDepth = wr.hasFeature(FeatureRenderFlags::UPSCALE_SAMPLING_TEX);
 
-    auto downsampledDepthHdnl =
-      registry.create(makeCheckerboardDepth ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water", dabfg::History::No)
-        .texture({TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
-        .atStage(dabfg::Stage::PS)
-        .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
-        .handle();
+    const bool hasStencilTest = renderer_has_feature(CAMERA_IN_CAMERA);
+    const uint32_t depthFormat = get_gbuffer_depth_format(hasStencilTest);
+
+    const char *depthNameBase = makeCheckerboardDepth ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water";
+    const char *stencilSuffix = hasStencilTest ? "_no_stencil" : "";
+    const SmallString depthName{SmallString::CtorSprintf{}, "%s%s", depthNameBase, stencilSuffix};
+
+    auto downsampledDepthHdnl = registry.create(depthName.c_str(), dafg::History::No)
+                                  .texture({depthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
+                                  .atStage(dafg::Stage::PS)
+                                  .useAs(dafg::Usage::DEPTH_ATTACHMENT)
+                                  .handle();
 
     auto depthHndl =
-      registry.read("opaque_depth_with_water").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.read("opaque_depth_with_water").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
     auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
     const auto mainViewResolution = registry.getResolution<2>("main_view");

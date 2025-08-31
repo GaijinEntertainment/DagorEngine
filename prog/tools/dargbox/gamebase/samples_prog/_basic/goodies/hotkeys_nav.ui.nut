@@ -6,14 +6,14 @@ let {msgbox} = require("msgbox.nut")
 msgbox.styling.cursor = cursors.normal
 
 let observable_counter = mkWatched(persist, "counter",0) //or model
-let counter_doubled = Computed(@() observable_counter.value*2)
+let counter_doubled = Computed(@() observable_counter.get()*2)
 
 let hotkeysNavState = Watched([])
 
 function hotkeysButtonsBar() {
   let tips = []
 
-  foreach (hotkey in hotkeysNavState.value) {
+  foreach (hotkey in hotkeysNavState.get()) {
     if (hotkey.devId == DEVID_KEYBOARD || hotkey.devId == DEVID_JOYSTICK) {
       tips.append({
         size = SIZE_TO_CONTENT
@@ -45,7 +45,7 @@ function hotkeysButtonsBar() {
 
 gui_scene.setHotkeysNavHandler(function(state) {
   //dlog(state)
-  hotkeysNavState(state)
+  hotkeysNavState.set(state)
 })
 
 
@@ -57,7 +57,7 @@ function button(params) {
   return watchElemState(function(sf) {
     return{
       rendObj = ROBJ_BOX
-      size = [sh(20),SIZE_TO_CONTENT]
+      size = static [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
       borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -73,7 +73,7 @@ function button(params) {
 
 
 //how to subscribe to observables without component
-local prev_val = observable_counter.value
+local prev_val = observable_counter.get()
 observable_counter.subscribe(function(new_val) {
   if (new_val == 0 && prev_val < 0) {
     vlog("Was negative and now zero")
@@ -82,10 +82,10 @@ observable_counter.subscribe(function(new_val) {
 })
 
 function increment() {
-  observable_counter.update(observable_counter.value + 1)
+  observable_counter.set(observable_counter.get() + 1)
 }
 function decrement() {
-  observable_counter.update(observable_counter.value - 1)
+  observable_counter.set(observable_counter.get() - 1)
 }
 
 
@@ -107,8 +107,8 @@ let container = {
         ["J:X", increment, "Increment"]
       ]
     })
-    @() {rendObj = ROBJ_TEXT text=$"Counter value = {observable_counter.value}" watch=observable_counter }
-    @() {rendObj = ROBJ_TEXT text=$"2x counter = {counter_doubled.value}" watch=counter_doubled }
+    @() {rendObj = ROBJ_TEXT text=$"Counter value = {observable_counter.get()}" watch=observable_counter }
+    @() {rendObj = ROBJ_TEXT text=$"2x counter = {counter_doubled.get()}" watch=counter_doubled }
     button({
       text="Decrement",
       onClick=decrement,

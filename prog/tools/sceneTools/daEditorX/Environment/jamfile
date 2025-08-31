@@ -11,12 +11,14 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-AddLibs += wsock32.lib ;
+if $(Platform) = windows {
+  AddLibs += wsock32.lib ;
+}
 
 Sources =
-  EnvironmentPlugin.cpp
-  ShGv_panel.cpp
-  PostFX_panel.cpp
+  environmentPlugin.cpp
+  shGv_panel.cpp
+  postFX_panel.cpp
   hdrSettingsDlg.cpp
   main.cpp
 ;

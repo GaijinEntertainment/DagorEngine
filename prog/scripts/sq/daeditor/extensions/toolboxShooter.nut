@@ -61,7 +61,7 @@ let respawnsBtnText = function() {
 function groupsContent() {
   local childs = []
   childs.append(toolboxStyles.rowDiv)
-  foreach (item in groupsList.value) {
+  foreach (item in groupsList.get()) {
     let itemParam = clone item
     childs.append({
       children = textButton(

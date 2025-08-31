@@ -6,5 +6,10 @@
 
 namespace ShUtils
 {
-void shcod_dump_global(const int *ptr, int num) { shcod_dump(dag::ConstSpan<int>(ptr, num), &shBinDump().globVars); }
+
+void shcod_dump_global(const int *ptr, int num)
+{
+  shcod_dump(dag::ConstSpan<int>(ptr, num), &shBinDump().globVars, &shBinDumpOwner().globVarsState);
+}
+
 } // namespace ShUtils

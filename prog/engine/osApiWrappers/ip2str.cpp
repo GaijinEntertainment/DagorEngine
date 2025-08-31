@@ -48,3 +48,6 @@ unsigned int string_to_ip(const char * /*str*/)
   return 0;
 }
 #endif
+
+#define EXPORT_PULL dll_pull_osapiwrappers_ip2str
+#include <supp/exportPull.h>

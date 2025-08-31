@@ -4,6 +4,8 @@
 #include <osApiWrappers/dag_rwLock.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/string.h>
+#include <dag/dag_vector.h>
+#include <generic/dag_sort.h>
 #include <supp/dag_alloca.h>
 #include <debug/dag_debug.h>
 
@@ -24,8 +26,11 @@ void dd_set_named_mount_path(const char *mount_name, const char *path_to)
     if (*path_to == '.' && *(path_to + 1) == '\0')
       path_to = "";
 
+    size_t len = strlen(path_to);
+    while (len > 0 && (path_to[len - 1] == '/' || path_to[len - 1] == '\\'))
+      len--;
     ScopedLockWriteTemplate<OSReadWriteLock> lock(named_mounts_rwlock);
-    named_mounts[mount_name] = path_to;
+    named_mounts[mount_name] = eastl::string_view(path_to, len);
   }
   else
   {
@@ -99,8 +104,15 @@ void dd_dump_named_mounts()
   ScopedLockReadTemplate<OSReadWriteLock> lock(named_mounts_rwlock);
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
   debug("registered %d named mount(s)%s", named_mounts.size(), named_mounts.size() > 0 ? ":" : "");
+  typedef eastl::pair<const char *, const char *> str_pair;
+  dag::Vector<str_pair> sorted_mounts;
+  sorted_mounts.reserve(named_mounts.size());
   for (auto &it : named_mounts)
-    debug("  %%%s = %s", it.first.c_str(), it.second.c_str());
+    sorted_mounts.push_back({it.first.c_str(), it.second.c_str()});
+  stlsort::sort(sorted_mounts.begin(), sorted_mounts.end(),
+    [](const str_pair &a, const str_pair &b) { return strcmp(a.first, b.first) < 0; });
+  for (auto &it : sorted_mounts)
+    debug("  %%%s = %s", it.first, it.second);
 #endif
 }
 

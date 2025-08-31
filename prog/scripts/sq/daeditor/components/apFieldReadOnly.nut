@@ -10,26 +10,29 @@ function fieldReadOnly(params = {}) {
   let val = getCompVal(eid, rawComponentName, path)
 
   if (rawComponentName == "transform") {
+    let uniqueTimerKey = $"apFieldReadOnly, fieldReadOnly, {eid}, {rawComponentName}"
     let valText = Watched(compValToString(val))
     function updateTransformFromEcs() {
       let updVal = getCompVal(eid, rawComponentName, path)
-      valText(compValToString(updVal))
-      gui_scene.setTimeout(0.25, updateTransformFromEcs)
+      valText.set(compValToString(updVal))
     }
-    gui_scene.setTimeout(0.25, updateTransformFromEcs)
+    gui_scene.clearTimer(uniqueTimerKey)
+    gui_scene.setInterval(0.25, updateTransformFromEcs, uniqueTimerKey)
     return @() {
       watch = valText
       rendObj = ROBJ_TEXT
-      size = [flex(), SIZE_TO_CONTENT]
-      text = valText.value
+      size = FLEX_H
+      text = valText.get()
       margin = fsh(0.5)
+      onDetach = @() gui_scene.clearTimer(uniqueTimerKey)
     }
   }
 
   let valText = compValToString(val)
+  // return value needs to be a function because we have a WARNING: w226 (return-different-types) Function can return different types.
   return @() {
     rendObj = ROBJ_TEXT
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     text = valText
     margin = fsh(0.5)
   }

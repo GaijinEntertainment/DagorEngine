@@ -35,18 +35,18 @@ static bool allowOodlePacking = false;
 class SkeletonExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "skeleton exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "skeleton exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return GeomNodeTreeGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return GeomNodeTreeGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override
   {
     static constexpr const int base_ver = 3;
     return base_ver * 3 + 1 + (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1));
   }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -54,6 +54,15 @@ public:
     files.push_back() = a.getTargetFilePath();
     gatherReferencedAdditionalDags(a.props, a.getFolderPath(), a.props.getNameId("attachSubSkel"), a.props.getNameId("mergeSkel"),
       files);
+
+    if (const DataBlock *autoCompleteBlk = a.props.getBlockByName("autoComplete"))
+      if (const char *collisionNameRaw = autoCompleteBlk->getStr("collisionName", nullptr))
+      {
+        char collisionName[128];
+        remove_suffix(collisionName, collisionNameRaw, autoCompleteBlk->getStr("collisionSuffixToRemove", ""));
+        if (const DagorAsset *collisionAsset = a.getMgr().findAsset(collisionName, a.getMgr().getAssetTypeId("collision")))
+          files.push_back() = collisionAsset->getTargetFilePath();
+      }
   }
   void gatherReferencedAdditionalDags(const DataBlock &a_props, const char *a_dir, int nid_attach, int nid_merge,
     Tab<SimpleString> &files)
@@ -93,9 +102,9 @@ public:
       }
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     String fpath(a.getTargetFilePath());
     if (stricmp(::dd_get_fname_ext(fpath), ".dat") == 0)

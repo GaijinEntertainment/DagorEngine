@@ -9,8 +9,8 @@
 #include <render/resourceSlot/registerAccess.h>
 #include <render/resourceSlot/ecs/nodeHandleWithSlotsAccess.h>
 #include <render/resourceSlot/ecs/nodeHandleWithSlotsAccessVector.h>
-#include <render/daBfg/das/nameSpaceNameId.h>
-#include <render/daBfg/das/nodeHandle.h>
+#include <render/daFrameGraph/das/nameSpaceNameId.h>
+#include <render/daFrameGraph/das/nodeHandle.h>
 
 
 namespace das
@@ -49,8 +49,8 @@ using ResSlotPrepareCallBack = das::TBlock<void, ::resource_slot::NodeHandleWith
 ::resource_slot::NodeHandleWithSlotsAccess prepare_access(const ::bind_dascript::ResSlotPrepareCallBack &prepare_callback,
   ::das::Context *context, das::LineInfoArg *at);
 
-using ResSlotDeclarationCallBack = das::TLambda<void, dabfg::NodeHandle &, ::resource_slot::State &>;
-void register_access(::resource_slot::NodeHandleWithSlotsAccess &handle, dabfg::NameSpaceNameId ns, const char *name,
+using ResSlotDeclarationCallBack = das::TLambda<void, dafg::NodeHandle &, ::resource_slot::State &>;
+void register_access(::resource_slot::NodeHandleWithSlotsAccess &handle, dafg::NameSpaceNameId ns, const char *name,
   ::resource_slot::detail::ActionList &action_list, ::bind_dascript::ResSlotDeclarationCallBack declaration_callback,
   das::Context *context);
 

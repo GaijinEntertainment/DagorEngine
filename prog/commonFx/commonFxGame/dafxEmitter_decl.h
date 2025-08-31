@@ -1,7 +1,10 @@
-// clang-format off  // generated text, do not modify!
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// clang-format off  // generated text, do not modify!
 #include "readType.h"
 
+#include <math/dag_Point3.h>
 #include <math/dag_curveParams.h>
 #include <fx/dag_paramScript.h>
 
@@ -25,14 +28,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     elem_limit = readType<int>(ptr, len);
     distance = readType<real>(ptr, len);
     idle_period = readType<real>(ptr, len);
+    return true;
   }
 };
 
@@ -50,10 +54,10 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
 
     type = readType<int>(ptr, len);
     count = readType<int>(ptr, len);
@@ -61,6 +65,8 @@ public:
     cycles = readType<int>(ptr, len);
     period = readType<real>(ptr, len);
     delay = readType<real>(ptr, len);
-    distance_based.load(ptr, len, load_cb);
+    if (!distance_based.load(ptr, len, load_cb))
+      return false;
+    return true;
   }
 };

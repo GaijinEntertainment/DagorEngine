@@ -45,7 +45,7 @@ public:
 
   MatTripleInt(const MaterialParamDescr &descr) : MatParam(descr), useDef(true), val(0) {}
 
-  virtual void setScript(MaterialRec &mat);
+  void setScript(MaterialRec &mat) override;
 };
 
 
@@ -57,7 +57,7 @@ public:
 
   MatTripleReal(const MaterialParamDescr &descr) : MatParam(descr), useDef(true), val(0) {}
 
-  virtual void setScript(MaterialRec &mat);
+  void setScript(MaterialRec &mat) override;
 };
 
 
@@ -69,7 +69,7 @@ public:
 
   MatE3dColor(const MaterialParamDescr &descr) : MatParam(descr), useDef(true), val(0) {}
 
-  virtual void setScript(MaterialRec &mat);
+  void setScript(MaterialRec &mat) override;
 };
 
 
@@ -80,7 +80,7 @@ public:
 
   MatCombo(const MaterialParamDescr &descr) : MatParam(descr) {}
 
-  virtual void setScript(MaterialRec &mat);
+  void setScript(MaterialRec &mat) override;
 };
 
 
@@ -112,7 +112,7 @@ public:
 
   Mat2Sided(const MaterialParamDescr &descr) : MatCustom(descr), val(TWOSIDED_NONE) {}
 
-  CustomType getCustomType() const { return CUSTOM_2SIDED; }
+  CustomType getCustomType() const override { return CUSTOM_2SIDED; }
 
-  virtual void setScript(MaterialRec &mat);
+  void setScript(MaterialRec &mat) override;
 };

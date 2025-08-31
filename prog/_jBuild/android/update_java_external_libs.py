@@ -11,7 +11,7 @@ def find_files(directory, pattern):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('ARG_JAVA_CLASSES_PATH')#1
-parser.add_argument('ARG_LIBRARIES_LIST', nargs='+')#2
+parser.add_argument('ARG_LIBRARIES_LIST', nargs='*', default=[])#2
 
 args = parser.parse_args()
 

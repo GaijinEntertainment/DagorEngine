@@ -5,7 +5,7 @@
 #include <daECS/core/entityComponent.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_commands.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/array.h>
 
@@ -62,7 +62,7 @@ private:
   eastl::unique_ptr<ComputeShaderElement> generateHistogramCenterWeightedFromSourceCS;
   eastl::unique_ptr<ComputeShaderElement> adaptExposureCS, accumulate_hist_cs;
   eastl::unique_ptr<RingCPUBufferLock> exposureReadback;
-  dabfg::NodeHandle registerExposureNodeHandle;
+  dafg::NodeHandle registerExposureNodeHandle;
   AdaptationSettings settings;
   float accumulatedTime = 0;
   float lastFixedExposure = -1;

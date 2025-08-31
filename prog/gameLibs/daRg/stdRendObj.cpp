@@ -94,6 +94,14 @@ bool RobjParamsColorOnly::getAnimFloat(AnimProp prop, float **ptr)
 }
 
 
+/* qdox @const daRg/ROBJ_SOLID
+  Renders a solid color rectangle.
+  @code Properties:
+    color: int or Color (default: 0xFFFFFFFF)
+    brightness: float (default: 1.0, range: 0.0 to 1.0)
+  code@
+*/
+
 void RenderObjectSolid::render(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
@@ -109,6 +117,10 @@ void RenderObjectSolid::render(StdGuiRender::GuiContext &ctx, const Element *, c
   ctx.render_rect(rdata->pos, rdata->pos + rdata->size);
 }
 
+
+/* qdox @const daRg/ROBJ_DEBUG
+  Renders a debug rectangle with diagonal cross-lines.
+*/
 
 void RenderObjectDebug::render(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
   const RenderState &render_state)
@@ -130,6 +142,27 @@ void RenderObjectDebug::render(StdGuiRender::GuiContext &ctx, const Element *, c
   ctx.draw_line(lt.x, rb.y, rb.x, lt.y);
 }
 
+
+/* qdox @const daRg/ROBJ_TEXT
+  Render single line text.
+  Uses mandatory 'text' property, string or null type
+  Optional properties:
+  @code optional properties
+    font: int_of_font or Font.<fontname> property (). By default - default font, that was set in gui_scene.config
+    color: int or Color. By default - default font color, that was set in gui_scene.config
+    fontFx: one of FFT_ consts, by default FFT_NONE
+    fxColor: int or Color. By default - defFontFxColor, set in gui_scene.confg
+    fxFactor: numeric or null. Be default - 48.
+    fxOffsX: numeric or null, 0 by default
+    fxOffsY: numeric or null, 0 by default
+    overflowX: int or TOVERVLOW_ const, by TOVERFLOW_CLIP
+    ellipsis: boolean - add ellipsis symbol on overflow
+    spacing: numeric or null. Extra spacing bnetween charactes.
+    monoWidth: numeric. Use provided number as character width.
+    password: null, bool or string character. Replace text with provided character or with "*"
+    brightness: float from 0 to 1.
+  code@
+*/
 
 bool RobjParamsText::load(const Element *elem)
 {
@@ -197,6 +230,14 @@ bool RobjParamsText::getAnimFloat(AnimProp prop, float **ptr)
   return false;
 }
 
+
+/* qdox @const daRg/ROBJ_TEXTAREA
+
+Use the same properties as text plus:
+
+ `overflowY`: int or TOVERVLOW_ type (CLIP by default)
+ 'lowLineCountAlign': PLACE_DEFAULT by default (where to vertical align text when it doesnt overflow)
+*/
 
 bool RobjParamsTextArea::load(const Element *elem)
 {
@@ -308,8 +349,8 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
       }
       strWidth += ellipsisWidth;
     }
-    all_glyphs_ready = ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, params->guiText.samplers,
-      StdGuiRender::DSBFLAG_rel, SCALE, textU16 + start_char_idx, char_count);
+    all_glyphs_ready = ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, params->guiText.samplers, 0, SCALE,
+      textU16 + start_char_idx, char_count);
 
     params->strWidth = strWidth;
     if (has_focus)
@@ -348,7 +389,7 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
     ctx.goto_xy(startPosX, startPosY);
     ctx.start_font_str(SCALE);
     ctx.render_str_buf(params->guiText.v, params->guiText.c, params->guiText.samplers,
-      StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+      StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
   }
   else
     params->guiText.discard();
@@ -380,6 +421,15 @@ static eastl::tuple<float, float> calc_inscription_dims(const Element *elem, con
 }
 
 
+/* qdox @const daRg/ROBJ_INSCRIPTION
+
+  Properties are the same as ROBJ_TEXT.
+
+  However, it renders as inscription, in separate texture, not each character by separate rectangle as ROBJ_TEXT does.
+  It also would be different size with the same fontSize (this is known but undesirable behavior, to prevent clip of text. Should be
+  fixed once). This requires more memory, but provides better fontFx results (shadows do not overlap other characters). It can be also
+  faster perf-wise, but in very rare conditions.
+*/
 bool RobjParamsInscription::load(const Element *elem)
 {
   const Properties &props = elem->props;
@@ -399,10 +449,10 @@ bool RobjParamsInscription::load(const Element *elem)
   fontTexSv = props.getInt(elem->csk->fontTexSv, 32);
   fontTexBov = props.getInt(elem->csk->fontTexBov, 0);
 
-  const String &text = elem->props.text;
+  const auto &text = elem->props.text;
   eastl::tie(fontSize, fullHeight) = calc_inscription_dims(elem, props, fontId);
 
-  inscription = StdGuiRender::create_inscription_ht(fontId, fontSize, text, text.length());
+  inscription = StdGuiRender::create_inscription_ht(fontId, fontSize, text.c_str(), text.length());
 
   return true;
 }
@@ -410,9 +460,9 @@ bool RobjParamsInscription::load(const Element *elem)
 
 void RobjParamsInscription::rebuildInscription(const Element *elem)
 {
-  const String &text = elem->props.text;
+  const auto &text = elem->props.text;
   eastl::tie(fontSize, fullHeight) = calc_inscription_dims(elem, elem->props, fontId);
-  inscription = StdGuiRender::create_inscription_ht(fontId, fontSize, text, text.length());
+  inscription = StdGuiRender::create_inscription_ht(fontId, fontSize, text.c_str(), text.length());
 }
 
 
@@ -511,7 +561,18 @@ void RenderObjectInscription::render(StdGuiRender::GuiContext &ctx, const Elemen
   scenerender::restoreTransformedViewPort(ctx);
 }
 
-
+/* qdox @const daRg/ROBJ_IMAGE
+  @code Properites:
+    image: Picture object
+    color: int or color, 0xFFFFFF by default
+    fallbackImage: Picture that will be used on loading error. As Picture is async image, that can be needed in some cases (http
+  images, user images, etc). Solid white by default keepAspect: bool or KEEP_ASPECT_FILL, KEEP_ASPECT_FIT, KEEP_ASPECT_NONE.
+  KEEP_ASPECT_NONE by default picSaturate: float from 0 to 1, 1 by default. imageHalign: ALIGN_CENTER by default. Can be also
+  ALIGN_RIGHT, ALIGN_LEFT imageValign: ALIGN_CENTER by default. Can be also ALIGN_TOP, ALIGN_BOTTOM flipX: bool flipY: bool
+    imageAffectsLayout: bool, false by default. Means that image should have SIZE.
+    brightness: float from 0 to 1
+  code@
+*/
 bool RobjParamsImage::load(const Element *elem)
 {
   color = elem->props.getColor(elem->csk->color);
@@ -720,6 +781,18 @@ void RobjParamsVectorCanvas::setupDrawApi(GuiScene *scene)
   rectCache = Sqrat::Table(vm);
 }
 
+
+/* qdox @const daRg/ROBJ_VECTOR_CANVAS
+  @code optional properites:
+    color: int or color, 0xFFFFFF by default
+    fillColor: int or color, 0xFFFFFF by default
+    lineWidth: float, 2 by default.
+    draw: function(api, rect) //see canvasAPI
+    commands: array of commands (each command is an array also, where first argument - command type, other are properties of that
+              command). See list of VECTOR_ constants for commands list brightness: float from 0 to 1
+  code@
+
+*/
 
 bool RobjParamsVectorCanvas::load(const Element *elem)
 {
@@ -946,6 +1019,16 @@ void RenderObjectVectorCanvas::render(StdGuiRender::GuiContext &ctx, const Eleme
 #define B 2
 #define L 3
 
+/* qdox @const daRg/ROBJ_9RECT
+  Renders a nine-slice scalable image.
+  @code Properties:
+    image: Picture object (required)
+    color: int or Color (default: 0xFFFFFFFF)
+    brightness: float (default: 1.0, range: 0.0 to 1.0)
+    texOffs: array of 4 floats (texture offsets for slicing: top, right, bottom, left)
+    screenOffs: array of 4 floats (screen offsets corresponding to texOffs)
+  code@
+*/
 class RobjParams9rect : public RendObjParams
 {
 public:
@@ -1158,6 +1241,16 @@ void RenderObject9rect::render(StdGuiRender::GuiContext &ctx, const Element *ele
 #undef L
 
 
+/* qdox @const daRg/ROBJ_PROGRESS_LINEAR
+  Renders a linear progress bar.
+  @code Properties:
+    fValue: float (progress value from -1.0 to 1.0)
+    bgColor: int or Color (default: 0x64646464)
+    fgColor: int or Color (default: 0xFFFFFFFF)
+    brightness: float (default: 1.0, range: 0.0 to 1.0)
+  code@
+*/
+
 class RobjParamsProgressLinear : public RendObjParams
 {
 public:
@@ -1246,6 +1339,18 @@ void RenderObjectProgressLinear::drawRect(StdGuiRender::GuiContext &ctx, const E
   ctx.render_rect(pos, pos + size);
 }
 
+
+/* qdox @const daRg/ROBJ_PROGRESS_CIRCULAR
+  Renders a circular progress bar.
+  @code Properties:
+    fValue: float (progress value from -1.0 to 1.0)
+    image: Picture object (optional)
+    fallbackImage: Picture object (optional, used if 'image' fails)
+    bgColor: int or Color (default: 0x64646464)
+    fgColor: int or Color (default: 0xFFFFFFFF)
+    brightness: float (default: 1.0, range: 0.0 to 1.0)
+  code@
+*/
 
 class RobjParamsProgressCircular : public RendObjParams
 {
@@ -1615,16 +1720,14 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
         {
           tmpU16.resize(block->text.length() + 1);
           tmpU16.resize(utf8_to_wcs_ex(block->text.c_str(), tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
-          all_glyphs_ready = ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, guiText.samplers, StdGuiRender::DSBFLAG_rel, 1.0f,
-            tmpU16.data(), tmpU16.size());
+          all_glyphs_ready = ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, guiText.samplers, 0, 1.0f, tmpU16.data(), tmpU16.size());
         }
         nowHaveAllSymbols &= all_glyphs_ready;
         if (all_glyphs_ready && hadAllSymbols)
         {
           ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
           ctx.start_font_str(1.0f);
-          ctx.render_str_buf(guiText.v, guiText.c, guiText.samplers,
-            StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+          ctx.render_str_buf(guiText.v, guiText.c, guiText.samplers, StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
         }
         if (!all_glyphs_ready)
           guiText.discard();
@@ -1826,6 +1929,24 @@ void RenderObjectFrame::render(StdGuiRender::GuiContext &ctx, const Element *ele
 #undef L
 }
 
+
+/* qdox @const daRg/ROBJ_BOX
+  Renders a filled rectangle (box) with optional image, border, and rounded corners.
+  Properties:
+    borderWidth: float, or array of 4 floats [top, right, bottom, left] (default: [1,1,1,1])
+    borderRadius: float, or array of 4 floats [top-left, top-right, bottom-right, bottom-left] (default: [0,0,0,0])
+    borderColor: int or Color (default: none, optional)
+    fillColor: int or Color (default: transparent, 0x00000000)
+    image: Picture object (optional)
+    fallbackImage: Picture object (optional, used if 'image' fails)
+    keepAspect: KEEP_ASPECT_FILL, KEEP_ASPECT_FIT, KEEP_ASPECT_NONE (default: KEEP_ASPECT_NONE)
+    imageHalign: ElemAlign (default: ALIGN_CENTER), image render
+    imageValign: ElemAlign (default: ALIGN_CENTER), image render
+    flipX: bool (default: false), image render
+    flipY: bool (default: false), image render
+    picSaturate (saturateFactor): float (default: 1.0), image render
+    brightness: float (default: 1.0, range: 0.0 to 1.0), image render
+*/
 
 bool RobjParamsBox::load(const Element *elem)
 {
@@ -2087,6 +2208,24 @@ void RenderObjectBox::render(StdGuiRender::GuiContext &ctx, const Element *elem,
 }
 
 
+/* qdox @const daRg/ROBJ_MOVIE
+  Renders a video playback object.
+
+  @note
+    requires behavior = Behaviors.Movie
+  note@
+
+  @code Properties:
+    movie: string, path to video file
+    color: int or color, 0xFFFFFF by default
+    keepAspect: bool or KEEP_ASPECT_FILL, KEEP_ASPECT_FIT, KEEP_ASPECT_NONE. KEEP_ASPECT_NONE by default
+    saturateFactor: float from 0 to 1, 1 by default.
+    imageHalign: ALIGN_CENTER by default. Can be also ALIGN_RIGHT, ALIGN_LEFT
+    imageValign: ALIGN_CENTER by default. Can be also ALIGN_TOP, ALIGN_BOTTOM
+    loop: bool
+  code@
+*/
+
 bool RobjParamsMovie::load(const Element *elem)
 {
   color = elem->props.getColor(elem->csk->color);
@@ -2188,7 +2327,19 @@ ROBJ_FACTORY_IMPL(RenderObjectProgressCircular, RobjParamsProgressCircular)
 ROBJ_FACTORY_IMPL(RenderObjectTextArea, RobjParamsTextArea)
 ROBJ_FACTORY_IMPL(RenderObjectFrame, RobjParamsFrame)
 ROBJ_FACTORY_IMPL(RenderObjectBox, RobjParamsBox)
+
+/* qdox @const daRg/ROBJ_MASK
+  Renders a clipping mask to constrain rendering of child elements.
+  Properties:
+
+    mask: Picture object (required)
+*/
+
 ROBJ_FACTORY_IMPL(RobjMask, RobjMaskParams)
+
+/* qdox @const daRg/ROBJ_DAS_CANVAS
+  Renders a custom drawing canvas using daslang. Two magnitudes faster (>100x).
+*/
 ROBJ_FACTORY_IMPL(RobjDasCanvas, RobjDasCanvasParams)
 
 static class RobjFactory_RenderObjectMovie final : public darg::RendObjFactory
@@ -2242,6 +2393,52 @@ void register_std_rendobj_factories()
   RF(ROBJ_DAS_CANVAS, RobjDasCanvas);
 
 #undef RF
+}
+
+void render_picture(StdGuiRender::GuiContext &ctx, Picture *image, Point2 pos, Point2 size, E3DCOLOR image_color, float opacity,
+  float brightness, bool flip_x, bool flip_y, float saturate_factor)
+{
+  if (!image)
+    return;
+
+  const PictureManager::PicDesc &pic = image->getPic();
+
+  E3DCOLOR color = color_apply_mods(image_color, opacity, brightness);
+  ctx.set_color(color);
+
+  if (saturate_factor != 1.0f)
+    ctx.set_picquad_color_matrix_saturate(saturate_factor);
+
+  ctx.set_texture(pic.tex, pic.smp);
+  ctx.set_alpha_blend(image->getBlendMode());
+
+  pic.updateTc();
+
+  Point2 tc0 = pic.tcLt, tc1 = pic.tcRb;
+  if (flip_x)
+    swap_vals(tc0.x, tc1.x);
+  if (flip_y)
+    swap_vals(tc0.y, tc1.y);
+
+  Point2 picSz = PictureManager::get_picture_pix_size(pic.pic);
+
+  Point2 elemPos = pos, elemSz = size;
+  Point2 posLt = elemPos, posRb = elemPos + elemSz;
+
+  if (picSz.x > 0 && picSz.y > 0 && elemSz.x > 0 && elemSz.y > 0)
+  {
+    adjust_coord_for_image_aspect(posLt, posRb, tc0, tc1, elemPos, elemSz, picSz, KEEP_ASPECT_NONE /*params->keepAspect*/,
+      ALIGN_CENTER /*params->imageHalign*/, ALIGN_CENTER /*params->imageValign*/);
+    ctx.render_rect_t(posLt, posRb, tc0, tc1);
+  }
+  if (saturate_factor != 1.0f)
+    ctx.reset_picquad_color_matrix();
+  ctx.reset_textures();
+}
+
+void render_picture(StdGuiRender::GuiContext &ctx, Picture *image, Point2 pos, Point2 size, E3DCOLOR image_color)
+{
+  render_picture(ctx, image, pos, size, image_color, 1.f, 1.f, false, false, 1.f);
 }
 
 

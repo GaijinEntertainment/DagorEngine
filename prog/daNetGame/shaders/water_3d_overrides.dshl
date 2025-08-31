@@ -1,0 +1,315 @@
+include "panorama.dshl"
+include "static_shadow.dshl"
+include "sq_clouds_shadow.dshl"
+
+float4 water_planar_reflection_dir;
+float4 water_planar_reflection_far_plane_pos;
+float4x4 water_planar_reflection_view_proj;
+float water_ssr_intensity = 1;
+float water_reflection_roughness_mip_scale = 1.9;
+texture water_planar_reflection_clouds;
+
+float water_reflection_hdr_multiplier = 1;
+float object_reflection_distortion = 0.05;
+
+int water_rt_enabled = 0;
+interval water_rt_enabled: no<1, yes;
+
+macro WATER_PLANAR_INIT(code)
+  (code)
+  {
+    water_planar_reflection_dir@f3 = water_planar_reflection_dir.xyz;
+    water_planar_reflection_far_plane_pos@f3 = water_planar_reflection_far_plane_pos.xyz;
+    water_planar_reflection_view_proj@f44 = water_planar_reflection_view_proj;
+  }
+endmacro
+
+macro WATER_PLANAR_USE(code)
+  hlsl(code)
+  {
+    float2 reflectionToPlanarTC(float3 worldPos, float3 worldDir)
+    {
+      // t is a parameter for plane/line intersection.
+      const float t = dot(water_planar_reflection_far_plane_pos - worldPos, water_planar_reflection_dir) / dot(worldDir, water_planar_reflection_dir);
+
+      const float4 reflectedPoint = float4(worldPos + worldDir * t, 1);
+      float4 reflPointCS = mul(water_planar_reflection_view_proj, reflectedPoint);
+
+      const float2 reflPointTC = (reflPointCS.xy / reflPointCS.w) * RT_SCALE_HALF + float2(0.5, 0.5);
+      return reflPointTC;
+    }
+  }
+endmacro
+
+macro WATER_PLANAR_PS()
+  WATER_PLANAR_INIT(ps)
+  WATER_PLANAR_USE(ps)
+endmacro
+
+macro INIT_WATER_REFLECTIONS_SAMPLING(code)
+  USING_SKY_ATTENUATION(code)
+  (code)
+  {
+    uv_temporal_jitter@f2 = (uv_temporal_jitter.xy);
+    water_reflection_roughness_mip_scale@f1 = water_reflection_roughness_mip_scale;
+    lrefl_scatter_hdr_psize@f4 = (object_reflection_distortion, scatter_disappear_factor, water_reflection_hdr_multiplier, 1./(0.01+(height_tiling+1)*water_color_noise_size));
+  }
+  if (water_reflection_tex != NULL)
+  {
+    (code) {
+      water_ssr_intensity@f1 = (water_ssr_intensity, 0, 0, 0);
+    }
+  }
+  if (clouds_panorama_mip == NULL)
+  {
+    (ps) { water_planar_reflection_clouds@smp2d = water_planar_reflection_clouds; }
+    hlsl
+    {
+      #define NUM_PROBE_MIPS 5.h
+    }
+    WATER_PLANAR_PS()
+  }
+  else
+  {
+    (ps) {
+      clouds_panorama_mip@tex = clouds_panorama_mip hlsl{ Texture2D<float3>clouds_panorama_mip@tex; }
+    }
+    hlsl(ps) {
+      #define clouds_panorama_mip_samplerstate clouds_alpha_panorama_tex_samplerstate
+    }
+    INIT_CLOUDS_ALPHA_PANORAMA()
+    USE_CLOUDS_ALPHA_PANORAMA()
+  }
+endmacro
+
+macro USE_WATER_REFLECTIONS_SAMPLING(code)
+  hlsl(code)
+  {
+    struct PlanarReflections
+    {
+      float waterRTShadow;
+      float4 objectReflection;
+    };
+
+    struct EnvReflections
+    {
+      half3 enviReflection;
+      half cloudsAlpha;
+      half mask;
+    };
+
+    struct ReflectionsData
+    {
+      half3 reflectionColor;
+      half3 envReflection;
+    };
+
+    PlanarReflections getPlanarReflections(ViewData viewData)
+    {
+      PlanarReflections planarReflections;
+
+      // We should use lowresTC here, but since it's not available in WT, we use screenTc for compatibility.
+      // This shouldn't be a problem, as we use screenTc for linear sampling.
+      float2 refractionTC = saturate(viewData.screenTc.xy - uv_temporal_jitter.xy);
+      planarReflections.waterRTShadow = 1;
+      planarReflections.objectReflection = 0;
+      ##if (in_editor_assume == no) && (water_reflection_tex != NULL)
+      BRANCH
+      if (water_ssr_intensity > 0)
+      {
+        float SSR_VALID_TRESHOLD = 0; // green channel is 0 where water SSR wasn't rendered, and minimum 0.1 elsewhere
+        bool4 strengthMask = water_reflection_strength_tex.GatherGreen(water_reflection_strength_tex_samplerstate, refractionTC) > SSR_VALID_TRESHOLD;
+        if (all(strengthMask))
+        {
+          float4 strengthSample = tex2D(water_reflection_strength_tex, refractionTC);
+          planarReflections.objectReflection = float4(
+            tex2D(water_reflection_tex, refractionTC).rgb,
+            strengthSample.r * water_ssr_intensity
+          );
+          ##if water_rt_enabled == yes
+            planarReflections.waterRTShadow = strengthSample.b;
+          ##endif
+        }
+        else
+        {
+          float4 strengthMul = float4(strengthMask);
+          if (any(strengthMask))
+            strengthMul = strengthMul / dot(strengthMul, strengthMul);
+          planarReflections.objectReflection.r = dot(water_reflection_tex.GatherRed(water_reflection_tex_samplerstate, refractionTC), strengthMul);
+          planarReflections.objectReflection.g = dot(water_reflection_tex.GatherGreen(water_reflection_tex_samplerstate, refractionTC), strengthMul);
+          planarReflections.objectReflection.b = dot(water_reflection_tex.GatherBlue(water_reflection_tex_samplerstate, refractionTC), strengthMul);
+          planarReflections.objectReflection.a = dot(water_reflection_strength_tex.GatherRed(water_reflection_strength_tex_samplerstate, refractionTC), strengthMul) * water_ssr_intensity;
+          ##if water_rt_enabled == yes
+            planarReflections.waterRTShadow = dot(water_reflection_strength_tex.GatherBlue(water_reflection_strength_tex_samplerstate, refractionTC), strengthMul);
+          ##endif
+        }
+        ##if water_rt_enabled == no
+          planarReflections.objectReflection.rgb = unpack_hdr(planarReflections.objectReflection.rgb);
+        ##endif
+      }
+      ##endif
+      return planarReflections;
+    }
+
+    EnvReflections getEnvReflections(const ViewData viewData, const PlanarReflections planarReflections)
+    {
+      ##if clouds_panorama_mip == NULL
+        float2 reflectionTC = reflectionToPlanarTC(viewData.worldPos, viewData.reflectSampleDir);
+        half4 enviReflectionA = tex2Dbias(water_planar_reflection_clouds, reflectionTC, viewData.enviMip * water_reflection_roughness_mip_scale);
+        float3 reflectWaterPlaneDirNormalized = reflect(-viewData.pointToEyeNormalized, float3(0,1,0));
+        float enviMask = saturate(dot(viewData.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+        enviReflectionA.rgb = unpack_hdr(enviReflectionA.rgb) * enviMask;
+        half3 enviReflection = enviReflectionA.rgb;
+        half cloudsAlpha = enviReflectionA.a;
+      ##else
+        float2 sky_uv = get_panorama_uv(viewData.worldPos, viewData.reflectSampleDir);
+        half3 enviReflection = tex2Dbias(clouds_panorama_mip, sky_uv, viewData.enviMip * water_reflection_roughness_mip_scale).rgb;
+        half cloudsAlpha = 1 - get_clouds_alpha_panorama_uv(sky_uv);
+        half enviMask = 1;
+      ##endif
+      enviReflection *= skylight_sky_atten;
+
+      BRANCH
+      if (planarReflections.objectReflection.a > 0.01)
+      {
+        #define PANORAMA_MIP_FOR_BLENDING 3
+        ##if clouds_panorama_mip != NULL
+          half3 envi_smooth = tex2Dlod(clouds_panorama_mip, float4(sky_uv,0,PANORAMA_MIP_FOR_BLENDING)).rgb;
+        ##else
+          half4 enviReflectionB = tex2Dlod(water_planar_reflection_clouds, float4(reflectionTC, 0, PANORAMA_MIP_FOR_BLENDING));
+          half3 envi_smooth = unpack_hdr(enviReflectionB.rgb) * saturate(dot(viewData.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+        ##endif
+        envi_smooth *= skylight_sky_atten;
+        enviReflection = lerp(enviReflection, envi_smooth, saturate(2*planarReflections.objectReflection.a));
+      }
+      ##if in_editor_assume == no
+        float4 indoorRefl__localWeight = use_indoor_probes(viewData.worldPos, viewData.worldNormal, viewData.reflectDirNormalized, viewData.enviMip, viewData.dist);
+        enviReflection = lerp(indoorRefl__localWeight.xyz, enviReflection, indoorRefl__localWeight.w);
+      ##endif
+
+      EnvReflections envReflections;
+      envReflections.enviReflection = enviReflection;
+      envReflections.cloudsAlpha = cloudsAlpha;
+      envReflections.mask = enviMask;
+      return envReflections;
+    }
+
+    ReflectionsData getReflections(const ViewData viewData, const EnvReflections envReflections, const PlanarReflections planarReflections, const SunReflections sunReflections, const FoamData foamData, const DeepnessData deepnessData)
+    {
+      ReflectionsData reflectionsData;
+
+      half3 reflectionColor = lerp(envReflections.enviReflection, planarReflections.objectReflection.rgb, planarReflections.objectReflection.a)*viewData.enviBRDF+sunReflections.sunReflection;
+      reflectionColor *= deepnessData.shore_blending_coeff;
+
+      reflectionsData.reflectionColor = reflectionColor;
+      reflectionsData.envReflection = envReflections.enviReflection;
+
+      return reflectionsData;
+    }
+  }
+endmacro
+
+macro INIT_WATER_SHADOWS(code)
+  USE_CLOUDS_SHADOW()
+  hlsl(code)
+  {
+    #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 1
+  }
+  if (water_rt_enabled == no)
+  {
+    INIT_STATIC_SHADOW()
+    USE_STATIC_SHADOW()
+  }
+endmacro
+
+macro USE_WATER_SHADOWS(code)
+  hlsl(code)
+  {
+    struct ShadowsData
+    {
+      half vsmShadow;
+      half cloudShadow;
+      half sunReflectionShadow;
+    };
+
+    ShadowsData getShadows(const ViewData viewData, const PlanarReflections planarReflections, const EnvReflections envReflections)
+    {
+      ShadowsData shadowsData;
+      shadowsData.cloudShadow = clouds_shadow(viewData.worldPos);
+      ##if water_rt_enabled == no
+        shadowsData.vsmShadow = getStaticShadow(viewData.worldPos);
+      ##else
+        shadowsData.vsmShadow = planarReflections.waterRTShadow;
+      ##endif
+
+      float sunMaskAlpha = planarReflections.objectReflection.a;
+      sunMaskAlpha = 1 - pow2(1 - sunMaskAlpha);
+      sunMaskAlpha = saturate(sunMaskAlpha + envReflections.cloudsAlpha);
+      float invDistToZfar = 1 - viewData.distToZfar;
+      sunMaskAlpha *= saturate(2 * invDistToZfar);
+      shadowsData.sunReflectionShadow  = (shadowsData.cloudShadow * 0.85 + 0.15); // intensity of specular mask by clouds shadow, must have outer percent parameter
+      shadowsData.sunReflectionShadow *= 1.0f - sunMaskAlpha; // reflected objects mask for sun specular
+      shadowsData.sunReflectionShadow = lerp( 1.0, shadowsData.sunReflectionShadow, envReflections.mask);
+
+      return shadowsData;
+    }
+  }
+endmacro
+
+macro INIT_SAMPLE_DEPTH_TEX(code)
+  (code) {
+    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
+    lowres_rt_params@f2 = lowres_rt_params.xy; //Far and Close depth are the same size
+  }
+  hlsl(code) {
+    #define downsampled_far_depth_tex_samplerstate skies_frustum_scattering_samplerstate
+  }
+endmacro
+
+macro USE_SAMPLE_DEPTH_TEX(code)
+  hlsl(code) {
+    float sample_far_depth_tex(float2 tc, int level)
+    {
+      return tex2Dlod(downsampled_far_depth_tex, float4(tc.x, tc.y, 0, (float)level)).r;
+    }
+
+    float4 gather_far_depth(float2 uv)
+    {
+      return downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, uv);
+    }
+  }
+endmacro
+
+macro USE_UNDERWATER_SCATTERING(code)
+  hlsl(code) {
+    struct UnderWaterScattering
+    {
+      half loss;
+      half3 inscatter;
+    };
+
+    // DNG using custom alternate scattering impl due to WT issue with inverted water colors in scattering.
+    // TODO: This should be revert to shared implementation once WT is fixed.
+    UnderWaterScattering getUnderWaterScattering(const ViewData viewData, const DeepnessData deepnessData, const half perlinWaterColor)
+    {
+      float4 oceanColor = get_ocean_color_perlin(viewData.worldPos.xz, 0, perlinWaterColor);
+      float waterVolumeFog = exp2(oceanColor.w*deepnessData.waterDepth);
+      UnderWaterScattering underWaterScattering;
+      underWaterScattering.loss = waterVolumeFog;
+      underWaterScattering.inscatter = (oceanColor.rgb/4)*(1-waterVolumeFog);
+      return underWaterScattering;
+    }
+
+    UnderWaterScattering getUnderWaterScattering(const ViewData viewData, const DeepnessData deepnessData, const FoamData foamData)
+    {
+      #if has_perlin_noise
+        half perlinWaterColor = (half)viewData.perlinSurf.x;
+      #else
+        half perlinWaterColor = 0.5h;
+      #endif
+
+      return getUnderWaterScattering(viewData, deepnessData, perlinWaterColor);
+    }
+  }
+endmacro

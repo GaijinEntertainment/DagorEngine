@@ -14,5 +14,7 @@ bool BakeTextureToVerticesProcessor::process(ContextId, Sbuffer *, UniqueOrRefer
 {
   return false;
 }
+void TreeVertexProcessor::begin() const {}
+void TreeVertexProcessor::end() const {}
 
 } // namespace bvh

@@ -10,10 +10,7 @@ struct PhysObjectUserData
 };
 
 #define MAKE_PHYS_OBJ_TYPE(ClassName, fourc)                                              \
-  ClassName()                                                                             \
-  {                                                                                       \
-    physObjectType = fourc;                                                               \
-  }                                                                                       \
+  ClassName() { physObjectType = fourc; }                                                 \
   static ClassName *cast(PhysObjectUserData *ptr)                                         \
   {                                                                                       \
     return ptr && ptr->physObjectType == fourc ? static_cast<ClassName *>(ptr) : nullptr; \

@@ -25,7 +25,7 @@ class TunedStruct : public TunedGroup
 public:
   TunedStruct(const char *nm, int ver, dag::ConstSpan<TunedElement *> elems) : TunedGroup(nm, ver, elems) {}
 
-  virtual TunedElement *cloneElem() { return new TunedStruct(*this); }
+  TunedElement *cloneElem() override { return new TunedStruct(*this); }
 };
 
 
@@ -60,12 +60,12 @@ public:
     typeName = type_name;
   }
 
-  virtual TunedElement *cloneElem() { return new TunedRefSlot(*this); }
+  TunedElement *cloneElem() override { return new TunedRefSlot(*this); }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     int id = -1;
     if (save_cb)
@@ -74,13 +74,13 @@ public:
     cwr.writeInt32e(id);
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     if (save_cb)
       save_cb->addRefSlot(getName(), typeName);
   }
 
-  virtual void loadValues(const DataBlock &blk) {}
+  void loadValues(const DataBlock &blk) override {}
 };
 
 
@@ -100,13 +100,13 @@ class TunedParam : public TunedElement
 public:
   TunedParam(const char *nm) { name = nm; }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) = 0;
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override = 0;
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb) = 0;
-  virtual void loadValues(const DataBlock &blk) = 0;
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override = 0;
+  void loadValues(const DataBlock &blk) override = 0;
 };
 
 }; // namespace ScriptHelpers
@@ -118,42 +118,24 @@ public:
 #define WRITE_DATA_SIMPLE   cwr.write32ex(&value, sizeof(value))
 #define WRITE_DATA_E3DCOLOR cwr.write32ex(&value, sizeof(value))
 
-#define SIMPLE_PARAM(type, add_method, get_method, blk_set, blk_get, write_stmnt)   \
-  namespace ScriptHelpers                                                           \
-  {                                                                                 \
-  class TunedParam_##type : public TunedParam                                       \
-  {                                                                                 \
-  public:                                                                           \
-    type value;                                                                     \
-                                                                                    \
-    TunedParam_##type(const char *nm, const type &val) : TunedParam(nm), value(val) \
-    {}                                                                              \
-                                                                                    \
-    virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)       \
-    {                                                                               \
-      write_stmnt;                                                                  \
-    }                                                                               \
-                                                                                    \
-    virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)                  \
-    {                                                                               \
-      blk.blk_set("value", value);                                                  \
-    }                                                                               \
-                                                                                    \
-    virtual void loadValues(const DataBlock &blk)                                   \
-    {                                                                               \
-      value = blk.blk_get("value", value);                                          \
-    }                                                                               \
-                                                                                    \
-    virtual TunedElement *cloneElem()                                               \
-    {                                                                               \
-      return new TunedParam_##type(*this);                                          \
-    }                                                                               \
-  };                                                                                \
-                                                                                    \
-  TunedElement *create_tuned_##type##_param(const char *name, const type &val)      \
-  {                                                                                 \
-    return new TunedParam_##type(name, val);                                        \
-  }                                                                                 \
+#define SIMPLE_PARAM(type, add_method, get_method, blk_set, blk_get, write_stmnt)                                           \
+  namespace ScriptHelpers                                                                                                   \
+  {                                                                                                                         \
+  class TunedParam_##type : public TunedParam                                                                               \
+  {                                                                                                                         \
+  public:                                                                                                                   \
+    type value;                                                                                                             \
+                                                                                                                            \
+    TunedParam_##type(const char *nm, const type &val) : TunedParam(nm), value(val) {}                                      \
+                                                                                                                            \
+    void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { write_stmnt; }                             \
+    void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override { blk.blk_set("value", value); }                        \
+    void loadValues(const DataBlock &blk) override { value = blk.blk_get("value", value); }                                 \
+                                                                                                                            \
+    TunedElement *cloneElem() override { return new TunedParam_##type(*this); }                                             \
+  };                                                                                                                        \
+                                                                                                                            \
+  TunedElement *create_tuned_##type##_param(const char *name, const type &val) { return new TunedParam_##type(name, val); } \
   }
 
 
@@ -189,11 +171,11 @@ public:
       value = enumList[0].value;
   }
 
-  virtual TunedElement *cloneElem() { return new TunedEnumParam(*this); }
+  TunedElement *cloneElem() override { return new TunedEnumParam(*this); }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) { cwr.writeInt32e(value); }
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { cwr.writeInt32e(value); }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     for (int i = 0; i < enumList.size(); ++i)
       if (enumList[i].value == value)
@@ -205,7 +187,7 @@ public:
     blk.setInt("valueInt", value);
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     value = blk.getInt("valueInt", value);
 
@@ -266,7 +248,7 @@ public:
     }
   }
 
-  ~TunedArray()
+  ~TunedArray() override
   {
     clear();
     del_it(baseElement);
@@ -274,17 +256,17 @@ public:
 
   void clear() { clear_and_shrink(subElem); }
 
-  virtual TunedElement *cloneElem() { return new TunedArray(*this); }
+  TunedElement *cloneElem() override { return new TunedArray(*this); }
 
-  virtual int subElemCount() const { return subElem.size(); }
+  int subElemCount() const override { return subElem.size(); }
 
-  virtual TunedElement *getSubElem(int index) const
+  TunedElement *getSubElem(int index) const override
   {
     G_ASSERT(index >= 0 && index < subElem.size());
     return subElem[index].elem;
   }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     cwr.writeInt32e(subElem.size());
 
@@ -296,7 +278,7 @@ public:
     }
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     for (int i = 0; i < subElem.size(); ++i)
     {
@@ -308,7 +290,7 @@ public:
     }
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     clear();
 

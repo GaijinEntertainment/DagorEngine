@@ -1,3 +1,5 @@
+# Navigation Mesh
+
 ## Overview
 
 To ensure bots navigate around obstacles like buildings and trees, we use a

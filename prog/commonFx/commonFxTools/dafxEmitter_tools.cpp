@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // clang-format off  // generated text, do not modify!
 #include <generic/dag_tab.h>
 #include <scriptHelpers/tunedParams.h>

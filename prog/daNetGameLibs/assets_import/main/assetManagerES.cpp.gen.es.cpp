@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "assetManagerES.cpp.inl"
 ECS_DEF_PULL_VAR(assetManager);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc asset_manager_track_changes_es_comps[] =
 {
@@ -111,11 +113,12 @@ static ecs::EntitySystemDesc track_a2d_es_es_desc
 );
 static constexpr ecs::ComponentDesc track_animchar_assets_es_comps[] =
 {
-//start of 3 rw components at [0]
+//start of 4 rw components at [0]
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+  {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar__animStateDirty"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 2 ro components at [4]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()}
 };
@@ -128,6 +131,7 @@ static void track_animchar_assets_es_all_events(const ecs::Event &__restrict evt
     , ECS_RW_COMP(track_animchar_assets_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RW_COMP(track_animchar_assets_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
     , ECS_RO_COMP(track_animchar_assets_es_comps, "animchar__res", ecs::string)
+    , ECS_RW_COMP_PTR(track_animchar_assets_es_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(track_animchar_assets_es_comps, "animchar__animStateDirty", bool)
     );
   while (++comp != compE);
@@ -137,8 +141,8 @@ static ecs::EntitySystemDesc track_animchar_assets_es_es_desc
   "track_animchar_assets_es",
   "prog/daNetGameLibs/assets_import/main/assetManagerES.cpp.inl",
   ecs::EntitySystemOps(nullptr, track_animchar_assets_es_all_events),
-  make_span(track_animchar_assets_es_comps+0, 3)/*rw*/,
-  make_span(track_animchar_assets_es_comps+3, 2)/*ro*/,
+  make_span(track_animchar_assets_es_comps+0, 4)/*rw*/,
+  make_span(track_animchar_assets_es_comps+4, 2)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<AssetChangedEvent>::build(),

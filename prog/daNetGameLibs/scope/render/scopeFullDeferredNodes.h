@@ -1,19 +1,22 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 
-dabfg::NodeHandle makeScopeOpaqueNode();
-dabfg::NodeHandle makeScopePrepassNode();
-dabfg::NodeHandle makeScopeLensMaskNode();
-dabfg::NodeHandle makeScopeVrsMaskNode();
-dabfg::NodeHandle makeScopeCutDepthNode();
-dabfg::NodeHandle makeScopeTargetRenameNode();
+dafg::NodeHandle makeScopeOpaqueNode();
+dafg::NodeHandle makeScopeTransNode();
+dafg::NodeHandle makeScopePrepassNode();
+dafg::NodeHandle makeScopeLensMaskNode();
+dafg::NodeHandle makeScopeHZBMask();
+dafg::NodeHandle makeScopeVrsMaskNode();
+dafg::NodeHandle makeScopeCutDepthNode();
+dafg::NodeHandle makeScopeDownsampleStencilNode(const char *node_name, const char *depth_name, const char *depth_rename_to);
+dafg::NodeHandle makeScopeTargetRenameNode();
 
-dabfg::NodeHandle makeRenderOpticsPrepassNode();
-dabfg::NodeHandle makeRenderLensFrameNode();
-dabfg::NodeHandle makeRenderLensOpticsNode();
-dabfg::NodeHandle makeRenderCrosshairNode();
+dafg::NodeHandle makeRenderOpticsPrepassNode();
+dafg::NodeHandle makeRenderLensFrameNode();
+dafg::NodeHandle makeRenderLensOpticsNode();
+dafg::NodeHandle makeRenderCrosshairNode();
 
-dabfg::NodeHandle makeAimDofPrepareNode();
-dabfg::NodeHandle makeAimDofRestoreNode();
+dafg::NodeHandle makeAimDofPrepareNode();
+dafg::NodeHandle makeAimDofRestoreNode();

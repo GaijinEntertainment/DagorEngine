@@ -18,16 +18,16 @@ class PanelWindowPropertyControl : public ContainerPropertyControl
 public:
   PanelWindowPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x, int y, hdpi::Px w,
     hdpi::Px h, const char caption[]);
-  ~PanelWindowPropertyControl();
+  ~PanelWindowPropertyControl() override;
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
   // saving and loading state with datablock
-  virtual int saveState(DataBlock &datablk) override;
-  virtual int loadState(DataBlock &datablk) override;
+  int saveState(DataBlock &datablk, bool by_name = false) override;
+  int loadState(DataBlock &datablk, bool by_name = false) override;
 
   virtual int getScrollPos();
   virtual void setScrollPos(int pos);
@@ -35,14 +35,14 @@ public:
   // This must be called before ImGui::Begin to be able to set the scroll position.
   virtual void beforeImguiBegin();
 
-  virtual void updateImgui() override;
+  void updateImgui() override;
 
   // There is getCaption but that returns with a new SimpleString, and there is getCaptionValue that copies to a buffer,
   // so here is a third function for the PanelWindowPropertyControl to use.
   const String &getStringCaption() const { return controlCaption; }
 
 private:
-  virtual void onWcRightClick(WindowBase *source) override;
+  void onWcRightClick(WindowBase *source) override;
 
   String controlCaption;
   int scrollingRequestedPositionY = -1;

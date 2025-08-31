@@ -24,6 +24,7 @@ static int fontId = 0;
 static float time;
 static bool has_any_error = false;
 static bool drawDisabled = false;
+static visuallog::OnLogItemAdded onLogItemAdded = nullptr;
 
 static void clear_unwanted_items()
 {
@@ -131,6 +132,8 @@ void logmsg(const char *text, LogItemCBProc cb, void *param, E3DCOLOR color, int
     li.param = param;
     li.ialpha = /*1.f*/ 0x3f800000; // Avoid using floats to potentially avoid triggering FPE
     li.level = level;
+    if (onLogItemAdded)
+      onLogItemAdded(li);
   }
 
   entered = false;
@@ -242,3 +245,5 @@ void visuallog::setFont(const char *name)
 }
 
 void visuallog::setDrawDisabled(bool disabled) { drawDisabled = disabled; }
+
+void visuallog::setOnLogItemAdded(visuallog::OnLogItemAdded cb) { onLogItemAdded = cb; }

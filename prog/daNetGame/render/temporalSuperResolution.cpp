@@ -54,12 +54,9 @@
 SHADER_VAR_LIST
 #undef VAR
 
-static void init_shader_vars()
-{
 #define VAR(a) a##_var_id = ::get_shader_variable_id(#a, true);
-  SHADER_VAR_LIST
+static void init_shader_vars() { SHADER_VAR_LIST; }
 #undef VAR
-}
 
 CONSOLE_BOOL_VAL("render", tsr, true);
 CONSOLE_BOOL_VAL("render", tsr_debug, false);
@@ -103,7 +100,7 @@ static void apply_preset(TemporalSuperResolution::Preset preset)
   tsr_process_loss_dynamic.set(preset == P::High ? 0.99f : 0.93f);
   tsr_depth_overhang_sigma.set(preset == P::High ? 0.0004f : 0.00006f);
   tsr_use_bicubic_history_sampling.set(preset == P::High);
-  tsr_static_dynamic_mismatch_loss.set(preset == P::High ? 0.9f : 0.0f);
+  tsr_static_dynamic_mismatch_loss.set(preset == P::High ? 0.1f : 0.0f);
 }
 
 TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolution) :
@@ -125,41 +122,45 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
 
   computeRenderer.reset(new_compute_shader("tsr_cs"));
 
-  applierNode = dabfg::register_node("tsr", DABFG_PP_NODE_SRC, [this, output_resolution](dabfg::Registry registry) {
+  applierNode = dafg::register_node("tsr", DAFG_PP_NODE_SRC, [this, output_resolution](dafg::Registry registry) {
     auto opaqueFinalTargetHndl = registry.readTexture("final_target_with_motion_blur")
-                                   .atStage(dabfg::Stage::PS_OR_CS)
-                                   .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                   .atStage(dafg::Stage::PS_OR_CS)
+                                   .useAs(dafg::Usage::SHADER_RESOURCE)
                                    .handle();
-    read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
+    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
     registry.readTexture("motion_vecs_after_transparency")
-      .atStage(dabfg::Stage::PS_OR_CS)
+      .atStage(dafg::Stage::PS_OR_CS)
       .bindToShaderVar("resolved_motion_vectors")
       .optional();
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("resolved_motion_vectors_samplerstate").optional();
-    registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf");
+    registry.readTexture("depth_after_transparency").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf");
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
 
     auto antialiasedHndl = registry
-                             .createTexture2d("frame_after_aa", dabfg::History::ClearZeroOnFirstFrame,
-                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .useAs(dabfg::Usage::SHADER_RESOURCE)
+                             .createTexture2d("frame_after_aa", dafg::History::ClearZeroOnFirstFrame,
+                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, output_resolution})
+                             .atStage(dafg::Stage::PS_OR_CS)
+                             .useAs(dafg::Usage::SHADER_RESOURCE)
                              .handle();
 
     auto antialiasedHistHndl =
-      registry.readTextureHistory("frame_after_aa").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTextureHistory("frame_after_aa").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-    auto confidenceHndl = registry
-                            .createTexture2d("tsr_confidence", dabfg::History::ClearZeroOnFirstFrame,
-                              {TEXFMT_R8 | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
-                            .atStage(dabfg::Stage::PS_OR_CS)
-                            .useAs(dabfg::Usage::SHADER_RESOURCE)
-                            .handle();
+    auto confidenceHndl =
+      registry
+        .createTexture2d("tsr_confidence", dafg::History::ClearZeroOnFirstFrame, {TEXFMT_R8 | TEXCF_UNORDERED, output_resolution})
+        .atStage(dafg::Stage::PS_OR_CS)
+        .useAs(dafg::Usage::SHADER_RESOURCE)
+        .handle();
 
     auto confidenceHistHndl =
-      registry.readTextureHistory("tsr_confidence").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTextureHistory("tsr_confidence").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-    registry.readTexture("reactive_mask").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("tsr_reactive_mask").optional();
+    registry.readTexture("reactive_mask").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("tsr_reactive_mask").optional();
+    registry.create("reactive_mask_sampler", dafg::History::No)
+      .blob<d3d::SamplerHandle>(d3d::request_sampler({}))
+      .bindToShaderVar("tsr_reactive_mask_samplerstate")
+      .optional();
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 

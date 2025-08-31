@@ -1,5 +1,5 @@
 #1: x1 = foo, x2 = [bar qux = foo]
 #2: 2
 #3: { gg = 123 }
-#4:    foo bar
+#4:    foo bar 
 #5: foo}}}}}

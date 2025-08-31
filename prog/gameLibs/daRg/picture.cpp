@@ -170,4 +170,12 @@ void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, con
   }
 }
 
+Point2 Picture::getLoadedPicSize()
+{
+  Point2 picSz(0.0f, 0.0f), fullTexSize(0.0f, 0.0f);
+  if (pic.pic != BAD_PICTUREID)
+    PictureManager::get_picture_size(pic.pic, fullTexSize, picSz);
+  return picSz;
+}
+
 } // namespace darg

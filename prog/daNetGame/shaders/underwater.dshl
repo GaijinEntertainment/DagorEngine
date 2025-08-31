@@ -64,7 +64,7 @@ shader underwater_fog
   USE_DECODE_DEPTH()
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
-  INIT_UNDERWATER_FOG()
+  INIT_UNDERWATER_FOG(ps)
   GET_UNDERWATER_FOG()
 
   INIT_STATIC_SHADOW() // not enough vsmp for both cascades

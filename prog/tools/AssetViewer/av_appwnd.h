@@ -4,14 +4,13 @@
 #include "av_environment.h"
 #include "Entity/compositeEditor.h"
 
-#include <sepGui/wndPublic.h>
-
 #include <propPanel/messageQueue.h>
 #include <propPanel/control/panelWindow.h>
 
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_genappwnd.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/dagFileRW/textureNameResolver.h>
 
@@ -63,7 +62,7 @@ class AssetViewerApp : public GenericEditorAppWindow,
 {
 public:
   AssetViewerApp(IWndManager *manager, const char *open_fname = NULL);
-  ~AssetViewerApp();
+  ~AssetViewerApp() override;
 
   static const char *build_version;
 
@@ -75,7 +74,7 @@ public:
   bool getScriptChangeFlag() { return scriptChangeFlag; }
   void fillToolBar();
 
-  virtual void init();
+  void init(const char *select_workspace) override;
 
   void renderGrid(bool render) { grid.setVisible(render, 0); }
   bool isGridVisible() { return grid.isVisible(0); }
@@ -84,134 +83,135 @@ public:
   // IEditorCoreEngine
   // ==========================================================================
   // query/get interfaces
-  virtual void *queryEditorInterfacePtr(unsigned huid);
+  void *queryEditorInterfacePtr(unsigned huid) override;
 
-  virtual void screenshotRender();
+  void screenshotRender(bool skip_debug_objects) override;
 
   // register/unregister plugins(every plugin should be registered once)
-  virtual bool registerPlugin(IGenEditorPlugin *plugin);
-  virtual bool unregisterPlugin(IGenEditorPlugin *plugin);
+  bool registerPlugin(IGenEditorPlugin *plugin) override;
+  bool unregisterPlugin(IGenEditorPlugin *plugin) override;
 
   // plugins management.
-  virtual int getPluginCount();
-  virtual IGenEditorPlugin *getPlugin(int idx);
-  virtual int getPluginIdx(IGenEditorPlugin *plug) const;
-  virtual IGenEditorPlugin *curPlugin();
+  int getPluginCount() override;
+  IGenEditorPlugin *getPlugin(int idx) override;
+  int getPluginIdx(IGenEditorPlugin *plug) const;
+  IGenEditorPlugin *curPlugin() override;
 
-  virtual IGenEditorPluginBase *getPluginBase(int idx);
-  virtual IGenEditorPluginBase *curPluginBase();
+  IGenEditorPluginBase *getPluginBase(int idx) override;
+  IGenEditorPluginBase *curPluginBase() override;
 
-  virtual void *getInterface(int interface_uid);
-  virtual void getInterfaces(int interface_uid, Tab<void *> &interfaces);
+  void *getInterface(int interface_uid) override;
+  void getInterfaces(int interface_uid, Tab<void *> &interfaces) override;
 
   // UI management
-  virtual IWndManager *getWndManager() const;
-  virtual PropPanel::ContainerPropertyControl *getCustomPanel(int id) const;
-  virtual void addPropPanel(int type, hdpi::Px width);
-  virtual void removePropPanel(void *hwnd);
-  virtual void managePropPanels() {}
-  virtual void skipManagePropPanels(bool skip) {}
-  virtual PropPanel::PanelWindowPropertyControl *createPropPanel(PropPanel::ControlEventHandler *eh, const char *caption) override;
-  virtual PropPanel::IMenu *getMainMenu() override;
-  virtual void deleteCustomPanel(PropPanel::ContainerPropertyControl *panel) {}
-  virtual PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
-  virtual void deleteDialog(PropPanel::DialogWindow *dlg) override;
+  IWndManager *getWndManager() const override;
+  PropPanel::ContainerPropertyControl *getCustomPanel(int id) const override;
+  void addPropPanel(int type, hdpi::Px width) override;
+  void removePropPanel(void *hwnd) override;
+  void managePropPanels() override {}
+  void skipManagePropPanels(bool) override {}
+  PropPanel::PanelWindowPropertyControl *createPropPanel(PropPanel::ControlEventHandler *eh, const char *caption) override;
+  PropPanel::IMenu *getMainMenu() override;
+  void deleteCustomPanel(PropPanel::ContainerPropertyControl *) override {}
+  PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
+  void deleteDialog(PropPanel::DialogWindow *dlg) override;
 
   // viewport methods
-  virtual void updateViewports();
-  virtual void setViewportCacheMode(ViewportCacheMode mode);
-  virtual void invalidateViewportCache();
-  virtual int getViewportCount();
-  virtual IGenViewportWnd *getViewport(int n);
-  virtual IGenViewportWnd *getRenderViewport();
-  virtual IGenViewportWnd *getCurrentViewport();
-  virtual void setViewportZnearZfar(real zn, real zf);
+  void updateViewports() override;
+  void setViewportCacheMode(ViewportCacheMode mode) override;
+  void invalidateViewportCache() override;
+  int getViewportCount() override;
+  IGenViewportWnd *getViewport(int n) override;
+  IGenViewportWnd *getRenderViewport() override;
+  IGenViewportWnd *getCurrentViewport() override;
+  void setViewportZnearZfar(real zn, real zf) override;
 
   // ray tracing methods
-  virtual IGenViewportWnd *screenToViewport(int &x, int &y);
-  virtual bool screenToWorldTrace(int x, int y, Point3 &world, real maxdist = 1000.0, Point3 *out_norm = NULL) { return false; }
-  virtual bool clientToWorldTrace(IGenViewportWnd *wnd, int x, int y, Point3 &world, real maxdist = 1000.0, Point3 *out_norm = NULL)
-  {
-    return false;
-  }
-  virtual void setupColliderParams(int mode, const BBox3 &area);
-  virtual bool traceRay(const Point3 &src, const Point3 &dir, float &dist, Point3 *out_norm = NULL, bool use_zero_plane = true);
+  IGenViewportWnd *screenToViewport(int &x, int &y) override;
+  bool screenToWorldTrace(int, int, Point3 &, real, Point3 *) override { return false; }
+  bool clientToWorldTrace(IGenViewportWnd *, int, int, Point3 &, real, Point3 *) override { return false; }
+  void setupColliderParams(int mode, const BBox3 &area) override;
+  bool traceRay(const Point3 &src, const Point3 &dir, float &dist, Point3 *out_norm = NULL, bool use_zero_plane = true) override;
 
-  virtual void setColliders(dag::ConstSpan<IDagorEdCustomCollider *> c, unsigned filter_mask) const {};
-  virtual void restoreEditorColliders() const {}
-  virtual float getMaxTraceDistance() const { return 1500; }
+  void setColliders(dag::ConstSpan<IDagorEdCustomCollider *>, unsigned) const override {}
+  void restoreEditorColliders() const override {}
+  float getMaxTraceDistance() const override { return 1500; }
 
-  virtual bool getSelectionBox(BBox3 &box);
-  virtual void zoomAndCenter();
+  bool getSelectionBox(BBox3 &box) override;
+  void zoomAndCenter() override;
 
-  virtual String getScreenshotNameMask(bool cube) const;
+  String getScreenshotNameMask(bool cube) const override;
 
   // gizmo methods
-  virtual void setGizmo(IGizmoClient *gc, ModeType type);
-  virtual void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual ModeType getGizmoModeType(); //{ return MODE_Move; }
-  virtual BasisType getGizmoBasisType() { return BASIS_World; }
-  virtual BasisType getGizmoBasisTypeForMode(ModeType tp) { return BASIS_World; }
-  virtual CenterType getGizmoCenterType() { return CENTER_Pivot; }
-  virtual bool isGizmoOperationStarted() const override;
+  void setGizmo(IGizmoClient *gc, ModeType type) override;
+  void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void endGizmo(bool apply) override;
+  ModeType getGizmoModeType() override; //{ return MODE_Move; }
+  BasisType getGizmoBasisType() override { return BASIS_World; }
+  BasisType getGizmoBasisTypeForMode(ModeType) override { return BASIS_World; }
+  CenterType getGizmoCenterType() override { return CENTER_Pivot; }
+  CenterType getGizmoCenterTypeForMode(ModeType) override { return CENTER_Pivot; }
+  bool isGizmoOperationStarted() const override;
 
   // brush methods
-  virtual void beginBrushPaint() {}
-  virtual void renderBrush() {}
-  virtual void setBrush(Brush *brush) {}
-  virtual void endBrushPaint() {}
-  virtual Brush *getBrush() const { return NULL; }
-  virtual bool isBrushPainting() const { return false; }
+  void beginBrushPaint() override {}
+  void renderBrush() override {}
+  void setBrush(Brush *) override {}
+  void endBrushPaint() override {}
+  Brush *getBrush() const override { return NULL; }
+  bool isBrushPainting() const override { return false; }
 
   // spatial cursor handling
-  virtual void showUiCursor(bool vis) {}
-  virtual void setUiCursorPos(const Point3 &pos, const Point3 *norm = NULL) {}
-  virtual void getUiCursorPos(Point3 &pos, Point3 &norm) {}
-  virtual void setUiCursorTex(TEXTUREID tex_id) {}
-  virtual void setUiCursorProps(float size, bool always_xz) {}
+  void showUiCursor(bool) override {}
+  void setUiCursorPos(const Point3 &, const Point3 *) override {}
+  void getUiCursorPos(Point3 &, Point3 &) override {}
+  void setUiCursorTex(TEXTUREID) override {}
+  void setUiCursorProps(float, bool) override {}
 
   // internal interface
-  virtual void actObjects(real dt);
-  virtual void beforeRenderObjects();
-  virtual void renderObjects();
-  virtual void renderIslDecalObjects() {}
-  virtual void renderTransObjects();
+  void actObjects(real dt) override;
+  void beforeRenderObjects() override;
+  void renderObjects() override;
+  void renderIslDecalObjects() override {}
+  void renderTransObjects() override;
 
-  virtual void showSelectWindow(IObjectsList *obj_list, const char *obj_list_owner_name);
+  void showSelectWindow(IObjectsList *obj_list, const char *obj_list_owner_name) override;
 
-  virtual UndoSystem *getUndoSystem() { return undoSystem; }
-  virtual CoolConsole &getConsole()
+  UndoSystem *getUndoSystem() override { return undoSystem; }
+  CoolConsole &getConsole() override
   {
     G_ASSERT(console);
     return *console;
   }
-  virtual GridObject &getGrid() { return grid; }
+  GridObject &getGrid() override { return grid; }
 
-  virtual Point3 snapToGrid(const Point3 &p) const;
-  virtual Point3 snapToAngle(const Point3 &p) const;
-  virtual Point3 snapToScale(const Point3 &p) const;
+  GizmoEventFilter &getGizmoEventFilter() { return *gizmoEH; }
 
-  virtual const char *getLibDir() const { return NULL; }
-  virtual class LibCache *getLibCachePtr() { return NULL; }
-  virtual Tab<struct WspLibData> *getLibData() { return NULL; }
-  virtual const EditorWorkspace &getBaseWorkspace() { return GenericEditorAppWindow::getWorkspace(); }
+  Point3 snapToGrid(const Point3 &p) const override;
+  Point3 snapToAngle(const Point3 &p) const override;
+  Point3 snapToScale(const Point3 &p) const override;
+
+  const char *getLibDir() const override { return NULL; }
+  class LibCache *getLibCachePtr() override { return NULL; }
+  Tab<struct WspLibData> *getLibData() override { return NULL; }
+  const EditorWorkspace &getBaseWorkspace() override { return GenericEditorAppWindow::getWorkspace(); }
 
   // ==========================================================================
 
   // ITextureNameResolver
-  virtual bool resolveTextureName(const char *src_name, String &out_str);
+  bool resolveTextureName(const char *src_name, String &out_str) override;
 
   // IDagorAssetChangeNotify
-  virtual void onAssetRemoved(int asset_name_id, int asset_type);
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type);
+  void onAssetRemoved(int asset_name_id, int asset_type) override;
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override;
 
   // IWndManagerWindowHandler
-  virtual void *onWmCreateWindow(int type) override;
-  virtual bool onWmDestroyWindow(void *window) override;
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
 
   // IConsoleCmd
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params);
-  virtual const char *onConsoleCommandHelp(const char *cmd);
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
+  const char *onConsoleCommandHelp(const char *cmd) override;
 
   void drawAssetInformation(IGenViewportWnd *wnd);
   void afterUpToDateCheck(bool changed);
@@ -230,23 +230,28 @@ public:
   bool canRenderEnvi() const { return !skipRenderEnvi; }
   bool isCompositeEditorShown() const;
   void showCompositeEditor(bool show);
-  void setShowMessageAt(int, int, const SimpleString &) {}
-  void showMessageAt() {}
+  void setShowMessageAt(int, int, const SimpleString &) override {}
+  void showMessageAt() override {}
+  bool dngBasedSceneRenderUsed() const { return useDngBasedSceneRender; }
+  void setCurrentTexQualityLimit(TexQL ql);
+  TexQL getCurrentTexQualityLimit() const { return curMaxTexQL; }
 
 protected:
-  virtual bool handleNewProject(bool edit = false) { return false; }
-  virtual bool handleOpenProject(bool edit = false) { return false; }
-  // virtual bool canCreateNewProject(const char *filename) { return false; }  // not used
+  bool handleNewProject(bool) override { return false; }
+  bool handleOpenProject(bool) override { return false; }
 
-  virtual bool createNewProject(const char *filename) { return false; }
-  virtual bool loadProject(const char *filename);
-  virtual bool saveProject(const char *filename);
+  bool createNewProject(const char *) override { return false; }
+  bool loadProject(const char *filename) override;
+  bool saveProject(const char *filename) override;
 
-  virtual void fillMenu(PropPanel::IMenu *menu) override;
-  virtual void updateMenu(PropPanel::IMenu *menu) override;
+  void fillMenu(PropPanel::IMenu *menu) override;
+  void updateMenu(PropPanel::IMenu *menu) override;
 
-  virtual void getDocTitleText(String &text);
-  virtual bool canCloseScene(const char *title);
+  void updateAssetBuildWarningsMenu();
+  void updateThemeItems();
+
+  void getDocTitleText(String &text) override;
+  bool canCloseScene(const char *title) override;
 
   void addAccelerators();
 
@@ -258,25 +263,27 @@ protected:
   void splitProjectFilename(const char *filename, String &path, String &name);
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IAssetBaseViewClient
-  virtual void onAvClose() override {}
-  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override {}
-  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
-  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
+  void onAvClose() override {}
+  void onAvAssetDblClick(DagorAsset *, const char *) override {}
+  void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
+  void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
 
   // IAssetSelectorContextMenuHandler
-  virtual bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+  bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
   void onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder);
 
   // Menu
-  int onMenuItemClick(unsigned id);
+  int onMenuItemClick(unsigned id) override;
 
   void makeDefaultLayout();
   void fillTree();
   void saveTreeState();
+  void loadGlobalSettings();
+  void saveGlobalSettings();
 
   void applyDiscardAssetTexMode();
 
@@ -298,9 +305,11 @@ private:
 
   MainAssetSelector *mTreeView;
   DataBlock propPanelState;
+  DataBlock propPanelStateOfTheAssetToInitiallySelect;
   PropPanel::PanelWindowPropertyControl *mPropPanel;
   PropPanel::ContainerPropertyControl *mToolPanel;
   PropPanel::ContainerPropertyControl *mPluginTool;
+  PropPanel::ContainerPropertyControl *themeSwitcherToolPanel = nullptr;
 
   eastl::unique_ptr<ImpostorGenerator> impostorApp;
   eastl::unique_ptr<plod::PointCloudGenerator> pointCloudGen;
@@ -317,6 +326,8 @@ private:
   bool skipRenderObjects = false;
   bool skipRenderEnvi = false;
   bool skipSetViewProj = false;
+  bool developerToolsEnabled = false;
+  TexQL curMaxTexQL = TQL_uhq;
 
   AssetLightData assetLtData, assetDefaultLtData;
 
@@ -340,22 +351,36 @@ private:
 
   void createAssetsTree();
   void createToolbar();
+  void createThemeSwitcherToolbar();
 
-  void renderUIViewportSplitter(const Point2 &regionAvailable, float leftWidth, float rightWidth, float topHeight, float bottomHeight,
-    float itemSpacing);
+  void renderUIViewport(ViewportWindow &viewport, const Point2 &size, float item_spacing, bool vr_mode);
   void renderUIViewports(bool vr_mode);
   void renderUI();
 
   // IMainWindowImguiRenderingService
-  virtual void beforeUpdateImgui() override;
-  virtual void updateImgui() override;
+  void beforeUpdateImgui() override;
+  void updateImgui() override;
 
   // PropPanel::IDelayedCallbackHandler
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  void onImguiDelayedCallback(void *user_data) override;
+
+  enum class AssetBuildWarningDisplay
+  {
+    ShowWhenBuilding,
+    ShowOncePerSession,
+    ShowWhenSelected,
+  };
+
+  static const int LATEST_DOCK_SETTINGS_VERSION = 1; // Increasing this will reset the dock settings.
 
   Point2 viewportSplitRatio = Point2(0.5f, 0.5f);
+  bool makingDefaultLayout = false;
   bool dockPositionsInitialized = false;
+  bool consoleCommandsAndVariableWindowsVisible = false;
+  bool consoleWindowVisible = false;
   bool imguiDebugWindowsVisible = false;
+  bool useDngBasedSceneRender = false;
+  AssetBuildWarningDisplay assetBuildWarningDisplay = AssetBuildWarningDisplay::ShowWhenBuilding;
   String assetToInitiallySelect;
 };
 

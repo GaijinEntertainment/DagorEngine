@@ -1,3 +1,6 @@
+texture paint_details_tex;
+float paint_details_tex_inv_h = 0.125;
+
 macro INIT_PAINT_DETAILS_STATIC()
   static int use_painting = 1 no_warnings;
 endmacro
@@ -8,7 +11,7 @@ macro USE_PAINT_DETAILS()
 
     float3 getColorMul(uint hashVal)
     {
-      float correction = 4.59479341998814;
+      float correction = COLOR_CORRECTION_MULTIPLIER;
       uint paint_palette_col = hashVal;
       uint2 dim;
       paint_details_tex.GetDimensions(dim.x, dim.y);
@@ -18,6 +21,106 @@ macro USE_PAINT_DETAILS()
       float3 colorMul = paint_details_tex[uint2(paint_palette_col%dim.x + dim.x * palette_index, paint_palette_row % dim.y)].rgb;
       colorMul *= correction;
       return colorMul;
+    }
+  }
+endmacro
+
+// WT stuff
+// TODO: use as few as possible painting methods for all ri/dynmodels
+
+macro RANDOM_PAINTING_COLOR_INIT()
+  (vs) { paint_details_tex@smp2d = paint_details_tex; }
+  (vs) { paint_details_tex_inv_h@f1 = (paint_details_tex_inv_h); }
+endmacro
+
+macro PAINTING_COLOR_UV(stage)
+  hlsl (stage)
+  {
+    float2 painting_color_uv(float3 center_world_pos, float3 painting_palette_row, float paint_details_tex_inv_h)
+    { // keep in sync with random_float_from_pos_for_palette in bvh_color_from_pos.h
+      float2 colorPos = floor(center_world_pos.xz);
+      float4 rnd = colorPos.xyxy * float4(1, 1.618, 2.7183, 3.1415) + colorPos.xyxy * float4(2.7813, 3.1415, 1.1, 1.618);
+
+      float randomColorU = dot(rnd, 1.0);
+      if (painting_palette_row.y <= 1.0001) // use_painting < 2
+        randomColorU += center_world_pos.y * 100;
+      randomColorU = floor(frac(randomColorU) * 8192.) / 8192. + 0.5 / 8192.; // The actual size of the texture doesn't matter, just avoid texel edges.
+      randomColorU = randomColorU * 0.5 + painting_palette_row.z * 0.5;
+      return float2(randomColorU, painting_palette_row.x * paint_details_tex_inv_h);
+    }
+  }
+endmacro
+
+macro GET_PAINT_COLOR(stage)
+  hlsl (stage)
+  {
+    half3 get_paint_color(float2 uv)
+    {
+      uint2 dim;
+      paint_details_tex.GetDimensions(dim.x, dim.y);
+      half3 paintColor = (half3)paint_details_tex[uint2(uv.x*dim.x, uv.y*dim.y)].rgb;
+      return paintColor * half(COLOR_CORRECTION_MULTIPLIER);
+    }
+
+    half3 get_paint_color(uint seed, float3 painting_palette_row)
+    {
+      uint2 dim;
+      paint_details_tex.GetDimensions(dim.x, dim.y);
+      dim.x /= 2;
+      uint2 idx = uint2(seed % dim.x + painting_palette_row.z * dim.x, (uint)painting_palette_row.x % dim.y);
+      half3 paintColor = (half3)paint_details_tex[idx].rgb;
+      return paintColor * half(COLOR_CORRECTION_MULTIPLIER);
+    }
+  }
+endmacro
+
+macro RANDOM_PAINTING_COLOR()
+  static int palette_index = 1;
+
+  // a bit messy code caused by initial difference between perlin_layered and other shaders which use random painting
+  // point is: use same code for random color sampling, but different shader variables for coords
+  if (shader == rendinst_perlin_layered || shader == rendinst_perlin_layered_ground || shader == dynamic_perlin_layered)
+  {
+    (vs) { painting_palette_row@f3 = (paint_details.w, 1.0, palette_index, 0.0); }
+  }
+  else
+  {
+    static float use_painting = 0;
+    interval use_painting : painting_off < 0.00001, painting_on; // use_painting == 2 - ignore Y and use only XZ (for floating objects)
+    static float painting_line = 0.0;
+
+    (vs) { painting_palette_row@f3 = (painting_line + 0.5, use_painting, palette_index, 0.0); }
+    (ps) { painting_color_influence@f1 = (use_painting, 0, 0, 0); }
+  }
+
+  PAINTING_COLOR_UV(vs)
+  GET_PAINT_COLOR(vs)
+
+  hlsl(vs)
+  {
+    half3 get_paint_color(float3 center_world_pos)
+    {
+      float2 paintUV = painting_color_uv(center_world_pos, get_painting_palette_row(), paint_details_tex_inv_h);
+      return get_paint_color(paintUV);
+    }
+
+    half3 get_paint_color(float3 center_world_pos, uint seed)
+    {
+      if (!seed)
+        return get_paint_color(center_world_pos);
+      return get_paint_color(seed, get_painting_palette_row());
+    }
+  }
+
+  if (shader != rendinst_perlin_layered && shader != rendinst_perlin_layered_ground && shader != dynamic_perlin_layered)
+  {
+    hlsl(ps)
+    {
+      half3 modify_paint_color(float3 paint_color, half weight)
+      {
+        float paintWeight = get_painting_color_influence();
+        return lerp(half3(1.0, 1.0, 1.0), paint_color, half(weight * (paintWeight > 1.0f ? paintWeight - 1.0f : paintWeight)));
+      }
     }
   }
 endmacro

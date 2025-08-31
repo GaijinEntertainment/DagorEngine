@@ -22,6 +22,6 @@ logCryptKey ?=
 getLogCryptKey = extern \"C\" const unsigned char *get_log_crypt_key() \{ static const unsigned char key[128] \= \{ $(logCryptKey) \} \; return key \; \} ;
 
 Sources = decrypt.c getLogCryptKey.jamvar ;
-CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 ;
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE ;
 
 include $(Root)/prog/_jBuild/build.jam ;

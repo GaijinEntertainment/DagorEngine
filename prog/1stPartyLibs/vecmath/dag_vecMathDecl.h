@@ -90,9 +90,6 @@ typedef const struct bsph3f& bsph3f_cref;
 
 #if _TARGET_SIMD_SSE
   #include <emmintrin.h>
-#ifdef _MSC_VER
-  #include <intrin.h>
-#endif
 
   typedef __m128 vec4f;
   typedef __m128 vec3f;
@@ -104,8 +101,9 @@ typedef const struct bsph3f& bsph3f_cref;
   {
     unsigned m128_u32[4];
     vec4i m128;
+    vec4f m128f;
     operator vec4i() const { return m128; }
-    operator vec4f() const { return (vec4f&)m128; }
+    operator vec4f() const { return m128f; }
   } vec4i_const;
 
 #elif _TARGET_SIMD_NEON // PSP2, iOS
@@ -170,13 +168,13 @@ typedef vec4f plane3f;
 //to avoid memsetting the data!
 namespace eastl
 {
-  template <typename Count> inline void uninitialized_default_fill_n(vec4f* , Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(vec4f* , Count){}
 #if !(defined(_M_ARM64) && defined(_MSC_VER) && !defined(__clang__))
-  template <typename Count> inline void uninitialized_default_fill_n(vec4i* , Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(vec4i* , Count){}
 #endif
-  template <typename Count> inline void uninitialized_default_fill_n(bsph3f*, Count){}
-  template <typename Count> inline void uninitialized_default_fill_n(mat33f*, Count){}
-  template <typename Count> inline void uninitialized_default_fill_n(bbox3f*, Count){}
-  template <typename Count> inline void uninitialized_default_fill_n(mat43f*, Count){}
-  template <typename Count> inline void uninitialized_default_fill_n(mat44f*, Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(bsph3f*, Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(mat33f*, Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(bbox3f*, Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(mat43f*, Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(mat44f*, Count){}
 }

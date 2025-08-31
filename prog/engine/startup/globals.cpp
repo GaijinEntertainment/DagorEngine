@@ -102,8 +102,13 @@ static Tab<SimpleString> env_storage(strmem);
 
 extern char **environ;
 
+
+extern "C" __attribute__((visibility("default"))) void dgs_init_argv_exported(int argc, char **argv) { dgs_init_argv(argc, argv); }
+
 void dgs_init_argv(int argc, char **argv)
 {
+  if (::dgs_argv)
+    return;
   argv_storage.resize(argc + 1); // argv[argc] should be NULL, hence +1
   char *eob = NULL;
   for (int i = 0; i < argc; ++i)
@@ -140,8 +145,15 @@ void dgs_init_argv(int argc, char **argv)
 }
 
 #else
+
+#if _TARGET_PC_WIN
+extern "C" __declspec(dllexport) void dgs_init_argv_exported(int argc, char **argv) { dgs_init_argv(argc, argv); }
+#endif
+
 void dgs_init_argv(int argc, char **argv)
 {
+  if (::dgs_argv)
+    return;
   ::dgs_argc = argc;
   ::dgs_argv = argv;
   arg_used.resize(argc);

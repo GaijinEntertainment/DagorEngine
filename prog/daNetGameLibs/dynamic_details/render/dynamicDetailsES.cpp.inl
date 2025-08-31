@@ -298,14 +298,15 @@ static DynamicDetails apply_dynamic_details_preset(const ecs::Array &dynamic_det
 
 
 ECS_TAG(render)
-ECS_TRACK(skeleton_attach__attachedTo)
+ECS_REQUIRE(bool skeleton_attach__attached)
+ECS_TRACK(animchar_attach__attachedTo)
 ECS_ON_EVENT(on_appear)
 void dynamic_details_es_event_handler(const ecs::Event &,
   AnimV20::AnimcharRendComponent &animchar_render,
   const ecs::Object &dynamic_details__groups,
   const ecs::Array &dynamic_details__presets,
   const ecs::Array *dynamic_details_preset,
-  ecs::EntityId skeleton_attach__attachedTo)
+  ecs::EntityId animchar_attach__attachedTo)
 {
   static int detailVarId = get_shader_variable_id("dynamic_details");
   static int detailTransformVarId[4] = {get_shader_variable_id("dynamic_details_transform_0"),
@@ -319,7 +320,7 @@ void dynamic_details_es_event_handler(const ecs::Event &,
   }
   else
   {
-    int seed = ECS_GET_OR(skeleton_attach__attachedTo, appearance__rndSeed, 0);
+    int seed = ECS_GET_OR(animchar_attach__attachedTo, appearance__rndSeed, 0);
     if (!seed)
       seed = grnd();
     details = get_dynamic_details_indices(seed, dynamic_details__groups, dynamic_details__presets);
@@ -395,10 +396,8 @@ static bool dynamic_details_console_handler(const char *argv[], int argc)
       info_dynamic_details_selected_ecs_query(
         [&](ecs::EntityId eid,
           AnimV20::AnimcharRendComponent &animchar_render ECS_REQUIRE(const AnimV20::AnimcharBaseComponent &animchar,
-            const ecs::Object &dynamic_details__groups, const ecs::Array &dynamic_details__presets,
-            ecs::EntityId skeleton_attach__attachedTo, ecs::Tag daeditor__selected)) {
-          dynamic_details_write_debug_info(eid, animchar_render, dynamic_details_mgr);
-        });
+            const ecs::Object &dynamic_details__groups, const ecs::Array &dynamic_details__presets, bool skeleton_attach__attached,
+            ecs::Tag daeditor__selected)) { dynamic_details_write_debug_info(eid, animchar_render, dynamic_details_mgr); });
     });
   }
 

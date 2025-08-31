@@ -10,7 +10,7 @@
 #include <util/dag_convar.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
@@ -22,42 +22,9 @@
 #include <render/renderSettings.h>
 #include <render/world/frameGraphHelpers.h>
 #include <shaders/dag_overrideStateId.h>
+#include <render/ssssCommon.h>
 #include "ssss.h"
 
-#define SSSS_GLOBAL_VARS_LIST                \
-  VAR(ssss_transmittance_thickness_bias)     \
-  VAR(ssss_transmittance_thickness_min)      \
-  VAR(ssss_transmittance_thickness_scale)    \
-  VAR(ssss_transmittance_translucency_scale) \
-  VAR(ssss_transmittance_blur_scale)         \
-  VAR(ssss_transmittance_sample_count)       \
-  VAR(ssss_normal_offset)                    \
-  VAR(ssss_reflectance_blur_width)           \
-  VAR(ssss_reflectance_blur_quality)         \
-  VAR(ssss_reflectance_follow_surface)       \
-  VAR(ssss_reflectance_blur_pass)            \
-  VAR(use_ssss)                              \
-  VAR(ssss_quality)
-
-#define VAR(a) static int a##VarId = -1;
-SSSS_GLOBAL_VARS_LIST
-#undef VAR
-
-
-// Values should match use_ssss shader interval
-enum
-{
-  SSSS_OFF = 0,
-  SSSS_SUN_AND_DYNAMIC_LIGHTS = 1
-};
-
-// ssss_quality interval
-enum class SsssQuality
-{
-  OFF,
-  LOW, // Reflectance blur only
-  HIGH // Reflectance blur and trasmittance
-};
 
 static SsssQuality ssss_string_to_enum(const ecs::string &str)
 {
@@ -103,18 +70,8 @@ bool isSsssReflectanceBlurEnabled(const eastl::string &setting) { return ssss_st
 
 bool isSsssTransmittanceEnabled(const eastl::string &setting) { return ssss_string_to_enum(setting) == SsssQuality::HIGH; }
 
-static void ensure_shadervars_inited()
-{
-  if (ssss_transmittance_thickness_biasVarId < 0)
-  {
-#define VAR(a) a##VarId = ::get_shader_variable_id(#a, true);
-    SSSS_GLOBAL_VARS_LIST
-#undef VAR
-  }
-}
-
-static dabfg::NodeHandle makeSsssReflectanceHorizontalNode();
-static dabfg::NodeHandle makeSsssReflectanceVerticalNode();
+static dafg::NodeHandle makeSsssReflectanceHorizontalNode();
+static dafg::NodeHandle makeSsssReflectanceVerticalNode();
 
 template <typename Callable>
 inline void ssss_init_ecs_query(ecs::EntityId eid, Callable c);
@@ -127,7 +84,7 @@ static void ssss_settings_tracking_es(const ecs::Event &,
   bool render_settings__combinedShadows)
 {
   ssss_init_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("ssss")),
-    [&](dabfg::NodeHandle &ssss__horizontal_node, dabfg::NodeHandle &ssss__vertical_node) {
+    [&](dafg::NodeHandle &ssss__horizontal_node, dafg::NodeHandle &ssss__vertical_node) {
       ssss__horizontal_node = {};
       ssss__vertical_node = {};
 
@@ -148,7 +105,7 @@ static void ssss_settings_tracking_es(const ecs::Event &,
 
 static const float &get_vertical_fov_from_camera_params(const CameraParams &params) { return params.jitterPersp.hk; }
 
-static void request_common_blur_data(dabfg::Registry registry)
+static void request_common_blur_data(dafg::Registry registry)
 {
   shaders::OverrideState zFuncEqualState;
   zFuncEqualState.set(shaders::OverrideState::Z_FUNC);
@@ -157,7 +114,7 @@ static void request_common_blur_data(dabfg::Registry registry)
   registry.requestState().setFrameBlock("global_frame").enableOverride(zFuncEqualState);
 
   read_gbuffer(registry);
-  registry.readTexture("opaque_depth_with_water_before_clouds").atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
+  registry.readTexture("opaque_depth_with_water_before_clouds").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
   registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
 
   registry.read("current_camera")
@@ -165,28 +122,26 @@ static void request_common_blur_data(dabfg::Registry registry)
     .bindToShaderVar<&get_vertical_fov_from_camera_params>("ssss_reflectance_vertical_fov");
 }
 
-static dabfg::NodeHandle makeSsssReflectanceHorizontalNode()
+static dafg::NodeHandle makeSsssReflectanceHorizontalNode()
 {
-  return dabfg::register_node("ssss_reflectance_blur_horizontal_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("ssss_reflectance_blur_horizontal_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     request_common_blur_data(registry);
 
     const auto target_fmt = get_frame_render_target_format();
 
-    registry.create("ssss_intermediate_target", dabfg::History::No)
-      .texture({target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+    registry.create("ssss_intermediate_target", dafg::History::No)
+      .texture({target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+      .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-    registry.requestRenderPass()
-      .color({"ssss_intermediate_target"})
-      .depthRw("ssss_depth_mask")
-      .clear("ssss_intermediate_target", make_clear_value(0.f, 0.f, 0.f, 0.f));
+    registry.requestRenderPass().color({"ssss_intermediate_target"}).depthRw("ssss_depth_mask");
 
-    registry.read("opaque_with_envi").texture().atStage(dabfg::Stage::PS).bindToShaderVar("ssss_reflectance_blur_color_source_tex");
+    registry.read("opaque_with_envi").texture().atStage(dafg::Stage::PS).bindToShaderVar("ssss_reflectance_blur_color_source_tex");
     {
       // TODO: Experiment with linear depth sampler, original paper seems to use that in SSSS_FOLLOW_SURFACE part
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Point;
-      registry.create("ssss_reflectance_blur_sampler", dabfg::History::No)
+      registry.create("ssss_reflectance_blur_sampler", dafg::History::No)
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("ssss_reflectance_blur_color_source_tex_samplerstate");
     }
@@ -198,20 +153,20 @@ static dabfg::NodeHandle makeSsssReflectanceHorizontalNode()
   });
 }
 
-static dabfg::NodeHandle makeSsssReflectanceVerticalNode()
+static dafg::NodeHandle makeSsssReflectanceVerticalNode()
 {
-  return dabfg::register_node("ssss_reflectance_blur_vertical_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("ssss_reflectance_blur_vertical_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     request_common_blur_data(registry);
 
     registry.read("ssss_intermediate_target")
       .texture()
-      .atStage(dabfg::Stage::PS)
+      .atStage(dafg::Stage::PS)
       .bindToShaderVar("ssss_reflectance_blur_color_source_tex");
     {
       // TODO: Experiment with linear depth sampler, original paper seems to use that in SSSS_FOLLOW_SURFACE part
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      registry.create("ssss_intermediate_target_sampler", dabfg::History::No)
+      registry.create("ssss_intermediate_target_sampler", dafg::History::No)
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("ssss_reflectance_blur_color_source_tex_samplerstate");
     }

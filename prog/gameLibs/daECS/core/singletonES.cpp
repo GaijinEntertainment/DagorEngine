@@ -87,7 +87,7 @@ EntityId EntityManager::getOrCreateSingletonEntity(const HashedConstString name)
   auto newIt = singletonEntities.find(name.hash);
   if (newIt == singletonEntities.end())
   {
-    logerr("%s is not singletone!", name.str);
+    logerr("%s is not a singleton!", name.str);
     destroyEntity(eid);
   }
   else if (newIt->second != eid)

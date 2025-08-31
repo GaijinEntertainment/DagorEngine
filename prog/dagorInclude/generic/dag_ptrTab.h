@@ -17,7 +17,7 @@ public:
   PtrTab() = default;
   PtrTab(IMemAlloc *m) : BASE(m) {}
   PtrTab(const PtrTab &a) : BASE(a) {}
-  PtrTab(PtrTab &&a) : BASE((BASE &&) a) {}
+  PtrTab(PtrTab &&a) : BASE((BASE &&)a) {}
   PtrTab(const typename BASE::allocator_type &allocator) : BASE(allocator) {}
 
   PtrTab &operator=(const PtrTab &a)
@@ -28,7 +28,7 @@ public:
 
   PtrTab &operator=(PtrTab &&a)
   {
-    BASE::operator=((BASE &&) a);
+    BASE::operator=((BASE &&)a);
     return *this;
   }
 

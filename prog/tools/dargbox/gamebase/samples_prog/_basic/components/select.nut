@@ -22,8 +22,8 @@ let defStyle = {
 
 let mkSelItem = @(state, onClickCtor=null, isCurrent=null, textCtor=null, elemCtor = null, style=null) elemCtor==null ? function selItem(p, idx, list){
   let stateFlags = Watched(0)
-  isCurrent = isCurrent ?? @(p, _idx) p==state.value
-  let onClick = onClickCtor!=null ? onClickCtor(p, idx) : @() state(p)
+  isCurrent = isCurrent ?? @(pp, _idx) pp==state.get()
+  let onClick = onClickCtor!=null ? onClickCtor(p, idx) : @() state.set(p)
   let text = textCtor != null ? textCtor(p, idx, stateFlags) : p
   let {textOvr = {}, textCommonColor, textActiveColor, textHoverColor, borderColor, borderRadius, borderWidth,
         bkgActiveColor, bkgHoverColor, bkgNormalColor, padding} = defStyle.elemStyle.__merge(style ?? {})
@@ -39,7 +39,7 @@ let mkSelItem = @(state, onClickCtor=null, isCurrent=null, textCtor=null, elemCt
     return {
       size = SIZE_TO_CONTENT
       rendObj = ROBJ_BOX
-      onElemState = @(sf) stateFlags(sf)
+      onElemState = @(sf) stateFlags.set(sf)
       behavior = Behaviors.Button
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
@@ -48,7 +48,7 @@ let mkSelItem = @(state, onClickCtor=null, isCurrent=null, textCtor=null, elemCt
       watch = [stateFlags, state]
       children = {
         rendObj = ROBJ_TEXT, text=text,
-        color = (stateFlags.value & S_HOVER)
+        color = (stateFlags.get() & S_HOVER)
           ? textHoverColor
           : selected
             ? textActiveColor
@@ -65,7 +65,7 @@ let mkSelItem = @(state, onClickCtor=null, isCurrent=null, textCtor=null, elemCt
           : idx==list.len()-1
             ? [0,borderRadius, borderRadius, 0]
             : 0
-      fillColor = stateFlags.value & S_HOVER
+      fillColor = stateFlags.get() & S_HOVER
         ? bkgActiveColor
         : selected
           ? bkgHoverColor

@@ -31,9 +31,20 @@ AddIncludes =
 ;
 
 UseProgLibs =
+  gameLibs/landMesh/rendinstIntegration
   gameLibs/heightmap
   gameLibs/physMap
   3rdPartyLibs/eastl
 ;
+
+if $(Config) in dbg dev {
+  Sources += clipmapDebug.cpp ;
+  UseProgLibs += 
+    3rdPartyLibs/imgui
+    engine/imgui 
+  ;
+} else {
+  Sources += clipmapDebugStub.cpp ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

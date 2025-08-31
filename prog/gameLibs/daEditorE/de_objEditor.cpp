@@ -1105,6 +1105,7 @@ void ObjectEditor::handleKeyPress(int dkey, int modif)
             {
               case BASIS(none):
               case BASIS(world):
+              case BASIS(parent):
                 DAEDITOR4.setGizmoBasisType(BASIS(local));
                 updateGizmo();
                 break;

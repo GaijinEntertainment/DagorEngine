@@ -81,14 +81,14 @@ public:
         ShrinkIfNeeded();
     }
     void Reserve(SQInteger size) { _values.reserve(size); VT_RESERVE(size); }
-    void Append(const SQObject &o){_values.push_back(o); VT_PUSHBACK(o, _ss(this)->_root_vm); }
+    void Append(const SQObject &o){_values.push_back(SQObjectPtr(o)); VT_PUSHBACK(o, _ss(this)->_root_vm); }
     void Extend(const SQArray *a);
     SQObjectPtr &Top(){return _values.top();}
     void Pop(){_values.pop_back(); VT_POPBACK(); ShrinkIfNeeded(); }
     bool Insert(SQInteger idx,const SQObject &val){
         if(idx < 0 || idx > (SQInteger)_values.size())
             return false;
-        _values.insert(idx,val);
+        _values.insert(idx,SQObjectPtr(val));
         VT_INSERT(idx, val, _ss(this)->_root_vm);
         return true;
     }

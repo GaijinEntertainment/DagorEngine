@@ -18,6 +18,7 @@ UseProgLibs +=
 
 SourceES =
   soundGroupES.cpp.inl
+  animcharSoundES.cpp.inl
 ;
 
 Sources =

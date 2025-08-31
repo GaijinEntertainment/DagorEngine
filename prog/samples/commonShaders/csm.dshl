@@ -32,49 +32,13 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
 
     #include "./csm_shadow_tc.hlsl"
 
-    //##if is_gather4_supported == supported && !hardware.ps4
-      //on DX11, gather4 is supported on HLSL4.1, as well as shadow texture array. However, it work SLOWER, than atlas
-      //on OpenGL, shadow texture array should be part of OpenGL 3.3 Core, however, I can not check on a hradware which doesn't support textureGather,
-      //if it still supports texture array. So, until checked, let's assume it is required
-      //on PS4 everything is supported, but shadow texture array is not implemented yet
-    //##else
-    //  #define shadow_array_supported 0
-    //##endif
-    #if shadow_array_supported
-      ##if hardware.ps4 || hardware.dx11 || hardware.vulkan || hardware.metal
-      //SamplerComparisonState smSampler : register($shadow_cascade_depth_tex@smp);
-      sampler2DArray shadow_cascade_depth_tex : register($shadow_cascade_depth_tex@smp);
-      SamplerComparisonState csmSampler : register($shadow_cascade_depth_tex@shd);
-      ##else
-      #error unsupported target
-      ##endif
-    #else
-      ##if hardware.ps4 || hardware.dx11 || hardware.vulkan || hardware.metal
-      //SamplerComparisonState smSampler : register($shadow_cascade_depth_tex@smp);
-      SamplerComparisonState csmSampler : register($shadow_cascade_depth_tex@shd);
-      ##else
-      ##endif
-    #endif
+    fixed texCSMShadow ( float2 uv, float z)
+    {
+      return shadow2D(shadow_cascade_depth_tex, float3(uv.xy, z));
+    }
 
-    #if shadow_array_supported
-      fixed texCSMShadow ( float2 uv, float z, float id )
-      {
-        return shadow2DArray(shadow_cascade_depth_tex, float4(uv.xy, id, z));
-      }
-    #else
-      fixed texCSMShadow ( float2 uv, float z)
-      {
-        return shadow2D(shadow_cascade_depth_tex, float3(uv.xy, z));
-      }
-    #endif
-
-    #if shadow_array_supported
-    #define texCSMShadow2(a,b,c) texCSMShadow(a, b, c)
-    half get_pcf_csm_shadow(float4 depthShadowTC)
-    #else
     #define texCSMShadow2(a,b,c) texCSMShadow(a, b)
     half get_pcf_csm_shadow(float3 depthShadowTC)
-    #endif
     {
  
         /*fixed4 luma = fixed4(

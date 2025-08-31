@@ -66,7 +66,9 @@ static bool write_atlas_dds(FullFileSaveCB &fcwr, TexImage32 *im, const DataBloc
   ddstexture::Converter cvt;
   MemorySaveCB cwr;
 
-  const char *fmt = blk.getStr(String(0, "format_%s", mkbindump::get_target_str(ddsx_t)), blk.getStr("format", "rgba"));
+  uint64_t tc_storage = 0;
+  const char *fmt =
+    blk.getStr(String::mk_str_cat("format_", mkbindump::get_target_str(ddsx_t, tc_storage)), blk.getStr("format", "rgba"));
   int mips = blk.getInt("mips", 1);
 
   if (strcmp(fmt, "rgba") == 0)
@@ -649,6 +651,8 @@ int DagorWinMain(bool debugmode)
   //   printf ( "convert to DDSx, target: %c%c%c%c\n", _DUMP4C(ddsx_target));
 
   DataBlock d(dgs_argv[1]);
+  uint64_t tc_storage = 0;
+  const char *ddsx_tc_str = mkbindump::get_target_str(ddsx_target, tc_storage);
 
   premultAlpha |= d.getBool("conva", false);
   __mkbundle = d.getBool("mkbundle", __mkbundle);
@@ -659,10 +663,10 @@ int DagorWinMain(bool debugmode)
   dd = d.getBlockByName("Output");
   if (dd == NULL)
     error("output block wasn't found");
-  width = dd->getReal(String("width_") + mkbindump::get_target_str(ddsx_target), dd->getReal("width", 0));
+  width = dd->getReal(String::mk_str_cat("width_", ddsx_tc_str), dd->getReal("width", 0));
   if (width <= 0)
     error("width wasn't found or <=0");
-  height = dd->getReal(String("height_") + mkbindump::get_target_str(ddsx_target), dd->getReal("height", 0));
+  height = dd->getReal(String::mk_str_cat("height_", ddsx_tc_str), dd->getReal("height", 0));
   if (height <= 0)
     error("height wasn't found or <=0");
   String fname_base(dd_get_fname(dgs_argv[1]));
@@ -702,7 +706,7 @@ int DagorWinMain(bool debugmode)
   sortTextures(*d.getBlockByNameEx("Input"), texNames, width, height);
 
   String target_fname(0, "%s/%s", __cmd_outdir ? __cmd_outdir : d.getBlockByNameEx("Output")->getStr("outdir", "."), coordblk);
-  String cache_fname(0, "%s.%s.c4.bin", cmd_copyto ? target_fname : dgs_argv[1], mkbindump::get_target_str(ddsx_target));
+  String cache_fname(0, "%s.%s.c4.bin", cmd_copyto ? target_fname : dgs_argv[1], ddsx_tc_str);
   GenericBuildCache c4;
   bool uptodate = true;
   if (__mkbundle)
@@ -748,7 +752,7 @@ int DagorWinMain(bool debugmode)
   while (texNames.size())
   {
     makeAtlas(texNames, outNames, width, height, texName, blkName,
-      d.getBlockByNameEx("Output")->getInt(String(0, "margin_%s", mkbindump::get_target_str(ddsx_target)),
+      d.getBlockByNameEx("Output")->getInt(String::mk_str_cat("margin_", ddsx_tc_str),
         d.getBlockByNameEx("Output")->getInt("margin", 2)),
       d.getBlockByNameEx("Output")->getBool("mayFlip", false));
     texNames = eastl::move(outNames);
@@ -930,7 +934,9 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
 
     const char *crop_opt = out.getStr("autocrop", "auto");
     int mips = out.getInt("mips", 1);
-    const char *fmt = out.getStr(String(0, "format_%s", mkbindump::get_target_str(__ddsx_target)), out.getStr("format", "rgba"));
+    uint64_t tc_storage = 0;
+    const char *fmt =
+      out.getStr(String::mk_str_cat("format_", mkbindump::get_target_str(__ddsx_target, tc_storage)), out.getStr("format", "rgba"));
 
     if (strcmp(crop_opt, "auto") == 0)
     {

@@ -8,7 +8,7 @@ typedef BaseTexture Texture;
 
 void animated_splash_screen_start(bool do_encode = true);
 void animated_splash_screen_stop();
-void animated_splash_screen_draw(Texture *target);
+void animated_splash_screen_draw();
 void debug_animated_splash_screen();
 bool is_animated_splash_screen_started();
 bool is_animated_splash_screen_encoding();

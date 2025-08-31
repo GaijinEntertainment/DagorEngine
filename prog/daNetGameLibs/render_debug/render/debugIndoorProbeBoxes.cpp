@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/cameraParams.h>
 #include <render/lightProbeSpecularCubesContainer.h>
 #include <util/dag_console.h>
@@ -34,16 +34,16 @@ void set_up_debug_indoor_probe_boxes_entity(DebugIndoorProbeBoxesMode mode, Debu
   ShaderGlobal::set_real(get_shader_variable_id("debug_indoor_boxes_size"), scale);
   ecs::ComponentsInitializer init;
   init[ECS_HASH("debugIndoorProbeBoxesNode")] =
-    dabfg::register_node("debug_indoor_probe_boxes", DABFG_PP_NODE_SRC, [mode, depth](dabfg::Registry registry) {
-      auto pass = registry.requestRenderPass()
-                    .color({"target_for_transparency"})
-                    .depthRw(depth == DebugIndoorProbeBoxesDepth::GBUFFER
-                               ? registry.modifyTexture("depth_for_transparency")
-                               : registry.createTexture2d("debug_indoor_probe_boxes_depth", dabfg::History::No,
-                                   {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")}));
+    dafg::register_node("debug_indoor_probe_boxes", DAFG_PP_NODE_SRC, [mode, depth](dafg::Registry registry) {
+      registry.requestRenderPass()
+        .color({"target_for_transparency"})
+        .depthRw(depth == DebugIndoorProbeBoxesDepth::GBUFFER
+                   ? registry.modifyTexture("depth_for_transparency")
+                   : registry
+                       .createTexture2d("debug_indoor_probe_boxes_depth", dafg::History::No,
+                         {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+                       .clear(make_clear_value(0.f, 0)));
 
-      if (depth == DebugIndoorProbeBoxesDepth::BOXES)
-        pass = eastl::move(pass).clear("debug_indoor_probe_boxes_depth", make_clear_value(0.f, 0));
       registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
       return
         [mode, debugIndoorProbeBoxes = DynamicShaderHelper(

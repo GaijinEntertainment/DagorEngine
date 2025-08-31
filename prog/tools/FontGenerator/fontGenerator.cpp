@@ -202,7 +202,40 @@ static bool global_generateMissingGlyphBox = true;
 
 struct FontInfo
 {
+  struct FallBackFont
+  {
+    String file;
+    float htScale = 1.f;
+    unsigned includeBitCount = 0;
+    unicode_range_t include, exclude;
+    FreeTypeFont f;
+    bool forceAutoHinting = true;
+    bool ttfLazyLoad = false;
+    bool sysFontMark = false;
+    dag::Vector<String> systemNames;
+
+    void init(const DataBlock &fb_props, FontInfo &parent, bool def_lazy)
+    {
+      file = fb_props.getStr("file");
+      htScale = fb_props.getReal("size_scale", 1.0f);
+      bool icp = false;
+      FontInfo::makeUnicodeRange(fb_props, include, icp, parent);
+      includeBitCount = count_bits(include);
+      FontInfo::processRanges(*fb_props.getBlockByNameEx("exclude"), exclude);
+      forceAutoHinting = fb_props.getBool("forceAutoHinting", true);
+      ttfLazyLoad = fb_props.getBool("ttfLazyLoad", def_lazy);
+      sysFontMark = strncmp(file, "<system>", 8) == 0;
+      dblk::iterate_params_by_name_and_type(fb_props, "sysfont", DataBlock::TYPE_STRING,
+        [&](int pidx) { systemNames.push_back() = fb_props.getStr(pidx); });
+    }
+    void init1(const char *name, bool lazy)
+    {
+      file = name;
+      ttfLazyLoad = lazy;
+    }
+  };
   const char *file;
+  Tab<FallBackFont> fallBackFonts;
   String name;
   SimpleString atlas;
   const char *cpfile;
@@ -210,7 +243,8 @@ struct FontInfo
   String defName;
   double size;
   bool monochrome;
-  bool forceAutoHinting, checkExtents;
+  bool forceAutoHinting = true, checkExtents = false;
+  bool ttfLazyLoad = false;
   Tab<int> hRes;
   dag::Vector<FontInfo> additional;
   Tab<unicode_range_t> monoWdGrp;
@@ -273,8 +307,9 @@ struct FontInfo
     clear_all_ptr_items(rasterImg);
   }
 
-  bool load(const DataBlock &blk, int i, const char *def_prefix, const char *def_cp, const char *def_atlas, float def_sz,
-    int def_valve_upscale, bool symm_el, float size_multiplier = 1.0, int size_pixels_by_screenheight = 0, const char *suffix = "")
+  bool load(const DataBlock &blk, const DataBlock *fbFontsBlk, int i, const char *def_prefix, const char *def_cp,
+    const char *def_atlas, float def_sz, int def_valve_upscale, bool symm_el, float size_multiplier = 1.0,
+    int size_pixels_by_screenheight = 0, const char *suffix = "")
   {
     defName.printf(11, "%d", i);
     name.printf(0, "%s%s", blk.getStr("name", defName), suffix);
@@ -297,6 +332,19 @@ struct FontInfo
     symbCharMap = blk.getBool("symbCharMap", false);
     remapPrivate = blk.getBool("remapPrivate", false);
     file = blk.getStr("file", NULL);
+    bool def_lazy = fbFontsBlk ? fbFontsBlk->getBool("def_ttfLazyLoad", false) : false;
+    if (const DataBlock *b = blk.getBlockByName("fallback_fonts"))
+    {
+      fbFontsBlk = b;
+      def_lazy = fbFontsBlk->getBool("def_ttfLazyLoad", def_lazy);
+    }
+    if (fbFontsBlk)
+    {
+      dblk::iterate_child_blocks_by_name(*fbFontsBlk, "font",
+        [this, def_lazy](const DataBlock &f_blk) { fallBackFonts.push_back().init(f_blk, *this, def_lazy); });
+      dblk::iterate_params_by_name_and_type(*fbFontsBlk, "font", DataBlock::TYPE_STRING,
+        [&](int pidx) { fallBackFonts.push_back().init1(fbFontsBlk->getStr(pidx), def_lazy); });
+    }
 
     if (blk.getStr("subset", NULL))
     {
@@ -367,6 +415,7 @@ struct FontInfo
 
     monochrome = blk.getBool("bw", false);
     forceAutoHinting = blk.getBool("forceAutoHinting", true);
+    ttfLazyLoad = blk.getBool("ttfLazyLoad", false);
     checkExtents = blk.getBool("checkExtents", false);
 
     if (size < 0)
@@ -1130,14 +1179,16 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
 
   String cache_fname;
   String dest_target_fname;
+  uint64_t tc_storage = 0;
+  const char *tc_str = mkbindump::get_target_str(target, tc_storage);
   if (copyto_dir)
   {
-    cache_fname.printf(0, "%s.%s.c4.bin", target_fname, mkbindump::get_target_str(target));
+    cache_fname.printf(0, "%s.%s.c4.bin", target_fname, tc_str);
     dest_target_fname.printf(0, "%s/%s", copyto_dir, target_fname + strlen(info[0]->prefix));
     dd_mkpath(dest_target_fname);
   }
   else
-    cache_fname.printf(0, "%s-%s.%s.c4.bin", cfgBlk.resolveFilename(), dd_get_fname(target_fname), mkbindump::get_target_str(target));
+    cache_fname.printf(0, "%s-%s.%s.c4.bin", cfgBlk.resolveFilename(), dd_get_fname(target_fname), tc_str);
   GenericBuildCache c4;
   bool uptodate = true;
 
@@ -1161,6 +1212,9 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
   {
     if (c4.checkFileChanged(info[i]->file))
       uptodate = false;
+    for (const auto &f : info[i]->fallBackFonts)
+      if (c4.checkFileChanged(f.file))
+        uptodate = false;
     iterate_names(info[i]->extFilesUsed, [&](int, const char *name) {
       if (c4.checkFileChanged(name))
         uptodate = false;
@@ -1199,6 +1253,7 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
     if (copyto_dir)
     {
       MutexAutoAcquire mutexAa2(copyto_dir);
+      dd_mkdir(copyto_dir);
       iterate_names(c4.getNameList(), [&](int, const char *name) {
         if (strncmp(name, dest_dir, dest_dir_len) == 0)
           if (const char *ext = dd_get_fname_ext(name))
@@ -1941,14 +1996,14 @@ static void stdout_report_fatal_error(const char *title, const char *msg, const 
   fflush(stdout);
 }
 
-static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<FontInfo> fontPack,
-  const DataBlock *fallback_fonts_blk, const char *copyto_dir)
+static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<FontInfo> fontPack, const char *copyto_dir,
+  bool make_Ranges_txt)
 {
   DataBlock dynFontBlk;
 
   for (auto &f : fontPack)
   {
-    if (fallback_fonts_blk)
+    if (f.fallBackFonts.size())
     {
       FreeTypeFont generalFont;
       unicode_range_t missingSym;
@@ -1957,10 +2012,21 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
         logerr("failed to open font: %s", f.file);
         return;
       }
-      for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
-        if (f.include.getIter(i, inc))
-          if (!f.exclude.get(i) && generalFont.get_char_index(i) == 0)
+      if (count_bits(f.include))
+      {
+        for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
+          if (f.include.getIter(i, inc))
+            if (!f.exclude.get(i) && generalFont.get_char_index(i) == 0)
+              missingSym.set(i);
+      }
+      else
+      {
+        for (int i = 1; i < missingSym.FULL_SZ; i++)
+          if (generalFont.get_char_index(i) == 0)
             missingSym.set(i);
+      }
+
+      unicode_range_t addSym;
       for (auto &af : f.additional)
       {
         if (!loadFreeTypeFont(af, 10, generalFont))
@@ -1970,92 +2036,143 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
         }
         for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
           if (af.include.getIter(i, inc))
-            if (!af.exclude.get(i))
+            if (!af.exclude.get(i) && !addSym.get(i))
             {
+              addSym.set(i);
               if (generalFont.get_char_index(i) == 0)
                 missingSym.set(i);
               else
                 missingSym.clr(i);
             }
       }
-      int missing_cnt = count_bits(missingSym);
-      printf("\nNOTE: found %d missing unicode chars for '%s'\n", missing_cnt, f.name.str());
 
-      int last_fallback_font_idx = -1;
-      auto setup_fallback = [&](const char *af_name, const DataBlock &af_props) {
-        unicode_range_t fbIncludeSym, fbExcludeSym;
-        bool explicit_ranges_used = false;
-        FontInfo::processRanges(af_props, fbIncludeSym);
-        FontInfo::processRanges(*af_props.getBlockByNameEx("exclude"), fbExcludeSym);
-        if (count_bits(fbIncludeSym))
-        {
-          explicit_ranges_used = true;
-          for (int i = 1, inc = 1; i < fbIncludeSym.FULL_SZ; i += inc)
-            if (fbIncludeSym.getIter(i, inc) && (!missingSym.get(i) || fbExcludeSym.get(i)))
-              fbIncludeSym.clr(i);
-        }
-        else
-        {
-          for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
-            if (missingSym.getIter(i, inc) && !fbExcludeSym.get(i))
-              fbIncludeSym.set(i);
-        }
-        if (!count_bits(fbIncludeSym))
-          return;
-
-        FontInfo &af = f.additional.push_back();
-        af.file = af_name;
-        dblk::iterate_params_by_name_and_type(af_props, "sysfont", DataBlock::TYPE_STRING,
-          [&](int pidx) { af.systemNames.push_back(String(af_props.getStr(pidx))); });
-
-        af.size = f.size;
-        af.include = fbIncludeSym;
-        if (strncmp(af.file, "<system>", 8) == 0)
-          return;
-
-        if (!loadFreeTypeFont(af, 10, generalFont))
-        {
-          logerr("failed to open font: %s", af.file);
-          return;
-        }
-        for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
-          if (af.include.getIter(i, inc))
-          {
-            if (generalFont.get_char_index(i) == 0)
-              af.include.clr(i);
-            else
-              missingSym.clr(i), missing_cnt--;
-          }
-        int subst_cnt = count_bits(af.include);
-        if (!subst_cnt)
-          f.additional.pop_back();
-        else
-        {
-          printf("NOTE: reusing %d unicode chars from fallback font: %s\n", subst_cnt, af.file);
-          if (!explicit_ranges_used)
-            last_fallback_font_idx = f.additional.size() - 1;
-        }
-      };
-      dblk::iterate_child_blocks_by_name(*fallback_fonts_blk, "font", [&](const DataBlock &b) {
-        if (missing_cnt)
-          setup_fallback(b.getStr("file", "?"), b);
-      });
-      dblk::iterate_params_by_name_and_type(*fallback_fonts_blk, "font", DataBlock::TYPE_STRING, [&](int pidx) {
-        if (missing_cnt)
-          setup_fallback(fallback_fonts_blk->getStr(pidx), DataBlock::emptyBlock);
-      });
-
-      if (missing_cnt && last_fallback_font_idx != -1)
+      if (int missing_cnt = count_bits(missingSym))
       {
-        FontInfo &af = f.additional[last_fallback_font_idx];
-        printf("NOTE: '%s': unresolved %d missing unicode chars left; redirecting to last font: %s\n", f.name.str(), missing_cnt,
-          af.file);
+        printf("\nNOTE: found %d missing unicode chars for '%s'\n", missing_cnt, f.name.str());
+        for (auto &fbf : f.fallBackFonts)
+          if (!fbf.sysFontMark)
+            fbf.f.import_ttf(fbf.file, f.symbCharMap);
+
+        Tab<unsigned> resoved_cnt;
+        resoved_cnt.resize(f.fallBackFonts.size(), 0);
+        Tab<unicode_range_t> fb_used;
+        fb_used.resize(f.fallBackFonts.size());
+        int last_cidx = -1, last_fbidx = -1;
         for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
           if (missingSym.getIter(i, inc))
-            af.include.set(i);
+          {
+            for (auto &fbf : f.fallBackFonts)
+              if ((!fbf.includeBitCount || (fbf.include.get(i) && !fbf.exclude.get(i))) &&
+                  (fbf.sysFontMark || fbf.f.get_char_index(i) != 0))
+              {
+                missing_cnt--;
+                last_cidx = i;
+                last_fbidx = &fbf - f.fallBackFonts.data();
+                resoved_cnt[last_fbidx]++;
+                fb_used[last_fbidx].set(i);
+                break;
+              }
+            if (last_cidx != i)
+            {
+              if (i == last_cidx + 1 && last_fbidx >= 0)
+                fb_used[last_fbidx].set(i);
+              else
+                last_fbidx = -1;
+              last_cidx = i;
+            }
+          }
+        for (auto &fbf : f.fallBackFonts)
+          fbf.f.close_ttf();
+
+        int initial_add_cnt = f.additional.size();
+        for (const auto &fbf : f.fallBackFonts)
+          if (unsigned cnt = resoved_cnt[&fbf - f.fallBackFonts.data()])
+          {
+            printf("NOTE: reusing %d unicode chars from fallback font: %s\n", cnt, fbf.file.c_str());
+            FontInfo &af = f.additional.push_back();
+            af.file = fbf.file;
+            af.size = f.size * fbf.htScale;
+            af.include = fb_used[&fbf - f.fallBackFonts.data()];
+            af.forceAutoHinting = fbf.forceAutoHinting;
+            af.ttfLazyLoad = fbf.ttfLazyLoad;
+            af.systemNames = fbf.systemNames;
+            for (int afi = 0; afi < initial_add_cnt; afi++)
+              for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
+                if (af.include.getIter(i, inc))
+                  f.additional[afi].include.clr(i);
+          }
+        if (missing_cnt)
+          printf("NOTE: '%s': unresolved %d missing unicode chars left\n", f.name.str(), missing_cnt);
+
+        if (make_Ranges_txt)
+        {
+          Tab<FreeTypeFont> ttf;
+          ttf.reserve(f.additional.size() + 1);
+          loadFreeTypeFont(f, 10, ttf.push_back());
+          for (const auto &af : f.additional)
+            loadFreeTypeFont(af, 10, ttf.push_back());
+
+          struct CharRange
+          {
+            wchar_t start = 1, cnt = 0, missing = 0;
+            short fontIdx = -1;
+          };
+          Tab<CharRange> ranges;
+          ranges.push_back();
+          for (int i = 1; i < missingSym.FULL_SZ; i++)
+          {
+            int font_idx = -1;
+            for (const auto &af : f.additional)
+              if (af.include.get(i) && !af.exclude.get(i))
+              {
+                font_idx = &af - f.additional.data();
+                break;
+              }
+            if (font_idx == ranges.back().fontIdx)
+              ranges.back().cnt++;
+            else
+            {
+              ranges.push_back();
+              ranges.back().fontIdx = font_idx;
+              ranges.back().start = i;
+              ranges.back().cnt = 1;
+            }
+            if (!ttf[font_idx + 1].get_char_index(i))
+              ranges.back().missing++;
+          }
+          ttf.clear();
+
+          file_ptr_t fp = df_open(String(0, "%s_%s_dump.utf8.txt", dd_get_fname(dest_fn), f.name), DF_CREATE | DF_WRITE);
+          for (const auto &r : ranges)
+            if (r.fontIdx != -1)
+            {
+              if (r.cnt == 1)
+                df_printf(fp, "%c%d (u%04X%s): ", r.fontIdx < initial_add_cnt ? 'a' : 'F', r.fontIdx + 1, r.start,
+                  r.missing ? " MISSING" : "");
+              else if (r.missing)
+                df_printf(fp, "%c%d (u%04X...u%04X, missing=%d/%d):%s", r.fontIdx < initial_add_cnt ? 'a' : 'F', r.fontIdx + 1,
+                  r.start, r.start + r.cnt - 1, r.missing, r.cnt, r.cnt > 30 ? "\n" : " ");
+              else
+                df_printf(fp, "%c%d (u%04X...u%04X):%s", r.fontIdx < initial_add_cnt ? 'a' : 'F', r.fontIdx + 1, r.start,
+                  r.start + r.cnt - 1, r.cnt > 30 ? "\n" : " ");
+              char utf8_buf[32 * 6 + 1];
+              if (r.start > 1)
+                df_printf(fp, "<R>%s</R> <W>", wchar_to_utf8(r.start - 1, utf8_buf, sizeof(utf8_buf)));
+              for (unsigned cnt = r.cnt, s = r.start; cnt > 0;)
+              {
+                for (unsigned e = s + (cnt < 32 ? cnt : 32); s < e; s++, cnt--)
+                  df_printf(fp, "%s", wchar_to_utf8(s, utf8_buf, sizeof(utf8_buf)));
+                if (cnt >= 32)
+                  df_printf(fp, "\n");
+              }
+              if (unsigned(r.start) + r.cnt <= 0xFFFFu)
+                df_printf(fp, "</W> <R>%s</R>\n", wchar_to_utf8(r.start + r.cnt, utf8_buf, sizeof(utf8_buf)));
+              else
+                df_printf(fp, "</W>\n");
+            }
+          df_close(fp);
+        }
       }
-      else
-        printf("NOTE: '%s': unresolved %d missing unicode chars left\n", f.name.str(), missing_cnt);
     }
 
     DataBlock b;
@@ -2150,6 +2267,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
       b2.setReal("htScale", sz_scale);
       if (!af.forceAutoHinting)
         b2.setBool("forceAutoHint", af.forceAutoHinting);
+      if (af.ttfLazyLoad)
+        b2.setBool("lazyLoad", af.ttfLazyLoad);
 
       for (int i = 0, idx = &af - f.additional.data(); i < sym_ranges.size(); i++)
         if (sym_ranges[i].x == idx)
@@ -2291,9 +2410,10 @@ int DagorWinMain(bool debugmode)
   float size_multiplier = blk.getReal("sizeMultiplier", 1.0);
   int size_pixels_by_screenheight = blk.getInt("sizeByScreenHeight", 0);
   bool symmEL = blk.getBool("symmetricExtLeading", false);
-  DataBlock *resblk = blk.getBlockByName("hRes");
-  DataBlock *incblk = blk.getBlockByName("include");
-  DataBlock *excblk = blk.getBlockByName("exclude");
+  const DataBlock *resblk = blk.getBlockByName("hRes");
+  const DataBlock *incblk = blk.getBlockByName("include");
+  const DataBlock *excblk = blk.getBlockByName("exclude");
+  const DataBlock *fbFontsBlk = blk.getBlockByName("fallback_fonts");
   int valve_upscale = blk.getInt("vUpscale", 1);
   sizeRestrBlk = blk.getBlockByNameEx("sizeRestrictions");
   global_generateMissingGlyphBox = blk.getBool("generateMissingGlyphBox", true);
@@ -2316,7 +2436,8 @@ int DagorWinMain(bool debugmode)
     if (const DataBlock *b = blk.getBlockByName("dynamic"))
       f.markDynamic(*b);
 
-    if (!f.load(fblk, i, prefix, cp, masterAtlas, 0, valve_upscale, symmEL, size_multiplier, size_pixels_by_screenheight, suffix))
+    if (!f.load(fblk, fbFontsBlk, i, prefix, cp, masterAtlas, 0, valve_upscale, symmEL, size_multiplier, size_pixels_by_screenheight,
+          suffix))
       fontPack.pop_back();
 
     for (int j = 0; j < fblk.blockCount(); ++j)
@@ -2329,7 +2450,7 @@ int DagorWinMain(bool debugmode)
 
       addFont.include = f.include;
       addFont.exclude = f.exclude;
-      if (!addFont.load(addBlk, i, prefix, cp, masterAtlas, f.size, valve_upscale, symmEL, size_multiplier,
+      if (!addFont.load(addBlk, nullptr, i, prefix, cp, masterAtlas, f.size, valve_upscale, symmEL, size_multiplier,
             size_pixels_by_screenheight, suffix))
         f.additional.pop_back();
     }
@@ -2345,7 +2466,7 @@ int DagorWinMain(bool debugmode)
   {
     build_config_for_fully_dynamic_fonts(
       String(0, "%s/%s.dynFont.blk", blk.getStr("copyto", prefix), masterAtlas ? masterAtlas : "all"), make_span(fontPack),
-      blk.getBlockByName("fallback_fonts"), blk.getStr("copyto", prefix));
+      blk.getStr("copyto", prefix), blk.getBool("makeRangesTxt", false));
     fontPack.clear();
     return 0;
   }

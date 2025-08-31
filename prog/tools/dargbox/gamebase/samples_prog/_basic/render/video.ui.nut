@@ -12,7 +12,7 @@ return {
   valign = ALIGN_CENTER
 
   children = {
-    size = [sh(60), sh(40)]
+    size = static [sh(60), sh(40)]
     rendObj = ROBJ_MOVIE
     movie = "ui/gaijin.ogg"
     behavior = Behaviors.Movie

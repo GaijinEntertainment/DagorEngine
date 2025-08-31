@@ -1,7 +1,7 @@
 ﻿from "%darg/ui_imports.nut" import *
 
 // Activate XMB navigation using keyboard
-require("daRg").gui_scene.config.kbCursorControl = true
+require("daRg").gui_scene.setConfigProps({kbCursorControl= true})
 
 let cursors = require("samples_prog/_cursors.nut")
 
@@ -13,7 +13,7 @@ let info = {
   text = @"Use arrows to navigate.
     Press Space to reorder XMB nodes.
     Their traverse order will not be recalculated."
-  size = [pw(80), SIZE_TO_CONTENT]
+  size = static [pw(80), SIZE_TO_CONTENT]
   halign = ALIGN_CENTER
 }
 
@@ -22,7 +22,7 @@ function node(id) {
     key = id
     rendObj = ROBJ_SOLID
     color = Color(100,180,50)
-    size = [sh(10), sh(10)]
+    size = sh(10)
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     children = {
@@ -40,7 +40,7 @@ let xmb = @() {
   xmbNode = XmbContainer()
   flow = FLOW_HORIZONTAL
   gap = sh(5)
-  children = order.value.map(@(i) node(i))
+  children = order.get().map(@(i) node(i))
   hotkeys = [
     ["Space", @() order.mutate(@(v) v.reverse())]
   ]

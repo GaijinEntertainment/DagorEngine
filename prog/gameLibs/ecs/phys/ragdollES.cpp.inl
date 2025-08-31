@@ -24,7 +24,7 @@ public:
   void create(void *d, ecs::EntityManager &mgr, ecs::EntityId eid, const ecs::ComponentsMap &, ecs::component_index_t) override
   {
     *(ecs::PtrComponentType<PhysRagdoll>::ptr_type(d)) = nullptr;
-    AnimV20::AnimcharBaseComponent &animchar = g_entity_mgr->getRW<AnimV20::AnimcharBaseComponent>(eid, ECS_HASH("animchar"));
+    AnimV20::AnimcharBaseComponent &animchar = mgr.getRW<AnimV20::AnimcharBaseComponent>(eid, ECS_HASH("animchar"));
 
     PhysRagdoll *ragdoll = PhysRagdoll::create(animchar.getPhysicsResource(), dacoll::get_phys_world());
     G_ASSERT_RETURN(ragdoll, );
@@ -146,7 +146,11 @@ inline void ragdoll_start_es_event_handler(const ParallelUpdateFrameDelayed &inf
     for (int i = 0; i < physSys->getBodyCount(); ++i)
     {
       PhysBody *b = physSys->getBody(i);
-      b->setVelocity(b->getVelocity() + impulse);
+      Point3 resVel = b->getVelocity() + impulse;
+      const float resBodyVelMagnitude = resVel.length();
+      if (projectile_impulse__maxVelocity > 0.f && resBodyVelMagnitude > projectile_impulse__maxVelocity)
+        resVel *= safediv(projectile_impulse__maxVelocity, resBodyVelMagnitude);
+      b->setVelocity(resVel);
     }
   }
 
@@ -179,18 +183,24 @@ inline void ragdoll_alive_es_event_handler(const EventOnPhysImpulse &evt, Projec
 
 ECS_REQUIRE(eastl::false_type isAlive)
 inline void ragdoll_dead_es_event_handler(const EventOnPhysImpulse &evt, ragdoll_t &ragdoll, ProjectileImpulse &projectile_impulse,
-  float projectile_impulse__impulseSaveDeltaTime = 1.f, float projectile_impulse__cinematicArtistryMultDead = 5.f)
+  float projectile_impulse__impulseSaveDeltaTime = 1.f, float projectile_impulse__cinematicArtistryMultDead = 5.f,
+  float projectile_impulse__maxSingleImpulse = 0.01f)
 {
   const float curTime = evt.get<0>();
   int collNodeId = evt.get<1>();
   const Point3 pos = evt.get<2>();
-  const Point3 impulse = evt.get<3>();
+  Point3 impulse = evt.get<3>();
+
   if (!check_nan(pos) && !check_nan(impulse) && lengthSq(impulse) < 1e10f)
   {
     if (!ragdoll.isCanApplyNodeImpulse())
       save_projectile_impulse(curTime, projectile_impulse, collNodeId, pos, impulse, projectile_impulse__impulseSaveDeltaTime);
     else if (projectile_impulse__cinematicArtistryMultDead != 0)
+    {
+      if (impulse.lengthSq() > sqr(projectile_impulse__maxSingleImpulse))
+        impulse *= safediv(projectile_impulse__maxSingleImpulse, impulse.length());
       ragdoll.applyImpulse(collNodeId, pos, impulse * projectile_impulse__cinematicArtistryMultDead);
+    }
   }
   else
     logerr("EventOnPhysImpulse with invalid data for dead body pos = %f %f %f impulse = %f %f %f ", pos.x, pos.y, pos.z, impulse.x,

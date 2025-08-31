@@ -8,7 +8,6 @@
 
 #include <math/dag_mathBase.h>
 // #include <math.h>
-#include <math/random/dag_random.h>
 #include <math/dag_noise.h>
 
 #define MAX_OCTAVES 50
@@ -122,7 +121,7 @@ float noise2(float vec[2])
   sx = s_curve(rx0);
   sy = s_curve(ry0);
 
-#define at2(rx, ry) ((rx)*q[0] + (ry)*q[1])
+#define at2(rx, ry) ((rx) * q[0] + (ry) * q[1])
 
   q = perlin_g2[b00];
   u = at2(rx0, ry0);
@@ -161,7 +160,7 @@ float noise3(float vec[3])
   sy = s_curve(ry0);
   sz = s_curve(rz0);
 
-#define at3(rx, ry, rz) ((rx)*q[0] + (ry)*q[1] + (rz)*q[2])
+#define at3(rx, ry, rz) ((rx) * q[0] + (ry) * q[1] + (rz) * q[2])
 
   q = perlin_g3[b00 + bz0];
   u = at3(rx0, ry0, rz0);
@@ -232,7 +231,12 @@ static void normalize3(float v[3])
 
 void init_noise(int perlin_seed)
 {
-#define random() _rnd(perlin_seed)
+  int &seed = perlin_seed;
+  auto random = [&]() {
+    unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039;
+    seed = (int)a;
+    return int((a >> 16) & 0x7FFF);
+  };
   int i, j, k;
 
   for (i = 0; i < B; i++)
@@ -266,7 +270,6 @@ void init_noise(int perlin_seed)
     for (j = 0; j < 3; j++)
       perlin_g3[B + i][j] = perlin_g3[i][j];
   }
-#undef random
 }
 
 

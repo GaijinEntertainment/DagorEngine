@@ -24,6 +24,26 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
     AutoLockReadPrimaryAndExtra lock;
     TMatrix tm = rendinst::getRIGenMatrixNoLock(desc);
     const char *name = rendinst::getRIGenResName(desc);
+    const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
+    rendinst::RiExtraPool &rxPool = rendinst::riExtra[desc.pool];
+    int riPoolRef = desc.isRiExtra() ? rxPool.riPoolRef : desc.pool;
+    const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[riPoolRef];
+
+    draw_cached_matrix_axis(tm);
+
+    BBox3 fullBb = rendinst::getRIGenFullBBox(desc);
+    draw_cached_debug_box(fullBb, E3DCOLOR(0xFF00C0FF), tm);
+
+    BBox3 colBb = rendinst::getRIGenBBox(desc);
+    draw_cached_debug_box(colBb, E3DCOLOR(0xFFFFC000), tm);
+
+    // canopy bbox
+    if (!desc.isRiExtra() && (uint32_t)desc.pool < rgl->rtData->riProperties.size())
+    {
+      BBox3 canopyBox;
+      rendinst::getRIGenCanopyBBox(riProp, fullBb, canopyBox);
+      draw_cached_debug_box(canopyBox, E3DCOLOR(0xFF08FF08), tm);
+    }
 
     float markOffsetScale = dist * 0.22f;
     Point3 markPos = intersection_pos + cam_tm.getcol(0) * markOffsetScale + cam_tm.getcol(1) * markOffsetScale * 0.75f;
@@ -43,18 +63,15 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
     {
       addLine("Cell=%i Pool=i Idx=%i Offs=%i Layer=%i", desc.cellIdx, desc.pool, desc.idx, desc.offs, desc.layer);
       addLine("riExtra.handle = %llx", desc.getRiExtraHandle());
-      addLine(" collRes: %s", rendinst::riExtra[desc.pool].collRes ? "yes" : "no");
-      addLine(" bsphXYZR: (%.1f %.1f %.1f) r=%.1f", V4D(rendinst::riExtra[desc.pool].bsphXYZR));
-      addLine(" riPoolRef: %i", rendinst::riExtra[desc.pool].riPoolRef);
-      addLine(" posInst: %i; isWalls: %i", rendinst::riExtra[desc.pool].posInst, rendinst::riExtra[desc.pool].isWalls);
-      addLine(" hp: %.1f/%.1f; immortal: %i", rendinst::riExtra[desc.pool].getHp(desc.idx), rendinst::riExtra[desc.pool].initialHP,
-        rendinst::riExtra[desc.pool].immortal);
+      addLine(" collRes: %s", rxPool.collRes ? "yes" : "no");
+      addLine(" bsphXYZR: (%.1f %.1f %.1f) r=%.1f", V4D(rxPool.bsphXYZR));
+      addLine(" riPoolRef: %i", rxPool.riPoolRef);
+      addLine(" posInst: %i; isWalls: %i", rxPool.posInst, rxPool.isWalls);
+      addLine(" hp: %.1f/%.1f; immortal: %i", rxPool.getHp(desc.idx), rxPool.initialHP, rxPool.immortal);
     }
-    RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-    int riPoolRef = desc.isRiExtra() ? rendinst::riExtra[desc.pool].riPoolRef : desc.pool;
     addLine("riProperties[%i]", riPoolRef);
-    addLine(" matId: %i", rgl->rtData->riProperties[riPoolRef].matId);
-    addLine(" immortal: %i", rgl->rtData->riProperties[riPoolRef].immortal);
+    addLine(" matId: %i", riProp.matId);
+    addLine(" immortal: %i", riProp.immortal);
     addLine("tm.scale: %.1f %.1f %.1f", length(tm.getcol(0)), length(tm.getcol(1)), length(tm.getcol(2)));
     addLine("tm.pos: %.1f %.1f %.1f", P3D(tm.getcol(3)));
   }

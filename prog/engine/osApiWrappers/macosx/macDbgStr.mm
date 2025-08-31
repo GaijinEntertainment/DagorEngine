@@ -51,9 +51,9 @@ const char *get_logging_directory() { return ""; }
 static bool only_file_log = false;
 static bool copy_log_to_console = false;
 
-void set_debug_console_ios_file_output()
+void set_debug_console_ios_file_output(bool val)
 {
-  only_file_log = true;
+  only_file_log = val;
   out_debug_console_handle = (intptr_t)stdout;
 }
 
@@ -62,9 +62,9 @@ bool is_debug_console_ios_file_output()
   return only_file_log;
 }
 
-void enable_copy_debug_to_ios_console()
+void set_copy_debug_to_ios_console(bool val)
 {
-  copy_log_to_console = true;
+  copy_log_to_console = val;
 }
 
 bool is_enabled_copy_debug_to_ios_console()

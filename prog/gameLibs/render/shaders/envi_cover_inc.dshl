@@ -1,0 +1,233 @@
+include "sparkles.dshl"
+
+float4 envi_cover_albedo = (0.8, 0.98, 1.000, 0.000);
+float4 envi_cover_specular_color = (0.500, 0.500, 0.500, 0.000);
+float envi_cover_translucency = 1;
+float envi_cover_smoothness = 0.35;
+float envi_cover_reflectance = 0.8;
+float envi_cover_normal_infl = -0.5;
+float4 envi_cover_normal = (0.000, 1.000, 0.100, 0.000);
+int envi_cover = 0;
+int envi_cover_is_temporal_aa always_referenced;
+int envi_cover_frame_idx always_referenced;
+float envi_cover_noise_high_frequency = 5;
+float envi_cover_noise_low_frequency = 0.1;
+float envi_cover_y_clamp_from_pos = 1;
+float envi_cover_depth_smoothstep_max = 0.1;
+float envi_cover_depth_pow_exponent = 0.125;
+
+float envi_cover_noise_mask_factor = 0.3;
+float envi_cover_depth_mask_threshold = 0.45;
+float envi_cover_normal_mask_threshold = 0.3;
+float envi_cover_depth_mask_contrast = 1;
+float envi_cover_normal_mask_contrast = 1.5;
+texture envi_cover_intensity_map;
+float4 envi_cover_intensity_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
+float envi_cover_water_level_fade_factor = 2.0;
+float envi_cover_lowest_intensity = 0.0;
+float envi_compatibility_intensity = 0.0;
+float4 envi_cover_thresholds always_referenced; //Need for NBS
+float4 envi_cover_normal_influenced always_referenced;  //Need for NBS
+float4 envi_cover_intensity_map_scale_offset always_referenced; //Need for NBS
+
+macro INIT_ENVI_COVER_NOISE(code, use_own_sampler, linear_sampler_state)
+  if (use_own_sampler)
+  {
+    (code) {
+      noise_128_tex_hash@smp2d = noise_128_tex_hash;
+    }
+    hlsl(code) {
+      #define noise_linear_sampler_state noise_128_tex_hash_samplerstate
+    }
+  }
+  else
+  {
+    (code) {
+      noise_128_tex_hash@tex = noise_128_tex_hash hlsl { Texture2D<float> noise_128_tex_hash@tex; }
+    }
+    hlsl(code) {
+      #define noise_linear_sampler_state linear_sampler_state
+    }
+  }
+  hlsl(code) {
+    #define USE_NOISE_128_TEX_HASH 1
+  }
+endmacro
+
+macro INIT_ENVI_COVER_INTENSITY_MAP(code, use_own_sampler, linear_sampler_state)
+(code) {
+  envi_cover_intensity_map_scale_offset_params@f4 = (
+    1.0 / (envi_cover_intensity_map_left_top_right_bottom.z - envi_cover_intensity_map_left_top_right_bottom.x),
+    1.0 / (envi_cover_intensity_map_left_top_right_bottom.w - envi_cover_intensity_map_left_top_right_bottom.y),
+    -envi_cover_intensity_map_left_top_right_bottom.x / (envi_cover_intensity_map_left_top_right_bottom.z - envi_cover_intensity_map_left_top_right_bottom.x),
+    -envi_cover_intensity_map_left_top_right_bottom.y / (envi_cover_intensity_map_left_top_right_bottom.w - envi_cover_intensity_map_left_top_right_bottom.y));
+}
+if (use_own_sampler)
+{
+  (code) {
+    envi_cover_intensity_map@smp2d = envi_cover_intensity_map
+  }
+  hlsl(code) {
+    #define intensity_map_linear_sampler_state envi_cover_intensity_map_samplerstate
+  }
+}
+else
+{
+  (code) {
+    envi_cover_intensity_map@tex = envi_cover_intensity_map hlsl { Texture2D<float> envi_cover_intensity_map@tex; }
+  }
+  hlsl(code) {
+    #define intensity_map_linear_sampler_state linear_sampler_state
+  }
+}
+hlsl(code) {
+  #define ENVI_COVER_INTENSITY_MAP 1
+  #define envi_cover_intensity_map_scale_offset envi_cover_intensity_map_scale_offset_params
+}
+endmacro
+
+macro INIT_ENVI_COVER_PARAMS(code, modify_gbuffer)
+  (code) {
+    envi_cover_thresholds@f4 = (
+      envi_cover_noise_mask_factor,
+      (2 * envi_cover_depth_mask_threshold - 1) * envi_cover_depth_mask_contrast,
+      (2 * envi_cover_normal_mask_threshold - 1) * envi_cover_normal_mask_contrast,
+      envi_cover_normal_mask_contrast);
+
+    envi_cover_normal_influenced@f4 = (
+      envi_cover_normal.x / (1 - envi_cover_normal_infl),
+      envi_cover_normal.y / (1 - envi_cover_normal_infl),
+      envi_cover_normal.z / (1 - envi_cover_normal_infl),
+      -envi_cover_normal_infl / (1 - envi_cover_normal_infl));
+
+    envi_cover_depth_mask_contrast@f1              = envi_cover_depth_mask_contrast;
+    envi_cover_albedo@f3                = envi_cover_albedo.xyz;
+    envi_cover_noise_high_frequency@f1  = envi_cover_noise_high_frequency;
+    envi_cover_noise_low_frequency@f1   = envi_cover_noise_low_frequency;
+    envi_cover_depth_pow_exponent@f1    = envi_cover_depth_pow_exponent;
+    envi_water_level@f1 = water_level;
+    envi_cover_water_level_fade_factor@f1 = envi_cover_water_level_fade_factor;
+    envi_cover_lowest_intensity@f1      = envi_cover_lowest_intensity;
+    envi_cover_translucency@f1          = envi_cover_translucency;
+    envi_cover_smoothness@f1            = envi_cover_smoothness;
+    envi_cover_depth_smoothstep_max@f1  = envi_cover_depth_smoothstep_max;
+  }
+  if (modify_gbuffer)
+  {
+    (code) {
+      envi_cover_reflectance@f1 = envi_cover_reflectance;
+    }
+  }
+  else
+  {
+    (code) {
+      envi_cover_specular_color@f3 = envi_cover_specular_color.xyz;
+    }
+  }
+endmacro
+
+
+macro INIT_ENVI_COVER_BASE(code, is_compatibility, modify_gbuffer)
+  if (is_compatibility)
+  {
+    (code) {
+      envi_cover_intensity@f1 = (max(envi_cover_lowest_intensity, envi_compatibility_intensity + 0.001) * envi_cover);
+    }
+    hlsl(code) {
+      #define IS_SNOW_COVER_COMPATIBILITY 1
+    }
+  }
+  else
+  {
+    INIT_SPARKLES_BASE(code)
+    USE_SPARKLES_BASE(code)
+
+    (code) {
+      envi_cover_y_clamp_from_pos@f1      = envi_cover_y_clamp_from_pos;
+      is_envi_cover_on@i1                 = envi_cover;
+    }
+  }
+  INIT_ENVI_COVER_PARAMS(code, modify_gbuffer)
+endmacro
+
+macro INIT_ENVI_COVER(code, use_own_sampler, stub_intensity_tex, linear_sampler_state, modify_gbuffer)
+  INIT_ENVI_COVER_NOISE(code, use_own_sampler, linear_sampler_state)
+  if (stub_intensity_tex)
+  {
+    INIT_ENVI_COVER_INTENSITY_MAP(code, use_own_sampler, noise_linear_sampler_state)
+  }
+  else
+  {
+    if (envi_cover_intensity_map != NULL)
+    {
+      INIT_ENVI_COVER_INTENSITY_MAP(code, true, 0)
+    }
+  }
+  INIT_ENVI_COVER_BASE(code, false, modify_gbuffer)
+endmacro
+
+macro DEFERRED_SNOW_COVER_COMPATIBILITY_WITH_PARAMS(use_noise, use_intensity_map)
+  if (allow_deferred_snow_cover_comp)
+  {
+    if (use_noise)
+    {
+      INIT_ENVI_COVER_NOISE(ps, true, 0)
+      if (use_intensity_map)
+      {
+        INIT_ENVI_COVER_INTENSITY_MAP(ps, false, noise_linear_sampler_state)
+      }
+    }
+    else if (use_intensity_map)
+    {
+      INIT_ENVI_COVER_INTENSITY_MAP(ps, true, 0)
+    }
+    INIT_ENVI_COVER_BASE(ps, true, false)
+    USE_DEFERRED_SNOW_COVER(ps)
+
+    hlsl(ps) {
+      #define DEFERRED_SNOW_COVER_COMPATIBILITY 1
+    }
+  }
+endmacro
+
+macro DEFERRED_SNOW_COVER_COMPATIBILITY()
+  DEFERRED_SNOW_COVER_COMPATIBILITY_WITH_PARAMS(false, true)
+endmacro
+
+macro USE_ENVI_COVER_COMMON(code)
+hlsl(code){
+  #include "envi_cover_common.hlsl"
+
+  EnviSnowParams fillEnviSnowParams()
+  {
+    EnviSnowParams result = (EnviSnowParams)0;
+    result.noise_high_frequency = envi_cover_noise_high_frequency;
+    result.noise_low_frequency = envi_cover_noise_low_frequency;
+    result.lowest_intensity = envi_cover_lowest_intensity;
+    result.depth_smoothstep_max = envi_cover_depth_smoothstep_max;
+    result.depth_pow_exponent = envi_cover_depth_pow_exponent;
+
+    #ifdef USE_ENVI_MATERIAL_BASED
+      result.water_level_fade_factor = envi_cover_water_level_fade_factor;
+      result.reflectance = envi_cover_reflectance;
+      result.smoothness = envi_cover_smoothness;
+      result.translucency = envi_cover_translucency;
+      result.albedo = envi_cover_albedo.xyz;
+    #endif
+
+    return result;
+  }
+}
+endmacro
+
+macro USE_ENVI_COVER(code, need_gamma_correction)
+  hlsl(code) { #define USE_ENVI_MATERIAL_BASED }
+  USE_ENVI_COVER_COMMON(code)
+  if (need_gamma_correction)
+  {
+    hlsl(code) { #define NEED_ENVI_COVER_GAMMA_CORRECTION }
+  }
+  hlsl(code) {
+    #include "envi_cover_material_based.hlsl"
+  }
+endmacro

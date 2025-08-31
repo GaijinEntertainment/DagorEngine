@@ -59,9 +59,10 @@ public:
   };
   uint8_t runState = INITIAL;
 
+  const char *getJobName(bool &) const override { return "darg_scene_build_render"; }
+
   void doJob() override
   {
-    TIME_PROFILE(darg_scene_build_render);
     WinAutoLock lock(critSec);
     // Note: daRg is "owning" `StdGuiRender` until this job's completion so no much sense to do this reset in main thread
     StdGuiRender::reset_per_frame_dynamic_buffer_pos();
@@ -116,9 +117,9 @@ static class UIBeforeRenderJob final : public cpujobs::IJob
 
 public:
   float dt;
+  const char *getJobName(bool &) const override { return "gui_before_render_update"; }
   void doJob() override
   {
-    TIME_PROFILE(gui_before_render_update);
     WinAutoLock lock(critSec);
 
     for (darg::IGuiScene *scn : get_all_scenes())
@@ -164,7 +165,6 @@ void skip_ui_render_job()
 {
   if (beforeRenderMultithreaded)
     G_VERIFY(interlocked_exchange(ui_render_job.done, 1) == 0); // Since we resetted it on `ui_before_render_job` start
-  StdGuiRender::reset_per_frame_dynamic_buffer_pos();
 }
 
 void update_all_gui_scenes_mainthread(float dt)
@@ -176,7 +176,7 @@ void update_all_gui_scenes_mainthread(float dt)
   }
 }
 
-void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm)
+void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm, const TMatrix4 &proj_tm)
 {
   TIME_PROFILE(ui_before_render);
 
@@ -205,15 +205,13 @@ void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm)
     TIME_PROFILE(ui_update_panels);
     ScopeRenderTarget scopeRt;
     d3d::set_render_target();
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    darg::IGuiScene::VrSceneData vrScene;
-    vrScene.camera = view_itm;
-    vrScene.cameraFrustum = Frustum(TMatrix4(view_tm) * projTm);
-    vrScene.entityTmResolver = get_entitiy_node_transform;
+    darg::IGuiScene::SpatialSceneData spatialScene;
+    spatialScene.camera = view_itm;
+    spatialScene.cameraFrustum = Frustum(TMatrix4(view_tm) * proj_tm);
+    spatialScene.entityTmResolver = get_entitiy_node_transform;
     for (int i = &uiscn - scenes.data(); i < scenes.size(); ++i)
       if (scenes[i]->hasAnyPanels())
-        scenes[i]->updateSpatialElements(vrScene);
+        scenes[i]->updateSpatialElements(spatialScene);
     break;
   }
 }

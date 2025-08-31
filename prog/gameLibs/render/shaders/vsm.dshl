@@ -1,0 +1,119 @@
+include "hardware_defines.dshl"
+texture vsm_shadowmap;
+float4 vsm_shadow_tm_x;
+float4 vsm_shadow_tm_y;
+float4 vsm_shadow_tm_z;
+float4 vsm_shadow_tm_w;
+
+float4 vsm_shadow_tex_size;
+
+macro BASE_INIT_VSM_CONSTS(code)
+  (code) {
+    vsm_shadow_tm_x@f4 = vsm_shadow_tm_x;
+    vsm_shadow_tm_y@f4 = vsm_shadow_tm_y;
+    vsm_shadow_tm_z@f4 = vsm_shadow_tm_z;
+    vsm_shadow_tex_size@f4 = vsm_shadow_tex_size;
+  }
+endmacro
+
+macro BASE_INIT_VSM(code)
+  BASE_INIT_VSM_CONSTS(code)
+  (code) {
+    vsm_shadowmap@smp2d = vsm_shadowmap;
+  }
+endmacro
+
+
+macro INIT_VSM()
+  BASE_INIT_VSM(ps)
+endmacro
+
+macro BASE_NO_VSM(code)
+  hlsl(code) {
+    half def_vsm_shadow(float4 worldPos)
+    {
+      return 1.h;
+    }
+    half def_vsm_shadow_blurred(float4 worldPos){return 1.h;}
+    half def_vsm_shadow_choice(float4 worldPos, bool combat_bleeding){return 1.h;}
+  }
+endmacro
+
+macro NO_VSM()
+  BASE_NO_VSM(ps)
+endmacro
+
+macro BASE_DO_USE_VSM(code)
+  hlsl(code) {
+    #ifndef tex2D_bilinear
+      #define tex2D_bilinear(s, t) tex2Dlod(s, float4(t,0,0))
+    #endif
+
+    #define unpack_z2(a) a.xy
+    half ChebyshevUpperBound( float2 Moments, float Z, float MinVariance, bool combat_bleeding = true)
+    {
+      float fAvgZ  = Moments.r; // Filtered z
+      float fAvgZ2 = Moments.g; // Filtered z-squared
+
+      // Use variance shadow mapping to compute the maximum probability that the
+      // pixel is in shadow
+      float variance = ( fAvgZ2 ) - ( fAvgZ * fAvgZ );
+      variance       = variance/32.0;
+      variance       = max( MinVariance, variance );
+
+      //0.97000 value if for morning sun close to horizon
+      float d        = fAvgZ - min(0.97000, Z); //no shadow on out of range Z
+      float p_max    = variance / ( variance + d*d );
+
+      // To combat light-bleeding, experiment with raising p_max to some power
+      // (Try values from 0.1 to 100.0, if you like.)
+      if (combat_bleeding)
+      {
+        p_max = p_max*p_max;
+        p_max = p_max*p_max;
+      }
+      // Standard shadow map comparison
+      float lit_factor = (d>=0) ? 1.h : 0.h;
+      return half(max(lit_factor, p_max));
+    }
+    float3 vsm_tc(float4 worldPos)
+    {
+      float3 vtc;
+      vtc.x = dot(vsm_shadow_tm_x, worldPos);
+      vtc.y = dot(vsm_shadow_tm_y, worldPos);
+      vtc.z = dot(vsm_shadow_tm_z, worldPos);
+      return vtc;
+    }
+    half def_vsm_shadow_choice(float4 worldPos, bool combat_bleeding)
+    {
+      float3 vtc = vsm_tc(worldPos);
+      float4 vsmShadow = tex2D_bilinear(vsm_shadowmap, vtc.xy);
+
+      CLAMP_BORDER(vtc, vsmShadow, 1.0f)
+
+      return ChebyshevUpperBound(unpack_z2(vsmShadow), vtc.z, 0.00002, combat_bleeding);
+    }
+    half def_vsm_shadow(float4 worldPos)
+    {
+      return def_vsm_shadow_choice(worldPos, true);
+    }
+    half def_vsm_shadow_blurred(float4 worldPos)
+    {
+      return def_vsm_shadow_choice(worldPos, false);
+    }
+
+  }
+endmacro
+
+macro BASE_USE_VSM(code)
+  if (vsm_shadowmap != NULL)
+  {
+    BASE_DO_USE_VSM(code)
+  } else {
+    BASE_NO_VSM(code)
+  }
+endmacro
+
+macro USE_VSM()
+  BASE_USE_VSM(ps)
+endmacro

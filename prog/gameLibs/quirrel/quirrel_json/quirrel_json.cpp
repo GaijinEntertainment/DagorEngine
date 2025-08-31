@@ -118,25 +118,25 @@ void bind_json_api(SqModules *module_mgr)
   Sqrat::Table ns(module_mgr->getVM());
   ///@module json
   ns.SquirrelFunc("parse_json", api_parse_json_direct, 2, ".s")
-    /**
+    /* qdox
       @function parse_json
       @param string s : string that would be parsed to json
       @return o|s|n|t|a : quirrel object
     */
     .SquirrelFunc("parse_json_from_zstd_stream", api_parse_json_direct_from_zstd_stream, 2, ".x")
-    /**
+    /* qdox
       @function parse_json_from_zstd_stream
       @param blob s : blob with ztsd stream that would be parsed to json
       @return o|s|n|t|a : quirrel object
     */
     .SquirrelFunc("object_to_json_string", api_object_to_json_string_direct, -2, "..b")
-    /**
+    /* qdox
       @function object_to_json_string
       @param object o|s|n|t|a|b : object that will be converted to json string
       @return s : json string
     */
     .SquirrelFunc("object_to_zstd_json", api_object_to_zstd_json_direct, -2, "..")
-    /**
+    /* qdox
       @function object_to_json_string
       @param object o|s|n|t|a|b : object that will be converted to json
       @return b : blob with compressed json string

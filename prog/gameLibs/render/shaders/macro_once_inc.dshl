@@ -1,0 +1,20 @@
+macro DEFINE(val)
+  bool val = true;
+endmacro
+
+macro DEFINED(val)
+  (maybe(val))
+endmacro
+
+macro BEGIN_ONCE(name)
+  if (!DEFINED(name)) {
+    DEFINE(name)
+endmacro
+
+macro BEGIN_ONCE_STAGE(name, stage)
+  BEGIN_ONCE(name ## stage)
+endmacro
+
+macro END_ONCE()
+  }
+endmacro

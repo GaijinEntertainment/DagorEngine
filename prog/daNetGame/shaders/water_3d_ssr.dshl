@@ -4,14 +4,10 @@ include "force_ignore_history.dshl"
 include "prev_screen_tc.dshl"
 include "heightmap_common.dshl"
 include "ssr_use.dshl"
-include "bvh.dshl"
-include "rt/rt_lighting.dshl"
-include "rtsm_sun_dir.dshl"
 include "ffx_sssr.dshl"
-
-int water_rt_enabled = 0;
-interval water_rt_enabled: no<1, yes;
-int water_rt_frame_index;
+include "water_3d_overrides.dshl"
+include "underwater_fog.dshl"
+include "camera_in_camera.dshl"
 
 define_macro_if_not_defined GET_ALTERNATE_REFLECTIONS_WATER(code)
   (code) { SSRParams@f4 = (SSRParams.x, SSRParams.y, ssr_frameNo.z, ssr_frameNo.y) }
@@ -23,27 +19,20 @@ int water_ssr_enabled_prev_frame;
 texture prev_frame_tex;
 texture water_planar_reflection_terrain;
 texture water_planar_reflection_terrain_depth;
-float water_planar_reflection_terrain_distortion_mul = 0.04;
-float4 ambient_wind__speed__current_time__previous_time = (1.811, 0, 0, 0);
-
-float4 rtr_water_hit_dist_params;
-texture water_reflect_dir;
-texture water_reflection_tex_uav;
-texture water_reflection_strength_tex_uav;
-texture downsampled_depth;
 
 sampler water_ssr_point_clamp_samplerstate;
 
 macro WATER_SSR()
-  INIT_SAMPLE_DEPTH_TEX()
-  USE_SAMPLE_DEPTH_TEX()
+  INIT_SAMPLE_DEPTH_TEX(ps)
+  USE_SAMPLE_DEPTH_TEX(ps)
   GET_ALTERNATE_REFLECTIONS_WATER(ps)
   USE_BRUNETON_FOG()
   FFX_RAYMARCH(ps)
 
   local float4 water_reflection_tex_dimensions = get_dimensions(water_reflection_tex, 0);
   (ps) {
-    water_reflection_tex_res@f4 = (water_reflection_tex_dimensions.xy, 1.0 / water_reflection_tex_dimensions.xy);
+    downsampled_close_depth_tex@tex = downsampled_close_depth_tex hlsl { Texture2D<float>downsampled_close_depth_tex@tex; }
+    water_reflection_tex_res_inv@f2 = (1.0 / water_reflection_tex_dimensions.xy);
     water_ssr_point_clamp_samplerstate@sampler = water_ssr_point_clamp_samplerstate;
   }
   if (shader == water_ssr_nv2 && water_planar_reflection_terrain != NULL)
@@ -52,15 +41,14 @@ macro WATER_SSR()
     {
       water_planar_reflection_terrain@tex2d = water_planar_reflection_terrain;
       water_planar_reflection_terrain_depth@tex2d = water_planar_reflection_terrain_depth;
-      water_planar_reflection_terrain_distortion_mul@f1 = water_planar_reflection_terrain_distortion_mul;
-      planar_reflection_distortion_strength@f1 = (ambient_wind__speed__current_time__previous_time.x);
-  }
+    }
     hlsl (ps) {
       #define water_planar_reflection_terrain_depth_samplerstate water_ssr_point_clamp_samplerstate
       #define water_planar_reflection_terrain_samplerstate water_ssr_point_clamp_samplerstate
     }
     INIT_WORLD_HEIGHTMAP_PS()
     USE_HEIGHTMAP_COMMON_PS()
+    WATER_PLANAR_PS()
   }
   (ps)
   {
@@ -77,12 +65,18 @@ macro WATER_SSR()
     #define FIRST_SAMPLE_MIP 2
     #define SECOND_SAMPLE_MIP 0
     #define FALLBACK_MIP 1
-    #define BASE_PLANAR_REFLECTION_DISTORTION_STRENGTH 1
-    #define prev_frame_tex_samplerstate water_ssr_point_clamp_samplerstate
+    #define prev_frame_tex_samplerstate water_reflection_tex_samplerstate
 
     #define HIT_INVALID 2
     #define HIT_SKY 3
     #define IS_HIT_INVALID(result) (all(result.rgb) == 0.0 && result.w >= HIT_INVALID)
+
+    float sample_close_depth_tex( float2 tc, int level)
+    {
+      int2 level_size = int2(lowres_rt_params.xy) >> level;
+      int2 itc = clamp(int2(tc * level_size), 0, level_size - 1);
+      return texelFetch(downsampled_close_depth_tex, itc, level).r;
+    }
 
     float encode_invalid_hit(float sample_depth)
     {
@@ -274,7 +268,9 @@ macro WATER_SSR()
       backSurfaceBeginPos = result.backSurfaceBeginUVZw;
       backSurfaceEndPos = result.backSurfaceEndUVZ;
       if (result.hitUVZw.w < 1)
-        return float4(result.hitUVZw.rgb, encode_invalid_hit(result.hitUVZw.z)); //high fade to signify unsuccessful ray march
+        return float4(0, 0, 0, all(abs(result.hitUVZw.xy - 0.5) < 0.5) ?
+                               encode_invalid_hit(result.hitUVZw.z) :
+                               HIT_INVALID ); //high fade to signify unsuccessful ray march
       return float4(result.hitUVZw.rgb, 0);
     }
 
@@ -321,13 +317,14 @@ macro WATER_SSR()
       color = color*loss + add;
     }
 
-    void applyBackSurfaceColorFix(inout float4 color, float3 from, float3 to)
+    void applyBackSurfaceColorFix(inout float4 color, float4 screenPos, float3 from, float3 to)
     {
       #define SAMPLE_BATCH_SIZE 4
 
       float4 backSurfaceColor = 0;
       int MaxIteration = 8;
 
+      float linear_screen_z = linearize_z(screenPos.z, zn_zfar.zw);
       to.z = linearize_z(to.z, zn_zfar.zw);
       from.z = linearize_z(from.z, zn_zfar.zw);
 
@@ -354,6 +351,7 @@ macro WATER_SSR()
         for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
         {
           sampleWeight[j] = (sampleDepth[j] < UVZ[j].z); // Sample above ray
+          sampleWeight[j] *= (linear_screen_z < sampleDepth[j]);
           sampleWeight[j] *= (from.z*2 <= sampleDepth[j] + UVZ[j].z); // Sample should be farther than origin
           //sampleWeight[j] *= (from.z - float(i + j) * rayStep  < sampleDepth[j]);  // Sample should be farther than origin
 
@@ -386,30 +384,37 @@ macro WATER_SSR()
       float4 backSurfaceBeginPos = 0;
       float3 backSurfaceEndPos = 0;
       float4 hit_uv_z_fade = rayMarch(worldPos, reflectSampleDir, globtm_psf, backSurfaceBeginPos, backSurfaceEndPos);
-      bool hitSky = IS_HIT_INVALID(hit_uv_z_fade) && hit_uv_z_fade.w == HIT_SKY;
 
       BRANCH
-      if( hit_uv_z_fade.w < 1 && all(abs(hit_uv_z_fade.xy - 0.5) < 0.5))
+      if (camera_has_sub_view())
+      {
+        if (is_wrong_camera_view_area_postfx(hit_uv_z_fade.xy))
+          hit_uv_z_fade.zw = 0;
+      }
+
+      bool isHitValid = !IS_HIT_INVALID(hit_uv_z_fade);
+      bool isSkyHit = (hit_uv_z_fade.w == HIT_SKY);
+      bool usePlanarReflections = is_main_camera_view_postfx();
+
+      BRANCH
+      if( isHitValid && all(abs(hit_uv_z_fade.xy - 0.5) < 0.5))
       {
         objectReflection.rgb = sample_vignetted_color(hit_uv_z_fade.xy);
         objectReflection.a = 1-hit_uv_z_fade.w;
       }
-      else
+      else if (usePlanarReflections)
       {
         ##if shader == water_ssr_nv2 && water_planar_reflection_terrain != NULL
           float h = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
           bool isAtWaterLevel = abs(In.pos_world_undisplaced.z - water_level) < 0.01;
           if (isAtWaterLevel && (!isInsideHeightmap(worldPos.xz) || worldPos.y > h))
           {
-            float2 reflectionTC = float2(screenTc.x, 1-screenTc.y);
-            float2 reflDistortionVector = worldNormal.xz;
-            reflDistortionVector.y = 0.5 * abs(reflDistortionVector.y);
-            reflDistortionVector *= BASE_PLANAR_REFLECTION_DISTORTION_STRENGTH + planar_reflection_distortion_strength;
-            reflDistortionVector *= water_planar_reflection_terrain_distortion_mul;
-            float planarDepth = tex2Dlod(water_planar_reflection_terrain_depth, float4(reflectionTC + reflDistortionVector, 0, 0)).r;
+            float2 reflectionTC = reflectionToPlanarTC(worldPos, reflectSampleDir);
+
+            float planarDepth = tex2Dlod(water_planar_reflection_terrain_depth, float4(reflectionTC, 0, 0)).r;
             if (planarDepth > 0)
             {
-              float3 planarColor = tex2Dlod(water_planar_reflection_terrain, float4(reflectionTC + reflDistortionVector, 0, 0)).rgb;
+              float3 planarColor = tex2Dlod(water_planar_reflection_terrain, float4(reflectionTC, 0, 0)).rgb;
               float w = linearize_z(planarDepth, zn_zfar.zw); // assuming reflection has the same z range as the main view
               float fade = w / zn_zfar.y;
               objectReflection = float4(planarColor, 1-fade);
@@ -422,8 +427,8 @@ macro WATER_SSR()
                 {
                   if (x == 0 && y == 0) // center has zero color and depth
                     continue;
-                  float2 tc = reflectionTC + float2(x, y) * water_reflection_tex_res.zw;
-                  float3 planarColor = tex2Dlod(water_planar_reflection_terrain, float4(tc + reflDistortionVector, 0, 0)).rgb;
+                  float2 tc = reflectionTC + float2(x, y) * water_reflection_tex_res_inv.xy;
+                  float3 planarColor = tex2Dlod(water_planar_reflection_terrain, float4(tc, 0, 0)).rgb;
                   // technically, the color with the closest depth should be used, but this is a good approximation (color is 0 if depth is 0)
                   maxColor = max(maxColor, planarColor);
                 }
@@ -434,7 +439,7 @@ macro WATER_SSR()
         ##endif
       }
       BRANCH
-      if (water_quality == water_quality_high && !hitSky && objectReflection.a == 0)
+      if (water_quality == water_quality_high && !isSkyHit && !isHitValid && objectReflection.a == 0)
       {
         float3 cameraToPoint = -pointToEye;
         float rayHitDist = 0;
@@ -446,8 +451,8 @@ macro WATER_SSR()
           applyFogToReflection(cameraToReflection*rcp(max(1e-6,cameraToReflectionLen)), cameraToReflectionLen, objectReflection.rgb);
         }
       }
-      if (backSurfaceBeginPos.w > 0 && !hitSky && objectReflection.a == 0)
-        applyBackSurfaceColorFix(objectReflection, backSurfaceBeginPos.xyz, backSurfaceEndPos);
+      if (backSurfaceBeginPos.w > 0 && !isSkyHit && !isHitValid && objectReflection.a == 0)
+        applyBackSurfaceColorFix(objectReflection, screenpos, backSurfaceBeginPos.xyz, backSurfaceEndPos);
 
       return objectReflection;
     }
@@ -456,26 +461,40 @@ endmacro
 
 shader water_ssr_nv2, water_ssr_nv2_heightmap
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   if (hardware.metal && water_tess_factor != water_tess_factor_off)
   {
     dont_render;
   }
+
 
   bool colorPass = false;
   WATER_3D_COMMON()
   VIEW_VEC_OPTIMIZED(ps)
   USE_PREV_TC(ps)
   // force_ignore_history = force_ignore_history || !water_ssr_enabled_prev_frame
-  (ps){force_ignore_history@f1 = (force_ignore_history + 1.0 - water_ssr_enabled_prev_frame,0,0,0);}
+  (ps){
+    force_ignore_history@f1 = (force_ignore_history + 1.0 - water_ssr_enabled_prev_frame,0,0,0);
+    current_jittered_pos_to_prev_jittered_pos_ofs@f2 = (uv_temporal_jitter.z - uv_temporal_jitter.x, uv_temporal_jitter.w - uv_temporal_jitter.y);
+  }
+
+  INIT_WATER_PROJECTED_EFFECTS(ps)
+  USE_WATER_PROJECTED_EFFECTS(ps)
 
   WATER_3D_DEFERRED_COMMON()
+  USE_WATER_CASCADES_ROUGHNESS()
 
   INIT_HDR(ps)
   USE_HDR(ps)
 
   if (water_rt_enabled == no) {WATER_SSR()}
+  if (water_tech == wt) {WATER_RAIN_RIPLES_PS()}
 
   hlsl(ps) {
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+
     half4 water_reflect_dir(float3 worldNormal, float3 pointToEyeNormalized)
     {
       float3 reflectSampleDir = reflect(-pointToEyeNormalized, worldNormal);
@@ -500,23 +519,13 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
     ##else
     struct WaterOutput
     {
-      float4 reflectSampleDir : SV_Target0;
-      float4 alpha_mask_weight_shadowStrength : SV_Target1; // .rg is for relfection, ba is for shadow
+      float4 packed_normal_roughness : SV_Target0;
+      float4 alpha_mask_weight__shadowStrength : SV_Target1; // .rg is for relfection, ba is for shadow
     };
     ##endif
-
-    WaterOutput water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
+    ##if water_tech == dng
+    float3 calcWaterNormal(PS_INPUT In, ShoreData shoreData, float3 worldPos, float3 pointToEyeNormalized, float dist)
     {
-      float4 screenpos = GET_SCREEN_POS(In.pos_clip);
-      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
-      float3 worldPos = world_view_pos.xyz-pointToEye;
-      float2 refractionTC = screen_pos_to_lowres_tc(screenpos.xy * 2.f);
-      ShoreData shoreData;
-      getShoreAttributes(worldPos, shoreData);
-      float distSq = dot(pointToEye, pointToEye);
-      float invDist = rsqrt(distSq);
-      float dist = distSq*invDist;
-      float3 pointToEyeNormalized = pointToEye*invDist;
       CascadesTex csc;
       ##if water_flowmap_tex == NULL || mobile_render != off
         get_cascades(In.pos_world_undisplaced.xy, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
@@ -529,20 +538,62 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float4 nvsf_blendfactors4567 = 1;
       GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
                                                                                                   nvsf_blendfactors4567, pointToEyeNormalized);
+      return surfaceAttributes.normal.xzy;
+    }
+    ##else
+    float3 calcWaterNormal(PS_INPUT In, ShoreData shoreData, float3 worldPos, float3 pointToEyeNormalized, float dist)
+    {
+      // Todo check perlin noise influence
+      float perlinSurfGrad = 1;
+      float perlinSpotInfluence = 0;
+
+      half3 worldNormal;
+      #if has_water_flowmap
+        float3 worldPos_a, worldPos_b;
+        float viewDist_a, viewDist_b;
+        float crossFade;
+        calcWaterFlowmapParams(worldPos, dist, worldPos_a, worldPos_b, viewDist_a, viewDist_b, crossFade);
+
+        GradientsData surfaceAttributes_a = getWaterGradients(worldPos_a, viewDist_a, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+        GradientsData surfaceAttributes_b = getWaterGradients(worldPos_b, viewDist_b, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+
+        worldNormal = normalize(lerp(surfaceAttributes_a.normal, surfaceAttributes_b.normal, crossFade));
+      #else
+        worldNormal = getWaterGradients(worldPos, dist, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence).normal;
+      #endif
+
+      return worldNormal.xzy;
+    }
+    ##endif
+
+    WaterOutput water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
+    {
+      float4 screenpos = GET_SCREEN_POS(In.pos_clip);
+      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+      float3 worldPos = world_view_pos.xyz-pointToEye;
+      float2 refractionTC = screen_pos_to_lowres_tc(screenpos.xy * 2.f);
+      float distSq = dot(pointToEye, pointToEye);
+      float invDist = rsqrt(distSq);
+      float dist = distSq*invDist;
+      float3 pointToEyeNormalized = pointToEye*invDist;
+      ShoreData shoreData;
+      getShoreAttributes(worldPos, shoreData);
+
+      float3 worldNormal = calcWaterNormal(In, shoreData, worldPos, pointToEyeNormalized, dist);
 
       float4 water_projection_pos = mul(float4(In.pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
-      float3 worldNormal = get_water_normal(In, shoreData, worldPos, surfaceAttributes.normal.xzy, normalize_wfx_tc(water_projection_pos).xy,
-                                            nvsf_blendfactors0123, nvsf_blendfactors4567);
+      worldNormal = get_water_normal(shoreData, worldPos, worldNormal, normalize_wfx_tc(water_projection_pos).xy);
 
       ##if water_heightmap_pages != NULL
         float3x3 tangentSpace = float3x3(In.tangent, cross(In.bitangent, In.tangent), In.bitangent);
         worldNormal = mul(worldNormal, tangentSpace);
       ##endif
-      worldNormal = MUL_VFACE(worldNormal);
 
+      worldNormal = MUL_VFACE(worldNormal);
 
       float3 prevScreen;
       float2 oldUv = getPrevTc(worldPos, prevScreen); // TODO: this is actually volfog stuff, but it's always enabled in DNG
+      oldUv.xy -= current_jittered_pos_to_prev_jittered_pos_ofs;
 
       //todo: invalidate pixels which were too far in world space
       half4 oldAlphaStrength = tex2Dlod(water_reflection_strength_tex, float4(oldUv, 0,0));
@@ -559,10 +610,10 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       ##endif
 
       float weight = newStrength / (newStrength + oldStrength);
-      half4 reflectSampleDir = water_reflect_dir(worldNormal, pointToEyeNormalized);
 
       ##if water_rt_enabled == no
         float4 newTarget = 0;
+        half4 reflectSampleDir = water_reflect_dir(worldNormal, pointToEyeNormalized);
         if (reflectSampleDir.w > 0)
           newTarget = water_ssr(In, screenpos, refractionTC, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz);
         half3 oldColor = tex2Dlod(water_reflection_tex, float4(oldUv, 0,0)).rgb;
@@ -576,9 +627,11 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
         output.alpha__strength = half2(result.a, newStrength + oldStrength);
         return output; //NaNs catched on PS4
       ##else
+        bool isAboveWater = true;
+        SET_IF_IS_BACK_FACE(isAboveWater, false);
         WaterOutput output;
-        output.reflectSampleDir = half4(reflectSampleDir.xyz * 0.5 + 0.5, reflectSampleDir.w);
-        output.alpha_mask_weight_shadowStrength = half4(0, 1, weight, newStrength + oldStrength);
+        output.packed_normal_roughness = NRD_FrontEnd_PackNormalAndRoughness(normalize(worldNormal), get_cascades_roughness(log2(dist)), isAboveWater ? 1 : 2);
+        output.alpha_mask_weight__shadowStrength = half4(0, 1, weight, newStrength + oldStrength);
         return output;
       ##endif
     }
@@ -592,128 +645,4 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
   {
     WATER_3D_HEIGHTMAP_RENDER()
   }
-}
-
-shader raytraced_water_reflections
-{
-  supports global_const_block;
-  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
-  ENABLE_ASSERT(cs)
-
-  INIT_ZNZFAR_STAGE(cs)
-  VIEW_VEC_OPTIMIZED(cs)
-  USE_PREV_TC(cs)
-  INIT_BVH(cs, 0, true)
-  USE_BVH_FOR_REFLECTION(cs)
-  USE_BVH_FX_RENDER(cs)
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
-  PACK_UNPACK_GBUFFER_BASE(cs)
-  INIT_RT_LIGHTING(cs, true, false)
-  USE_RT_LIGHTING(cs, 1)
-  INIT_ENVI_SPECULAR_SAMPLE(cs)
-  USE_ENVI_SPECULAR_SAMPLE(cs)
-  RTSM_SUN_DIR()
-  local float4 output_resolution = get_dimensions(water_reflection_tex_uav, 0);
-  (cs)
-  {
-    world_view_pos@f3 = world_view_pos;
-    hit_dist_params@f4 = rtr_water_hit_dist_params;
-    water_reflection_tex@smp2d = water_reflection_tex;
-    water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
-    water_reflect_dir@tex2d = water_reflect_dir;
-    water_reflection_tex_uav@uav = water_reflection_tex_uav hlsl{RWTexture2D<float3> water_reflection_tex_uav@uav;};
-    water_reflection_strength_tex_uav@uav = water_reflection_strength_tex_uav hlsl{RWTexture2D<float4> water_reflection_strength_tex_uav@uav;};
-    downsampled_depth@tex2d = downsampled_depth;
-    output_resolution@f4 = (output_resolution.xy, 1.0 / output_resolution.xy);
-    frame_index@i1 = water_rt_frame_index;
-  }
-  hlsl(cs)
-  {
-    #define water_reflection_strength_tex_samplerstate water_reflection_tex_samplerstate
-
-    float4 water_rt(float3 cameraToPoint, float3 reflectionVec)
-    {
-      float maxReflectionDistance = hit_dist_params.x;
-      float worldDist = length(cameraToPoint);
-
-      HitInfo hitInfo;
-      bool isHit = trace_ray(bvhMain, cameraToPoint, reflectionVec, 0, maxReflectionDistance, worldDist, bvhGroupRender, hitInfo);
-
-      if (!isHit)
-        isHit = trace_ray(bvhTerrain, cameraToPoint, reflectionVec, maxReflectionDistance, 100000, worldDist, bvhGroupRender, hitInfo);
-
-      float3 reflectionColor;
-      if (isHit)
-        reflectionColor = light_hit_surface(hitInfo, reflectionVec, worldDist, hit_dist_params.x);
-      else
-        reflectionColor = sample_envi_probe(half4(reflectionVec, 0)).rgb;
-
-      float fxt = -1;
-      trace_ray_fx_translucent(cameraToPoint, reflectionVec, 0, isHit ? hitInfo.t : maxReflectionDistance, worldDist, reflectionColor, fxt);
-      isHit = isHit || fxt > 0;
-
-      BRANCH
-      if (isHit)
-        calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
-
-      float4 objectReflection = float4(reflectionColor, isHit ? 1 : 0);
-      return objectReflection;
-    }
-
-    float noise(float2 n) {
-      return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
-    }
-    float2 get_noise(uint2 dtid, float2 random_vec)
-    {
-      float2 rnd = float2(noise(random_vec.xy + dtid),
-                          noise(random_vec.yx + frame_index));
-      return rnd;
-    }
-
-    [numthreads(8, 8, 1 )]
-    void main(uint2 dtId : SV_DispatchThreadID)
-    {
-      if (any(dtId >= uint2(output_resolution.xy)))
-        return;
-
-      half4 weightSample = texture2DAt(water_reflection_strength_tex_uav, dtId);
-      half weight = weightSample.b;
-      half mask = weightSample.g;
-      if (mask == 0) // Where we have water it's minimum 0.1
-      {
-        texture2DAt(water_reflection_tex_uav, dtId) = 0;
-        texture2DAt(water_reflection_strength_tex_uav, dtId) = 0;
-        return;
-      }
-
-      float rawDepth = texelFetch(downsampled_depth, dtId, 0).r;
-      float w = linearize_z(rawDepth, zn_zfar.zw);
-      float3 viewVec = getViewVecOptimized((dtId.xy + 0.5) * output_resolution.zw);
-      float3 cameraToPoint = w * viewVec;
-      float3 worldPos = world_view_pos + cameraToPoint;
-
-      half4 reflectSampleDir = texture2DAt(water_reflect_dir, dtId);
-      reflectSampleDir = half4(reflectSampleDir.xyz * 2 - 1, reflectSampleDir.w);
-      float4 reflection = 0;
-      BRANCH
-      if (reflectSampleDir.w > 0)
-      {
-        float3 reflectionVec = reflectSampleDir.xyz;
-        reflection = water_rt(cameraToPoint, reflectionVec);
-      }
-
-      float2 oldUv = getPrevTc(worldPos);
-      half4 oldShadowStrength = tex2Dlod(water_reflection_strength_tex, float4(oldUv, 0,0));
-
-      float2 rnd = get_noise(dtId, worldPos.xz + reflectSampleDir.xz);
-      float3 direction = get_sun_direction(rnd);
-      half newShadow = is_obstructed(bvhMain, cameraToPoint, direction, 0, 100000, w, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
-      half oldShadow = oldShadowStrength.b;
-      half shadow = lerp(oldShadow, newShadow, weight);
-
-      texture2DAt(water_reflection_tex_uav, dtId) = reflection.rgb;
-      texture2DAt(water_reflection_strength_tex_uav, dtId).rb = half2(reflection.a, shadow); // mask and strength is calculated in prepass already
-    }
-  }
-  compile("cs_6_5", "main");
 }

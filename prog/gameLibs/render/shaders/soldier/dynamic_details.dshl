@@ -1,0 +1,75 @@
+
+texture dynamic_details_diff_tex;
+texture dynamic_details_norm_tex;
+
+macro INIT_DYNAMIC_DETAILS()
+
+  static float4 dynamic_details = (-1, -1, -1, -1);
+  static float4 dynamic_details_transform_0 = (0, 0, 0, 1);
+  static float4 dynamic_details_transform_1 = (0, 0, 0, 1);
+  static float4 dynamic_details_transform_2 = (0, 0, 0, 1);
+  static float4 dynamic_details_transform_3 = (0, 0, 0, 1);
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    //todo: move me out to block!
+    (ps){
+      dynamic_details@f4 = dynamic_details;
+      dynamic_details_tex_d@smpArray = dynamic_details_diff_tex;
+      dynamic_details_tex_n@smpArray = dynamic_details_norm_tex;
+      dynamic_details_transform@f44 = {
+        (dynamic_details_transform_0.x, dynamic_details_transform_1.x, dynamic_details_transform_2.x, dynamic_details_transform_3.x),
+        (dynamic_details_transform_0.y, dynamic_details_transform_1.y, dynamic_details_transform_2.y, dynamic_details_transform_3.y),
+        (dynamic_details_transform_0.z, dynamic_details_transform_1.z, dynamic_details_transform_2.z, dynamic_details_transform_3.z),
+        (dynamic_details_transform_0.w, dynamic_details_transform_1.w, dynamic_details_transform_2.w, dynamic_details_transform_3.w)
+      };
+    }
+  }
+  hlsl(ps){
+    void apply_dynamic_detail(
+      float3 tc,
+      int idx,
+      inout half3 diffuseColor,
+      inout half3 normalMap,
+      inout half smoothness)
+    {
+      float4 translate_rotation_scale = get_dynamic_details_transform()[idx];
+      float s, c;
+      sincos(translate_rotation_scale.z, s, c);
+      tc.xy = (tc.xy + translate_rotation_scale.xy) * translate_rotation_scale.w ;
+      tc.xy = float2(tc.x * c - tc.y * s, tc.x * s + tc.y * c);
+
+      float4 detail_diffuse = tex3D(dynamic_details_tex_d, tc);
+
+      half4 detail_packedNormalMap = tex3D(dynamic_details_tex_n, tc);
+      half detail_smoothness = detail_packedNormalMap.r;
+      half3 detail_normalMap = unpack_ag_normal(detail_packedNormalMap);
+
+      diffuseColor.rgb = lerp(diffuseColor.rgb, detail_diffuse.rgb, detail_diffuse.a);
+      smoothness = lerp(smoothness, detail_smoothness, detail_diffuse.a);
+
+      // Whiteout normal blending.
+      // Normalize should be applied after few 'apply_dynamic_detail' calls
+      normalMap = half3(normalMap.xy + detail_normalMap.xy, normalMap.z*detail_normalMap.z);
+    }
+    void apply_dynamic_detail(
+      float4 dynamic_details,
+      float2 tc,
+      inout half3 diffuseColor,
+      inout half3 normalMap,
+      inout half smoothness)
+    {
+      if(dynamic_details.x != -1)
+        apply_dynamic_detail(float3(tc, dynamic_details.x), 0, diffuseColor, normalMap, smoothness);
+      if(dynamic_details.y != -1)
+        apply_dynamic_detail(float3(tc, dynamic_details.y), 1, diffuseColor, normalMap, smoothness);
+      if(dynamic_details.z != -1)
+        apply_dynamic_detail(float3(tc, dynamic_details.z), 2, diffuseColor, normalMap, smoothness);
+      if(dynamic_details.w != -1)
+        apply_dynamic_detail(float3(tc, dynamic_details.w), 3, diffuseColor, normalMap, smoothness);
+
+      // End of whiteout blending after applying few details
+      if (any(dynamic_details != -1))
+        normalMap = normalize(normalMap);
+    }
+  }
+endmacro

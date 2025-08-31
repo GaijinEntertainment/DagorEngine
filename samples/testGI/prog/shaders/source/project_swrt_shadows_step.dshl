@@ -1,0 +1,47 @@
+include "static_shadow_stcode.dshl"
+float swrt_static_cascade_shadow_distance = 80;
+
+macro PROJECT_STEP_SWRT_SHADOW_OFFSET(code)
+  (code) {
+    swrt_static_cascade_shadow_distance@f1 = swrt_static_cascade_shadow_distance;
+    if (static_shadows_cascades == two)
+    {
+      static_shadow_matrix_0@f4 = static_shadow_matrix_0_1;
+      static_shadow_matrix_1@f4 = static_shadow_matrix_1_1;
+      static_shadow_matrix_2@f4 = static_shadow_matrix_2_1;
+      static_shadow_matrix_3@f4 = static_shadow_matrix_3_1;
+      static_shadow_cascade_tor@f2 = (static_shadow_cascade_1_scale_ofs_z_tor.z,static_shadow_cascade_1_scale_ofs_z_tor.w,0,0);
+    } else
+    {
+      static_shadow_matrix_0@f4 = static_shadow_matrix_0_0;
+      static_shadow_matrix_1@f4 = static_shadow_matrix_1_0;
+      static_shadow_matrix_2@f4 = static_shadow_matrix_2_0;
+      static_shadow_matrix_3@f4 = static_shadow_matrix_3_0;
+      static_shadow_cascade_tor@f2 = (static_shadow_cascade_0_scale_ofs_z_tor.z,static_shadow_cascade_0_scale_ofs_z_tor.w,0,0);
+    }
+  }
+  hlsl (code) {
+    float3 swrt_get_static_shadow_tc_move(float3 worldPos) {
+      return worldPos.x*static_shadow_matrix_0.xyz + worldPos.y*static_shadow_matrix_1.xyz + worldPos.z*static_shadow_matrix_2.xyz ;
+    }
+    float3 swrt_get_static_shadow_tc_base(float3 worldPos) {
+      return swrt_get_static_shadow_tc_move(worldPos) + static_shadow_matrix_3.xyz;
+    }
+    float get_project_defined_swrt_shadow_offset_point(float3 cameraPos, float3 worldPos)
+    {
+      float3 tc = swrt_get_static_shadow_tc_base(worldPos);
+      bool vignetteVal = max(abs(tc.x), abs(tc.y)) < 0.95;
+      return ( vignetteVal && tc.z > 0) ? swrt_static_cascade_shadow_distance : 0;
+    }
+    float get_project_defined_swrt_shadow_offset_box(float3 worldPosBmin, float3 worldPosBmax)
+    {
+      float3 center = (worldPosBmax + worldPosBmin)*0.5;
+      float3 tc = swrt_get_static_shadow_tc_base(center);
+      float3 tcMax = swrt_get_static_shadow_tc_move(worldPosBmax-center);
+
+      bool vignetteVal = max(abs(tc.x), abs(tc.y)) + max(abs(tcMax.x), abs(tcMax.y)) < 0.95;
+
+      return ( vignetteVal && tc.z - abs(tcMax.z) > 0) ? swrt_static_cascade_shadow_distance : 0;
+    }
+  }
+endmacro

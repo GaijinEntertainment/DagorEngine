@@ -1,0 +1,50 @@
+//free_cam_settings {hasFreeCamera:b=no;}
+rendinstExtraMaxCnt:i=131072
+rendinstExtraSubstFaceThres:i=0
+rendinstPreloadDistance:r=10000
+
+use_damage_model:b=no
+use_flight_model:b=no
+use_ai:b=no
+//use_water_render:b=no
+//use_glass_scratch_render:b=no
+//use_da_skies:b=no
+use_blood_puddles:b=no
+//use_fluid_wind:b=no
+
+include "character_micro_details.blk"
+
+commonClientScenes{
+  scene:t="gamedata/scenes/_common_render_scene.blk" //should be created before WorldRenderer
+}
+
+haze
+{
+  offsetScale:r = 0.0135
+  distortionScale:r = 0.1
+  noiseScale:r = 0.135
+  offsetTexWidth:i = 512
+  offsetTexHeight:i = 512
+}
+
+terraform {
+  enabled:b = yes
+  cellsPerMeter:i=8
+  minLevel:r = -1.5
+  maxLevel:r = 1.1
+  maxPrimHeight:r = 0.7
+}
+
+treeCrownTransmittance {
+  brightness:r = 0.7; // default - 0.5
+  falloffStart:r = 0.01; // default - 0.01
+  falloffStop:r = 1.6; // default - 1.
+  enabled:b = yes; // default - no
+}
+
+glassScratches {
+  texcoord_mul:r = 10.0;
+  alpha_mul:r = 0.0;
+  radius_pow:r = 45.0;
+  mul:r = 4;
+}

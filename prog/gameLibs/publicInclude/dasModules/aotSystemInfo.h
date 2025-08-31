@@ -27,7 +27,8 @@ struct CpuInfo
 
 namespace bind_dascript
 {
-void get_video_info(const das::TBlock<void, das::TTemporary<const VideoInfo>> &block, das::Context *context, das::LineInfoArg *at);
+void get_video_info(const das::TBlock<void, const das::TTemporary<const VideoInfo>> &block, das::Context *context,
+  das::LineInfoArg *at);
 
-void get_cpu_info(const das::TBlock<void, das::TTemporary<const CpuInfo>> &block, das::Context *context, das::LineInfoArg *at);
+void get_cpu_info(const das::TBlock<void, const das::TTemporary<const CpuInfo>> &block, das::Context *context, das::LineInfoArg *at);
 } // namespace bind_dascript

@@ -4,12 +4,14 @@
 #include <rendInst/rendInstExtra.h>
 
 #include "bvh_context.h"
+#include "bvh_math_util.h"
+#include "bvh_color_from_pos.h"
 
 namespace bvh::ri
 {
 
-using TreeMapper = bvh::ReferencedTransformData &(*)(ContextId context_id, uint64_t mesh_id, vec4f pos, rendinst::riex_handle_t handle,
-  int lod_ix, uint64_t bvh_id, void *user_data, bool &recycled);
+using TreeMapper = bvh::ReferencedTransformData &(*)(ContextId context_id, uint64_t object_id, vec4f pos,
+  rendinst::riex_handle_t handle, int lod_ix, uint64_t bvh_id, void *user_data, bool &recycled);
 
 inline bool is_tree(ContextId context_id, ShaderMesh::RElem &elem)
 {
@@ -26,34 +28,29 @@ inline bool is_flag(ContextId context_id, ShaderMesh::RElem &elem)
   return context_id->has(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
 }
 
-template <TreeMapper mapper>
-inline void handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t mesh_id, int lod_ix, bool is_pos_inst, mat44f_cref tm,
-  const E3DCOLOR *colors, rendinst::riex_handle_t handle, eastl::optional<TMatrix4> &inv_world_tm, TreeInfo &treeInfo,
-  MeshMetaAllocator::AllocId &metaAllocId, uint64_t bvh_id, void *user_data)
+using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &);
+
+template <map_tree_fn mapper>
+inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t object_id, int lod_ix, bool is_pos_inst,
+  mat44f_cref tm, vec4f_const originalPos, const E3DCOLOR *colors, rendinst::riex_handle_t handle,
+  eastl::optional<TMatrix4> &inv_world_tm, TreeInfo &treeInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data)
 {
   if (!inv_world_tm.has_value())
-  {
-    inv_world_tm = TMatrix4::IDENT;
+    inv_world_tm = make_packed_precise_itm(tm);
 
-    mat44f inv44;
-    v_mat44_inverse(inv44, tm);
-    v_mat44_transpose(inv44, inv44);
-    v_stu(&inv_world_tm.value().row[0], inv44.col0);
-    v_stu(&inv_world_tm.value().row[1], inv44.col1);
-    v_stu(&inv_world_tm.value().row[2], inv44.col2);
-    v_stu(&inv_world_tm.value().row[3], inv44.col3);
-  }
+  auto data = mapper(context_id, object_id, tm.col3, handle, lod_ix, user_data, treeInfo.recycled);
 
-  auto &data = mapper(context_id, mesh_id, tm.col3, handle, lod_ix, bvh_id, user_data, treeInfo.recycled);
+  if (!data)
+    return false;
 
-  if (data.metaAllocId < 0)
-    data.metaAllocId = context_id->allocateMetaRegion();
+  if (data->metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
+    data->metaAllocId = context_id->allocateMetaRegion(1);
 
-  metaAllocId = data.metaAllocId;
+  metaAllocId = data->metaAllocId;
 
   treeInfo.invWorldTm = inv_world_tm.value();
-  treeInfo.transformedBuffer = &data.buffer;
-  treeInfo.transformedBlas = &data.blas;
+  treeInfo.transformedBuffer = &data->buffer;
+  treeInfo.transformedBlas = &data->blas;
 
   static int is_pivotedVarId = VariableMap::getVariableId("is_pivoted");
   static int wind_channel_strengthVarId = VariableMap::getVariableId("wind_channel_strength");
@@ -70,20 +67,23 @@ inline void handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   static int wind_parent_contribVarId = VariableMap::getVariableId("wind_parent_contrib");
   static int wind_motion_damp_baseVarId = VariableMap::getVariableId("wind_motion_damp_base");
   static int wind_motion_damp_level_mulVarId = VariableMap::getVariableId("wind_motion_damp_level_mul");
+  static int AnimWindScaleVarId = VariableMap::getVariableId("AnimWindScale");
+  static int atestVarId = VariableMap::getVariableId("atest");
 
   treeInfo.data.windBranchAmp = ShaderGlobal::get_real(tree_wind_branch_ampVarId);
   treeInfo.data.windDetailAmp = ShaderGlobal::get_real(tree_wind_detail_ampVarId);
   treeInfo.data.windSpeed = ShaderGlobal::get_real(tree_wind_speedVarId);
   treeInfo.data.windTime = ShaderGlobal::get_real(tree_wind_timeVarId);
-  treeInfo.data.windBlendParams = ShaderGlobal::get_color4(tree_wind_blend_params1VarId);
+  treeInfo.data.windBlendParams = Point4::rgba(ShaderGlobal::get_color4(tree_wind_blend_params1VarId));
 
   int isPivoted;
   if (!elem.mat->getIntVariable(is_pivotedVarId, isPivoted))
     isPivoted = 0;
-  if (!elem.mat->getColor4Variable(wind_channel_strengthVarId, treeInfo.data.windChannelStrength))
-    treeInfo.data.windChannelStrength = Color4(1, 1, 1, 1);
-  if (!elem.mat->getColor4Variable(wind_per_level_angle_rot_maxVarId, treeInfo.data.ppWindPerLevelAngleRotMax))
-    treeInfo.data.ppWindPerLevelAngleRotMax = Color4(60, 60, 60, 60);
+  if (!elem.mat->getColor4Variable(wind_channel_strengthVarId, *reinterpret_cast<Color4 *>(&treeInfo.data.windChannelStrength)))
+    treeInfo.data.windChannelStrength = Point4(1, 1, 0, 1);
+  if (!elem.mat->getColor4Variable(wind_per_level_angle_rot_maxVarId,
+        *reinterpret_cast<Color4 *>(&treeInfo.data.ppWindPerLevelAngleRotMax)))
+    treeInfo.data.ppWindPerLevelAngleRotMax = Point4(60, 60, 60, 60);
   if (!elem.mat->getRealVariable(wind_noise_speed_baseVarId, treeInfo.data.ppWindNoiseSpeedBase))
     treeInfo.data.ppWindNoiseSpeedBase = 0.1;
   if (!elem.mat->getRealVariable(wind_noise_speed_level_mulVarId, treeInfo.data.ppWindNoiseSpeedLevelMul))
@@ -98,18 +98,26 @@ inline void handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
     treeInfo.data.ppWindMotionDampBase = 3;
   if (!elem.mat->getRealVariable(wind_motion_damp_level_mulVarId, treeInfo.data.ppWindMotionDampLevelMul))
     treeInfo.data.ppWindMotionDampLevelMul = 0.8;
+  if (!elem.mat->getRealVariable(AnimWindScaleVarId, treeInfo.data.AnimWindScale))
+    treeInfo.data.AnimWindScale = 0.25;
+  int atest = 0;
+  elem.mat->getIntVariable(atestVarId, atest);
+  treeInfo.data.apply_tree_wind = atest > 0 && strncmp(elem.mat->getShaderClassName(), "rendinst_tree_perlin_layered", 28) != 0;
 
-  treeInfo.data.ppPosition = elem.mat->get_texture(7);
-  treeInfo.data.ppDirection = elem.mat->get_texture(8);
+  // Using this instead of acquire_managed_tex to avoid increasing reference count, but this might return nullptr
+  treeInfo.data.ppPosition = D3dResManagerData::getBaseTex(elem.mat->get_texture(7));
+  treeInfo.data.ppDirection = D3dResManagerData::getBaseTex(elem.mat->get_texture(8));
 
   treeInfo.data.isPivoted = !!isPivoted;
   treeInfo.data.isPosInstance = is_pos_inst;
 
-  treeInfo.data.color = colors ? random_color_from_pos(tm.col3, colors[0], colors[1]) : E3DCOLOR(0x40404040U);
+  treeInfo.data.color = colors ? random_color_from_pos(originalPos, 0, colors[0], colors[1]) : E3DCOLOR(0x40404040U);
   if (treeInfo.data.isPivoted && !treeInfo.data.isPosInstance)
-    treeInfo.data.perInstanceRenderDataOffset = rendinst::getRiExtraPerInstanceRenderDataOffset(handle);
+    treeInfo.data.perInstanceRenderAdditionalData = rendinst::getRiExtraPerInstanceRenderEncodedAdditionalData(handle);
   else
-    treeInfo.data.perInstanceRenderDataOffset = 0;
+    treeInfo.data.perInstanceRenderAdditionalData = 0;
+
+  return true;
 }
 
 } // namespace bvh::ri

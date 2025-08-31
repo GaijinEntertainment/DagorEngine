@@ -132,8 +132,8 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
 
     void createFusionEngine_call1()
     {
-        (*g_fusionEngine)["FastCall"].emplace_back(new Op1FusionPoint_FastCall_vec4f());
-        (*g_fusionEngine)["Call"].emplace_back(new Op1FusionPoint_Call_vec4f());
+        (**g_fusionEngine)["FastCall"].emplace_back(new Op1FusionPoint_FastCall_vec4f());
+        (**g_fusionEngine)["Call"].emplace_back(new Op1FusionPoint_Call_vec4f());
     }
 }
 

@@ -16,6 +16,7 @@ struct PlacerObjectGroup
   const ObjectGroupInfo *info = nullptr;
 
   float effectiveDensity = 0.0f;
+  Point4 densityMaskChannelWeights = Point4::ZERO;
 };
 
 float get_frustum_culling_bias();
@@ -39,6 +40,7 @@ struct CommonPlacerBufferInit
   {
     const ObjectGroupInfo *info = nullptr;
     float weightFactor = 0.0f;
+    Point4 densityMaskChannelWeights = Point4::ZERO;
   };
   dag::RelocatableFixedVector<Group, 64, true, framemem_allocator> objectGroupsFmem;
 

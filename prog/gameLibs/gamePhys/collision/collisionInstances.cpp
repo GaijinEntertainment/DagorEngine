@@ -19,10 +19,11 @@ static float default_time_to_live = 0.5f;
 
 static CollisionObject create_bullet_scaled_copy(const CollisionObject &obj, const Point3 &scale, CollisionObjectUserData *user_ptr);
 
-ScaledBulletInstance::ScaledBulletInstance(CICollisionObject original_obj, const Point3 &scl, const rendinst::RendInstDesc &in_desc,
+ScaledBulletInstance::ScaledBulletInstance(CICollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc,
   float time_of_death) :
-  timeOfDeath(time_of_death), scale(scl), desc(in_desc)
+  timeOfDeath(time_of_death), desc(in_desc)
 {
+  v_stu_p3(&scale.x, scl);
   userData.matId = rendinst::getRIGenMaterialId(desc);
   obj = create_bullet_scaled_copy(original_obj, scale, &userData);
 }
@@ -42,8 +43,9 @@ void ScaledBulletInstance::updateUserDataPtr()
 static CollisionObject create_bullet_scaled_copy(const CollisionObject &obj, const Point3 &scale, CollisionObjectUserData *user_ptr)
 {
   PhysCollision *newShape = obj.body->getCollisionScaledCopy(scale);
-  CollisionObject co =
-    create_coll_obj_from_shape(*newShape, user_ptr, /*kinematic*/ false, /*add_to_world*/ false, /* auto mask */ true);
+  int physMatId = PhysMat::getPhysBodyMaterial(user_ptr && user_ptr->matId != PHYSMAT_INVALID ? user_ptr->matId : PHYSMAT_DEFAULT);
+  CollisionObject co = create_coll_obj_from_shape(*newShape, user_ptr, /*kinematic*/ false, /*add_to_world*/ false,
+    /* auto mask */ true, dacoll::EPL_KINEMATIC, dacoll::DEFAULT_DYN_COLLISION_MASK, nullptr, physMatId);
   PhysCollision::clearAllocatedData(*newShape);
   delete newShape;
   return co;
@@ -55,8 +57,7 @@ void set_ttl_for_collision_instances(float value) { default_time_to_live = value
 
 extern void push_non_empty_ri_instance_list(CollisionInstances &ci);
 
-const ScaledBulletInstance *CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale,
-  bool &out_created)
+ScaledBulletInstance *CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, vec3f scale, bool &out_created)
 {
   float timeOfDeath = get_ri_instances_time() + default_time_to_live;
   for (auto &si : bulletInstances)
@@ -77,7 +78,9 @@ const ScaledBulletInstance *CollisionInstances::getScaledInstance(const rendinst
     for (auto it = bulletInstances.begin(); it != &ret; ++it)
       it->updateUserDataPtr();
 
-  if (DAGOR_UNLIKELY(!ret.obj)) // Phys body alloc failed
+  if (DAGOR_LIKELY(ret.obj && ret.obj.body->getShape())) // Phys body alloc failed or bad shape?
+    ;
+  else
   {
     bulletInstances.pop_back();
     return nullptr;
@@ -166,10 +169,18 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
   bool created = false;
   vec3f ls = v_sqrt(v_perm_xzac(v_perm_xycd(v_length3_sq(v_ldu(&tm.getcol(0).x)), v_length3_sq(v_ldu(&tm.getcol(1).x))),
     v_length3_sq(v_ldu(&tm.getcol(2).x))));
-  ls = v_mul(v_round(v_mul(ls, v_splats(1e6f))), v_splats(1e-6f)); // Filter out tiny scale variations
-  Point3_vec4 localScaling;
-  v_st(&localScaling.x, ls);
-  const ScaledBulletInstance *scaledInstance = getScaledInstance(desc, localScaling, created);
+  if (DAGOR_UNLIKELY(!v_test_all_bits_zeros(v_cmp_ge(v_zero(), ls)))) // Note: .w == .z
+  {
+    // Note: ri grid is not suppose to output destroyed (zero-basis) tms
+#if DAGOR_DBGLEVEL <= 0
+    static
+#endif
+      bool logged = false;
+    G_ASSERT_LOG(eastl::exchange(logged, true), "Attempt to collide with invalid scale(%f,%f,%f) ri%s[%d]=%s @ %@", v_extract_x(ls),
+      v_extract_y(ls), v_extract_z(ls), desc.isRiExtra() ? "Extra" : "", desc.pool, rendinst::getRIGenResName(desc), tm.getcol(3));
+    return {};
+  }
+  ScaledBulletInstance *scaledInstance = getScaledInstance(desc, ls, created);
   if (!scaledInstance) // PhysBody alloc failed?
     return {};
   CollisionObject cobj = scaledInstance->obj;
@@ -184,8 +195,12 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
   get_phys_world()->fetchSimRes(true);
 #endif
 
+  // To consider: use scale difference instead of raw compare
   if (update_scale && (v_signmask(v_cmp_eq(ls, v_ldu(&scaledInstance->scale.x))) & 0b111) != 0b111)
-    cobj.body->patchCollisionScaledCopy(localScaling, originalObj.body);
+  {
+    v_stu(&scaledInstance->scale.x, ls);
+    cobj.body->patchCollisionScaledCopy(scaledInstance->scale, originalObj.body);
+  }
 
   if (!instant)
     cobj.body->setTm(normTm);

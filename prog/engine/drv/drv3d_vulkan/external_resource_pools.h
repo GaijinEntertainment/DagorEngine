@@ -65,11 +65,11 @@ struct ExternalResourcePool
 
 struct TexturePool : public ExternalResourcePool<TextureInterfaceBase>
 {
-  TextureInterfaceBase *allocate(int res_type, uint32_t cflg)
+  TextureInterfaceBase *allocate(const BaseTexParams &pars, const char *stat_name)
   {
     OSSpinlockScopedLock lock{guard};
 
-    return data.allocate(res_type, cflg);
+    return data.allocate(pars, stat_name);
   }
 };
 

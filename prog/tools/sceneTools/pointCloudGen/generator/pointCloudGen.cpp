@@ -18,6 +18,7 @@
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/riShaderConstBuffers.h>
+#include <algorithm>
 #include <random>
 #include <sampler.h>
 #include <shaders/dag_rendInstRes.h>

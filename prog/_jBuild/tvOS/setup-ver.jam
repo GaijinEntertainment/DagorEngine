@@ -1,5 +1,5 @@
 if ! [ GLOB $(_DEVTOOL)/mac/SDKs/AppleTVOS.platform/AppleTVOS$(tvOSVer).sdk : * ] && $(Platform) = tvOS && $(PlatformArch) = arm64 {
-  local ver = 15.4 15.0 14.5 14.4 14.3 14.2 14.1 14.0 13.5 13.4 12.2 12.1 12.0 11.4 11.3 11.2 11.1 11.0 10.2 10.1 10.0 ;
+  local ver = 18.2 15.4 15.0 14.5 14.4 14.3 14.2 14.1 14.0 13.5 13.4 12.2 12.1 12.0 11.4 11.3 11.2 11.1 11.0 10.2 10.1 10.0 ;
   for v in $(ver) {
     if [ GLOB $(_DEVTOOL)/mac/SDKs/AppleTVOS.platform/AppleTVOS$(v).sdk : * ] {
       echo tvOSVer SDK $(tvOSVer) not found, switching to $(v) with -mappletvos-version-min=$(tvOSMinVer) ;

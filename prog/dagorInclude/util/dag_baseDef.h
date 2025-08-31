@@ -76,7 +76,7 @@ struct DestroyDeleter
 
 #define VTMD(a) V3D(a.col0), V3D(a.col1), V3D(a.col2), V3D(a.col3)
 
-#if defined(_TARGET_CPU_BE)
+#if _TARGET_CPU_BE
 //   Big Endian version (XBOX360 PPC)
 
 #define MAKE4C(a, b, c, d) ((d) | ((c) << 8) | ((b) << 16) | ((a) << 24))
@@ -84,12 +84,12 @@ struct DestroyDeleter
 #define _MAKE4C(x) int(x)
 
 // dump four-cc code for pattern %c%c%c%c - for debug output
-#define DUMP4C(x) char(((x) >> 24) & 0xFF), char(((x) >> 16) & 0xFF), char(((x) >> 8) & 0xFF), char((x)&0xFF)
+#define DUMP4C(x) char(((x) >> 24) & 0xFF), char(((x) >> 16) & 0xFF), char(((x) >> 8) & 0xFF), char((x) & 0xFF)
 
 // dump four-cc code for pattern %c%c%c%c (0 is replaced with ' ')
 #define _DUMP4C(x)                                                                                                  \
   (((x) >> 24) & 0xFF) ? char((((x) >> 24) & 0xFF)) : ' ', (((x) >> 16) & 0xFF) ? char((((x) >> 16) & 0xFF)) : ' ', \
-    (((x) >> 8) & 0xFF) ? char((((x) >> 8) & 0xFF)) : ' ', ((x)&0xFF) ? char(((x)&0xFF)) : ' '
+    (((x) >> 8) & 0xFF) ? char((((x) >> 8) & 0xFF)) : ' ', ((x) & 0xFF) ? char(((x) & 0xFF)) : ' '
 #else
 //   Little Endian version (IA32)
 
@@ -98,11 +98,11 @@ struct DestroyDeleter
 #define _MAKE4C(x) MAKE4C((int(x) >> 24) & 0xFF, (int(x) >> 16) & 0xFF, (int(x) >> 8) & 0xFF, int(x) & 0xFF)
 
 // dump four-cc code for pattern %c%c%c%c - for debug output
-#define DUMP4C(x)  char((x)&0xFF), char(((x) >> 8) & 0xFF), char(((x) >> 16) & 0xFF), char(((x) >> 24) & 0xFF)
+#define DUMP4C(x)  char((x) & 0xFF), char(((x) >> 8) & 0xFF), char(((x) >> 16) & 0xFF), char(((x) >> 24) & 0xFF)
 
 // dump four-cc code for pattern %c%c%c%c (0 is replaced with ' ')
-#define _DUMP4C(x)                                                                            \
-  ((x)&0xFF) ? char(((x)&0xFF)) : ' ', (((x) >> 8) & 0xFF) ? char((((x) >> 8) & 0xFF)) : ' ', \
+#define _DUMP4C(x)                                                                                \
+  ((x) & 0xFF) ? char(((x) & 0xFF)) : ' ', (((x) >> 8) & 0xFF) ? char((((x) >> 8) & 0xFF)) : ' ', \
     (((x) >> 16) & 0xFF) ? char((((x) >> 16) & 0xFF)) : ' ', (((x) >> 24) & 0xFF) ? char((((x) >> 24) & 0xFF)) : ' '
 #endif
 

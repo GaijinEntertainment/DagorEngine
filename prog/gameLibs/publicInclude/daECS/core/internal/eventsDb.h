@@ -38,8 +38,8 @@ public:
 
   uint32_t getEventsCount() const { return (uint32_t)eventsInfo.size(); }
   void dump() const;
-  void destroy(Event &) const;
-  void moveOut(void *__restrict to, Event &&from) const;
+  void destroy(EntityManager &mgr, Event &) const;
+  void moveOut(EntityManager &mgr, void *__restrict to, Event &&from) const;
 
 protected:
   friend class EntityManager;

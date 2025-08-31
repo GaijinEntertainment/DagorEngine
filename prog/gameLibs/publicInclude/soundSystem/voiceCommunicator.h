@@ -20,19 +20,37 @@ struct SoundSettings
   bool voiceTest = false;
 };
 
-class IVoiceChannel
+class IVoiceTransport
 {
 public:
+  IVoiceTransport() = default;
+  virtual ~IVoiceTransport() = default;
+
+  IVoiceTransport(const IVoiceTransport &) = delete;
+  IVoiceTransport &operator=(const IVoiceTransport &) = delete;
+  IVoiceTransport(IVoiceTransport &&) = default;
+  IVoiceTransport &operator=(IVoiceTransport &&) = default;
+
   virtual uint32_t getSampleRate() const = 0;
   virtual uint32_t getFrameSamples() const = 0;
+};
+
+class IVoiceSource : public IVoiceTransport
+{
+public:
   virtual void receiveAudioFrame(int16_t *buf, unsigned int buf_size_samples) = 0;
-  virtual void sendAudioFrame(const int16_t *buf, unsigned int buf_size_samples) = 0;
+};
+
+class IVoiceSink : public IVoiceTransport
+{
+public:
+  virtual void sendAudioFrame(const int16_t *buf, unsigned int buf_size_samples, int64_t timestampUsec) = 0;
 };
 
 class VoiceCommunicator
 {
 public:
-  virtual ~VoiceCommunicator() {}
+  virtual ~VoiceCommunicator() = default;
 
   virtual bool init() = 0;
   virtual void updateSoundSettings(SoundSettings const &settings) = 0;
@@ -41,8 +59,14 @@ public:
   virtual void disableRecording() = 0;
   virtual bool isRecordingEnabled() const = 0;
   virtual void process() = 0;
+
+  virtual unsigned getSampleRate() const = 0;
+  virtual unsigned getBytesPerSample() const = 0;
+
+  virtual bool addVoiceSource(IVoiceSource *source) = 0;
+  virtual void removeVoiceSource(IVoiceSource *source) = 0;
 };
 
-eastl::unique_ptr<VoiceCommunicator> create_voice_communicator(IVoiceChannel *vchan, SoundSettings const &settings);
+eastl::unique_ptr<VoiceCommunicator> create_voice_communicator(IVoiceSink *sink, SoundSettings const &settings);
 
 } // namespace voicechat

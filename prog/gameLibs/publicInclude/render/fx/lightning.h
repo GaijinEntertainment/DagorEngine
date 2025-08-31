@@ -37,7 +37,7 @@ struct LightningParams
 struct Lightning
 {
   Lightning();
-  ~Lightning(){};
+  ~Lightning() {}
 
   void render();
   void setParams(LightningParams p);

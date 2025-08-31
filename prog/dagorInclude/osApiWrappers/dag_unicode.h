@@ -9,6 +9,12 @@
 
 #include <supp/dag_define_KRNLIMP.h>
 
+#ifdef __cpp_char8_t
+using dag_char8_t = char8_t;
+#else
+using dag_char8_t = char;
+#endif
+
 KRNLIMP wchar_t *utf8_to_wcs(const char *utf8_str, wchar_t *wcs_buf, int wcs_buf_len);
 KRNLIMP int utf8_to_wcs_ex(const char *utf8_str, int utf8_len, wchar_t *wcs_buf, int wcs_buf_len);
 
@@ -30,7 +36,10 @@ KRNLIMP wchar_t *convert_path_to_u16_c(wchar_t *dest_u16, int dest_sz, const cha
 KRNLIMP char *convert_to_utf8(Tab<char> &dest_utf8, const wchar_t *s, int len = -1);
 
 // counts number of SYMBOLS in utf8 NULL-terminated string
+KRNLIMP int utf8_strlen(const dag_char8_t *utf8_str);
+#ifdef __cpp_char8_t
 KRNLIMP int utf8_strlen(const char *utf8_str);
+#endif
 
 // dir = 1: converts acp to utf8; dir = -1: converts utf8 to acp
 // returns out_str.data()

@@ -2,15 +2,12 @@
 
 #include <stdarg.h>
 #include <util/dag_string.h>
-#include <stdio.h>
 
 #include "shLog.h"
 #include "shCompiler.h"
+#include "processes.h"
 #include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_debug.h>
-
-#include <libTools/util/atomicPrintf.h>
-AtomicPrintfMutex AtomicPrintfMutex::inst;
 
 ErrorCounter &ErrorCounter::curShader()
 {
@@ -65,10 +62,10 @@ void sh_change_mode(ShLogMode mode, ShLogMode mode_other) { realMode[mode] = mod
 static const int fatalErrorCount = 100;
 
 static bool processError = true;
-static IVariantInfoProvider *current_variant = NULL;
-static IVariantInfoProvider *prev_variant = NULL;
-static IVariantInfoProvider *current_dyn_variant = NULL;
-static IVariantInfoProvider *prev_dyn_variant = NULL;
+static const IVariantInfoProvider *current_variant = NULL;
+static const IVariantInfoProvider *prev_variant = NULL;
+static const IVariantInfoProvider *current_dyn_variant = NULL;
+static const IVariantInfoProvider *prev_dyn_variant = NULL;
 static const char *current_shader = NULL;
 static bool usePrintf = false;
 static bool quetConsole = false;
@@ -85,6 +82,24 @@ String sh_get_compile_context()
     current_dyn_variant ? current_dyn_variant->getVarStringInfo().str() : "?");
 }
 
+void sh_printf(const char *fmt, const DagorSafeArg *arg, int anum) { sh_fprintf(stdout, fmt, arg, anum); }
+
+void sh_fprintf(FILE *file, const char *fmt, const DagorSafeArg *arg, int anum)
+{
+  G_ASSERT(file == stdout || file == stderr); // Only these two are connected to multi-process output
+
+  int slen = DagorSafeArg::count_len(fmt, arg, anum);
+  eastl::string msg{};
+  msg.resize(slen + 1);
+  DagorSafeArg::print_fmt(msg.data(), msg.length() + 1, fmt, arg, anum);
+  if (shc::config().singleBuild || shc::config().singleCompilationShName)
+    msg[slen] = proc::MANAGED_MESSAGE_SEPARATOR;
+  else
+    msg[slen] = '\0';
+  fputs(msg.c_str(), file);
+  fflush(file);
+}
+
 // output to shader log
 void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum)
 {
@@ -97,6 +112,8 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
   bool dup_stdout = usePrintf && (!quetConsole || mode == SHLOG_FATAL || mode == SHLOG_ERROR || mode == SHLOG_NORMAL ||
                                    (mode == SHLOG_WARNING && printWarnings));
 
+  String st;
+
   bool st_var_changed = prev_variant != current_variant;
   if (st_var_changed)
   {
@@ -106,7 +123,7 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
       String s = current_variant->getVarStringInfo();
       debug("\n== S.variant: %s", (char *)s);
       if (dup_stdout && !lockShaderOutput)
-        ATOMIC_PRINTF("\n== S.variant: shader=%s %s\n", current_shader, (char *)s);
+        st.aprintf(0, "\n== S.variant: shader=%s %s\n", current_shader, (char *)s);
     }
   }
 
@@ -118,20 +135,17 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
       String s = current_dyn_variant->getVarStringInfo();
       debug(" = D.variant: %s", (char *)s);
       if (dup_stdout && !lockShaderOutput)
-        ATOMIC_PRINTF(" = D.variant: %s\n", (char *)s);
+        st.aprintf(0, " = D.variant: %s\n", (char *)s);
     }
   }
 
-  String st;
-
   switch (mode)
   {
-    case SHLOG_NORMAL: st = fmt; break;
-    case SHLOG_INFO: st = String("[INFO] ") + fmt; break;
-    case SHLOG_WARNING: st = String("[WARN] ") + fmt; break;
-    case SHLOG_SILENT_WARNING: return;
-    case SHLOG_ERROR: st = String("[ERROR] ") + fmt; break;
-    case SHLOG_FATAL: st = String("\n[FATAL ERROR] ") + fmt; break;
+    case SHLOG_NORMAL: st += fmt; break;
+    case SHLOG_INFO: st += String("[INFO] ") + fmt; break;
+    case SHLOG_WARNING: st += String("[WARN] ") + fmt; break;
+    case SHLOG_ERROR: st += String("[ERROR] ") + fmt; break;
+    case SHLOG_FATAL: st += String("\n[FATAL ERROR] ") + fmt; break;
   }
 
   logmessage_fmt(LOGLEVEL_DEBUG, st, arg, anum);
@@ -140,9 +154,7 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
   if (dup_stdout)
   {
     st += "\n";
-    AtomicPrintfMutex::inst.lock();
-    DagorSafeArg::fprint_fmt(stdout, st, arg, anum);
-    AtomicPrintfMutex::inst.unlock(stdout);
+    sh_printf(st, arg, anum);
   }
 
 
@@ -222,8 +234,8 @@ void sh_process_errors()
     shc::deinit_jobs();
     if (usePrintf)
     {
-      ATOMIC_PRINTF_IMM("\n\nCompilation aborted after %d error(s)\n"
-                        "See shaderlog for more info\n",
+      sh_printf("\n\nCompilation aborted after %d error(s)\n"
+                "See shaderlog for more info\n",
         ErrorCounter::allShaders().err);
       quit_game(13);
     }
@@ -237,12 +249,12 @@ void sh_process_errors()
 
 // set current variant to output
 void sh_set_current_shader(const char *shader) { current_shader = shader; }
-void sh_set_current_variant(IVariantInfoProvider *var)
+void sh_set_current_variant(const IVariantInfoProvider *var)
 {
   prev_variant = current_variant;
   current_variant = var;
 }
-void sh_set_current_dyn_variant(IVariantInfoProvider *var)
+void sh_set_current_dyn_variant(const IVariantInfoProvider *var)
 {
   prev_dyn_variant = current_dyn_variant;
   current_dyn_variant = var;

@@ -9,6 +9,7 @@
 #include <osApiWrappers/dag_unicode.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ffx_api/ffx_upscale.hpp>
+#include <drv_log_defs.h>
 
 #define VK_NO_PROTOTYPES
 
@@ -126,7 +127,7 @@ public:
     auto status = createContext(&upscalingContext, &desc.header, nullptr);
     if (status != FFX_API_RETURN_OK)
     {
-      logerr("[AMDFSR] Failed to create FSR context: %s", get_error_string(status));
+      D3D_ERROR("[AMDFSR] Failed to create FSR context: %s", get_error_string(status));
       return false;
     }
 
@@ -171,6 +172,22 @@ public:
   bool isUpscalingSupported() const override { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
 
   bool isFrameGenerationSupported() const override { return false; }
+
+  void enableFrameGeneration(bool enable) override { G_UNUSED(enable); }
+
+  void suppressFrameGeneration(bool suppress) override { G_UNUSED(suppress); }
+
+  void doScheduleGeneratedFrames(const FrameGenPlatformArgs &args, void *command_list) override
+  {
+    G_UNUSED(args);
+    G_UNUSED(command_list);
+  }
+
+  int getPresentedFrameCount() override { return 1; }
+
+  bool isFrameGenerationActive() const override { return false; }
+
+  bool isFrameGenerationSuppressed() const override { return false; }
 
 private:
   DagorDynLibHolder fsrModule;

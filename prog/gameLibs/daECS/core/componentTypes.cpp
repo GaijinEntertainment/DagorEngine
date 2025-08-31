@@ -3,6 +3,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/sharedComponent.h>
 #include <daECS/core/entityManager.h>
+#include <EASTL/optional.h>
 
 G_STATIC_ASSERT(ecs::ComponentTypeInfo<int>::can_be_tracked &&ecs::ComponentTypeInfo<ecs::Array>::can_be_tracked
     &&ecs::ComponentTypeInfo<ecs::Object>::can_be_tracked &&ecs::ComponentTypeInfo<vec4f>::can_be_tracked
@@ -61,7 +62,7 @@ namespace ecs
 ComponentSerializer default_serializer;
 size_t pull_components_type = 1;
 extern const int MAX_STRING_LENGTH = 32768; // just for safety. Keep string size reasonable please!
-};                                          // namespace ecs
+}; // namespace ecs
 
 
 class StringSerializer final : public ecs::ComponentSerializer

@@ -54,7 +54,7 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
   if (hlsl_debug_level == DebugLevel::FULL_DEBUG_INFO)
     d3dCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
   else if (hlsl_debug_level == DebugLevel::BASIC)
-    d3dCompileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+    d3dCompileFlags |= D3DCOMPILE_DEBUG;
   else
     d3dCompileFlags |= flags; // not sure why flags is only applied in this case, but this is consistent with the original former
   if (embed_source)

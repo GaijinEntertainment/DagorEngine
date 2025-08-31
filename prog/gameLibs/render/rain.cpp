@@ -26,12 +26,12 @@ void RainDroplets::init()
     envi_dropletsTexId = ::add_managed_texture("tex/envi_droplets.ddsx");
   droplets = (VolTexture *)::acquire_managed_tex(envi_dropletsTexId);
   d3d_err(droplets);
-  d3d_err(droplets->restype() == RES3D_VOLTEX);
+  d3d_err(droplets->getType() == D3DResourceType::VOLTEX);
 
   /*car_dropletsTexId = ::add_managed_texture("tex/droplets.ddsx");
   droplets = (VolTexture*)::acquire_managed_tex(car_dropletsTexId);
   d3d_err(droplets);
-  d3d_err(droplets->restype()==RES3D_VOLTEX);*/
+  d3d_err(droplets->getType()==D3DResourceType::VOLTEX);*/
   ShaderGlobal::set_texture(::get_shader_variable_id("envi_droplets", true), envi_dropletsTexId);
   // ShaderGlobal::set_texture(::get_shader_variable_id("car_droplets", true), car_dropletsTexId);
   rain_scale_var_id = ::get_shader_glob_var_id("rain_scale");

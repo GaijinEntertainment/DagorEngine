@@ -1,0 +1,18 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/groundHolesCore ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = gameLibs/groundHolesCore.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  render/groundHolesCoreRender.cpp
+  helpers.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

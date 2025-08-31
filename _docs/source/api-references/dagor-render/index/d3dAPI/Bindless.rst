@@ -1,5 +1,5 @@
-Bindless resources API
+Bindless Resources API
 =================================================
 
-.. autodoxygenfile:: dag_bindless.h
+.. doxygenfile:: dag_bindless.h
   :project: d3dAPI

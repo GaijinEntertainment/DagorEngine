@@ -7,6 +7,7 @@ struct Snowflake
   float2 size;
   float opacity;
   float seed;
+  uint2 padding;
 
 #ifdef __cplusplus
   bool operator==(const Snowflake&other) const

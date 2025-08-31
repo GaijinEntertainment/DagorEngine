@@ -23,7 +23,7 @@ function defMkBox(size, state=null, stateFlags=null, boxStyle=null){
   let hoverColor = boxStyle?.hoverColor ?? defBoxStyle.hoverColor
   let borderRadius = boxStyle?.borderRadius ?? defBoxStyle.borderRadius
   return function() {
-    let sf = stateFlags?.value ?? 0
+    let sf = stateFlags?.get() ?? 0
     return {
       rendObj = ROBJ_BOX
       size = size
@@ -34,7 +34,7 @@ function defMkBox(size, state=null, stateFlags=null, boxStyle=null){
         rendObj = ROBJ_BOX
         size = flex()
         borderColor = 0
-        fillColor = !state?.value
+        fillColor = !state?.get()
           ? sf & S_HOVER ? color : 0
           : sf & S_HOVER ? hoverColor : color
         borderRadius = borderRadius
@@ -53,8 +53,8 @@ function checkboxCtor(state, text = null, style = defStyle, textCtor = defMkText
   return function checkbox(){
     return {
       behavior = Behaviors.Button
-      onClick = @() state(!state.value)
-      onElemState = @(sf) stateFlags(sf)
+      onClick = @() state.modify(@(v)!v)
+      onElemState = @(sf) stateFlags.set(sf)
       flow = FLOW_HORIZONTAL
       gap = hWidth
       children = [box, label]

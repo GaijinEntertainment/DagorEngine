@@ -37,7 +37,7 @@ def on_gameapp_started_es(evt : Event)
     print("[SCENE LOAD] starting with scene = gamedata/scenes/menu.blk")
     switch_scene("gamedata/scenes/menu.blk") // launch from enlist
 
-[es]
+[es(tag=not_inside_tools)]
 def on_client_connected_server(evt : EventOnClientConnected)
   print("EventOnClientConnected")
   var spawnTms : array<float3x4>
@@ -46,7 +46,7 @@ def on_client_connected_server(evt : EventOnClientConnected)
 
   var spawnTm : float3x4
   assert(length(spawnTms) > 0, "No spawn bases to spawn onto")
-  var idx : int = 0 //grnd() % length(spawnTms)
+  let idx : int = 0 //grnd() % length(spawnTms)
   if (idx < length(spawnTms))
     spawnTm = spawnTms[idx]
 

@@ -8,6 +8,7 @@ void physmat::PhysContactProps::load(const DataBlock *blk)
 {
   const DataBlock *destrBlk = blk->getBlockByNameEx("physContactProps");
   removePhysContact = destrBlk->getBool("removePhysContact", removePhysContact);
+  forcedSliding = destrBlk->getBool("forcedSliding", forcedSliding);
 }
 bool physmat::PhysContactProps::can_load(const DataBlock *blk) { return blk->getBlockByNameEx("physContactProps", nullptr); }
 

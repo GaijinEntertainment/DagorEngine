@@ -2,6 +2,7 @@
 
 #include <dasModules/aotPhysObj.h>
 #include <dasModules/dasManagedTab.h>
+#include <ecs/phys/netPhysResync.h>
 
 struct PhysObjStateAnnotation : das::ManagedStructureAnnotation<PhysObjState, false>
 {
@@ -72,7 +73,6 @@ struct PhysObjAnnotation : das::ManagedStructureAnnotation<PhysObj, false>
     addField<DAS_BIND_MANAGED_FIELD(hasGroundCollisionPoint)>("hasGroundCollisionPoint");
     addField<DAS_BIND_MANAGED_FIELD(hasRiDestroyingCollision)>("hasRiDestroyingCollision");
     addField<DAS_BIND_MANAGED_FIELD(hasFrtCollision)>("hasFrtCollision");
-    addField<DAS_BIND_MANAGED_FIELD(shouldFallThroughGround)>("shouldFallThroughGround");
     addField<DAS_BIND_MANAGED_FIELD(shouldTraceGround)>("shouldTraceGround");
     addField<DAS_BIND_MANAGED_FIELD(addToWorld)>("addToWorld");
     addField<DAS_BIND_MANAGED_FIELD(skipUpdateOnSleep)>("skipUpdateOnSleep");
@@ -99,16 +99,6 @@ struct PhysObjAnnotation : das::ManagedStructureAnnotation<PhysObj, false>
   }
 };
 
-struct FloatingVolumeAnnotation : das::ManagedStructureAnnotation<gamephys::floating_volumes::FloatingVolume, false>
-{
-  FloatingVolumeAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("FloatingVolume", ml)
-  {
-    cppName = " ::gamephys::floating_volumes::FloatingVolume";
-    addField<DAS_BIND_MANAGED_FIELD(floatingVolumes)>("floatingVolumes");
-    addField<DAS_BIND_MANAGED_FIELD(floatVolumesCd)>("floatVolumesCd");
-  }
-};
-
 namespace bind_dascript
 {
 class PhysObjModule final : public das::Module
@@ -124,13 +114,13 @@ public:
     addAnnotation(das::make_smart<PhysObjStateAnnotation>(lib));
     addAnnotation(das::make_smart<PhysObjControlStateAnnotation>(lib));
     addAnnotation(das::make_smart<PhysObjAnnotation>(lib));
-    addAnnotation(das::make_smart<FloatingVolumeAnnotation>(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::phys_obj_rescheduleAuthorityApprovedSend)>(*this, lib,
       "phys_obj_rescheduleAuthorityApprovedSend", das::SideEffects::modifyArgument,
       "bind_dascript::phys_obj_rescheduleAuthorityApprovedSend");
-    das::addExtern<DAS_BIND_FUN(bind_dascript::phys_obj_addForce)>(*this, lib, "phys_obj_addForce", das::SideEffects::modifyArgument,
-      "bind_dascript::phys_obj_addForce");
+    using method_addForce = DAS_CALL_MEMBER(PhysObj::addForce);
+    das::addExtern<DAS_CALL_METHOD(method_addForce)>(*this, lib, "phys_obj_addForce", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(PhysObj::addForce));
     using method_isCollisionValid = DAS_CALL_MEMBER(PhysObj::isCollisionValid);
     das::addExtern<DAS_CALL_METHOD(method_isCollisionValid)>(*this, lib, "isCollisionValid", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(PhysObj::isCollisionValid));
@@ -143,6 +133,21 @@ public:
     using method_updatePhysInWorld = DAS_CALL_MEMBER(PhysObj::updatePhysInWorld);
     das::addExtern<DAS_CALL_METHOD(method_updatePhysInWorld)>(*this, lib, "updatePhysInWorld", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(PhysObj::updatePhysInWorld));
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::registerCustomPhysStateSyncer<PhysObj>)>(*this, lib, "registerCustomPhysStateSyncer",
+      das::SideEffects::modifyArgument, "bind_dascript::registerCustomPhysStateSyncer<PhysObj>");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::unregisterCustomPhysStateSyncer<PhysObj>)>(*this, lib,
+      "unregisterCustomPhysStateSyncer", das::SideEffects::modifyArgument, "bind_dascript::unregisterCustomPhysStateSyncer<PhysObj>");
+
+    using method_initCustomControls = DAS_CALL_MEMBER(PhysObj::initCustomControls);
+    das::addExtern<DAS_CALL_METHOD(method_initCustomControls)>(*this, lib, "initCustomControls", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(PhysObj::initCustomControls));
+    using method_getAppliedCustomControls = DAS_CALL_MEMBER(PhysObj::getAppliedCustomControls);
+    das::addExtern<DAS_CALL_METHOD(method_getAppliedCustomControls)>(*this, lib, "getAppliedCustomControls",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysObj::getAppliedCustomControls));
+    using method_getProducedCustomControls = DAS_CALL_MEMBER(PhysObj::getProducedCustomControls);
+    das::addExtern<DAS_CALL_METHOD(method_getProducedCustomControls)>(*this, lib, "getProducedCustomControls",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysObj::getProducedCustomControls));
 
     verifyAotReady();
   }

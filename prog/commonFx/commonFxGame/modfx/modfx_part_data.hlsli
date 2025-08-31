@@ -11,8 +11,10 @@ void modfx_load_sim_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
 #endif
   o.em_color = float4( 1.f, 1.f, 1.f, 1.f );
 
-  if (MODFX_SDECL_LIFE_ENABLED(decls))
-    o.life_norm = dafx_load_1f(buf, ofs);
+  // life_norm is always loaded, but can be reset to 0 if not used (extreme edge case)
+  o.life_norm = dafx_load_1f(buf, ofs);
+  if (!MODFX_SDECL_LIFE_ENABLED(decls))
+    o.life_norm = 0;
 
   if (MODFX_SDECL_COLLISION_TIME_ENABLED(decls))
     o.collision_time_norm = dafx_load_1f(buf, ofs);
@@ -33,8 +35,8 @@ void modfx_load_sim_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
 DAFX_INLINE
 void modfx_save_sim_data(BufferData_ref buf, uint ofs, uint decls, bool is_emission, DAFX_CREF(ModfxSimData) v)
 {
-  if (MODFX_SDECL_LIFE_ENABLED(decls))
-    dafx_store_1f(v.life_norm, buf, ofs);
+  // life_norm is always stored
+  dafx_store_1f(v.life_norm, buf, ofs);
 
   if (MODFX_SDECL_COLLISION_TIME_ENABLED(decls))
     dafx_store_1f(v.collision_time_norm, buf, ofs);
@@ -89,6 +91,9 @@ void modfx_load_ren_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
 
   if (MODFX_RDECL_RIGHT_VEC_ENABLED(decls))
     o.right_vec = normalize_safe(unpack_uint_to_n3s(dafx_load_1ui(buf, ofs)), float3(1, 0, 0));
+
+  if (MODFX_RDECL_ORIENTATION_VEC_ENABLED(decls))
+    o.orientation_vec = normalize_safe(unpack_uint_to_n3s(dafx_load_1ui(buf, ofs)), float3(0, 1, 0));
 
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(decls))
     o.velocity_length = dafx_load_1f(buf, ofs);
@@ -152,6 +157,13 @@ void modfx_save_ren_data(BufferData_ref buf, uint ofs, uint decls, uint sflags, 
   {
     if (is_emission)
       dafx_set_1ui(pack_n3s_to_uint(v.right_vec ), buf, ofs);
+    ofs++;
+  }
+
+  if (MODFX_RDECL_ORIENTATION_VEC_ENABLED(decls))
+  {
+    if (is_emission)
+      dafx_set_1ui(pack_n3s_to_uint(v.orientation_vec), buf, ofs);
     ofs++;
   }
 

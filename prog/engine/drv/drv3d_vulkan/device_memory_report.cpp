@@ -29,7 +29,7 @@ void DeviceMemoryReport::dmr_callback(const VkDeviceMemoryReportCallbackDataEXT 
 bool DeviceMemoryReport::init(const PhysicalDeviceSet &dev_info, CallbackDesc &cb_desc)
 {
   active = ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("debug")->getBool("enableDeviceMemoryReport",
-    DAGOR_DBGLEVEL > 0 && dev_info.vendorId != D3D_VENDOR_ARM); //-V560
+    DAGOR_DBGLEVEL > 0 && dev_info.vendor != GpuVendor::ARM); //-V560
   active &= dev_info.hasDeviceMemoryReport;
 
   if (!active)

@@ -4,6 +4,7 @@
 #include "sound/ecsEvents.h"
 
 ECS_REGISTER_EVENT(EventOnSoundPresetLoaded);
+ECS_REGISTER_EVENT(EventOnMasterSoundPresetLoaded);
 ECS_REGISTER_EVENT(EventSoundDrawDebug);
 
 namespace dngsound

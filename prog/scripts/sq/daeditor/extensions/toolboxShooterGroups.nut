@@ -25,14 +25,14 @@ let findGroupListQuery = ecs.SqQuery("findGroupListQuery", {
 })
 
 function updateGroupsList() {
-  groupsList.value.clear()
+  groupsList.get().clear()
   let groupsMap = {}
   findGroupListQuery(function(_eid, comp) {
     if (comp.groupName == "")
       return
     if (groupsMap?[comp.groupName] == null) {
-      groupsMap[comp.groupName] <- groupsList.value.len()
-      groupsList.value.append({
+      groupsMap[comp.groupName] <- groupsList.get().len()
+      groupsList.get().append({
         groupName = comp.groupName
         active = 0
         count = 0
@@ -43,16 +43,16 @@ function updateGroupsList() {
     }
     let idx = groupsMap[comp.groupName]
     if (comp.active)
-      groupsList.value[idx].active += 1
+      groupsList.get()[idx].active += 1
     if (comp.battle_area != null)
-      groupsList.value[idx].battleAreas += 1
+      groupsList.get()[idx].battleAreas += 1
     if (comp.respbase != null)
-      groupsList.value[idx].respawns += 1
+      groupsList.get()[idx].respawns += 1
     if (comp.capzone != null)
-      groupsList.value[idx].capZones += 1
-    groupsList.value[idx].count += 1
+      groupsList.get()[idx].capZones += 1
+    groupsList.get()[idx].count += 1
   })
-  groupsList.value.sort(@(a,b) a.groupName <=> b.groupName)
+  groupsList.get().sort(@(a,b) a.groupName <=> b.groupName)
   groupsList.trigger()
 }
 

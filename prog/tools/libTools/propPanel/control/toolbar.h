@@ -20,10 +20,10 @@ public:
     ContainerPropertyControl(id, event_handler, parent), controlCaption(caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return 0; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return 0; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void createEditInt(int id, const char caption[], int value, bool enabled, bool new_line) override
+  void createEditInt(int id, const char caption[], int value, bool enabled, bool new_line) override
   {
     SpinEditIntPropertyControl *newControl = new SpinEditIntPropertyControl(mEventHandler, this, id, caption,
       /*width_includes_label = */ false);
@@ -33,7 +33,7 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void createEditFloat(int id, const char caption[], float value, int prec, bool enabled, bool new_line) override
+  void createEditFloat(int id, const char caption[], float value, int prec, bool enabled, bool new_line) override
   {
     SpinEditFloatPropertyControl *newControl = new SpinEditFloatPropertyControl(mEventHandler, this, id, caption, prec,
       /*width_includes_label = */ false);
@@ -43,7 +43,7 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void createCheckBox(int id, const char caption[], bool value, bool enabled = true, bool new_line = true) override
+  void createCheckBox(int id, const char caption[], bool value, bool enabled = true, bool new_line = true) override
   {
     G_UNUSED(new_line);
 
@@ -53,7 +53,7 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void createButton(int id, const char caption[], bool enabled = true, bool new_line = true) override
+  void createButton(int id, const char caption[], bool enabled = true, bool new_line = true) override
   {
     G_UNUSED(new_line);
 
@@ -63,7 +63,7 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void createSeparator(int id, bool new_line = true) override
+  void createSeparator(int id, bool new_line = true) override
   {
     G_UNUSED(new_line);
 
@@ -72,7 +72,7 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void createRadio(int id, const char caption[], bool enabled = true, bool new_line = true) override
+  void createRadio(int id, const char caption[], bool enabled = true, bool new_line = true) override
   {
     G_UNUSED(new_line);
 
@@ -81,24 +81,42 @@ public:
     addControl(newControl, new_line);
   }
 
-  virtual void clear() override { ContainerPropertyControl::clear(); }
+  void clear() override { ContainerPropertyControl::clear(); }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
+    const float spacing = ImGui::GetStyle().ItemSpacing.x;
+    float availableSpace;
+    float leftMaxX;
+
+    int alignRightFromStart = mControlArray.size();
+    const int alignRightFromChild = getAlignRightFromChild();
     for (int i = 0; i < mControlArray.size(); ++i)
     {
-      PropertyControlBase *control = mControlArray[i];
+      if (alignRightFromChild == i)
+      {
+        alignRightFromStart = i;
+        availableSpace = mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : ImGui::GetContentRegionAvail().x;
+        availableSpace -= spacing;
+        leftMaxX = max(ImGui::GetItemRectMax().x, ImGui::GetCursorPosX());
+        leftMaxX += spacing;
+        break;
+      }
+      updateControl(i, 0.0);
+    }
 
-      ImGui::SameLine();
-
-      ImGui::PushID(control);
-      control->updateImgui();
-      ImGui::PopID();
+    for (int i = alignRightFromStart; i < mControlArray.size(); ++i)
+    {
+      availableSpace -= mControlsLastRectSize[i].x;
+      if (availableSpace < leftMaxX)
+        break;
+      updateControl(i, availableSpace);
+      availableSpace -= spacing;
     }
   }
 
 protected:
-  virtual void addControl(PropertyControlBase *pcontrol, bool new_line) override
+  void addControl(PropertyControlBase *pcontrol, bool new_line) override
   {
     const int oldCount = mControlArray.size();
     ContainerPropertyControl::addControl(pcontrol, new_line);
@@ -108,6 +126,19 @@ protected:
     const hdpi::Px width = hdpi::_pxScaled(DEFAULT_TOOLBAR_CONTROL_WIDTH);
     control->setWidth(width);
   }
+
+  void updateControl(int index, float offset)
+  {
+    PropertyControlBase *control = mControlArray[index];
+
+    ImGui::SameLine(offset);
+
+    ImGui::PushID(control);
+    control->updateImgui();
+    ImGui::PopID();
+
+    mControlsLastRectSize[index] = ImGui::GetItemRectSize();
+  };
 
   String controlCaption;
 };

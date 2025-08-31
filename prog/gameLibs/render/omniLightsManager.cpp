@@ -44,25 +44,27 @@ void OmniLightsManager::close()
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside,
   Tab<uint16_t> &lights_with_camera_outside, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const
+  const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
+  OmniLightMaskType require_any_mask) const
 {
   prepare(frustum, lights_with_camera_inside, lights_with_camera_outside, occlusion, inside_box, outside_box, frustum.camPlanes[5],
-    shadow, markSmallLightsAsFarLimit, cameraPos, accept_mask);
+    shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask);
 }
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
   Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const
+  float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask) const
 {
   prepare(frustum, lightsInside, lightsOutside, nullptr, occlusion, inside_box, outside_box, znear_plane, shadow,
-    markSmallLightsAsFarLimit, cameraPos, accept_mask);
+    markSmallLightsAsFarLimit, cameraPos, require_any_mask);
 }
 
 typedef uint16_t shadow_index_t;
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
   eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const
+  const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos,
+  OmniLightMaskType require_any_mask) const
 {
   int maxIdx = maxIndex();
   int reserveSize = (maxIdx + 1) / 2;
@@ -71,7 +73,7 @@ void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsIns
   vec4f rad_scale = v_splats(1.1f);
   for (int i = 0; i <= maxIdx; ++i)
   {
-    if (!(accept_mask & masks[i]))
+    if (require_any_mask && !(require_any_mask & masks[i]))
       continue;
     const RawLight &l = rawLights[i];
     if (l.pos_radius.w <= 0)
@@ -162,7 +164,7 @@ int OmniLightsManager::addLight(int priority, const RawLight &l)
   if (id < 0)
     return id;
   rawLights[id] = l;
-  masks[id] = ~mask_type_t(0);
+  masks[id] = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT;
   lightPriority[id] = priority;
   return id;
 }
@@ -178,7 +180,7 @@ void OmniLightsManager::destroyLight(unsigned int id)
   G_ASSERT_RETURN(id <= maxLightIndex, );
 
   memset(&rawLights[id], 0, sizeof(rawLights[id]));
-  masks[id] = 0;
+  masks[id] = OmniLightMaskType::OMNI_LIGHT_MASK_NONE;
 
   if (id == maxLightIndex)
   {

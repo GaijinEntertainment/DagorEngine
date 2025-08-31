@@ -18,7 +18,7 @@ class CurveColorDialog : public DialogWindow, public ICustomControl
 {
 public:
   CurveColorDialog(void *phandle, const char caption[]);
-  virtual ~CurveColorDialog();
+  ~CurveColorDialog() override;
 
   void fillPanel(ContainerPropertyControl *panel);
   void updatePresets();
@@ -34,13 +34,13 @@ public:
 
 private:
   // DialogWindow
-  virtual void onChange(int pcb_id, ContainerPropertyControl *panel) override;
-  virtual void onClick(int pcb_id, ContainerPropertyControl *panel) override;
-  virtual void onDoubleClick(int pcb_id, ContainerPropertyControl *panel) override;
-  virtual void onPostEvent(int pcb_id, ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, ContainerPropertyControl *panel) override;
+  void onDoubleClick(int pcb_id, ContainerPropertyControl *panel) override;
+  void onPostEvent(int pcb_id, ContainerPropertyControl *panel) override;
 
   // ICustomControl
-  virtual void customControlUpdate(int id) override;
+  void customControlUpdate(int id) override;
 
   ColorCurveControl *colorCurve;
   Tab<String> presets;

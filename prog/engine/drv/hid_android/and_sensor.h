@@ -17,11 +17,9 @@ struct ALooper;
 
 namespace HumanInput
 {
-enum
-{
-  JOY_ANDSENSOR_MIN_AXIS_VAL = -32000,
-  JOY_ANDSENSOR_MAX_AXIS_VAL = 32000
-};
+
+static constexpr int JOY_ANDSENSOR_MIN_AXIS_VAL = -32000;
+static constexpr int JOY_ANDSENSOR_MAX_AXIS_VAL = 32000;
 
 struct SensorsPollingData
 {

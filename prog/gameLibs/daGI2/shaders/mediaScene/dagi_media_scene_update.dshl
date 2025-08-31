@@ -1,4 +1,4 @@
-include "shader_global.dshl"
+include "sky_shader_global.dshl"
 include "dagi_media_scene_common.dshl"
 include "dagi_media_project_defined.dshl"
 hlsl {

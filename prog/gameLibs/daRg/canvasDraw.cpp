@@ -571,42 +571,23 @@ static SQInteger rect_sq(HSQUIRRELVM vm)
   return 0;
 }
 
-/*
+/* qdox @page canvasAPI
+
 Script API:
+  Use it to draw in canvas, by adding `draw` function in rendObj = ROBJ_VECTOR_CANVAS components description
+  this function should accpets two arguments `draw(api, rectElem)`
+  rectElem is table with {w=width, h=height} (in pixels).
 
-  line([x0, y0, x1, y1, ...],
-    line_width,
-    line_color)
+  'api' is pseudo object that has following functions::
 
-  line_dashed([x0, y0, x1, y1],
-    dash, space,
-    line_width,
-    line_color)
+    line([x0, y0, x1, y1, ...], line_width, line_color)
+    line_dashed([x0, y0, x1, y1, ...], line_width, line_color)
+    fill_poly([x0, y0, x1, y1, ...], line_width, line_color, fill_color)
+    fill_inverse_poly([x0, y0, x1, y1, ...], line_width,line_color, fill_color)
+    ellipse(x, y, radius_x, radius_y, line_width, line_color, mid_color, fill_color)
+    sector(x, y, radius_x, radius_y, angle_0, angle_1, line_width, line_color, mid_color, fill_color)
+    rect(x0, y0, x1, y1, line_width, line_color, mid_color, fill_color)
 
-  fill_poly([x0, y0, x1, y1, ...],
-    line_width,
-    line_color, fill_color)
-
-  fill_inverse_poly([x0, y0, x1, y1, ...],
-    line_width,
-    line_color, fill_color)
-
-  ellipse(x, y, radius_x, radius_y,
-    line_width,
-    line_color, mid_color, fill_color)
-
-  sector(x, y, radius_x, radius_y, angle_0, angle_1,
-    line_width,
-    line_color, mid_color, fill_color)
-
-  rect(x0, y0, x1, y1,
-    line_width,
-    line_color, mid_color, fill_color)
-*/
-
-/** @page renderCanvas for render canvas
-
-use it to draw in canvas
 */
 
 void RenderCanvasContext::bind_script_api(Sqrat::Table &api)
@@ -616,7 +597,7 @@ void RenderCanvasContext::bind_script_api(Sqrat::Table &api)
   api.Clear();
   api //
     .SquirrelFunc("line", line_sq, 4, "u a n .")
-    /// function comment
+    ///
     .SquirrelFunc("line_dashed", line_dashed_sq, 6, "u a nnn .")
     .SquirrelFunc("fill_poly", fill_poly_sq, 5, "u a n ..")
     .SquirrelFunc("fill_inverse_poly", fill_inverse_poly_sq, 5, "u a n ..")

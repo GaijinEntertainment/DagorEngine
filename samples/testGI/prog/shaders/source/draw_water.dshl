@@ -1,0 +1,69 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+
+shader draw_water
+{
+  supports global_frame;
+  supports none;
+
+  (vs) {
+    globtm@f44 = globtm;
+    water_level@f1 = water_level;
+    world_view_pos@f3 = world_view_pos;
+  }
+  blend_src = sa;blend_dst = isa;
+  cull_mode = none;
+  z_write = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 pointToEye : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput water_render_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float3 worldPos;
+      worldPos.x = vertexId == 0 || vertexId == 1 || vertexId == 3 ? -1 : 1;
+      worldPos.z = vertexId == 0 || vertexId == 3 || vertexId == 4 ? -1 : 1;
+      worldPos *= 100000;
+      worldPos.y = water_level;
+      worldPos.xz += world_view_pos.xz;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.pointToEye = float4(world_view_pos.xyz - worldPos.xyz, output.pos.w);
+
+      return output;
+    }
+  }
+
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  INIT_ZNZFAR()
+  VIEW_VEC_OPTIMIZED(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  BRUNETON_FOG()
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+  }
+  hlsl(ps) {
+    float4 water_render_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float w = linearize_z(loadGbufferDepth(screenpos.xy), zn_zfar.zw);
+      float3 color = float3(0,0,0.25);
+      float alpha = 1-exp2(-0.5*max(0, (w - input.pointToEye.w)));
+      float3 worldPos = world_view_pos - input.pointToEye.xyz;
+      float dist = length(input.pointToEye.xyz);
+      float3 view = normalize(input.pointToEye.xyz);
+      apply_bruneton_fog(-view, dist, color);
+      return float4(pack_hdr(color), alpha);
+    }
+  }
+  compile("target_vs", "water_render_vs");
+  compile("target_ps", "water_render_ps");
+}

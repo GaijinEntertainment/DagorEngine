@@ -5,11 +5,7 @@
 namespace browserutils
 {
 
-void init_web_browser()
-{ /* VOID */
-}
-void shutdown_web_browser()
-{ /* VOID */
-}
+void init_web_browser() { /* VOID */ }
+void shutdown_web_browser() { /* VOID */ }
 
 } // namespace browserutils

@@ -16,21 +16,21 @@ shader rendinst_layered
     dont_render;
   }
 
-  if (rendinst_render_pass != rendinst_render_pass_to_heightmap)
-  {
-    NO_DYNSTCODE()
-  }
-
+  ENABLE_ASSERT(ps)
   SETUP_TOP_PROJECTION()
 
   PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow  || rendinst_render_pass == rendinst_render_pass_depth)
 
-  INIT_LAYERED_FULL()
+  INIT_LAYERED_FULL(true)
   INIT_HMAP_BLEND_STATIC()
 
-  if (rendinst_render_pass == rendinst_render_pass_to_heightmap &&
-    !(enable_hmap_blend == yes && compatibility_mode != compatibility_mode_on && tex_hmap_low != NULL))
+  if (rendinst_render_pass != rendinst_render_pass_to_heightmap)
+  {
+    NO_DYNSTCODE() // TODO: we can keep dynstcode, if we use hardcoded registers for vtex feedback UAV
+  }
+
+  if (rendinst_render_pass == rendinst_render_pass_to_heightmap && !has_hmap_blend)
   {
     dont_render;
   }
@@ -218,17 +218,15 @@ shader rendinst_layered
 
       USE_CHARACTER_TWO_MICRODETAILS()
 
-      USE_LAYERED_PS()
+      USE_LAYERED_PS(true)
       (ps) {
         mask_tex@static  = mask_tex;
-        paint_details@f4 = paint_details;
+        paint_details@f3 = paint_details;
       }
       USE_NORMAL_DETAIL()
 
       LAYERED_PS(rendinst_render_pass == rendinst_render_pass_normal)
     }
-
-    ENABLE_ASSERT(ps)
 
     if (rendinst_render_pass == rendinst_render_pass_depth)
     {
@@ -248,7 +246,6 @@ shader rendinst_layered
 
 shader rendinst_mask_layered
 {
-  NO_DYNSTCODE()
   assume instancing_type = tm_vb;
   if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
       rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
@@ -266,6 +263,8 @@ shader rendinst_mask_layered
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   INIT_MASK_LAYERED(rendinst_render_pass == rendinst_render_pass_normal)
   INIT_HMAP_BLEND_STATIC()
+
+  NO_DYNSTCODE()
 
   SETUP_TOP_PROJECTION()
 
@@ -420,7 +419,7 @@ shader rendinst_mask_layered
         WRITE_GBUFFER()
         USE_HMAP_BLEND()
       }
-      MASK_LAYERED_PS()
+      MASK_LAYERED_PS(true)
     }
     COMPILE_RI_VS_TARGET("simple_vs")
   }

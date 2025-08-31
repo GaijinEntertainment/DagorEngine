@@ -14,6 +14,14 @@
 #endif
 #endif
 
+#ifndef DAGOR_NO_VTABLE
+#if defined(__cplusplus) && (_MSC_VER >= 1100)
+#define DAGOR_NO_VTABLE __declspec(novtable)
+#else
+#define DAGOR_NO_VTABLE
+#endif
+#endif
+
 #ifndef DAGOR_LIKELY
 #if (defined(__GNUC__) && (__GNUC__ >= 3)) || defined(__clang__)
 #if defined(__cplusplus)
@@ -26,6 +34,16 @@
 #else
 #define DAGOR_LIKELY(x)   (x)
 #define DAGOR_UNLIKELY(x) (x)
+#endif
+#endif
+
+#ifndef DAGOR_UNREACHABLE
+#if (defined(__GNUC__) && (__GNUC__ >= 3)) || defined(__clang__)
+#define DAGOR_UNREACHABLE __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define DAGOR_UNREACHABLE __assume(false)
+#else
+#define DAGOR_UNREACHABLE
 #endif
 #endif
 
@@ -44,6 +62,8 @@
 #ifndef DAGOR_ADDRESS_SANITIZER
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
+#define DAGOR_ADDRESS_SANITIZER 1
+#elif defined(__SANITIZE_ADDRESS__)
 #define DAGOR_ADDRESS_SANITIZER 1
 #endif
 #else

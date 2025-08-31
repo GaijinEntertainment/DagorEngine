@@ -42,9 +42,11 @@ shader light_ss_ambient_voxels_cs
       Buffer<float4> poissonSamples@buf;
     }
     traceResults@uav : register(light_ss_ambient_voxels_cs_traceResults_uav_no) hlsl {
+      #include "dagi_common_types.hlsli"
       RWStructuredBuffer<TraceResultAmbientVoxel> traceResults@uav;
     };
     visible_ambient_voxels_walls_planes@buf : register(light_ss_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no) hlsl {
+      #include "dagi_common_types.hlsli"
       StructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@buf;
     };
   }
@@ -137,6 +139,7 @@ shader light_ss_combine_ambient_voxels_cs
       StructuredBuffer<TraceResultAmbientVoxel> visible_ambient_voxels_trace_results@buf;
     };
     visible_ambient_voxels@buf : register(light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_const_no) hlsl {
+      #include "dagi_common_types.hlsli"
       StructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels@buf;
     };
     gi_ambient_volmap@uav : register(gi_ambient_volmap_init_uav_no) hlsl {

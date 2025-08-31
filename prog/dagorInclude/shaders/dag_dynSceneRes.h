@@ -328,7 +328,7 @@ public:
   DynamicRenderableSceneLodsResource *getNextClone() { return nextClonedRes; }
   static void lockClonesList();
   static void unlockClonesList();
-  static void (*on_higher_lod_required)(DynamicRenderableSceneLodsResource * res, unsigned req_lod, unsigned cur_lod);
+  static void (*on_higher_lod_required)(DynamicRenderableSceneLodsResource *res, unsigned req_lod, unsigned cur_lod);
 
   static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }
@@ -437,7 +437,7 @@ protected:
     G_ASSERT(getInstanceRefCount() == 0);
     clearData();
   }
-  void addToCloneLost(const DynamicRenderableSceneLodsResource &from);
+  void addToCloneList(const DynamicRenderableSceneLodsResource &from);
 
   // patches data after resource dump loading
   int patchAndLoadData(IGenLoad & crd, int flags, int res_sz);
@@ -488,7 +488,8 @@ public:
   const DynamicRenderableSceneResource *getCurSceneResource() const { return sceneResource; }
 
   DynamicRenderableSceneLodsResource *getLodsResource() { return lods; }
-  DynamicRenderableSceneLodsResource *cloneLodsResource();
+  DynamicRenderableSceneLodsResource *cloneLodsResource() const { return lods ? lods->clone() : nullptr; }
+  void changeLodsResource(DynamicRenderableSceneLodsResource *new_lods);
 
   const DynamicRenderableSceneLodsResource *getConstLodsResource() const { return lods; }
   const DynamicRenderableSceneLodsResource *getLodsResource() const { return lods; }

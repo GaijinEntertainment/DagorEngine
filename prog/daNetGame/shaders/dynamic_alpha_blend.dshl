@@ -1,10 +1,14 @@
 include "dynamic_trans_inc.dshl"
 include "cloud_mask.dshl"
+include "glass_gbuffer_inc.dshl"
+include "camera_in_camera.dshl"
 
 shader dynamic_alpha_blend
 {
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(vs)
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
   ENABLE_ASSERT(ps)
-  if (dyn_model_render_pass != render_pass_normal)
+  if (dyn_model_render_pass != render_pass_normal || glass_normal_pass == yes)
   {
     dont_render;
   }

@@ -28,8 +28,10 @@ struct RenderParams
   dynrender::RElem re;
   Vbuffer *vb = nullptr;
   Ibuffer *ib = nullptr;
+  d3d::SamplerHandle borderSampler = d3d::INVALID_SAMPLER_HANDLE;
 
   int texVarId = -1;
+  int smpVarId = -1;
   float depth = 5.0f;
   float vFov = DegToRad(100.f);
   float aspect = 16.f / 9.f;
@@ -151,6 +153,7 @@ namespace vrgui
 static const char *MAT_NAME = "vr_gui_surface";
 static const char *BLK_NAME = "oculusGui";
 static const char *TEX_VAR_NAME = "source_tex";
+static const char *SMP_VAR_NAME = "source_tex_samplerstate";
 static const int VRGUI_GRID_SIZE = 32;
 
 static RenderParams render_params;
@@ -215,6 +218,11 @@ bool init_surface(int ui_width, int ui_height, SurfaceCurvature curvature)
   render_params.mat = new_shader_material_by_name(MAT_NAME);
   render_params.mat->addRef();
   render_params.texVarId = ::get_shader_variable_id(TEX_VAR_NAME);
+  render_params.smpVarId = ::get_shader_variable_id(SMP_VAR_NAME);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+  smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+  render_params.borderSampler = d3d::request_sampler(smpInfo);
 
   CompiledShaderChannelId channels[2] = {{SCTYPE_FLOAT3, SCUSAGE_POS, 0, 0}, {SCTYPE_FLOAT2, SCUSAGE_TC, 0, 0}};
   G_ASSERT(render_params.mat->checkChannels(channels, countof(channels)));
@@ -289,11 +297,13 @@ void render_to_surface(TEXTUREID tex_id)
   {
     // debug("[XR] rendering to %d/%p", tex_id, render_params.mat);
     ShaderGlobal::set_texture(render_params.texVarId, tex_id);
+    ShaderGlobal::set_sampler(render_params.smpVarId, render_params.borderSampler);
     d3d::setvdecl(render_params.re.vDecl);
     d3d::setvsrc(0, render_params.vb, render_params.re.stride);
     d3d::setind(render_params.ib);
     render_params.re.shElem->render(0, render_params.re.numVert, 0, render_params.re.numPrim);
     ShaderGlobal::set_texture(render_params.texVarId, BAD_TEXTUREID); // Workaround 'that wasnt properly removed'.
+    ShaderGlobal::set_sampler(render_params.smpVarId, d3d::INVALID_SAMPLER_HANDLE);
   }
 }
 

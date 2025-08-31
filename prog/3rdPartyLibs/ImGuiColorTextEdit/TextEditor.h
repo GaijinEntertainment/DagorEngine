@@ -12,12 +12,31 @@
 #include <imgui.h>
 #include "TextEditorFuzzer.h"
 
+#define FIND_POPUP_TEXT_FIELD_LENGTH 400
+
+
+enum ImguiTextEditorRequests
+{
+	EDITOR_REQ_NONE = 0,
+	EDITOR_REQ_SAVE = 1,
+	EDITOR_REQ_AUTO_FORMAT = 2,
+	EDITOR_REQ_AUTOCOMPLETE_TRIGGER = 3,
+};
+
+
 class IMGUI_API TextEditor
 {
 public:
 	// ------------- Exposed API ------------- //
+	typedef void (*OnFocusedCallback)(int folderViewId);
+	typedef void (*OnShowInFolderViewCallback)(const eastl::string& filePath, int folderViewId);
 
-	TextEditor();
+	TextEditor(const char* filePath = nullptr,
+		int id = -1,
+		int createdFromFolderView = -1,
+		OnFocusedCallback onFocusedCallback = nullptr,
+		OnShowInFolderViewCallback onShowInFolderViewCallback = nullptr);
+
 	~TextEditor();
 
 	enum class PaletteId
@@ -105,7 +124,7 @@ public:
 	void SetTextLines(const eastl::vector<eastl::string>& aLines);
 	eastl::vector<eastl::string> GetTextLines() const;
 
-	bool Render(const char* aTitle, bool aParentIsFocused = false, const ImVec2& aSize = ImVec2(), bool aBorder = false);
+	bool Render(const char* aTitle, bool aParentIsFocused = false, bool aMenuIsFocused = false, const ImVec2& aSize = ImVec2(), bool aBorder = false);
 
 	void ImGuiDebugPanel(const eastl::string& panelName = "Debug");
 	void UnitTests();
@@ -114,6 +133,46 @@ public:
 
 	Breakpoints mBreakpoints;
 	ErrorMarkers mErrorMarkers;
+
+	// UI
+
+	bool OnImGui(bool windowIsOpen, uint32_t &currentDockId);
+	void SetCursorPosition(int line, int column, bool center_view);
+//	void SetSelection(int startLine, int startChar, int endLine, int endChar);
+	void CenterViewAtLine(int line);
+	const char* GetAssociatedFile();
+	void OnFolderViewDeleted(int folderViewId);
+	void SetShowDebugPanel(bool value);
+
+	static inline void SetDarkPaletteAsDefault() { TextEditor::SetDefaultPalette(TextEditor::PaletteId::Dark); }
+	static inline void SetLightPaletteAsDefault() { TextEditor::SetDefaultPalette(TextEditor::PaletteId::Light); }
+
+	ImguiTextEditorRequests pullEditorRequest()
+	{
+		if (editorRequests.empty())
+			return EDITOR_REQ_NONE;
+		else
+		{
+			ImguiTextEditorRequests req = editorRequests.front();
+			editorRequests.erase(editorRequests.begin(), editorRequests.begin() + 1);
+			return req;
+		}
+	}
+
+	void pushEditorRequest(ImguiTextEditorRequests request)
+	{
+		if (eastl::find(editorRequests.begin(), editorRequests.end(), request) == editorRequests.end())
+			editorRequests.push_back(request);
+	}
+
+	void SetAutocompleteTriggerTimeout(float timeout) { autocompleteTime = timeout; }
+	eastl::string GetAutocompletePrefix();
+	void SetAutocompleteSuggestions(const eastl::string& prefix, const eastl::string& suggestions);
+	void SetAutocompleteSuggestions(const eastl::string& prefix, eastl::vector<eastl::string>& suggestions);
+	void SetAutocompleteSuggestions(const eastl::string& prefix, eastl::vector<eastl::string>& suggestions,
+		eastl::vector<eastl::string>& descriptions);
+	eastl::string getAssociatedFile() { return associatedFile; }
+	void CancelAutocomplete();
 
 private:
 	// ------------- Generic utils ------------- //
@@ -141,6 +200,8 @@ private:
 	static inline T Max(T a, T b) { return a > b ? a : b; }
 	template<typename T>
 	static inline T Min(T a, T b) { return a < b ? a : b; }
+	template<typename T>
+	static inline T Clamp(T t, T a, T b) { return Max(a, Min(b, t)); }
 
 	// ------------- Internal ------------- //
 
@@ -169,6 +230,7 @@ private:
 		CurrentLineFillInactive,
 		CurrentLineEdge,
 		HighlightedTextFill,
+		ErrorText,
 		Max
 	};
 
@@ -299,10 +361,14 @@ private:
 		static const LanguageDefinition& Daslang();
 	};
 
-	bool RequireIndentationAfterNewLine(const eastl::string &line) const;
+	bool RequireIndentationAfterNewLine(const eastl::string &line, char charAfter) const;
 	char RequiredCloseChar(char charBefore, char openChar, char charAfter);
+	bool AllowNewLineIndentationInBraces();
 	void CancelCloseChars() { closeCharCoords = Coordinates::Invalid(); }
+	void StartAutocompleteTimer();
+	void ShowAutocomplete();
 	Coordinates closeCharCoords = Coordinates::Invalid();
+	bool allowDeleteOfCloseChar = false;
 
 	enum class UndoOperationType { Add, Delete };
 	struct UndoOperation
@@ -358,7 +424,7 @@ private:
 	void MoveBottom(bool aSelect = false);
 	void MoveHome(bool aSelect = false);
 	void MoveEnd(bool aSelect = false);
-	void EnterCharacter(ImWchar aChar, bool aShift);
+	void EnterCharacter(ImWchar aChar, bool aShift, int depth = 0, bool suppressIndent = false);
 	void Backspace(bool aWordMode = false);
 	void Delete(bool aWordMode = false, const EditorState* aEditorState = nullptr);
 
@@ -415,15 +481,18 @@ private:
 
 	void ColorizeAll();
 	void ColorizeLine(int line);
-	void ColorizeRange(int from, int to, bool multiline_tokens);
+	void ColorizeRange(int from, int to);
 
 	eastl::vector<Line> mLines;
 	eastl::vector<uint8_t> commentLineDepths;
+	eastl::vector<char> stringOpenChars;
 	EditorState mState;
 	eastl::vector<UndoRecord> mUndoBuffer;
 	int mUndoIndex = 0;
 
 	double colorizeTime = 0.0;
+	int colorizationProgress = 0; // for per-frame colorizarion of whole text
+	bool wholeTextColorizationStarted = false;
 
 	char preferredIndentChar = ' ';
 	int mTabSize = 4;
@@ -472,6 +541,8 @@ private:
 	Palette mPalette;
 	LanguageDefinitionId mLanguageDefinitionId;
 	const LanguageDefinition* mLanguageDefinition = nullptr;
+	ImVec2 mCursorScreenPos = ImVec2(-1.0f, -1.0f);
+	ImVec2 mPrevCursorScreenPos = ImVec2(-1.0f, -1.0f);
 
 	typedef eastl::vector<eastl::pair<short, short>> HighlightRanges;
 	eastl::vector<HighlightRanges*> highlights;
@@ -498,4 +569,47 @@ private:
 	static const eastl::unordered_map<char, char> OPEN_TO_CLOSE_CHAR;
 	static const eastl::unordered_map<char, char> CLOSE_TO_OPEN_CHAR;
 	static PaletteId defaultPalette;
+
+	void ApplyAutocompleteSuggestion();
+
+	// Commands
+	void OnReloadCommand();
+	void OnLoadFromCommand();
+	void OnSaveCommand();
+
+
+	int id = -1;
+	int createdFromFolderView = -1;
+	eastl::vector<ImguiTextEditorRequests> editorRequests;
+
+	OnFocusedCallback onFocusedCallback = nullptr;
+	OnShowInFolderViewCallback onShowInFolderViewCallback = nullptr;
+
+	bool waitingForAutocomplete = false;
+	float autocompleteTime = 0.15f;
+	float autocompleteTriggerTime = 0.0f;
+	bool autocompleteTriggered = false;
+	bool ignoreAutocompleteCancellation = false;
+	int autocompleteSuggestionIndex = 0;
+	int autocompletePrefixLength = 0;
+	eastl::vector<eastl::string> autocompleteSuggestions;
+	eastl::vector<eastl::string> autocompleteDescriptions;
+
+	bool showDebugPanel = false;
+	bool hasAssociatedFile = false;
+	eastl::string panelName;
+	eastl::string associatedFile;
+	int tabSize = 4;
+	float lineSpacing = 1.0f;
+	int undoIndexInDisk = 0;
+	int codeFontSize;
+
+	char ctrlfTextToFind[FIND_POPUP_TEXT_FIELD_LENGTH] = "";
+	char ctrlfTextToReplace[FIND_POPUP_TEXT_FIELD_LENGTH] = "";
+	bool ctrlfCaseSensitive = false;
+	bool ctrlfWholeWords = false;
+
+	static eastl::unordered_map<eastl::string, TextEditor::LanguageDefinitionId> extensionToLanguageDefinition;
+	static eastl::unordered_map<TextEditor::LanguageDefinitionId, const char*> languageDefinitionToName;
+	static eastl::unordered_map<TextEditor::PaletteId, const char*> colorPaletteToName;
 };

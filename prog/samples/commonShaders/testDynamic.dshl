@@ -78,8 +78,8 @@ shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simpl
     #define PARALLAX_TEX tex
     #define PARALLAX_ATTR a
     #define num_parallax_iterations 5
-    #define parallax_tex2dlod(tex, tc) tex2DLodBindless(get_##tex(), tc)
-    #define parallax_tex2d(tex, tc) tex2DBindless(get_##tex(), tc)
+    #define parallax_tex2dlod(tex, tc) tex2DLodBindless(PPCAT(get_, tex()), tc)
+    #define parallax_tex2d(tex, tc) tex2DBindless(PPCAT(get_, tex()), tc)
     #include "parallax.hlsl"
   ##endif
 

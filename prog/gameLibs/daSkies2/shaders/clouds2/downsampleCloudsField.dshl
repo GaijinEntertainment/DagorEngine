@@ -2,7 +2,8 @@ include "sky_shader_global.dshl"
 include "clouds_tiled_dist.dshl"
 include "writeToTex.dshl"
 include "globtm.dshl"
-include "clouds_hole_pos_tex.dshl"
+include "clouds_hole_pos.dshl"
+include "camera_in_camera.dshl"
 
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
 texture clouds_field_volume;
@@ -21,16 +22,24 @@ shader downsample_cloud_field
   hlsl(cs) {
     RWTexture3D<float> output : register(u0);//todo: that should be buffer
     groupshared uint thread_result[4*4*4];
+
     uint getDownsampled2(uint3 src)
     {
       float density = clouds_field_volume[src+uint3(0,0,0)].x;
       BRANCH
       if (clouds_field_downsample_ratio == 4)
-        return density>0;
-      return max(
-        max(max(density, clouds_field_volume[src+uint3(1,0,0)].x), max(clouds_field_volume[src+uint3(0,1,0)].x, clouds_field_volume[src+uint3(1,1,0)].x)),
-        max(max(clouds_field_volume[src+uint3(0,0,1)].x, clouds_field_volume[src+uint3(1,0,1)].x), max(clouds_field_volume[src+uint3(0,1,1)].x, clouds_field_volume[src+uint3(1,1,1)].x))) > 0;
+        return density > 0;
+
+      density = max(density, clouds_field_volume[src+uint3(1,0,0)].x);
+      density = max(density, clouds_field_volume[src+uint3(0,1,0)].x);
+      density = max(density, clouds_field_volume[src+uint3(1,1,0)].x);
+      density = max(density, clouds_field_volume[src+uint3(0,0,1)].x);
+      density = max(density, clouds_field_volume[src+uint3(1,0,1)].x);
+      density = max(density, clouds_field_volume[src+uint3(0,1,1)].x);
+      density = max(density, clouds_field_volume[src+uint3(1,1,1)].x);
+      return density > 0;
     }
+
     [numthreads(4, 4, 4)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint3 groupId : SV_GroupID, uint flatIdx : SV_GroupIndex, uint3 tid : SV_GroupThreadID)
     {
@@ -131,7 +140,7 @@ shader clouds_close_layer_outside
   local float low_texel_size_y = clouds_thickness2*1000/(clouds_field_res.y/clouds_field_downsample_ratio);
   local float high_texel_size_xz = clouds_weather_size/(clouds_field_res.x);
   local float high_texel_size_y = clouds_thickness2*1000/(clouds_field_res.y);
-  USE_CLOUDS_HOLE_POS_TEX(cs)
+  USE_CLOUDS_HOLE_POS(cs)
   (cs) {
     globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
     clouds_start_trace_base@f4 = (skies_world_view_pos.x+clouds_origin_offset.x, max(skies_world_view_pos.y, 10.-min_ground_offset), skies_world_view_pos.z+clouds_origin_offset.y,1./clouds_weather_size);
@@ -270,6 +279,25 @@ shader clouds_close_layer_clear
   compile("cs_5_0", "cs_main")
 }
 
+macro USE_CLOUDS_TILED_DISTANCE_LOOP(code, loop_function_name, func, step_size)
+  hlsl(code) {
+    bool loop_function_name(inout float distance, float till, float realStart, float3 clouds_hole_offset, float3 view)
+    {
+      float3 samplePos = clouds_start_trace + clouds_hole_offset + view*realStart, rayStep = view*step_size;
+      for (float dist = realStart; dist <= till; dist += step_size, samplePos+=rayStep)
+      {
+        BRANCH
+        if (checkNuke(samplePos-clouds_hole_offset) || func(samplePos))
+        {
+          distance = 1 - max(dist - step_size, realStart)/INFINITE_TRACE_DIST;
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+endmacro
+
 macro GET_TILED_DISTANCE(code)
   DISTANCE_TO_CLOUDS2(code)
   local float4 offseted_view_pos = (skies_world_view_pos.x+clouds_origin_offset.x, max(skies_world_view_pos.y, 10.-min_ground_offset), skies_world_view_pos.z+clouds_origin_offset.y,0);
@@ -277,8 +305,8 @@ macro GET_TILED_DISTANCE(code)
   (code) {
     clouds_field_volume_low@smp3d = clouds_field_volume_low;
     clouds_field_volume@smp3d = clouds_field_volume;
-    //step_size@f2 = (0.75*texel_size*8,4096,0,0);
-    step_size@f3 = (0.95*clouds_field_downsample_ratio*texel_size,8192,0.95*texel_size,0);
+    step_size_small@f1 = 0.95*texel_size;
+    step_size_big@f1 = 0.95*clouds_field_downsample_ratio*texel_size;
     nuke_pos@f3 = (nuke_pos.x + clouds_origin_offset.x, nuke_pos.y, nuke_pos.z+clouds_origin_offset.y, 0);
     nuke_wave@f4 = (nuke_wave.x, 1/(nuke_wave.y + 0.000001), nuke_wave.z, nuke_wave.w);
   }
@@ -288,7 +316,7 @@ macro GET_TILED_DISTANCE(code)
     skies_world_view_pos@f3 = skies_world_view_pos;
     clouds_start_trace@f3 = (offseted_view_pos);
     INV_WEATHER_SIZE@f1 = (1./clouds_weather_size,0,0,0);
-    clouds_has_close_sequence@f1 = (clouds_has_close_sequence);
+    clouds_has_close_sequence@f1 = clouds_has_close_sequence;
   }
   hlsl(code) {
     float3 getTc(float3 p)
@@ -323,7 +351,10 @@ macro GET_TILED_DISTANCE(code)
     ##else
       #define checkNuke(param) false
     ##endif
-
+  }
+  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_fine_phase, checkCloudDensityHigh, step_size_small)
+  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_coarse_phase, checkCloudDensity, step_size_big)
+  hlsl(code) {
     float getTiledDistance(float3 view)
     {
       float distanceToClouds0, distanceToClouds1;
@@ -345,25 +376,18 @@ macro GET_TILED_DISTANCE(code)
       //float stepSize = 1024;//todo: replace with real min size
       //stepSize*=0.5;
       float3 clouds_hole_offset = get_clouds_hole_pos_vec();
-      #define LOOP_OVER(use_step_size, till, fun)\
-      {\
-        float stepSize = use_step_size;\
-        int steps = ((till) - realStart)/stepSize;\
-        float3 samplePos = clouds_start_trace + clouds_hole_offset + view*realStart, rayStep = view*stepSize;\
-        for (int i = 0; i <= steps; ++i, samplePos+=rayStep)\
-        {\
-          BRANCH\
-          if (checkNuke(samplePos-clouds_hole_offset) || fun(samplePos))\
-            return 1 - (realStart + max(i-1,0)*stepSize)/INFINITE_TRACE_DIST;\
-        }\
-      }
-      {
-        LOOP_OVER(step_size.z, min(end, step_size.y), checkCloudDensityHigh)
-        realStart = max(realStart, step_size.y);
-      }
-      {
-        LOOP_OVER(step_size.x, end, checkCloudDensity)
-      }
+
+      const float firstPhaseDist = 8192;
+
+      float distance = 0;
+      if (check_tiled_distance_fine_phase(distance, min(end, firstPhaseDist), realStart, clouds_hole_offset, view))
+        return distance;
+
+      realStart = max(realStart, firstPhaseDist);
+
+      if (check_tiled_distance_coarse_phase(distance, end, realStart, clouds_hole_offset, view))
+        return distance;
+
       return 0;
     }
   }
@@ -371,12 +395,15 @@ endmacro
 
 shader clouds_tile_dist_prepare_cs
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
   ENABLE_ASSERT(cs)
+
   (cs) {
     view_vecLT@f3 = view_vecLT;
     view_vecRT_minus_view_vecLT@f3 = (view_vecRT-view_vecLT);
     view_vecLB_minus_view_vecLT@f3 = (view_vecLB-view_vecLT);
     clouds_tiled_resInv@f4 = (1./clouds_tiled_res.x, 1./clouds_tiled_res.y, 0.5/clouds_tiled_res.x, 0.5/clouds_tiled_res.y);
+    clouds_tiled_res@u2 = clouds_tiled_res;
   }
   GET_TILED_DISTANCE(cs)
 
@@ -385,7 +412,12 @@ shader clouds_tile_dist_prepare_cs
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
+      if (any(tid >= clouds_tiled_res.xy))
+        return;
+
       float2 texcoord = tid*clouds_tiled_resInv.xy + clouds_tiled_resInv.zw;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord);
+
       float3 viewVect = view_vecLT + (view_vecRT_minus_view_vecLT)*texcoord.x + (view_vecLB_minus_view_vecLT)*texcoord.y;
       texture2DAt(tiledDist, tid) = getTiledDistance(normalize(viewVect));
     }
@@ -451,7 +483,6 @@ macro CLOUDS_TILE_FILTER(code)
       dist = max(dist, clouds_tile_distance_tmp[scri+int2(-1, +1)].x);
       dist = max(dist, clouds_tile_distance_tmp[scri+int2( 0, +1)].x);
       dist = max(dist, clouds_tile_distance_tmp[scri+int2(+1, +1)].x);
-      //dist = clouds_tile_distance_tmp[scri].x;
       return 1-dist;
    }
  }
@@ -494,11 +525,16 @@ shader clouds_tile_dist_min_cs
 {
   ENABLE_ASSERT(cs)
   CLOUDS_TILE_FILTER(cs)
+  (cs) {clouds_tiled_res@u2 = clouds_tiled_res;}
+
   hlsl(cs) {
     RWTexture2D<float> tiledDist:register(u0);
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
+      if (any(tid >= clouds_tiled_res.xy))
+        return;
+
       texture2DAt(tiledDist, tid) = filter_tiled_dist(tid.xy);
     }
   }
@@ -522,7 +558,9 @@ shader clouds_tile_dist_count_cs
     void cs_main(uint2 dtid : SV_DispatchThreadID, uint flatIdx : SV_GroupIndex)
     {
       uint2 p = dtid;
-      uint ret = (texture2DAt(clouds_tile_distance, p).x == 1 || any(p >= clouds_tiled_res.xy)) ? 0 : 1;//todo: downsample 4 times
+      uint ret = 0;
+      if (all(p < clouds_tiled_res.xy))
+        ret = (int)(texture2DAt(clouds_tile_distance, p).x != 1); //todo: downsample 4 times
       thread_result[flatIdx] = ret;
       GroupMemoryBarrierWithGroupSync();
       const int WARP_SIZE = 32;

@@ -322,6 +322,14 @@ void ContainerPropertyControl::createSeparator(int id, bool new_line)
   addControl(newControl, new_line);
 }
 
+void ContainerPropertyControl::createSeparatorText(int id, const char caption[], bool new_line)
+{
+  SeparatorPropertyControl *newControl = new SeparatorPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
+    getNextControlY(new_line), getClientWidth(), caption);
+
+  addControl(newControl, new_line);
+}
+
 void ContainerPropertyControl::createCombo(int id, const char caption[], const Tab<String> &vals, int index, bool enabled,
   bool new_line)
 {
@@ -755,6 +763,13 @@ void ContainerPropertyControl::setButtonPictures(int id, const char *fname)
   }
 }
 
+void ContainerPropertyControl::setListBoxEventHandler(int id, IListBoxControlEventHandler *handler)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setListBoxEventHandlerValue(handler);
+}
+
 int ContainerPropertyControl::addString(int id, const char *value)
 {
   PropertyControlBase *ptr = getById(id);
@@ -908,6 +923,17 @@ bool ContainerPropertyControl::getCurveCubicCoefs(int id, Tab<Point2> &xy_4c_per
   return false;
 }
 
+const char *ContainerPropertyControl::getTooltipById(int id) const
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+  {
+    return ptr->getTooltip();
+  }
+
+  return nullptr;
+}
+
 int ContainerPropertyControl::getStrings(int id, Tab<String> &vals)
 {
   PropertyControlBase *ptr = getById(id);
@@ -917,6 +943,17 @@ int ContainerPropertyControl::getStrings(int id, Tab<String> &vals)
   }
 
   return 0;
+}
+
+dag::ConstSpan<String> ContainerPropertyControl::getStrings(int id)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+  {
+    return ptr->getStringsValue();
+  }
+
+  return dag::ConstSpan<String>();
 }
 
 int ContainerPropertyControl::getSelection(int id, Tab<int> &sels)
@@ -963,6 +1000,7 @@ void ContainerPropertyControl::clear()
 
   clear_and_shrink(mControlArray);
   clear_and_shrink(mControlsNewLine);
+  clear_and_shrink(mControlsLastRectSize);
 }
 
 
@@ -1042,25 +1080,25 @@ void ContainerPropertyControl::setVisible(bool show)
   // NOTE: ImGui porting: unused.
 }
 
-int ContainerPropertyControl::saveState(DataBlock &datablk)
+int ContainerPropertyControl::saveState(DataBlock &datablk, bool by_name)
 {
-  PropertyControlBase::saveState(datablk);
+  PropertyControlBase::saveState(datablk, by_name);
 
   for (int i = 0; i < mControlArray.size(); i++)
   {
-    mControlArray[i]->saveState(datablk);
+    mControlArray[i]->saveState(datablk, by_name);
   }
 
   return 0;
 }
 
-int ContainerPropertyControl::loadState(DataBlock &datablk)
+int ContainerPropertyControl::loadState(DataBlock &datablk, bool by_name)
 {
-  PropertyControlBase::loadState(datablk);
+  PropertyControlBase::loadState(datablk, by_name);
 
   for (int i = 0; i < mControlArray.size(); i++)
   {
-    mControlArray[i]->loadState(datablk);
+    mControlArray[i]->loadState(datablk, by_name);
   }
 
   return 0;
@@ -1081,6 +1119,7 @@ bool ContainerPropertyControl::removeById(int id)
       delete mControlArray[i];
       safe_erase_items(mControlArray, i, 1);
       safe_erase_items(mControlsNewLine, i, 1);
+      safe_erase_items(mControlsLastRectSize, i, 1);
       restoreFillAutoResize();
       return true;
     }
@@ -1121,14 +1160,17 @@ bool ContainerPropertyControl::moveById(int id, int ba_id, bool after)
   {
     PropertyControlBase *ctrl = mControlArray[target_ind];
     bool new_line = mControlsNewLine[target_ind];
+    ImVec2 last_rect_size = mControlsLastRectSize[target_ind];
 
     mControlArray.push_back(ctrl);
     mControlsNewLine.push_back(new_line);
+    mControlsLastRectSize.push_back(last_rect_size);
   }
   else if (target_ind != -1 && ba_ind != -1)
   {
     PropertyControlBase *ctrl = mControlArray[target_ind];
     bool new_line = mControlsNewLine[target_ind];
+    ImVec2 last_rect_size = mControlsLastRectSize[target_ind];
 
     // PropertyControlBase *ctrl2 = mControlArray[ba_ind];
     // int y = ctrl2->getY();
@@ -1140,6 +1182,7 @@ bool ContainerPropertyControl::moveById(int id, int ba_id, bool after)
 
     insert_items(mControlArray, ba_ind, 1, &ctrl);
     insert_items(mControlsNewLine, ba_ind, 1, &new_line);
+    insert_items(mControlsLastRectSize, ba_ind, 1, &last_rect_size);
 
     if (target_ind > ba_ind)
       ++target_ind;
@@ -1149,6 +1192,7 @@ bool ContainerPropertyControl::moveById(int id, int ba_id, bool after)
 
   safe_erase_items(mControlArray, target_ind, 1);
   safe_erase_items(mControlsNewLine, target_ind, 1);
+  safe_erase_items(mControlsLastRectSize, target_ind, 1);
 
   restoreFillAutoResize();
 
@@ -1157,6 +1201,7 @@ bool ContainerPropertyControl::moveById(int id, int ba_id, bool after)
 
 void ContainerPropertyControl::addControl(PropertyControlBase *pcontrol, bool new_line)
 {
+  mControlsLastRectSize.push_back(ImVec2());
   mControlsNewLine.push_back(new_line);
   mControlArray.push_back(pcontrol);
   pcontrol->enableChangeHandlers();
@@ -1203,6 +1248,7 @@ void ContainerPropertyControl::addVerticalSpaceAfterControl()
 void ContainerPropertyControl::updateImgui()
 {
   G_ASSERT(mControlArray.size() == mControlsNewLine.size());
+  G_ASSERT(mControlArray.size() == mControlsLastRectSize.size());
 
   for (int i = 0; i < mControlArray.size();)
   {

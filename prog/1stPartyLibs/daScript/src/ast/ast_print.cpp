@@ -3,6 +3,11 @@
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
 
+#if defined(STANDALONE_MODE)
+#include "../das/ast/_standalone_ctx_generated/ast_print.das.h"
+#endif
+
+
 namespace das {
 
     class SetPrinterFlags : public Visitor {
@@ -176,7 +181,9 @@ namespace das {
         virtual void preVisit ( Structure * that ) override {
             Visitor::preVisit(that);
             logAnnotations(that->annotations);
+            if ( that->hasDefaultInitializer ) ss << "// has default initializer " << that->name << "()\n";
             if ( that->macroInterface ) ss << "[macro_interface]\n";
+            if ( that->isTemplate ) ss << "template ";
             ss << (that->isClass ? "class " : "struct ");
             ss << (that->privateStructure ? "private " : "public ") << that->name;
             if ( that->parent ) {
@@ -352,6 +359,9 @@ namespace das {
             }
             if ( fn->fromGeneric ) {
                 ss << "// from generic " << fn->fromGeneric->describe() << "\n";
+            }
+            if ( fn->isTemplate ) {
+                ss << "template ";
             }
             ss << "def " << (fn->privateFunction ? "private " : "public ") << fn->name;
             if ( fn->arguments.size() ) ss << "(";
@@ -1370,8 +1380,13 @@ namespace das {
     };
 
     void Program::setPrintFlags() {
+#if defined(STANDALONE_MODE)
+        ast_print::Standalone ctx;
+        ctx.setFlags(this);
+#else
         SetPrinterFlags pflags;
         visit(pflags);
+#endif
     }
 
     template <typename TT>

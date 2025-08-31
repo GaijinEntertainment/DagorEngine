@@ -25,7 +25,7 @@ macro GET_SKY_GROUND_COLOR()
     #define PreparedGroundData float
     void prepare_ground_data(float3 v, float distToGround, PreparedGroundData data) {}
 
-    float3 get_ground_lit_color(float3 x_, float3 s_, float3 v, float3 sunColor, PreparedGroundData data)
+    float3 get_ground_lit_color(float3 x_, float3 s_, float3 v, PreparedGroundData data)
     {
       //return float3(0.1,0.2,0.3);
       float3 view = -v.xzy;

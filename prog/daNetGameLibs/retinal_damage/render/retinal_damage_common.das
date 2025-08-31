@@ -1,6 +1,5 @@
 module retinal_damage_common shared
 require ecs
-require app
 require ecs.common
 
 def stop_retinal_damage_effect(owner_eid : EntityId)

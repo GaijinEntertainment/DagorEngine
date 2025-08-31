@@ -15,3 +15,12 @@ testData/static_analyzer/w266.nut:9:0
 ^----
 
 
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 6 and 8.
+testData/static_analyzer/w266.nut:8:2
+
+  ::x++
+} while (::x)
+  ^
+::x--
+
+

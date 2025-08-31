@@ -1,0 +1,345 @@
+texture land_micro_details;
+int land_micro_details_count = 7;
+float land_micro_details_uv_scale = 2.01;
+float land_micro_details_cnt_scale = 0;
+float4 land_micro_details_params0;
+float4 land_micro_details_params1;
+float4 land_micro_details_params2;
+float4 land_micro_details_params3;
+float4 land_micro_details_params4;
+float4 land_micro_details_params5;
+float4 land_micro_details_params6;
+float4 land_micro_details_params7;
+float4 land_micro_details_params8;
+float4 land_micro_details_params9;
+float4 land_micro_details_paramsA;
+float4 land_micro_details_paramsB;
+float4 land_micro_details_paramsC;
+float4 land_micro_details_paramsD;
+float4 land_micro_details_paramsE;
+float4 land_micro_details_paramsF;
+
+int micro_details_quality = 2;
+interval micro_details_quality: simplified_land<1, dice_hack<2, correct_bilinear;
+
+macro INIT_LAND_MICRODETAILS_PARAMS_PS()
+  (ps) {
+    land_micro_details_params@f4[] = {
+      land_micro_details_params0,
+      land_micro_details_params1,
+      land_micro_details_params2,
+      land_micro_details_params3,
+      land_micro_details_params4,
+      land_micro_details_params5,
+      land_micro_details_params6,
+      land_micro_details_params7,
+      land_micro_details_params8,
+      land_micro_details_params9,
+      land_micro_details_paramsA,
+      land_micro_details_paramsB,
+      land_micro_details_paramsC,
+      land_micro_details_paramsD,
+      land_micro_details_paramsE,
+      land_micro_details_paramsF
+    };
+  }
+endmacro
+
+macro INIT_LAND_MICRODETAILS_COUNT_PS()
+  // Metal samplers don't have mipbias parameter, .SampleBias([...]) and scaling gradient should be used.
+  if (hardware.metal) {
+    (ps) { land_micro_details_metal_dd_scale@f1 = (pow(2, mip_bias)); }
+  }
+
+  (ps) {
+    land_micro_details_cnt_scale@f1 = (land_micro_details_cnt_scale);
+    land_micro_details_uv_scale@f1 = (land_micro_details_uv_scale);
+    land_micro_details_count_f@f1 = (land_micro_details_count);
+
+    land_micro_details_count@u1 = (land_micro_details_count);
+  }
+endmacro
+
+macro INIT_LAND_MICRODETAILS_PS()
+  (ps) { land_micro_details@smpArray = land_micro_details; }
+  INIT_LAND_MICRODETAILS_COUNT_PS()
+endmacro
+
+macro USE_MICRODETAIL_DESC_BASE(code)
+  hlsl(code)
+  {
+    #ifndef MICRODETAIL_DESC_USED
+    #define MICRODETAIL_DESC_USED 1
+    struct DetailDesc
+    {
+      float4 id;
+      float2 lerpFactor;
+    };
+    float4 lerpGatheredMicrodetails(float4 microdetails0, float4 microdetails1, float4 microdetails2, float4 microdetails3, float2 lerp_factor)
+    {
+      float4 ctop = lerp(microdetails3, microdetails2, lerp_factor.x);
+      float4 cbot = lerp(microdetails0, microdetails1, lerp_factor.x);
+
+      return lerp(ctop, cbot, lerp_factor.y);
+    }
+    #endif
+  }
+endmacro
+
+macro USE_MICRODETAIL_DESC()
+  USE_MICRODETAIL_DESC_BASE(ps)
+endmacro
+
+macro USE_INTERPOLATED_MICRODETAIL_ID()
+  assume micro_details_quality = dice_hack;
+  hlsl(ps)
+  {
+    DetailDesc makeDetailDesc(float interpolated_id)
+    {
+      DetailDesc desc;
+      desc.id = interpolated_id;
+      desc.lerpFactor = 0;
+      return desc;
+    }
+  }
+endmacro
+
+macro USE_GATHER_MICRODETAIL_ID(code, tex, smp, gather_func, tex_size__inv_size)
+  hlsl(code)
+  {
+    DetailDesc gatherMicrodetailId(float interpolated_id, float2 tc)
+    {
+      ##if micro_details_quality == correct_bilinear
+        tc = frac(tc); //to emulate wrap addressing
+        float2 coordF = tc * tex_size__inv_size.xy - 0.5;
+        float2 lerp_factor  = frac(coordF);
+
+        float2 centerTc = (floor(coordF) + 1.0) * tex_size__inv_size.zw;
+        float4 id4 = tex . gather_func ( smp , centerTc);
+
+        DetailDesc result;
+        result.id = id4;
+        result.lerpFactor = lerp_factor;
+        return result;
+      ##else
+        DetailDesc result;
+        result.id = interpolated_id;
+        result.lerpFactor = 0;
+        return result;
+      ##endif
+    }
+  }
+endmacro
+
+macro USE_LAND_MICRODETAIL_PARAMS_PS()
+  USE_MICRODETAIL_DESC()
+  hlsl(ps) {
+
+    struct MicrodetailParams
+    {
+      half porosityMul;
+      half waterSmoothnessMul;
+      half puddles;
+      half sparkles;
+    };
+
+    half4 get_microdetail_param_lerped(DetailDesc desc)
+    {
+      if (!land_micro_details_count)
+        return 1;
+
+      ##if micro_details_quality == correct_bilinear
+        uint4 indexes = (uint4)round(desc.id * land_micro_details_cnt_scale);
+        return lerpGatheredMicrodetails(land_micro_details_params[indexes.x], land_micro_details_params[indexes.y], land_micro_details_params[indexes.z], land_micro_details_params[indexes.w], desc.lerpFactor);
+      ##else
+        float arrayNoFloat = desc.id.x * land_micro_details_cnt_scale;
+        float arrayPart = frac(arrayNoFloat);
+        uint arrayNo = arrayNoFloat-arrayPart;
+        uint arrayNo1 = min(arrayNo+1, land_micro_details_count - 1);
+        return lerp(land_micro_details_params[arrayNo], land_micro_details_params[arrayNo1], arrayPart);
+      ##endif
+    }
+    half get_microdetail_self_colored(half4 param)
+    {
+      return param.x;
+    }
+
+    void get_microdetail_effects(DetailDesc desc, out half porosityMul, out half waterSmoothnessMul, out half sparkles)
+    {
+      half4 param = get_microdetail_param_lerped(desc);
+      porosityMul = param.y;
+      waterSmoothnessMul = porosityMul;
+      sparkles = param.w;
+    }
+
+    void get_microdetail_effects(DetailDesc desc, out MicrodetailParams parameters)
+    {
+      half4 param = get_microdetail_param_lerped(desc);
+      parameters.porosityMul = param.y;
+      parameters.waterSmoothnessMul = parameters.porosityMul;
+      parameters.puddles = param.z;
+      parameters.sparkles = param.w;
+    }
+  }
+endmacro
+
+macro USE_LAND_MICRODETAILS_PS()
+  USE_MICRODETAIL_DESC()
+  USE_NORMAL_DETAIL()
+
+  hlsl(ps) {
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+    #include <microShadow.hlsl>
+
+    ##if in_editor_assume == yes
+      #define EARLY_SAMPLE\
+      if (!land_micro_details_count)\
+      {\
+        microDetailNTS = 0.5;\
+        return;\
+      }
+    ##else
+      #define EARLY_SAMPLE
+    ##endif
+
+    void apply_microdetails_full(half4 microDetail, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness)
+    {
+      diffuse.rgb *= pow2(microDetail.r * 2);
+      microDetailNTS = microDetail.ag;
+      smoothness = saturate(smoothness*microDetail.r * 2);
+      reflectance *= microDetail.b*2;
+    }
+
+    void apply_microdetails_full_land(half4 microDetail, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      half aDiffuse = (half)pow2(microDetail.r * half(2.0));
+      diffuse.rgb *= half3(aDiffuse, aDiffuse, aDiffuse);
+      microDetailNTS = microDetail.ag;
+      smoothness = saturate(smoothness*microDetail.r * half(2.0));
+      reflectance = microDetail.b > half(0.5) ? saturate(reflectance * microDetail.b * half(2.0)) : reflectance;
+      #ifndef DISABLE_CLIPMAP_MICRODETAIL_AO
+        ao = ao*saturate(microDetail.b * half(2.0));
+      #endif
+    }
+
+    #include <UvWithDerivates.hlsl>
+
+    half4 sample_microdetails_lerped_no_grad(UvWithDerivates uv, DetailDesc detail_level)
+    {
+      //float waterSmoothnessMulArray[MAX_MICRO_DETAILS+1]={1,1,0,1,1,1,1};
+      ##if hardware.metal
+        uv.uv_ddx *= land_micro_details_metal_dd_scale;
+        uv.uv_ddy *= land_micro_details_metal_dd_scale;
+      ##endif
+      ##if micro_details_quality == correct_bilinear
+        float4 arrayNo = floor(detail_level.id * land_micro_details_cnt_scale + 0.5);
+        half4 m1 = (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo.x ), uv.uv_ddx,  uv.uv_ddy);
+        bool allSame = all(arrayNo.xyzw == arrayNo.wxyz);
+        #if WAVE_INTRINSICS
+          allSame = (bool)WaveReadFirstLane(WaveAllBitAnd(uint(allSame)));
+        #endif
+        BRANCH
+        if (allSame)
+        {
+          return m1;
+        }
+        else
+        {
+          half4 microDetailN = lerpGatheredMicrodetails(
+              m1,
+              (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo.y ), uv.uv_ddx,  uv.uv_ddy),
+              (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo.z ), uv.uv_ddx,  uv.uv_ddy),
+              (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo.w ), uv.uv_ddx,  uv.uv_ddy),
+              detail_level.lerpFactor);
+          return microDetailN;
+        }
+      ##else
+        float arrayNoFloat = detail_level.id.x*land_micro_details_cnt_scale;
+        float arrayPart = frac(arrayNoFloat);
+        float arrayNo = arrayNoFloat-arrayPart;
+        float arrayNo1 = min(arrayNo+1, land_micro_details_count_f);
+
+        half4 microDetailN0 = (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo ), uv.uv_ddx,  uv.uv_ddy);
+        half4 microDetailN1 = (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo1), uv.uv_ddx,  uv.uv_ddy);
+        half4 microDetailN = lerp(microDetailN0, microDetailN1, (half)arrayPart);
+        return microDetailN;
+      ##endif
+    }
+    half4 sample_microdetails_single(UvWithDerivates uv, DetailDesc detail_level)
+    {
+      ##if hardware.metal
+        uv.uv_ddx *= land_micro_details_metal_dd_scale;
+        uv.uv_ddy *= land_micro_details_metal_dd_scale;
+      ##endif
+      float arrayNo = round(detail_level.id.x*land_micro_details_cnt_scale);
+      //4*uv.uv_ddx,  4*uv.uv_ddy to increase sampling mip level
+      half4 microDetailN = (half4)tex3Dgrad(land_micro_details, float3(uv.uv, arrayNo ), 4*uv.uv_ddx,  4*uv.uv_ddy);
+      return microDetailN;
+    }
+    half4 sample_microdetails_lerped(float2 tc, DetailDesc detail_level)
+    {
+      return sample_microdetails_lerped_no_grad(make_uv_with_derivates(tc), detail_level);
+    }
+
+    ##if hardware.metal
+      float get_metal_mip_bias(); // forward declaration.
+    ##endif
+    half4 sample_single_microdetail_tc(float2 tc, int detail_level)
+    {
+      ##if hardware.metal
+        return land_micro_details.SampleBias(land_micro_details_samplerstate, float3(tc, detail_level), get_metal_mip_bias());
+      ##else
+        return (half4)tex3D(land_micro_details, float3(tc, detail_level));
+      ##endif
+    }
+    float2 get_microdetails_world_tc(float2 worldPosXZ) {return worldPosXZ*land_micro_details_uv_scale;}
+
+    UvWithDerivates microdetails_get_uv_and_derivates(float2 tc_world_posXZ)
+    {
+      return make_uv_with_derivates(get_microdetails_world_tc(tc_world_posXZ));
+    }
+
+    void apply_microdetails_tc(float2 tc, DetailDesc detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness)
+    {
+      EARLY_SAMPLE
+      apply_microdetails_full(sample_microdetails_lerped(tc, detail_level), microDetailNTS, diffuse, reflectance, smoothness);
+    }
+    void apply_microdetails_tc_no_grad(UvWithDerivates uv, DetailDesc detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness)
+    {
+      EARLY_SAMPLE
+      apply_microdetails_full(sample_microdetails_lerped_no_grad(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness);
+    }
+
+    void apply_microdetails_tc_no_grad_land(UvWithDerivates uv, DetailDesc detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      EARLY_SAMPLE
+      ##if micro_details_quality == simplified_land
+        apply_microdetails_full_land(sample_microdetails_single(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness, ao);
+      ##else
+        apply_microdetails_full_land(sample_microdetails_lerped_no_grad(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness, ao);
+      ##endif
+    }
+
+    void apply_single_microdetail_tc(float2 tc, half detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness)
+    {
+      EARLY_SAMPLE
+      apply_microdetails_full(sample_single_microdetail_tc(tc, detail_level * land_micro_details_cnt_scale), microDetailNTS, diffuse, reflectance, smoothness);
+    }
+
+    void apply_single_microdetail_ao(float3 worldPos, half detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      ##if in_editor_assume == yes
+      if (!land_micro_details_count)
+      {
+        microDetailNTS = 0.5;
+        return;
+      }
+      ##endif
+      apply_microdetails_full_land(sample_single_microdetail_tc( get_microdetails_world_tc(worldPos.xz), detail_level * land_micro_details_cnt_scale), microDetailNTS, diffuse, reflectance, smoothness, ao);
+    }
+
+    #undef EARLY_SAMPLE
+  }
+
+endmacro

@@ -7,7 +7,7 @@ return {
   children = {
     image = Picture("+ui/glow.png")
     rendObj = ROBJ_IMAGE
-    size = [hdpx(100), hdpx(100)]
+    size = hdpx(100)
     hplace = ALIGN_CENTER
     vplace = ALIGN_CENTER
   }

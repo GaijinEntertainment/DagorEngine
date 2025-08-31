@@ -15,7 +15,6 @@
 #include <3d/dag_resPtr.h>
 #include <gameRes/dag_gameResources.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_resourcePool.h>
 #include <perfMon/dag_statDrv.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_frustum.h>
@@ -333,8 +332,13 @@ struct Renderer
       ddsx::tex_pack2_perform_delayed_data_loading();
 
     maskTex = SharedTexHolder(eastl::move(maskTexRes), "water_foam_trail_mask");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_mask_samplerstate", true),
+      get_texture_separate_sampler(maskTex.getTexId()));
 
     texArrayVarId = ::get_shader_variable_id("water_foam_trail");
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_samplerstate", true), d3d::request_sampler(smpInfo));
 
     shaders::OverrideState blendOpState;
     blendOpState.set(shaders::OverrideState::BLEND_OP | shaders::OverrideState::BLEND_OP_A);
@@ -556,11 +560,10 @@ struct Renderer
 
     if (g_settings.useTexArray)
     {
-      texArray = d3d::create_array_tex(g_settings.texSize, g_settings.texSize, cascades.size(), TEXFMT_L8 | TEXCF_RTARGET, 1,
+      texArray = d3d::create_array_tex(g_settings.texSize, g_settings.texSize, cascades.size(), TEXFMT_R8 | TEXCF_RTARGET, 1,
         "water_foam_trail");
 
       texArrayId = register_managed_tex("water_foam_trail", texArray);
-      texArray->texaddr(TEXADDR_WRAP);
     }
   }
 };
@@ -618,6 +621,7 @@ struct Context
     currentGen = 0.f;
     totalActiveVertices = 0;
     totalFinalizedVertices = 0;
+    renderEnabled = false;
   }
 
   int createEmitter(float width, float gen_mul, float alpha_mul, float foam_mul, float inscat_mul)
@@ -826,23 +830,20 @@ struct Context
 // interface
 //
 
-void init(const Settings &s)
+void init()
 {
   G_ASSERT(!g_ctx);
 
-  g_settings = s;
-
-  memcpy(g_settings.texName, s.texName, sizeof(s.texName));
   g_ctx = new Context();
 }
 
-void reset()
+void on_unload_scene()
 {
   if (g_ctx)
     g_ctx->reset();
 }
 
-void release() { del_it(g_ctx); }
+void close() { del_it(g_ctx); }
 
 bool available() { return g_ctx != NULL; }
 
@@ -854,7 +855,7 @@ void enable_render(bool v)
     g_ctx->renderEnabled = v;
 }
 
-void update_settings(const Settings &s)
+void update_render_settings(const Settings &s)
 {
   int curTexSize = g_settings.texSize;
   g_settings = s;
@@ -877,17 +878,24 @@ int create_emitter(float width, float gen_mul, float alpha_mul, float foam_mul, 
 void destroy_emitter(int id)
 {
   if (id >= 0 && g_ctx)
+  {
+    G_ASSERT_RETURN(id < g_ctx->activeEmittersPool.size(), );
+    Emitter<Context> *em = g_ctx->activeEmittersPool[id];
+    G_ASSERT_RETURN(em, );
     g_ctx->destroyEmitter(id);
+  }
 }
 
 void emit_point(int id, const Point2 &pt, const Point2 &dir, float alpha, bool is_underwater)
 {
-  if (id < 0 || !g_ctx)
+  if (id < 0)
     return;
 
+  G_ASSERT_RETURN(g_ctx, );
+  G_ASSERT_RETURN(id < g_ctx->activeEmittersPool.size(), );
   Emitter<Context> *em = g_ctx->activeEmittersPool[id];
 
-  G_ASSERT(em);
+  G_ASSERT_RETURN(em, );
   if (is_underwater)
   {
     if (hasUnderwaterTrail())
@@ -902,25 +910,27 @@ void emit_point(int id, const Point2 &pt, const Point2 &dir, float alpha, bool i
 
 void emit_point_ex(int id, const Point2 &pt, const Point2 &dir, const Point2 &left, const Point2 &right, float alpha)
 {
-  if (id < 0 || !g_ctx)
+  if (id < 0)
     return;
 
-  G_ASSERT(g_ctx);
+  G_ASSERT_RETURN(g_ctx, );
+  G_ASSERT_RETURN(id < g_ctx->activeEmittersPool.size(), );
   Emitter<Context> *em = g_ctx->activeEmittersPool[id];
 
-  G_ASSERT(em);
+  G_ASSERT_RETURN(em, );
   em->emitPointEx(pt, dir, left, right, alpha);
 }
 
 void finalize_trail(int id)
 {
-  if (id < 0 || !g_ctx)
+  if (id < 0)
     return;
 
-  G_ASSERT(g_ctx);
+  G_ASSERT_RETURN(g_ctx, );
+  G_ASSERT_RETURN(id < g_ctx->activeEmittersPool.size(), );
   Emitter<Context> *em = g_ctx->activeEmittersPool[id];
 
-  G_ASSERT(em);
+  G_ASSERT_RETURN(em, );
   em->finalize();
 }
 

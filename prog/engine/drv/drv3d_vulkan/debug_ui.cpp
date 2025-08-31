@@ -16,6 +16,10 @@
 #include "execution_timings.h"
 #include "backend.h"
 #include "backend_interop.h"
+#include "frontend.h"
+#include "predicted_latency_waiter.h"
+#include "pipeline_barrier.h"
+#include "swapchain.h"
 
 using namespace drv3d_vulkan;
 
@@ -40,8 +44,16 @@ enum
 
 const char *timingsStrings[FRAME_TIMINGS] = {"PresentToPresent", "PresentToWorkerPresent", "WaitForWorker", "WorkerWait",
   "GPUFenceWait", "PresentSubmit", "SwapchainAcquire", "LatencyGPUWait"};
-UiPlotScrollBuffer<FRAME_TIMINGS_HISTORY, ImU64> frameTimingsGraphs[FRAME_TIMINGS];
+UiPlotScrollBuffer<FRAME_TIMINGS_HISTORY, float> frameTimingsGraphs[FRAME_TIMINGS];
 uint64_t trackingFrameIdx = 0;
+
+enum
+{
+  LAT_GRAPH_WORKER = 0,
+  LAT_GRAPH_APP = 1,
+  LAT_GRAPHS = 2
+};
+UiPlotScrollBuffer<FRAME_TIMINGS_HISTORY, ImU64> latencyGraph[LAT_GRAPHS];
 
 ImS64 timelineCpuGraph[TOTAL_TIMINGS * MAX_TIMELINES];
 ImS64 timelineGpuGraph[TOTAL_TIMINGS * MAX_TIMELINES];
@@ -56,6 +68,14 @@ bool freezeFrameHashHistory = false;
 constexpr uint32_t MAX_FRAME_HASHES_HISTORY_SIZE = 64;
 
 DrawStatSingle stat3dRecord = {};
+
+const char *barrierMergeModes[PipelineBarrier::MERGE_COUNT] = {
+  "Merge all barrier stages", // PipelineBarrier::MERGE_ALL,
+  "Merge dst barrier stages", // PipelineBarrier::MERGE_DST,
+  "Merge by mask extend",     // PipelineBarrier::MERGE_BOTH_MASK_EXTEND,
+  "Merge by src mask extend", // PipelineBarrier::MERGE_SRC_MASK_EXTEND,
+  "Merge unique stages"       // PipelineBarrier::MERGE_UNIQUE
+};
 
 namespace pipeline_ui
 {
@@ -86,6 +106,7 @@ eastl::array<ProgramTypeData, 1 << program_type_bits> progTypeDatas{
   ProgramTypeData{"G", program_type_graphics},
   ProgramTypeData{"C", program_type_compute},
 };
+
 } // namespace pipeline_ui
 
 const char *timeline_plot_legend[] = {"acquire", "submit", "process", "wait", "cleanup"};
@@ -139,7 +160,7 @@ void drawFrameHashesHistory()
   if (ImGui::Button("Clear hash history"))
     clear_and_shrink(frameHashesHistory);
   for (FrameHashHistoryEntry &itr : frameHashesHistory)
-    ImGui::Text("GPU job hash %" PRIX64 " cnt: %zu", itr.hash, itr.cnt);
+    ImGui::Text("GPU job hash %llx cnt: %u", (long long)itr.hash, (unsigned)itr.cnt);
 }
 
 void drawTimings()
@@ -228,6 +249,24 @@ void timelineGraphFill(TimelineHistoryIndex idx, const uint64_t *timestamps, ImS
   }
 }
 
+void drv3d_vulkan::debug_ui_latency_wait()
+{
+  if (ImPlot::BeginPlot("##Latency wait XY plot", "External wait, us", "Internal wait, us"))
+  {
+    {
+      auto &graph = latencyGraph[LAT_GRAPH_WORKER];
+      graph.addPoint(Backend::latencyWaiter.getDbgLastExternalWaitTimeUs(), Backend::latencyWaiter.getDbgLastWaitTimeUs());
+      ImPlot::PlotLine("Worker wait", &graph.xData[0], &graph.yData[0], graph.xData.size(), ImPlotLineFlags_None, graph.offset);
+    }
+    {
+      auto &graph = latencyGraph[LAT_GRAPH_APP];
+      graph.addPoint(Frontend::latencyWaiter.getDbgLastExternalWaitTimeUs(), Frontend::latencyWaiter.getDbgLastWaitTimeUs());
+      ImPlot::PlotLine("App wait", &graph.xData[0], &graph.yData[0], graph.xData.size(), ImPlotLineFlags_None, graph.offset);
+    }
+    ImPlot::EndPlot();
+  }
+}
+
 void drv3d_vulkan::debug_ui_timeline()
 {
   TimelineManager &tman = Globals::timelines;
@@ -304,7 +343,7 @@ void drv3d_vulkan::debug_ui_update_pipelines_data()
 void drv3d_vulkan::debug_ui_pipelines()
 {
 #if !VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  ImGui::Text("Pipeline debug info requires %s", #VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA);
+  ImGui::Text("Pipeline debug info requires VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA");
 #else
 
   if (ImGui::Button("Update"))
@@ -468,12 +507,56 @@ void drv3d_vulkan::debug_ui_misc()
   if (ImGui::Button("Switch execution mode"))
     Globals::ctx.toggleWorkerThread();
 
+  ImGui::TextUnformatted(barrierMergeModes[Backend::interop.barrierMergeMode % PipelineBarrier::MERGE_COUNT]);
+  if (ImGui::Button("Switch barrier merge mode"))
+    ++Backend::interop.barrierMergeMode;
+
   size_t multiQueueOverride = Backend::interop.toggleMultiQueueSubmit.load(std::memory_order_relaxed);
   if (Globals::cfg.bits.allowMultiQueue || multiQueueOverride)
   {
     ImGui::TextUnformatted(multiQueueOverride % 2 ? "MultiQueueSubmit: no" : "MultiQueueSubmit: yes");
     if (ImGui::Button("Toggle multi queue submit"))
       ++Backend::interop.toggleMultiQueueSubmit;
+  }
+}
+
+void drv3d_vulkan::debug_ui_swapchain()
+{
+  if (ImGui::Button("Recreate"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.modifySource = "debug_ui_recreate";
+    Frontend::swapchain.setMode(newMode);
+  }
+
+  if (ImGui::Button("Recreate surface"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.modifySource = "debug_ui_recreate_surface";
+    newMode.setHeadless();
+    Frontend::swapchain.setMode(newMode);
+    newMode.surface = init_window_surface(Globals::VK::inst);
+    Frontend::swapchain.setMode(newMode);
+  }
+
+  if (ImGui::Button("Mode IMM"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    Frontend::swapchain.setMode(newMode);
+  }
+
+  if (ImGui::Button("Mode FIFO"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    Frontend::swapchain.setMode(newMode);
+  }
+
+  if (ImGui::Button("OS video mode set"))
+  {
+    if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
+      os_set_display_mode(Globals::window.settings.resolutionX, Globals::window.settings.resolutionY);
   }
 }
 

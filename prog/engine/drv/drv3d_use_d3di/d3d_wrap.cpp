@@ -33,7 +33,7 @@ bool should_use_compute_for_image_processing(std::initializer_list<unsigned> for
 
 bool check_texformat(int cflg) { return d3di.check_texformat(cflg); }
 int get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
-unsigned get_texformat_usage(int cflg, int restype) { return d3di.get_texformat_usage(cflg, restype); }
+unsigned get_texformat_usage(int cflg, D3DResourceType type) { return d3di.get_texformat_usage(cflg, type); }
 bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1, cflg2); }
 bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
 bool check_voltexformat(int cflg) { return d3di.check_voltexformat(cflg); }
@@ -94,7 +94,10 @@ ArrayTexture *alias_cube_array_tex(ArrayTexture *baseTexture, int side, int d, i
   return d3di.alias_cube_array_tex(baseTexture, side, d, flg, levels, stat_name);
 }
 
-bool stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst) { return d3di.stretch_rect(src, dst, rsrc, rdst); }
+bool stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
+{
+  return d3di.stretch_rect(src, dst, rsrc, rdst);
+}
 bool copy_from_current_render_target(BaseTexture *to_tex) { return d3di.copy_from_current_render_target(to_tex); }
 
 void get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, String *out_dump)
@@ -136,31 +139,30 @@ d3d::SamplerHandle request_sampler(const d3d::SamplerInfo &sampler_info) { retur
 
 void set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler) { d3di.set_sampler(shader_stage, slot, sampler); }
 
-uint32_t register_bindless_sampler(BaseTexture *texture) { return d3di.register_bindless_sampler(texture); }
 uint32_t register_bindless_sampler(SamplerHandle sampler) { return d3di.register_bindless_sampler(sampler); }
 
-uint32_t allocate_bindless_resource_range(uint32_t resource_type, uint32_t count)
+uint32_t allocate_bindless_resource_range(D3DResourceType type, uint32_t count)
 {
-  return d3di.allocate_bindless_resource_range(resource_type, count);
+  return d3di.allocate_bindless_resource_range(type, count);
 }
-uint32_t resize_bindless_resource_range(uint32_t resource_type, uint32_t index, uint32_t current_count, uint32_t new_count)
+uint32_t resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
 {
-  return d3di.resize_bindless_resource_range(resource_type, index, current_count, new_count);
+  return d3di.resize_bindless_resource_range(type, index, current_count, new_count);
 }
-void free_bindless_resource_range(uint32_t resource_type, uint32_t index, uint32_t count)
+void free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  d3di.free_bindless_resource_range(resource_type, index, count);
+  d3di.free_bindless_resource_range(type, index, count);
 }
-void update_bindless_resource(uint32_t index, D3dResource *res) { d3di.update_bindless_resource(index, res); }
-void update_bindless_resource_sto_null(uint32_t resource_type, uint32_t index, uint32_t count)
+bool update_bindless_resource(D3DResourceType range_type, uint32_t index, D3dResource *res)
 {
-  d3di.update_bindless_resources_to_null(resource_type, index, count);
+  return d3di.update_bindless_resource(range_type, index, res);
+}
+void update_bindless_resource_sto_null(D3DResourceType type, uint32_t index, uint32_t count)
+{
+  d3di.update_bindless_resources_to_null(type, index, count);
 }
 
-bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler)
-{
-  return d3di.set_tex(shader_stage, slot, tex, use_sampler);
-}
+bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex) { return d3di.set_tex(shader_stage, slot, tex); }
 bool set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip, bool as_uint)
 {
   return d3di.set_rwtex(shader_stage, slot, tex, face, mip, as_uint);
@@ -170,10 +172,11 @@ bool clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, uint32
   return d3di.clear_rwtexi(tex, val, face, mip);
 }
 bool clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint32_t mip) { return d3di.clear_rwtexf(tex, val, face, mip); }
-bool clear_rwbufi(Sbuffer *tex, const unsigned val[4]) { return d3di.clear_rwbufi(tex, val); }
-bool clear_rwbuff(Sbuffer *tex, const float val[4]) { return d3di.clear_rwbuff(tex, val); }
+bool zero_rwbufi(Sbuffer *buffer) { return d3di.zero_rwbufi(buffer); }
 
 bool clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val) { return d3di.clear_rt(rt, clear_val); }
+
+bool discard_tex(BaseTexture *tex) { return d3di.discard_tex(tex); }
 
 bool set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return d3di.set_buffer(shader_stage, slot, buffer); }
 bool set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return d3di.set_rwbuffer(shader_stage, slot, buffer); }
@@ -230,9 +233,13 @@ bool getview(int &x, int &y, int &w, int &h, float &minz, float &maxz) { return 
 
 bool clearview(int what, E3DCOLOR c, float z, uint32_t stencil) { return d3di.clearview(what, c, z, stencil); }
 
-bool update_screen(bool app_active) { return d3di.update_screen(app_active); }
+bool update_screen(uint32_t frame_id, bool app_active) { return d3di.update_screen(frame_id, app_active); }
 void wait_for_async_present(bool force) { return d3di.wait_for_async_present(force); }
-void gpu_latency_wait() { d3di.gpu_latency_wait(); }
+void begin_frame(uint32_t frame_id, bool allow_wait) { d3di.begin_frame(frame_id, allow_wait); }
+void mark_simulation_start(uint32_t frame_id) { d3di.mark_simulation_start(frame_id); }
+void mark_simulation_end(uint32_t frame_id) { d3di.mark_simulation_end(frame_id); }
+void mark_render_start(uint32_t frame_id) { d3di.mark_render_start(frame_id); }
+void mark_render_end(uint32_t frame_id) { d3di.mark_render_end(frame_id); }
 
 bool setvsrc_ex(int s, Vbuffer *vb, int ofs, int stride_bytes) { return d3di.setvsrc_ex(s, vb, ofs, stride_bytes); }
 
@@ -346,14 +353,18 @@ void beginEvent(const char *s) { return d3di.beginEvent(s); }
 void endEvent() { return d3di.endEvent(); }
 
 #if _TARGET_PC_WIN
-namespace pcwin32
+namespace pcwin
 {
 void set_present_wnd(void *hwnd) { return d3di.set_present_wnd(hwnd); }
 
+static inline bool can_render_to_window() { return d3di.can_render_to_window(); }
+static inline BaseTexture *get_swapchain_for_window(void *hwnd) { return d3di.get_swapchain_for_window(hwnd); }
+static inline void present_to_window(void *hwnd) { return d3di.present_to_window(hwnd); }
+
 bool set_capture_full_frame_buffer(bool ison) { return d3di.set_capture_full_frame_buffer(ison); }
-unsigned get_texture_format(BaseTexture *tex) { return d3di.get_texture_format(tex); }
-const char *get_texture_format_str(BaseTexture *tex) { return d3di.get_texture_format_str(tex); }
+unsigned get_texture_format(const BaseTexture *tex) { return d3di.get_texture_format(tex); }
+const char *get_texture_format_str(const BaseTexture *tex) { return d3di.get_texture_format_str(tex); }
 void *get_native_surface(BaseTexture *tex) { return d3di.get_native_surface(tex); }
-} // namespace pcwin32
+} // namespace pcwin
 #endif
 }; // namespace d3d

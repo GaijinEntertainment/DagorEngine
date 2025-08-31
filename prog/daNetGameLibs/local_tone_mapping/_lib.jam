@@ -1,5 +1,5 @@
 if $(HaveRenderer) = yes {
   gamePulls += framework_local_tone_mapping_pull daNetGameLibs_local_tone_mapping_DAS_pull_AOT ;
-  AddIncludes +=  $(Root)/prog/gameLibs/render/daBfg ;
+  AddIncludes +=  $(Root)/prog/gameLibs/render/daFrameGraph ;
   UseProgLibs += daNetGameLibs/local_tone_mapping ;
 }

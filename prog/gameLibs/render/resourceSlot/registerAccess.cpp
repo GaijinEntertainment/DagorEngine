@@ -5,7 +5,7 @@
 
 #include <detail/storage.h>
 
-resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace ns, const char *name,
+resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(dafg::NameSpace ns, const char *name,
   ActionList &&action_list, AccessCallback &&declaration_callback)
 {
   Storage &storage = storage_list[ns];

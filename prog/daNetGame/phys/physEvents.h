@@ -49,6 +49,7 @@ DANETGAME_PHYS_ECS_EVENTS
 
 ECS_UNICAST_PROFILE_EVENT_TYPE(CmdUpdateRemoteShadow, int32_t /*tick*/, float /*dt*/)
 ECS_UNICAST_PROFILE_EVENT_TYPE(CmdPostPhysUpdate, int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/);
+ECS_UNICAST_PROFILE_EVENT_TYPE(CmdPrePhysUpdate, int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/);
 ECS_UNICAST_PROFILE_EVENT_TYPE(CmdPostPhysUpdateRemoteShadow, int32_t /*tick*/, float /*dt*/);
 
 // authority approved state

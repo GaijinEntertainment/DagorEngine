@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-/** @page Image
+/* qdox @page Image
 
 .. _image_rasterization:
 

@@ -148,8 +148,8 @@ UpscaleSamplingTex::UpscaleSamplingTex(uint32_t w, uint32_t h, const char *tag)
   name = String(128, "%supscale_sampling_tex", tag);
 
   uint32_t flags = fmt | (hasComputeSupport ? TEXCF_UNORDERED : TEXCF_RTARGET);
-  upscaleTex = UniqueTex(dag::create_tex(NULL, w, h, flags, 1, name.data()));
-  ShaderGlobal::set_texture(get_shader_variable_id("upscale_sampling_tex", true), upscaleTex.getTexId());
+  upscaleSamplingTexVarId = get_shader_variable_id("upscale_sampling_tex", true);
+  upscaleTexRTPool = RTargetPool::get(w, h, flags, 1);
 }
 
 void UpscaleSamplingTex::render(float goffset_x, float goffset_y)
@@ -158,28 +158,47 @@ void UpscaleSamplingTex::render(float goffset_x, float goffset_y)
 
   SCOPE_RESET_SHADER_BLOCKS;
 
+  if (upscaleTex == nullptr)
+  {
+    upscaleTex = upscaleTexRTPool->acquire();
+    ShaderGlobal::set_texture(upscaleSamplingTexVarId, upscaleTex->getTexId());
+  }
+
   TextureInfo ti;
-  if (upscaleTex)
-    upscaleTex->getinfo(ti);
+  upscaleTex->getTex2D()->getinfo(ti);
 
   static int upscale_gbuffer_offsetVarId = ::get_shader_variable_id("upscale_gbuffer_offset", true);
+  static int downsampled_checkerboard_depth_tex_samplerstateVarId =
+    ::get_shader_variable_id("downsampled_checkerboard_depth_tex_samplerstate", true);
   ShaderGlobal::set_int4(upscale_gbuffer_offsetVarId, goffset_x, goffset_y, 0, 0);
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+  smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+  ShaderGlobal::set_sampler(downsampled_checkerboard_depth_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
 
   if (upscaleTex && !!(ti.cflg & TEXCF_UNORDERED))
   {
-    d3d::set_rwtex(STAGE_CS, 0, upscaleTex.getTex2D(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, upscaleTex->getTex2D(), 0, 0);
     upsample_single.upscaleRendererCS->dispatchThreads(ti.w, ti.h, 1);
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
-    d3d::resource_barrier({upscaleTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+    d3d::resource_barrier({upscaleTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   }
   else
   {
     SCOPE_RENDER_TARGET;
 
-    auto target = upscaleTex.getTex2D();
+    auto target = upscaleTex->getTex2D();
 
     d3d::set_render_target(target, 0);
     upsample_single.upscaleRenderer.render();
     d3d::resource_barrier({target, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   }
+  ShaderGlobal::set_sampler(downsampled_checkerboard_depth_tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
+}
+
+void UpscaleSamplingTex::releaseRTs()
+{
+  upscaleTex = nullptr;
+  ShaderGlobal::set_texture(upscaleSamplingTexVarId, BAD_TEXTUREID);
 }

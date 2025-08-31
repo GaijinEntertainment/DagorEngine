@@ -1,5 +1,5 @@
-GPU related locks
+GPU Related Locks
 =================================================
 
-.. autodoxygenfile:: dag_lock.h
+.. doxygenfile:: dag_lock.h
   :project: d3dAPI

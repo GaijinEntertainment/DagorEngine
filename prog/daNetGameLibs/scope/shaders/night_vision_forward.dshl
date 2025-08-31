@@ -1,4 +1,4 @@
-include "night_vision_inc.dshl"
+include "scope/night_vision_inc.dshl"
 
 texture scope_lens_mask;
 int lens_night_vision_on = 0;

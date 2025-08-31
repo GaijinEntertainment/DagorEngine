@@ -2,7 +2,7 @@
 AN ERROR HAS OCCURRED [the index 'w' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w248_chain.nut line [7]
+*FUNCTION [__main__()] testData/static_analyzer/w248_chain.nut:7
 
 LOCALS
 [a] 10

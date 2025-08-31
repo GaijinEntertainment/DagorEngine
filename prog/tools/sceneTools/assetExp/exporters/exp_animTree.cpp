@@ -30,12 +30,11 @@ static void init_atypes(DagorAssetMgr &mgr)
   }
 }
 
-static dag::ConstSpan<IDagorAssetRefProvider::Ref> enum_a2d_refs(DagorAsset &a)
+static void enum_a2d_refs(DagorAsset &a, Tab<IDagorAssetRefProvider::Ref> &refs)
 {
-  static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
   init_atypes(a.getMgr());
 
-  tmpRefs.clear();
+  refs.clear();
 
   int nid = a.props.getNameId("AnimBlendNodeLeaf");
   for (int i = 0; i < a.props.blockCount(); i++)
@@ -47,8 +46,8 @@ static dag::ConstSpan<IDagorAssetRefProvider::Ref> enum_a2d_refs(DagorAsset &a)
       if (ra)
       {
         int found = -1;
-        for (int j = 0; j < tmpRefs.size(); j++)
-          if (tmpRefs[j].getAsset() == ra)
+        for (int j = 0; j < refs.size(); j++)
+          if (refs[j].getAsset() == ra)
           {
             found = j;
             break;
@@ -57,7 +56,7 @@ static dag::ConstSpan<IDagorAssetRefProvider::Ref> enum_a2d_refs(DagorAsset &a)
           continue;
       }
 
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = IDagorAssetRefProvider::RFLG_EXTERNAL;
       if (!ra)
         r.setBrokenRef(String(64, "%s:a2d", a2d_name));
@@ -67,15 +66,13 @@ static dag::ConstSpan<IDagorAssetRefProvider::Ref> enum_a2d_refs(DagorAsset &a)
   if (const char *skel_nm = a.props.getStr("skeleton", NULL))
   {
     DagorAsset *ra = a.getMgr().findAsset(skel_nm, skeleton_atype);
-    IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+    IDagorAssetRefProvider::Ref &r = refs.push_back();
     r.flags = 0;
     if (!ra)
       r.setBrokenRef(String(0, "%s:skeleton", skel_nm));
     else
       r.refAsset = ra;
   }
-
-  return tmpRefs;
 }
 
 
@@ -84,14 +81,14 @@ static const char *TYPE = "animTree";
 class AnimTreeExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "anim exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "anim exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return AnimCharGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 4; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return AnimCharGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 4; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -105,7 +102,7 @@ public:
         Tab<SimpleString> &files;
         const char *srcFn;
         IncludeGather(Tab<SimpleString> &files, const char *src_fn) : files(files), srcFn(src_fn) {}
-        virtual void onFileLoaded(const char *fname)
+        void onFileLoaded(const char *fname) override
         {
           if (strcmp(fname, srcFn) != 0)
           {
@@ -119,11 +116,12 @@ public:
     }
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return a.props.getBool("export", true); }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return a.props.getBool("export", true); }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
-    dag::ConstSpan<IDagorAssetRefProvider::Ref> refList = enum_a2d_refs(a);
+    Tab<IDagorAssetRefProvider::Ref> refList;
+    enum_a2d_refs(a, refList);
     DataBlock blk;
     bool err = false;
 
@@ -320,14 +318,14 @@ public:
 class AnimTreeRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "anim refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "anim refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override { return enum_a2d_refs(a); }
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override { return enum_a2d_refs(a, refs); }
 };
 END_DABUILD_PLUGIN_NAMESPACE(animTree)
 

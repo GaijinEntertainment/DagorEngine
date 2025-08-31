@@ -135,6 +135,12 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
 
       return;
     }
+    case ComponentTypeInfo<ecs::Tag>::type:
+    {
+      String blkName(0, "%s:tag", paramName);
+      currBlk->addBlock(blkName.c_str());
+      return;
+    }
     default:
       logerr("Unsupported component type %s <%d> for comp %s", g_entity_mgr->getComponentTypes().findTypeName(ctype), ctype,
         paramName);

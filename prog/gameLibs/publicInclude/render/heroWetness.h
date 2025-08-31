@@ -10,6 +10,7 @@
 #include <generic/dag_carray.h>
 #include <math/dag_Point2.h>
 #include <drv/3d/dag_consts.h>
+#include <resourcePool/resourcePool.h>
 
 class HeroWetness
 {
@@ -51,16 +52,18 @@ protected:
   float wetTime = -1.0f;
   int heroWetnessVolumeSlices;
   int heroWetnessVolumeSizeX, heroWetnessVolumeSizeY;
-  int heroWetnessRenderIter;
   float heroWetnessDarkening;
   float heroWetnessAboveDist;
   WetnessParams wetnessParams = {Point2(0.5f, 0.45f), 0.5f, 0.2f};
   WetnessParams wetnessParamsGroundVehicle = {Point2(0.05f, 0.45f), 0.15f, 0.15f};
 
-  carray<Texture *, 2> heroWetnessTex;
-  carray<TEXTUREID, 2> heroWetnessTexId;
+  RTargetPool::Ptr heroWetnessRTPool;
+  RTarget::Ptr heroWetnessTex;
+  d3d::SamplerHandle heroPointSampler = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle heroLinearSampler = d3d::INVALID_SAMPLER_HANDLE;
   int numClearsToDo;
   int heroWetnessTexVarId;
+  int heroWetnessTex_samplerstateVarId = -1;
 
   Vbuffer *waterHeightRendererVb;
   Ptr<ShaderMaterial> waterHeightRendererShmat;

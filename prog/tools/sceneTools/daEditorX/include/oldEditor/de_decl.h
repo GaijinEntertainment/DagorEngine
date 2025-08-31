@@ -7,7 +7,7 @@
 #include <EditorCore/ec_decl.h>
 
 class IDagorEd2Engine;
-class IClipping;
+class ICollision;
 
 class DagorEdAppWindow;
 class DagorEdAppEventHandler;

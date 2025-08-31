@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <landMesh/landRayTracer.h>
-#include <rendInst/rendInstGen.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
@@ -28,7 +27,6 @@
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/biomeQuery.h>
 #include <gameRes/dag_gameResources.h>
-// #include <rendInst/rendInstGen.h>
 #include <osApiWrappers/dag_direct.h>
 #include <render/blkToConstBuffer.h>
 
@@ -38,6 +36,7 @@
 #include <EASTL/string.h>
 #include <EASTL/hash_map.h>
 #include <landMesh/landClass.h>
+#include <landMesh/riLandClass.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <scene/dag_physMat.h>
 #include <util/fnameMap.h>
@@ -119,6 +118,8 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
 
   land.lcDetailParamsVS.resize(1);
   land.lcDetailParamsVS[0] = Point4(1, 1, 1, 1);
+  land.weighMapMulOffset = {-1, -1, -1, -1};
+  land.weightMapNoiseScale = 0;
 
   if (!(data_needed & LC_TRIVIAL_DATA))
     return ret;
@@ -164,6 +165,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
     land.displacementMin = Point4(blk.getReal("displacementMin", -0.1f), 0, 0, 0);
     land.displacementMax = Point4(blk.getReal("displacementMax", 0.2f), 0, 0, 0);
     land.bumpScales = Point4(blk.getReal("bumpScale", 1.0f), 0, 0, 0);
+    land.puddleScales = Point4(blk.getReal("puddleScale", 1.0f), 0, 0, 0);
     land.compatibilityDiffuseScales = Point4(blk.getReal("compatibilityDiffuseScale", 1.0f), 0, 0, 0);
     land.waterDecalBumpScale = Point4(blk.getReal("waterDecalBumpScale", 1.0f), 0, 0, 0);
     const char *defaultPhysmat = blk.getStr("physMat", NULL);
@@ -187,6 +189,30 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
           if (lcTexBlk.getParamType(pi) != DataBlock::TYPE_STRING)
             continue;
           land.lcTextures.push_back(get_and_load_lc_texture(lcTexBlk.getStr(pi), false, validate_name));
+        }
+      }
+
+      if (strcmp(land.shader_name, "landmesh_indexed_landclass_weightmap") == 0)
+      {
+        const Point2 &size = blk.getPoint2("weight_map_size", Point2(-1, -1));
+        const Point2 &offset = blk.getPoint2("weight_map_offset", Point2(0, 0));
+        const float &noiseScale = blk.getReal("weight_map_noise_scale", 0);
+        if (size.x <= 0 || size.y <= 0)
+        {
+          logerr("Invalid or missing value for weight_map_size: (%d, %d)", size.x, size.y);
+        }
+        else
+        {
+          land.weighMapMulOffset = {1 / size.x, 1 / size.y, offset.x / size.x, offset.y / size.x};
+        }
+
+        if (noiseScale < 0)
+        {
+          logerr("Invalid value for weight_map_noise_scale: %f, the value must be positive", noiseScale);
+        }
+        else
+        {
+          land.weightMapNoiseScale = noiseScale;
         }
       }
 
@@ -306,7 +332,8 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
 
         if (VariableMap::isVariablePresent(lmesh_hc_floats_per_detailVarId))
         {
-          if (ShaderGlobal::get_int(lmesh_hc_floats_per_detailVarId) != floatsPerDetail)
+          if (ShaderGlobal::get_int(lmesh_hc_floats_per_detailVarId) != floatsPerDetail &&
+              strcmp(land.shader_name, "landmesh_indexed_landclass_normal") != 0)
             logerr("landclass: detail struct size from scheme = %i differs from one in shader = %i, correct scheme/shader",
               floatsPerDetail, ShaderGlobal::get_int(lmesh_hc_floats_per_detailVarId));
         }
@@ -391,6 +418,11 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
       land.bumpScales.z = blk.getReal("bumpScaleBlue", 1.0f);
       land.bumpScales.w = blk.getReal("bumpScaleBlack", 1.0f);
 
+      land.puddleScales.x = blk.getReal("puddleScaleRed", 0.5f);
+      land.puddleScales.y = blk.getReal("puddleScaleGreen", 0.5f);
+      land.puddleScales.z = blk.getReal("puddleScaleBlue", 0.5f);
+      land.puddleScales.w = blk.getReal("puddleScaleBlack", 0.5f);
+
       land.compatibilityDiffuseScales.x = blk.getReal("compatibilityDiffuseScaleRed", 1.0f);
       land.compatibilityDiffuseScales.y = blk.getReal("compatibilityDiffuseScaleGreen", 1.0f);
       land.compatibilityDiffuseScales.z = blk.getReal("compatibilityDiffuseScaleBlue", 1.0f);
@@ -427,6 +459,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
       }
     }
     land.randomFlowmapParams.x = max(blk.getReal("flowmap", floor(flowmapTiling)), 1.0f);
+    land.randomFlowmapParams.y = blk.getReal("flowmapNoiseFrequency", 100.0f);
     land.flowmapMask = blk.getPoint4("flowmapMask", Point4(1.0f, 1.0f, 1.0f, 1.0f));
   }
   return ret;
@@ -464,12 +497,10 @@ void LandMeshManager::DetailMap::load(IGenLoad &cb, int base_ofs, bool tools_int
       mem_set_ff(cells[i].detTexIds);
       cells[i].tex1 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1);
       d3d_err(cells[i].tex1);
-      cells[i].tex1->texaddr(TEXADDR_CLAMP);
       cells[i].tex1Id = ::register_managed_tex(String(32, "land_tex#%d", i), cells[i].tex1);
 
       cells[i].tex2 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1);
       d3d_err(cells[i].tex2);
-      cells[i].tex2->texaddr(TEXADDR_CLAMP);
       cells[i].tex2Id = ::register_managed_tex(String(32, "land_tex2#%d", i), cells[i].tex2);
     }
     return;
@@ -506,13 +537,11 @@ void LandMeshManager::DetailMap::load(int i, IGenLoad &cb)
       e.tex1 = d3d::create_ddsx_tex(cb, TEXCF_RGB | TEXCF_SYSTEXCOPY, 0, 0, "land_tex");
 
       d3d_err(e.tex1);
-      e.tex1->texaddr(TEXADDR_CLAMP);
       e.tex1Id = ::register_managed_tex(String(32, "land_tex#%d", i), e.tex1);
       if (tex2Offset != 0 && len - tex2Offset > 0)
       {
         e.tex2 = d3d::create_ddsx_tex(cb, TEXCF_RGB | TEXCF_SYSTEXCOPY, 0, 0, "land_tex2");
         d3d_err(e.tex2);
-        e.tex2->texaddr(TEXADDR_CLAMP);
 
         e.tex2Id = ::register_managed_tex(String(32, "land_tex2#%d", i), e.tex2);
       }
@@ -540,7 +569,7 @@ void LandMeshManager::DetailMap::getLandDetailTexture(int index, TEXTUREID &tex1
 }
 
 
-LandMeshManager::LandMeshManager(bool tools_internal) :
+LandMeshManager::LandMeshManager(bool tools_internal, LandMeshCullingState::CullMode cull_mode) :
   gridCellSize(1),
   fileVersion(1),
   baseDataOffset(0),
@@ -557,7 +586,7 @@ LandMeshManager::LandMeshManager(bool tools_internal) :
 {
   mem_set_0(megaDetailsArrayId); // fill with BAD_TEXTUREID=0
   landTracer = NULL;
-  cullingState.cullMode = LandMeshCullingState::ASYNC_CULLING;
+  cullingState.cullMode = cull_mode;
   lmeshVdata = combinedVdata = NULL;
   useVertTexforHMAP = true;
   mayRenderHmap = true;
@@ -630,6 +659,63 @@ void LandMeshManager::close()
 }
 #undef RELEASE_MANAGED_TEX
 
+inline Point3 getFirstPoint(int16_t *vertSrc, const Point3 &scale, const Point3 &offset)
+{
+  Point3 vertexPoint = Point3((float)vertSrc[0] / 32767, (float)vertSrc[1] / 32767, (float)vertSrc[2] / 32767);
+  vertexPoint.x = vertexPoint.x * scale.x + offset.x;
+  vertexPoint.y = vertexPoint.y * scale.y + offset.y;
+  vertexPoint.z = vertexPoint.z * scale.z + offset.z;
+
+  return vertexPoint;
+}
+
+inline Point3 getFirstPoint(float *vertSrc, const Point3 &scale, const Point3 &offset)
+{
+  Point3 vertexPoint = Point3(vertSrc[0], vertSrc[1], vertSrc[2]);
+  vertexPoint.x = vertexPoint.x * scale.x + offset.x;
+  vertexPoint.y = vertexPoint.y * scale.y + offset.y;
+  vertexPoint.z = vertexPoint.z * scale.z + offset.z;
+
+  return vertexPoint;
+}
+
+void LandMeshManager::filterHeighLandmeshDecals(const DataBlock &levelBlk)
+{
+  float heightLimit = 4000.0f;
+  if (const DataBlock *decalBlk = levelBlk.getBlockByName("land_decal"); decalBlk)
+  {
+    heightLimit = decalBlk->getReal("height_limit", heightLimit);
+  }
+
+  if (decalElems.empty())
+    return;
+
+  for (int z = 0, i = 0; z < mapSizeY; ++z)
+  {
+    for (int x = 0; x < mapSizeX; ++x, i++)
+    {
+      if (!cells[i].decal || decalElems[i].firstVertexPos.empty())
+      {
+        clear_and_shrink(decalElems[i].shouldRenderElem);
+        continue;
+      }
+      clear_and_resize(decalElems[i].shouldRenderElem, decalElems[i].firstVertexPos.size());
+
+      for (int fp = 0; fp < decalElems[i].firstVertexPos.size(); fp++)
+      {
+        const Point3 &meshPoint = decalElems[i].firstVertexPos[fp];
+        Point2 xz(meshPoint.x, meshPoint.z);
+        float groundHeight = 0;
+        getHeight(xz, groundHeight, nullptr);
+
+        decalElems[i].shouldRenderElem[fp] = meshPoint.y - groundHeight <= heightLimit;
+      }
+
+      clear_and_shrink(decalElems[i].firstVertexPos);
+    }
+  }
+}
+
 bool LandMeshManager::loadMeshData(IGenLoad &cb)
 {
   int tmp[4];
@@ -664,7 +750,8 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 
     cb.beginBlock();
     cells[i].combined = ShaderMesh::load(cb, cb.getBlockRest(), *smvd);
-    static int bigVarId = get_shader_variable_id("big", true);
+    static int staticBigVarId = get_shader_variable_id("big", true);
+    const int bigVarId = VariableMap::isVariablePresent(staticBigVarId) ? staticBigVarId : -1;
     if (cells[i].combined)
     {
       dag::ConstSpan<ShaderMesh::RElem> elems = cells[i].combined->getAllElems();
@@ -672,7 +759,8 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
       for (int elemNo = 0; elemNo < elems.size(); elemNo++)
       {
         int big = 1;
-        cells[i].isCombinedBig[elemNo] = bigVarId <= 0 || (!elems[elemNo].mat->getIntVariable(bigVarId, big) || big == 1);
+        cells[i].isCombinedBig[elemNo] =
+          bigVarId <= 0 || (!elems[elemNo].mat || !elems[elemNo].mat->getIntVariable(bigVarId, big) || big == 1);
       }
     }
     cb.endBlock();
@@ -832,22 +920,33 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 
   Tab<uint8_t> lmeshVData;
   Tab<uint8_t> lmeshIData;
-
   decalElems.resize(mapSizeY * mapSizeX);
+
+  float yValue = 0.5f * (landBbox[1].y - landBbox[0].y);
+  Point3 meshScale = Point3(landCellSize * 0.5f, yValue, landCellSize * 0.5f);
+
   for (int z = 0, i = 0; z < mapSizeY; ++z)
   {
     for (int x = 0; x < mapSizeX; ++x, i++)
     {
+      Point3 meshOffset =
+        Point3(landCellSize * (x + origin.x + 0.5f) + offset.x, yValue, landCellSize * (z + origin.y + 0.5f) + offset.z);
+
       ShaderMesh *sm = cells[i].decal;
       if (!sm)
       {
         clear_and_shrink(decalElems[i].elemBoxes);
+        clear_and_shrink(decalElems[i].firstVertexPos);
         continue;
       }
       clear_and_resize(decalElems[i].elemBoxes, sm->getAllElems().size());
+      clear_and_resize(decalElems[i].firstVertexPos, sm->getAllElems().size());
+
       for (int ei = 0; ei < sm->getAllElems().size(); ++ei)
       {
         const ShaderMesh::RElem &re = sm->getAllElems()[ei];
+        if (!re.e) // should not be happening
+          continue;
         int srcStride = re.vertexData->getStride();
         G_ASSERT(srcStride >= 8);
         int vDataI = re.vertexData - startVD;
@@ -857,11 +956,13 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 
         IBBox2 box;
         dag::ConstSpan<ShaderChannelId> channels = re.e->getChannels();
+        Point3 firstPoint;
         if (channels.size())
         {
           switch (channels[0].t)
           {
             case SCTYPE_SHORT4N:
+              firstPoint = getFirstPoint((int16_t *)vertSrcPtr, meshScale, meshOffset);
               for (int vi = 0; vi < re.numv; vi++, vertSrcPtr += srcStride)
               {
                 int16_t *vertSrc = (int16_t *)vertSrcPtr;
@@ -871,6 +972,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 
             case SCTYPE_FLOAT3:
             case SCTYPE_FLOAT4:
+              firstPoint = getFirstPoint((float *)vertSrcPtr, meshScale, meshOffset);
               for (int vi = 0; vi < re.numv; vi++, vertSrcPtr += srcStride)
               {
                 float *vertSrc = (float *)vertSrcPtr;
@@ -885,6 +987,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
         }
 
         decalElems[i].elemBoxes[ei] = box;
+        decalElems[i].firstVertexPos[ei] = firstPoint;
       }
     }
   }
@@ -1026,10 +1129,10 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
   {
     if (!smvd->getGlobVData(i)->getVB())
       continue;
-    ibsz += smvd->getGlobVData(i)->getIB()->ressize();
-    vbsz += smvd->getGlobVData(i)->getVB()->ressize();
-    debug("lmesh vbib %d: vb size = %d, stride=%d, ib size=%d %s", i, smvd->getGlobVData(i)->getVB()->ressize(),
-      smvd->getGlobVData(i)->getStride(), smvd->getGlobVData(i)->getIB()->ressize(),
+    ibsz += smvd->getGlobVData(i)->getIB()->getSize();
+    vbsz += smvd->getGlobVData(i)->getVB()->getSize();
+    debug("lmesh vbib %d: vb size = %d, stride=%d, ib size=%d %s", i, smvd->getGlobVData(i)->getVB()->getSize(),
+      smvd->getGlobVData(i)->getStride(), smvd->getGlobVData(i)->getIB()->getSize(),
       smvd->getGlobVData(i)->getIB()->getFlags() & SBCF_INDEX32 ? "32bit" : "16bit");
   }
   debug("total vb size = %d, ib size=%d", vbsz, ibsz);
@@ -1164,6 +1267,42 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
     hmapHandler->afterDeviceReset();
 }
 
+void LandMeshManager::updateOverrideSamplers()
+{
+  // When drawing decals on clipmap (lmesh_rendering_mode == rendering_clipmap) we need samplers without additional mipbias.
+  carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> decals_overrideSampler_tex_ref;
+  for (int i = 0; i < DECALS_OVERRIDE_SAMPLERS_COUNT; ++i)
+  {
+    String texRefVarName(64, "decals_overrideSampler_%i_tex_ref", i);
+    int varId = ::get_shader_variable_id(texRefVarName, true);
+
+    decals_overrideSampler_tex_ref[i] = VariableMap::isVariablePresent(varId) ? ShaderGlobal::get_int(varId) : -1;
+  }
+  for (CellData &cell : cells)
+  {
+    cell.decalsNoMipbiasSamplers.clear();
+
+    for (const ShaderMesh::RElem &re : cell.decal->getAllElems())
+    {
+      carray<d3d::SamplerHandle, DECALS_OVERRIDE_SAMPLERS_COUNT> samplers;
+      eastl::fill(samplers.begin(), samplers.end(), d3d::SamplerHandle::Invalid);
+      for (int k = 0; k < samplers.size(); ++k)
+      {
+        int materialTexRef = decals_overrideSampler_tex_ref[k];
+        if (materialTexRef < 0)
+          continue;
+
+        TEXTUREID tid = re.mat->get_texture(materialTexRef);
+        if (tid != BAD_TEXTUREID)
+          samplers[k] = d3d::request_sampler(LandMeshRenderer::getTextureSamplerInfo(tid));
+      }
+
+      cell.decalsNoMipbiasSamplers.emplace_back(samplers);
+    }
+    cell.decalsNoMipbiasSamplers.shrink_to_fit();
+  }
+}
+
 void LandMeshManager::loadLandClasses(IGenLoad &cb)
 {
   for (auto &t : megaDetailsId)
@@ -1176,6 +1315,7 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
   const int landClassCount = cb.readInt();
   landClasses.resize(landClassCount);
   clear_and_resize(landClassesEditorId, landClassCount);
+  biomeLandClassIdx = -1;
 
   String nm;
   for (int i = 0; i < landClassCount; ++i)
@@ -1183,13 +1323,8 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
     DataBlock blk;
     cb.beginBlock();
     cb.readString(nm);
-    if (GameResource *land_cls_res =
-          !toolsInternal ? ::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(nm), rendinst::HUID_LandClassGameRes) : NULL)
-    {
-      blk = rendinst::get_detail_data(land_cls_res);
-      release_game_resource(land_cls_res);
+    if (!toolsInternal && get_land_class_detail_data && get_land_class_detail_data(blk, nm))
       debug("landclass[%d] %s (res)", i, nm);
-    }
     else if (cb.getBlockRest())
     {
       blk.loadFromStream(cb);
@@ -1225,7 +1360,11 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
     landClasses[i].offset.y -= origin.y * landCellSize;
     static int inEditorGvId = ::get_shader_glob_var_id("in_editor", true);
     static int inEditor = ShaderGlobal::get_int_fast(inEditorGvId);
-    if (ends_with(landClasses[i].name, "_det") || (!strcmp(landClasses[i].shader_name, "landmesh_indexed_landclass") && inEditor > 0))
+    if (!landClasses[i].lcTextures.empty() && (ends_with(landClasses[i].name, "_det") || ends_with(landClasses[i].name, "_biome") ||
+                                                ((!strcmp(landClasses[i].shader_name, "landmesh_indexed_landclass") ||
+                                                   !strcmp(landClasses[i].shader_name, "landmesh_indexed_landclass_normal") ||
+                                                   !strcmp(landClasses[i].shader_name, "landmesh_indexed_landclass_weightmap")) &&
+                                                  inEditor > 0)))
     {
       BaseTexture *lcTex = ::acquire_managed_tex(landClasses[i].lcTextures[0]);
       G_ASSERT_RETURN(lcTex != nullptr, );
@@ -1251,6 +1390,7 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
       biome_query::init_land_class(landClasses[i].lcTextures[0], landClasses[i].tile, landClasses[i].lcDetailGroupNames,
         landClasses[i].lcDetailGroupIndices);
       biome_query::set_details_cb(landClasses[i].detailsCB);
+      biomeLandClassIdx = i;
     }
 
     landClassesEditorId[i] = landClasses[i].editorId;
@@ -1703,8 +1843,8 @@ bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_re
 
 LandMeshRenderer *LandMeshManager::createRenderer()
 {
-  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, vertTexId, vertTexSmp, vertNmTexId, vertNmTexSmp, vertDetTexId,
-    vertDetTexSmp, tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
+  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, biomeLandClassIdx, vertTexId, vertTexSmp, vertNmTexId,
+    vertNmTexSmp, vertDetTexId, vertDetTexSmp, tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
 
   return renderer;
 }

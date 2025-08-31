@@ -211,6 +211,7 @@ private:
   {
     GpuObjects *thiz = nullptr;
     int threadIx = 0;
+    const char *getJobName(bool &) const override { return "GatherBuffersJob"; }
     void doJob() override;
   } gatherBuffersJobs[4];
 

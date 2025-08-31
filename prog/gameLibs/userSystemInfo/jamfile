@@ -17,6 +17,7 @@ AddIncludes =
 
 Sources =
   systemInfo.cpp
+  dumpSysInfo.cpp
   userSystemInfo.cpp
   uuidgen.cpp
 ;
@@ -28,6 +29,7 @@ if [ GLOB $(Root)/$(Location) : systemInfo_private.cpp ] {
 
 if $(UseSystemOpenSSL) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
 }
 
 if $(Platform) in windows {
@@ -69,8 +71,9 @@ if $(Dedicated) != yes && $(Autotest) != yes {
 
 if $(Platform) in android linux macOS ps4 ps5 scarlett xboxOne windows && $(PlatformArch) != e2k {
   UseProgLibs += 3rdPartyLibs/cpu_features ;
-  CPPopt += -DUSE_CPU_FEATURES=1 ;
+  CPPopt += -DUSE_CPU_FEATURES ;
 }
 
+UseProgLibs += 3rdPartyLibs/hash ;
 
 include $(Root)/prog/_jBuild/build.jam ;

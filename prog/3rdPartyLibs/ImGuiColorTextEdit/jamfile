@@ -13,7 +13,6 @@ AddIncludes =
 ;
 
 Sources =
-  FileTextEdit.cpp
   FontManager.cpp
   ImGuiDebugPanel.cpp
   LanguageDefinitions.cpp

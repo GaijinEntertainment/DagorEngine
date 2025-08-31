@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <daScript/daScript.h>
+#include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotECSGlobalTags.h>
 
 namespace bind_dascript

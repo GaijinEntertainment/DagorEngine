@@ -7,11 +7,11 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 
 #define GLOBAL_VARS_LIST          \
-  VAR(gtao_tex_size)              \
   VAR(gtao_temporal_directions)   \
   VAR(gtao_temporal_offset)       \
   VAR(gtao_half_hfov_tan)         \
@@ -21,22 +21,22 @@
   VAR(gtao_prev_tex_samplerstate) \
   VAR(gtao_tex)                   \
   VAR(gtao_tex_samplerstate)      \
-  VAR(ssao_tex)
+  VAR(ssao_tex)                   \
+  VAR(ssao_tex_samplerstate)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
 
-GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own_textures) :
+GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own_textures, bool use_own_reprojection_params) :
   even{false}, rawTargetIdx{0}, spatialTargetIdx{0}, temporalTargetIdx{0}, historyIdx{0}
 {
 
   aoWidth = w;
   aoHeight = h;
   useOwnTextures = use_own_textures;
-
-  ShaderGlobal::set_int(gtao_tex_sizeVarId, min(w, h));
+  useOwnReprojectionParams = use_own_reprojection_params;
 
   uint32_t cflags = ssao_detail::creation_flags_to_format(ssao_detail::consider_shader_assumes(flags));
 
@@ -53,8 +53,6 @@ GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own
     gtaoTex.forTheFirstN(views, [&](auto &a, int view, int item) {
       String name(128, "gtao_tex_%d_%d", view, item);
       a = dag::create_tex(NULL, aoWidth, aoHeight, cflags, 1, name);
-      a.getTex2D()->texbordercolor(0xFFFFFFFF);
-      a.getTex2D()->texaddr(TEXADDR_CLAMP);
       d3d::resource_barrier({a.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     });
   }
@@ -74,6 +72,7 @@ GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own
     ShaderGlobal::set_sampler(raw_gtao_tex_samplerstateVarId, sampler);
     ShaderGlobal::set_sampler(gtao_prev_tex_samplerstateVarId, sampler);
     ShaderGlobal::set_sampler(gtao_tex_samplerstateVarId, sampler);
+    ShaderGlobal::set_sampler(ssao_tex_samplerstateVarId, sampler);
   }
 }
 
@@ -89,17 +88,12 @@ void GTAORenderer::changeResolution(int w, int h)
   if (useOwnTextures)
   {
     gtaoTex[rawTargetIdx].resize(w, h);
-    gtaoTex[rawTargetIdx].getTex2D()->texbordercolor(0xFFFFFFFF);
-    gtaoTex[rawTargetIdx].getTex2D()->texaddr(TEXADDR_CLAMP);
     gtaoTex[spatialTargetIdx].resize(w, h);
-    gtaoTex[spatialTargetIdx].getTex2D()->texbordercolor(0xFFFFFFFF);
-    gtaoTex[spatialTargetIdx].getTex2D()->texaddr(TEXADDR_CLAMP);
   }
   // temporalTargetIdx == rawTargetIdx, so already resized
 
   aoWidth = w;
   aoHeight = h;
-  ShaderGlobal::set_int(gtao_tex_sizeVarId, min(w, h));
 }
 
 static float TEMPORAL_ROTATIONS[] = {60, 300, 180, 240, 120, 0};
@@ -182,8 +176,14 @@ void GTAORenderer::applyTemporalFilter(const ManagedTex &rawTex, const ManagedTe
 void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *, const ManagedTex *ssao_tex,
   const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
 {
+  renderGTAO(view_tm, proj_tm, ssao_tex, world_pos);
+  applyGTAOFilter(ssao_tex, prev_ssao_tex, tmp_tex, sub_sample);
+}
+
+void GTAORenderer::renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, const ManagedTex *ssao_tex, const DPoint3 *world_pos)
+{
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
-  G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
+  G_ASSERT(useOwnTextures || ssao_tex);
   TIME_D3D_PROFILE(GTAO_render);
   SCOPE_RENDER_TARGET;
 
@@ -191,19 +191,36 @@ void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseT
   updateCurFrameIdxs();
 
   const ManagedTex &rawTex = ssao_tex ? *ssao_tex : gtaoTex[rawTargetIdx];
-  const ManagedTex &prevGtaoTex = prev_ssao_tex ? *prev_ssao_tex : gtaoTex[historyIdx];
-  const ManagedTex &spatialTex = tmp_tex ? *tmp_tex : gtaoTex[spatialTargetIdx];
 
   Afr &afr = afrs.current();
-  set_reprojection(view_tm, proj_tm, afr.prevProjTm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT,
-    afr.prevViewVecLB, afr.prevViewVecRB, world_pos);
+  if (useOwnReprojectionParams)
+  {
+    set_reprojection(view_tm, proj_tm, afr.prevProjTm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT,
+      afr.prevViewVecLB, afr.prevViewVecRB, world_pos);
+  }
 
   ShaderGlobal::set_texture(gtao_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_real(gtao_half_hfov_tanVarId, 1.0f / max(proj_tm.m[0][0], 1e-6f));
 
-  renderGTAO(rawTex);
+  // GTAO uses local_view_N, which is initialized by setting view_tm
+  d3d::settm(TM_VIEW, view_tm);
 
+  renderGTAO(rawTex);
+}
+
+void GTAORenderer::applyGTAOFilter(const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex,
+  SubFrameSample sub_sample)
+{
+  // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
+  G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
+  SCOPE_RENDER_TARGET;
+
+  const ManagedTex &rawTex = ssao_tex ? *ssao_tex : gtaoTex[rawTargetIdx];
+  const ManagedTex &prevGtaoTex = prev_ssao_tex ? *prev_ssao_tex : gtaoTex[historyIdx];
+  const ManagedTex &spatialTex = tmp_tex ? *tmp_tex : gtaoTex[spatialTargetIdx];
+
+  Afr &afr = afrs.current();
   d3d::resource_barrier({rawTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
 
   {
@@ -229,11 +246,9 @@ void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseT
 GTAORenderer::~GTAORenderer()
 {
   gtaoTex.forEach([&](ResizableTex &holder) { holder.close(); });
-};
+}
 
-void GTAORenderer::reset(){
-
-};
+void GTAORenderer::reset() {}
 
 Texture *GTAORenderer::getSSAOTex() { return gtaoTex[rawTargetIdx].getTex2D(); };
 

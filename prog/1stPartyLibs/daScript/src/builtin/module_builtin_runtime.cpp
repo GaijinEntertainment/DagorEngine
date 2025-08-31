@@ -63,7 +63,7 @@ namespace das
         MacroFunctionAnnotation() : MarkFunctionAnnotation("_macro") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
             func->macroInit = true;
-            auto program = daScriptEnvironment::bound->g_Program;
+            auto program = (*daScriptEnvironment::bound)->g_Program;
             program->needMacroModule = true;
             return true;
         };
@@ -109,10 +109,10 @@ namespace das
         };
         virtual bool verifyCall ( ExprCallFunc * call, const AnnotationArgumentList & args,
             const AnnotationArgumentList & /*progArgs */, string & /*err*/ ) override {
-            DAS_ASSERT(daScriptEnvironment::bound->g_compilerLog);
-            (*daScriptEnvironment::bound->g_compilerLog) << call->at.describe() << ": *warning* function " << call->func->name << " is deprecated\n";
+            DAS_ASSERT((*daScriptEnvironment::bound)->g_compilerLog);
+            (*(*daScriptEnvironment::bound)->g_compilerLog) << call->at.describe() << ": *warning* function " << call->func->name << " is deprecated\n";
             if ( auto arg = args.find("message",Type::tString) ) {
-                (*daScriptEnvironment::bound->g_compilerLog) << "\t" << arg->sValue << "\n";
+                (*(*daScriptEnvironment::bound)->g_compilerLog) << "\t" << arg->sValue << "\n";
             }
             return true;
         }
@@ -121,7 +121,7 @@ namespace das
     struct TypeFunctionFunctionAnnotation : MarkFunctionAnnotation {
         TypeFunctionFunctionAnnotation() : MarkFunctionAnnotation("type_function") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string & error) override {
-            if ( !daScriptEnvironment::bound->g_Program->thisModule->addTypeFunction(func->name, true) ) {
+            if ( !(*daScriptEnvironment::bound)->g_Program->thisModule->addTypeFunction(func->name, true) ) {
                 error = "can't add type function. type function " + func->name + " already exists?";
                 return false;
             }
@@ -265,6 +265,14 @@ namespace das
         };
     };
 
+    struct UnsafeWhenNotCloneArray : MarkFunctionAnnotation {
+        UnsafeWhenNotCloneArray() : MarkFunctionAnnotation("unsafe_when_not_clone_array") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            func->unsafeWhenNotCloneArray = true;
+            return true;
+        };
+    };
+
     struct NoAotFunctionAnnotation : MarkFunctionAnnotation {
         NoAotFunctionAnnotation() : MarkFunctionAnnotation("no_aot") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
@@ -338,9 +346,27 @@ namespace das
         };
     };
 
-    struct IsYetAnotherVectorTemplateAnnotation : MarkFunctionAnnotation {
-        IsYetAnotherVectorTemplateAnnotation() : MarkFunctionAnnotation("expect_any_vector") {}
+    struct ArgumentTemplateAnnotation : MarkFunctionAnnotation {
+        ArgumentTemplateAnnotation( const string & na ) : MarkFunctionAnnotation(na) {}
         virtual bool isSpecialized() const override { return true; }
+        virtual bool apply(const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList & decl, string & err) override {
+            for ( const auto & arg : decl ) {
+                if ( arg.type!=Type::tBool ) {
+                    err = "expecting names only";
+                    return false;
+                }
+                if ( !fn->findArgument(arg.name) ) {
+                    err = "unknown argument " + arg.name;
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+
+    struct IsYetAnotherVectorTemplateAnnotation : ArgumentTemplateAnnotation {
+        IsYetAnotherVectorTemplateAnnotation() : ArgumentTemplateAnnotation("expect_any_vector") {}
         virtual bool isCompatible ( const FunctionPtr & fn, const vector<TypeDeclPtr> & types,
                 const AnnotationDeclaration & decl, string & err  ) const override {
             size_t maxIndex = min(types.size(), fn->arguments.size());
@@ -355,24 +381,10 @@ namespace das
             }
             return true;
         }
-        virtual bool apply(const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList & decl, string & err) override {
-            for ( const auto & arg : decl ) {
-                if ( arg.type!=Type::tBool ) {
-                    err = "expecting names only";
-                    return false;
-                }
-                if ( !fn->findArgument(arg.name) ) {
-                    err = "unknown argument " + arg.name;
-                    return false;
-                }
-            }
-            return true;
-        }
     };
 
-    struct IsDimAnnotation : MarkFunctionAnnotation {
-        IsDimAnnotation() : MarkFunctionAnnotation("expect_dim") {}
-        virtual bool isSpecialized() const override { return true; }
+    struct IsDimAnnotation : ArgumentTemplateAnnotation {
+        IsDimAnnotation() : ArgumentTemplateAnnotation("expect_dim") {}
         virtual bool isCompatible ( const FunctionPtr & fn, const vector<TypeDeclPtr> & types,
                 const AnnotationDeclaration & decl, string & err  ) const override {
             size_t maxIndex = min(types.size(), fn->arguments.size());
@@ -387,15 +399,20 @@ namespace das
             }
             return true;
         }
-        virtual bool apply(const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList & decl, string & err) override {
-            for ( const auto & arg : decl ) {
-                if ( arg.type!=Type::tBool ) {
-                    err = "expecting names only";
-                    return false;
-                }
-                if ( !fn->findArgument(arg.name) ) {
-                    err = "unknown argument " + arg.name;
-                    return false;
+    };
+
+    struct IsRefTypeAnnotation : ArgumentTemplateAnnotation {
+        IsRefTypeAnnotation() : ArgumentTemplateAnnotation("expect_ref") {}
+        virtual bool isCompatible ( const FunctionPtr & fn, const vector<TypeDeclPtr> & types,
+                const AnnotationDeclaration & decl, string & err  ) const override {
+            size_t maxIndex = min(types.size(), fn->arguments.size());
+            for ( size_t ai=0; ai!=maxIndex; ++ ai) {
+                if ( decl.arguments.find(fn->arguments[ai]->name, Type::tBool) ) {
+                    const auto & argT = types[ai];
+                    if ( !argT->isRef() ) {
+                        err = "argument " + fn->arguments[ai]->name + " is expected to be a ref type or a reference";
+                        return false;
+                    }
                 }
             }
             return true;
@@ -407,6 +424,19 @@ namespace das
         CommentAnnotation() : StructureAnnotation("comment") {}
         virtual bool touch(const StructurePtr &, ModuleGroup &,
                            const AnnotationArgumentList &, string & ) override {
+            return true;
+        }
+        virtual bool look ( const StructurePtr &, ModuleGroup &,
+                           const AnnotationArgumentList &, string & ) override {
+            return true;
+        }
+    };
+
+    struct NoDefaultCtorAnnotation : StructureAnnotation {
+        NoDefaultCtorAnnotation() : StructureAnnotation("no_default_initializer") {}
+        virtual bool touch(const StructurePtr & ps, ModuleGroup &,
+                           const AnnotationArgumentList &, string & ) override {
+            ps->genCtor = true;
             return true;
         }
         virtual bool look ( const StructurePtr &, ModuleGroup &,
@@ -468,7 +498,7 @@ namespace das
     struct SafeWhenUninitializedAnnotation : StructureAnnotation {
         SafeWhenUninitializedAnnotation() : StructureAnnotation("safe_when_uninitialized") {}
         virtual bool touch(const StructurePtr & ps, ModuleGroup &,
-                           const AnnotationArgumentList & args, string & ) override {
+                           const AnnotationArgumentList &, string & ) override {
             ps->safeWhenUninitialized = true;
             return true;
         }
@@ -777,6 +807,24 @@ namespace das
         table_clear(*context, arr, at);
     }
 
+    vec4f builtin_table_reserve ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        // table, size
+        if ( !call->types ) {
+            context.throw_error_at(call->debugInfo, "missing type info");
+        }
+        auto ttype = call->types[0];
+        if ( !ttype->firstType || !ttype->secondType ) {
+            context.throw_error_at(call->debugInfo, "expecting table type");
+        }
+        Type baseType = call->types[0]->firstType->type;
+        uint32_t valueTypeSize = call->types[0]->secondType->size;
+        Table & tab = cast<Table&>::to(args[0]);
+        uint32_t newCapacity = cast<uint32_t>::to(args[1]);
+        table_reserve_impl(context, tab, baseType, newCapacity, valueTypeSize, &call->debugInfo);
+        return v_zero();
+    }
+
+
     struct HashBuilderAnnotation : ManagedStructureAnnotation <HashBuilder,false> {
         HashBuilderAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("HashBuilder", ml) {
@@ -835,6 +883,12 @@ namespace das
     }
 
     void heap_collect ( bool sheap, bool validate, Context * context, LineInfoArg * info ) {
+        if ( !context->persistent ) {
+            context->throw_error_at(info, "heap collection is not allowed in this context, needs 'options persistent'");
+        }
+        if ( !context->gcEnabled ) {
+            context->throw_error_at(info, "heap collection is not allowed in this context, needs 'options gc'");
+        }
         context->collectHeap(info, sheap, validate);
     }
 
@@ -863,40 +917,40 @@ namespace das
         const_cast<Table&>(arr).hopeless = 0;
     }
 
-    bool builtin_iterator_first ( const Sequence & it, void * data, Context * context, LineInfoArg * at ) {
+    bool builtin_iterator_first ( Sequence & it, void * data, Context * context, LineInfoArg * at ) {
         if ( !it.iter ) context->throw_error_at(at, "calling first on empty iterator");
         else if ( it.iter->isOpen ) context->throw_error_at(at, "calling first on already open iterator");
         it.iter->isOpen = true;
         return it.iter->first(*context, (char *)data);
     }
 
-    bool builtin_iterator_next ( const Sequence & it, void * data, Context * context, LineInfoArg * at ) {
+    bool builtin_iterator_next ( Sequence & it, void * data, Context * context, LineInfoArg * at ) {
         if ( !it.iter ) context->throw_error_at(at, "calling next on empty iterator");
         else if ( !it.iter->isOpen ) context->throw_error_at(at, "calling next on a non-open iterator");
         return it.iter->next(*context, (char *)data);
     }
 
-    void builtin_iterator_close ( const Sequence & it, void * data, Context * context ) {
+    void builtin_iterator_close ( Sequence & it, void * data, Context * context ) {
         if ( it.iter ) {
             it.iter->close(*context, (char *)&data);
-            ((Sequence&)it).iter = nullptr;
+            it.iter = nullptr;
         }
     }
 
-    void builtin_iterator_delete ( const Sequence & it, Context * context ) {
+    void builtin_iterator_delete ( Sequence & it, Context * context ) {
         if ( it.iter ) {
             it.iter->close(*context, nullptr);
-            ((Sequence&)it).iter = nullptr;
+            it.iter = nullptr;
         }
     }
 
-    bool builtin_iterator_iterate ( const Sequence & it, void * value, Context * context ) {
+    bool builtin_iterator_iterate ( Sequence & it, void * value, Context * context ) {
         if ( !it.iter ) {
             return false;
         } else if ( !it.iter->isOpen) {
             if ( !it.iter->first(*context, (char *)value) ) {
                 it.iter->close(*context, (char *)value);
-                ((Sequence&)it).iter = nullptr;
+                it.iter = nullptr;
                 return false;
             } else {
                 it.iter->isOpen = true;
@@ -905,7 +959,7 @@ namespace das
         } else {
             if ( !it.iter->next(*context, (char *)value) ) {
                 it.iter->close(*context, (char *)value);
-                ((Sequence&)it).iter = nullptr;
+                it.iter = nullptr;
                 return false;
             } else {
                 return true;
@@ -1190,24 +1244,24 @@ namespace das
     };
 
     bool is_compiling (  ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            return daScriptEnvironment::bound->g_Program->isCompiling || daScriptEnvironment::bound->g_Program->isSimulating;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            return (*daScriptEnvironment::bound)->g_Program->isCompiling || (*daScriptEnvironment::bound)->g_Program->isSimulating;
         }
         return false;
 
     }
 
     bool is_compiling_macros ( ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            return daScriptEnvironment::bound->g_Program->isCompilingMacros;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            return (*daScriptEnvironment::bound)->g_Program->isCompilingMacros;
         }
         return false;
     }
 
     bool is_compiling_macros_in_module ( char * name ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            if ( !daScriptEnvironment::bound->g_Program->isCompilingMacros ) return false;
-            if ( daScriptEnvironment::bound->g_Program->thisModule->name != to_rts(name) ) return false;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            if ( !(*daScriptEnvironment::bound)->g_Program->isCompilingMacros ) return false;
+            if ( (*daScriptEnvironment::bound)->g_Program->thisModule->name != to_rts(name) ) return false;
             if ( isInDebugAgentCreation() ) return false;
             return true;
         }
@@ -1215,22 +1269,23 @@ namespace das
     }
 
     bool is_reporting_compilation_errors ( ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            return daScriptEnvironment::bound->g_Program->reportingInferErrors;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            return (*daScriptEnvironment::bound)->g_Program->reportingInferErrors;
         }
         return false;
     }
 
     // static storage
 
-    DAS_THREAD_LOCAL das_hash_map<uint64_t, void*> g_static_storage;
+    using TStaticStorage = das_hash_map<uint64_t, void*>;
+    DAS_THREAD_LOCAL(TStaticStorage) g_static_storage;
 
     void gc0_save_ptr ( char * name, void * data, Context * context, LineInfoArg * line ) {
         uint64_t hash = hash_function ( *context, name );
-        if ( g_static_storage.find(hash)!=g_static_storage.end() ) {
+        if ( g_static_storage->find(hash)!=g_static_storage->end() ) {
             context->throw_error_at(line, "gc0 already there %s (or hash collision)", name);
         }
-        g_static_storage[hash] = data;
+        (*g_static_storage)[hash] = data;
     }
 
     void gc0_save_smart_ptr ( char * name, smart_ptr_raw<void> data, Context * context, LineInfoArg * line ) {
@@ -1239,10 +1294,10 @@ namespace das
 
     void * gc0_restore_ptr ( char * name, Context * context ) {
         uint64_t hash = hash_function ( *context, name );
-        auto it = g_static_storage.find(hash);
-        if ( it!=g_static_storage.end() ) {
+        auto it = g_static_storage->find(hash);
+        if ( it!=g_static_storage->end() ) {
             void * res = it->second;
-            g_static_storage.erase(it);
+            g_static_storage->erase(it);
             return res;
         } else {
             return nullptr;
@@ -1254,8 +1309,8 @@ namespace das
     }
 
     void gc0_reset() {
-        decltype(g_static_storage) dummy;
-        swap ( g_static_storage, dummy );
+        TStaticStorage dummy;
+        swap ( *g_static_storage, dummy );
     }
 
     __forceinline void i_das_ptr_inc ( void * & ptr, int stride ) {
@@ -1366,7 +1421,7 @@ namespace das
         return ctx->allocateString(str, at);
     }
 
-    char * pass_string(char * str) {
+    const char * pass_string(const char * str) {
         return str;
     }
 
@@ -1415,13 +1470,13 @@ namespace das
     }
 
     void toLog ( int level, const char * text, Context * context, LineInfoArg * at ) {
-        logger(level, getLogMarker(level), text, context, at);
+        context->to_out(at, level, text);
     }
 
     void toCompilerLog ( const char * text, Context * context, LineInfoArg * at ) {
-        if ( daScriptEnvironment::bound->g_compilerLog ) {
+        if ( (*daScriptEnvironment::bound)->g_compilerLog ) {
             if ( text ) {
-                (*daScriptEnvironment::bound->g_compilerLog) << text;
+                (*(*daScriptEnvironment::bound)->g_compilerLog) << text;
             }
         } else {
             context->throw_error_at(at, "can only write to compiler log during compilation");
@@ -1429,21 +1484,38 @@ namespace das
     }
 
     bool is_in_aot ( ) {
-        return daScriptEnvironment::bound ? daScriptEnvironment::bound->g_isInAot : false;
+        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_isInAot : false;
+    }
+
+    void set_aot ( ) {
+        assert(*daScriptEnvironment::bound);
+        (*daScriptEnvironment::bound)->g_isInAot = true;
+    }
+    void reset_aot ( ) {
+        assert(*daScriptEnvironment::bound);
+        (*daScriptEnvironment::bound)->g_isInAot = false;
     }
 
     bool is_in_completion ( ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            return daScriptEnvironment::bound->g_Program->policies.completion;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            return (*daScriptEnvironment::bound)->g_Program->policies.completion;
         }
         return false;
     }
 
     bool is_folding ( ) {
-        if ( daScriptEnvironment::bound && daScriptEnvironment::bound->g_Program ) {
-            return daScriptEnvironment::bound->g_Program->folding;
+        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+            return (*daScriptEnvironment::bound)->g_Program->folding;
         }
         return false;
+    }
+
+    const char * compiling_file_name ( ) {
+        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_compilingFileName : nullptr;
+    }
+
+    const char * compiling_module_name ( ) {
+        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_compilingModuleName : nullptr;
     }
 
 // remove define to enable emscripten version
@@ -1514,6 +1586,7 @@ namespace das
         addReaderMacro(make_smart<UnescapedStringMacro>());
         // function annotations
         addAnnotation(make_smart<CommentAnnotation>());
+        addAnnotation(make_smart<NoDefaultCtorAnnotation>());
         addAnnotation(make_smart<MacroInterfaceAnnotation>());
         addAnnotation(make_smart<SkipLockCheckStructureAnnotation>());
         addAnnotation(make_smart<MarkFunctionOrBlockAnnotation>());
@@ -1536,6 +1609,7 @@ namespace das
         addAnnotation(make_smart<RunAtCompileTimeFunctionAnnotation>());
         addAnnotation(make_smart<UnsafeOpFunctionAnnotation>());
         addAnnotation(make_smart<UnsafeOutsideOfForFunctionAnnotation>());
+        addAnnotation(make_smart<UnsafeWhenNotCloneArray>());
         addAnnotation(make_smart<NoAotFunctionAnnotation>());
         addAnnotation(make_smart<InitFunctionAnnotation>());
         addAnnotation(make_smart<FinalizeFunctionAnnotation>());
@@ -1547,12 +1621,13 @@ namespace das
         addAnnotation(make_smart<PersistentStructureAnnotation>());
         addAnnotation(make_smart<IsYetAnotherVectorTemplateAnnotation>());
         addAnnotation(make_smart<IsDimAnnotation>());
+        addAnnotation(make_smart<IsRefTypeAnnotation>());
         addAnnotation(make_smart<HashBuilderAnnotation>(lib));
         addAnnotation(make_smart<TypeFunctionFunctionAnnotation>());
         // and call macro
         {
             CallMacroPtr newM = make_smart<MakeFunctionUnsafeCallMacro>();
-            addCallMacro(newM->name, [=](const LineInfo & at) -> ExprLooksLikeCall * {
+            addCallMacro(newM->name, [this, newM](const LineInfo & at) -> ExprLooksLikeCall * {
                 auto ecm = new ExprCallMacro(at, newM->name);
                 ecm->macro = newM.get();
                 newM->module = this;
@@ -1783,6 +1858,9 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_values)>(*this, lib, "__builtin_table_values",
             SideEffects::modifyArgumentAndExternal, "builtin_table_values")
                 ->args({"iterator","table","stride","context","at"});
+        addInterop<builtin_table_reserve,void,vec4f,uint32_t>(*this, lib, "__builtin_table_reserve",
+            SideEffects::modifyArgumentAndExternal, "builtin_table_reserve")
+                ->args({"table","size"});
         // array and table free
         addExtern<DAS_BIND_FUN(builtin_array_free)>(*this, lib, "__builtin_array_free",
             SideEffects::modifyArgumentAndExternal, "builtin_array_free")
@@ -1954,12 +2032,21 @@ namespace das
         // migrate data
         addExtern<DAS_BIND_FUN(is_in_aot)>(*this, lib, "is_in_aot",
             SideEffects::worstDefault, "is_in_aot");
+        addExtern<DAS_BIND_FUN(set_aot)>(*this, lib, "set_aot",
+            SideEffects::worstDefault, "set_aot");
+        addExtern<DAS_BIND_FUN(reset_aot)>(*this, lib, "reset_aot",
+            SideEffects::worstDefault, "reset_aot");
         // completion
         addExtern<DAS_BIND_FUN(is_in_completion)>(*this, lib, "is_in_completion",
             SideEffects::worstDefault, "is_in_completion");
         // folding
         addExtern<DAS_BIND_FUN(is_folding)>(*this, lib, "is_folding",
             SideEffects::worstDefault, "is_folding");
+        // compiling file
+        addExtern<DAS_BIND_FUN(compiling_file_name)>(*this, lib, "compiling_file_name",
+            SideEffects::accessExternal, "compiling_file_name");
+        addExtern<DAS_BIND_FUN(compiling_module_name)>(*this, lib, "compiling_module_name",
+            SideEffects::accessExternal, "compiling_module_name");
         // logger
         addExtern<DAS_BIND_FUN(toLog)>(*this, lib, "to_log",
             SideEffects::modifyExternal, "toLog")->args({"level", "text", "context", "at"});
@@ -2000,5 +2087,9 @@ namespace das
         addExtern<DAS_BIND_FUN(das_aot_enabled)>(*this, lib, "aot_enabled",
             SideEffects::none, "das_aot_enabled")
                 ->args({"context","at"});
+        // bitfield
+        addExtern<DAS_BIND_FUN(__bit_set)>(*this, lib, "__bit_set",
+            SideEffects::modifyArgument, "__bit_set")
+                ->args({"value","mask","on"});
     }
 }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <3d/dag_picMgr.h>
+#include <3d/dag_texMgr.h>
 #include <math/dag_math2d.h>
 
 

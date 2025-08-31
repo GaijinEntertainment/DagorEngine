@@ -48,8 +48,8 @@ struct SemiTransRenderManager
 ECS_DECLARE_RELOCATABLE_TYPE(SemiTransRenderManager);
 ECS_REGISTER_RELOCATABLE_TYPE(SemiTransRenderManager, nullptr);
 
-extern int dynamicSceneTransBlockId;
-extern int rendinstTransSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder rendinstTransSceneBlockId;
 
 using namespace dynmodel_renderer;
 
@@ -73,7 +73,7 @@ ECS_REQUIRE(eastl::true_type semi_transparent__visible)
 static __forceinline void animchar_render_semi_trans_es_event_handler(const RenderLateTransEvent &event,
   AnimV20::AnimcharRendComponent &animchar_render,
   const Point3 &semi_transparent__placingColor,
-  uint8_t &animchar_visbits,
+  animchar_visbits_t &animchar_visbits,
   int semi_transparent__lod)
 {
   SemiTransRenderManager *manager = get_manager();
@@ -81,13 +81,15 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
     return;
 
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-  Point4 data = Point4(semi_transparent__placingColor.x, semi_transparent__placingColor.y, semi_transparent__placingColor.z, 0);
 
   animchar_visbits |= VISFLG_SEMI_TRANS_RENDERED;
 
   animchar_render.getSceneInstance()->setLod(semi_transparent__lod);
 
-  state.process_animchar(0, ShaderMesh::STG_imm_decal, animchar_render.getSceneInstance(), &data, 1, false,
+  const Point4 params(semi_transparent__placingColor.x, semi_transparent__placingColor.y, semi_transparent__placingColor.z, 0);
+  auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_PLACING_COLOR>(make_span_const(&params, 1));
+
+  state.process_animchar(0, ShaderMesh::STG_imm_decal, animchar_render.getSceneInstance(), additionalData, false,
     manager->dynamicObjectsRenderer.shader, nullptr, 0, 0, false, RenderPriority::HIGH, nullptr, event.texCtx);
 
   state.prepareForRender();

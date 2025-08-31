@@ -1,4 +1,4 @@
-include "shader_global.dshl"
+include "sky_shader_global.dshl"
 include "gbuffer.dshl"
 include "world_sdf.dshl"
 include "dagi_lit_scene_helper.dshl"

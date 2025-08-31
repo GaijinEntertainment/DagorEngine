@@ -1,4 +1,4 @@
-Node and slot access handle
+Node and Slot Access Handle
 =================================================
 
 .. doxygenstruct:: resource_slot::NodeHandleWithSlotsAccess

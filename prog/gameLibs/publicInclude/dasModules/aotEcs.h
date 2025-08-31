@@ -5,6 +5,7 @@
 #pragma once
 
 #include <dasModules/dasContextLockGuard.h>
+#include <dasModules/dasSharedStack.h>
 #include <dasModules/dasEvent.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
@@ -247,8 +248,6 @@ typedef void (*das_context_log_cb)(das::Context *, const das::LineInfo *at, das:
 
 extern das_context_log_cb global_context_log_cb;
 
-das::StackAllocator &get_shared_stack();
-
 struct EsContextBase
 {
   enum
@@ -264,10 +263,10 @@ struct EsContextBase
 
 struct EsContext final : EsContextBase, das::Context
 {
-  ecs::EntityManager *mgr = (bool)g_entity_mgr ? g_entity_mgr.get() : (ecs::EntityManager *)nullptr;
+  ecs::EntityManager *mgr = nullptr;
 #if DAGOR_DBGLEVEL > 0
   int touchedByWkId = -1;
-  int touchedAtFrame = -1;
+  int64_t touchedWcTime = -1;
   // Pointing to esData->functionPtr->name.
   // Used only for errors diagnostics and quite volatile so raw pointer should be fine (don't bother with copy)
   const char *touchedByES = nullptr;
@@ -296,45 +295,32 @@ struct EsContext final : EsContextBase, das::Context
   {
     const_cast<uint32_t &>(ctxMagic) = MAGIC_HASMEM;
   } // this should not happen in production, but just in case..
-  EsContext(uint32_t stackSize) : EsContextBase(nullptr), das::Context(stackSize) {}
+  EsContext(ecs::EntityManager *mgr_, uint32_t stackSize) : EsContextBase(nullptr), das::Context(stackSize), mgr(mgr_) {}
   EsContext(const Context &ctx, uint32_t category_, bool reset_user_data, void *new_user_data = nullptr) :
     EsContextBase(reset_user_data ? new_user_data : ((EsContext &)ctx).userData), das::Context(ctx, category_)
   {
     EsContext &esCtx = (EsContext &)ctx;
     mgr = esCtx.mgr;
   }
-  virtual void to_out(const das::LineInfo *at, const char *message) override
+  virtual void to_out(const das::LineInfo *at, int level, const char *message) override
   {
     if (global_context_log_cb)
     {
-      global_context_log_cb(this, at, das::LogLevel::info, message);
+      global_context_log_cb(this, at, das::LogLevel(level), message);
       return;
     }
+    const bool err = level >= das::LogLevel::error;
+    const int logLevel = err ? LOGLEVEL_ERR : level >= das::LogLevel::warning ? LOGLEVEL_WARN : LOGLEVEL_DEBUG;
 #if DAGOR_DBGLEVEL > 0
+    if (err)
+      debug("%s", getStackWalk(at, false, false).c_str());
     if (at && at->fileInfo)
     {
-      debug("%s:%d: %s", at->fileInfo->name.c_str(), at->line, message);
+      logmessage(logLevel, "%s:%d: %s", at->fileInfo->name.c_str(), at->line, message);
       return;
     }
 #endif
-    debug("%s", message);
-  }
-  virtual void to_err(const das::LineInfo *at, const char *message) override
-  {
-    if (global_context_log_cb)
-    {
-      global_context_log_cb(this, at, das::LogLevel::error, message);
-      return;
-    }
-#if DAGOR_DBGLEVEL > 0
-    debug("%s", getStackWalk(at, false, false).c_str());
-    if (at && at->fileInfo)
-    {
-      logerr("%s:%d: %s", at->fileInfo->name.c_str(), at->line, message);
-      return;
-    }
-#endif
-    logerr("%s", message);
+    logmessage(logLevel, "%s", message);
   }
 };
 
@@ -364,12 +350,12 @@ inline EsContext &cast_es_context(das::Context &ctx)
 extern bool load_das_script(const char *fname);
 extern bool load_das_script_debugger(const char *fname);
 extern bool load_das_script_with_debugcode(const char *fname);
-inline bool load_das(const char *fname) { return load_das_script(fname); }
-inline bool load_das_debugger(const char *fname) { return load_das_script_debugger(fname); }
-inline bool load_das_with_debugcode(const char *fname) { return load_das_script_with_debugcode(fname); }
+inline bool load_das(const char *fname) { return load_das_script(fname ? fname : ""); }
+inline bool load_das_debugger(const char *fname) { return load_das_script_debugger(fname ? fname : ""); }
+inline bool load_das_with_debugcode(const char *fname) { return load_das_script_with_debugcode(fname ? fname : ""); }
 #if DAGOR_DBGLEVEL > 0
 extern bool reload_das_debug_script(const char *fname, bool debug);
-inline bool reload_das_debug(const char *fname, bool debug) { return reload_das_debug_script(fname, debug); }
+inline bool reload_das_debug(const char *fname, bool debug) { return reload_das_debug_script(fname ? fname : "", debug); }
 
 extern bool find_loaded_das_script(const eastl::function<bool(const char *, das::Context &, das::smart_ptr<das::Program>)> &cb);
 inline bool find_loaded_das(const das::TBlock<bool, const char *, das::Context &, das::smart_ptr<das::Program>> &block,
@@ -483,7 +469,7 @@ inline ecs::EntityId do_entity_fn_with_init_and_lambda(ecs::EntityId eid, const 
     argI[1] = das::cast<ecs::EntityId>::from(eid);
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       (void)context->call(simFunc, argI, 0);
     }
     else
@@ -673,21 +659,21 @@ inline typename DasTypeParamAlias<T>::cparam_alias entity_get_type_impl(ecs::Ent
 template <typename T>
 inline typename DasTypeParamAlias<T>::cparam_alias entity_get_type(ecs::EntityId eid, ecs::HashedConstString key)
 {
-  typedef typename eastl::type_select<ECS_MAYBE_VALUE(T), eastl::true_type, eastl::false_type>::type TP;
+  typedef typename eastl::conditional<ECS_MAYBE_VALUE(T), eastl::true_type, eastl::false_type>::type TP;
   return entity_get_type_impl<T>(eid, key, TP());
 }
 
 #define TYPE(type)                                                                                                                    \
-  inline void entitySetOptionalHint##type(ecs::EntityId id, const char *key, uint32_t key_hash,                                       \
+  inline bool entitySetOptionalHint##type(ecs::EntityId id, const char *key, uint32_t key_hash,                                       \
     typename DasTypeParamAlias<type>::cparam_alias to)                                                                                \
   {                                                                                                                                   \
     return g_entity_mgr->setOptional(id, ecs::HashedConstString({key, key_hash}), *(const type *)&to);                                \
   }                                                                                                                                   \
-  inline void entitySetOptional##type(ecs::EntityId id, const char *s, typename DasTypeParamAlias<type>::cparam_alias to)             \
+  inline bool entitySetOptional##type(ecs::EntityId id, const char *s, typename DasTypeParamAlias<type>::cparam_alias to)             \
   {                                                                                                                                   \
     return entitySetOptionalHint##type(id, s, ECS_HASH_SLOW(s ? s : "").hash, to);                                                    \
   }                                                                                                                                   \
-  inline void entitySetFastOptional##type(ecs::EntityId id, const ecs::FastGetInfo name,                                              \
+  inline bool entitySetFastOptional##type(ecs::EntityId id, const ecs::FastGetInfo name,                                              \
     typename DasTypeParamAlias<type>::cparam_alias to)                                                                                \
   {                                                                                                                                   \
     return g_entity_mgr->setOptionalFast(id, name, *(const type *)&to);                                                               \
@@ -839,7 +825,6 @@ struct EcsToDas<const DasType *, const ecs::SharedComponent<EcsType> *>
 };
 
 inline const char *get_immutable_string(const ecs::string &v) { return v.c_str(); }
-inline const char *get_default_immutable_string(const ecs::string *v, const char *const def) { return v ? v->c_str() : def; }
 } // namespace das
 
 ECS_DECLARE_TYPE_ALIAS(das::float3x4, "TMatrix");

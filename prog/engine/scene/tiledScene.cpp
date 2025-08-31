@@ -298,6 +298,14 @@ void scene::TiledScene::unsetFlags(node_index node, uint16_t flags)
   });
 }
 
+void scene::TiledScene::unsetFlagsUnordered(dag::ConstSpan<node_index> node_indices, uint16_t flags)
+{
+  G_ASSERT_RETURN(isInWritingThread(), );
+  WriteLockRAII lock(*this);
+  for (node_index node_idx : node_indices)
+    unsetFlagsImm(node_idx, flags);
+}
+
 void scene::TiledScene::setPoolBBox(pool_index pool, bbox3f_cref box)
 {
   std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
@@ -480,7 +488,6 @@ __forceinline void scene::TiledScene::scheduleTileMaintenance(TileData &tile, ui
     setKdTreeCount(tbox, 0);
     mflags &= ~tile.MFLG_IVALIDATE_KDTREE;
   }
-  copyTileDataToCull(tile);
   if (!tile.isDead())
   {
     if (!tile.maintenanceFlags)
@@ -499,6 +506,7 @@ __forceinline void scene::TiledScene::scheduleTileMaintenance(TileData &tile, ui
     tile.maintenanceFlags = 0;
     curTilesCountForMaint--;
   }
+  copyTileDataToCull(tile);
 }
 
 __forceinline void scene::TiledScene::initTile(TileData &tdata)
@@ -529,6 +537,7 @@ __forceinline void scene::TiledScene::copyTileDataToCull(const TileData &tdata)
     tcull.kdTreeLeftNode = tdata.kdTreeLeftNode;
   else
     tcull.nodesCount = (uint32_t)tdata.nodes.size();
+  tcull.maintenanceFlags = tdata.maintenanceFlags;
 #if !KD_LEAVES_ONLY
   tcull.kdTreeRightNode = tdata.kdTreeRightNode;
 #endif
@@ -1115,10 +1124,9 @@ bool scene::TiledScene::buildKdTree(TileData &tdata)
   }
 
   // we sort it here, because for dynamic scenes min_kdtree_nodes_count can be very big
-  stlsort::sort(
-    tdata.nodes.begin(), tdata.nodes.end(), [&](node_index a, node_index b) -> auto{
-      return getNodeIndexInternal(a) < getNodeIndexInternal(b);
-    }); // sort nodes for cache locality, when then will be checking visibility.
+  // sort nodes for cache locality, when then will be checking visibility.
+  stlsort::sort(tdata.nodes.begin(), tdata.nodes.end(),
+    [&](node_index a, node_index b) -> auto { return getNodeIndexInternal(a) < getNodeIndexInternal(b); });
 
 
   dag::Vector<bbox3f, framemem_allocator> boxes;
@@ -1216,11 +1224,9 @@ bool scene::TiledScene::buildKdTree(TileData &tdata)
   {
     auto &kdNode = kdNodes[i];
 
-    stlsort::sort(
-      tdata.nodes.begin() + kdNode.getStart(),
-      tdata.nodes.begin() + kdNode.getStart() + kdNode.getCount(), [&](node_index a, node_index b) -> auto{
-        return getNodeIndexInternal(a) < getNodeIndexInternal(b);
-      }); // sort nodes for cache locality, when then will be checking visibility.
+    // sort nodes for cache locality, when then will be checking visibility.
+    stlsort::sort(tdata.nodes.begin() + kdNode.getStart(), tdata.nodes.begin() + kdNode.getStart() + kdNode.getCount(),
+      [&](node_index a, node_index b) -> auto { return getNodeIndexInternal(a) < getNodeIndexInternal(b); });
     // fixme: if !KD_LEAVES_ONLY, this is very unoptimal, we'd better calc recursive
     vec4f bmax_count = boxes[indices[kdNode.getStart()]].bmax;
     uint16_t flags = 0;
@@ -1399,6 +1405,7 @@ bool scene::TiledScene::doMaintenance(int64_t reft, unsigned max_time_to_spend_u
           setTileFlags(tbox, tileFlags);
 
           tdata.maintenanceFlags &= ~tdata.MFLG_RECALC_FLAGS;
+          copyTileDataToCull(tdata);
         }
       }))
     return false;

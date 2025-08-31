@@ -1,0 +1,279 @@
+include "normaldetail.dshl"
+
+texture character_micro_details;
+
+int need_character_microdetails_texture_check = 0;
+interval need_character_microdetails_texture_check: no < 1, yes; // Should be assumed per project
+
+// Hacky way to have different default uv scales per project
+define_macro_if_not_defined SETUP_CHARACTER_MICRODETAIL_UV_SCALE()
+  static float micro_detail_layer_uv_scale = 32.371 no_warnings;
+endmacro
+
+define_macro_if_not_defined SETUP_CHARACTER_TWO_MICRODETAILS_UV_SCALE()
+  static float micro_detail_layer1_uv_scale = 32.371 no_warnings;
+  static float micro_detail_layer2_uv_scale = 32.371 no_warnings;
+endmacro
+
+macro SETUP_CHARACTER_MICRODETAIL_IMPL(extended_params)
+  static int micro_detail_layer = -1 no_warnings;
+  SETUP_CHARACTER_MICRODETAIL_UV_SCALE()
+  static float micro_detail_layer_v_scale = 1 no_warnings;
+  static int micro_detail_layer_swap_uv = 0 no_warnings;
+  // micro_detail_layer_intensity should be in interval [0.0..1.0]. Value greater then 1.0 may work, but may cause glitches too.
+  static float micro_detail_layer_intensity = 1 no_warnings;
+
+  if (extended_params) // So that we don't change the material param count in simple_aces.dshl
+  {
+    static float micro_detail_layer_smooth_intensity = 1 no_warnings;
+  }
+endmacro
+
+macro SETUP_CHARACTER_MICRODETAIL()
+  SETUP_CHARACTER_MICRODETAIL_IMPL(true)
+endmacro
+
+macro SETUP_CHARACTER_TWO_MICRODETAILS()
+  SETUP_CHARACTER_TWO_MICRODETAILS_UV_SCALE()
+  static int micro_detail_layer1 = -1;
+  static float micro_detail_layer1_v_scale = 1;
+  static int micro_detail_layer1_swap_uv = 0;
+  // micro_detail_layer1_intensity should be in interval [0.0..1.0]. Value greater then 1.0 may work, but may cause glitches too.
+  static float micro_detail_layer1_intensity = 1;
+  static float micro_detail_layer1_smooth_intensity = 1;
+
+  static int micro_detail_layer2 = -1;
+  static float micro_detail_layer2_v_scale = 1;
+  static int micro_detail_layer2_swap_uv = 0;
+  // micro_detail_layer2_intensity should be in interval [0.0..1.0]. Value greater then 1.0 may work, but may cause glitches too.
+  static float micro_detail_layer2_intensity = 1;
+  static float micro_detail_layer2_smooth_intensity = 1;
+endmacro
+
+
+macro INIT_USE_CHARACTER_MICRODETAIL_IMPL(has_sampler)
+  if (has_sampler)
+  {
+    (ps) { character_micro_details@smpArray = character_micro_details; }
+  }
+  else
+  {
+    (ps) { character_micro_details@texArray = character_micro_details; }
+  }
+endmacro
+
+macro INIT_USE_CHARACTER_MICRODETAIL()
+  INIT_USE_CHARACTER_MICRODETAIL_IMPL(true)
+endmacro
+
+macro USE_CHARACTER_MICRODETAIL_COMMON(has_sampler)
+  bool texture_exists = need_character_microdetails_texture_check == no || character_micro_details != NULL;
+
+  USE_NORMAL_DETAIL()
+  hlsl(ps) {
+    ##if !has_sampler
+      #define character_micro_details_samplerstate land_micro_details_samplerstate // In some shaders we run out of 16 samplers, so have to reuse
+    ##endif
+    half4 sample_character_micro_detail(float2 uv, int arrayNo, bool swapUv)
+    {
+      FLATTEN
+      if (swapUv)
+        uv = uv.yx;
+      return (half4)tex3D(character_micro_details, float3(uv, arrayNo));
+    }
+
+    void apply_character_micro_detail_intensity(half4 microDetail, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness, float2 combined_intensity)
+    {
+      // microDetail:
+      // r - diffuse multiplier
+      // g - packed normal x
+      // b - reflectance
+      // a - packed normal y
+      // all components should be in interval [0.0..1.0]
+
+      ##if texture_exists
+      half intensity = combined_intensity.x;
+      half smoothness_intensity = combined_intensity.y;
+
+      // Update microDetail vector
+      // If micro_detail_layer_intensity > 1.0, this line may move out microDetail components from [0.0..1.0] interval. It will cause glitches.
+      // So micro_detail_layer_intensity should be <= 1.0
+      // NOTE: if in future micro_detail_layer_intensity may hav value greater then 1.0, we should add saturate(...) in the line below.
+      half smoothnessDetail = (microDetail.r - 0.5) * intensity * smoothness_intensity + 0.5;
+      microDetail = (microDetail - 0.5) * intensity + 0.5;
+
+      microDetail.ag = lerp(microDetail.ag, 0.5, saturate(smoothness*5-2));//remove normal details on very smooth surface
+      detailNormal = RNM_ndetail_normalized(detailNormal, unpack_ag_normal(microDetail));
+
+      diffuseColor.rgb *= (half)pow2(microDetail.r * half(2.0));
+      reflectance *= microDetail.b * half(2.0);
+      smoothness = saturate(smoothness * smoothnessDetail * half(2.0));
+      ##endif
+    }
+
+    #include <microShadow.hlsl>
+    void apply_character_micro_detail_ao_internal(half4 microDetail, inout half3 diffuseColor, inout half3 detailNormal,
+                                                  inout half reflectance, inout half smoothness, float2 combined_intensity, inout half ao)
+    {
+      apply_character_micro_detail_intensity(microDetail, diffuseColor, detailNormal, reflectance, smoothness, combined_intensity);
+      ao = ao * saturate(microDetail.b * half(2.0));
+    }
+  }
+endmacro
+
+macro USE_CHARACTER_MICRODETAIL_IMPL(has_sampler, extended_params)
+  (ps) {
+    character_micro_detail_scale@f4 = (micro_detail_layer_uv_scale, micro_detail_layer_uv_scale*micro_detail_layer_v_scale, micro_detail_layer, micro_detail_layer_swap_uv);
+    if (extended_params)
+    {
+      character_micro_detail_intensity@f2 = (micro_detail_layer_intensity, micro_detail_layer_smooth_intensity);
+    }
+    else
+    {
+      character_micro_detail_intensity@f2 = (micro_detail_layer_intensity, 1.0);
+    }
+  }
+
+  USE_CHARACTER_MICRODETAIL_COMMON(has_sampler)
+  hlsl(ps) {
+    #define character_micro_detail_layer (get_character_micro_detail_scale().z)
+
+    half4 sample_character_micro_detail(float2 uv, int arrayNo)
+    {
+      FLATTEN
+      if (get_character_micro_detail_scale().w > 0)
+        uv = uv.yx;
+      uint width, height, arraySize;
+      character_micro_details.GetDimensions(width, height, arraySize);
+      ##assert(arrayNo < arraySize, "Invalid array index %.f in sample_character_micro_detail (%.f available)", arrayNo, arraySize);
+      return (half4)tex3D(character_micro_details, float3(uv, arrayNo));
+    }
+
+    half4 get_character_micro_detail(float2 uv, half microDetailLayer)
+    {
+      microDetailLayer = floor(microDetailLayer*255+0.5)/36;
+      half power = frac(microDetailLayer);
+      half arrayNo = floor(microDetailLayer+0.5);
+      if (power>0)
+        arrayNo = 0;
+      //float len = max(ddx(arrayNo), ddy(arrayNo));
+      half4 microDetailN = sample_character_micro_detail(uv, arrayNo);
+      FLATTEN
+      if (microDetailLayer == 255)//special case no microdetail
+        microDetailN = 0.5;
+      return microDetailN;
+    }
+
+    void apply_character_micro_detail(half4 microDetail, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness)
+    {
+      apply_character_micro_detail_intensity(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity());
+    }
+
+    void apply_character_micro_detail_ao(float2 uv, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      BRANCH
+      if (character_micro_detail_layer >= 0)
+      {
+        half4 microDetail = sample_character_micro_detail(uv.xy * get_character_micro_detail_scale().xy, character_micro_detail_layer);
+        apply_character_micro_detail_ao_internal(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity(), ao);
+      }
+    }
+
+    void apply_character_micro_detail_ao_perturb(float2 uv, inout half3 diffuseColor, inout half reflectance, inout half smoothness, inout half ao, out half3 worldNormal, half3 VN, float3 P2E)
+    {
+      BRANCH
+      if (character_micro_detail_layer >= 0)
+      {
+        half4 microDetail = sample_character_micro_detail(uv.xy * get_character_micro_detail_scale().xy, character_micro_detail_layer);
+        half intensity = get_character_micro_detail_intensity().x;
+        half smoothness_intensity = get_character_micro_detail_intensity().y;
+        half smoothnessDetail = (microDetail.r - 0.5) * intensity * smoothness_intensity + 0.5;
+
+        microDetail = (microDetail - 0.5) * intensity + 0.5;
+        microDetail.ag = lerp(microDetail.ag, 0.5, saturate(smoothness*5-2));//remove normal details on very smooth surface
+
+        diffuseColor.rgb *= (half)pow2(microDetail.r * half(2.0));
+        reflectance *= microDetail.b * half(2.0);
+        smoothness = saturate(smoothness * smoothnessDetail * half(2.0));
+        worldNormal = perturb_normal( unpack_ag_normal(microDetail), VN, P2E, uv );
+      } else
+        worldNormal = VN;
+    }
+  }
+endmacro
+
+macro USE_CHARACTER_MICRODETAIL()
+  USE_CHARACTER_MICRODETAIL_IMPL(true, true)
+endmacro
+
+macro USE_CHARACTER_TWO_MICRODETAILS_IMPL(has_sampler)
+  (ps) {
+    character_micro_detail_scale1@f4 = (micro_detail_layer1_uv_scale, micro_detail_layer1_uv_scale*micro_detail_layer1_v_scale, micro_detail_layer1, micro_detail_layer1_swap_uv);
+    character_micro_detail_scale2@f4 = (micro_detail_layer2_uv_scale, micro_detail_layer2_uv_scale*micro_detail_layer2_v_scale, micro_detail_layer2, micro_detail_layer2_swap_uv);
+    character_micro_detail_intensity@f4 = (micro_detail_layer1_intensity, micro_detail_layer2_intensity, micro_detail_layer1_smooth_intensity, micro_detail_layer2_smooth_intensity);
+  }
+
+  USE_CHARACTER_MICRODETAIL_COMMON(has_sampler)
+  hlsl(ps) {
+    #define character_micro_detail_layer1 (get_character_micro_detail_scale1().z)
+    #define character_micro_detail_layer2 (get_character_micro_detail_scale2().z)
+    half4 sample_character_micro_detail1(float2 uv, int arrayNo)
+    {
+      FLATTEN
+      if (get_character_micro_detail_scale1().w > 0)
+        uv = uv.yx;
+      return (half4)tex3D(character_micro_details, float3(uv, arrayNo));
+    }
+
+    half4 sample_character_micro_detail2(float2 uv, int arrayNo)
+    {
+      FLATTEN
+      if (get_character_micro_detail_scale2().w > 0)
+        uv = uv.yx;
+      return (half4)tex3D(character_micro_details, float3(uv, arrayNo));
+    }
+
+    void apply_character_micro_detail1(half4 microDetail, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness)
+    {
+      apply_character_micro_detail_intensity(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity().xz);
+    }
+
+    void apply_character_micro_detail2(half4 microDetail, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness)
+    {
+      apply_character_micro_detail_intensity(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity().yw);
+    }
+
+    void apply_character_micro_detail_ao1(float2 uv, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      BRANCH
+      if (character_micro_detail_layer1 >= 0)
+      {
+        half4 microDetail = sample_character_micro_detail1(uv.xy * get_character_micro_detail_scale1().xy, character_micro_detail_layer1);
+        apply_character_micro_detail_ao_internal(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity().xz, ao);
+      }
+    }
+
+    void apply_character_micro_detail_ao2(float2 uv, inout half3 diffuseColor, inout half3 detailNormal, inout half reflectance, inout half smoothness, inout half ao)
+    {
+      BRANCH
+      if (character_micro_detail_layer2 >= 0)
+      {
+        half4 microDetail = sample_character_micro_detail2(uv.xy * get_character_micro_detail_scale2().xy, character_micro_detail_layer2);
+        apply_character_micro_detail_ao_internal(microDetail, diffuseColor, detailNormal, reflectance, smoothness, get_character_micro_detail_intensity().yw, ao);
+      }
+    }
+  }
+endmacro
+
+macro USE_CHARACTER_TWO_MICRODETAILS()
+  USE_CHARACTER_TWO_MICRODETAILS_IMPL(true)
+endmacro
+
+macro NO_SIMPLE_MICRODETAILED()
+hlsl {
+  #define apply_micro_detail(uv, diffuseColor, detailNormal, smoothness)
+  #define apply_micro_detail_perturb(uv, diffuseColor, smoothness, worldNormal, VN, P2E)
+  #define apply_character_micro_detail_ao(uv, diffuseColor, detailNormal, reflectance, smoothness, ao)
+  #define apply_character_micro_detail_ao_perturb(uv, diffuseColor, reflectance, smoothness, ao, worldNormal, VN, P2E)
+}
+endmacro

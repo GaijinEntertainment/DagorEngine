@@ -1,7 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gatherVar.h"
+#include "shCompContext.h"
+#include "hwSemantic.h"
+#include "shaderSemantic.h"
 #include "semUtils.h"
+#include "shErrorReporting.h"
 #include "globVarSem.h"
 #include "globVar.h"
 #include "globalConfig.h"
@@ -24,115 +28,53 @@
 
 using namespace ShaderParser;
 
-extern SCFastNameMap glob_string_table;
+
+static void validate_local_debug_mode_assume(const auto &stat, Parser &parser)
+{
+  if (strcmp(stat.interval->text, "debug_mode_enabled") == 0)
+  {
+    report_warning(parser, *stat.interval,
+      "Assuming the debug_mode_enabled does not enable shader asserts and is not advised. To enable debug mode on a per-file basis, "
+      "put the assume at global scope.");
+  }
+}
 
 /*********************************
  *
  * class GatherVarShaderEvalCB
  *
  *********************************/
-GatherVarShaderEvalCB::GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const ShHardwareOptions &_opt, Terminal *shname,
-  const char *hlsl_vs, const char *hlsl_hs, const char *hlsl_ds, const char *hlsl_gs, const char *hlsl_ps, const char *hlsl_cs,
-  const char *hlsl_ms, const char *hlsl_as, bool &out_shaderDebugModeEnabled) :
-  parser(_parser),
-  hasHWFlag(false),
-  hwStack(tmpmem),
-  hwCount(0),
-  opt(_opt),
-  dynStack(tmpmem),
-  dynCount(0),
-  hasDynFlag(false),
-  shname_token(shname)
-{
-  varTypes.setIntervalList(&intervals);
-  dynVarTypes.setIntervalList(&intervals);
-  allRefStaticVars.setIntervalList(&intervals);
-
-  hlslVs = hlsl_vs;
-  hlslPs = hlsl_ps;
-  hlslHs = hlsl_hs;
-  hlslDs = hlsl_ds;
-  hlslGs = hlsl_gs;
-  hlslCs = hlsl_cs;
-  hlslMs = hlsl_ms;
-  hlslAs = hlsl_as;
-
-  shaderDebugModeEnabled = shc::config().isDebugModeEnabled;
-  if (!shaderDebugModeEnabled)
-  {
-    float value = 0.0f;
-    if (shc::getAssumedValue("debug_mode_enabled", shname_token->text, true, value))
-      shaderDebugModeEnabled = (value > 0.0f);
-  }
-  else
-  {
-    static DataBlock static_empty_blk;
-    DataBlock *blk = shc::getAssumedVarsBlock();
-    if (!blk)
-      shc::setAssumedVarsBlock(blk = &static_empty_blk);
-    blk->addBlock(shname_token->text)->setReal("debug_mode_enabled", 1.0f);
-  }
-
-  out_shaderDebugModeEnabled = shaderDebugModeEnabled;
-  if (!shaderDebugModeEnabled)
-  {
-    const char *pattern_to_remove = "#line 1 \"precompiled\"\n#undef _FILE_\n#define _FILE_ ";
-    const char *stubhdr_to_insert = "#line 1 \"precompiled\"\n#define _FILE_ -1\n";
-    int stubhdr_to_insert_sz = (int)strlen(stubhdr_to_insert);
-    hlslVs.replaceAll(pattern_to_remove, "//");
-    hlslPs.replaceAll(pattern_to_remove, "//");
-    hlslHs.replaceAll(pattern_to_remove, "//");
-    hlslDs.replaceAll(pattern_to_remove, "//");
-    hlslGs.replaceAll(pattern_to_remove, "//");
-    hlslCs.replaceAll(pattern_to_remove, "//");
-    hlslMs.replaceAll(pattern_to_remove, "//");
-    hlslAs.replaceAll(pattern_to_remove, "//");
-    hlslVs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslPs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslHs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslDs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslGs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslCs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslMs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-    hlslAs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
-  }
-}
+GatherVarShaderEvalCB::GatherVarShaderEvalCB(shc::ShaderContext &ctx) :
+  ctx{ctx}, types{ctx.typeTables()}, parser{ctx.tgtCtx().sourceParseState().parser}, dynStack(tmpmem), dynCount(0), hasDynFlag(false)
+{}
 
 void GatherVarShaderEvalCB::eval_channel_decl(channel_decl &s, int str_id)
 {
-  // channels must be independed by hardware
-  if (hwCount > 0)
-  {
-    error("cannot declare hardware-depended channels (check 'if' condition(s) for hw-depended flags)!", s.type->type);
-  }
-
   // channels must be independed by dynamic variables
   if (dynCount > 0)
-  {
-    error("cannot declare dynamic-depended channels (check 'if' condition(s) for dynamic variants)!", s.type->type);
-  }
+    report_error(parser, s.type->type, "cannot declare dynamic-depended channels (check 'if' condition(s) for dynamic variants)!");
 }
 
 // clang-format off
 void GatherVarShaderEvalCB::eval_assume_stat(assume_stat &s)
 {
-  add_assume_to_blk(shname_token->text, intervals, s, parser);
+  validate_local_debug_mode_assume(s, parser);
+  add_shader_assume(s, parser, ctx);
+}
+
+void GatherVarShaderEvalCB::eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &s)
+{
+  validate_local_debug_mode_assume(s, parser);
+  add_shader_assume_if_not_assumed(s, parser, ctx);
 }
 // clang-format on
 
 void GatherVarShaderEvalCB::eval_bool_decl(bool_decl &decl)
 {
-  BoolVar::add(true, decl, parser, true);
+  ctx.localBoolVars().add(decl, parser, true);
 
   String hlsl_bool_var(0, "##bool %s\n", decl.name->text);
-  hlslVs.append(hlsl_bool_var);
-  hlslHs.append(hlsl_bool_var);
-  hlslDs.append(hlsl_bool_var);
-  hlslGs.append(hlsl_bool_var);
-  hlslPs.append(hlsl_bool_var);
-  hlslCs.append(hlsl_bool_var);
-  hlslMs.append(hlsl_bool_var);
-  hlslAs.append(hlsl_bool_var);
+  ctx.localHlslSrc().forEach([&](String &src) { src.append(hlsl_bool_var); });
 }
 
 void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
@@ -145,34 +87,14 @@ void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
   decl.name = &ident;
   decl.name->text = name;
   decl.expr = &expr;
-  BoolVar::add(true, decl, parser, true);
-}
-
-int GatherVarShaderEvalCB::add_message(const char *message, bool file_name)
-{
-  if (!shaderDebugModeEnabled)
-    return -1;
-
-  int id = messages.addNameId(message);
-  if (!file_name)
-    nonFilenameMessages.set(id, true);
-  return id;
+  ctx.localBoolVars().add(decl, parser, true);
 }
 
 void GatherVarShaderEvalCB::eval_static(static_var_decl &s)
 {
-  // variables must be independed by hardware
-  if (hwCount > 0)
-  {
-    error("cannot declare hardware-depended variables (check 'if' condition for hw-depended flags)!", s.name);
-    return;
-  }
-
   // variables must be independed by dynamic variants
   if (dynCount > 0)
-  {
-    error("cannot declare dynamic-depended variables (check 'if' condition(s) for dynamic variants)!", s.name);
-  }
+    report_error(parser, s.name, "cannot declare dynamic-depended variables (check 'if' condition(s) for dynamic variants)!");
 
   // register static variable name for future use
   if (s.mode && s.mode->mode->num == SHADER_TOKENS::SHTOK_dynamic)
@@ -186,36 +108,34 @@ void GatherVarShaderEvalCB::eval_interval_decl(interval &interv)
 {
   // intervals must be independed by dynamic variants
   if (dynCount > 0)
-  {
-    error("cannot declare dynamic-depended intervals (check 'if' condition(s) for dynamic variants)!", interv.name);
-  }
+    report_error(parser, interv.name, "cannot declare dynamic-depended intervals (check 'if' condition(s) for dynamic variants)!");
 
   // check for global
   ShaderVariant::VarType type = ShaderVariant::VARTYPE_INTERVAL;
 
-  if (ShaderGlobal::get_var_internal_index(VarMap::getVarId(interv.name->text)) != -1)
+  if (ctx.tgtCtx().globVars().getVarInternalIndex(ctx.tgtCtx().varNameMap().getVarId(interv.name->text)) != -1)
   {
     type = ShaderVariant::VARTYPE_GL_OVERRIDE_INTERVAL;
   }
 
-  add_interval(intervals, interv, type, parser);
+  add_interval(ctx.intervals(), interv, type, parser, ctx.tgtCtx());
 }
 
 ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal *terminal, bool_value *e)
 {
   // try to find registered interval
-  int intervalName_id = IntervalValue::getIntervalNameId(intervalName);
-  ShaderVariant::ExtType intervalIndex = intervals.getIntervalIndex(intervalName_id);
-  const Interval *interv = intervals.getInterval(intervalIndex);
+  int intervalName_id = ctx.tgtCtx().intervalNameMap().getNameId(intervalName);
+  ShaderVariant::ExtType intervalIndex = ctx.intervals().getIntervalIndex(intervalName_id);
+  const Interval *interv = ctx.intervals().getInterval(intervalIndex);
 
   if (intervalIndex == INTERVAL_NOT_INIT)
   {
-    intervalIndex = ShaderGlobal::getIntervalList().getIntervalIndex(intervalName_id);
-    interv = ShaderGlobal::getIntervalList().getInterval(intervalIndex);
+    intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(intervalName_id);
+    interv = ctx.tgtCtx().globVars().getIntervalList().getInterval(intervalIndex);
 
     if (intervalIndex == INTERVAL_NOT_INIT)
     {
-      error(String(256, "interval %s not found!", intervalName), terminal);
+      report_error(parser, terminal, "interval %s not found!", intervalName);
       return ShVarBool(false, true);
     }
   }
@@ -223,152 +143,104 @@ ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal 
   bool is_static = staticVars.getNameId(intervalName) != -1;
   bool is_dynamic = dynamicVars.getNameId(intervalName) != -1;
 
-  if (shc::getAssumedVarsBlock())
-  {
-    bool is_global = !is_static && !is_dynamic;
-    float value = 0;
+  bool is_global = !is_static && !is_dynamic;
 
-    if (shc::getAssumedValue(intervalName, shname_token->text, is_global, value))
+  if (auto valueMaybe = ctx.assumes().getAssumedVal(intervalName, is_global))
+  {
+    ShaderVariant::ValueType valtype = interv->normalizeValue(*valueMaybe);
+
+    if (!e)
+      return ShVarBool(true, false);
+
+    Interval::BooleanExpr expr = Interval::EXPR_NOTINIT;
+    switch (e->cmpop->op->num)
     {
-      ShaderVariant::ValueType valtype = interv->normalizeValue(value);
-      // debug ( "use assume %.3f -> %d", value, valtype );
-
-      if (!e)
-        return ShVarBool(true, false);
-
-      Interval::BooleanExpr expr = Interval::EXPR_NOTINIT;
-      switch (e->cmpop->op->num)
-      {
-        case SHADER_TOKENS::SHTOK_eq: expr = Interval::EXPR_EQ; break;
-        case SHADER_TOKENS::SHTOK_greater: expr = Interval::EXPR_GREATER; break;
-        case SHADER_TOKENS::SHTOK_greatereq: expr = Interval::EXPR_GREATER_EQ; break;
-        case SHADER_TOKENS::SHTOK_smaller: expr = Interval::EXPR_SMALLER; break;
-        case SHADER_TOKENS::SHTOK_smallereq: expr = Interval::EXPR_SMALLER_EQ; break;
-        case SHADER_TOKENS::SHTOK_noteq: expr = Interval::EXPR_NOT_EQ; break;
-        default: G_ASSERT(0);
-      }
-
-      assumedIntervals.emplace_back(intervalName, (uint8_t)value);
-
-      String error_msg;
-      bool bool_result = interv->checkExpression(valtype, expr, e->interval_value->text, error_msg);
-      if (!error_msg.empty())
-        error(error_msg, terminal);
-
-      return ShVarBool(bool_result, true);
+      case SHADER_TOKENS::SHTOK_eq: expr = Interval::EXPR_EQ; break;
+      case SHADER_TOKENS::SHTOK_greater: expr = Interval::EXPR_GREATER; break;
+      case SHADER_TOKENS::SHTOK_greatereq: expr = Interval::EXPR_GREATER_EQ; break;
+      case SHADER_TOKENS::SHTOK_smaller: expr = Interval::EXPR_SMALLER; break;
+      case SHADER_TOKENS::SHTOK_smallereq: expr = Interval::EXPR_SMALLER_EQ; break;
+      case SHADER_TOKENS::SHTOK_noteq: expr = Interval::EXPR_NOT_EQ; break;
+      default: G_ASSERT(0);
     }
+
+    auto &dst = ctx.compiledShader().assumedIntervals.emplace_back();
+    dst.name = bindump::string{intervalName};
+    dst.value = uint8_t(*valueMaybe);
+
+    String error_msg;
+    bool bool_result = interv->checkExpression(valtype, expr, e->interval_value->text, error_msg, ctx.tgtCtx());
+    if (!error_msg.empty())
+      report_error(parser, terminal, error_msg);
+
+    return ShVarBool(bool_result, true);
   }
 
-  if (!is_static && !is_dynamic && ShaderGlobal::get_var_internal_index(VarMap::getVarId(intervalName)) == -1)
-  {
-    error(String(0, "Non-assumed interval '%s' doesn't have a corresponding var", intervalName), terminal);
-  }
+  if (!is_static && !is_dynamic && ctx.tgtCtx().globVars().getVarInternalIndex(ctx.tgtCtx().varNameMap().getVarId(intervalName)) == -1)
+    report_error(parser, terminal, "Non-assumed interval '%s' doesn't have a corresponding var", intervalName);
 
   // ok, found, adding variant flag
   ShaderVariant::TypeTable *lst = NULL;
   if (interv->getVarType() != ShaderVariant::VARTYPE_INTERVAL || !is_static)
   {
-    lst = &dynVarTypes;
+    lst = &types.allDynamicTypes;
     hasDynFlag = true;
   }
   else
   {
-    lst = &varTypes;
+    lst = &types.allStaticTypes;
   }
   lst->addType(interv->getVarType(), intervalIndex, true);
   return ShVarBool(true, false);
 }
 
-bool shc::getAssumedValue(const char *varname, const char *shader, bool global, float &out_value)
-{
-  DataBlock *ablk = getAssumedVarsBlock();
-  if (!ablk)
-    return false;
-
-  if (shader)
-  {
-    // debug ( "get local assumes for shader %s (var=%s)", shader, varname );
-    if (!global)
-      ablk = ablk->getBlockByName(shader);
-    else
-    {
-      DataBlock *b = ablk->getBlockByName(shader);
-      if (b && b->findParam(varname) != -1)
-        ablk = b;
-    }
-  }
-  else
-    ; // debug ( "get global assumes (var=%s)", varname );
-
-  if (!ablk)
-    return false;
-
-  int idx = ablk->findParam(varname);
-
-  if (idx == -1)
-    return false;
-
-  switch (ablk->getParamType(idx))
-  {
-    case DataBlock::TYPE_INT: out_value = (real)ablk->getInt(idx); return true;
-    case DataBlock::TYPE_REAL: out_value = ablk->getReal(idx); return true;
-    default: sh_debug(SHLOG_ERROR, "Assume variables: type in \"%s\" is neither \"real\" nor \"int\"", varname);
-  }
-  return false;
-}
-
 ShVarBool GatherVarShaderEvalCB::addTextureInterval(const char *textureName, Terminal *terminal, bool_value &e)
 {
-  // debug("texture found '%s' (id=%d)", textureName, VarMap::getVarId(textureName));
   //  try to find registered interval
-  bool isGlobal = ShaderGlobal::get_var_internal_index(VarMap::getVarId(textureName)) >= 0;
+  bool isGlobal = ctx.tgtCtx().globVars().getVarInternalIndex(ctx.tgtCtx().varNameMap().getVarId(textureName)) >= 0;
   ShaderVariant::VarType type = isGlobal ? ShaderVariant::VARTYPE_GL_OVERRIDE_INTERVAL : ShaderVariant::VARTYPE_INTERVAL;
 
-  int textureName_id = IntervalValue::getIntervalNameId(textureName);
-  int intervalIndex = intervals.getIntervalIndex(textureName_id);
+  int textureName_id = ctx.tgtCtx().intervalNameMap().getNameId(textureName);
+  int intervalIndex = ctx.intervals().getIntervalIndex(textureName_id);
 
   if (intervalIndex == INTERVAL_NOT_INIT)
-    intervalIndex = ShaderGlobal::getIntervalList().getIntervalIndex(textureName_id);
+    intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(textureName_id);
 
   if (intervalIndex == INTERVAL_NOT_INIT)
   {
     // interval not found - register new fake-interval
-    // debug("register new interval with name '%s'", (char*)textureName);
+    int textureIntervalNameId = ctx.tgtCtx().intervalNameMap().addNameId(textureName);
+    Interval newInterval(textureIntervalNameId, type);
+    newInterval.addValue(ctx.tgtCtx().intervalNameMap().addNameId("NULL"), 1.0f);
+    newInterval.addValue(ctx.tgtCtx().intervalNameMap().addNameId("EXISTS"), IntervalValue::VALUE_INFINITY);
 
-    Interval newInterval(textureName, type);
-    newInterval.addValue("NULL", 1.0f);
-    newInterval.addValue("EXISTS", IntervalValue::VALUE_INFINITY);
-
-    if (!intervals.addInterval(newInterval))
+    if (!ctx.intervals().addInterval(newInterval))
     {
-      error("interval already exists and their type diffirent from new interval!", terminal);
+      report_error(parser, terminal, "interval already exists and their type diffirent from new interval!");
       return ShVarBool(false, false);
     }
-    intervalIndex = intervals.getIntervalIndex(newInterval.getNameId());
+    intervalIndex = ctx.intervals().getIntervalIndex(newInterval.getNameId());
   }
 
-  if (shc::getAssumedVarsBlock())
+  if (auto valueMaybe = ctx.assumes().getAssumedVal(textureName, isGlobal))
   {
-    float value = 0;
-    if (shc::getAssumedValue(textureName, shname_token->text, isGlobal, value))
+    float value = *valueMaybe;
+    switch (e.cmpop->op->num)
     {
-      switch (e.cmpop->op->num)
-      {
-        case SHADER_TOKENS::SHTOK_eq: return ShVarBool(value < 1, true);
-        case SHADER_TOKENS::SHTOK_noteq: return ShVarBool(value >= 1, true);
-      }
-      error(String(128, "bad cmp op for texture interval: %d", e.cmpop->op->num), terminal);
+      case SHADER_TOKENS::SHTOK_eq: return ShVarBool(value < 1, true);
+      case SHADER_TOKENS::SHTOK_noteq: return ShVarBool(value >= 1, true);
     }
+    report_error(parser, terminal, "bad cmp op for texture interval: %d", e.cmpop->op->num);
   }
 
   bool is_static = staticVars.getNameId(textureName) != -1;
 
   if (is_static)
-    varTypes.addType(type, intervalIndex, true);
+    types.allStaticTypes.addType(type, intervalIndex, true);
   else
   {
     hasDynFlag = true;
-    dynVarTypes.addType(type, intervalIndex, true);
+    types.allDynamicTypes.addType(type, intervalIndex, true);
   }
   return ShVarBool(true, false);
 }
@@ -403,19 +275,19 @@ void GatherVarShaderEvalCB::eval_external_block(external_state_block &state_bloc
 
 ShVarBool GatherVarShaderEvalCB::eval_expr(bool_expr &e)
 {
-  int varTypesStartIdx = varTypes.getCount();
-  int dynVarTypesStartIdx = dynVarTypes.getCount();
+  int statStartIdx = types.allStaticTypes.getCount();
+  int dynStartIdx = types.allDynamicTypes.getCount();
   ShVarBool v = ShaderParser::eval_shader_bool(e, *this);
-  for (int i = varTypesStartIdx; i < varTypes.getCount(); i++)
-    allRefStaticVars.addType(varTypes.getType(i).type, varTypes.getType(i).extType, true);
-  if (v.isConst && !v.value && varTypesStartIdx + dynVarTypesStartIdx != varTypes.getCount() + dynVarTypes.getCount())
+  for (int i = statStartIdx; i < types.allStaticTypes.getCount(); i++)
+    types.referencedTypes.addType(types.allStaticTypes.getType(i).type, types.allStaticTypes.getType(i).extType, true);
+  if (v.isConst && !v.value && statStartIdx + dynStartIdx != types.allStaticTypes.getCount() + types.allDynamicTypes.getCount())
   {
     String cond;
     ShaderParser::build_bool_expr_string(e, cond);
-    debug("reject gathered variant vars: %d;%d -> %d;%d due to const.false expr=\"%s\"", varTypes.getCount(), dynVarTypes.getCount(),
-      varTypesStartIdx, dynVarTypesStartIdx, cond);
-    varTypes.shrinkTo(varTypesStartIdx);
-    dynVarTypes.shrinkTo(dynVarTypesStartIdx);
+    debug("reject gathered variant vars: %d;%d -> %d;%d due to const.false expr=\"%s\"", types.allStaticTypes.getCount(),
+      types.allDynamicTypes.getCount(), statStartIdx, dynStartIdx, cond);
+    types.allStaticTypes.shrinkTo(statStartIdx);
+    types.allDynamicTypes.shrinkTo(dynStartIdx);
   }
   return v;
 }
@@ -423,24 +295,21 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
 {
   if (e.two_sided)
   {
-    varTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED, true);
+    types.allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED, true);
     return ShVarBool(true, false);
   }
   else if (e.real_two_sided)
   {
-    varTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED, true);
+    types.allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED, true);
     return ShVarBool(true, false);
   }
   else if (e.shader)
   {
-    ShVarBool b = ShVarBool(AssembleShaderEvalCB::compareShader(shname_token, e), true);
-    //    debug("check shader '%s' '%s': c=%d v=%d", shname_token->text, e.shader->text, b.isConst, b.value);
-    return b;
+    return ShVarBool(semantic::compare_shader(e, ctx), true);
   }
   else if (e.hw)
   {
-    // hasHWFlag = true;//was only set true on older hw
-    return ShVarBool(AssembleShaderEvalCB::compareHW(e, opt), true);
+    return ShVarBool(semantic::compare_hw_token(e, ctx.tgtCtx().compCtx()), true);
   }
   else if (e.interval_ident)
   {
@@ -452,17 +321,26 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
   }
   else if (e.bool_var)
   {
-    auto expr = BoolVar::get_expr(*e.bool_var, parser);
+    auto [expr, isGlobal, hasMultipleDeclarations] = semantic::get_bool_expr(*e.bool_var, parser, ctx, ctx.tgtCtx());
     if (expr)
-      return ShVarBool(eval_expr(*expr).value, false);
+    {
+      // Local bool var declarations at this point may depend on intervals, if there has been more than one
+      ShVarBool evalRes = eval_expr(*expr);
+      return ShVarBool(evalRes.value, evalRes.isConst && (isGlobal || !hasMultipleDeclarations));
+    }
   }
   else if (e.maybe)
   {
-    auto expr = BoolVar::maybe(*e.maybe_bool_var);
+    auto [expr, isGlobal, _] = semantic::get_bool_maybe(*e.maybe_bool_var, ctx, ctx.tgtCtx());
     if (expr)
-      return ShVarBool(eval_expr(*expr).value, false);
+    {
+      // With maybe the branch eval result may depend on intervals even if there was only one decl up to this point -- cause it may not
+      // be present in some variants.
+      ShVarBool evalRes = eval_expr(*expr);
+      return ShVarBool(evalRes.value, evalRes.isConst && isGlobal);
+    }
     else
-      return ShVarBool(true, false);
+      return ShVarBool(false, true);
   }
   else if (e.true_value)
   {
@@ -484,77 +362,15 @@ int GatherVarShaderEvalCB::eval_interval_value(const char *ival_name)
   return 0;
 }
 
-bool GatherVarShaderEvalCB::end_eval(CodeSourceBlocks &vs_blk, CodeSourceBlocks &hs_blk, CodeSourceBlocks &ds_blk,
-  CodeSourceBlocks &gs_blk, CodeSourceBlocks &ps_blk, CodeSourceBlocks &cs_blk, CodeSourceBlocks &ms_blk, CodeSourceBlocks &as_blk)
-{
-  G_ASSERT(messages.nameCount() == 0);
-  if (shaderDebugModeEnabled)
-    messages = glob_string_table;
-
-  bool pp_as_comments = shc::config().hlslSavePPAsComments && !shaderDebugModeEnabled;
-  if (!vs_blk.parseSourceCode("vs", hlslVs, *this, pp_as_comments))
-    return false;
-  if (!hs_blk.parseSourceCode("hs", hlslHs, *this, pp_as_comments))
-    return false;
-  if (!ds_blk.parseSourceCode("ds", hlslDs, *this, pp_as_comments))
-    return false;
-  if (!gs_blk.parseSourceCode("gs", hlslGs, *this, pp_as_comments))
-    return false;
-  if (!ps_blk.parseSourceCode("ps", hlslPs, *this, pp_as_comments))
-    return false;
-  if (!cs_blk.parseSourceCode("cs", hlslCs, *this, pp_as_comments))
-    return false;
-  if (!ms_blk.parseSourceCode("ms", hlslMs, *this, pp_as_comments))
-    return false;
-  if (!as_blk.parseSourceCode("as", hlslAs, *this, pp_as_comments))
-    return false;
-  return true;
-}
-
-void GatherVarShaderEvalCB::error(const char *msg, Symbol *s)
-{
-  if (s)
-  {
-    eastl::string str = msg;
-    if (!s->macro_call_stack.empty())
-      str.append("\nCall stack:\n");
-    for (auto it = s->macro_call_stack.rbegin(); it != s->macro_call_stack.rend(); ++it)
-      str.append_sprintf("  %s()\n    %s(%i)\n", it->name, parser.get_lex_parser().get_filename(it->file), it->line);
-    parser.get_lex_parser().set_error(s->file_start, s->line_start, s->col_start, str.c_str());
-  }
-  else
-    parser.get_lex_parser().set_error(msg);
-}
-
-
-void GatherVarShaderEvalCB::warning(const char *msg, Symbol *s)
-{
-  G_ASSERT(s);
-  parser.get_lex_parser().set_warning(s->file_start, s->line_start, s->col_start, msg);
-}
-
 int GatherVarShaderEvalCB::eval_if(bool_expr &e)
 {
   String cond("##if ");
   ShaderParser::build_bool_expr_string(e, cond, false);
   cond.append("\n");
-  hlslVs.append(cond);
-  hlslHs.append(cond);
-  hlslDs.append(cond);
-  hlslGs.append(cond);
-  hlslPs.append(cond);
-  hlslCs.append(cond);
-  hlslMs.append(cond);
-  hlslAs.append(cond);
+  ctx.localHlslSrc().forEach([&](String &src) { src.append(cond); });
 
   // debug("expr-----------");
   ShVarBool b = eval_expr(e);
-
-  // count hardware flag
-  hwStack.push_back(hasHWFlag);
-  if (hasHWFlag)
-    hwCount++;
-  hasHWFlag = false;
 
   // count dynamic flag
   dynStack.push_back(hasDynFlag);
@@ -568,14 +384,7 @@ int GatherVarShaderEvalCB::eval_if(bool_expr &e)
 
 void GatherVarShaderEvalCB::eval_else(bool_expr &e)
 {
-  hlslVs.append("##else\n");
-  hlslHs.append("##else\n");
-  hlslDs.append("##else\n");
-  hlslGs.append("##else\n");
-  hlslPs.append("##else\n");
-  hlslCs.append("##else\n");
-  hlslMs.append("##else\n");
-  hlslAs.append("##else\n");
+  ctx.localHlslSrc().forEach([](String &src) { src.append("##else\n"); });
 }
 
 void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
@@ -597,14 +406,10 @@ void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
     }
   }
 
-  uint32_t hlsl_types = 0;
-  addSourceCode(hlslPs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslVs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslHs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslDs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslGs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslMs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
-  addSourceCode(hlslAs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  hlsl_mask_t hlslTypes = HLSL_FLAGS_ALL & ~HLSL_FLAGS_CS;
+  ctx.localHlslSrc().forEach(hlslTypes, [&, this](String &src) {
+    addSourceCode(src, s.name[0], hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
+  });
 #endif
 }
 
@@ -614,7 +419,10 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   if (words <= 0)
     return;
   if (words > 4)
-    error("maximum immediate words is 4", s.count);
+    report_error(parser, s.count, "maximum immediate words is 4");
+
+  HlslCompilationStage stage = profile_to_hlsl_stage(s.scope->text);
+
   String hlsl;
 #if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
@@ -639,110 +447,78 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
 #else
   uint32_t slot = 8;
 #if _CROSS_TARGET_SPIRV
+  hlsl.aprintf(128, "#if SPIRV_DISALLOW_PUSH_CONSTANTS\n");
   slot = 7;
 #endif
-  hlsl.printf(128, "#define NUM_IMMEDIATE_DWORDS %u\n", words);
+  hlsl.aprintf(128, "#define NUM_IMMEDIATE_DWORDS %u\n", words);
   hlsl.aprintf(128, "cbuffer immediate_const_buffer:register(b%d){ uint", slot);
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "%s immediate_dword_%d", i != 0 ? "," : "", i);
   hlsl.aprintf(32, ";};\n");
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return immediate_dword_%d;}\n", i, i);
+#if _CROSS_TARGET_SPIRV
+  hlsl.aprintf(128, "#else\n");
+  const uint32_t MAX_IMMEDIATE_CONST_WORDS = 4;
+  hlsl.aprintf(128,
+    "struct ImmDwords { [[vk::offset(%u)]] uint data[%d]; };\n"
+    "[[vk::push_constant]] ImmDwords imm_dwords;\n",
+    (stage == HLSL_PS) ? MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t) : 0, words);
+  for (int i = 0; i < words; ++i)
+    hlsl.aprintf(32, "uint get_immediate_dword_%d() {return imm_dwords.data[%d];}\n", i, i);
+  hlsl.aprintf(128, "#endif\n");
+#endif
 #endif
 
-  uint32_t hlsl_types = 0;
-  if (strstr(s.scope->text, "ps") != 0)
-    addSourceCode(hlslPs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-  else if (strstr(s.scope->text, "vs") != 0)
+  if (!item_is_in(stage, {HLSL_VS, HLSL_PS, HLSL_CS, HLSL_MS, HLSL_AS}))
   {
-    addSourceCode(hlslVs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
+    report_error(parser, s.scope, "unknown hlsl block");
+    return;
+  }
+
+  auto &hlsls = ctx.localHlslSrc();
+
+  addSourceCode(hlsls.all[stage], s.scope, hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
+  if (stage == HLSL_VS)
+  {
     // hs, ds and gs stage also see vs sources so they need this also
-    addSourceCode(hlslGs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-    addSourceCode(hlslHs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-    addSourceCode(hlslDs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
+    addSourceCode(hlsls.fields.gs, s.scope, hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
+    addSourceCode(hlsls.fields.hs, s.scope, hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
+    addSourceCode(hlsls.fields.ds, s.scope, hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
   }
-  else if (strstr(s.scope->text, "cs") != 0)
-    addSourceCode(hlslCs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-  else if (strstr(s.scope->text, "ms") != 0)
-  {
-    addSourceCode(hlslMs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-  }
-  else if (strstr(s.scope->text, "as") != 0)
-  {
-    addSourceCode(hlslAs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
-  }
-  else
-    error("unknown hlsl block", s.scope);
 }
 
 
 void GatherVarShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
 {
-  if (!ShaderParser::validate_hardcoded_regs_in_hlsl_block(sh.text))
+  if (!semantic::validate_hardcoded_regs_in_hlsl_block(sh.text))
     return;
 
-  uint32_t hlsl_types = HLSL_ALL;
+  hlsl_mask_t hlsl_types = HLSL_FLAGS_ALL;
   if (sh.ident)
   {
-    hlsl_types = 0;
-    if (strcmp(sh.ident->text, "ps") == 0)
-      hlsl_types |= HLSL_PS;
-    else if (strcmp(sh.ident->text, "vs") == 0)
-      hlsl_types |= HLSL_VS;
-    else if (strcmp(sh.ident->text, "cs") == 0)
-      hlsl_types |= HLSL_CS;
-    else if (strcmp(sh.ident->text, "ds") == 0)
-      hlsl_types |= HLSL_DS;
-    else if (strcmp(sh.ident->text, "hs") == 0)
-      hlsl_types |= HLSL_HS;
-    else if (strcmp(sh.ident->text, "gs") == 0)
-      hlsl_types |= HLSL_GS;
-    else if (strcmp(sh.ident->text, "ms") == 0)
-      hlsl_types |= HLSL_MS;
-    else if (strcmp(sh.ident->text, "as") == 0)
-      hlsl_types |= HLSL_AS;
-    else
-      error(String(0, "Unexpected scope %s", sh.ident->text), sh.ident);
+    HlslCompilationStage stage = profile_to_hlsl_stage(sh.ident->text);
+
+    if (stage == HLSL_INVALID)
+      report_error(parser, sh.ident, "Unexpected scope %s", sh.ident->text);
+
+    hlsl_types = HLSL_ALL_FLAGS_LIST[stage];
   }
 
-  if (hlsl_types & HLSL_VS)
-    hlsl_types |= HLSL_DS | HLSL_GS | HLSL_HS;
+  if (hlsl_types & HLSL_FLAGS_VS)
+    hlsl_types |= HLSL_FLAGS_DS | HLSL_FLAGS_GS | HLSL_FLAGS_HS;
 
-  if (hlsl_types & HLSL_AS)
-    hlsl_types |= HLSL_MS;
+  if (hlsl_types & HLSL_FLAGS_AS)
+    hlsl_types |= HLSL_FLAGS_MS;
 
-  if (hlsl_types & HLSL_PS)
-    addSourceCode(hlslPs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_VS)
-    addSourceCode(hlslVs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_CS)
-    addSourceCode(hlslCs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_GS)
-    addSourceCode(hlslGs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_DS)
-    addSourceCode(hlslDs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_HS)
-    addSourceCode(hlslHs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_MS)
-    addSourceCode(hlslMs, sh.text, parser, shaderDebugModeEnabled);
-  if (hlsl_types & HLSL_AS)
-    addSourceCode(hlslAs, sh.text, parser, shaderDebugModeEnabled);
+  ctx.localHlslSrc().forEach(hlsl_types,
+    [&, this](String &src) { addSourceCode(src, sh.text, parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled()); });
 }
 
 void GatherVarShaderEvalCB::eval_endif(bool_expr &e)
 {
-  G_ASSERT(hwStack.size() > 0);
-  bool v = hwStack.back();
-  hwStack.pop_back();
-
-  if (v)
-  {
-    G_ASSERT(hwCount > 0);
-    hwCount--;
-  }
-
   G_ASSERT(dynStack.size() > 0);
-  v = dynStack.back();
+  bool v = dynStack.back();
   dynStack.pop_back();
 
   if (v)
@@ -750,12 +526,5 @@ void GatherVarShaderEvalCB::eval_endif(bool_expr &e)
     G_ASSERT(dynCount > 0);
     dynCount--;
   }
-  hlslVs.append("##endif\n");
-  hlslHs.append("##endif\n");
-  hlslDs.append("##endif\n");
-  hlslGs.append("##endif\n");
-  hlslPs.append("##endif\n");
-  hlslCs.append("##endif\n");
-  hlslMs.append("##endif\n");
-  hlslAs.append("##endif\n");
+  ctx.localHlslSrc().forEach([&](String &src) { src.append("##endif\n"); });
 }

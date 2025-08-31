@@ -4,9 +4,7 @@ include "globtm.dshl"
 hlsl {
   #include <smokeTracers.hlsli>
 }
-//  updateCommands_cs = new_compute_shader("update_tracer_commands_cs");
-//  createCommands_cs = new_compute_shader("create_tracer_commands_cs");
-//  cullTracers_cs = new_compute_shader("cull_tracers_cs");
+
 shader create_tracer_commands_cs
 {
   ENABLE_ASSERT(cs)
@@ -30,11 +28,11 @@ shader create_tracer_commands_cs
       float3 ndir = cmd.dir/len;
       structuredBufferAt(tracers, cmd.id).startTime = currentTime;
       structuredBufferAt(tracers, cmd.id).ttl = cmd.ttl;
-      structuredBufferAt(tracers, cmd.id).smoke_color_density = cmd.smoke_color;
-      structuredBufferAt(tracers, cmd.id).head_color = cmd.head_color__burnTime.rgb;
-      structuredBufferAt(tracers, cmd.id).start_head_color = cmd.start_head_color;
-      structuredBufferAt(tracers, cmd.id).start_mult = cmd.start_mult;
-      structuredBufferAt(tracers, cmd.id).burnTime = cmd.head_color__burnTime.a;
+      structuredBufferAt(tracers, cmd.id).smokeColor__density = cmd.smokeColor;
+      structuredBufferAt(tracers, cmd.id).headColor = cmd.headColor;
+      structuredBufferAt(tracers, cmd.id).startHeadColor = cmd.startHeadColor;
+      structuredBufferAt(tracers, cmd.id).startMult = cmd.startMult;
+      structuredBufferAt(tracers, cmd.id).burnTime = cmd.burnTime;
       structuredBufferAt(tracers, cmd.id).radiusStart = len;
       structuredBufferAt(tracers, cmd.id).dir = ndir;//actually it will be always constant for tracer
       structuredBufferAt(tracers, cmd.id).p0 = cmd.pos0;
@@ -73,9 +71,6 @@ shader update_tracer_commands_cs
       vertCnt &= 0xFFFF;
 
       uint cpoint = vertCnt%TRACER_SEGMENTS_COUNT;
-      //==
-      //cpoint = min(verts, TRACER_SEGMENTS_COUNT-1);
-      //==
       uint startVertId = cmd.id*TRACER_SEGMENTS_COUNT;
       uint lastFixedVertexId = (cpoint+(TRACER_SEGMENTS_COUNT-2))%TRACER_SEGMENTS_COUNT;
       uint prevVertexId = (cpoint+TRACER_SEGMENTS_COUNT-1)%TRACER_SEGMENTS_COUNT;
@@ -87,17 +82,11 @@ shader update_tracer_commands_cs
         return;
       float3 travelDir = travelVec/travelDist;
       const float angleThreshold = 0.9986295347545738;//cos(3 deg);
-      //const float movingDistanceConstMinThreshold = 1.0;
-      //const float movingDistanceConstThreshold = 4.0;
-      //const float movingDistanceTimeScaledThreshold = 64.f;
-      //const float movingDistanceMaxThreshold = 256.f;
-      
+
       float tracerTime = max(0, currentTime-structuredBufferAt(tracers, cmd.id).startTime);
-      //const float movingDistanceThreshold = min(movingDistanceConstThreshold+tracerTime*movingDistanceTimeScaledThreshold, movingDistanceMaxThreshold);
       const float movingDistanceThreshold = 64;
 
       float newTravelDist = travelDist;
-      bool oldVertIsDead = firstVert + 2 < vertCnt && structuredBufferAt(tracerVerts, startVertId + ((firstVert+1)%TRACER_SEGMENTS_COUNT)).time < tracerTime-structuredBufferAt(tracers, cmd.id).ttl;
 
       BRANCH
       if (((vertCnt-firstVert) < TRACER_SEGMENTS_COUNT || structuredBufferAt(tracerVerts, startVertId + cpoint).time < tracerTime-structuredBufferAt(tracers, cmd.id).ttl) &&
@@ -185,7 +174,6 @@ shader cull_tracers_cs
         firstVert = firstVert+1;
         firstVert_totalVerts = vertCnt | ((firstVert)<<16);
         tracersDynamic[id].firstVert_totalVerts = firstVert_totalVerts;
-        //todo: softly
       }
 
       uint vertId2 = (vertCnt-1)%TRACER_SEGMENTS_COUNT + startVertId;
@@ -225,12 +213,12 @@ shader cull_tracers_cs
       GPUSmokeTracerTailRender tail=(GPUSmokeTracerTailRender)0;
       tail.firstVert_totalVerts = firstVert_totalVerts;
       tail.startTime = tracers[id].startTime;
-      tail.smoke_color_density = tracers[id].smoke_color_density;
+      tail.smokeColor__density = tracers[id].smokeColor__density;
       tail.ttl = tracers[id].ttl;
       tail.radiusStart = tracers[id].radiusStart;//can be compressed
       tail.id = id*2 + (dot(tracers[id].dir, local_view_z) > 0 ? 1 : 0);
 
-      if (tail.smoke_color_density.w > 0) //to cull tail without smoke
+      if (tail.smokeColor__density.w > 0) //to cull tail without smoke
       {
         uint tailIdx;
         tracer_indirection_buffer.InterlockedAdd((1 + 4) * 4, 1u, tailIdx); // +4 because we add instance to second indirect buffer
@@ -268,13 +256,12 @@ shader cull_tracers_cs
         float fade = sqrt(tracerRadius / cRadius);
         float boxRadius = cRadius;
         renderBox.radius = boxRadius;
-        //float time_opacity = 1-saturate((tracerTime-tracerVerts[vertId2].time)/tracers[id].ttl);
-        float time_opacity = 1;//-saturate(decayTime/exposure_time);
+        float time_opacity = 1;
         time_opacity *= burnEffect;
         float density = time_opacity*fade;
-        float3 tracer_color = tracers[id].head_color.xyz;
-        float startFade = saturate(tracerTime * tracers[id].start_mult);
-        tracer_color = lerp(tracers[id].start_head_color, tracer_color, startFade);
+        float3 tracer_color = tracers[id].headColor;
+        float startFade = saturate(tracerTime * tracers[id].startMult);
+        tracer_color = lerp(tracers[id].startHeadColor, tracer_color, startFade);
         const float HEAD_COLOR_MULT_BY = 8.0;
         tracer_color *= HEAD_COLOR_MULT_BY;
         renderBox.color = float4(tracer_color*burnEffect, density);

@@ -1,33 +1,41 @@
+options gen2
 require UnitTest
 require math
 
-def test_erase_if(var arr: array<int>)
+def test_erase_if(var arr : array<int>) {
     let cloned := arr
     var maxVal = -1
 
-    for v in arr
+    for (v in arr) {
         maxVal = max(maxVal, v)
+    }
 
-    arr |> erase_if() <| $(v: int)
+    arr |> erase_if() <| $(v : int) {
         return v < 0
+    }
 
     var ok = true
-    for i, v in count(), arr
-        if v < 0
+    for (i, v in count(), arr) {
+        if (v < 0) {
             ok = false
+        }
+    }
 
-    if length(arr) != maxVal + 1
+    if (length(arr) != maxVal + 1) {
         ok = false
+    }
 
-    if !ok
+    if (!ok) {
         print("erase_if failed, input and output:\n")
         debug(cloned)
         debug(arr)
         assert(false)
+    }
+}
 
 [export]
-def test
-    var t: array<int>
+def test {
+    var t : array<int>
     test_erase_if(t)
     var t0 <- array(0)
     test_erase_if(t0)
@@ -63,3 +71,4 @@ def test
     test_erase_if(t15)
 
     return true
+}

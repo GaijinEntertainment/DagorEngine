@@ -9,6 +9,7 @@
 #include <math/dag_e3dColor.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <sqrat.h>
 
 Sqrat::Object blk_to_sqrat(HSQUIRRELVM vm, const DataBlock &blk)
@@ -85,6 +86,18 @@ Sqrat::Object blk_to_sqrat(HSQUIRRELVM vm, const DataBlock &blk)
         child.Append(ip3.x);
         child.Append(ip3.y);
         child.Append(ip3.z);
+        sqobj.SetValue(key, child);
+        break;
+      }
+
+      case DataBlock::TYPE_IPOINT4:
+      {
+        IPoint4 ip4 = blk.getIPoint4(i);
+        Sqrat::Array child(vm);
+        child.Append(ip4.x);
+        child.Append(ip4.y);
+        child.Append(ip4.z);
+        child.Append(ip4.w);
         sqobj.SetValue(key, child);
         break;
       }

@@ -46,3 +46,17 @@ DataBlock &dainput::get_user_props()
 }
 bool dainput::is_user_props_customized() { return false; }
 void dainput::term_user_config() {}
+
+int dainput::get_actions_count() { return 0; }
+int dainput::get_action_sets_count() { return 0; }
+uint16_t dainput::get_action_type(dainput::action_handle_t) { return 0xFFFF; }
+dainput::action_set_handle_t dainput::set_breaking_action_set(dainput::action_set_handle_t) { return BAD_ACTION_SET_HANDLE; }
+dainput::action_set_handle_t dainput::setup_action_set(const char *, dag::ConstSpan<dainput::action_handle_t>)
+{
+  return BAD_ACTION_SET_HANDLE;
+}
+
+unsigned dainput::get_last_used_device_mask(unsigned) { return 0; }
+int dainput::get_action_set_stack_depth() { return 0; }
+dainput::action_set_handle_t dainput::get_action_set_stack_item(int) { return BAD_ACTION_SET_HANDLE; }
+void dainput::set_control_thread_id(int64_t) {}

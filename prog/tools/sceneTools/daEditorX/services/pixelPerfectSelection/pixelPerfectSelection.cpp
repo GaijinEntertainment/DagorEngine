@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "PixelPerfectSelection.h"
+#include "pixelPerfectSelection.h"
 #include <3d/dag_lockTexture.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
@@ -11,12 +11,11 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
 #include <EditorCore/ec_interface.h>
+#include <de3_dynRenderService.h>
 #include <image/dag_texPixel.h>
-#include <render/dynModelRenderer.h>
 #include <rendInst/rendInstExtraRender.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/riShaderConstBuffers.h>
-#include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderResUnitedData.h>
@@ -36,7 +35,6 @@ void PixelPerfectSelection::init()
 
   depthRt.set(d3d::create_tex(nullptr, 1, 1, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "simple_selection_depth_rt"),
     "simple_selection_depth_rt");
-  depthRt.getTex2D()->texfilter(TEXFILTER_POINT);
 }
 
 TMatrix4 PixelPerfectSelection::makeProjectionMatrixForViewRegion(int viewWidth, int viewHeight, float fov, float zNear, float zFar,
@@ -148,6 +146,7 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
   const int lastFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
 
+  IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
   for (int i = 0; i < hits.size(); ++i)
   {
     IPixelPerfectSelectionService::Hit &hit = hits[i];
@@ -185,8 +184,8 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
     else
     {
       G_ASSERT(hit.sceneInstance);
-      if (!dynrend::render_in_tools(hit.sceneInstance, dynrend::RenderMode::Opaque))
-        hit.sceneInstance->render();
+      if (rs)
+        rs->renderOneDynModelInstance(hit.sceneInstance, IDynRenderService::Stage::STG_RENDER_DYNAMIC_OPAQUE);
     }
 
     if (!getHitFromDepthBuffer(hit.z))

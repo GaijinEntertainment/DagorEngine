@@ -125,6 +125,8 @@ public:
 
 /// dot product
 INLINE float dot(const Point2 &a, const Point2 &b) { return a * b; }
+/// cross product
+INLINE float cross(const Point2 &a, const Point2 &b) { return a.x * b.y - a.y * b.x; }
 
 /// floor() of all components
 INLINE Point2 floor(const Point2 &a) { return Point2(floorf(a.x), floorf(a.y)); }
@@ -134,6 +136,7 @@ INLINE Point2 ceil(const Point2 &a) { return Point2(ceilf(a.x), ceilf(a.y)); }
 INLINE Point2 round(const Point2 &a) { return Point2(roundf(a.x), roundf(a.y)); }
 
 __forceinline Point2 div(const Point2 &a, const Point2 &b) { return Point2(a.x / b.x, a.y / b.y); }
+INLINE Point2 safediv(const Point2 &a, const float b) { return a * safediv(1.0f, b); }
 inline Point2 mul(const Point2 &a, const Point2 &b) { return Point2(a.x * b.x, a.y * b.y); }
 
 INLINE Point2 operator*(real a, const Point2 &p) { return Point2(p.x * a, p.y * a); }
@@ -292,6 +295,11 @@ INLINE Point2 point2(const DPoint2 &p) { return Point2::xy(p); }
 
 inline DPoint2 mul(const DPoint2 &a, const DPoint2 &b) { return DPoint2(a.x * b.x, a.y * b.y); }
 
+INLINE bool are_approximately_equal(const Point2 &a, const Point2 &b, float epsilon = 8 * FLT_EPSILON) // Three bits precision by
+                                                                                                       // default.
+{
+  return are_approximately_equal(a.x, b.x, epsilon) && are_approximately_equal(a.y, b.y, epsilon);
+}
 
 #undef INLINE
 

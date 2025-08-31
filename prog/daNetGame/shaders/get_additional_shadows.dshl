@@ -10,14 +10,14 @@ macro APPLY_ADDITIONAL_SHADOWS(code)
     USE_VOLFOG_SHADOW(code)
   }
   hlsl(code) {
-    float getAdditionalShadow(float shadow, float3 cameraToOrigin, float3 worldNormal, float2 screenTc, float w){
+    float getAdditionalShadow(float shadow, float3 cameraToOrigin, float2 screenTc, float w){
       BRANCH
       if (shadow>0.02)
       {
         float3 worldPos = cameraToOrigin+ world_view_pos.xyz;
         shadow *= getFOMShadow(worldPos);
         ##if (in_editor_assume==no)
-          shadow *= get_volfog_shadow(worldPos, screenTc, w);
+          shadow *= get_volfog_shadow(screenTc, w);
         ##endif
       }
       return shadow;

@@ -15,9 +15,9 @@ rule ProcessCompileTarget
     case dev :
       _CONFIG_OPT += $(O3) -DDAGOR_DBGLEVEL=1 ;
     case rel :
-      _CONFIG_OPT = $(O3) -DDAGOR_DBGLEVEL=0 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = $(O3) -DDAGOR_DBGLEVEL=0 -DNDEBUG -D_SECURE_SCL=0 ;
     case irel :
-      _CONFIG_OPT = $(O3) -DDAGOR_DBGLEVEL=-1 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = $(O3) -DDAGOR_DBGLEVEL=-1 -DNDEBUG -D_SECURE_SCL=0 ;
     case dbg :
       _CONFIG_OPT = /Od /RTC1 -DDAGOR_DBGLEVEL=2 ;
     case * :
@@ -28,12 +28,12 @@ rule ProcessCompileTarget
   if $(StackProtection) = no { _CONFIG_OPT += /GS- ; }
 
   if $(Exceptions) != yes {
-    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 -DEA_COMPILER_NO_NOEXCEPT ;
+    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 ;
   } else {
     if $(CatchSEH) != yes {
-      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED ;
     } else {
-      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED ;
     }
   }
 
@@ -47,7 +47,7 @@ rule ProcessCompileTarget
     _CONFIG_OPT += $(_VC_CRT_TYPE)d ;
   }
 
-  if $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB=1 ; }
+  if $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB ; }
   if $(UseWholeOpt) != no {
     if $(UseWholeOpt) = yes {
       _CONFIG_OPT += -flto=thin ;
@@ -79,13 +79,16 @@ rule DepRule
   local changed_dep = ;
 
   # add $(Root) prefix when needed
-  for dep in $(>)
+  for dep_full in $(>)
   {
+    local dep = [ MATCH "(\\.\\.\/|\\.\\.\\\\)*(.*)" : $(dep_full) ] ;
+    dep = $(dep[2]) ;
     switch $(dep)
     {
       case ?:* : changed_dep += $(dep) ;   # absolute path with drive
       case \\* : changed_dep += $(dep) ;   # absolute path with root foolder (\)
       case /*  : changed_dep += $(dep) ;   # absolute path with root foolder (/)
+      case ./* : on $(dep) changed_dep += $(Root)/$(location_prefix)/$(dep) ; # short path, add $(Root) and location prefix
       case *   : changed_dep += $(Root)/$(dep) ; # relative path, add $(Root) prefix
     }
   }
@@ -101,7 +104,7 @@ rule CheckHeaders
   NOUPDATE $(>) ; # tolerant to .d timestamp
 
   # scan line for header, skipping any ../ at the beginning [will be prefixed with $(Root)]
-  HDRSCAN   on $(>) = "^.*: [\.\\\/]*([^\
+  HDRSCAN   on $(>) = "^[^ ]*: *([^\
 ]*).*$" ;
   HDRRULE   on $(>) = DepRule ;
 }

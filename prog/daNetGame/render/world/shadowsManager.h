@@ -12,13 +12,14 @@
 #include <render/toroidalStaticShadows.h>
 #include <render/gpuVisibilityTest.h>
 #include <render/rendererFeatures.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
 #include <shaders/dag_postFxRenderer.h>
 
 #include "cameraParams.h"
 #include "rendinstShadowCullBboxesLoader.h"
 #include <rendInst/visibilityDecl.h>
+#include <render/variance.h>
 
 
 struct ClusteredLights;
@@ -73,7 +74,7 @@ public:
 
   ShadowsManager(IShadowInfoProvider &provider, ClusteredLights &lights);
 
-  void renderGroundShadows(const Point3 &origin, int displacement_subdiv, const Frustum &culling_frustum);
+  void renderGroundShadows(const Point3 &origin, int displacement_subdiv, const Frustum &culling_frustum, const TMatrix4 &view_proj);
   void renderStaticShadowsRegion(
     const mat44f &culling_view_proj, const TMatrix4 &shadow_glob_tm, const TMatrix &view_itm, int cascade, int region);
   void renderShadowsOpaque(int shadow_cascade, bool only_dynamic, const TMatrix &itm, const Point3 &cam_pos);
@@ -81,9 +82,9 @@ public:
   RiGenVisibility *initOneStaticShadowsVisibility();
   void closeAllStaticShadowsVisibility();
 
-  void setShadowFrameIndex();
-  void updateCsmData();
-  void combineShadows();
+  void setShadowFrameIndex(const CameraParams &cur_frame_camera);
+  void updateCsmData(const CameraParams &cur_frame_camera);
+  void combineShadows(const dafg::multiplexing::Index multiplex_index, const CameraParams &cur_frame_camera);
 
   void staticShadowsSetWorldSize();
   void markWorldBBoxDirty();
@@ -126,7 +127,6 @@ public:
   void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf) override;
 
   void testAnimcharTestBboxes(const Point3 &cam_pos, int frame_no);
-  void processShadowsVisibility(const Point3 &cam_pos);
   void resetShadowsVisibilityTesting();
   int getVisibilityTestAvailableSpace() const { return shadowsGpuOcclusionMgr.getAvailableSpace(); }
   BaseTexture *getStaticShadowsTex();
@@ -146,7 +146,6 @@ public:
   // not rendering, will be called from thread
   void prepareShadowsMatrices(
     const TMatrix &itm, const Driver3dPerspective &p, const TMatrix4 &proj_tm, const Frustum &frustum, float cascade0_dist);
-  shaders::OverrideState getStaticShadowsOverrideState() const;
   void initStaticShadow();
   void closeStaticShadow();
 
@@ -177,6 +176,10 @@ public:
   bool shouldRenderCsmStatic(int cascade) const;
   bool anyCsmCascadeRendersStatic() const;
 
+  void initVSM();
+  void prepareVSM(const Point3 &camera_pos);
+  void closeVSM();
+
 public:
   float csmStartOffsetDistance = 0.0f;
   float staticShadowsAdditionalHeight = 0.f;
@@ -201,16 +204,22 @@ private:
   CascadeShadows *csm = nullptr;
   CascadeShadows::ModeSettings csm_mode;
   float csmShadowsMaxDist = 50;
+  bool csmShadowsDistanceFovScaling = true;
 
   float staticShadowMaxUpdateAmount = 0.1;
   bool staticShadowUniformUpdate = false;
   bool worldBBoxDirty = false;
   eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
-  dabfg::NodeHandle staticShadowRenderNode;
+  dafg::NodeHandle staticShadowRenderNode;
   bool staticShadowsSetShaderVars = false;
   shaders::UniqueOverrideStateId staticShadowsOverride;
   shaders::UniqueOverrideStateId staticShadowsOverrideFlipCull;
   bool isTimeDynamic;
+
+  static constexpr float VSM_SHADOW_DISTANCE = 20000;
+  static constexpr float VSM_UPDATE_THRESHOLD_SQ = sqr(VSM_SHADOW_DISTANCE * 0.1);
+  static constexpr int VSM_TEXTURE_SIZE = 1024;
+  Variance vsm;
 
   PostFxRenderer shadowsDownsample;
   PostFxRenderer combine_shadows;
@@ -229,10 +238,11 @@ private:
   WinCritSec shadowsGpuOcclusionMgrMutex;
   RiShadowCullBboxesLoaderJob riShadowCullBboxesLoader;
 
-  dabfg::NodeHandle processVisibilityNode;
-  dabfg::NodeHandle prepareDownsampledShadowsNode;
-  dabfg::NodeHandle combineShadowsNode;
+  dafg::NodeHandle staticShadowsVisibilityNodes[2];
+  dafg::NodeHandle prepareDownsampledShadowsNode;
+  dafg::NodeHandle combineShadowsResProviderNode;
+  dafg::NodeHandle combineShadowsNode;
 };
 
 bool combined_shadows_use_additional_textures();
-void combined_shadows_bind_additional_textures(dabfg::Registry &registry);
+void combined_shadows_bind_additional_textures(dafg::Registry &registry);

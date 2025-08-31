@@ -13,7 +13,6 @@ static constexpr unsigned HUID_IObjEntityFilter = 0x4916C3E9u; // IObjEntityFilt
 static constexpr unsigned HUID_IHmapService = 0xA36C15FAu;     // IHmapService
 static constexpr unsigned HUID_IBitMaskImageMgr = 0xEA2182A6u; // IBitMaskImageMgr
 static constexpr unsigned HUID_IAssetService = 0xC2729EFFu;    // IAssetService
-static constexpr unsigned HUID_IFmodService = 0x222857A0u;     // IFmodService
 
 static constexpr unsigned HUID_IVisibilityFinderProvider = 0x509D8ABEu; // IVisibilityFinder
 static constexpr unsigned HUID_ISceneLightService = 0x6683CB46u;        // ISceneLightService
@@ -27,7 +26,7 @@ static constexpr unsigned HUID_IPluginAutoSave = 0xF5D85BF6u;       // IPluginAu
 static constexpr unsigned HUID_IGatherStaticGeometry = 0x148BAFE8u; // IGatherStaticGeometry
 static constexpr unsigned HUID_ILightingChangeClient = 0x73E29D7Cu; // ILightingChangeClient
 static constexpr unsigned HUID_IRenderOnCubeTex = 0x43625504u;      // IRenderOnCubeTex
-static constexpr unsigned HUID_IClipping = 0x87281C9Fu;             // IClipping
+static constexpr unsigned HUID_ICollision = 0x71D92AFCu;            // ICollision
 static constexpr unsigned HUID_IHeightmap = 0xE00CB40Eu;            // IHeightmap
 static constexpr unsigned HUID_IDeBrushService = 0x74A4542Cu;       // IDeBrushService
 static constexpr unsigned HUID_IDagorPhys = 0xED1BCF08u;            // IDagorPhys
@@ -46,5 +45,6 @@ static constexpr unsigned HUID_ICableService = 0xA55B0B19u;         // ICableSer
 static constexpr unsigned HUID_ISplineGenService = 0x29780D3Eu;     // ISplineGenService
 static constexpr unsigned HUID_IGPUGrassService = 0x42424242u;      // IGPUGrassService
 static constexpr unsigned HUID_IWindService = 0xE1F67B0Bu;          // IWindService
+static constexpr unsigned HUID_IRenderHelperService = 0xF75DBE09u;  // IRenderHelperService
 
 static constexpr unsigned HUID_IPixelPerfectSelectionService = 0xC7DED060u; // IPixelPerfectSelectionService

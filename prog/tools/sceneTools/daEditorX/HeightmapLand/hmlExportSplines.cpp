@@ -48,7 +48,7 @@ public:
     cwr.beginTaggedBlock(packed ? (HmapLandPlugin::preferZstdPacking ? _MAKE4C('spgz') : _MAKE4C('spgZ')) : _MAKE4C('splg'));
     if (packed)
     {
-      mkbindump::BinDumpSaveCB cwr_t(2 << 10, cwr.getTarget(), cwr.WRITE_BE);
+      mkbindump::BinDumpSaveCB cwr_t(2 << 10, cwr);
       writeData(cwr_t);
 
       MemoryLoadCB mcrd(cwr_t.getMem(), false);
@@ -375,9 +375,9 @@ void SplineExporter::findIntersections()
           }
           splSrc.segments.haveIntersections = splDst.segments.haveIntersections = true;
         } // second spline segments
-      }   // first spline segments
-    }     // for second splines
-  }       // for first splines
+      } // first spline segments
+    } // for second splines
+  } // for first splines
 
   // First and last points on each spline which have intersections.
   for (int i = 0; i < splineData.size(); ++i)

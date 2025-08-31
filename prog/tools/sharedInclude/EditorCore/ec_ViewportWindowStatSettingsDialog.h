@@ -13,7 +13,7 @@ class ViewportWindowStatSettingsDialog : public PropPanel::DialogWindow
 public:
   ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, bool *_rootEnable, hdpi::Px width, hdpi::Px height);
 
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   PropPanel::TLeafHandle addGroup(int group, const char name[], bool enabled);
   void addOption(PropPanel::TLeafHandle group, int id, const char name[], bool value);
@@ -37,7 +37,7 @@ private:
   void setTreeNodeState(PropPanel::TLeafHandle node, bool item_enabled, bool parent_enabled);
   void updateColors();
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   ViewportWindow &viewport;
 };

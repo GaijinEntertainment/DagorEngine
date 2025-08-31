@@ -23,8 +23,8 @@ public:
   virtual void finalize() = 0;
 
 protected:
-  ITrackEmitter(){};
-  virtual ~ITrackEmitter(){};
+  ITrackEmitter() {}
+  virtual ~ITrackEmitter() {}
 };
 
 // init system. load settings from blk-file

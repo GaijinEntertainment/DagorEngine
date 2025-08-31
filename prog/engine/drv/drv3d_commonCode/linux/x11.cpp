@@ -133,6 +133,8 @@ void workcycle_internal::idle_loop()
           break;
         if (xev.xfocus.detail == NotifyInferior)
           break;
+        if ((void *)xev.xfocus.window != win32_get_main_wnd())
+          continue;
 
         XSetICFocus(x11.ic);
         workcycle_internal::main_window_proc(&x11.mainWindow, GPCM_Activate, GPCMP1_Activate, 0);
@@ -143,6 +145,8 @@ void workcycle_internal::idle_loop()
           break;
         if (xev.xfocus.detail == NotifyInferior)
           break;
+        if ((void *)xev.xfocus.window != win32_get_main_wnd())
+          continue;
 
         XUnsetICFocus(x11.ic);
         if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
@@ -168,11 +172,18 @@ void workcycle_internal::idle_loop()
             break;
         }
       case DestroyNotify:
-        debug("main window close signal received!");
-        win32_set_main_wnd(NULL);
-        d3d::window_destroyed(&x11.mainWindow);
-        quit_game(0);
+      {
+        void *ptrWindowHandle = (void *)xev.xdestroywindow.window;
+        void *ptrParentHandle = (void *)xev.xdestroywindow.event;
+        if ((win32_get_main_wnd() == ptrWindowHandle) || (win32_get_main_wnd() == ptrParentHandle))
+        {
+          debug("main window close signal received!");
+          d3d::window_destroyed(ptrWindowHandle);
+          win32_set_main_wnd(NULL);
+          quit_game(0);
+        }
         break;
+      }
       case SelectionRequest:
       {
         XSelectionRequestEvent *req = &xev.xselectionrequest;
@@ -243,7 +254,7 @@ void workcycle_internal::idle_loop()
 
 bool workcycle_internal::get_last_cursor_pos(int *cx, int *cy, Window w)
 {
-  // only one window is currently suported
+  // only one window is currently supported
   G_UNUSED(w);
   G_ASSERT(x11.mainWindow == w);
 
@@ -256,7 +267,7 @@ bool workcycle_internal::get_last_cursor_pos(int *cx, int *cy, Window w)
 
 void workcycle_internal::update_cursor_position(int cx, int cy, Window w)
 {
-  // only one window is currently suported
+  // only one window is currently supported
   G_UNUSED(w);
   G_ASSERT(x11.mainWindow == w);
 

@@ -112,7 +112,7 @@ function Fuzzer(allowLoops) {
   local int_expr, bool_bin_expr, bool_expr,
     int_field, int_delegate, int_array_value, int_add, int_sub, int_or, int_and,
     int_identifier, int_var, int_param, int_function_call,
-    statement, statements,
+    statement, statements, reset_memos,
     array_var, table_var, generator_var,
     void_function_call
 
@@ -140,6 +140,14 @@ function Fuzzer(allowLoops) {
   let cmp_expr = @() $"({e(int_expr)} {anyof(["<", ">", "<=", ">=", "!=", "=="])} {e(int_expr)})"
 
   let not_expr = @() $"(!({e(bool_expr)}))"
+  let static_memo = function() {
+    if (rand() % 3 == 1)
+      return $"static({e(int_expr)})"
+    else if (rand() % 2 == 1)
+      return $"static([1, 2, 3])[{rand() % 3}]"
+    else
+      return $"static(\{x = {e(int_expr)}\}).x"
+  }
 
   bool_bin_expr = @() $"(({e(bool_expr)}) {anyof(["&&", "||", "!=", "=="])} ({e(bool_expr)}))"
   bool_expr = @() e(anyof([cmp_expr, not_expr, bool_bin_expr], 20))
@@ -150,7 +158,7 @@ function Fuzzer(allowLoops) {
   let loop_cmp_op = @() anyof(["<", "<="])
 
   int_expr = @() e(anyof([int, int_field, int_delegate, int_array_value, int_var, int_add, int_sub, int_or, int_and,
-                   int_ternary, int_identifier, int_var, int_paren, int_param,
+                   int_ternary, int_identifier, int_var, int_paren, int_param, static_memo,
                    int_function_call], treeDepth > 25 ? 90 : 32))
   let to_log = @() $"to_log({logId()}, {e(int_expr)})"
 
@@ -334,7 +342,7 @@ function Fuzzer(allowLoops) {
     return anyof(["break", "continue"])
   }
 
-  let switch_case = function() {
+  let switch_case = function() { //-declared-never-used
     insideSwitch++
 
     local s = $"switch ({e(int_expr)}) \{\n"
@@ -377,10 +385,17 @@ function Fuzzer(allowLoops) {
     return s
   }
 
+  reset_memos = function() {
+    if (rand() % 16 == 1)
+      return $"require(\"modules\").reset_static_memos()"
+    else
+      return statement()
+  }
+
   statement = function() {
     let st = e(anyof([to_log, void_function_call, if_then, if_then_else,
                       foreach_loop, for_loop, while_loop, do_while_loop,
-                      try_catch, break_continue], treeDepth > 25 ? 100 : 40))
+                      try_catch, break_continue, reset_memos], treeDepth > 25 ? 100 : 40))
     return $"{ind}{st}"
   }
 
@@ -708,7 +723,7 @@ if (__name__ == "__main__" && !get_arg_value_by_name("static-analysis")) {
     local allowLoops = (seed % 13 != 0)
     local fuzzer = Fuzzer(allowLoops)
     script += fuzzer.statements()
-    script += "} catch (q) {print(q)}\nprint(\"===\\n\")"
+    script += "} catch (q) {print(q)}\nprint(\"===\\n\")" //-forgot-subst
 
     if (filePrefix == null) {
       for (local i = 0; i <= script.len() / 1024; i++)

@@ -58,7 +58,7 @@ struct Clouds2
   void setCloudsOffsetVars(float current_clouds_offset) { clouds.setCloudsOffsetVars(current_clouds_offset, weatherParams.worldSize); }
   IPoint2 getResolution(CloudsRendererData &data) { return IPoint2(data.w, data.h); }
   void renderClouds(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm);
+    const TMatrix4 &proj_tm, const bool acquare_new_resource = true, const bool set_camera_vars = true);
   void renderCloudsScreen(CloudsRendererData &data, const TextureIDPair &downsampled_depth, TEXTUREID target_depth,
     const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 
@@ -74,11 +74,9 @@ struct Clouds2
 
   void setUseHole(bool set);
   bool getUseHole() const { return useHole; }
-  void resetHole(const Point3 &hole_target, const float &hole_density);
+  void setHole(const Point3 &hole_target, float hole_density);
   Point2 getCloudsHole() const;
-  void setHole(const Point2 &p);
 
-  void resetHole() { setHole({0, 0}); }
   void getTextureResourceDependencies(Tab<TEXTUREID> &dependencies) const;
 
   void setExternalWeatherTexture(TEXTUREID tid)
@@ -88,8 +86,6 @@ struct Clouds2
   }
 
 private:
-  void processHole();
-
   void initHole();
   bool findHole(const Point3 &main_light_dir);
   bool validateHole(const Point3 &main_light_dir);
@@ -127,14 +123,18 @@ protected:
   Point2 windDir = {0, 0}, erosionWindChange = {0, 0};
   Point3 holeTarget = {0, 0, 0};
   float holeDensity = 0;
-  bool holeFound = true;
+  enum class HoleFindStatus
+  {
+    REQUIRE_FIND,
+    REQUIRE_READBACK,
+    DONE
+  } holeFound = HoleFindStatus::REQUIRE_FIND;
+  EventQueryHolder holeReadbackQuery;
   bool useHole = true;
 
-  RingCPUTextureLock ringTextures;
   UniqueBufHolder holeBuf;
   UniqueTexHolder holeTex;
-  UniqueTexHolder holePosTex;
-  UniqueTex holePosTexStaging;
+  UniqueTex holePosTex;
 
   eastl::unique_ptr<ComputeShaderElement> clouds_hole_cs;
   eastl::unique_ptr<ComputeShaderElement> clouds_hole_pos_cs;
@@ -143,12 +143,4 @@ protected:
   shaders::UniqueOverrideStateId blendMaxState;
 
   bool renderingEnabled = true;
-
-  enum
-  {
-    HOLE_UPDATED = 0,
-    HOLE_PROCESSED = 1,
-    HOLE_CREATED = 2
-  };
-  int needHoleCPUUpdate = HOLE_UPDATED;
 };

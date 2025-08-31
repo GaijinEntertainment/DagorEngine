@@ -45,7 +45,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     das::onDestroyCppDebugAgent(name.c_str(), bind_dascript::clear_resource_slot);
-    addBuiltinDependency(lib, require("daBfgCore"));
+    addBuiltinDependency(lib, require("daFgCore"));
 
     addAnnotation(das::make_smart<NodeHandleWithSlotsAccessAnnotation>(lib));
     das::addCtor<::resource_slot::NodeHandleWithSlotsAccess>(*this, lib, "NodeHandleWithSlotsAccess",

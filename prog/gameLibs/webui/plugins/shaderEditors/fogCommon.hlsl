@@ -1,6 +1,8 @@
 #ifndef FOG_COMMON_INCLUDED
 #define FOG_COMMON_INCLUDED 1
 
+#define prev_volfog_shadow_samplerstate  land_heightmap_tex_samplerstate
+#define volfog_mask_tex_samplerstate  land_heightmap_tex_samplerstate
 
 
 float depth_to_volume_pos(float v)
@@ -19,16 +21,6 @@ float get_ground_height(float3 world_pos)
 {
   return get_ground_height_lod(world_pos, HEIGHTMAP_LOD);
 }
-
-
-float3 getDepthAboveTcAndVignette(float3 world_pos)
-{
-  float2 tc = saturate(world_to_depth_ao.xy * world_pos.xz + world_to_depth_ao.zw);
-  float2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
-  float vignette_effect = saturate(dot(vignette, vignette));
-  return float3(tc - depth_ao_heights.zw, vignette_effect);
-}
-
 
 float4 height_fog_node(HeightFogNode node, float3 world_pos, float screenTc_z, float3 wind_dir, float effect)
 {
@@ -66,5 +58,40 @@ HeightFogNode make_height_fog_node(float3 color,
   return hfn;
 }
 
+float sample_volfog_mask(float2 world_xz)
+{
+  float2 tc = world_xz * world_to_volfog_mask.xy + world_to_volfog_mask.zw;
+  return tex2Dlod(volfog_mask_tex, float4(tc, 0, 0)).x;
+}
+
+float2 getPrevTc(float3 world_pos, out float3 prev_clipSpace)
+{
+  // TODO: very ugly and subpotimal
+  float4x4 prev_globtm_psf;
+  prev_globtm_psf._m00_m10_m20_m30 = prev_globtm_psf_0;
+  prev_globtm_psf._m01_m11_m21_m31 = prev_globtm_psf_1;
+  prev_globtm_psf._m02_m12_m22_m32 = prev_globtm_psf_2;
+  prev_globtm_psf._m03_m13_m23_m33 = prev_globtm_psf_3;
+  float4 lastClipSpacePos = mul(float4(world_pos, 1), prev_globtm_psf);
+  prev_clipSpace = lastClipSpacePos.w < 0.0001 ? float3(2,2,2) : lastClipSpacePos.xyz/lastClipSpacePos.w;
+  return prev_clipSpace.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+}
+float2 getPrevTc(float3 world_pos)
+{
+  float3 prevClip;
+  return getPrevTc(world_pos, prevClip);
+}
+
+// TODO: deprecate it (remove from levels first)
+int4 getBiomeIndices(float3 world_pos)
+{
+  return getBiomeData(world_pos).indices;
+}
+
+// TODO: deprecate it (remove from levels first)
+float getBiomeInfluence(float3 world_pos, int index)
+{
+  return calcBiomeInfluence(getBiomeData(world_pos), index);
+}
 
 #endif

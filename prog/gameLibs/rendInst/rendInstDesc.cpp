@@ -16,5 +16,3 @@ bool rendinst::isRiGenDescValid(const rendinst::RendInstDesc &desc)
 }
 
 bool rendinst::isRgLayerPrimary(const RendInstDesc &desc) { return rendinst::isRgLayerPrimary(desc.layer); }
-
-bool rendinst::ignoreTraceRiExtra(const RendInstDesc &desc, rendinst::IgnoreFunc f) { return f ? f(desc) : false; }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "hitBloodSplashES.cpp.inl"
 ECS_DEF_PULL_VAR(hitBloodSplash);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc blood_puddles_dark_zone_shredder_es_event_handler_comps[] ={};
 static void blood_puddles_dark_zone_shredder_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

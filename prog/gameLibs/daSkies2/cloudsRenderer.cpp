@@ -160,23 +160,35 @@ void CloudsRenderer::setCloudsOffsetVars(float current_clouds_offset, float worl
 
 void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth,
   const Point2 &wind_change_ofs, float world_size, const TMatrix &view_tm, const TMatrix4 &proj_tm,
-  const DPoint3 *world_pos /*= nullptr*/)
+  const DPoint3 *world_pos /*= nullptr*/, const bool acquare_new_resource, const bool set_camera_vars)
 {
-  if (!data.cloudsTextureColor[2])
+  if (!data.cloudsColorPoolRT)
     return;
   TIME_D3D_PROFILE(render_clouds);
   ScopeReprojection reprojectionScope;
   data.setVars();
-  set_viewvecs_to_shader(view_tm, proj_tm);
-  data.clearTemporalData(get_d3d_full_reset_counter());
+  if (set_camera_vars)
+    set_viewvecs_to_shader(view_tm, proj_tm);
   ShaderGlobal::set_real(clouds_restart_taaVarId, data.frameValid ? 0 : 2);
-  data.frameValid = true;
-  data.frameNo++;
 
-  ShaderGlobal::set_int(clouds_infinite_skiesVarId, depth.getTex2D() ? 0 : 1);
+  if (acquare_new_resource)
+  {
+    data.clearTemporalData(get_d3d_full_reset_counter());
+    data.frameValid = true;
+    data.frameNo++;
+
+    data.nextCloudsColor = nullptr;
+    data.prevCloudsColor = nullptr;
+    data.prevCloudsWeight = nullptr;
+    data.cloudsBlurTextureColor = nullptr;
+  }
+
   ShaderGlobal::set_int(clouds2_current_frameVarId, data.frameNo & 0xFFFF);
   setCloudsOffsetVars(data, world_size);
   const bool canBeInsideClouds = bool(data.clouds_color_close) && depth.getTex();
+
+  ShaderGlobal::set_int(clouds_infinite_skiesVarId, depth.getTex2D() ? 0 : 1);
+  ShaderGlobal::set_int(clouds_has_close_sequenceVarId, canBeInsideClouds ? 1 : 0);
 
   if (data.clouds_close_layer_is_outside)
   {
@@ -203,14 +215,26 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
 #endif
 
   eastl::optional<ScopeRenderTarget> rtScope;
-  if (!useCompute || !taaUseCompute)
+  if ((!useCompute || !taaUseCompute) && acquare_new_resource)
     rtScope.emplace();
+
+  if (acquare_new_resource)
+  {
+    data.prevCloudsColor = eastl::move(data.cloudsTextureColor);
+    data.nextCloudsColor = data.cloudsColorBlurPoolRT->acquire();
+    data.cloudsTextureColor = data.cloudsColorPoolRT->acquire();
+
+    data.prevCloudsWeight = eastl::move(data.cloudsTextureWeight);
+    data.cloudsTextureWeight = data.cloudsWeightPoolRT->acquire();
+  }
+  G_ASSERT(data.nextCloudsColor != nullptr);
+  G_ASSERT(data.prevCloudsColor != nullptr);
+  G_ASSERT(data.prevCloudsWeight != nullptr);
 
   renderTiledDist(data);
   int depthLevels = 1;
   int level = getNotLesserDepthLevel(data, depthLevels, depth.getTex2D());
   ShaderGlobal::set_texture(clouds_depth_gbufVarId, depth.getId());
-  ShaderGlobal::set_int(clouds_has_close_sequenceVarId, bool(data.clouds_color_close) ? 1 : 0);
   DispatchGroups2D dg = set_dispatch_groups(data.w, data.h, CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, data.lowresCloseClouds);
   {
     if (level != 0 && depthLevels != 1 && depth.getTex2D())
@@ -221,13 +245,13 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
     STATE_GUARD(ShaderGlobal::set_int(clouds_ignore_close_objectsVarId, VALUE), data.useBlurredClouds, false);
     if (useCompute)
     {
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.cloudsTextureColor[2].getTex2D());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.nextCloudsColor->getTex2D());
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), data.cloudsTextureDepth.getTex2D());
       clouds2_temporal_cs->dispatch(dg.x, dg.y, 1); // todo: measure optimal warp size
     }
     else
     {
-      d3d::set_render_target(data.cloudsTextureColor[2].getTex2D(), 0);
+      d3d::set_render_target(data.nextCloudsColor->getTex2D(), 0);
       d3d::set_render_target(1, data.cloudsTextureDepth.getTex2D(), 0);
       clouds2_temporal_ps.render();
     }
@@ -287,15 +311,17 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
     ShaderGlobal::set_texture(clouds_prev_depth_gbufVarId, prev_depth.getId());
     data.prevWorldPos.x -= cloudsOfs.x + wind_change_ofs.x - currentCloudsOfs.x;
     data.prevWorldPos.z -= cloudsOfs.y + wind_change_ofs.y - currentCloudsOfs.y;
-    set_reprojection(view_tm, proj_tm, data.prevProjTm, data.prevWorldPos, data.prevGlobTm, data.prevViewVecLT, data.prevViewVecRT,
-      data.prevViewVecLB, data.prevViewVecRB, world_pos);
-    ShaderGlobal::set_texture(clouds_color_prevVarId, data.cloudsTextureColor[1 - (data.frameNo & 1)].getTexId());
-    ShaderGlobal::set_texture(clouds_colorVarId, data.cloudsTextureColor[2]);
-    ShaderGlobal::set_texture(clouds_prev_taa_weightVarId, data.cloudsTextureWeight[1 - (data.frameNo & 1)]);
+    G_UNUSED(world_pos);
+    if (set_camera_vars)
+      set_reprojection(view_tm, proj_tm, data.prevProjTm, data.prevWorldPos, data.prevGlobTm, data.prevViewVecLT, data.prevViewVecRT,
+        data.prevViewVecLB, data.prevViewVecRB, world_pos);
+    ShaderGlobal::set_texture(clouds_color_prevVarId, data.prevCloudsColor->getTexId());
+    ShaderGlobal::set_texture(clouds_colorVarId, *data.nextCloudsColor);
+    ShaderGlobal::set_texture(clouds_prev_taa_weightVarId, data.prevCloudsWeight->getTexId());
     if (taaUseCompute)
     {
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.cloudsTextureColor[(data.frameNo & 1)].getTex2D());
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), data.cloudsTextureWeight[(data.frameNo & 1)].getTex2D());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.cloudsTextureColor->getTex2D());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), data.cloudsTextureWeight->getTex2D());
       if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
       {
         clouds2_taa_cs_has_empty->dispatch_indirect(data.cloudsIndirectBuffer.getBuf(),
@@ -308,8 +334,8 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
     }
     else
     {
-      d3d::set_render_target(data.cloudsTextureColor[(data.frameNo & 1)].getTex2D(), 0);
-      d3d::set_render_target(1, data.cloudsTextureWeight[(data.frameNo & 1)].getTex2D(), 0);
+      d3d::set_render_target(data.cloudsTextureColor->getTex2D(), 0);
+      d3d::set_render_target(1, data.cloudsTextureWeight->getTex2D(), 0);
       d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
       if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
       {
@@ -322,7 +348,7 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
       else
         clouds2_taa_ps.render();
 
-      d3d::resource_barrier({data.cloudsTextureColor[(data.frameNo & 1)].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({data.cloudsTextureColor->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
     if (depthLevels != 1)
     {
@@ -332,22 +358,25 @@ void CloudsRenderer::render(CloudsRendererData &data, const TextureIDPair &depth
         prev_depth.getTex2D()->texmiplevel(-1, -1);
     }
   }
+
   if (data.useBlurredClouds)
   {
-    ShaderGlobal::set_texture(clouds_colorVarId, data.cloudsTextureColor[(data.frameNo & 1)]);
+    ShaderGlobal::set_texture(clouds_colorVarId, *data.cloudsTextureColor);
     if (useCompute)
     {
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.cloudsTextureColor[2].getTex2D());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.nextCloudsColor->getTex2D());
       clouds2_apply_blur_cs->dispatch(dg.x, dg.y, 1);
-      d3d::resource_barrier({data.cloudsTextureColor[2].getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE, 0, 0});
+      d3d::resource_barrier({data.nextCloudsColor->getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE, 0, 0});
     }
     else
     {
-      d3d::set_render_target(data.cloudsTextureColor[2].getTex2D(), 0);
+      d3d::set_render_target(data.nextCloudsColor->getTex2D(), 0);
       clouds2_apply_blur_ps.render();
-      d3d::resource_barrier({data.cloudsTextureColor[2].getTex2D(), RB_RW_RENDER_TARGET | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({data.nextCloudsColor->getTex2D(), RB_RW_RENDER_TARGET | RB_STAGE_PIXEL, 0, 0});
     }
-    ShaderGlobal::set_texture(clouds_colorVarId, data.cloudsTextureColor[2]);
+    ShaderGlobal::set_texture(clouds_colorVarId, *data.nextCloudsColor);
+    G_ASSERT(data.cloudsBlurTextureColor == nullptr || !acquare_new_resource);
+    data.cloudsBlurTextureColor = data.nextCloudsColor;
   }
 
   currentCloudsOfs = cloudsOfs;
@@ -400,16 +429,15 @@ void CloudsRenderer::renderFull(CloudsRendererData &data, const TextureIDPair &d
   ShaderGlobal::set_color4(clouds_target_depth_gbuf_transformVarId, target_depth_transform);
   ShaderGlobal::set_int(clouds_has_close_sequenceVarId, data.clouds_color_close.getTex2D() ? 1 : 0);
   ShaderGlobal::set_texture(clouds_depth_gbufVarId, downsampled_depth.getId());
-  if (!data.cloudsTextureColor[2])
+  if (!data.cloudsColorPoolRT)
   {
     renderDirect(data);
     return;
   }
   TIME_D3D_PROFILE(apply_bilateral);
   data.setVars();
-  const int frameNo = (data.frameNo & 1);
   ShaderGlobal::set_int(clouds_use_blur_applyVarId, data.useBlurredClouds);
-  ShaderGlobal::set_texture(clouds_colorVarId, data.useBlurredClouds ? data.cloudsTextureColor[2] : data.cloudsTextureColor[frameNo]);
+  ShaderGlobal::set_texture(clouds_colorVarId, data.useBlurredClouds ? *data.cloudsBlurTextureColor : *data.cloudsTextureColor);
   int depthLevels;
   int level = getNotLesserDepthLevel(data, depthLevels, downsampled_depth.getTex2D());
   if (level != 0)
@@ -426,6 +454,10 @@ void CloudsRenderer::renderFull(CloudsRendererData &data, const TextureIDPair &d
   {
     clouds2_apply.render();
   }
+
+  if (data.useBlurredClouds)
+    data.cloudsBlurTextureColor = nullptr;
+
   if (level != 0)
     downsampled_depth.getTex2D()->texmiplevel(-1, -1);
 }

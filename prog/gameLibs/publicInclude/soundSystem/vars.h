@@ -51,36 +51,33 @@ void set_vars_fmt(const char *format, EventHandle event_handle);
 #define SOUND_MAKE_VAR_ID(VAR)      ids[idx++] = sndsys::get_var_id(handle_, #VAR);
 #define SOUND_MAKE_VAR_ID_GUID(VAR) ids[idx++] = sndsys::get_var_id(event_id_, #VAR, false);
 
-#define SND_DEF_VARS(NAME, ...)                                \
-  struct Vars##NAME final                                      \
-  {                                                            \
-    static constexpr int capacity = SND_PP_NARG(__VA_ARGS__);  \
-    union                                                      \
-    {                                                          \
-      struct                                                   \
-      {                                                        \
-        float __VA_ARGS__;                                     \
-      };                                                       \
-      carray<float, capacity> values = {};                     \
-      G_STATIC_ASSERT(eastl::is_pod<decltype(values)>::value); \
-    };                                                         \
-    inline void init(sndsys::EventHandle handle_)              \
-    {                                                          \
-      intptr_t idx = 0;                                        \
-      SND_FOR_EACH(SOUND_MAKE_VAR_ID, __VA_ARGS__)             \
-    }                                                          \
-    inline void init(const sndsys::FMODGUID &event_id_)        \
-    {                                                          \
-      intptr_t idx = 0;                                        \
-      SND_FOR_EACH(SOUND_MAKE_VAR_ID_GUID, __VA_ARGS__)        \
-    }                                                          \
-    inline void apply(sndsys::EventHandle handle_) const       \
-    {                                                          \
-      sndsys::set_vars(handle_, ids, values);                  \
-    }                                                          \
-                                                               \
-  protected:                                                   \
-    carray<sndsys::VarId, capacity> ids = {};                  \
+#define SND_DEF_VARS(NAME, ...)                                                                      \
+  struct Vars##NAME final                                                                            \
+  {                                                                                                  \
+    static constexpr int capacity = SND_PP_NARG(__VA_ARGS__);                                        \
+    union                                                                                            \
+    {                                                                                                \
+      struct                                                                                         \
+      {                                                                                              \
+        float __VA_ARGS__;                                                                           \
+      };                                                                                             \
+      carray<float, capacity> values = {};                                                           \
+      G_STATIC_ASSERT(eastl::is_pod<decltype(values)>::value);                                       \
+    };                                                                                               \
+    inline void init(sndsys::EventHandle handle_)                                                    \
+    {                                                                                                \
+      intptr_t idx = 0;                                                                              \
+      SND_FOR_EACH(SOUND_MAKE_VAR_ID, __VA_ARGS__)                                                   \
+    }                                                                                                \
+    inline void init(const sndsys::FMODGUID &event_id_)                                              \
+    {                                                                                                \
+      intptr_t idx = 0;                                                                              \
+      SND_FOR_EACH(SOUND_MAKE_VAR_ID_GUID, __VA_ARGS__)                                              \
+    }                                                                                                \
+    inline void apply(sndsys::EventHandle handle_) const { sndsys::set_vars(handle_, ids, values); } \
+                                                                                                     \
+  protected:                                                                                         \
+    carray<sndsys::VarId, capacity> ids = {};                                                        \
   } NAME
 
 #define SND_DEF_VARS_VALUES(NAME, ...)                                  \

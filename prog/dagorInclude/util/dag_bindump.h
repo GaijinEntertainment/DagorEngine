@@ -27,7 +27,7 @@
 // ```
 //   BINDUMP_BEGIN_LAYOUT(SimpleLayout)
 //     uint64_t value = 123;
-//     List<std::array<double, 4>> colors;
+//     List<eastl::array<double, 4>> colors;
 //     BINDUMP_BEGIN_LIST(InnerLayout)
 //       int data;
 //       BINDUMP_BEGIN_LIST(InnerInnerLayout)
@@ -1433,23 +1433,21 @@ bool streamRead(Master<LayoutClass> &layout, IReader &reader)
     return *this;                                              \
   }
 
-#define BINDUMP_ENABLE_STREAMING(Class, BaseClass, BaseCtor) \
-  using BaseClass::BaseCtor;                                 \
-  Class() = default;                                         \
-  Class(const BaseClass &other) : BaseClass(other)           \
-  {}                                                         \
-  Class(BaseClass &&other) : BaseClass(eastl::move(other))   \
-  {}                                                         \
-  Class &operator=(const BaseClass &other)                   \
-  {                                                          \
-    BaseClass::operator=(other);                             \
-    return *this;                                            \
-  }                                                          \
-  Class &operator=(BaseClass &&other) noexcept               \
-  {                                                          \
-    BaseClass::operator=(eastl::move(other));                \
-    return *this;                                            \
-  }                                                          \
+#define BINDUMP_ENABLE_STREAMING(Class, BaseClass, BaseCtor)  \
+  using BaseClass::BaseCtor;                                  \
+  Class() = default;                                          \
+  Class(const BaseClass &other) : BaseClass(other) {}         \
+  Class(BaseClass &&other) : BaseClass(eastl::move(other)) {} \
+  Class &operator=(const BaseClass &other)                    \
+  {                                                           \
+    BaseClass::operator=(other);                              \
+    return *this;                                             \
+  }                                                           \
+  Class &operator=(BaseClass &&other) noexcept                \
+  {                                                           \
+    BaseClass::operator=(eastl::move(other));                 \
+    return *this;                                             \
+  }                                                           \
   BINDUMP_DECLARE_ASSIGNMENT_OPERATOR(Class, BaseClass::operator=(other))
 
 #define BINDUMP_BEGIN_NON_SERIALIZABLE() bindump::detail::streamer::BeginNonSerializable DAG_CONCAT(__begin_non_serializable, __LINE__)

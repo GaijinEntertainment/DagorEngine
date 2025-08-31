@@ -18,9 +18,9 @@ Computes global time phase (number in range ``[0, 1)``) for specified period and
 Returns ``frac((shadersGlobalTime + offset) / period)`` or ``shadersGlobalTime`` in case ``period == 0``,
 where ``shadersGlobalTime`` is just the time from the start of the game (in seconds).
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { current_time@f1 = time_phase(0, 0); }
+    (ps) { current_time@f1 = time_phase(0, 0); }
 
 ------------------
 float sin(float x)
@@ -28,9 +28,9 @@ float sin(float x)
 
 Computes ``sin`` function.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = sin(3.14); }
+    (ps) { foo@f1 = sin(3.14); }
 
 ------------------
 float cos(float x)
@@ -38,9 +38,9 @@ float cos(float x)
 
 Computes ``cos`` function.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = cos(3.14); }
+    (ps) { foo@f1 = cos(3.14); }
 
 ---------------------------
 float pow(float x, float y)
@@ -48,9 +48,9 @@ float pow(float x, float y)
 
 Raises ``x`` to the power of ``y``.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = pow(1.2, 3.4); }
+    (ps) { foo@f1 = pow(1.2, 3.4); }
 
 --------------------------------
 float4 vecpow(float4 v, float a)
@@ -58,11 +58,11 @@ float4 vecpow(float4 v, float a)
 
 Raises each component of vector ``v`` to the power of ``a``.
 
-.. code-block:: c
+.. code-block:: text
 
-  local float4 v = (1, 2, 3, 4);
-  local float a = 3.33;
-  (ps) { foo@f1 = vecpow(v, a); }
+    local float4 v = (1, 2, 3, 4);
+    local float a = 3.33;
+    (ps) { foo@f1 = vecpow(v, a); }
 
 -------------------
 float sqrt(float x)
@@ -70,9 +70,9 @@ float sqrt(float x)
 
 Computes the square root of ``x``.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = sqrt(1.3); }
+    (ps) { foo@f1 = sqrt(1.3); }
 
 ---------------------------
 float min(float x, float y)
@@ -80,9 +80,9 @@ float min(float x, float y)
 
 Finds the minimum of two values.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = min(-1, 1); }
+    (ps) { foo@f1 = min(-1, 1); }
 
 ---------------------------
 float max(float x, float y)
@@ -90,9 +90,9 @@ float max(float x, float y)
 
 Finds the maximum of two values.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = max(-1, 1); }
+    (ps) { foo@f1 = max(-1, 1); }
 
 -------------------------------------
 float fsel(float a, float b, float c)
@@ -100,9 +100,9 @@ float fsel(float a, float b, float c)
 
 Returns ``(a >= 0.0f) ? b : c``
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { foo@f1 = fsel(1, 2, 3); }
+    (ps) { foo@f1 = fsel(1, 2, 3); }
 
 -------------------------
 float4 sRGBread(float4 v)
@@ -112,10 +112,10 @@ Raises RGB components of ``v`` to the power of ``2.2``.
 
 Returns ``float4(pow(v.r, 2.2f), pow(v.g, 2.2f), pow(v.b, 2.2f), v.a)``
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { srgb_color@f3 = sRGBread(some_color); }
-  // alpha will be discarded when casting to float3
+    (ps) { srgb_color@f3 = sRGBread(some_color); }
+    // alpha will be discarded when casting to float3
 
 -----------------------------------------
 float4 get_dimensions(texture t, int mip)
@@ -130,10 +130,10 @@ Returns ``float4(width, height, depth_or_array_slices, mip_levels)``.
 For cube textures, ``depth_or_array_slices = 1``.
 
 
-.. code-block:: c
+.. code-block:: text
 
-  texture ssao_tex;
-  (ps) { ssao_size@f4 = get_dimensions(ssao_tex, 0); }
+    texture ssao_tex;
+    (ps) { ssao_size@f4 = get_dimensions(ssao_tex, 0); }
 
 ------------------------
 float get_size(buffer b)
@@ -143,10 +143,10 @@ Fetches the size of buffer ``b`` in elements.
 
 Returns ``float(buffer_size_in_elements)``.
 
-.. code-block:: c
+.. code-block:: text
 
-  buffer some_buf;
-  (ps) { buf_size@f1 = get_size(some_buf); }
+    buffer some_buf;
+    (ps) { buf_size@f1 = get_size(some_buf); }
 
 .. warning::
   ``get_size`` of ``(RW)ByteAddressBuffer`` will return the number of DWORDs (4 byte chunks) in a buffer.
@@ -160,9 +160,9 @@ Fetches viewport information.
 
 Returns ``float4(top_left_x, top_left_y, width, height)``.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) { viewport@f4 = get_viewport(); }
+    (ps) { viewport@f4 = get_viewport(); }
 
 -------------------------
 int exists_tex(texture t)
@@ -174,18 +174,18 @@ Return value can be saved to a variable and used for uniform HLSL branching.
 
 Usage:
 
-.. code-block:: c
+.. code-block:: text
 
   texture example_texture;
 
-  (ps) {
-    example_texture@tex2d = example_texture;
-    example_texture_exists@i1 = exists_tex(example_texture);
-  }
+    (ps) {
+      example_texture@tex2d = example_texture;
+      example_texture_exists@i1 = exists_tex(example_texture);
+    }
 
-  hlsl(ps) {
-    if (example_texture_exists) { /* ... */ }
-  }
+    hlsl(ps) {
+      if (example_texture_exists) { /* ... */ }
+    }
 
 Returns ``1`` if texture exists, ``0`` otherwise.
 
@@ -200,19 +200,19 @@ Return value can be saved to a variable and used for uniform HLSL branching.
 
 Usage:
 
-.. code-block:: c
+.. code-block:: text
 
-  buffer example_buffer;
+    buffer example_buffer;
 
-  (ps) {
-    example_buffer@buf = example_buffer hlsl {
-      StructuredBuffer<float> example_buffer@buf;
-    };
-    example_buffer_exists@i1 = exists_buf(example_buffer);
-  }
+    (ps) {
+      example_buffer@buf = example_buffer hlsl {
+        StructuredBuffer<float> example_buffer@buf;
+      };
+      example_buffer_exists@i1 = exists_buf(example_buffer);
+    }
 
-  hlsl(ps) {
-    if (example_buffer_exists) { /* ... */ }
-  }
+    hlsl(ps) {
+      if (example_buffer_exists) { /* ... */ }
+    }
 
 Returns ``1`` if buffer exists, ``0`` otherwise.

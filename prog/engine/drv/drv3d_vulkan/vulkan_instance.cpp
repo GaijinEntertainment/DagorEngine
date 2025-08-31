@@ -9,13 +9,15 @@
 #include <generic/dag_staticTab.h>
 
 #include "vulkan_loader.h"
+#include "dlss.h"
+#include "streamline_adapter.h"
 
 using namespace drv3d_vulkan;
 
 namespace
 {
 StaticTab<const char *, drv3d_vulkan::VulkanInstance::ExtensionCount> get_all_supported_extension_names(
-  const eastl::vector<VkExtensionProperties> &ext_list)
+  const dag::Vector<VkExtensionProperties> &ext_list)
 {
   StaticTab<const char *, VulkanInstance::ExtensionCount> result;
   for (auto &&ext : ext_list)
@@ -193,9 +195,8 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
   Tab<const char *> allRequiredInstanceExtensions;
   allRequiredInstanceExtensions = instanceExtensionSet;
 
-  if (cb)
-  {
-    char *desiredRendererExtensions = const_cast<char *>(cb->desiredRendererInstanceExtensions());
+  auto injectExtensions = [&](const char *injection) {
+    char *desiredRendererExtensions = const_cast<char *>(injection);
     while (desiredRendererExtensions && *desiredRendererExtensions)
     {
       char *currentExtension = desiredRendererExtensions;
@@ -216,12 +217,20 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
       if (!dupe)
         allRequiredInstanceExtensions.push_back(currentExtension);
     }
-  }
+  };
+
+  if (cb)
+    injectExtensions(cb->desiredRendererInstanceExtensions());
+
+#if !USE_STREAMLINE_FOR_DLSS
+  for (auto &ext : Globals::dlss.getRequiredInstanceExtensions())
+    injectExtensions(ext.c_str());
+#endif
 
   return allRequiredInstanceExtensions;
 }
 
-eastl::vector<VkLayerProperties> drv3d_vulkan::build_instance_layer_list(VulkanLoader &loader, const DataBlock *layer_list,
+dag::Vector<VkLayerProperties> drv3d_vulkan::build_instance_layer_list(VulkanLoader &loader, const DataBlock *layer_list,
   int debug_level, bool enable_render_doc_layer)
 {
   auto layerList = loader.getLayers();

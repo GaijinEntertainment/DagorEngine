@@ -5,9 +5,10 @@
 #pragma once
 
 #include <math/dag_e3dColor.h>
-#include <util/dag_string.h>
+#include <EASTL/string.h>
 #include <sqrat.h>
 
+class DataBlock;
 
 namespace darg
 {
@@ -59,6 +60,8 @@ public:
 
   Picture *getPicture(const Sqrat::Object &key) const;
 
+  DataBlock *getBlk(const Sqrat::Object &key) const;
+
   bool getSound(const StringKeys *csk, const char *field_name, Sqrat::string &out_name, Sqrat::Object &out_params, float &out_vol);
   bool getSound(const StringKeys *csk, const Sqrat::Object &field_name, Sqrat::string &out_name, Sqrat::Object &out_params,
     float &out_vol);
@@ -90,7 +93,7 @@ private:
   static void trace_error(const char *message, const Sqrat::Object &container, const Sqrat::Object &key);
 
 public:
-  String text;
+  eastl::string text;
   Sqrat::Object uniqueKey;
   Sqrat::Table scriptDesc;
   Sqrat::Object scriptBuilder;

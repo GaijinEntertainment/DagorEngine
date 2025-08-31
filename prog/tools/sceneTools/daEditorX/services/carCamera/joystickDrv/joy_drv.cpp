@@ -80,12 +80,12 @@ public:
   UserInputDevice *dev;
 
 public:
-  virtual unsigned getButtonBits() { return rs.buttons.getWord0(); }
+  unsigned getButtonBits() override { return rs.buttons.getWord0(); }
 
-  virtual bool isButtonPressed(int button_id) { return ((DeviceWithButtonsState *)dev)->isButtonPressed(button_id); }
+  bool isButtonPressed(int button_id) override { return ((DeviceWithButtonsState *)dev)->isButtonPressed(button_id); }
 
-  virtual UserInputDevice *getDevice() { return dev; }
-  virtual bool isToggleButton(int button_id) { return false; }
+  UserInputDevice *getDevice() override { return dev; }
+  bool isToggleButton(int button_id) override { return false; }
 };
 
 
@@ -105,11 +105,11 @@ public:
 
   GuiJoyClassInpDev() {}
 
-  virtual UserInputDeviceState *getCurrentState() { return this; }
+  UserInputDeviceState *getCurrentState() override { return this; }
 
-  virtual void saveState(IGenSave &) {}
+  void saveState(IGenSave &) override {}
 
-  virtual UserInputDeviceState *loadState(IGenLoad &crd)
+  UserInputDeviceState *loadState(IGenLoad &crd) override
   {
     GuiJoyState *js = new (tmpmem) GuiJoyState;
     crd.read(&js->rs, sizeof(js->rs));
@@ -117,7 +117,7 @@ public:
     return js;
   }
 
-  virtual const char *getButtonName(int n)
+  const char *getButtonName(int n) override
   {
     static const char *prettyNames[] = {"^x:DU^", "^x:DD^", "^x:DL^", "^x:DR^",
       "Start", //"Start",
@@ -130,13 +130,13 @@ public:
   }
 
   // DeviceWithButtonsState interface implementation
-  virtual unsigned getButtonBits()
+  unsigned getButtonBits() override
   {
     HumanInput::IGenJoystick *j = global_cls_drv_joy->getDefaultJoystick();
     return j ? j->getRawState().buttons.getWord0() : 0;
   }
 
-  virtual bool isButtonPressed(int button_id)
+  bool isButtonPressed(int button_id) override
   {
     HumanInput::IGenJoystick *j = global_cls_drv_joy->getDefaultJoystick();
 
@@ -161,8 +161,8 @@ public:
     }
   }
 
-  virtual UserInputDevice *getDevice() { return this; }
-  virtual bool isToggleButton(int button_id) { return false; }
+  UserInputDevice *getDevice() override { return this; }
+  bool isToggleButton(int button_id) override { return false; }
 };
 
 //-----------------------------------------------------------------------------
@@ -171,10 +171,10 @@ public:
 class GuiJoyClient : public HumanInput::IGenJoystickClient
 {
 public:
-  virtual void attached(HumanInput::IGenJoystick *joy) {}
-  virtual void detached(HumanInput::IGenJoystick *joy) {}
+  void attached(HumanInput::IGenJoystick *joy) override {}
+  void detached(HumanInput::IGenJoystick *joy) override {}
 
-  virtual void stateChanged(HumanInput::IGenJoystick * /*joy*/, int /*joy_ord_id*/) {}
+  void stateChanged(HumanInput::IGenJoystick * /*joy*/, int /*joy_ord_id*/) override {}
 };
 
 
@@ -189,11 +189,12 @@ IJoyCallback *joy_cb = 0;
 class AdrenalinJoyRestartProc : public SRestartProc
 {
 public:
-  const char *procname() { return "AdrenalinJoy"; }
+  const char *procname() override { return "AdrenalinJoy"; }
   AdrenalinJoyRestartProc() : SRestartProc(RESTART_INPUT | RESTART_VIDEO) {}
 
-  void startup()
+  void startup() override
   {
+#if _TARGET_PC_WIN // TODO: tools Linux porting: AdrenalinJoyRestartProc::startup
     joy_cls_drv = HumanInput::createXinputJoystickClassDriver();
     if (joy_cls_drv)
     {
@@ -210,9 +211,12 @@ public:
         joy_cls_drv->enable(true);
       }
     }
+#else
+    LOGERR_CTX("TODO: tools Linux porting: AdrenalinJoyRestartProc::startup");
+#endif
   }
 
-  void shutdown()
+  void shutdown() override
   {
     if (joy_cls_drv)
       joy_cls_drv->destroy();
@@ -253,7 +257,12 @@ void update_joysticks()
 void startup_joystick(IJoyCallback *_joy_cb)
 {
   joy_cb = _joy_cb;
+
+#if _TARGET_PC_WIN // TODO: tools Linux porting: startup_joystick: HumanInput::startupDInput
   HumanInput::startupDInput();
+#else
+  LOGERR_CTX("TODO: tools Linux porting: startup_joystick: HumanInput::startupDInput");
+#endif
 
   joy_rproc.demandInit();
   add_restart_proc(joy_rproc);

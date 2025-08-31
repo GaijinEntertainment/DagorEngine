@@ -6,32 +6,442 @@
 
 #include "TextEditor.h"
 #include "TextEditorFuzzer.h"
+#include "FileNameUtils.h"
+#include "FontManager.h"
 
 #define IMGUI_SCROLLBAR_WIDTH 14.0f
 #define POS_TO_COORDS_COLUMN_OFFSET 0.33f
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui.h" // for imGui::GetCurrentWindow()
+#include "imgui.h"
+#undef IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui_internal.h" // for NavLayer
+
+
+// ------------------------------------ //
+// ---------- Generic utils ----------- //
+
+// https://en.wikipedia.org/wiki/UTF-8
+// We assume that the char is a standalone character (<128) or a leading byte of an UTF-8 code sequence (non-10xxxxxx code)
+static int UTF8CharLength(char c)
+{
+	if (((unsigned char)c & 0xFE) == 0xFC)
+		return 6;
+	if (((unsigned char)c & 0xFC) == 0xF8)
+		return 5;
+	if (((unsigned char)c & 0xF8) == 0xF0)
+		return 4;
+	else if (((unsigned char)c & 0xF0) == 0xE0)
+		return 3;
+	else if (((unsigned char)c & 0xE0) == 0xC0)
+		return 2;
+	return 1;
+}
+
+static bool IsBeginningOfUTF8Sequence(char c)
+{
+	return ((unsigned char)c & 0xC0) != 0x80;
+}
+
+// "Borrowed" from ImGui source
+static inline int ImTextCharToUtf8(char* buf, int buf_size, unsigned int c)
+{
+	if (c < 0x80)
+	{
+		buf[0] = (char)c;
+		return 1;
+	}
+	if (c < 0x800)
+	{
+		if (buf_size < 2) return 0;
+		buf[0] = (char)(0xc0 + (c >> 6));
+		buf[1] = (char)(0x80 + (c & 0x3f));
+		return 2;
+	}
+	if (c >= 0xdc00 && c < 0xe000)
+	{
+		return 0;
+	}
+	if (c >= 0xd800 && c < 0xdc00)
+	{
+		if (buf_size < 4) return 0;
+		buf[0] = (char)(0xf0 + (c >> 18));
+		buf[1] = (char)(0x80 + ((c >> 12) & 0x3f));
+		buf[2] = (char)(0x80 + ((c >> 6) & 0x3f));
+		buf[3] = (char)(0x80 + ((c) & 0x3f));
+		return 4;
+	}
+	//else if (c < 0x10000)
+	{
+		if (buf_size < 3) return 0;
+		buf[0] = (char)(0xe0 + (c >> 12));
+		buf[1] = (char)(0x80 + ((c >> 6) & 0x3f));
+		buf[2] = (char)(0x80 + ((c) & 0x3f));
+		return 3;
+	}
+}
+
+static inline bool CharIsWordChar(char ch)
+{
+	int sizeInBytes = UTF8CharLength(ch);
+	return sizeInBytes > 1 ||
+		ch >= 'a' && ch <= 'z' ||
+		ch >= 'A' && ch <= 'Z' ||
+		ch >= '0' && ch <= '9' ||
+		ch == '_';
+}
+
+
+static int UTF8CharLength0(char c)
+{
+	unsigned char uc = static_cast<unsigned char>(c);
+	if (uc < 0x80) return 1;
+	else if ((uc & 0xE0) == 0xC0) return 2;
+	else if ((uc & 0xF0) == 0xE0) return 3;
+	else if ((uc & 0xF8) == 0xF0) return 4;
+	return 0; // Invalid start byte
+}
+
+static bool IsValidContinuationByte(char c)
+{
+	return ((unsigned char)c & 0xC0) == 0x80;
+}
+
+
+static const eastl::string& FixUtf8String(const eastl::string &s, eastl::string &buffer)
+{
+	bool isCorrect = true;
+	int seqLength = 0;
+	int expectedLength = 0;
+
+	// First pass: Check correctness
+	for (int i = 0; i < s.length(); ++i)
+	{
+		if (seqLength <= 0)
+		{
+			if (!IsBeginningOfUTF8Sequence(s[i]))
+			{
+				isCorrect = false;
+				break;
+			}
+			expectedLength = UTF8CharLength0(s[i]);
+			if (expectedLength == 0 || i + expectedLength > s.length())
+			{
+				isCorrect = false;
+				break;
+			}
+			seqLength = expectedLength - 1;
+		}
+		else
+		{
+			if (!IsValidContinuationByte(s[i]))
+			{
+				isCorrect = false;
+				break;
+			}
+			--seqLength;
+		}
+	}
+	if (isCorrect && seqLength > 0)
+	{
+		// Incomplete sequence at the end
+		isCorrect = false;
+	}
+
+	if (isCorrect)
+		return s;
+
+	// Second pass: Fix the string
+	buffer.clear();
+	buffer.reserve(s.length());
+	seqLength = 0;
+	expectedLength = 0;
+	int startOfCodepoint = 0;
+
+	for (int i = 0; i < s.length(); ++i)
+	{
+		if (seqLength <= 0)
+		{
+			startOfCodepoint = buffer.length();
+			if (!IsBeginningOfUTF8Sequence(s[i]))
+			{
+				buffer.push_back('?');
+			}
+			else
+			{
+				expectedLength = UTF8CharLength0(s[i]);
+				if (expectedLength == 0 || i + expectedLength > s.length())
+				{
+					buffer.push_back('?');
+				}
+				else
+				{
+					buffer.push_back(s[i]);
+					seqLength = expectedLength - 1;
+				}
+			}
+		}
+		else
+		{
+			if (!IsValidContinuationByte(s[i]))
+			{
+				for (int j = startOfCodepoint; j < buffer.length(); ++j)
+					buffer[j] = '?';
+
+				if (IsBeginningOfUTF8Sequence(s[i]))
+				{
+					expectedLength = UTF8CharLength0(s[i]);
+					if (expectedLength == 0 || i + expectedLength > s.length())
+					{
+						buffer.push_back('?');
+						seqLength = 0;
+					}
+					else
+					{
+						startOfCodepoint = buffer.length();
+						buffer.push_back(s[i]);
+						seqLength = expectedLength - 1;
+					}
+				}
+				else
+				{
+					buffer.push_back('?');
+					seqLength = 0;
+				}
+			}
+			else
+			{
+				buffer.push_back(s[i]);
+				--seqLength;
+			}
+		}
+	}
+
+	// Check if any incomplete sequence remains at the end
+	if (seqLength > 0)
+	{
+		for (int j = startOfCodepoint; j < buffer.length(); ++j)
+			buffer[j] = '?';
+	}
+
+	return buffer;
+}
+
 
 // --------------------------------------- //
 // ------------- Exposed API ------------- //
 
 #define HIGHLIGHT_MAX_FILE_LINES 30000
-#define HIGHLIGHT_MAX_LINE_LENGTH 4000
+#define HIGHLIGHT_MAX_LINE_LENGTH 2000
+#define COLORIZE_MAX_LINE_LENGTH 2000
+#define COLORIZE_LINES_PER_FRAME 800
 #define MAX_HIGHLIGHTS_PER_LINE 20
 #define MAX_HIGHLIGHTS_PER_FILE 400
 #define HIGHLIGHT_FIRST_PASS_LINES_DISTANCE 30
+#define AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS 7
 
 
-TextEditor::TextEditor()
+TextEditor::TextEditor(
+	const char* filePath,
+	int id,
+	int createdFromFolderView,
+	OnFocusedCallback onFocusedCallback,
+	OnShowInFolderViewCallback onShowInFolderViewCallback)
 {
 	SetPalette(defaultPalette);
 	mLines.push_back(Line());
 	tabString = eastl::string(mTabSize, ' ');
+
+	this->id = id;
+	this->createdFromFolderView = createdFromFolderView;
+	this->onFocusedCallback = onFocusedCallback;
+	this->onShowInFolderViewCallback = onShowInFolderViewCallback;
+	this->codeFontSize = 18;
+	if (filePath == nullptr)
+		panelName = "untitled##" + eastl::to_string((size_t)this);
+	else
+	{
+		hasAssociatedFile = true;
+		associatedFile = eastl::string(filePath);
+		auto fileName = extract_file_name(filePath);
+		auto fileExt = extract_file_extension(filePath);
+		panelName = fileName + "##" + eastl::to_string((size_t)this) + filePath;
+		auto lang = extensionToLanguageDefinition.find(fileExt);
+		if (lang != extensionToLanguageDefinition.end())
+			SetLanguageDefinition(lang->second);
+	}
 }
 
 TextEditor::~TextEditor()
 {
 	ClearHighlights();
+}
+
+void TextEditor::CancelAutocomplete()
+{
+	if (ignoreAutocompleteCancellation)
+		return;
+
+	waitingForAutocomplete = false;
+	autocompleteSuggestions.clear();
+	autocompleteDescriptions.clear();
+	autocompleteSuggestionIndex = 0;
+}
+
+void TextEditor::StartAutocompleteTimer()
+{
+	autocompleteTriggerTime = ImGui::GetTime() + autocompleteTime;
+	waitingForAutocomplete = true;
+	autocompleteTriggered = false;
+}
+
+void TextEditor::ShowAutocomplete()
+{
+	autocompleteTriggerTime = ImGui::GetTime();
+	waitingForAutocomplete = true;
+	autocompleteTriggered = false;
+}
+
+eastl::string TextEditor::GetAutocompletePrefix()
+{
+	if (mLines.empty())
+		return "";
+
+	auto coord = GetActualCursorCoordinates();
+	int cindex = GetCharacterIndexR(coord);
+	auto& line = mLines[coord.mLine];
+
+	if (cindex < (int)line.size() - 1 && (isalnum(line[cindex].mChar) || line[cindex].mChar == '_'))
+		return "";
+
+	int pos = cindex;
+	while (pos > 0 && (isalnum(line[pos - 1].mChar) || line[pos - 1].mChar == '_'))
+		pos--;
+
+	eastl::string prefix;
+	prefix.reserve(cindex - pos + 1);
+	for (int i = pos; i < cindex; i++)
+		prefix.push_back(line[i].mChar);
+
+	return prefix;
+}
+
+void TextEditor::SetAutocompleteSuggestions(const eastl::string& prefix, const eastl::string& suggestions_)
+{
+	eastl::string buffer;
+	const eastl::string &suggestions = FixUtf8String(suggestions_, buffer);
+
+	autocompleteSuggestions.clear();
+	autocompleteDescriptions.clear();
+	eastl::string curPrefix = GetAutocompletePrefix();
+	if (curPrefix != prefix)
+		return;
+
+	int start = 0;
+	for (int i = 0; i < suggestions.length(); i++)
+		if (suggestions[i] == '\n' || suggestions[i] == ' ' || suggestions[i] == ',')
+		{
+			if (i > start)
+				autocompleteSuggestions.push_back(suggestions.substr(start, i - start));
+			start = i + 1;
+		}
+
+	if (start < suggestions.length())
+		autocompleteSuggestions.push_back(suggestions.substr(start, suggestions.length() - start));
+
+	autocompleteSuggestionIndex = 0;
+	autocompletePrefixLength = prefix.length();
+}
+
+void TextEditor::SetAutocompleteSuggestions(const eastl::string& prefix, eastl::vector<eastl::string>& suggestions)
+{
+	eastl::string curPrefix = GetAutocompletePrefix();
+	if (curPrefix != prefix)
+	{
+		autocompleteSuggestions.clear();
+		autocompleteDescriptions.clear();
+		return;
+	}
+
+	autocompleteSuggestions.swap(suggestions);
+	eastl::string buffer;
+
+	for (eastl::string & s : autocompleteSuggestions)
+	{
+		const eastl::string &fixedStr = FixUtf8String(s, buffer);
+		if (fixedStr.c_str() == buffer.c_str())
+			s = fixedStr;
+	}
+
+	autocompleteSuggestionIndex = 0;
+	autocompletePrefixLength = prefix.length();
+}
+
+void TextEditor::SetAutocompleteSuggestions(const eastl::string& prefix, eastl::vector<eastl::string>& suggestions,
+	eastl::vector<eastl::string>& descriptions)
+{
+	EASTL_ASSERT(suggestions.size() == descriptions.size());
+
+	eastl::string curPrefix = GetAutocompletePrefix();
+	if (curPrefix != prefix)
+	{
+		autocompleteSuggestions.clear();
+		autocompleteDescriptions.clear();
+		return;
+	}
+
+	autocompleteSuggestions.swap(suggestions);
+	autocompleteDescriptions.swap(descriptions);
+	eastl::string buffer;
+
+	for (eastl::string & s : autocompleteSuggestions)
+	{
+		const eastl::string &fixedStr = FixUtf8String(s, buffer);
+		if (fixedStr.c_str() == buffer.c_str())
+			s = fixedStr;
+	}
+
+	for (eastl::string & s : autocompleteDescriptions)
+	{
+		const eastl::string &fixedStr = FixUtf8String(s, buffer);
+		if (fixedStr.c_str() == buffer.c_str())
+			s = fixedStr;
+	}
+
+	autocompleteSuggestionIndex = 0;
+	autocompletePrefixLength = prefix.length();
+}
+
+void TextEditor::ApplyAutocompleteSuggestion()
+{
+	if (mLines.empty())
+		return;
+
+	if (autocompleteSuggestions.empty() || autocompleteSuggestionIndex >= (int)autocompleteSuggestions.size())
+		return;
+
+	eastl::string prefix = GetAutocompletePrefix();
+	ignoreAutocompleteCancellation = true;
+
+	UndoRecord u;
+	u.mBefore = mState;
+
+	auto prefixEnd = GetActualCursorCoordinates();
+	auto prefixStart = prefixEnd;
+	prefixStart.mColumn -= prefix.length();
+
+	u.mOperations.push_back({ GetText(prefixStart, prefixEnd), prefixStart, prefixEnd, UndoOperationType::Delete });
+
+	DeleteRange(prefixStart, prefixEnd);
+	SetCursorPosition(prefixStart);
+
+	InsertTextAtCursor(autocompleteSuggestions[autocompleteSuggestionIndex]);
+	u.mOperations.push_back({ autocompleteSuggestions[autocompleteSuggestionIndex], prefixStart, GetActualCursorCoordinates(), UndoOperationType::Add });
+
+	u.mAfter = mState;
+	AddUndo(u);
+
+	ignoreAutocompleteCancellation = false;
+	CancelAutocomplete();
 }
 
 void TextEditor::SetPalette(PaletteId aValue)
@@ -241,13 +651,20 @@ void TextEditor::Cut()
 			AddUndo(u);
 		}
 	}
+
+	CancelAutocomplete();
 }
 
 void TextEditor::Paste()
 {
-	const char* text = ImGui::GetClipboardText();
-	if (!text || !text[0])
+	const char* clipboardText = ImGui::GetClipboardText();
+	if (!clipboardText || !clipboardText[0])
 		return;
+
+	eastl::string tmp = clipboardText;
+	eastl::string buffer;
+	const eastl::string &validText = FixUtf8String(tmp, buffer);
+	const char * text = validText.c_str();
 
 	if (!mLines.empty() && !AnyCursorHasSelection())
 	{
@@ -288,7 +705,8 @@ void TextEditor::Paste()
 		}
 	}
 
-	PasteText(ImGui::GetClipboardText());
+	PasteText(text);
+	CancelAutocomplete();
 }
 
 void TextEditor::PasteText(const char * text)
@@ -351,6 +769,7 @@ void TextEditor::PasteText(const char * text)
 
 	u.mAfter = mState;
 	AddUndo(u);
+	CancelAutocomplete();
 }
 
 void TextEditor::ClearHighlights()
@@ -429,6 +848,7 @@ void TextEditor::Undo(bool group)
 	}
 
 	CancelCloseChars();
+	CancelAutocomplete();
 }
 
 void TextEditor::Redo(bool group)
@@ -448,13 +868,16 @@ void TextEditor::Redo(bool group)
 		mUndoBuffer[mUndoIndex++].Redo(this);
 
 	CancelCloseChars();
+	CancelAutocomplete();
 }
 
 void TextEditor::SetText(const eastl::string& aText)
 {
+	eastl::string buffer;
+	const eastl::string &validText = FixUtf8String(aText, buffer);
 	mLines.clear();
 	mLines.emplace_back(Line());
-	for (auto chr : aText)
+	for (auto chr : validText)
 	{
 		if (chr == '\r')
 			continue;
@@ -474,7 +897,9 @@ void TextEditor::SetText(const eastl::string& aText)
 
 	ColorizeAll();
 	CancelCloseChars();
+	CancelAutocomplete();
 }
+
 
 eastl::string TextEditor::GetText(const Coordinates& aStart, const Coordinates& aEnd) const
 {
@@ -519,6 +944,7 @@ eastl::string TextEditor::GetText(const Coordinates& aStart, const Coordinates& 
 void TextEditor::SetTextLines(const eastl::vector<eastl::string>& aLines)
 {
 	mLines.clear();
+	eastl::string buffer;
 
 	if (aLines.empty())
 		mLines.emplace_back(Line());
@@ -528,7 +954,7 @@ void TextEditor::SetTextLines(const eastl::vector<eastl::string>& aLines)
 
 		for (size_t i = 0; i < aLines.size(); ++i)
 		{
-			const eastl::string& aLine = aLines[i];
+			const eastl::string &aLine = FixUtf8String(aLines[i], buffer);
 
 			mLines[i].reserve(aLine.size());
 			for (size_t j = 0; j < aLine.size(); ++j)
@@ -565,7 +991,7 @@ eastl::vector<eastl::string> TextEditor::GetTextLines() const
 	return result;
 }
 
-bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2& aSize, bool aBorder)
+bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, bool aMenuIsFocused, const ImVec2& aSize, bool aBorder)
 {
 	if (mCursorPositionChanged)
 	{
@@ -582,13 +1008,28 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 		HighlightSelectedText();
 	}
 
+	if (waitingForAutocomplete && ImGui::GetTime() >= autocompleteTriggerTime && !autocompleteTriggered)
+	{
+		autocompleteTriggered = true;
+		pushEditorRequest(EDITOR_REQ_AUTOCOMPLETE_TRIGGER);
+	}
+
+	if (wholeTextColorizationStarted)
+	{
+		ColorizeRange(colorizationProgress, colorizationProgress + COLORIZE_LINES_PER_FRAME);
+		colorizationProgress += COLORIZE_LINES_PER_FRAME;
+		if (colorizationProgress >= mLines.size())
+			wholeTextColorizationStarted = false;
+	}
+
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
 	ImGui::BeginChild(aTitle, aSize, aBorder, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs);
 
 	bool isFocused = ImGui::IsWindowFocused();
-	HandleKeyboardInputs(aParentIsFocused);
+	if (!aMenuIsFocused)
+		HandleKeyboardInputs(aParentIsFocused);
 	HandleMouseInputs();
 	Render(aParentIsFocused);
 
@@ -598,74 +1039,6 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 	ImGui::PopStyleColor();
 
 	return isFocused;
-}
-
-// ------------------------------------ //
-// ---------- Generic utils ----------- //
-
-// https://en.wikipedia.org/wiki/UTF-8
-// We assume that the char is a standalone character (<128) or a leading byte of an UTF-8 code sequence (non-10xxxxxx code)
-static int UTF8CharLength(char c)
-{
-	if ((c & 0xFE) == 0xFC)
-		return 6;
-	if ((c & 0xFC) == 0xF8)
-		return 5;
-	if ((c & 0xF8) == 0xF0)
-		return 4;
-	else if ((c & 0xF0) == 0xE0)
-		return 3;
-	else if ((c & 0xE0) == 0xC0)
-		return 2;
-	return 1;
-}
-
-// "Borrowed" from ImGui source
-static inline int ImTextCharToUtf8(char* buf, int buf_size, unsigned int c)
-{
-	if (c < 0x80)
-	{
-		buf[0] = (char)c;
-		return 1;
-	}
-	if (c < 0x800)
-	{
-		if (buf_size < 2) return 0;
-		buf[0] = (char)(0xc0 + (c >> 6));
-		buf[1] = (char)(0x80 + (c & 0x3f));
-		return 2;
-	}
-	if (c >= 0xdc00 && c < 0xe000)
-	{
-		return 0;
-	}
-	if (c >= 0xd800 && c < 0xdc00)
-	{
-		if (buf_size < 4) return 0;
-		buf[0] = (char)(0xf0 + (c >> 18));
-		buf[1] = (char)(0x80 + ((c >> 12) & 0x3f));
-		buf[2] = (char)(0x80 + ((c >> 6) & 0x3f));
-		buf[3] = (char)(0x80 + ((c) & 0x3f));
-		return 4;
-	}
-	//else if (c < 0x10000)
-	{
-		if (buf_size < 3) return 0;
-		buf[0] = (char)(0xe0 + (c >> 12));
-		buf[1] = (char)(0x80 + ((c >> 6) & 0x3f));
-		buf[2] = (char)(0x80 + ((c) & 0x3f));
-		return 3;
-	}
-}
-
-static inline bool CharIsWordChar(char ch)
-{
-	int sizeInBytes = UTF8CharLength(ch);
-	return sizeInBytes > 1 ||
-		ch >= 'a' && ch <= 'z' ||
-		ch >= 'A' && ch <= 'Z' ||
-		ch >= '0' && ch <= '9' ||
-		ch == '_';
 }
 
 // ------------------------------------ //
@@ -845,6 +1218,7 @@ void TextEditor::SetCursorPosition(const Coordinates& aPosition, int aCursor, bo
 	}
 
 	CancelCloseChars();
+	CancelAutocomplete();
 }
 
 int TextEditor::InsertTextAt(Coordinates& /* inout */ aWhere, const char* aValue)
@@ -883,10 +1257,21 @@ int TextEditor::InsertTextAt(Coordinates& /* inout */ aWhere, const char* aValue
 		}
 		else
 		{
+			Line text;
 			auto& line = mLines[aWhere.mLine];
-			auto d = UTF8CharLength(*aValue);
-			while (d-- > 0 && *aValue != '\0')
-				AddGlyphToLine(aWhere.mLine, cindex++, Glyph(*aValue++, PaletteIndex::Default));
+			int startIndex = cindex;
+
+			while (*aValue != '\0' && *aValue != '\r' && *aValue != '\n')
+			{
+				auto d = UTF8CharLength(*aValue);
+				while (d-- > 0 && *aValue != '\0' && *aValue != '\r' && *aValue != '\n')
+				{
+					text.emplace_back(Glyph(*aValue++, PaletteIndex::Default));
+					cindex++;
+				}
+			}
+
+			AddGlyphsToLine(aWhere.mLine, startIndex, text.begin(), text.end());
 			aWhere.mColumn = GetCharacterColumn(aWhere.mLine, cindex);
 		}
 	}
@@ -1139,7 +1524,7 @@ void TextEditor::FindPreferredIndentChar(int lineNum)
 	preferredIndentChar = tabs > spaces ? '\t' : ' ';
 }
 
-void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
+void TextEditor::EnterCharacter(ImWchar aChar, bool aShift, int depth, bool suppressIndent)
 {
 	EASTL_ASSERT(!mReadOnly);
 
@@ -1183,16 +1568,18 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 
 		EASTL_ASSERT(!mLines.empty());
 
+		auto& line = mLines[coord.mLine];
+		int idx = GetCharacterIndexR(coord);
+		char charBefore = idx > 0 ? line[idx - 1].mChar : 0;
+		char charAfter = idx < (int)line.size() ? line[idx].mChar : 0;
+
 		if (mState.mCurrentCursor == 0 && (aChar == '{' || aChar == '(' || aChar == '[' || aChar == '\"' || aChar == '\''))
 		{
-			auto& line = mLines[coord.mLine];
-			char charBefore = coord.mColumn > 0 ? line[coord.mColumn - 1].mChar : 0;
-			char charAfter = coord.mColumn < (int)line.size() ? line[coord.mColumn].mChar : 0;
-
 			bool insideString = false;
 			bool insideChar = false;
 			bool insideComment = false; // single line comment
-			for (int i = 0; i < coord.mColumn; i++)
+
+			for (int i = 0; i < idx; i++)
 			{
 				if (line[i].mChar == '\"' && (i == 0 || line[i - 1].mChar != '\\'))
 					insideString = !insideString;
@@ -1209,8 +1596,9 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 		if (mState.mCurrentCursor == 0 && closeCharCoords != Coordinates::Invalid() && GetActualCursorCoordinates(0) == closeCharCoords)
 		{
 			auto& line = mLines[coord.mLine];
-			char charAfter = coord.mColumn < (int)line.size() ? line[coord.mColumn].mChar : 0;
-			if (charAfter == aChar)
+			char charAfter = idx < (int)line.size() ? line[idx].mChar : 0;
+			char charBefore = idx > 0 ? line[idx - 1].mChar : 0;
+			if (charAfter == aChar && charBefore != '\\')
 			{
 				closeCharCoords = Coordinates::Invalid();
 				MoveRight(false, false);
@@ -1218,8 +1606,24 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 			}
 		}
 
+		bool closeCharCoordsValid = closeCharCoords != Coordinates::Invalid();
+
 		if (aChar == '\n')
 		{
+			allowDeleteOfCloseChar = false;
+
+			if (mState.mCurrentCursor == 0 && depth == 0 && AllowNewLineIndentationInBraces())
+				if ((charBefore == '{' && charAfter == '}') || (charBefore == '(' && charAfter == ')') || (charBefore == '[' && charAfter == ']'))
+				{
+					coords.pop_back();
+					EnterCharacter('\n', false, depth + 1, true);
+					EnterCharacter('\n', false, depth + 1, true);
+					MoveUp(1, false);
+					EnterCharacter('\t', false, depth + 1, true);
+					closeCharCoords = Coordinates::Invalid();
+					return;
+				}
+
 			InsertLine(coord.mLine + 1);
 			auto& line = mLines[coord.mLine];
 			auto& newLine = mLines[coord.mLine + 1];
@@ -1233,7 +1637,7 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 
 				for (int i = 0; i < line.size() && unsigned(line[i].mChar) < 128 && isblank(line[i].mChar); ++i)
 				{
-					if (i >= coord.mColumn)
+					if (i >= idx)
 						break;
 					newLine.push_back(line[i]);
 					added.mText += line[i].mChar;
@@ -1242,10 +1646,10 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 				}
 
 				eastl::string lineBeforeCursor;
-				for (int i = 0; i < coord.mColumn && i < (int)line.size(); i++)
+				for (int i = 0; i < idx && i < (int)line.size(); i++)
 					lineBeforeCursor += line[i].mChar;
 
-				if (RequireIndentationAfterNewLine(lineBeforeCursor))
+				if (!suppressIndent && RequireIndentationAfterNewLine(lineBeforeCursor, charAfter))
 				{
 					if (lastIndentChar == ' ')
 						for (int i = 0; i < mTabSize; ++i)
@@ -1304,10 +1708,16 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 				added.mText = buf;
 
 				SetCursorPosition(Coordinates(coord.mLine, GetCharacterColumn(coord.mLine, cindex)), c);
+
+				if (isalnum(aChar) || aChar == '_')
+				  StartAutocompleteTimer();
 			}
 			else
 				continue;
 		}
+
+		if (mState.mCurrentCursor == 0 && closeCharCoordsValid)
+			closeCharCoords = GetActualCursorCoordinates(0);
 
 		added.mEnd = GetActualCursorCoordinates(c);
 		u.mOperations.push_back(added);
@@ -1316,11 +1726,12 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 	u.mAfter = mState;
 	AddUndo(u);
 
-	if (closeChar)
+	if (closeChar && depth == 0)
 	{
-		EnterCharacter(closeChar, false);
+		EnterCharacter(closeChar, false, depth + 1);
 		MoveLeft(false, false);
 		closeCharCoords = GetActualCursorCoordinates(0);
+		allowDeleteOfCloseChar = true;
 	}
 
 	for (const auto& coord : coords)
@@ -1343,10 +1754,14 @@ void TextEditor::Backspace(bool aWordMode)
 			GetActualCursorCoordinates(0) == closeCharCoords)
 		{
 			closeCharCoords = Coordinates::Invalid();
-			MoveRight(false, false);
-			Backspace(false);
-			Backspace(false);
-			return;
+
+			if (allowDeleteOfCloseChar)
+			{
+				MoveRight(false, false);
+				Backspace(false);
+				Backspace(false);
+				return;
+			}
 		}
 
 		EditorState stateBeforeDeleting = mState;
@@ -1918,6 +2333,7 @@ void TextEditor::ToggleLineComment()
 	AddUndo(u);
 
 	CancelCloseChars();
+	CancelAutocomplete();
 }
 
 void TextEditor::RemoveCurrentLines()
@@ -2438,6 +2854,8 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 
 		bool homePressed = ImGui::IsKeyPressed(ImGuiKey_Home) || (ImGui::IsKeyPressed(ImGuiKey_Keypad7) && !io.InputQueueCharacters.Size);
 		bool endPressed = ImGui::IsKeyPressed(ImGuiKey_End) || (ImGui::IsKeyPressed(ImGuiKey_Keypad1) && !io.InputQueueCharacters.Size);
+		bool pageUpPressed = ImGui::IsKeyPressed(ImGuiKey_PageUp) || (ImGui::IsKeyPressed(ImGuiKey_Keypad9) && !io.InputQueueCharacters.Size);
+		bool pageDownPressed = ImGui::IsKeyPressed(ImGuiKey_PageDown) || (ImGui::IsKeyPressed(ImGuiKey_Keypad3) && !io.InputQueueCharacters.Size);
 
 		io.WantCaptureKeyboard = true;
 		io.WantTextInput = true;
@@ -2450,6 +2868,18 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			Redo(true);
 		else if (!mReadOnly && isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_Z))
 			Redo(true);
+		else if (!autocompleteSuggestions.empty() && !alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+			autocompleteSuggestionIndex = Max(0, autocompleteSuggestionIndex - 1);
+		else if (!autocompleteSuggestions.empty() && !alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+			autocompleteSuggestionIndex = Min((int)autocompleteSuggestions.size() - 1, autocompleteSuggestionIndex + 1);
+		else if (!autocompleteSuggestions.empty() && !alt && !ctrl && !super && pageUpPressed)
+			autocompleteSuggestionIndex = Max(0, autocompleteSuggestionIndex - (AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS - 1));
+		else if (!autocompleteSuggestions.empty() && !alt && !ctrl && !super && pageDownPressed)
+			autocompleteSuggestionIndex = Min((int)autocompleteSuggestions.size() - 1, autocompleteSuggestionIndex + (AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS - 1));
+		else if (!autocompleteSuggestions.empty() && !alt && !ctrl && !super && (ImGui::IsKeyPressed(ImGuiKey_Tab) || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)))
+			ApplyAutocompleteSuggestion();
+		else if (!alt && ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_Space))
+			ShowAutocomplete();
 		else if (!alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_UpArrow))
 			MoveUp(1, shift);
 		else if (!alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_DownArrow))
@@ -2458,9 +2888,9 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			MoveLeft(shift, isWordmoveKey);
 		else if ((isOSX ? !ctrl : !alt) && !super && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
 			MoveRight(shift, isWordmoveKey);
-		else if (!alt && !ctrl && !super && (ImGui::IsKeyPressed(ImGuiKey_PageUp) || (ImGui::IsKeyPressed(ImGuiKey_Keypad9) && !io.InputQueueCharacters.Size)))
+		else if (!alt && !ctrl && !super && pageUpPressed)
 			MoveUp(mVisibleLineCount - 2, shift);
-		else if (!alt && !ctrl && !super && (ImGui::IsKeyPressed(ImGuiKey_PageDown) || (ImGui::IsKeyPressed(ImGuiKey_Keypad3) && !io.InputQueueCharacters.Size)))
+		else if (!alt && !ctrl && !super && pageDownPressed)
 			MoveDown(mVisibleLineCount - 2, shift);
 		else if (ctrl && !alt && !super && homePressed)
 			MoveTop(shift);
@@ -2513,6 +2943,9 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			EnterCharacter('\n', false);
 		else if (!mReadOnly && !alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_Tab))
 			EnterCharacter('\t', shift);
+		else if (!alt && !ctrl && !super && ImGui::IsKeyDown(ImGuiKey_Escape) && !autocompleteSuggestions.empty())
+			CancelAutocomplete();
+
 		if (!mReadOnly && !io.InputQueueCharacters.empty() && ctrl == alt && !super)
 		{
 			for (int i = 0; i < io.InputQueueCharacters.Size; i++)
@@ -2766,12 +3199,12 @@ void TextEditor::Render(bool aParentIsFocused)
 	mScrollX = ImGui::GetScrollX();
 	mScrollY = ImGui::GetScrollY();
 	UpdateViewVariables(mScrollX, mScrollY);
+	float spaceSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, " ", nullptr, nullptr).x;
 
 	int maxColumnLimited = 0;
 	if (!mLines.empty())
 	{
 		auto drawList = ImGui::GetWindowDrawList();
-		float spaceSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, " ", nullptr, nullptr).x;
 
 		for (int lineNo = mFirstVisibleLine; lineNo <= mLastVisibleLine && lineNo < mLines.size(); lineNo++)
 		{
@@ -2896,6 +3329,7 @@ void TextEditor::Render(bool aParentIsFocused)
 						}
 						ImVec2 cstart(textScreenPos.x + cx, lineStartScreenPos.y);
 						ImVec2 cend(textScreenPos.x + cx + width, lineStartScreenPos.y + mCharAdvance.y);
+						mCursorScreenPos = cend;
 						drawList->AddRectFilled(cstart, cend, mPalette[(int)PaletteIndex::Cursor]);
 						if (mCursorOnBracket)
 						{
@@ -2911,6 +3345,7 @@ void TextEditor::Render(bool aParentIsFocused)
 			static eastl::string glyphBuffer;
 			int charIndex = GetFirstVisibleCharacterIndex(lineNo);
 			int column = mFirstVisibleColumn; // can be in the middle of tab character
+
 			while (charIndex < mLines[lineNo].size() && column <= mLastVisibleColumn)
 			{
 				auto& glyph = line[charIndex];
@@ -2976,8 +3411,100 @@ void TextEditor::Render(bool aParentIsFocused)
 
 				MoveCharIndexAndColumn(lineNo, charIndex, column);
 			}
+
+			if (errorIt != mErrorMarkers.end() && column + 4 <= mLastVisibleColumn)
+			{
+				ImVec2 targetGlyphPos = { lineStartScreenPos.x + mTextStart + TextDistanceToLineStart({lineNo, column + 4}, false), lineStartScreenPos.y };
+				drawList->AddText(targetGlyphPos, mPalette[(int)PaletteIndex::ErrorText], errorIt->text.c_str(), strchr(errorIt->text.c_str(), '\n'));
+			}
 		}
 	}
+
+	// Draw autocomplete suggestions
+	if (mCursorScreenPos.x > 0 && mCursorScreenPos.y > 0 && !autocompleteSuggestions.empty() && mState.mCurrentCursor == 0)
+	{
+		auto drawList = ImGui::GetWindowDrawList();
+		int lineNo = mState.mCursors[0].mInteractiveEnd.mLine;
+		int bounds = fontHeight / 4;
+		auto rectPos = mCursorScreenPos;
+		rectPos.x -= spaceSize * autocompletePrefixLength + bounds;
+
+		int visibleSuggestions = Clamp(Max(abs(lineNo - mFirstVisibleLine), abs(lineNo - mLastVisibleLine)) - 1,
+			1, AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS);
+
+		int topIndex = Max(0, autocompleteSuggestionIndex - visibleSuggestions / 2);
+		int bottomIndex = Min((int)autocompleteSuggestions.size() - 1, topIndex + visibleSuggestions - 1);
+		int height = fontHeight * Min(bottomIndex - topIndex + 1, visibleSuggestions);
+
+		if (rectPos.y + height + bounds * 2 > ImGui::GetWindowPos().y + ImGui::GetWindowHeight() &&
+			abs(lineNo - mFirstVisibleLine) > abs(lineNo - mLastVisibleLine))
+		{
+			rectPos.y -= height + bounds * 2 + mCharAdvance.y;
+		}
+
+		float maxWidth = 40.0f;
+		for (int i = topIndex; i <= bottomIndex; i++)
+		{
+			float width = fontWidth * autocompleteSuggestions[i].length();
+			maxWidth = Max(maxWidth, width);
+		}
+
+		if (rectPos.x + maxWidth + bounds * 2 > ImGui::GetWindowPos().x + ImGui::GetWindowWidth())
+			rectPos.x = ImGui::GetWindowPos().x + ImGui::GetWindowWidth() - maxWidth - bounds * 2;
+
+		if (rectPos.x < 0)
+			rectPos.x = 0;
+
+		int right = rectPos.x + maxWidth + bounds * 2;
+
+		drawList->AddRectFilled(ImVec2(rectPos.x, rectPos.y),
+			ImVec2(rectPos.x + maxWidth + bounds * 2, rectPos.y + height + bounds * 2), IM_COL32(100, 100, 100, 255));
+		drawList->AddRect(ImVec2(rectPos.x, rectPos.y),
+			ImVec2(rectPos.x + maxWidth + bounds * 2, rectPos.y + height + bounds * 2), IM_COL32(0, 0, 0, 255));
+
+		if (autocompleteSuggestionIndex < (int)autocompleteDescriptions.size())
+		{
+			eastl::string &desc = autocompleteDescriptions[autocompleteSuggestionIndex];
+			ImVec2 descriptionPos = ImVec2(right, rectPos.y + (autocompleteSuggestionIndex - topIndex) * fontHeight);
+			ImVec2 descriptionSize = ImVec2(0, 0);
+			int descWidth = 0;
+			int descLines = 0;
+			const char* descPtr = desc.c_str();
+			const char* descPtrEnd = descPtr + desc.length();
+			while (descPtr < descPtrEnd)
+			{
+				const char* descPtrLineEnd = strchr(descPtr, '\n');
+				int width = ImGui::CalcTextSize(descPtr, descPtrLineEnd).x;
+				descWidth = Max(descWidth, width);
+				descLines++;
+				descPtr = descPtrLineEnd ? descPtrLineEnd + 1 : descPtrEnd;
+			}
+			descriptionSize = ImVec2((float)descWidth + bounds * 2, (float)descLines * fontHeight + bounds * 2);
+
+			// draw description
+			{
+				int suggestionLength = desc.length();
+				drawList->AddRectFilled(descriptionPos,
+					ImVec2(descriptionPos.x + descriptionSize.x, descriptionPos.y + descriptionSize.y),
+					IM_COL32(200, 200, 200, 255));
+
+				drawList->AddText(ImVec2(descriptionPos.x + bounds, descriptionPos.y + bounds),
+					IM_COL32(0, 0, 0, 255), desc.c_str());
+			}
+
+		}
+
+		for (int i = topIndex; i <= bottomIndex; i++)
+		{
+			if (i == autocompleteSuggestionIndex)
+				drawList->AddRectFilled(ImVec2(rectPos.x, rectPos.y + (i - topIndex) * fontHeight + bounds),
+					ImVec2(right, rectPos.y + (i - topIndex + 1) * fontHeight + bounds), IM_COL32(0, 0, 0, 255));
+
+			drawList->AddText(ImVec2(rectPos.x + bounds, rectPos.y + (i - topIndex) * fontHeight + bounds),
+				IM_COL32(255, 255, 255, 255), autocompleteSuggestions[i].c_str());
+		}
+	}
+
 	mCurrentSpaceHeight = (mLines.size() + Min(mVisibleLineCount - 1, (int)mLines.size())) * mCharAdvance.y;
 	mCurrentSpaceWidth = Max((maxColumnLimited + Min(mVisibleColumnCount - 1, maxColumnLimited)) * mCharAdvance.x, mCurrentSpaceWidth);
 
@@ -3041,6 +3568,10 @@ void TextEditor::Render(bool aParentIsFocused)
 		ImGui::SetScrollY(targetScroll);
 		mSetViewAtLine = -1;
 	}
+
+	if (mCursorScreenPos.y != mPrevCursorScreenPos.y)
+		CancelAutocomplete();
+	mPrevCursorScreenPos = mCursorScreenPos;
 }
 
 void TextEditor::OnCursorPositionChanged()
@@ -3139,13 +3670,14 @@ void TextEditor::AddUndo(UndoRecord& aValue)
 
 void TextEditor::ColorizeAll()
 {
-	ColorizeRange(0, INT_MAX, true);
 	colorizeTime = 0.0;
+	colorizationProgress = 0;
+	wholeTextColorizationStarted = true;
 }
 
 void TextEditor::ColorizeLine(int line)
 {
-	ColorizeRange(line - 1, line + 1, false);
+	ColorizeRange(line - 1, line + 1);
 	colorizeTime = ImGui::GetTime() + 0.4;
 }
 
@@ -3162,14 +3694,13 @@ static bool equal_token(const char * str, const char * token)
 }
 
 
-void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
+void TextEditor::ColorizeRange(int from, int to)
 {
-	if (!mLanguageDefinition)
+	if (!mLanguageDefinition || mLines.empty())
 		return;
 
 	from = eastl::max(from, 0);
 	to = eastl::min((int)mLines.size() - 1, to);
-	bool limitedRange = from != 0 || to != (int)mLines.size() - 1;
 
 	eastl::string commentStart = mLanguageDefinition->mCommentStart;
 	eastl::string commentEnd = mLanguageDefinition->mCommentEnd;
@@ -3180,21 +3711,31 @@ void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
 
 	eastl::string buffer;
 
-	int commentDepth = 0;
 	bool inSingleLineComment = false;
 	int nonSpaceChars = 0;
-	char stringOpenChar = 0;
 
 	commentLineDepths.resize(mLines.size());
+	stringOpenChars.resize(mLines.size());
+	if (from == 0)
+	{
+		commentLineDepths[0] = 0;
+		stringOpenChars[0] = 0;
+	}
+
+	int commentDepth = commentLineDepths[from];
+	char stringOpenChar = stringOpenChars[from];
 
 	for (int index = from; index <= to; index++)
 	{
 		auto& line = mLines[index];
 
+		commentLineDepths[index] = eastl::min(commentDepth, 255);
+		stringOpenChars[index] = stringOpenChar;
+
 		if (line.empty())
 			continue;
 
-		int lineLen = min(2000, (int)line.size());
+		int lineLen = min(HIGHLIGHT_MAX_LINE_LENGTH, (int)line.size());
 
 		if (line.size() + 1 > buffer.size())
 			buffer.resize(line.size() + 1);
@@ -3209,11 +3750,6 @@ void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
 
 		if (!mLanguageDefinition->mTokenize)
 			continue;
-
-		if (limitedRange)
-			commentDepth = commentLineDepths[index];
-		else
-			commentLineDepths[index] = eastl::min(commentDepth, 255);
 
 		for (int i = 0; i < lineLen; ++i)
 		{
@@ -3291,6 +3827,9 @@ void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
 
 			for (auto first = bufferBegin; first != last; )
 			{
+				if (first - bufferBegin > COLORIZE_MAX_LINE_LENGTH)
+					break;
+
 				const char* token_begin = nullptr;
 				const char* token_end = nullptr;
 				PaletteIndex token_color = PaletteIndex::Default;
@@ -3336,6 +3875,379 @@ void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
 }
 
 
+bool TextEditor::OnImGui(bool windowIsOpen, uint32_t &currentDockId)
+{
+	ImFont* codeFontEditor = FontManager::GetCodeFont();
+	ImFont* codeFontTopBar = FontManager::GetCodeFont();
+
+	if (showDebugPanel)
+		ImGuiDebugPanel("Debug " + panelName);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+	ImGui::Begin(panelName.c_str(), &windowIsOpen,
+		ImGuiWindowFlags_MenuBar |
+		ImGuiWindowFlags_NoSavedSettings |
+		(GetUndoIndex() != undoIndexInDisk ? ImGuiWindowFlags_UnsavedDocument : 0x0));
+	ImGui::PopStyleVar();
+
+	if (ImGui::IsWindowFocused() && onFocusedCallback != nullptr)
+		onFocusedCallback(this->createdFromFolderView);
+
+	currentDockId = ImGui::GetWindowDockID();
+
+	bool isFocused = ImGui::IsWindowFocused();
+	bool requestingGoToLinePopup = false;
+	bool requestingFindPopup = false;
+	bool requestingReplacePopup = false;
+	bool requestingFontSizeIncrease = false;
+	bool requestingFontSizeDecrease = false;
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			/*if (hasAssociatedFile && ImGui::MenuItem("Reload", "Ctrl+R"))
+				OnReloadCommand();*/
+			/*if (ImGui::MenuItem("Load from"))
+				OnLoadFromCommand();*/
+			if (ImGui::MenuItem("Save", "Ctrl+S"))
+				OnSaveCommand();
+			/*if (this->hasAssociatedFile && ImGui::MenuItem("Show in file explorer"))
+				Utils::ShowInFileExplorer(this->associatedFile);
+			if (this->hasAssociatedFile &&
+				this->onShowInFolderViewCallback != nullptr &&
+				this->createdFromFolderView > -1 && ImGui::MenuItem("Show in folder view"))
+				this->onShowInFolderViewCallback(this->associatedFile, this->createdFromFolderView);;*/
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Edit"))
+		{
+			bool ro = IsReadOnlyEnabled();
+			if (ro)
+				ImGui::MenuItem("Read only mode", nullptr, false);
+
+			bool ai = IsAutoIndentEnabled();
+			if (ImGui::MenuItem("Auto indent on enter enabled", nullptr, &ai))
+				SetAutoIndentEnabled(ai);
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Undo", "Ctrl+Z", nullptr, !ro && CanUndo()))
+				Undo(true);
+			if (ImGui::MenuItem("Redo", "Ctrl+Shift+Z", nullptr, !ro && CanRedo()))
+				Redo(true);
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Copy", "Ctrl+C", nullptr, AnyCursorHasSelection()))
+				Copy();
+			if (ImGui::MenuItem("Cut", "Ctrl+X", nullptr, !ro && AnyCursorHasSelection()))
+				Cut();
+			if (ImGui::MenuItem("Paste", "Ctrl+V", nullptr, !ro && ImGui::GetClipboardText() != nullptr))
+				Paste();
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Select all", nullptr, nullptr))
+				SelectAll();
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Auto format", "Ctrl+Alt+F"))
+				pushEditorRequest(EDITOR_REQ_AUTO_FORMAT);
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("View"))
+		{
+			//ImGui::SliderInt("Font size", &codeFontSize, FontManager::GetMinCodeFontSize(), FontManager::GetMaxCodeFontSize());
+			ImGui::SliderInt("Tab size", &tabSize, 1, 8);
+			ImGui::SliderFloat("Line spacing", &lineSpacing, 1.0f, 2.0f);
+			SetTabSize(tabSize);
+			SetLineSpacing(lineSpacing);
+			static bool showSpaces = IsShowWhitespacesEnabled();
+			if (ImGui::MenuItem("Show spaces", nullptr, &showSpaces))
+				SetShowWhitespacesEnabled(!(IsShowWhitespacesEnabled()));
+			static bool showLineNumbers = IsShowLineNumbersEnabled();
+			if (ImGui::MenuItem("Show line numbers", nullptr, &showLineNumbers))
+				SetShowLineNumbersEnabled(!(IsShowLineNumbersEnabled()));
+			static bool showShortTabs = IsShortTabsEnabled();
+			if (ImGui::MenuItem("Short tabs", nullptr, &showShortTabs))
+				SetShortTabsEnabled(!(IsShortTabsEnabled()));
+			if (ImGui::BeginMenu("Language"))
+			{
+				for (int i = (int)TextEditor::LanguageDefinitionId::None; i < (int)TextEditor::LanguageDefinitionId::LanguageDefinitionCount; i++)
+				{
+					bool isSelected = i == (int)GetLanguageDefinition();
+					if (ImGui::MenuItem(languageDefinitionToName[(TextEditor::LanguageDefinitionId)i], nullptr, &isSelected))
+						SetLanguageDefinition((TextEditor::LanguageDefinitionId)i);
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Color scheme"))
+			{
+				for (int i = (int)TextEditor::PaletteId::Dark; i <= (int)TextEditor::PaletteId::RetroBlue; i++)
+				{
+					bool isSelected = i == (int)GetPalette();
+					if (ImGui::MenuItem(colorPaletteToName[(TextEditor::PaletteId)i], nullptr, &isSelected))
+						SetPalette((TextEditor::PaletteId)i);
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Find"))
+		{
+			if (ImGui::MenuItem("Go to line", "Ctrl+G"))
+				requestingGoToLinePopup = true;
+			if (ImGui::MenuItem("Find", "Ctrl+F"))
+				requestingFindPopup = true;
+			if (ImGui::MenuItem("Replace", "Ctrl+H"))
+				requestingReplacePopup = true;
+			ImGui::EndMenu();
+		}
+
+		int line, column;
+		GetCursorPosition(line, column);
+
+		if (codeFontTopBar != nullptr) ImGui::PushFont(codeFontTopBar);
+		ImGui::Text("%6d/%-6d %6d lines | %s | %s", line + 1, column + 1, GetLineCount(),
+			IsOverwriteEnabled() ? "Ovr" : "Ins",
+			GetLanguageDefinitionName());
+		if (codeFontTopBar != nullptr) ImGui::PopFont();
+
+		ImGui::EndMenuBar();
+	}
+
+	if (codeFontEditor != nullptr) ImGui::PushFont(codeFontEditor);
+	bool isMenuFocused = ImGui::GetCurrentContext()->NavLayer == ImGuiNavLayer_Menu;
+	isFocused |= Render("TextEditor", isFocused, isMenuFocused);
+	if (codeFontEditor != nullptr) ImGui::PopFont();
+
+	if (isFocused)
+	{
+		bool ctrlPressed = ImGui::GetIO().KeyCtrl;
+		bool shiftPressed = ImGui::GetIO().KeyShift;
+		bool altPressed = ImGui::GetIO().KeyAlt;
+		if (ctrlPressed && !shiftPressed && !altPressed)
+		{
+			if (ImGui::IsKeyPressed(ImGuiKey_S, false))
+				OnSaveCommand();
+			if (ImGui::IsKeyPressed(ImGuiKey_R, false))
+				OnReloadCommand();
+			if (ImGui::IsKeyDown(ImGuiKey_G))
+				requestingGoToLinePopup = true;
+			if (ImGui::IsKeyDown(ImGuiKey_F))
+				requestingFindPopup = true;
+			if (ImGui::IsKeyDown(ImGuiKey_H))
+				requestingReplacePopup = true;
+			if (ImGui::IsKeyPressed(ImGuiKey_Equal) || ImGui::GetIO().MouseWheel > 0.0f)
+				requestingFontSizeIncrease = true;
+			if (ImGui::IsKeyPressed(ImGuiKey_Minus) || ImGui::GetIO().MouseWheel < 0.0f)
+				requestingFontSizeDecrease = true;
+		}
+
+		if (ctrlPressed && !shiftPressed && altPressed)
+		{
+			if (ImGui::IsKeyPressed(ImGuiKey_F, false))
+				pushEditorRequest(EDITOR_REQ_AUTO_FORMAT);
+		}
+	}
+
+	if (requestingGoToLinePopup) ImGui::OpenPopup("go_to_line_popup");
+	if (ImGui::BeginPopup("go_to_line_popup"))
+	{
+		static int targetLine;
+		ImGui::SetKeyboardFocusHere();
+		ImGui::InputInt("Line", &targetLine);
+		if (ImGui::IsKeyDown(ImGuiKey_Enter) || ImGui::IsKeyDown(ImGuiKey_KeypadEnter))
+		{
+			static int targetLineFixed;
+			targetLineFixed = targetLine < 1 ? 0 : targetLine - 1;
+			ClearExtraCursors();
+			ClearSelections();
+			SelectLine(targetLineFixed);
+			CenterViewAtLine(targetLineFixed);
+			ImGui::CloseCurrentPopup();
+		//	ClearInputKeys(&ImGui::GetIO());
+		}
+		else if (ImGui::IsKeyDown(ImGuiKey_Escape))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
+
+	if (requestingFindPopup)
+	{
+		ImGui::OpenPopup("code_editor_find_popup");
+		GetSuitableTextToFind(ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH);
+	}
+
+	if (ImGui::BeginPopup("code_editor_find_popup"))
+	{
+		ImGui::Checkbox("Case sensitive", &ctrlfCaseSensitive);
+		ImGui::Checkbox("Whole words", &ctrlfWholeWords);
+		if (requestingFindPopup)
+			ImGui::SetKeyboardFocusHere();
+		ImGui::InputText("Search for", ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
+		int toFindTextSize = strlen(ctrlfTextToFind);
+		if ((ImGui::Button("Find next") || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) && toFindTextSize > 0)
+		{
+			ClearExtraCursors();
+			if (SelectNextOccurrenceOf(ctrlfTextToFind, toFindTextSize, ctrlfCaseSensitive, ctrlfWholeWords))
+			{
+				int nextOccurrenceLine, _;
+				GetCursorPosition(nextOccurrenceLine, _);
+				CenterViewAtLine(nextOccurrenceLine);
+			}
+		}
+
+		if (ImGui::IsKeyDown(ImGuiKey_Escape))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+
+	if (requestingReplacePopup)
+	{
+		ImGui::OpenPopup("code_editor_replace_popup");
+		GetSuitableTextToFind(ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH);
+	}
+
+	if (ImGui::BeginPopup("code_editor_replace_popup"))
+	{
+		ImGui::Checkbox("Case sensitive", &ctrlfCaseSensitive);
+		ImGui::Checkbox("Whole words", &ctrlfWholeWords);
+		if (requestingFindPopup)
+			ImGui::SetKeyboardFocusHere();
+		ImGui::InputText("Search for", ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
+		ImGui::InputText("Replace with", ctrlfTextToReplace, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
+		int toFindTextSize = strlen(ctrlfTextToFind);
+		int toReplaceTextSize = strlen(ctrlfTextToReplace);
+		if ((ImGui::Button("Replace") || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) && toFindTextSize > 0)
+		{
+			ClearExtraCursors();
+			if (Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, ctrlfWholeWords, false))
+			{
+				int nextOccurrenceLine, _;
+				GetCursorPosition(nextOccurrenceLine, _);
+				CenterViewAtLine(nextOccurrenceLine);
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Replace all") && toFindTextSize > 0)
+		{
+			if (Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, ctrlfWholeWords, true))
+			{
+				int nextOccurrenceLine, _;
+				GetCursorPosition(nextOccurrenceLine, _);
+				CenterViewAtLine(nextOccurrenceLine);
+			}
+		}
+		else if (ImGui::IsKeyDown(ImGuiKey_Escape))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+
+	//if (requestingFontSizeIncrease && codeFontSize < FontManager::GetMaxCodeFontSize())
+	//	codeFontSize++;
+	//if (requestingFontSizeDecrease && codeFontSize > FontManager::GetMinCodeFontSize())
+	//	codeFontSize--;
+
+	ImGui::End();
+
+	return windowIsOpen;
+}
+
+
+void TextEditor::SetCursorPosition(int line, int column, bool center_view)
+{
+	SetCursorPosition(line, column);
+	if (center_view)
+		CenterViewAtLine(line);
+}
+
+//void TextEditor::SetSelection(int startLine, int startChar, int endLine, int endChar)
+//{
+//	SetCursorPosition(endLine, endChar);
+//	SelectRegion(startLine, startChar, endLine, endChar);
+//}
+
+void TextEditor::CenterViewAtLine(int line)
+{
+	SetViewAtLine(line, TextEditor::SetViewAtLineMode::Centered);
+}
+
+const char* TextEditor::GetAssociatedFile()
+{
+	if (!hasAssociatedFile)
+		return nullptr;
+	return associatedFile.c_str();
+}
+
+void TextEditor::OnFolderViewDeleted(int folderViewId)
+{
+	if (createdFromFolderView == folderViewId)
+		createdFromFolderView = -1;
+}
+
+void TextEditor::SetShowDebugPanel(bool value)
+{
+	showDebugPanel = value;
+}
+
+// Commands
+
+void TextEditor::OnReloadCommand()
+{
+/*	eastl::ifstream t(Utf8ToWstring(associatedFile));
+	eastl::string str((eastl::istreambuf_iterator<char>(t)),
+		eastl::istreambuf_iterator<char>());
+	SetText(str);
+	undoIndexInDisk = 0; */
+}
+
+void TextEditor::OnLoadFromCommand()
+{
+/*	eastl::vector<eastl::string> selection = pfd::open_file("Open file", "", { "Any file", "*" }).result();
+	if (selection.size() == 0)
+		eastl::cout << "File not loaded\n";
+	else
+	{
+		eastl::ifstream t(Utf8ToWstring(selection[0]));
+		eastl::string str((eastl::istreambuf_iterator<char>(t)),
+			eastl::istreambuf_iterator<char>());
+		SetText(str);
+		auto pathObject = eastl::filesystem::path(selection[0]);
+		auto lang = extensionToLanguageDefinition.find(pathObject.extension().string());
+		if (lang != extensionToLanguageDefinition.end())
+			SetLanguageDefinition(extensionToLanguageDefinition[pathObject.extension().string()]);
+	}
+	undoIndexInDisk = -1; // assume they are loading text from some other file*/
+}
+
+void TextEditor::OnSaveCommand()
+{
+	pushEditorRequest(EDITOR_REQ_SAVE);
+	undoIndexInDisk = GetUndoIndex();
+/*	eastl::string textToSave = GetText();
+	eastl::string destination = hasAssociatedFile ?
+		associatedFile :
+		pfd::save_file("Save file", "", { "Any file", "*" }).result();
+	if (destination.length() > 0)
+	{
+		associatedFile = destination;
+		hasAssociatedFile = true;
+		panelName = eastl::filesystem::path(destination).filename().string() + "##" + eastl::to_string((int)this);
+		eastl::ofstream outFile(Utf8ToWstring(destination), eastl::ios::binary);
+		outFile << textToSave;
+		outFile.close();
+	}
+	*/
+}
+
+
+
 const TextEditor::Palette& TextEditor::GetDarkPalette()
 {
 	const static Palette p = { {
@@ -3354,7 +4266,7 @@ const TextEditor::Palette& TextEditor::GetDarkPalette()
 			0x282c34ff, // Background
 			0xe0e0e0ff, // Cursor
 			0x2060a080, // Selection
-			0xff200080, // ErrorMarker
+			0xff200040, // ErrorMarker
 			0xffffff15, // ControlCharacter
 			0x0080f040, // Breakpoint
 			0x7a8394ff, // Line number
@@ -3362,6 +4274,7 @@ const TextEditor::Palette& TextEditor::GetDarkPalette()
 			0x80808040, // Current line fill (inactive)
 			0xa0a0a040, // Current line edge
 			0xff406080, // Highlight fill
+			0xFFAF8F8F, // Error text
 		} };
 	return p;
 }
@@ -3384,7 +4297,7 @@ const TextEditor::Palette& TextEditor::GetMarianaPalette()
 			0x303841ff, // Background
 			0xe0e0e0ff, // Cursor
 			0x6e7a8580, // Selection
-			0xec5f6680, // ErrorMarker
+			0xec5f6640, // ErrorMarker
 			0xffffff30, // ControlCharacter
 			0x0080f040, // Breakpoint
 			0xffffffb0, // Line number
@@ -3392,6 +4305,7 @@ const TextEditor::Palette& TextEditor::GetMarianaPalette()
 			0x4e5a6530, // Current line fill (inactive)
 			0x4e5a65b0, // Current line edge
 			0xff406080, // Highlight fill
+			0xFFAF8F8F, // Error text
 		} };
 	return p;
 }
@@ -3414,14 +4328,15 @@ const TextEditor::Palette& TextEditor::GetLightPalette()
 			0xffffffff, // Background
 			0x000000ff, // Cursor
 			0x00006040, // Selection
-			0xff1000a0, // ErrorMarker
+			0xff100030, // ErrorMarker
 			0x90909090, // ControlCharacter
 			0x0080f080, // Breakpoint
 			0x005050ff, // Line number
 			0x00000040, // Current line fill
 			0x80808040, // Current line fill (inactive)
 			0x00000040, // Current line edge
-			0xffA0A0A0, // Highlight fill
+			0xA0A0FF80, // Highlight fill
+			0x1F00008F, // Error text
 		} };
 	return p;
 }
@@ -3444,13 +4359,15 @@ const TextEditor::Palette& TextEditor::GetRetroBluePalette()
 			0x000080ff, // Background
 			0xff8000ff, // Cursor
 			0x00ffff80, // Selection
-			0xff0000a0, // ErrorMarker
+			0xff000080, // ErrorMarker
+			0x90909090, // ControlCharacter
 			0x0080ff80, // Breakpoint
-			0xe0e0e0ff, // Line number
+			0xe0ffe0ff, // Line number
 			0x00000040, // Current line fill
 			0x80808040, // Current line fill (inactive)
 			0xe0e0e040, // Current line edge
 			0xff404080, // Highlight fill
+			0xFFAF8F8F, // Error text
 		} };
 	return p;
 }
@@ -3467,3 +4384,29 @@ const eastl::unordered_map<char, char> TextEditor::CLOSE_TO_OPEN_CHAR = {
 };
 
 TextEditor::PaletteId TextEditor::defaultPalette = TextEditor::PaletteId::Dark;
+
+
+eastl::unordered_map<eastl::string, TextEditor::LanguageDefinitionId> TextEditor::extensionToLanguageDefinition = {
+	{".cpp", TextEditor::LanguageDefinitionId::Cpp},
+	{".cc", TextEditor::LanguageDefinitionId::Cpp},
+	{".hpp", TextEditor::LanguageDefinitionId::Cpp},
+	{".h", TextEditor::LanguageDefinitionId::Cpp},
+	{".das", TextEditor::LanguageDefinitionId::Daslang},
+};
+
+eastl::unordered_map<TextEditor::LanguageDefinitionId, const char *> TextEditor::languageDefinitionToName = {
+	{TextEditor::LanguageDefinitionId::None, "None"},
+	{TextEditor::LanguageDefinitionId::Cpp, "C++"},
+	{TextEditor::LanguageDefinitionId::Daslang, "Daslang"},
+};
+
+eastl::unordered_map<TextEditor::PaletteId, const char *> TextEditor::colorPaletteToName = {
+	{TextEditor::PaletteId::Dark, "Dark"},
+	{TextEditor::PaletteId::Light, "Light"},
+	{TextEditor::PaletteId::Mariana, "Mariana"},
+	{TextEditor::PaletteId::RetroBlue, "Retro blue"}
+};
+
+
+
+

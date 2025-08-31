@@ -4,8 +4,10 @@
 #include <propPanel/imguiHelper.h>
 #include <propPanel/propPanel.h>
 #include <propPanel/focusHelper.h>
+#include <propPanel/colors.h>
 #include "control/spinEditStandalone.h"
 #include "c_constants.h"
+#include "imageHelper.h"
 #include <drv/3d/dag_resId.h>
 #include <gui/dag_imguiUtil.h>
 #include <libTools/util/hdpiUtil.h>
@@ -533,7 +535,7 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
     g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
 
   if (end_data.labelSize.x > (posMax.x - posMin.x))
-    set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), end_data.label, end_data.labelEnd);
+    set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), end_data.label, end_data.labelEnd);
 }
 
 float ImguiHelper::treeNodeWithSpecialHoverBehaviorGetLabelClipMaxX()
@@ -685,11 +687,24 @@ bool ImguiHelper::imageButtonFrameless(ImGuiID id, ImTextureID texture_id, const
   return pressed;
 }
 
+bool ImguiHelper::imageButtonFrameless(ImGuiID id, IconId icon_id, const ImVec2 &image_size, const ImVec2 &uv0, const ImVec2 &uv1,
+  const ImVec4 &tint_col)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return imageButtonFrameless(id, textureId, image_size, uv0, uv1, tint_col);
+}
+
 bool ImguiHelper::imageButtonFrameless(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, const char *tooltip)
 {
   const bool pressed = imageButtonFrameless(ImGui::GetCurrentWindow()->GetID(str_id), texture_id, image_size);
-  set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), tooltip, nullptr);
+  set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), tooltip, nullptr);
   return pressed;
+}
+
+bool ImguiHelper::imageButtonFrameless(const char *str_id, IconId icon_id, const ImVec2 &image_size, const char *tooltip)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return imageButtonFrameless(str_id, textureId, image_size, tooltip);
 }
 
 bool ImguiHelper::imageButtonFramelessOrPlaceholder(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size,
@@ -702,6 +717,13 @@ bool ImguiHelper::imageButtonFramelessOrPlaceholder(const char *str_id, ImTextur
   return false;
 }
 
+bool ImguiHelper::imageButtonFramelessOrPlaceholder(const char *str_id, IconId icon_id, const ImVec2 &image_size, const char *tooltip,
+  bool use_button)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return ImguiHelper::imageButtonFramelessOrPlaceholder(str_id, textureId, image_size, tooltip, use_button);
+}
+
 bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, bool checked,
   const char *tooltip)
 {
@@ -712,17 +734,22 @@ bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, ImTextureID
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 0, 0, 0));
 
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-  ImGui::PushStyleColor(ImGuiCol_Border, Constants::TOGGLE_BUTTON_CHECKED_BORDER_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Border, getOverriddenColor(ColorOverride::TOGGLE_BUTTON_CHECKED_BORDER));
 
-  setPointSampler();
   const bool pressed = ImGui::ImageButton(str_id, texture_id, image_size);
-  setDefaultSampler();
 
   ImGui::PopStyleColor(3);
 
-  set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), tooltip, nullptr);
+  set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), tooltip, nullptr);
 
   return pressed;
+}
+
+bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, IconId icon_id, const ImVec2 &image_size, bool checked,
+  const char *tooltip)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return imageCheckButtonWithBackground(str_id, textureId, image_size, checked, tooltip);
 }
 
 ImVec2 ImguiHelper::getImageButtonWithDownArrowSizeInternal(const ImVec2 &image_size, float &default_height, ImVec2 &arrow_half_size)
@@ -797,6 +824,13 @@ bool ImguiHelper::imageButtonWithArrow(const char *str_id, ImTextureID texture_i
   return pressed;
 }
 
+bool ImguiHelper::imageButtonWithArrow(const char *str_id, IconId icon_id, const ImVec2 &image_size, bool checked,
+  ImGuiButtonFlags flags)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return imageButtonWithArrow(str_id, textureId, image_size, checked, flags);
+}
+
 ImVec2 ImguiHelper::getButtonSize(const char *label, bool hide_text_after_double_hash, const ImVec2 &size_arg)
 {
   const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, hide_text_after_double_hash);
@@ -856,6 +890,14 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
   }
 
   return inputChanged;
+}
+
+bool ImguiHelper::searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, IconId search_icon_id,
+  IconId clear_icon_id, bool *input_focused, ImGuiID *input_id)
+{
+  const ImTextureID searchIcon = image_helper.getImTextureIdFromIconId(search_icon_id);
+  const ImTextureID clearIcon = image_helper.getImTextureIdFromIconId(clear_icon_id);
+  return searchInput(focus_id, label, hint, text_to_search, searchIcon, clearIcon, input_focused, input_id);
 }
 
 // The changed parts compared to ImGui::MenuItemEx are marked with GAIJIN.

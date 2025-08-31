@@ -2,7 +2,7 @@ debug_visualization_node {
   _singleton:b=true
   _group{
       _tags:t="render"
-    "debug_visualization_node:dabfg::NodeHandle"{}
+    "debug_visualization_node:dafg::NodeHandle"{}
   }
 }
 
@@ -10,7 +10,7 @@ gbuffer_diffuse_override_debug_node {
   _singleton:b=true
   _group{
       _tags:t="render"
-    "gbuffer_diffuse_override:dabfg::NodeHandle"{}
+    "gbuffer_diffuse_override:dafg::NodeHandle"{}
 
     "debug_fill_gbuffer:PostFxRenderer"{}
     debug_fill_gbuffer_name:t="debug_fill_gbuffer"
@@ -22,7 +22,7 @@ gbuffer_specular_override_debug_node {
   _singleton:b=true
   _group{
       _tags:t="render"
-    "gbuffer_specular_override:dabfg::NodeHandle"{}
+    "gbuffer_specular_override:dafg::NodeHandle"{}
 
     "debug_fill_gbuffer:PostFxRenderer"{}
     debug_fill_gbuffer_name:t="debug_fill_gbuffer"
@@ -34,7 +34,7 @@ upscale_node {
   _singleton:b=true
   _tags:t="render"
 
-  "upscale_tex_gen_node:dabfg::NodeHandle"{}
+  "upscale_tex_gen_node:dafg::NodeHandle"{}
 
   "upscale_shader:PostFxRenderer"{}
   upscale_shader_name:t="upscale_sampling"

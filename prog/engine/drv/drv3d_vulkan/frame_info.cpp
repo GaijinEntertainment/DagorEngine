@@ -11,6 +11,8 @@
 #include "execution_timings.h"
 #include "backend_interop.h"
 #include "timelines.h"
+#include "wrapped_command_buffer.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -29,7 +31,7 @@ void FrameInfo::QueueCommandBuffers::init(DeviceQueueType target_queue)
   if (!resetCmdPool)
     cpci.flags |= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   cpci.queueFamilyIndex = cmdQFamily;
-  VULKAN_EXIT_ON_FAIL(vkDev.vkCreateCommandPool(vkDev.get(), &cpci, NULL, ptr(commandPool)));
+  VULKAN_EXIT_ON_FAIL(vkDev.vkCreateCommandPool(vkDev.get(), &cpci, VKALLOC(command_pool), ptr(commandPool)));
 
   pendingCommandBuffers.reserve(COMMAND_BUFFER_ALLOC_BLOCK_SIZE);
 }
@@ -80,7 +82,7 @@ void FrameInfo::QueueCommandBuffers::shutdown()
   }
   clear_and_shrink(pendingCommandBuffers);
 
-  VULKAN_LOG_CALL(vkDev.vkDestroyCommandPool(vkDev.get(), commandPool, NULL));
+  VULKAN_LOG_CALL(vkDev.vkDestroyCommandPool(vkDev.get(), commandPool, VKALLOC(command_pool)));
   commandPool = VulkanNullHandle();
 }
 
@@ -137,10 +139,10 @@ void FrameInfo::CommandBuffersGroup::finishCmdBuffers()
 
 void FrameInfo::init()
 {
-  VulkanDevice &vkDev = Globals::VK::dev;
-
   commandBuffers.init();
-  frameDone = new ThreadedFence(vkDev, ThreadedFence::State::SIGNALED);
+  frameDone = new ThreadedFence(ThreadedFence::State::SIGNALED);
+  if (Globals::cfg.bits.allowAsyncReadback)
+    readbackDone = new ThreadedFence(ThreadedFence::State::SIGNALED);
   execTracker.init();
 
   initialized = true;
@@ -153,9 +155,15 @@ void FrameInfo::shutdown()
 
   VulkanDevice &vkDev = Globals::VK::dev;
 
-  frameDone->shutdown(vkDev);
+  frameDone->shutdown();
   delete frameDone;
-  frameDone = NULL;
+  frameDone = nullptr;
+  if (readbackDone)
+  {
+    readbackDone->shutdown();
+    delete readbackDone;
+    readbackDone = nullptr;
+  }
 
   commandBuffers.shutdown();
 
@@ -164,15 +172,20 @@ void FrameInfo::shutdown()
   for (Tab<VulkanSemaphoreHandle> &i : pendingSemaphores)
   {
     for (VulkanSemaphoreHandle j : i)
-      VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), j, NULL));
+      VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), j, VKALLOC(semaphore)));
     i.clear();
   }
+
+  finishGpuEvents();
+  clear_and_shrink(gpuEvents);
+
   pendingSemaphoresRingIdx = 0;
   for (int i = 0; i < readySemaphores.size(); ++i)
-    VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), readySemaphores[i], NULL));
+    VULKAN_LOG_CALL(vkDev.vkDestroySemaphore(vkDev.get(), readySemaphores[i], VKALLOC(semaphore)));
   clear_and_shrink(readySemaphores);
 
   pendingTimestamps = nullptr;
+  pendingOcclusionQueries = nullptr;
   finishShaderModules();
   execTracker.shutdown();
 }
@@ -182,7 +195,9 @@ VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(DeviceQueueType queue
   return commandBuffers[queue].allocateCommandBuffer();
 }
 
-VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device)
+void FrameInfo::recycleSemaphore(VulkanSemaphoreHandle sem) { readySemaphores.push_back(sem); }
+
+VulkanSemaphoreHandle FrameInfo::allocSemaphore()
 {
   VulkanSemaphoreHandle sem;
   if (readySemaphores.empty())
@@ -191,7 +206,7 @@ VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device)
     sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     sci.pNext = NULL;
     sci.flags = 0;
-    VULKAN_EXIT_ON_FAIL(device.vkCreateSemaphore(device.get(), &sci, NULL, ptr(sem)));
+    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateSemaphore(Globals::VK::dev.get(), &sci, VKALLOC(semaphore), ptr(sem)));
   }
   else
   {
@@ -217,6 +232,11 @@ void FrameInfo::submit()
   // but after replay work is done frame is changed, so we must handle
   // internal backend queued objects after replay event here
   cleanups.backendAfterFrameSubmitCleanup();
+  {
+    WinAutoLock lock(Backend::interop.pendingGpuWork.cs);
+    Backend::interop.pendingGpuWork.gpuFence = frameDone;
+    Backend::interop.pendingGpuWork.replayId = replayId;
+  }
 }
 
 void FrameInfo::acquire(size_t timeline_abs_idx)
@@ -225,7 +245,7 @@ void FrameInfo::acquire(size_t timeline_abs_idx)
     init();
 
   index = timeline_abs_idx;
-  frameDone->reset(Globals::VK::dev);
+  frameDone->reset();
   execTracker.restart(index);
 }
 
@@ -233,11 +253,21 @@ void FrameInfo::wait()
 {
   TIME_PROFILE(vulkan_frame_info_wait);
   finishGpuWork();
+  finishGpuEvents();
   commandBuffers.finishCmdBuffers();
   finishCleanups();
   finishSemaphores();
 
-  pendingTimestamps->fillDataFromPool();
+  if (pendingTimestamps)
+  {
+    pendingTimestamps->fillDataFromPool();
+    pendingTimestamps = nullptr;
+  }
+  if (pendingOcclusionQueries)
+  {
+    pendingOcclusionQueries->fillDataFromPool();
+    pendingOcclusionQueries = nullptr;
+  }
   finishShaderModules();
   execTracker.verify();
 }
@@ -246,29 +276,34 @@ void FrameInfo::cleanup() {}
 
 void FrameInfo::process() {}
 
-void FrameInfo::finishCleanups()
-{
-  for (CleanupQueue *i : cleanupsRefs)
-    i->backendAfterGPUCleanup();
-  clear_and_shrink(cleanupsRefs);
-
-  cleanups.backendAfterGPUCleanup();
-}
+void FrameInfo::finishCleanups() { cleanups.backendAfterGPUCleanup(); }
 
 void FrameInfo::finishGpuWork()
 {
-  VulkanDevice &vkDev = Globals::VK::dev;
-
   int64_t &gpuWaitDuration = Backend::timings.gpuWaitDuration;
-  if (!frameDone->isReady(vkDev))
   {
-    gpuWaitDuration = 1;
     ScopedTimerTicks watch(gpuWaitDuration);
-    frameDone->wait(vkDev);
+    Backend::interop.pendingGpuWork.cs.lock();
+    bool sharedWait = frameDone == Backend::interop.pendingGpuWork.gpuFence;
+    if (!sharedWait)
+      Backend::interop.pendingGpuWork.cs.unlock();
+    if (!frameDone->isReady())
+      frameDone->wait();
+
+    if (sharedWait)
+    {
+      Backend::interop.pendingGpuWork.gpuFence = nullptr;
+      Backend::interop.pendingGpuWork.cs.unlock();
+    }
   }
-  else
-    gpuWaitDuration = 0;
-  Backend::interop.lastGPUCompletedReplayWorkId.store(replayId, std::memory_order_release);
+  if (readbackDone && !readbackDone->isSignaled())
+  {
+    // should not take too long, yet better to know if something goes wrong
+    TIME_PROFILE(vulkan_readback_gpu_wait);
+    if (!readbackDone->isReady())
+      readbackDone->wait();
+  }
+  Backend::interop.lastGPUCompletedReplayWorkId.store(replayId, std::memory_order_release); //-V1020
 }
 
 void FrameInfo::finishSemaphores()
@@ -283,9 +318,31 @@ void FrameInfo::finishShaderModules()
 {
   VulkanDevice &vkDev = Globals::VK::dev;
 
+  // we don't count references to modules, yet keep references to them in pipeline compiler
+  // for simplicity, process deletions when there is nothing queued to avoid deleting module too early
+  if (Backend::pipelineCompiler.getQueueLength())
+    return;
+
   for (auto &&module : deletedShaderModules)
   {
-    VULKAN_LOG_CALL(vkDev.vkDestroyShaderModule(vkDev.get(), module->module, nullptr));
+    VULKAN_LOG_CALL(vkDev.vkDestroyShaderModule(vkDev.get(), module->module, VKALLOC(shader_module)));
   }
   deletedShaderModules.clear();
+}
+
+void FrameInfo::finishGpuEvents()
+{
+  // note: this may be inefficient, but resetting on GPU timeline is also inefficient, reiterate on this if needed
+  for (VulkanEventHandle i : gpuEvents)
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyEvent(Globals::VK::dev.get(), i, VKALLOC(event)));
+  gpuEvents.clear();
+}
+
+VulkanEventHandle FrameInfo::allocateGpuEvent()
+{
+  VulkanEventHandle ret;
+  VkEventCreateInfo eci = {VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, nullptr, VK_EVENT_CREATE_DEVICE_ONLY_BIT_KHR};
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateEvent(Globals::VK::dev.get(), &eci, VKALLOC(event), ptr(ret)));
+  gpuEvents.push_back(ret);
+  return ret;
 }

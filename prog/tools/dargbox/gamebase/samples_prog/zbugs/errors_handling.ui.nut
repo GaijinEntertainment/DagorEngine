@@ -42,7 +42,7 @@ function fatals() {
       { gap = [2,2] } //fatal on gap
       { gap = flex(1) } //fatal on gap
       { children = [
-           {rendObj = ROBJ_BOX fillColor=Color(0,0,0) size = [flex(),flex()] borderColor=Color(255,0,0) borderWidth=0}
+           {rendObj = ROBJ_BOX fillColor=Color(0,0,0) size = flex() borderColor=Color(255,0,0) borderWidth=0}
            {rendObj = ROBJ_TEXT text = "If you see this text - no known fatals on script or hotreload exist" color = Color(50,255,50) margin=10}
         ]
       }

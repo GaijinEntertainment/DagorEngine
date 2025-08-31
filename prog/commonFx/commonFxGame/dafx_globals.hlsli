@@ -1,10 +1,12 @@
 #ifndef DAFX_GLOBALS_HLSL
 #define DAFX_GLOBALS_HLSL
 
+#define DAFX_GLOBAL_DATA_FLAG_RENDERING_WATER_REFLECTION 1
+
 struct GlobalData
 {
   float dt; float dt_rcp;
-  float water_level; uint un00;
+  float water_level; uint flags;
   float4x4 globtm;
   float4x4 globtm_sim;
   float3 world_view_pos; uint gravity_zone_count;
@@ -22,7 +24,7 @@ struct GlobalData
   float3 wind_speed; float znear_offset;
   float2 wind_dir; float wind_power; float wind_scroll;
   float2 depth_size_for_collision; float2 depth_size_rcp_for_collision;
-  float3 camera_velocity; uint un12;
+  float3 camera_velocity; float un12;
 };
 
 #ifndef __cplusplus
@@ -32,6 +34,7 @@ struct GlobalData
     o.dt = asfloat( dafx_global_data[0].x );
     o.dt_rcp = asfloat( dafx_global_data[0].y );
     o.water_level = asfloat( dafx_global_data[0].z );
+    o.flags = asuint( dafx_global_data[0].w );
 
     o.globtm[0] = asfloat( dafx_global_data[1] );
     o.globtm[1] = asfloat( dafx_global_data[2] );

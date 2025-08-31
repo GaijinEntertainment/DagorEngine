@@ -26,7 +26,7 @@ AddIncludes =
 local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
 Sources = nstl/stl.cpp $(AllSources:D=) ;
 
-CPPopt += -DNO_PCRE=1 -DLR0_SUPPRESS_PROFILING=1 -D__B_NO_MEM_BASE_INCLUDE=1 ; # -DNO_CPP_LOCALE=1
+CPPopt += -DNO_PCRE -DLR0_SUPPRESS_PROFILING -D__B_NO_MEM_BASE_INCLUDE ; # -DNO_CPP_LOCALE
 if $(Platform) in linux macOS { CPPopt += -funsigned-char ; }
 
 if $(PlatformSpec) = clang {

@@ -2,7 +2,6 @@
 
 #include <max.h>
 #include "dagor.h"
-// #include "resource.h"
 
 HINSTANCE hInstance;
 
@@ -11,7 +10,7 @@ TCHAR *GetString(int id)
   static TCHAR buf[256];
 
   if (hInstance)
-    return LoadString(hInstance, id, buf, sizeof(buf)) ? buf : NULL;
+    return LoadString(hInstance, id, buf, sizeof(buf) / sizeof(*buf)) ? buf : NULL;
   return NULL;
 }
 
@@ -45,7 +44,7 @@ __declspec(dllexport) int LibNumberClasses()
 #endif
 #else
 #if MAX_RELEASE >= 4000
-  return 17;
+  return 19;
 #else
   return 16;
 #endif
@@ -88,6 +87,9 @@ __declspec(dllexport) ClassDesc *LibClassDesc(int i)
     case 15: return GetDAGEXPCD();
 #if MAX_RELEASE >= 4000
     case 16: return GetDagFreeCamUtilCD();
+    case 17: return GetDAGIMPCD();
+    case 18: return GetImpUtilCD();
+
 #endif
 #endif
     default: return NULL;

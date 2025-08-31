@@ -26,6 +26,7 @@ bool get_settings_use_retina();
 #if _TARGET_PC_WIN
 void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height);
 void get_current_display_screen_mode(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height);
+bool is_current_main_window_maximized();
 
 struct RenderWindowSettings
 {

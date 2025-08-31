@@ -21,6 +21,34 @@ class VariatedGraphicsPipeline;
 class ExecutionContext;
 struct PipelineStageStateBase;
 
+struct SubpassExtensions
+{
+  // index into VkAttachmentReference array
+  // -1 means that no depthStencilResolve struct should be chained
+  int depthStencilResolveAttachmentIdx = -1;
+};
+
+struct RenderPassConvertedDescription
+{
+  Tab<VkSubpassDependency> deps;
+  Tab<VkSubpassDependency> depsR;
+  Tab<VkSubpassDescription> subpasses;
+  Tab<VkAttachmentReference> refs;
+  Tab<uint32_t> preserves;
+  Tab<VkAttachmentDescription> attachments;
+  Tab<SubpassExtensions> subpass_extensions;
+  void clear()
+  {
+    deps.clear();
+    depsR.clear();
+    subpasses.clear();
+    refs.clear();
+    preserves.clear();
+    attachments.clear();
+    subpass_extensions.clear();
+  }
+};
+
 struct RenderPassDescription
 {
   const RenderPassDesc *externDesc;
@@ -52,6 +80,8 @@ struct RenderPassDescription
   uint64_t hash;
   bool noOpWithoutDraws;
 
+  RenderPassConvertedDescription convertedDesc;
+
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;
 };
 
@@ -65,8 +95,6 @@ class RenderPassResource : public RenderPassResourceImplBase
 
 public:
   // external handlers
-  static constexpr int CLEANUP_DESTROY = 0;
-
   void destroyVulkanObject();
   void createVulkanObject();
   MemoryRequirementInfo getMemoryReq();
@@ -80,14 +108,13 @@ public:
   bool nonResidentCreation();
   void restoreFromSysCopy(ExecutionContext &ctx);
   void makeSysCopy(ExecutionContext &ctx);
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  template <int Tag>
-  void onDelayedCleanupBackend(){};
+  template <CleanupTag Tag>
+  void onDelayedCleanupBackend() {};
 
-  template <int Tag>
-  void onDelayedCleanupFrontend(){};
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
   struct BakedAttachmentSharedData
@@ -126,42 +153,13 @@ public:
   };
 
 private:
-  struct SubpassExtensions
-  {
-    // index into VkAttachmentReference array
-    // -1 means that no depthStencilResolve struct should be chained
-    int depthStencilResolveAttachmentIdx = -1;
-  };
-  struct RenderPassConvertTempData
-  {
-    Tab<VkSubpassDependency> deps;
-    Tab<VkSubpassDependency> depsR;
-    Tab<VkSubpassDescription> subpasses;
-    Tab<VkAttachmentReference> refs;
-    Tab<uint32_t> preserves;
-    Tab<VkAttachmentDescription> attachments;
-    Tab<SubpassExtensions> subpass_extensions;
-    void clear()
-    {
-      deps.clear();
-      depsR.clear();
-      subpasses.clear();
-      refs.clear();
-      preserves.clear();
-      attachments.clear();
-      subpass_extensions.clear();
-    }
-  };
-  static Tab<RenderPassConvertTempData> tempDataCache;
-  static Tab<int> tempDataCacheIndexes;
-  static WinCritSec tempDataCritSec;
   //
   // converters
   //
   static uint32_t findSubpassCount(const RenderPassDesc &rp_desc);
-  static void fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
-  static void fillSubpassDescs(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
-  static void fillAttachmentDescription(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
+  static void fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &temp);
+  static void fillSubpassDescs(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &temp);
+  static void fillAttachmentDescription(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &temp);
   static void fillVkDependencyFromDriver(const RenderPassBind &next_bind, const RenderPassBind &prev_bind, VkSubpassDependency &dst,
     const RenderPassDesc &rp_desc, bool ro_ds_input_attachment);
   static void addStoreDependencyFromOverallAttachmentUsage(SubpassDep &dep, const RenderPassDesc &rp_desc, int32_t target);
@@ -189,7 +187,7 @@ private:
   //
   // checkers
   //
-  bool verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp);
+  bool verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &temp);
 
   // link to external states, to avoid copy and support possible MT buildup
   static const FrontRenderPassStateStorage *state;
@@ -201,12 +199,6 @@ private:
   void updateImageStatesForCurrentSubpass(ExecutionContext &ctx);
 
   void performSelfDepsForSubpass(uint32_t subpass);
-
-  VulkanFramebufferHandle compileFB();
-  VulkanFramebufferHandle compileOrGetFB();
-  VkRect2D toVkArea(RenderPassArea area);
-  VkExtent2D toVkFbExtent(RenderPassArea area);
-  void dumpCreateInfo(VkRenderPassCreateInfo &rpci);
 
   struct FbWithCreationInfo
   {
@@ -237,8 +229,13 @@ private:
     VulkanFramebufferHandle handle;
   };
 
-  Tab<FbWithCreationInfo> compiledFBs;
+  VulkanFramebufferHandle compileFB(const FbWithCreationInfo &ref_info);
+  VulkanFramebufferHandle compileOrGetFB();
+  VkRect2D toVkArea(RenderPassArea area);
+  VkExtent2D toVkFbExtent(RenderPassArea area);
+  void dumpCreateInfo(VkRenderPassCreateInfo &rpci);
 
+  Tab<FbWithCreationInfo> compiledFBs;
   std::atomic<size_t> pipelineCompileRefs = 0;
 
 public:

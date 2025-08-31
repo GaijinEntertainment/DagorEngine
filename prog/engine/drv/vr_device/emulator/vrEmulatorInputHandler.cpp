@@ -33,18 +33,14 @@ void VrEmulatorInputHandler::setAndCallInitializationCallback(InitializationCall
 bool VrEmulatorInputHandler::canCustomizeBindings() { return true; }
 
 bool VrEmulatorInputHandler::activateActionSet(ActionSetId) { return true; }
-void VrEmulatorInputHandler::updateActionsState()
-{ /* STUB */
-}
+void VrEmulatorInputHandler::updateActionsState() { /* STUB */ }
 bool VrEmulatorInputHandler::clearInputActions() { return true; }
 
 ActionSetIndex VrEmulatorInputHandler::addActionSet(ActionSetId, const char *, int, const char *) { return 1; }
 ActionIndex VrEmulatorInputHandler::addAction(ActionSetId, ActionId, ActionType, const char *, const char *) { return 0; }
 bool VrEmulatorInputHandler::setupHands(ActionSetId, const char *, const char *, const char *) { return true; }
 
-void VrEmulatorInputHandler::suggestBinding(ActionId, const char *, const char *)
-{ /* STUB */
-}
+void VrEmulatorInputHandler::suggestBinding(ActionId, const char *, const char *) { /* STUB */ }
 bool VrEmulatorInputHandler::completeActionsInit() { return true; }
 
 HumanInput::ButtonBits VrEmulatorInputHandler::getCurrentBindingsMask(ActionId) const { return {}; }
@@ -117,9 +113,5 @@ Controller VrEmulatorInputHandler::getControllerState(Hands side) const
 
 Hand VrEmulatorInputHandler::getTrackedHand(Hands side) const { return {}; }
 
-void VrEmulatorInputHandler::applyHapticFeedback(Hands, const HapticSettings &) const
-{ /* STUB */
-}
-void VrEmulatorInputHandler::stopHapticFeedback(Hands) const
-{ /* STUB */
-}
+void VrEmulatorInputHandler::applyHapticFeedback(Hands, const HapticSettings &) const { /* STUB */ }
+void VrEmulatorInputHandler::stopHapticFeedback(Hands) const { /* STUB */ }

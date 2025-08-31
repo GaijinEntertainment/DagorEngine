@@ -14,8 +14,8 @@ function makeRow(animations) {
   return {
     flow = FLOW_HORIZONTAL
     gap = sh(5)
-    children = array(5).map(@(_, n) {
-      size = [sh(10), sh(10)]
+    children = array(5).map(@(_, _n) {
+      size = sh(10)
       rendObj = ROBJ_SOLID
       color = Color(220, 180, 120)
       transform = {}

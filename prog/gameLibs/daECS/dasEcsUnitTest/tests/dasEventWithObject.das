@@ -11,9 +11,9 @@ def send_das_event_with_object(evt : Event)
     obj |> set("i", 1)
     obj |> set("f", 2.3)
     obj |> set("s", "str")
-    broadcastEvent([[EventWithObject name="test event", damage = 42, data=ecs_addr(obj)]])
+    broadcastEvent(EventWithObject(name = "test event", damage = 42, data = ecs_addr(obj)))
 
-  broadcastEvent([[EventWithNullObject data=null]])
+  broadcastEvent(EventWithNullObject(data = null))
 
 [es]
 def receive_das_event_with_null_object(evt : EventWithNullObject)

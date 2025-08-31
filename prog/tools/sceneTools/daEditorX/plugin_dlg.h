@@ -30,12 +30,12 @@ class PluginShowDialog : public PropPanel::DialogWindow
 {
 public:
   PluginShowDialog(void *phandle, const Tab<String> &tags, const StriMap<DeWorkspace::TabInt> &plugins);
-  ~PluginShowDialog();
+  ~PluginShowDialog() override;
 
   void addPlugin(IGenEditorPlugin *plgn, int *hotkey, int menu_id);
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   void createHotkey(int idx, bool disable = false);

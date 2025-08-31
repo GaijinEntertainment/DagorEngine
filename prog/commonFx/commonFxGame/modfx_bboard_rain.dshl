@@ -1,0 +1,13 @@
+include "modfx_bboard_render_inc.dshl"
+
+shader dafx_modfx_bboard_rain
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_bboard_rain)
+  USE_MODFX_UBERSHADER()
+}
+
+shader dafx_modfx_bboard_rain_distortion
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_bboard_rain_distortion)
+  USE_MODFX_UBERSHADER()
+}

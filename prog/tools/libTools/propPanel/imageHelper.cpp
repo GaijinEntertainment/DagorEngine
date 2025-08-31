@@ -2,104 +2,93 @@
 
 #include "imageHelper.h"
 #include <propPanel/c_util.h>
-#include <3d/dag_lockTexture.h>
+#include <propPanel/propPanel.h>
+#include <propPanel/imguiHelper.h>
 #include <3d/dag_texMgr.h>
 #include <drv/3d/dag_texture.h>
+#include <osApiWrappers/dag_direct.h>
+#include <util/dag_string.h>
 #include <util/dag_texMetaData.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_BMP
-#include <stb/stb_image.h>
 
 namespace PropPanel
 {
 
 ImageHelper image_helper;
 
+ImageHelper::ImageHelper()
+{
+  G_STATIC_ASSERT((int)IconId::Invalid == 0);
+  textures.push_back(BAD_TEXTUREID);
+}
+
 void ImageHelper::release()
 {
-  for (auto i = loadedTextures.begin(); i != loadedTextures.end(); ++i)
-    release_managed_tex(i->second);
+  for (auto i = textures.begin(); i != textures.end(); ++i)
+    if (*i != BAD_TEXTUREID)
+      release_managed_tex(*i);
 
-  loadedTextures.clear();
+  textures.clear();
+  textureMap.clear();
 }
 
-BaseTexture *ImageHelper::createTextureFromBuffer(const char *filename, const uint32_t *image_data, int width, int height)
+void ImageHelper::reloadAllIcons()
 {
-  BaseTexture *texture = d3d::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8, 1, filename);
-  if (!texture)
-    return nullptr;
-
-  TextureMetaData textureMetaData;
-  apply_gen_tex_props(texture, textureMetaData);
-
-  LockedImage2DView<uint32_t> lockedTexture = lock_texture<uint32_t>(texture, 0, TEXLOCK_WRITE);
-  if (!lockedTexture)
+  for (auto i = textureMap.begin(); i != textureMap.end(); ++i)
   {
-    del_d3dres(texture);
-    return nullptr;
+    const IconId iconId = i->second;
+    TEXTUREID &textureId = textures[(int)iconId];
+    if (textureId != BAD_TEXTUREID)
+      release_managed_tex(textureId);
+    textureId = loadIconFile(i->first.c_str());
   }
-
-  for (int i = 0; i < height; ++i)
-    memcpy(lockedTexture.get() + (lockedTexture.getByteStride() * i), image_data + (width * i), width * sizeof(uint32_t));
-
-  return texture;
 }
 
-TEXTUREID ImageHelper::loadIcon(const char *filename)
+TEXTUREID ImageHelper::loadIconFile(const char *filename)
 {
-  if (!filename || !filename[0])
-    return BAD_TEXTUREID;
+  String iconPath(256, "%s%s.tga", p2util::get_icon_path(), filename);
+  const char *iconFallbackPath = p2util::get_icon_fallback_path();
+  if (iconFallbackPath && *iconFallbackPath && !dd_file_exist(iconPath))
+    iconPath.printf(256, "%s%s.tga", iconFallbackPath, filename);
+  const ImVec2 fontSizedIconSize = ImguiHelper::getFontSizedIconSize();
+  iconPath.aprintf(0, ":%d:%d:K", fontSizedIconSize.x, fontSizedIconSize.y);
 
-  auto i = loadedTextures.find(filename);
-  if (i != loadedTextures.end())
-  {
-    TEXTUREID textureId = i->second;
+  TEXTUREID textureId = add_managed_texture(iconPath);
+  if (textureId == BAD_TEXTUREID)
     return textureId;
-  }
 
-  const String bmp(256, "%s%s%s", p2util::get_icon_path(), filename, ".bmp");
-  int width, height, components;
-  uint32_t *imageData = (uint32_t *)stbi_load(bmp, &width, &height, &components, 4);
-  if (!imageData)
+  if (!acquire_managed_tex(textureId))
   {
-    logdbg("Failed to load image '%s'.", bmp.c_str());
+    release_managed_tex(textureId);
     return BAD_TEXTUREID;
   }
 
-  const uint32_t transparentColor = imageData[0]; // In BMPs the first pixel defines the transparent color.
-  uint32_t *currentPixel = imageData;
-  for (int y = 0; y < height; ++y)
-    for (int x = 0; x < width; ++x)
-    {
-      uint8_t *currentPixelByte = (uint8_t *)currentPixel;
-
-      if (*currentPixel == transparentColor)
-        currentPixelByte[3] = 0;
-
-      eastl::swap(currentPixelByte[0], currentPixelByte[2]); // Swap red and blue.
-      ++currentPixel;
-    }
-
-  BaseTexture *texture = createTextureFromBuffer(bmp, imageData, width, height);
-  stbi_image_free(imageData);
-  if (!texture)
-  {
-    logerr("Failed to create texture from stb image '%s'.", bmp.c_str());
-    return BAD_TEXTUREID;
-  }
-
-  // The icons look more crisp with nearest neighbor filtering.
-  texture->texfilter(TEXFILTER_POINT);
-
-  TEXTUREID textureId = register_managed_tex(String(64, "propPanel_%s", filename), texture);
   TextureMetaData textureMetaData;
   textureMetaData.texFilterMode = TextureMetaData::FILT_POINT;
   set_texture_separate_sampler(textureId, get_sampler_info(textureMetaData));
-  G_ASSERT(textureId != BAD_TEXTUREID);
-  loadedTextures.insert(eastl::make_pair<eastl::string, TEXTUREID>(eastl::string(filename), textureId));
 
   return textureId;
+}
+
+IconId ImageHelper::loadIcon(const char *filename)
+{
+  if (!filename || !filename[0])
+    return IconId::Invalid;
+
+  auto i = textureMap.find(filename);
+  if (i != textureMap.end())
+    return i->second;
+
+  TEXTUREID textureId = loadIconFile(filename);
+  if (textureId == BAD_TEXTUREID)
+    return IconId::Invalid;
+
+  G_ASSERT(!textures.empty()); // The first item is BAD_TEXTUREID for IconId.
+  const IconId iconId = (IconId)textures.size();
+  textures.push_back(textureId);
+
+  textureMap.insert(eastl::pair<eastl::string, IconId>(eastl::string(filename), iconId));
+
+  return iconId;
 }
 
 } // namespace PropPanel

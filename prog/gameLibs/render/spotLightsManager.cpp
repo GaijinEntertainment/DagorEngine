@@ -44,14 +44,14 @@ template <bool use_small>
 void SpotLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
   eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
   const StaticTab<shadow_index_t, SpotLightsManager::MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos,
-  mask_type_t accept_mask) const
+  SpotLightMaskType require_any_mask) const
 {
   v_bbox3_init_empty(inside_box);
   v_bbox3_init_empty(outside_box);
   const vec4f *boundings = (vec4f *)boundingSpheres.data();
   for (int i = 0; i <= maxLightIndex; ++i, boundings++)
   {
-    if (!(accept_mask & masks[i]))
+    if (require_any_mask && !(require_any_mask & masks[i]))
       continue;
     const RawLight &l = rawLights[i];
     if (l.pos_radius.w <= 0)
@@ -112,7 +112,7 @@ int SpotLightsManager::addLight(const RawLight &light)
   }
   if (id < 0)
     return id;
-  masks[id] = ~mask_type_t(0);
+  masks[id] = SpotLightMaskType::SPOT_LIGHT_MASK_DEFAULT;
   rawLights[id] = light;
   resetLightOptimization(id);
   updateBoundingSphere(id);
@@ -155,7 +155,7 @@ void SpotLightsManager::destroyLight(unsigned int id)
 
   setLightOptimized(id);
   memset(&rawLights[id], 0, sizeof(rawLights[id]));
-  masks[id] = 0;
+  masks[id] = SpotLightMaskType::SPOT_LIGHT_MASK_NONE;
 
   if (id == maxLightIndex)
   {
@@ -239,11 +239,11 @@ void SpotLightsManager::getLightView(unsigned int id, mat44f &viewITM)
 }
 
 int SpotLightsManager::addLight(const Point3 &pos, const Color3 &color, const Point3 &dir, const float angle, float radius,
-  float attenuation_k, bool contact_shadows, int tex)
+  float attenuation_k, bool contact_shadows, int tex, float illuminating_plane)
 {
   IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
-  return addLight(
-    Light(pos, color, radius, attenuation_k, dir, angle, contact_shadows, false, tex, photometryData.zoom, photometryData.rotated));
+  return addLight(Light(pos, color, radius, attenuation_k, dir, angle, contact_shadows, false, tex, photometryData.zoom,
+    photometryData.rotated, illuminating_plane));
 }
 
 IesTextureCollection::PhotometryData SpotLightsManager::getPhotometryData(int texId) const
@@ -263,9 +263,9 @@ void SpotLightsManager::getLightPersp(unsigned int id, mat44f &proj)
 template void SpotLightsManager::prepare<true>(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane,
   Tab<uint16_t> &lights_outside_plane, eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box,
   bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const;
+  float markSmallLightsAsFarLimit, vec3f cameraPos, SpotLightMaskType require_any_mask) const;
 
 template void SpotLightsManager::prepare<false>(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane,
   Tab<uint16_t> &lights_outside_plane, eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box,
   bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, mask_type_t accept_mask) const;
+  float markSmallLightsAsFarLimit, vec3f cameraPos, SpotLightMaskType require_any_mask) const;

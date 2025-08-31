@@ -1,5 +1,5 @@
-Shader constants and const buffers
+Shader Constants and Const Buffers
 =================================================
 
-.. autodoxygenfile:: dag_shaderConstants.h
+.. doxygenfile:: dag_shaderConstants.h
   :project: d3dAPI

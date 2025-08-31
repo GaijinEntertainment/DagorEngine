@@ -15,9 +15,9 @@ Sources =
   voxelizationTarget.cpp
 ;
 
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; }
 UseProgLibs +=
   engine/lib3d
-  engine/baseUtil
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

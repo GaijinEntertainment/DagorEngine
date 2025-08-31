@@ -16,11 +16,10 @@
 
 #define INSIDE_RENDERER 1
 #include "private_worldRenderer.h"
-#include "lmesh_modes.h"
 
-extern int rendinstDepthSceneBlockId;
-extern int rendinstTransSceneBlockId;
-extern int globalFrameBlockId;
+extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
+extern ShaderBlockIdHolder rendinstTransSceneBlockId;
+extern ShaderBlockIdHolder globalFrameBlockId;
 
 class RenderDepthAOCB : public IRenderDepthAOCB
 {
@@ -68,7 +67,7 @@ public:
 
     if (wr.lmeshMgr && (type & RenderDepthAOType::Terrain))
     {
-      set_lmesh_rendering_mode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
+      wr.lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
 
       const float oldInvGeomDist = wr.lmeshRenderer->getInvGeomLodDist();
       const float heightmap_size = 4096;
@@ -79,8 +78,8 @@ public:
 
       wr.lmeshRenderer->setRenderInBBox(box);
       shaders::overrides::set(wr.depthClipState);
-      wr.lmeshRenderer->render(culling_view_proj, Frustum{culling_view_proj}, *wr.lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER,
-        origin);
+      wr.lmeshRenderer->render(culling_view_proj, TMatrix4::IDENT, Frustum{culling_view_proj}, *wr.lmeshMgr,
+        LandMeshRenderer::RENDER_ONE_SHADER, origin);
       shaders::overrides::reset();
       wr.lmeshRenderer->setRenderInBBox(BBox3());
 

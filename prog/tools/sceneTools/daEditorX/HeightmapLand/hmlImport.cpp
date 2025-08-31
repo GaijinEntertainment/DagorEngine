@@ -35,8 +35,8 @@ class Raw32fHeightmapImporter : public HeightmapImporter
 #pragma pack(pop)
 public:
   Raw32fHeightmapImporter(bool sizes_header) : sizesHeader(sizes_header) {}
-  virtual bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0,
-    int y0, int x1, int y1)
+  bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
+    int x1, int y1) override
   {
     file_ptr_t handle = ::df_open(filename, DF_READ);
 
@@ -117,8 +117,8 @@ public:
 class Raw16HeightmapImporter : public HeightmapImporter
 {
 public:
-  virtual bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0,
-    int y0, int x1, int y1)
+  bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
+    int x1, int y1) override
   {
     file_ptr_t handle = ::df_open(filename, DF_READ);
 
@@ -180,8 +180,8 @@ public:
 class TgaHeightmapImporter : public HeightmapImporter
 {
 public:
-  virtual bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0,
-    int y0, int x1, int y1)
+  bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
+    int x1, int y1) override
   {
     con.startProgress();
     con.setActionDesc("loading TGA image...");
@@ -237,8 +237,8 @@ public:
 class TiffHeightmapImporter : public HeightmapImporter
 {
 public:
-  virtual bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0,
-    int y0, int x1, int y1)
+  bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
+    int x1, int y1) override
   {
     con.startProgress();
     con.setActionDesc("loading TIFF image...");

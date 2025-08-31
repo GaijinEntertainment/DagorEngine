@@ -19,9 +19,9 @@ using eastl::unique_ptr;
 template <typename T>
 inline void move_swap(T &a, T &b)
 {
-  T temp((T &&) a);
-  a = (T &&) b;
-  b = (T &&) temp;
+  T temp((T &&)a);
+  a = (T &&)b;
+  b = (T &&)temp;
 }
 /*
   template< class T > struct remove_reference      { typedef T type; };

@@ -20,21 +20,19 @@ namespace drv3d_vulkan
 {
 
 template <>
-void RaytracePipeline::onDelayedCleanupFinish<RaytracePipeline::CLEANUP_DESTROY>()
+void RaytracePipeline::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
-  shutdown(Globals::VK::dev);
+  shutdown();
   delete this;
 }
 
 } // namespace drv3d_vulkan
 
-RaytracePipeline::RaytracePipeline(VulkanDevice &, ProgramID, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &) :
-  BasePipeline(l)
-{}
+RaytracePipeline::RaytracePipeline(ProgramID, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &) : BasePipeline(l) {}
 
 void RaytracePipeline::bind() {}
 
-void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &, uint32_t, uint32_t, uint32_t, void *)
+void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(uint32_t, uint32_t, uint32_t, void *)
 {
   G_ASSERTF(false, "RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory called on API without support");
 }

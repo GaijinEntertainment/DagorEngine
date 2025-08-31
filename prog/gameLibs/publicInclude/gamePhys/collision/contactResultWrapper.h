@@ -75,7 +75,7 @@ struct WrapperContactResultCB
     */
   }
 #else
-  static void visualDebugForSingleResult(...) {}
+  static void visualDebugForSingleResult(const PhysBody *, const PhysBody *, const contact_data_t &) {}
 #endif
 
   bool needsCollision(obj_user_data_t *userPtrB, bool /*is_static*/) const

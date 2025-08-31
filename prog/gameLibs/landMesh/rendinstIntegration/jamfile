@@ -1,0 +1,10 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/landMesh/rendinstIntegration ;
+
+TargetType  = lib ;
+Target      = gameLibs/landMesh/rendinstIntegration.lib ;
+
+Sources = riLandClass.cpp ;
+AddIncludes = $(Root)/prog/gameLibs/publicInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

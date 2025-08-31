@@ -119,11 +119,11 @@ inline T sign(T x)
 
 // Integer division with round to positive infinity (ceil).
 template <class T>
-inline T div_ceil(T x, T y)
+constexpr T div_ceil(T x, T y)
 {
   T div_result = x / y;
   bool div_has_remainder = x % y != 0;
-  if constexpr (std::is_signed_v<T>)
+  if constexpr (eastl::is_signed_v<T>)
     return div_result + (((x < 0) == (y < 0)) && div_has_remainder);
   else
     return div_result + div_has_remainder;
@@ -137,7 +137,7 @@ template <typename T>
 struct DoNotPutPointersIntoClamp<T *>;
 
 
-template <typename T>
+template <typename T, bool extrapolate = false>
 T cvt_type_(T val, T vmin, T vmax, T omin, T omax)
 {
   using eastl::swap;
@@ -147,13 +147,16 @@ T cvt_type_(T val, T vmin, T vmax, T omin, T omax)
     swap(omin, omax);
   }
 
-  if (val <= vmin)
-    return omin;
-  if (val >= vmax)
-    return omax;
+  if constexpr (!extrapolate)
+  {
+    if (val <= vmin)
+      return omin;
+    if (val >= vmax)
+      return omax;
+  }
 
   T d = vmax - vmin;
-  return fsel(vmin - val, omin, omin + safediv((omax - omin) * (val - vmin), d));
+  return omin + safediv((omax - omin) * (val - vmin), d);
 }
 
 
@@ -162,6 +165,17 @@ inline float cvt(float val, float vmin, float vmax, float omin, float omax) { re
 inline double cvt_double(double val, double vmin, double vmax, double omin, double omax)
 {
   return cvt_type_<double>(val, vmin, vmax, omin, omax);
+}
+
+// cvt with extrapolation.
+inline float cvt_ex(float val, float vmin, float vmax, float omin, float omax)
+{
+  return cvt_type_<float, true>(val, vmin, vmax, omin, omax);
+}
+
+inline double cvt_ex_double(double val, double vmin, double vmax, double omin, double omax)
+{
+  return cvt_type_<double, true>(val, vmin, vmax, omin, omax);
 }
 
 inline float piecewise_linear_interpolation(float x, const Point2 points[], int count)
@@ -693,6 +707,11 @@ inline float get_box_bounding_plane_dist(const BBox3 &bbox, const Point3 &axis)
   return dist;
 }
 
+bool clip_homogeneous(Point4 &p0, Point4 &p1);
+
+bool test_point_convex_intersection(const Point2 &p, const Point2 *pts, int32_t count);
+
+
 inline float perlin_noise_1d(int x)
 {
   const unsigned int prime0 = 19379;
@@ -843,11 +862,12 @@ inline int get_positional_seed(const T &p, float step)
   return int(p.x * step) ^ int(p.y * step) ^ int(p.z * step);
 }
 
-inline unsigned int solve_square_equation(float a, float b, float c, float (&out_x)[2])
+template <typename T>
+inline unsigned int solve_square_equation(T a, T b, T c, T (&out_x)[2])
 {
-  if (rabs(a) < FLT_EPSILON)
+  if (fabs(a) < VERY_SMALL_NUMBER)
   {
-    if (rabs(b) < FLT_EPSILON)
+    if (fabs(b) < VERY_SMALL_NUMBER)
       return 0u;
     else
     {
@@ -855,19 +875,19 @@ inline unsigned int solve_square_equation(float a, float b, float c, float (&out
       return 1u;
     }
   }
-  float D = sqr(b) - 4.0f * a * c;
+  T D = sqr(b) - (T)4.0f * a * c;
   if (D < 0.0f)
     return 0u;
-  else if (rabs(D) < FLT_EPSILON)
+  else if (fabs(D) < VERY_SMALL_NUMBER)
   {
-    out_x[0] = -b / (2.0f * a);
+    out_x[0] = -b / ((T)2.0f * a);
     return 1u;
   }
   else
   {
-    const float sqrtD = sqrtf(D);
-    out_x[0] = (-b + sqrtD) / (2.0f * a);
-    out_x[1] = (-b - sqrtD) / (2.0f * a);
+    const T sqrtD = sqrtf(D);
+    out_x[0] = (-b + sqrtD) / ((T)2.0f * a);
+    out_x[1] = (-b - sqrtD) / ((T)2.0f * a);
     return 2u;
   }
 }
@@ -913,11 +933,16 @@ inline double poly(const double (&tab)[size], double v)
 
 // Solving func(arg) = 0 by Newton method
 template <typename Func, typename T>
-bool solve_newton(const Func &func, T arg, T delta_arg, T epsilon, unsigned int step_count_max, T &out_result)
+bool solve_newton(const Func &func, T arg, T delta_arg, T epsilon, T precision, unsigned int step_count_max, T &out_result)
 {
   for (unsigned int i = 0u; i < step_count_max; ++i)
   {
     const T val = func(arg);
+    if (rabs(val) < precision)
+    {
+      out_result = arg;
+      return true;
+    }
     const T der = safediv(func(arg + delta_arg) - val, delta_arg);
     if (rabs(der) < VERY_SMALL_NUMBER)
       return false;
@@ -933,11 +958,16 @@ bool solve_newton(const Func &func, T arg, T delta_arg, T epsilon, unsigned int 
 }
 
 template <typename Func, typename Derr, typename T>
-bool solve_newton_derr(const Func &func, const Derr &derr, T arg, T epsilon, unsigned int step_count_max, T &out_result)
+bool solve_newton_derr(const Func &func, const Derr &derr, T arg, T epsilon, T precision, unsigned int step_count_max, T &out_result)
 {
   for (unsigned int i = 0u; i < step_count_max; ++i)
   {
     const T val = func(arg);
+    if (rabs(val) < precision)
+    {
+      out_result = arg;
+      return true;
+    }
     const T der = derr(arg);
     if (rabs(der) < VERY_SMALL_NUMBER)
       return false;
@@ -1061,4 +1091,52 @@ inline Point3 relative_2d_dir_to_absolute_3d_dir(const Point2 &dir_2d, const Poi
 inline Point2 absolute_3d_dir_to_relative_2d_dir(const Point3 &dir_3d, const Point3 &fwd, const Point3 &side)
 {
   return normalize(Point2(dir_3d * fwd, dir_3d * side));
+}
+
+/// compile-time sin and cos
+static constexpr float taylor_sin(float x)
+{
+  x -= static_cast<int>(x / TWOPI) * TWOPI;
+  float x2 = x * x;
+  float xi = x2 * x;
+  x -= xi * 0.16666666666f;
+  xi *= x2;
+  x += xi * 0.00833333333f;
+  xi *= x2;
+  x -= xi * 0.00019841269f;
+  xi *= x2;
+  x += xi * 0.00000275573f;
+  xi *= x2;
+  x -= xi * 2.50521084e-8f;
+  xi *= x2;
+  x += xi * 1.6059044e-10f;
+  xi *= x2;
+  x -= xi * 7.6471635e-13f;
+  xi *= x2;
+  x += xi * 2.8114572e-15f;
+  return x;
+}
+
+static constexpr float taylor_cos(float x)
+{
+  x -= static_cast<int>(x / TWOPI) * TWOPI;
+  float res = 1.0f;
+  float x2 = x * x;
+  float xi = x2;
+  res -= xi * 0.5f;
+  xi *= x2;
+  res += xi * 0.04166666666f;
+  xi *= x2;
+  res -= xi * 0.00138888888f;
+  xi *= x2;
+  res += xi * 0.00002480158f;
+  xi *= x2;
+  res -= xi * 2.75573192e-7f;
+  xi *= x2;
+  res += xi * 2.0876757e-9f;
+  xi *= x2;
+  res -= xi * 1.1470746e-11f;
+  xi *= x2;
+  res += xi * 4.7794773e-14f;
+  return res;
 }

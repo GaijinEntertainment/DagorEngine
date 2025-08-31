@@ -4,9 +4,13 @@ return {
   steam_is_running =  @() get_arg_value_by_name("steam") ?? false
   is_running = @() get_arg_value_by_name("steam") ?? false
   is_running_on_steam_deck = @() false
+  steam_is_running_in_vr_mode = @() false
   is_overlay_active = @() false
   is_overlay_enabled = @() false
   open_url = @(_url) null
+  steam_open_url = @(_url) null
+  steam_open_in_store = @(_app_or_dlc_id) null
+  steam_add_to_cart = @(_app_or_dlc_id) null
   get_app_id = @() 0
   get_my_id = @() "-1"
   steam_add_instantaneous_timeline_event = @(...) null

@@ -1,0 +1,44 @@
+include "decals/dynamic_decal_inc.dshl"
+include "decals/modulate2x_decal_inc.dshl"
+
+
+shader dynamic_modulate2x_diffuse_decal, dynamic_deferred_modulate2x_decal
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    hlsl {
+      #define BLEND_GBUFFER 1
+    }
+  }
+  render_stage decal;
+  z_write = false;
+
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  SUPPORT_MULTIDRAW(false)
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+
+  if (shader == dynamic_deferred_modulate2x_decal)
+  {
+    INIT_ZNZFAR()
+  }
+
+  texture tex = material.texture.diffuse;
+
+  static int draw_order = 0 no_warnings;
+
+  if (shader == dynamic_deferred_modulate2x_decal)
+  {
+    DYNAMIC_DECAL_VS(true)
+    MODULATE_2X_DECAL_PS(true)
+  }
+  else
+  {
+    DYNAMIC_DECAL_VS(false)
+    MODULATE_2X_DECAL_PS(false)
+  }
+}

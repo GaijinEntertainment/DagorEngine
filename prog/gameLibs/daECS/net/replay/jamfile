@@ -16,8 +16,6 @@ Sources =
   stubs.cpp
 ;
 
-UseProgLibs +=
-  engine/ioSys
-;
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -94,15 +94,6 @@ shader nrd_reblur_perf_specular_postblur
   compile("cs_6_5", "main");
 }
 
-shader nrd_reblur_specular_copy
-{
-  hlsl(cs) {
-    #include "REBLUR_Specular_Copy.cs.hlsl"
-  }
-
-  compile("cs_6_5", "main");
-}
-
 shader nrd_reblur_specular_temporal_stabilization
 {
   hlsl(cs) {

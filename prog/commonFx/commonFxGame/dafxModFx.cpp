@@ -11,6 +11,7 @@
 #include <dafxEmitterDebug.h>
 #include <math/dag_hlsl_floatx.h>
 #include <daFx/dafx_gravity_zone.hlsli>
+#include <gameRes/dag_gameResSystem.h>
 
 int dafx_gravity_zone_count = 0;
 GravityZoneDescriptor_buffer dafx_gravity_zone_buffer = nullptr;
@@ -19,17 +20,22 @@ enum
 {
   HUID_ACES_RESET = 0xA781BF24u
 };
-enum
-{
-  HUID_ACES_IS_ACTIVE = 0xD6872FCEu
-};
 
 static dafx::ContextId g_dafx_ctx;
 
-#define MODFX_RFLAG_USE_ETM_AS_WTM 0
+// TODO: These are copy-pasted from modfx_decl.hlsli. It should be refactored later.
+#define MODFX_RFLAG_USE_ETM_AS_WTM        0
+#define MODFX_RFLAG_BACKGROUND_POS_INITED 15
 
 extern bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx,
   dafx::SystemDesc &sdesc, dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug);
+
+void dafx_report_broken_res(int game_res_id, const char *fx_type)
+{
+  String resName;
+  ::get_game_resource_name(game_res_id, resName);
+  logerr("failed to load resource: %s | id:%d | type: %s", resName.c_str(), game_res_id, fx_type);
+}
 
 
 struct DafxModFx : BaseParticleEffect
@@ -42,6 +48,7 @@ struct DafxModFx : BaseParticleEffect
   eastl::unique_ptr<dafx_ex::EmitterDebug> emitterDebug;
 
   eastl::vector<TEXTUREID> textures;
+  float distanceToCamOnSpawn = 0;
   int gameResId = 0;
 
   DafxModFx() : emitterDebug(nullptr) {}
@@ -73,22 +80,28 @@ struct DafxModFx : BaseParticleEffect
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
+    gameResId = load_cb->getSelfGameResId();
+    if (!loadParamsDataInternal(ptr, len, load_cb)) // pdesc will be null on fail
+      dafx_report_broken_res(gameResId, "dafx_modfx");
+  }
+
+  bool loadParamsDataInternal(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  {
     if (!g_dafx_ctx)
     {
       logwarn("fx: modfx: failed to load params data, context was not initialized");
-      return;
+      return false;
     }
 
     pdesc.reset(new dafx::SystemDesc());
     sinfo = dafx_ex::SystemInfo();
-    gameResId = load_cb->getSelfGameResId();
     pdesc->gameResId = gameResId;
     emitterDebug = eastl::make_unique<dafx_ex::EmitterDebug>(dafx_ex::EmitterDebug());
     dafx_ex::EmitterDebug *emitterDebugObject = emitterDebug.get();
     if (!dafx_modfx_system_load(ptr, len, load_cb, g_dafx_ctx, *pdesc, sinfo, emitterDebugObject))
     {
       pdesc.reset(nullptr);
-      return;
+      return false;
     }
 
     if (pdesc && !pdesc->subsystems.empty())
@@ -98,6 +111,8 @@ struct DafxModFx : BaseParticleEffect
         if (tid != BAD_TEXTUREID)
           textures.push_back(tid);
     }
+
+    return true;
   }
 
   void setGravityTm(const Matrix3 &tm)
@@ -135,7 +150,7 @@ struct DafxModFx : BaseParticleEffect
 
       if (!sid)
       {
-        sid = dafx::register_system(g_dafx_ctx, *pdesc, name);
+        sid = pdesc ? dafx::register_system(g_dafx_ctx, *pdesc, name) : dafx::get_dummy_system_id(g_dafx_ctx);
         if (!sid)
           logerr("fx: modfx: failed to register system");
       }
@@ -155,8 +170,13 @@ struct DafxModFx : BaseParticleEffect
     if (!iid)
       return;
 
-    if (id == _MAKE4C('PFXE') || id == _MAKE4C('PFXF'))
-      dafx::set_instance_status(g_dafx_ctx, iid, value ? *(bool *)value : false);
+    if (id == _MAKE4C('PFXE'))
+    {
+      G_ASSERT(value);
+      BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
+      distanceToCamOnSpawn = dafxe->distanceToCam;
+      dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+    }
     else if (id == _MAKE4C('PFXP'))
     {
       Point4 pos = *(Point4 *)value;
@@ -218,9 +238,9 @@ struct DafxModFx : BaseParticleEffect
     {
       *(int *)value = sinfo.playerReserved;
     }
-    else if (id == _MAKE4C('FXLR'))
+    else if (id == _MAKE4C('FXLR') && pdesc)
     {
-      *(float *)value = sinfo.spawnRangeLimit;
+      *(float *)value = pdesc->emitterData.spawnRangeLimit;
     }
     else if (id == _MAKE4C('FXLX'))
     {
@@ -435,11 +455,13 @@ struct DafxModFx : BaseParticleEffect
     }
   }
 
-  void setTransform(const TMatrix &value, dafx_ex::TransformType tr_type)
+  void setTransform(TMatrix value, dafx_ex::TransformType tr_type)
   {
     int type = sinfo.transformType;
     if (type == dafx_ex::TRANSFORM_DEFAULT)
       type = tr_type;
+
+    sinfo.distanceScale.apply(value, distanceToCamOnSpawn);
 
     if (type == dafx_ex::TRANSFORM_LOCAL_SPACE)
     {
@@ -464,6 +486,7 @@ struct DafxModFx : BaseParticleEffect
     }
 
     TMatrix4 fxTm4 = value;
+    fxTm4[3][3] = value.getScalingFactor(); // scale is stored in the last component
     dafx::set_instance_value(g_dafx_ctx, iid, sinfo.valueOffsets[dafx_ex::SystemInfo::VAL_TM], &fxTm4, 64);
   }
 
@@ -486,6 +509,16 @@ struct DafxModFx : BaseParticleEffect
       return;
 
     dafx::set_instance_value(g_dafx_ctx, iid, ofsIt->second, v, 12);
+  }
+
+  void setFakeBrightnessBackgroundPos(const Point3 *v) override
+  {
+    auto ofsIt = sinfo.valueOffsets.find(dafx_ex::SystemInfo::VAL_FAKE_BRIGHTNESS_BACKGROUND_POS);
+    if (!iid || !v || ofsIt == sinfo.valueOffsets.end() || sinfo.rflags & (1 << MODFX_RFLAG_BACKGROUND_POS_INITED))
+      return;
+
+    dafx::set_instance_value(g_dafx_ctx, iid, ofsIt->second, v, 12);
+    sinfo.rflags |= 1 << MODFX_RFLAG_BACKGROUND_POS_INITED;
   }
 
   void reset()

@@ -8,7 +8,7 @@ let movieFileName = Watched(null)
 let movieError = Watched(null)
 
 const CACHE_NAME = "video"
-let cache = datacache.init_cache(CACHE_NAME, {
+datacache.init_cache(CACHE_NAME, {
   mountPath = "gamedatadir"
 })
 
@@ -37,16 +37,16 @@ return {
 
   children = @() {
     watch = [movieFileName, movieError]
-    size = [sh(60), sh(40)]
+    size = static [sh(60), sh(40)]
     rendObj = ROBJ_MOVIE
-    movie = movieFileName.value
-    behavior = movieFileName.value ? Behaviors.Movie : null
+    movie = movieFileName.get()
+    behavior = movieFileName.get() ? Behaviors.Movie : null
 
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
-    children = movieError.value ? {
+    children = movieError.get() ? {
       rendObj = ROBJ_TEXT
-      text = movieError.value
+      text = movieError.get()
     } : null
   }
 }

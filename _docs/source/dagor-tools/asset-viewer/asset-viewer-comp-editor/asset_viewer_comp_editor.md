@@ -1,3 +1,5 @@
+# Asset Viewer Composite Editor
+
 ## Overview
 
 Before proceeding, it is highly recommended to review the main article on
@@ -34,10 +36,8 @@ option is disabled by default. Use it at your own risk.
    <img src="_images/av_comp_edit_03.jpg" alt="Creating a new composite" align="center">
 
 3. In the pop-up window, enter the desired name, making sure to follow the
-   [naming
-   conventions](../../../dagor-home/documentation/naming_conventions.md). If an
-   asset with this name already exists, a warning will be displayed when you
-   attempt to create it.
+   naming conventions. If an asset with this name already exists, a warning will
+   be displayed when you attempt to create it.
 
    <img src="_images/av_comp_edit_04.jpg" alt="Creating a new composite" align="center">
 
@@ -117,7 +117,7 @@ followed by the child nodes. However, it will work either way.
 
 Do not confuse this with the **Properties** of the entire composite asset.
 
-<img src="_images/av_comp_edit_07.jpg" alt="Editor properties" align="center" width="">
+<img src="_images/av_comp_edit_07.jpg" alt="Editor properties" align="center">
 
 This section contains the properties of the selected node, along with options to
 save or revert changes.
@@ -145,7 +145,7 @@ need to enable the **Use transformation matrix** checkbox, which corresponds to
 the `tm:m=` block. If this checkbox is enabled, you can edit the matrix in a
 human-readable format:
 
-<img src="_images/av_comp_edit_08.jpg" alt="Node parameters" align="center" width="">
+<img src="_images/av_comp_edit_08.jpg" alt="Node parameters" align="center">
 
 **Add Parameters**
 
@@ -153,7 +153,7 @@ Here, you can set additional parameters for the node. Since the transformation
 matrix takes precedence over random offsets, attempting to add both will trigger
 a warning, and the parameter fields will be locked for editing.
 
-<img src="_images/av_comp_edit_09.jpg" alt="Add parameters" align="center" width="">
+<img src="_images/av_comp_edit_09.jpg" alt="Add parameters" align="center">
 
 To apply random transforms, disable the **Use transformation matrix** checkbox.
 
@@ -179,6 +179,6 @@ for the selected node using the checkbox mentioned earlier. Random offsets
 cannot be applied via the gizmo. These tools can be activated using the standard
 hotkeys: `Q`, `W`, `E`, and `R`, respectively.
 
-<img src="_images/av_comp_edit_10.jpg" alt="Visual editing" align="center" width="">
+<img src="_images/av_comp_edit_10.jpg" alt="Visual editing" align="center">
 
 

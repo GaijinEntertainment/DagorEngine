@@ -67,11 +67,11 @@ shader bvh_debug
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
             debug_target[thread] = float4(0, 0.8, 0, 1);
           else
-            debug_target[thread] = float4(hitInfo.color, 1);
+            debug_target[thread] = float4(hitInfo.vertexColor, 1);
         ##elif bvh_debug_mode == world_normal
           debug_target[thread] = float4(hitInfo.normal * 0.5 + 0.5, 1);
         ##elif bvh_debug_mode == gi
-          debug_target[thread] = float4(hitInfo.color, 1);
+          debug_target[thread] = float4(hitInfo.vertexColor, 1);
         ##else
           debug_target[thread] = float4(0.5, 0.5, 0.5, 1);
         ##endif

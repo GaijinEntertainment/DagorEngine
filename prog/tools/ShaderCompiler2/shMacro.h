@@ -5,16 +5,22 @@
   macro support for shaders
 /************************************************************************/
 
+#include "parser/bparser.h"
+#include "parser/base_par.h"
+#include "nameMap.h"
+#include <memory/dag_memBase.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <util/dag_string.h>
-#include "parser/bparser.h"
-#include "parser/base_par.h"
+#include <generic/dag_tabUtils.h>
+#include <debug/dag_debug.h>
+#include <EASTL/unique_ptr.h>
 
 //************************************************************************
 //* forwards
 //************************************************************************
-class ShaderLexParser;
+class Lexer;
+class ShaderMacroManager;
 
 namespace ShaderParser
 {
@@ -28,18 +34,17 @@ struct TokenInfo
   bool isMacro;
   BaseParNamespace::Symbol::MacroCallStack macroCallStack;
 
-  inline TokenInfo() : file(0), line(0), column(0), token(-1), lexeme(""), isMacro(false){};
+  TokenInfo() : file(0), line(0), column(0), token(-1), lexeme(""), isMacro(false) {}
 };
 } // namespace ShaderParser
 
 /*********************************
  *
- * class ShaderMacro
+ * struct ShaderMacro
  *
  *********************************/
-class ShaderMacro
+struct ShaderMacro
 {
-public:
   struct TokenData
   {
     int paramIndex;
@@ -50,72 +55,75 @@ public:
 
   typedef Tab<TokenData> TokenList;
 
-  // ctor/dtor
-  ShaderMacro();
-  ~ShaderMacro();
+  String name;
+  String expandStr;
 
-  // parse macro declaration (return false if failed)
-  // in = macro <macro_id>([v1][, v2]..[, vn]) <macro_body> endmacro
-  bool parseDefinition(ShaderLexParser *parser);
+  TokenList textParts; // text table
+  Tab<String> variables;
+
+  // ctor
+  ShaderMacro();
 
   // retrun macro name
   inline const String &getName() const { return name; };
 
-  // parse params, make full code text & include code in input file - return false if failed
-  // in = ([v1][, v2]..[, vn])  out = <macro_body> with replaced variables with it values v1..vN
-  bool expandMacro(ShaderLexParser *parser, TokenList &code);
-
   // retern desc
   inline const String &getDesc() const { return expandStr; };
-
-private:
-  String name;
-  String expandStr;
-
-  // int varCount;         // variable count
-  TokenList textParts; // text table
-  Tab<String> variables;
-
-  // parse macro parameters (definition). in = ([v1][, v2]..[, vn])
-  bool processParams(ShaderLexParser *parser, Tab<String> &var_list);
-
-  // parse macro parameters (real). in = ([v1][, v2]..[, vn])
-  bool processVariables(ShaderLexParser *parser, Tab<TokenList> &var_list, int req_count);
-
-  // process token. in = [any_token]
-  // void processToken(const String& cur_token, String& collected_string, Tab<String>& var_list);
 }; // class ShaderMacro
 //
 
 
 /*********************************
  *
- * namespase ShaderMacroManager
+ * class ShaderMacroManager
  *
  *********************************/
-namespace ShaderMacroManager
+class ShaderMacroManager
 {
+  friend class ShaderMacro;
 
-// clear all macro table
-void init();
+  struct MacroCode
+  {
+    ShaderMacro *macro;
+    ShaderMacro::TokenList code;
+    int curToken;
+    int caller_file = 0;
+    int caller_line = 0;
 
-void clearMacros();
+    MacroCode(ShaderMacro *m, ShaderMacro::TokenList &init_code);
 
-// parse new macro definition & add new macros; return false if failed
-bool parseDefinition(ShaderLexParser *parser, bool optional);
+    // return next token or false, if finished
+    bool getToken(ShaderParser::TokenInfo &out_info);
+  };
 
-// check for macros & parse it if nessesary; return false if failed
-bool expandMacro(ShaderLexParser *parser, ShaderParser::TokenInfo &token);
+  Tab<eastl::unique_ptr<ShaderMacro>> objList{};
+  FastNameMap objNameMap{};
+  Tab<MacroCode *> codeStack{};
 
-// return macro description (name, file, line, column)
-const String &getMacroDesc(const char *name);
+  // parse macro declaration (return false if failed)
+  bool inMacroDefinition = false;
 
-// return next token or false, if finished
-bool getToken(ShaderParser::TokenInfo &out_info);
+public:
+  // parse new macro definition & add new macros; return false if failed
+  bool parseDefinition(Lexer &parser, bool optional);
 
-// return current macro decription for error message
-const String &getCurrentMacroDesc(ShaderLexParser *parser);
+  // check for macros & parse it if nessesary
+  void tryExpandMacro(Lexer &parser, ShaderParser::TokenInfo &token);
 
-void realize();
+  // return macro description (name, file, line, column)
+  const String &getMacroDesc(const char *name) const;
 
-}; // namespace ShaderMacroManager
+  // return next token or false, if finished
+  bool getToken(ShaderParser::TokenInfo &out_info);
+
+  // return current macro decription for error message
+  const String &getCurrentMacroDesc(Lexer &lexer) const;
+
+private:
+  // find macro by it's name
+  int findMacro(const char *name) const;
+
+  // parse macro declaration (return false if failed)
+  // in = macro <macro_id>([v1][, v2]..[, vn]) <macro_body> endmacro
+  bool parseMacroDefinition(Lexer &lexer, ShaderMacro &macro);
+};

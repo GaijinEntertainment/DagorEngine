@@ -313,7 +313,7 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     .SquirrelFunc("deferOnce", deferOnce, 2, ".c")
     .SquirrelFunc(
       "setTimeout", [](HSQUIRRELVM vm) { return set_timer(vm, false, false); }, -3, ".nc")
-    /**
+    /* qdox
     @function setTimeout set timer with function to be called on time. if called more than once with same id would call logerr
 
     @param time_in_seconds n : time in seconds on which function would be called
@@ -322,7 +322,7 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     */
     .SquirrelFunc(
       "resetTimeout", [](HSQUIRRELVM vm) { return set_timer(vm, false, true); }, -3, ".nc")
-    /**
+    /* qdox
     @function resetTimeout reset timer with function to be called on time. Will replace timer with the same id.
 
     @param time_in_seconds n : time in seconds on which function would be called
@@ -331,7 +331,7 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     */
     .SquirrelFunc(
       "setInterval", [](HSQUIRRELVM vm) { return set_timer(vm, true, false); }, -3, ".nc")
-    /**
+    /* qdox
     @function setInterval will set periodical timer with function to be called each period of time.
 
     @param period_in_seconds n : period of time in seconds on which function would be called

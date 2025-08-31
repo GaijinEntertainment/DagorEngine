@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let margin = fsh(0.3)
 let height = calc_str_box({text="A"})[1] + 2*margin
 
-return {
+return freeze({
   gridMargin = margin
   gridHeight = height
   colors = {
@@ -36,4 +36,4 @@ return {
     TextHover           = Color(0,0,0)
     TextActive          = Color(120,120,120,120)
   }
-}
+})

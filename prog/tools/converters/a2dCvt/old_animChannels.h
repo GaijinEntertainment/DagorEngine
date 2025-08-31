@@ -210,8 +210,8 @@ public:
   AnimChanPoint3 *getPoint3Anim(const unsigned channel_type, const char *node_name);
 
 protected:
-  virtual const char *class_name() const { return "AnimData"; }
-  ~AnimData();
+  const char *class_name() const override { return "AnimData"; }
+  ~AnimData() override;
   AnimDataChan<AnimChanPoint3> *getPoint3AnimDataChan(const unsigned channel_type);
   AnimDataChan<AnimChanQuat> *getQuatAnimDataChan(const unsigned channel_type);
   AnimDataChan<AnimChanReal> *getRealAnimDataChan(const unsigned channel_type);

@@ -24,7 +24,7 @@ extern "C"
 #pragma intrinsic(_BitScanReverse)
 #endif
 
-#define POW2_ALIGN(v, a)        (((v) + ((a)-1)) & ~((a)-1))
+#define POW2_ALIGN(v, a)        (((v) + ((a) - 1)) & ~((a) - 1))
 #define POW2_ALIGN_PTR(v, a, t) ((t *)(POW2_ALIGN((uintptr_t)v, (uintptr_t)a)))
 
 inline uint32_t reverse_bits32(uint32_t bits)

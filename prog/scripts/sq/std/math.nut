@@ -1,44 +1,42 @@
-let math = require("math")
+import "math" as math
 
 const GOLDEN_RATIO = 1.618034
 
-function minByAbs(a, b) { return (math.fabs(a) < math.fabs(b))? a : b }
-function maxByAbs(a, b) { return (math.fabs(a) > math.fabs(b))? a : b }
+let minByAbs = @[pure](a, b) math.fabs(a) < math.fabs(b) ? a : b
+let maxByAbs = @[pure](a, b) math.fabs(a) > math.fabs(b) ? a : b
 
 //round @value to valueble @digits amount
 // roundToDigits(1.23, 2) = 1.2
 // roundToDigits(123, 2) = 120
-function roundToDigits(value, digits) {
+function [pure] roundToDigits(value, digits) {
   if (value==0) return value
   let log = math.log10(math.fabs(value))
-  let mul = math.pow(10, math.floor(log)-digits+1)
-  return mul*math.floor(0.5+value.tofloat()/mul)
+  let mul = math.pow(10, math.floor(log) - digits + 1)
+  return mul * math.floor(0.5 + value.tofloat() / mul)
 }
 
 //round @value by @roundValue
 //round_by_value(1.56, 0.1) = 1.6
-function round_by_value(value, roundValue) {
+function [pure] round_by_value(value, roundValue) {
   return math.floor(value.tofloat() / roundValue + 0.5) * roundValue
 }
 
-
-function number_of_set_bits(i) {
+function [pure] number_of_set_bits(i) {
   i = i - ((i >> 1) & (0x5555555555555555));
   i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
   return (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56;
 }
 
-
-function is_bit_set(bitMask, bitIdx) {
-  return (bitMask & 1 << bitIdx) > 0
+function [pure] is_bit_set(bitMask, bitIdx) {
+  return (bitMask & (1 << bitIdx)) != 0
 }
 
-function change_bit(bitMask, bitIdx, value) {
-  return (bitMask & ~(1 << bitIdx)) | (value? (1 << bitIdx) : 0)
+function [pure] change_bit(bitMask, bitIdx, value) {
+  return (bitMask & ~(1 << bitIdx)) | (value ? (1 << bitIdx) : 0)
 }
 
-function change_bit_mask(bitMask, bitMaskToSet, value) {
-  return (bitMask & ~bitMaskToSet) | (value? bitMaskToSet : 0)
+function [pure] change_bit_mask(bitMask, bitMaskToSet, value) {
+  return (bitMask & ~bitMaskToSet) | (value ? bitMaskToSet : 0)
 }
 
 /**
@@ -46,7 +44,7 @@ function change_bit_mask(bitMask, bitMaskToSet, value) {
 * f(valueMin) = resMin
 * f(valueMax) = resMax
 */
-function lerp(valueMin, valueMax, resMin, resMax, curValue) {
+function [pure] lerp(valueMin, valueMax, resMin, resMax, curValue) {
   if (valueMin == valueMax)
     return 0.5 * (resMin + resMax)
   return resMin + (resMax - resMin) * (curValue - valueMin) / (valueMax - valueMin)
@@ -58,10 +56,9 @@ function lerp(valueMin, valueMax, resMin, resMax, curValue) {
 * f(valueMax) = resMax
 * but result is clamped by min/max values
 */
-let lerpClamped = @(valueMin, valueMax, resMin, resMax, tvalue)
+let lerpClamped = @[pure](valueMin, valueMax, resMin, resMax, tvalue)
   lerp(valueMin, valueMax, resMin, resMax,
     valueMax > valueMin ? math.clamp(tvalue, valueMin, valueMax) : math.clamp(tvalue, valueMax, valueMin))
-
 
 function interpolateArray(arr, value) {
   let maxIdx = arr.len() - 1
@@ -88,19 +85,11 @@ function interpolateArray(arr, value) {
 * <widthToHeight> is a item size ratio (width / height)
 */
 function calc_golden_ratio_columns(total, widthToHeight = 1.0) {
-  let rows = (math.sqrt(total.tofloat() / GOLDEN_RATIO * widthToHeight) + 0.5).tointeger() || 1
-  return math.ceil(total.tofloat() / rows).tointeger()
+  let rows = (math.sqrt(total.tofloat() / GOLDEN_RATIO * widthToHeight) + 0.5).tointeger()
+  return math.ceil(total.tofloat() / math.max(rows, 1)).tointeger()
 }
 
-function color2uint(r,g=0,b=0,a=255){
-  if (type(r)=="table") {
-    r = r?.r ?? r
-    g = r?.g ?? g
-    b = r?.b ?? b
-    a = r?.a ?? a
-  }
-  return math.clamp(r+g*256+b*65536+a*16777216, 0, 4294967295)
-}
+let color2uint = @[pure](r, g, b, a = 255) math.clamp(r + g * 256 + b * 65536 + a * 16777216, 0, 4294967295)
 
 let romanNumeralLookup = [
   "","I","II","III","IV","V","VI","VII","VIII","IX",
@@ -190,10 +179,10 @@ let export = math.__merge({
   color2uint
   getRomanNumeral
   splitThousands
-  calcPercent = @(value) (100.0 * value + 0.5).tointeger()
+  calcPercent = @[pure](value) (100.0 * value + 0.5).tointeger()
   average
   median
   truncateToMultiple
 })
 
-return export
+return freeze(export)

@@ -27,6 +27,22 @@ struct XessParamsDx12
   Image *outColor;
 };
 
+struct XessFgParamsDx12
+{
+  float viewTm[16];
+  float projTm[16];
+  Image *inColorHudless;
+  Image *inUi;
+  Image *inDepth;
+  Image *inMotionVectors;
+  float inJitterOffsetX;
+  float inJitterOffsetY;
+  float inMotionVectorScaleX;
+  float inMotionVectorScaleY;
+  uint32_t inFrameIndex;
+  bool inReset;
+};
+
 class XessWrapper
 {
 public:
@@ -61,6 +77,13 @@ public:
   ~XessWrapper();
 
   void startDump(const char *path, int numberOfFrames);
+
+  bool isFrameGenerationSupported() const;
+  bool isFrameGenerationEnabled() const;
+  void enableFrameGeneration(bool enable);
+  void suppressFrameGeneration(bool suppress);
+  void doScheduleGeneratedFrames(const void *args, void *command_list);
+  int getPresentedFrameCount();
 
 private:
   eastl::unique_ptr<XessWrapperImpl> pImpl;

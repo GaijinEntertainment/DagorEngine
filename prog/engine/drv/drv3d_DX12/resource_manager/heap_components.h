@@ -399,6 +399,7 @@ protected:
   }
 
   MemoryPoolStatus poolStates[total_memory_pool_count]{};
+  MemoryPoolStatus reportedPoolStates[total_memory_pool_count]{};
   uint64_t poolBudgetLevels[total_memory_pool_count][static_cast<uint32_t>(BudgetPressureLevels::LOW)]{};
   BudgetPressureLevels poolBudgetLevelstatus[total_memory_pool_count]{};
   uint64_t processVirtualAddressUse = 0;
@@ -412,7 +413,7 @@ protected:
     COUNT
   };
   TypedBitSet<BehaviorBits> behaviorStatus;
-  // offsets are used to artificially shrink the available budged value we use for further calculations
+  // offsets are used to artificially shrink the available budget value we use for further calculations
   uint64_t heapBudgetOffset[total_memory_pool_count]{};
 
   uint64_t getDeviceLocalRawBudget() const { return poolStates[device_local_memory_pool].Budget; }
@@ -496,6 +497,22 @@ protected:
     updateBudgetLevelStatus();
   }
 
+  // pools are using committed resources so they are bypassing heaps, so we need to count them against the usage too
+  void recordRaytraceAccelerationStructurePoolAllocated(uint32_t size)
+  {
+    BaseType::recordRaytraceAccelerationStructurePoolAllocated(size);
+    poolStates[device_local_memory_pool].CurrentUsage += size;
+    behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+  }
+
+  // pools are using committed resources so they are bypassing heaps, so we need to count them against the usage too
+  void recordRaytraceAccelerationStructurePoolFreed(uint32_t size)
+  {
+    BaseType::recordRaytraceAccelerationStructurePoolFreed(size);
+    poolStates[device_local_memory_pool].CurrentUsage -= size;
+    behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+  }
+
   void setup(const SetupInfo &info);
 
   bool shouldTrimFramePushRingBuffer() const { return getHostLocalBudgetLevel() < BudgetPressureLevels::HIGH; }
@@ -565,13 +582,9 @@ protected:
   {
     ID3D12Resource *buffer;
   };
-  struct RaytraceAccelerationStructureHeapReference
-  {
-    ID3D12Resource *as;
-  };
   using AnyResourceReference = eastl::variant<eastl::monostate, Image *, BufferGlobalId, AliasHeapReference, ScratchBufferReference,
     PushRingBufferReference, UploadRingBufferReference, TempUploadBufferReference, PersistentUploadBufferReference,
-    PersistentReadBackBufferReference, PersistentBidirectionalBufferReference, RaytraceAccelerationStructureHeapReference>;
+    PersistentReadBackBufferReference, PersistentBidirectionalBufferReference>;
   struct HeapResourceInfo
   {
     ValueRange<uint64_t> range;
@@ -589,16 +602,25 @@ protected:
     UsedRangeSetType usedRanges;
     ValueRange<uint64_t> lockedRange{};
     uint64_t totalSize = 0;
-    static constexpr uint64_t fragmentation_range = 10000;
-    uint32_t fragmentation = 0;
+    static constexpr uint64_t fragmentation_range_bits = 8;
+    static constexpr uint64_t fragmentation_range = (uint64_t(1) << fragmentation_range_bits) - 1;
+    static constexpr uint64_t max_free_range_bits = 64 - fragmentation_range_bits;
+    uint64_t fragmentation : fragmentation_range_bits = 0;
+    uint64_t maxFreeRange : max_free_range_bits = 0;
 
     void updateFragmentation()
     {
       FragmentationCalculatorContext ctx;
       ctx.fragments(freeRanges);
+      fragmentation = 0;
       if (ctx.totalSize())
         fragmentation = fragmentation_range - ((ctx.maxSize() * fragmentation_range) / ctx.totalSize());
+      G_ASSERT(ctx.maxSize() < (uint64_t(1) << max_free_range_bits));
+      maxFreeRange = ctx.maxSize();
     }
+
+    float getFragmentation() const { return float(fragmentation) / fragmentation_range; }
+    uint64_t getMaxFreeRange() const { return maxFreeRange; }
 
     uint64_t freeSize() const
     {
@@ -1298,6 +1320,22 @@ private:
     AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HRESULT *error_code);
 };
 #endif
+
+template <typename T>
+uint64_t get_group_max_free_region(const T &group)
+{
+  uint64_t maxFreeRegion = 0;
+  for (const auto &heap : group)
+  {
+    if (!heap)
+    {
+      continue;
+    }
+    uint64_t candidateSize = heap.getMaxFreeRange();
+    maxFreeRegion = eastl::max(maxFreeRegion, candidateSize);
+  }
+  return maxFreeRegion;
+}
 
 } // namespace resource_manager
 } // namespace drv3d_dx12

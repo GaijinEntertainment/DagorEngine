@@ -6,6 +6,7 @@
 #include <de3_lightService.h>
 #include <de3_hmapService.h>
 #include <de3_rendInstGen.h>
+#include <de3_dynRenderService.h>
 
 #include <shaders/dag_rendInstRes.h>
 #include <scene/dag_objsToPlace.h>
@@ -14,14 +15,15 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_direct.h>
 #include <landMesh/lmeshManager.h>
-#include <landMesh/clipmap.h>
+#include <landMesh/lmeshRenderer.h>
+#include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
 #include <landMesh/lmeshMirroring.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRender.h>
 #include <de3_entityFilter.h>
 #include <oldEditor/de_workspace.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <gameRes/dag_gameResSystem.h>
 #include <shaders/dag_rendInstRes.h>
@@ -30,6 +32,7 @@
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
+#include <3d/dag_render.h>
 #include <3d/dag_materialData.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_renderTarget.h>
@@ -56,7 +59,6 @@ static const int WATER_NORMALS_MIPS = 8;
 #define MAX_TEXEL_SIZE    2.0f
 
 static ISkiesService *skiesSrv = NULL;
-static int landmesh_shaderlodVarid = -1;
 static int waterPhaseVarId = -1;
 static int normalMapFrameTexVarId = -1;
 static int farNormalMapFrameTexVarId = -1;
@@ -88,36 +90,6 @@ extern void generic_rendinstgen_service_set_callbacks(bool(__stdcall *get_height
   bool(__stdcall *trace_ray)(const Point3 &pos, const Point3 &dir, real &t, Point3 *out_norm),
   vec3f(__stdcall *update_pregen_pos_y)(vec4f pos, int16_t *dest_packed_y, float csz_y, float oy));
 static Tab<char> pregenEntStor(midmem);
-
-enum
-{
-  RENDERING_WITH_SPLATTING = -1,
-  RENDERING_LANDMESH = 0,
-  RENDERING_CLIPMAP = 1,
-  OBSOLETE_RENDERING_SPOT,
-  GRASS_COLOR_OBSOLETE = 3,
-  GRASS_MASK = 4,
-  OBSOLETE_SPOT_TO_GRASS_MASK,
-  RENDERING_HEIGHTMAP = 6,
-  RENDERING_DEPTH = 7,
-  RENDERING_VSM = 8,
-  RENDERING_REFLECTION = 9,
-  RENDERING_FEEDBACK = 10,
-  LMESH_MAX
-};
-
-static int lmesh_rendering_mode_glob_varId = -1;
-static int lmesh_rendering_mode = RENDERING_LANDMESH;
-int set_lmesh_rendering_mode(int mode)
-{
-  G_ASSERT(mode < LMESH_MAX);
-  if (lmesh_rendering_mode == mode)
-    return lmesh_rendering_mode;
-  int old = lmesh_rendering_mode;
-  lmesh_rendering_mode = mode;
-  ShaderGlobal::set_int_fast(lmesh_rendering_mode_glob_varId, mode);
-  return old;
-}
 
 static String levelFileName;
 static int inEditorGvId = -1;
@@ -212,8 +184,6 @@ AcesScene::AcesScene() :
   inEditorGvId = ::get_shader_glob_var_id("in_editor");
   frameBlkId = ShaderGlobal::getBlockId("global_frame");
   globalConstBlkId = ShaderGlobal::getBlockId("global_const_block");
-  lmesh_rendering_mode_glob_varId = ::get_shader_glob_var_id("lmesh_rendering_mode");
-  landmesh_shaderlodVarid = ::get_shader_glob_var_id("landmesh_shaderlod", true);
 
   generic_rendinstgen_service_set_callbacks(&custom_get_height, NULL, &custom_update_pregen_pos_y);
 
@@ -361,7 +331,7 @@ void AcesScene::loadLevel(const char *bindump)
   if (useToroidalHeightmap)
   {
     toroidalHeightmap = new ToroidalHeightmap;
-    toroidalHeightmap->init(2048, 32.0f, 96.0f, TEXFMT_L8, 128);
+    toroidalHeightmap->init(2048, 32.0f, 96.0f, TEXFMT_R8, 128);
   }
 
   ::dgs_tex_anisotropy = prevAniso;
@@ -411,6 +381,7 @@ void AcesScene::loadLevel(const char *bindump)
   if (lmeshMgr)
   {
     ShaderGlobal::set_texture(get_shader_variable_id("lightmap_tex"), lightmapTexId);
+    ShaderGlobal::set_sampler(get_shader_variable_id("lightmap_tex_samplerstate"), get_texture_separate_sampler(lightmapTexId));
     Color4 world_to_lightmap(1.f / (lmeshMgr->getNumCellsX() * lmeshMgr->getLandCellSize()),
       1.f / (lmeshMgr->getNumCellsY() * lmeshMgr->getLandCellSize()), -(float)lmeshMgr->getCellOrigin().x / lmeshMgr->getNumCellsX(),
       -(float)lmeshMgr->getCellOrigin().y / lmeshMgr->getNumCellsY());
@@ -434,7 +405,7 @@ void AcesScene::loadLevel(const char *bindump)
   {
   public:
     LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
-    virtual bool resolveIncludeFile(String &inout_fname)
+    bool resolveIncludeFile(String &inout_fname) override
     {
       String fn;
       for (int i = 0; i < prefix.size(); i++)
@@ -477,11 +448,14 @@ void AcesScene::loadLevel(const char *bindump)
       loaded = true;
       break;
     }
-    else
+    debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
+    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
     {
-      debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
-      prefix_tried++;
+      loaded = true;
+      break;
     }
+    prefix_tried++;
   }
 
   if (!loaded)
@@ -531,6 +505,8 @@ void AcesScene::loadLevel(const char *bindump)
   ShaderGlobal::set_real(::get_shader_variable_id("bottom_zbias", true), water_zbias * 1.1);
 
   ShaderGlobal::set_vars_from_blk(*levelSettingsBlk.getBlockByNameEx("shader_vars"));
+  if (ISkiesService *skiesSrv = DAGORED2->queryEditorInterface<ISkiesService>())
+    skiesSrv->overrideShaderVarsFromLevelBlk(levelSettingsBlk.getBlockByName("shader_vars"));
 
   waterService->init();
   waterService->loadSettings(DataBlock());
@@ -723,8 +699,6 @@ bool AcesScene::bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::
 
 void AcesScene::delBinDump(unsigned bindump_id) { BaseStreamingSceneHolder::delBinDump(bindump_id); }
 
-void AcesScene::unloadAllBinDumps() { BaseStreamingSceneHolder::unloadAllBinDumps(); }
-
 void AcesScene::update(const Point3 &op, float dt)
 {
   if (!bindumpHandle)
@@ -829,27 +803,28 @@ void AcesScene::renderClipmaps()
     LandMeshRenderer &renderer;
     LandMeshManager &provider;
     float minZ, maxZ;
-    int omode;
+    LMeshRenderingMode omode;
     TMatrix4 ovtm, oproj;
     bool perspvalid;
     Driver3dPerspective p;
     Tab<IRenderingService *> rendSrv;
     shaders::OverrideStateId flipCullStateId;
-    LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) : renderer(r), provider(p), omode(0)
+    LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) :
+      renderer(r), provider(p), omode(LMeshRenderingMode::RENDERING_LANDMESH)
     {
       shaders::OverrideState flipCullState;
       flipCullState.set(shaders::OverrideState::FLIP_CULL);
       flipCullStateId = shaders::overrides::create(flipCullState);
     }
 
-    virtual void startRenderTiles(const Point2 &center)
+    void startRenderTiles(const Point2 &center) override
     {
       Point3 pos(center.x, ::grs_cur_view.pos.y, center.y);
       BBox3 landBox = provider.getBBox();
       minZ = landBox[0].y - 10;
       maxZ = landBox[1].y + 10;
 
-      omode = ::set_lmesh_rendering_mode(RENDERING_CLIPMAP);
+      omode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
       static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
       ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
       renderer.prepare(provider, pos, ::grs_cur_view.pos.y);
@@ -875,11 +850,11 @@ void AcesScene::renderClipmaps()
             rendSrv.push_back(iface);
       }
     }
-    virtual void endRenderTiles()
+    void endRenderTiles() override
     {
       renderer.setRenderInBBox(BBox3());
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-      ::set_lmesh_rendering_mode(omode);
+      renderer.setLMeshRenderingMode(omode);
       d3d::settm(TM_VIEW, &ovtm);
       d3d::settm(TM_PROJ, &oproj);
       if (perspvalid)
@@ -889,7 +864,7 @@ void AcesScene::renderClipmaps()
       shaders::overrides::reset();
     }
 
-    virtual void renderTile(const BBox2 &region)
+    void renderTile(const BBox2 &region) override
     {
       TMatrix4 proj;
       proj = matrix_ortho_off_center_lh(region[0].x, region[1].x, region[1].y, region[0].y, minZ, maxZ);
@@ -904,9 +879,9 @@ void AcesScene::renderClipmaps()
         rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_OPAQUE);
       DAEDITOR3.setEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, old_st_mask);
     }
-    virtual void renderFeedback(const TMatrix4 &globtm)
+    void renderFeedback(const TMatrix4 &globtm) override
     {
-      int omesh = ::set_lmesh_rendering_mode(RENDERING_FEEDBACK);
+      LMeshRenderingMode omesh = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_FEEDBACK);
       renderer.render(provider, renderer.RENDER_DEPTH, ::grs_cur_view.pos);
       static int land_mesh_render_depth_blockid = ShaderGlobal::getBlockId("land_mesh_render_depth");
       ShaderGlobal::setBlock(land_mesh_render_depth_blockid, ShaderGlobal::LAYER_SCENE);
@@ -922,7 +897,7 @@ void AcesScene::renderClipmaps()
       DAEDITOR3.setEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, old_st_mask);
 
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-      ::set_lmesh_rendering_mode(omesh);
+      renderer.setLMeshRenderingMode(omesh);
     }
   };
 
@@ -960,11 +935,6 @@ void AcesScene::renderClipmaps()
   }
 }
 
-static void start_rendering_clipmap_cb()
-{
-  ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
-  ::set_lmesh_rendering_mode(RENDERING_CLIPMAP);
-}
 static void render_decals_cb(const BBox3 &landBoxPart)
 {
   Tab<IRenderingService *> rendSrv(tmpmem);
@@ -994,15 +964,15 @@ void AcesScene::prepareFixedClip(int texture_size)
   data.lmeshRenderer = lmeshRenderer;
   data.texture_size = texture_size;
   data.use_dxt = false; // true;
-  data.start_render = start_rendering_clipmap_cb;
   data.decals_cb = render_decals_cb;
   data.global_frame_id = frameBlkId;
   data.flipCullStateId = flipCullStateId.get();
-  int oldm = ShaderGlobal::get_int_fast(lmesh_rendering_mode_glob_varId);
+  data.land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
+  LMeshRenderingMode oldm = lmeshRenderer->getLMeshRenderingMode();
   ShaderGlobal::enableAutoBlockChange(false);
 
   prepare_fixed_clip(last_clip, last_clip_sampler, data, false, ::grs_cur_view.pos);
-  ::set_lmesh_rendering_mode(oldm);
+  lmeshRenderer->setLMeshRenderingMode(oldm);
   ShaderGlobal::enableAutoBlockChange(true);
 }
 
@@ -1026,7 +996,7 @@ void AcesScene::render(bool render_rs)
   ShaderGlobal::set_int_fast(inEditorGvId, 0);
   if (lmeshRenderer && (st_mask & land_mesh_mask))
   {
-    set_lmesh_rendering_mode(RENDERING_LANDMESH);
+    lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
     lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_WITH_CLIPMAP, ::grs_cur_view.pos);
   }
   clipmap->endUAVFeedback();
@@ -1041,8 +1011,11 @@ void AcesScene::render(bool render_rs)
     d3d::settm(TM_WORLD, ident);
     mat44f globtm;
     d3d::getglobtm(globtm);
+    TexStreamingContext texStrmCtx = {0};
+    if (auto *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      texStrmCtx = drSrv->getMainViewStreamingContext();
     rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-      rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra);
+      rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, false, texStrmCtx);
   }
   ShaderGlobal::set_int_fast(inEditorGvId, 1);
 }
@@ -1080,7 +1053,7 @@ void AcesScene::renderHeight()
   lmeshRenderer->prepare(*lmeshMgr, lmeshMgr->getBBox().center(), cameraHeight);
 
   ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
-  int oldMode = set_lmesh_rendering_mode(RENDERING_HEIGHTMAP);
+  LMeshRenderingMode oldMode = lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
 
   float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
   lmeshRenderer->setRenderInBBox(lmeshMgr->getBBox());
@@ -1088,7 +1061,7 @@ void AcesScene::renderHeight()
 
   shaders::overrides::set(blendOpMaxStateId);
   lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, ::grs_cur_view.pos);
-  set_lmesh_rendering_mode(oldMode);
+  lmeshRenderer->setLMeshRenderingMode(oldMode);
   shaders::overrides::reset();
 
   ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
@@ -1121,7 +1094,7 @@ void AcesScene::renderShadowsVsm()
 
   DagorCurView savedView = ::grs_cur_view;
   lmeshRenderer->forceLowQuality(true);
-  set_lmesh_rendering_mode(RENDERING_VSM);
+  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
   lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, ::grs_cur_view.pos);
   lmeshRenderer->forceLowQuality(false);
   ::grs_cur_view = savedView;

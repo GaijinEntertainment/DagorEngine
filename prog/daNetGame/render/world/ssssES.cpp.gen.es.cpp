@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "ssssES.cpp.inl"
 ECS_DEF_PULL_VAR(ssss);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ssss_settings_tracking_es_comps[] =
 {
@@ -106,8 +108,8 @@ inline void ssss_enabled_ecs_query(ecs::EntityId eid, Callable function)
 static constexpr ecs::ComponentDesc ssss_init_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("ssss__horizontal_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("ssss__vertical_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("ssss__horizontal_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("ssss__vertical_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static ecs::CompileTimeQueryDesc ssss_init_ecs_query_desc
 (
@@ -125,8 +127,8 @@ inline void ssss_init_ecs_query(ecs::EntityId eid, Callable function)
         constexpr size_t comp = 0;
         {
           function(
-              ECS_RW_COMP(ssss_init_ecs_query_comps, "ssss__horizontal_node", dabfg::NodeHandle)
-            , ECS_RW_COMP(ssss_init_ecs_query_comps, "ssss__vertical_node", dabfg::NodeHandle)
+              ECS_RW_COMP(ssss_init_ecs_query_comps, "ssss__horizontal_node", dafg::NodeHandle)
+            , ECS_RW_COMP(ssss_init_ecs_query_comps, "ssss__vertical_node", dafg::NodeHandle)
             );
 
         }

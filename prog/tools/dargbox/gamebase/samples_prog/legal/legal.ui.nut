@@ -1,11 +1,7 @@
+from "dagor.fs" import read_text_from_file//, file_exists
 from "%darg/ui_imports.nut" import *
-
-let {
-  requestCurVersion, requestDocument, loadConfig,
-  languageCodeMap, requestRemoteConfirmedVersions,
-  confirmRemoteVersion
-} = require("legal_lib.nut")
-let {requestLogin, loginData} = require("samples_prog/web_login/web_login.nut")
+let { requestCurVersion, requestDocument, loadConfig, languageCodeMap, requestRemoteConfirmedVersions, confirmRemoteVersion } = require("legal_lib.nut")
+let { requestLogin, loginData } = require("samples_prog/web_login/web_login.nut")
 
 // code to implement in game
 /*
@@ -26,11 +22,7 @@ let {requestLogin, loginData} = require("samples_prog/web_login/web_login.nut")
   NOTE: on Legals screen add url text (and optionally QR code)
   NOTE2: we have only open manually codepath here, no notification case
 */
-let { txt, textArea, txtBtn, makeVertScroll} = require("legal_ui_lib.nut")
-let {
-  read_text_from_file
-//  ,file_exists
-} = require("dagor.fs")
+let { txt, textArea, txtBtn, makeVertScroll } = require("legal_ui_lib.nut")
 
 let language = Watched("English")
 
@@ -45,9 +37,9 @@ let openLegalsManually = Watched(false)
 let remoteVersion = Watched(null)
 let confirmedVersions = Watched(null)
 let remoteTextLoaded = Watched(false)
-requestCurVersion(language.value, @(v) remoteVersion(v?.result[languageCodeMap?[language.value]]))
+requestCurVersion(language.get(), @(v) remoteVersion.set(v?.result[languageCodeMap?[language.get()]]))
 
-let openLegalsBtn = txtBtn("toggle show legals", @() openLegalsManually(!openLegalsManually.value))
+let openLegalsBtn = txtBtn("toggle show legals", @() openLegalsManually.set(!openLegalsManually.get()))
 
 loginData.subscribe(function(data){
   let {jwt=null} = data
@@ -60,16 +52,16 @@ loginData.subscribe(function(data){
 })
 
 function onFailReqTxt(...){
-  let fbFilePath = curLangLegalConfig.value?.filePath
+  let fbFilePath = curLangLegalConfig.get()?.filePath
   remoteTextLoaded.set(false)
   try{
-    legalsText.update(read_text_from_file(fbFilePath))
+    legalsText.set(read_text_from_file(fbFilePath))
   }
   catch(e) {
     log(e)
-    legalsText.update("Error loading text, please follow url to read End User License Agreement")
+    legalsText.set("Error loading text, please follow url to read End User License Agreement")
     try {
-      legalsText.update(read_text_from_file(ENGLISH_FALLBACK_TEXT))
+      legalsText.set(read_text_from_file(ENGLISH_FALLBACK_TEXT))
     }
     catch(e2){
       log(e2)
@@ -78,13 +70,13 @@ function onFailReqTxt(...){
 }
 
 function onSuccessReqTxt(v) {
-  legalsText(v)
+  legalsText.set(v)
   remoteTextLoaded.set(true)
 }
 
-let onAttachLegalsScreen = @() requestDocument(language.value, onSuccessReqTxt, onFailReqTxt)
+let onAttachLegalsScreen = @() requestDocument(language.get(), onSuccessReqTxt, onFailReqTxt)
 
-let closeBtn = txtBtn("x", @() openLegalsManually(false))
+let closeBtn = txtBtn("x", @() openLegalsManually.set(false))
 function legalsScreen(){
   return {
     padding = sh(5) size = flex()
@@ -92,36 +84,36 @@ function legalsScreen(){
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     onAttach = onAttachLegalsScreen
-    onDetach = @() legalsText.update(null)
-    children = legalsText.value==null ? txt("Loading...") : makeVertScroll(textArea(legalsText.value))
+    onDetach = @() legalsText.set(null)
+    children = legalsText.get()==null ? txt("Loading...") : makeVertScroll(textArea(legalsText.get()))
   }
 }
 let needNotification = keepref(Computed(function(){
-  if (loginData.value==null
-      || remoteVersion.value == null
-      || confirmedVersions.value == null
-      || confirmedVersions.value.contains(remoteVersion.value)
-      || curLangLegalConfig.value?.version == remoteVersion.value
+  if (loginData.get()==null
+      || remoteVersion.get() == null
+      || confirmedVersions.get() == null
+      || confirmedVersions.get().contains(remoteVersion.get())
+      || curLangLegalConfig.get()?.version == remoteVersion.get()
    )
     return false
   return true
 }))
 needNotification.subscribe(function(v) {
   if (v)
-    openLegalsManually(true)
+    openLegalsManually.set(true)
 })
 
 function confirmCurVersion(){
-  if (remoteVersion.value==null || confirmedVersions.value?.contains(remoteVersion.value))
+  if (remoteVersion.get()==null || confirmedVersions.get()?.contains(remoteVersion.get()))
     return
-  confirmedVersions.set([remoteVersion.value].extend(confirmedVersions.value ?? []))
-  let {jwt=null} = loginData.value
+  confirmedVersions.set([remoteVersion.get()].extend(confirmedVersions.get() ?? []))
+  let {jwt=null} = loginData.get()
   if (jwt==null)
     return
-  if (remoteTextLoaded.value)
-    confirmRemoteVersion(jwt,"wt", remoteVersion.value, @(v) dlog("confirm success", v), dlog)
+  if (remoteTextLoaded.get())
+    confirmRemoteVersion(jwt,"wt", remoteVersion.get(), @(v) dlog("confirm success", v), dlog)
   else {
-    let ver = curLangLegalConfig.value?.version
+    let ver = curLangLegalConfig.get()?.version
     if (ver!=null)
       confirmRemoteVersion(jwt,"wt", ver)
   }
@@ -137,13 +129,13 @@ return {
   children = [
     openLegalsBtn
     loginBtn
-    @() {watch = curLangLegalConfig children = txt($"fallback version: {curLangLegalConfig.value.version}") hplace = ALIGN_LEFT}
-    @() {watch = remoteVersion children = txt($"remote version: {remoteVersion.value}") hplace = ALIGN_LEFT}
-    @() {watch = confirmedVersions children = txt($"curuser versions: {confirmedVersions.value?.len()};{"".join(confirmedVersions.value ?? [])}") hplace = ALIGN_LEFT}
+    @() {watch = curLangLegalConfig children = txt($"fallback version: {curLangLegalConfig.get().version}") hplace = ALIGN_LEFT}
+    @() {watch = remoteVersion children = txt($"remote version: {remoteVersion.get()}") hplace = ALIGN_LEFT}
+    @() {watch = confirmedVersions children = txt($"curuser versions: {confirmedVersions.get()?.len()};{"".join(confirmedVersions.get() ?? [])}") hplace = ALIGN_LEFT}
     @() {
       watch = openLegalsManually
-      size = openLegalsManually.value ? flex() : null
-      children = openLegalsManually.value ? {
+      size = openLegalsManually.get() ? flex() : null
+      children = openLegalsManually.get() ? {
         onDetach = confirmCurVersion
         flow = FLOW_VERTICAL
         size = flex()

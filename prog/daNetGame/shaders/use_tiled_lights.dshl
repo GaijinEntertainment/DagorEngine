@@ -28,7 +28,7 @@ macro INIT_TILED_LIGHTS(code)
   }
 endmacro
 
-macro USE_TILED_LIGHTS(code, shadow_callback)
+macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
 hlsl(code)
 {
   #define max_lights_distance lights_distance.x
@@ -103,12 +103,21 @@ if (dynamic_lights_count != lights_off)
 
     #include "pbr/pbr.hlsl"
     #include "clustered/punctualLights.hlsl"
+    #include "spot_light_shadow_flags.hlsli"
+
+    ##if (dynamic_lights_count != lights_off)
+      #define applyDynamicAoEffect(gbufferAO) ((gbufferAO)*dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y)
+    ##else
+      #define applyDynamicAoEffect(gbufferAO) (gbufferAO)
+    ##endif
+
     half3 get_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float3 view, float w, float2 screenpos, float NoV, float3 specularColor, float2 tc, half enviAO, ShadowContext shadow_context = (ShadowContext)0)
     {
       half3 result = 0;
 ##if (dynamic_lights_count != lights_off)
       half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
-      #if (OMNI_CONTACT_SHADOWS || SPOT_CONTACT_SHADOWS) && defined(shadow_frame)
+      half dynamicAO = applyDynamicAoEffect(gbuffer.ao);
+      #if (OMNI_CONTACT_SHADOWS || SPOT_CONTACT_SHADOWS)
         float3 contactStartCameraToPoint = -w*view;
         float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
 
@@ -210,9 +219,15 @@ if (dynamic_lights_count != lights_off)
               #else
                 float4 shadowTcToAtlas = float4(0, 0, 0, 0);
               #endif
-              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
               OMNI_CONTACT_SHADOWS_CALC
+
+              if (hasShadow)
+              {
+                float3 point2light = pos_and_radius.xyz - worldPos.xyz;
+                shadow_callback(omniLight, point2light, shadow_context);
+              }
 
               dynamicLighting += omniLight;
             }
@@ -237,9 +252,15 @@ if (dynamic_lights_count != lights_off)
             #else
               float4 shadowTcToAtlas = float4(0, 0, 0, 0);
             #endif
-            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
             OMNI_CONTACT_SHADOWS_CALC
+
+            if (hasShadow)
+            {
+              float3 point2light = pos_and_radius.xyz - worldPos.xyz;
+              shadow_callback(omniLight, point2light, shadow_context);
+            }
 
             dynamicLighting += omniLight;
 
@@ -258,7 +279,7 @@ if (dynamic_lights_count != lights_off)
       uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
       uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
       uint spotWord = DWORDS_PER_TILE / 2;
-      ##if use_ssss == sun_and_dynamic_lights
+      ##if !force_disable_ssss && use_ssss == sun_and_dynamic_lights
         float3 ssssWorldPos = ssss_calculate_world_pos(worldPos, gbuffer.normal);
       ##endif
 
@@ -298,18 +319,23 @@ if (dynamic_lights_count != lights_off)
               float4 lightPosRadius = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightPosRadius, bitIdx);
               float4 lightColor = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightColorAngleScale, bitIdx);
               float4 lightDirection = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightDirectionAngleOffset, bitIdx);
-              float4 texId_scale_shadow_contactshadow = WAVE_READ_LANE_AT_FLOAT4(sl_32.texId_scale_shadow_contactshadow, bitIdx);
-              float2 texId_scale = texId_scale_shadow_contactshadow.xy;
-              bool hasShadow = sl.texId_scale_shadow_contactshadow.z != 0;
-              bool needsContactShadows = texId_scale_shadow_contactshadow.w != 0;
+              float4 texId_scale_illuminatingplane_shadow_contactshadow = WAVE_READ_LANE_AT_FLOAT4(sl_32.texId_scale_illuminatingplane_shadow_contactshadow, bitIdx);
+              float2 texId_scale = texId_scale_illuminatingplane_shadow_contactshadow.xy;
+              float ao = dynamicAO;
+              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
+              uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
+              bool hasShadow = shadowContactShadowsBits & SPOT_LIGHT_HAS_SHADOW_MASK;
+              bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
 
               #define EXIT_STATEMENT continue
               #define SPOT_SHADOWS 1
-              ##if use_ssss == sun_and_dynamic_lights
+              ##if !force_disable_ssss && use_ssss == sun_and_dynamic_lights
                 #define DYNAMIC_LIGHTS_SSS 1
                 #define USE_SSSS 1
               ##endif
               #include "clustered/oneSpotLight.hlsl"
+              if (hasShadow)
+                shadow_callback(lightBRDF, point2light, shadow_context);
               dynamicLighting += lightBRDF;
             }
           }
@@ -328,24 +354,29 @@ if (dynamic_lights_count != lights_off)
             float4 lightPosRadius = sl.lightPosRadius;
             float4 lightColor = sl.lightColorAngleScale;
             float4 lightDirection = sl.lightDirectionAngleOffset;
-            float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
-            bool hasShadow = sl.texId_scale_shadow_contactshadow.z != 0;
-            bool needsContactShadows = sl.texId_scale_shadow_contactshadow.w != 0;
+            float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+            float ao = dynamicAO;
+            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
+            uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
+            bool hasShadow = shadowContactShadowsBits & SPOT_LIGHT_HAS_SHADOW_MASK;
+            bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
 
             #define EXIT_STATEMENT continue
             #define SPOT_SHADOWS 1
-            ##if use_ssss == sun_and_dynamic_lights
+            ##if !force_disable_ssss && use_ssss == sun_and_dynamic_lights
               #define DYNAMIC_LIGHTS_SSS 1
               #define USE_SSSS 1
             ##endif
             #include "clustered/oneSpotLight.hlsl"
+            if (hasShadow)
+                shadow_callback(lightBRDF, point2light, shadow_context);
             dynamicLighting += lightBRDF;
           }
         }
       }
 ##endif
 
-      half pointLightsFinalAO = (enviAO*point_lights_ao_effect.x + point_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
+      half pointLightsFinalAO = (enviAO*dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
       result += dynamicLighting * pointLightsFinalAO;
 ##endif
       return result;
@@ -355,7 +386,7 @@ endmacro
 
 macro INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(code, shadow_callback)
   INIT_TILED_LIGHTS(code)
-  USE_TILED_LIGHTS(code, shadow_callback)
+  USE_TILED_LIGHTS(code, false, shadow_callback)
 endmacro
 
 macro INIT_AND_USE_TILED_LIGHTS(code)
@@ -367,4 +398,16 @@ macro INIT_AND_USE_TILED_LIGHTS(code)
     }
   }
   INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(code, dummy_shadow_callback)
+endmacro
+
+macro INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(code)
+  hlsl(code)
+  {
+    struct ShadowContext {};
+    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
+    {
+    }
+  }
+  INIT_TILED_LIGHTS(code)
+  USE_TILED_LIGHTS(code, true, dummy_shadow_callback)
 endmacro

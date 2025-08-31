@@ -1,5 +1,6 @@
 let {get_arg_value_by_name, DBGLEVEL} = require("dagor.system")
-let is_win = DBGLEVEL>0 ? ["win32", "win64"].contains(get_arg_value_by_name("platform") ?? "stub") : false
+let is_win = DBGLEVEL > 0 ? ["win32", "win64"].contains(get_arg_value_by_name("platform") ?? "stub") : false
+println($"win.registry: {is_win}")
 return is_win ? {
   regKeyExists = function regKeyExists(_a, _b) { }
   regValueExists = function regValueExists(_a, _b, _c) { }

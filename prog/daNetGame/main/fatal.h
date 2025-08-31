@@ -7,4 +7,5 @@ void init();
 void set_language();
 void set_product_title(const char *name);
 void set_d3d_driver_data(const char *driver, const char *vendor);
+void force_immediate_dump(bool freeze = false);
 } // namespace fatal

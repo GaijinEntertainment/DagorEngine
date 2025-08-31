@@ -2,9 +2,11 @@
 
 #include "dasScripts.h"
 #include <daRg/dasBinding.h>
-#include <ecs/scripts/dasEs.h>
+#include <memory/dag_dbgMem.h>
 #include "guiScene.h"
+#include <dasModules/dasFsFileAccess.h>
 
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 
@@ -14,15 +16,30 @@ using namespace das;
 namespace darg
 {
 
+class NoDebugStackCollector
+{
+public:
+  bool wasStackFill;
+  NoDebugStackCollector() { wasStackFill = DagDbgMem::enable_stack_fill(false); }
+  ~NoDebugStackCollector() { DagDbgMem::enable_stack_fill(wasStackFill); }
+};
+
 struct DargContext final : das::Context
 {
   DargContext(GuiScene *scene_, uint32_t stackSize) : das::Context(stackSize), scene(scene_) {}
 
   DargContext(Context &ctx, uint32_t category) = delete;
 
-  void to_out(const das::LineInfo *, const char *message) { ::debug("daRg-das: %s", message); }
-
-  void to_err(const das::LineInfo *, const char *message) { scene->errorMessageWithCb(message); }
+  void to_out(const das::LineInfo *, int level, const char *message) override
+  {
+    const int logLevel = level >= das::LogLevel::error     ? LOGLEVEL_ERR
+                         : level >= das::LogLevel::warning ? LOGLEVEL_WARN
+                                                           : LOGLEVEL_DEBUG;
+    if (logLevel == LOGLEVEL_ERR)
+      scene->errorMessageWithCb(message);
+    else
+      ::logmessage(logLevel, "daRg-das: %s", message);
+  }
 
   GuiScene *scene = nullptr;
 };
@@ -54,26 +71,12 @@ public:
 
 das::FileInfo *DargFileAccess::getNewFileInfo(const das::string &fname)
 {
-  file_ptr_t f = df_open(fname.c_str(), DF_READ);
-  if (!f)
-    return nullptr;
-
-  const uint32_t fileLength = df_length(f);
-
-  char *source = (char *)das_aligned_alloc16(fileLength + 1);
-  if (df_read(f, source, fileLength) != fileLength)
+  if (!dd_file_exist(fname.c_str()))
   {
-    df_close(f);
-    das_aligned_free16(source);
-    logerr("Cannot read file '%s'", fname.c_str());
+    logerr("sq: Script file %s not found", fname.c_str());
     return nullptr;
   }
-
-  df_close(f);
-  source[fileLength] = 0;
-
-  auto info = das::make_unique<das::TextFileInfo>(source, fileLength, true);
-  return setFileInfo(fname, std::move(info));
+  return setFileInfo(fname, das::make_unique<bind_dascript::FsFileInfo>());
 }
 
 
@@ -93,7 +96,7 @@ das::ModuleInfo DargFileAccess::getModuleInfo(const das::string &req, const das:
 
 static bool is_das_inited()
 {
-  if (!daScriptEnvironment::bound)
+  if (!*daScriptEnvironment::bound)
     return false;
   bool isDargBound = false;
   das::Module::foreach([&](Module *module) -> bool {
@@ -107,41 +110,33 @@ static bool is_das_inited()
   return isDargBound;
 }
 
-
-DasEnvironmentGuard::DasEnvironmentGuard(das::daScriptEnvironment *environment)
-{
-  initialOwned = das::daScriptEnvironment::owned;
-  initialBound = das::daScriptEnvironment::bound;
-  das::daScriptEnvironment::owned = environment;
-  das::daScriptEnvironment::bound = environment;
-}
-
-
-DasEnvironmentGuard::~DasEnvironmentGuard()
-{
-  das::daScriptEnvironment::owned = initialOwned;
-  das::daScriptEnvironment::bound = initialBound;
-}
-
-
 void DasScriptsData::initModuleGroup()
 {
   G_ASSERT(dasEnv);
-  DasEnvironmentGuard envGuard(dasEnv);
+  das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
+  if (!fAccess)
+  {
+    if (!dasProject.empty())
+      fAccess = make_smart<DargFileAccess>(dasProject.c_str());
+    else
+      fAccess = make_smart<DargFileAccess>();
+  }
   moduleGroup = eastl::make_unique<das::ModuleGroup>();
   dbgInfoHelper = eastl::make_unique<DebugInfoHelper>();
   typeGuiContextRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<StdGuiRender::GuiContext &>(*moduleGroup));
   typeConstElemRenderDataRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const ElemRenderData &>(*moduleGroup));
   typeConstRenderStateRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const RenderState &>(*moduleGroup));
+  typeConstElemRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const Element &>(*moduleGroup));
   typeConstPropsRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const Properties &>(*moduleGroup));
 }
 
 
-DasScriptsData::DasScriptsData() : fAccess(make_smart<DargFileAccess>())
+DasScriptsData::DasScriptsData(const char *das_project)
 {
+  dasProject = das_project ? das_project : "";
   if (is_das_inited())
   {
-    dasEnv = daScriptEnvironment::bound;
+    dasEnv = *daScriptEnvironment::bound;
     G_ASSERT(dasEnv);
     initModuleGroup();
   }
@@ -159,7 +154,7 @@ void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
   initCallback = init_callback;
 
   {
-    DasEnvironmentGuard envGuard(dasEnv);
+    das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
     init_callback();
   }
   initModuleGroup();
@@ -167,14 +162,14 @@ void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
 void DasScriptsData::shutdownDasEnvironment()
 {
   {
-    DasEnvironmentGuard envGuard(dasEnv);
+    das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
     // module group must be destroyed before dasEnv
     moduleGroup.reset();
   }
   if (isOwnedDasEnv)
   {
     {
-      DasEnvironmentGuard envGuard(dasEnv);
+      das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
       das::Module::Shutdown();
     }
 
@@ -188,7 +183,23 @@ void DasScriptsData::resetBeforeReload()
 {
   if (isOwnedDasEnv)
     initDasEnvironment(initCallback); // recreate environment to lose all stored shared modules
-  fAccess->reset();
+  if (fAccess)
+    fAccess->reset();
+}
+
+
+void DasScriptsData::cleanupAfterReload()
+{
+  if (fAccess)
+    fAccess->freeSourceData();
+
+  {
+    das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
+    if (moduleGroup)
+      moduleGroup->reset();
+    if (isOwnedDasEnv)
+      das::Module::ClearSharedModules();
+  }
 }
 
 
@@ -231,7 +242,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
   G_ASSERT(guiScene);
-  DasEnvironmentGuard envGuard(guiScene->dasScriptsData->dasEnv);
+  das::daScriptEnvironmentGuard envGuard(guiScene->dasScriptsData->dasEnv, guiScene->dasScriptsData->dasEnv);
   DasScriptsData *dasMgr = guiScene->dasScriptsData.get();
   if (!dasMgr)
     return sq_throwerror(vm, "Not using daScript in this VM");
@@ -241,14 +252,27 @@ static SQInteger load_das(HSQUIRRELVM vm)
   policies.aot = dasMgr->aotMode == AotMode::AOT;
   policies.fail_on_no_aot = false;
   policies.fail_on_lack_of_aot_export = true;
+  policies.no_unused_function_arguments = true;
+  policies.no_unused_block_arguments = true;
+  policies.no_aliasing = true;
+  policies.strict_unsafe_delete = true;
   //  policies.ignore_shared_modules = hard_reload;
+  if (dgs_get_settings() != nullptr)
+  {
+    policies.gen2_make_syntax = dgs_get_settings()->getBool("game_das_gen_2_make_syntax", false);
+  }
 
   eastl::string strFileName(filename);
 
   dasMgr->fAccess->invalidateFileInfo(strFileName); // force reload, let quirrel script manage lifetime
 
-  ProgramPtr program = compileDaScript(strFileName, dasMgr->fAccess, guiScene->dasScriptsData->logWriter,
-    *guiScene->dasScriptsData->moduleGroup, policies);
+  ProgramPtr program;
+  {
+    NoDebugStackCollector noStackCollector;
+
+    program = compileDaScript(strFileName, dasMgr->fAccess, guiScene->dasScriptsData->logWriter,
+      *guiScene->dasScriptsData->moduleGroup, policies);
+  }
 
   if (program->failed())
   {
@@ -285,8 +309,6 @@ static SQInteger load_das(HSQUIRRELVM vm)
       details += reportError(e.at, e.what, e.extra, e.fixme, e.cerr);
     }
 
-    details += ctx->getStackWalk(nullptr, true, true);
-
     guiScene->errorMessageWithCb(details.c_str());
     return 0;
   }
@@ -294,10 +316,34 @@ static SQInteger load_das(HSQUIRRELVM vm)
   process_loaded_script(*ctx, filename);
 
   DasScript *s = new DasScript();
-  s->filename = filename;
   s->ctx = ctx;
-  s->program = program;
-  if (ctx)
+
+  if (program->options.getBoolOption("rtti", false))
+  {
+    logerr("daScript: script <%s> uses RTTI, which is not supported in rgui scripts. Remove this error if you are sure you need RTTI",
+      filename);
+    s->program = program;
+  }
+
+  if (!ctx->persistent)
+  {
+    program->library.foreach(
+      [&strFileName](das::Module *mod) {
+        mod->globals.foreach([&strFileName](auto globVar) {
+          if (globVar && globVar->used && !globVar->type->isNoHeapType())
+          {
+            const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
+            if (ignoreMark == nullptr || !ignoreMark->bValue)
+              logerr("global variable '%s' in script <%s> requires heap memory, but heap memory is regularly cleared."
+                     "Only value types/fixed arrays are supported in this case",
+                globVar->name, strFileName.c_str());
+          }
+        });
+        return true;
+      },
+      "*");
+  }
+
   {
     int aotFn = 0;
     int intFn = 0;

@@ -118,13 +118,14 @@ bool ConsoleProcessorFunctionAnnotation::callFunction(ConsoleProcessorFunction &
     bool result = false;
 
     closureInfo.context->tryRestartAndLock();
+    bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(closureInfo.context);
     if (!closureInfo.context->ownStack)
     {
-      das::SharedStackGuard guard(*closureInfo.context, bind_dascript::get_shared_stack());
-      result = das::cast<bool>::to(closureInfo.context->eval(fn, args));
+      das::SharedFramememStackGuard guard(*closureInfo.context);
+      result = das::cast<bool>::to(closureInfo.context->evalWithCatch(fn, args));
     }
     else
-      result = das::cast<bool>::to(closureInfo.context->eval(fn, args));
+      result = das::cast<bool>::to(closureInfo.context->evalWithCatch(fn, args));
     if (auto exp = closureInfo.context->getException())
       logerr("error: %s\n", exp);
     closureInfo.context->unlock();

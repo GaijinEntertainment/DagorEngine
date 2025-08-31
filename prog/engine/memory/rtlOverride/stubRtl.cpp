@@ -93,7 +93,7 @@ typedef struct malloc_chunk
 #define IS_MMAPPED(p)   (((p)->head & INUSE_BITS) == 0)
 #define OVERHEAD_FOR(p) (IS_MMAPPED(p) ? MMAP_CHUNK_OVERHEAD : CHUNK_OVERHEAD)
 
-#define MEM2CHUNK(mem) ((mchunkptr)((char *)(mem)-TWO_SIZE_T_SIZES))
+#define MEM2CHUNK(mem) ((mchunkptr)((char *)(mem) - TWO_SIZE_T_SIZES))
 
 static inline size_t dlmalloc_usable_size(void *mem)
 {

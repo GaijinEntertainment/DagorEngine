@@ -43,7 +43,6 @@ public:
   NodeBasedShader(NodeBasedShaderType shader, const String &shader_name, const String &shader_file_suffix, uint32_t variant_id);
   ~NodeBasedShader();
 
-  void init(const DataBlock &blk);
   void init(const String &blk, bool keep_permutation = false);
   void reset();
   void closeShader();
@@ -55,13 +54,13 @@ public:
 
   void setArrayValue(const char *name, const Tab<Point4> &values);
 
-  const DataBlock &getMetadata() const;
 
   PROGRAM *getProgram();
 };
 
 namespace nodebasedshaderutils
 {
+eastl::vector<String> getAvailableVolumeChannels();
 eastl::vector<String> getAvailableInt();
 eastl::vector<String> getAvailableFloat();
 eastl::vector<String> getAvailableFloat4();

@@ -1,0 +1,98 @@
+include "sky_shader_global.dshl"
+include "postfx_inc.dshl"
+
+texture source_hmap;
+sampler tex_hmap_low_samplerstate;
+float4 dest_dim;
+shader copy_hmap_depth
+{
+  supports none;
+  supports global_frame;
+  cull_mode  = none;
+  z_test = false;
+
+  ENABLE_ASSERT(ps)
+  POSTFX_VS_TEXCOORD(0, tc)
+  (ps) {
+    source_hmap@tex2d = source_hmap;
+    source_hmap_samplerstate@sampler = tex_hmap_low_samplerstate;
+    source_dim@f2 = get_dimensions(source_hmap, 0);
+    dest_dim@f2 = dest_dim;
+  }
+
+  hlsl(ps){
+    float4 cubic(float v) {
+      float4 n = float4(1.0, 2.0, 3.0, 4.0) - v;
+      float4 s = n * n * n;
+      float x = s.x;
+      float y = s.y - 4.0 * s.x;
+      float z = s.z - 4.0 * s.y + 6.0 * s.x;
+      float w = 6.0 - x - y - z;
+      return float4(x, y, z, w) * (1.0/6.0);
+    }
+
+    float4 textureBicubic(float2 texCoords)
+    {
+      float2 texSize = source_dim;
+      float2 invTexSize = 1.0 / texSize;
+      texCoords = texCoords * texSize - 0.5;
+
+      float2 fxy = texCoords - floor(texCoords);
+      texCoords -= fxy;
+
+      float4 xcubic = cubic(fxy.x);
+      float4 ycubic = cubic(fxy.y);
+
+      float4 c = texCoords.xxyy + float2 (-0.5, +1.5).xyxy;
+
+      float4 s = float4(xcubic.xz + xcubic.yw, ycubic.xz + ycubic.yw);
+      float4 offset = c + float4 (xcubic.yw, ycubic.yw) / s;
+
+      offset *= invTexSize.xxyy;
+
+      float4 sample0 = tex2Dlod(source_hmap, float4(offset.xz,0,0));
+      float4 sample1 = tex2Dlod(source_hmap, float4(offset.yz,0,0));
+      float4 sample2 = tex2Dlod(source_hmap, float4(offset.xw,0,0));
+      float4 sample3 = tex2Dlod(source_hmap, float4(offset.yw,0,0));
+
+      float sx = s.x / (s.x + s.y);
+      float sy = s.z / (s.z + s.w);
+
+      return lerp(
+         lerp(sample3, sample2, sx), lerp(sample1, sample0, sx)
+      , sy);
+    }
+    float textureBicubicSharpen(float2 tc)
+    {
+      float base = textureBicubic(tc).x;
+      float ofs = 1;
+      float total = 0;
+      total += textureBicubic(tc + float2(-ofs, 0) / source_dim).x;
+      total += textureBicubic(tc + float2( ofs, 0) / source_dim).x;
+      total += textureBicubic(tc + float2(0, -ofs) / source_dim).x;
+      total += textureBicubic(tc + float2(0,  ofs) / source_dim).x;
+
+      total += textureBicubic(tc + float2(-ofs, -ofs) / source_dim).x*sqrt(0.5);
+      total += textureBicubic(tc + float2( ofs, -ofs) / source_dim).x*sqrt(0.5);
+      total += textureBicubic(tc + float2(-ofs, ofs) / source_dim).x*sqrt(0.5);
+      total += textureBicubic(tc + float2( ofs, ofs) / source_dim).x*sqrt(0.5);
+      float sharpness = 1;
+      return base + sharpness*(base - total/(4+4*sqrt(0.5)));
+    }
+
+    float copy_hmap_depth_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      if (any(dest_dim != source_dim))
+      {
+        //return tex2Dlod(source_hmap, float4(input.tc,0,0)).x;
+        //return textureBicubicSharpen(input.tc);
+        return textureBicubic(input.tc).x;
+      }
+      //return tex2Dlod(source_hmap, float4(input.tc,0,0)).x;
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      return source_hmap[screenpos.xy].x;
+    }
+  }
+
+  compile("target_ps", "copy_hmap_depth_ps");
+}

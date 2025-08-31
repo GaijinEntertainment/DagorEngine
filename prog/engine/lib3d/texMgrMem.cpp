@@ -40,6 +40,13 @@ using tql::mem_used_persistent_kb;
 using tql::sys_mem_add_free_mb;
 using tql::sys_mem_usage_thres_mb;
 
+#if _TARGET_C1
+
+
+
+
+#endif
+
 static int mem_used_discardable_kb = 0;
 static int mem_used_discardable_kb_max = 0, mem_used_persistent_kb_max = 0, mem_used_sum_kb_max = 0;
 static int tex_used_discardable_cnt = 0, tex_used_persistent_cnt = 0;
@@ -49,7 +56,7 @@ using texmgr_internal::RMGR;
 
 static void load_tex_on_usage(dag::ConstSpan<TEXTUREID> tid);
 static void free_up_sys_mem(int mem_to_free_tb, bool force_report = false);
-static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb);
+static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should_evict_unused = false);
 
 void tql::get_tex_streaming_stats(int &_mem_used_discardable_kb, int &_mem_used_persistent_kb, int &_mem_used_discardable_kb_max,
   int &_mem_used_persistent_kb_max, int &_mem_used_sum_kb_max, int &_tex_used_discardable_cnt, int &_tex_used_persistent_cnt,
@@ -63,6 +70,22 @@ void tql::get_tex_streaming_stats(int &_mem_used_discardable_kb, int &_mem_used_
   _tex_used_discardable_cnt = interlocked_relaxed_load(tex_used_discardable_cnt);
   _tex_used_persistent_cnt = interlocked_relaxed_load(tex_used_persistent_cnt);
   _max_mem_used_overdraft_kb = 0 /*-mem_quota_reserve_kb*/;
+}
+static bool schedule_trim_discardable_tex_mem = false;
+void tql::schedule_trim_discardable_tex_mem()
+{
+  if (!tql::streaming_enabled)
+    return;
+  ::schedule_trim_discardable_tex_mem = true;
+}
+void tql::trim_discardable_tex_mem()
+{
+  if (!tql::streaming_enabled)
+    return;
+  int memUsedDiscardableKb = interlocked_relaxed_load(mem_used_discardable_kb);
+  int memUsedPersistentKb = interlocked_relaxed_load(mem_used_persistent_kb);
+  free_up_gpu_mem(memUsedDiscardableKb, memUsedPersistentKb, true);
+  debug("Force trim discardable texture memory: %dKb", memUsedDiscardableKb);
 }
 
 // TODO: implement inside of dag_atomic.h through intrinsics with this as fallback
@@ -78,9 +101,11 @@ static void on_tex_created(BaseTexture *t)
 {
   using namespace texmgr_internal;
 
-  int sz = 4 * ((t->ressize() + 4095) / 4096);
-  TEXTUREID tid = t->getTID();
+  int sz = 4 * ((t->getSize() + 4095) / 4096);
+  if (sz == 0)
+    return;
 
+  TEXTUREID tid = t->getTID();
   int observedMemUsedPersistentKb;
   int observedTexUsedPersistentCnt;
   int observedMemUsedDiscardableKb;
@@ -92,6 +117,11 @@ static void on_tex_created(BaseTexture *t)
 
     observedMemUsedDiscardableKb = interlocked_add(mem_used_discardable_kb, sz);
     observedTexUsedDiscardableCnt = interlocked_increment(tex_used_discardable_cnt);
+
+#if _TARGET_C1
+
+
+#endif
   }
   else
   {
@@ -100,6 +130,11 @@ static void on_tex_created(BaseTexture *t)
 
     observedMemUsedDiscardableKb = interlocked_relaxed_load(mem_used_discardable_kb);
     observedTexUsedDiscardableCnt = interlocked_relaxed_load(tex_used_discardable_cnt);
+
+#if _TARGET_C1
+
+
+#endif
   }
 
   // NOTE: we don't need acquire/release here because it's simple debug info
@@ -120,7 +155,10 @@ static void on_tex_released(BaseTexture *t)
 {
   using namespace texmgr_internal;
 
-  int sz = 4 * ((t->ressize() + 4095) / 4096);
+  int sz = 4 * ((t->getSize() + 4095) / 4096);
+  if (sz == 0)
+    return;
+
   unsigned lfu = 0;
   bool is_loading = false;
   TEXTUREID tid = t->getTID();
@@ -136,6 +174,29 @@ static void on_tex_released(BaseTexture *t)
 
     observedMemUsedDiscardableKb = interlocked_add(mem_used_discardable_kb, -sz);
     observedTexUsedDiscardableCnt = interlocked_decrement(tex_used_discardable_cnt);
+
+#if _TARGET_C1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif
 
     if (RMGR.isValidID(tid, nullptr))
     {
@@ -187,6 +248,8 @@ static void do_stop_bkg_tex_loading(int sleep_quant)
         ddsx::cease_delayed_data_loading(ddsx::hq_tex_priority);
       cpujobs::reset_job_queue(reload_jobmgr_id, true);
       sleep_msec(sleep_quant);
+      if (is_main_thread())
+        texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread();
     }
   }
 }
@@ -260,9 +323,7 @@ static void on_frame_finished()
       }
     }
     if (list)
-      mt ? load_tex_on_usage_cb(list, true)
-         : add_delayed_callback(
-             +[](void *d) { load_tex_on_usage_cb(d, /*mt*/ false); }, list);
+      mt ? load_tex_on_usage_cb(list, true) : add_delayed_callback(+[](void *d) { load_tex_on_usage_cb(d, /*mt*/ false); }, list);
   }
 
   if (tql::mem_quota_kb && sys_mem_usage_thres_mb && RMGR.getTotalBdCount())
@@ -312,6 +373,7 @@ static void on_frame_finished()
 
       int new_quota_kb = min(observedMemUsedPersistentKb + RMGR.getTotalUsedTexSzKB() + free_gpu_mem_sz_kb, total_gpu_mem_sz_kb) -
                          max(tql::gpu_mem_reserve_kb, as_reserve_kb);
+
       if (new_quota_kb + (2 << 10) < tql::mem_quota_kb || new_quota_kb > tql::mem_quota_kb + (64 << 10))
       {
         if (new_quota_kb > tql::mem_quota_limit_kb)
@@ -325,6 +387,11 @@ static void on_frame_finished()
           tql::mem_quota_kb = new_quota_kb;
         }
       }
+      if (schedule_trim_discardable_tex_mem)
+      {
+        tql::trim_discardable_tex_mem();
+        schedule_trim_discardable_tex_mem = false;
+      }
     }
   }
 
@@ -333,24 +400,7 @@ static void on_frame_finished()
     free_up_gpu_mem(RMGR.getTotalUsedTexSzKB() + RMGR.getTotalAddMemNeededSzKB() - actual_quota_kb, actual_quota_kb);
 
   if (!(dagor_frame_no() & 0x3FF))
-  {
-    size_t mem_used_mb = (dagor_memory_stat::get_memchunk_count(true) * 32 + dagor_memory_stat::get_memory_allocated(true)) >> 20;
-
-    if (RMGR.getTotalBdCount())
-      debug("SYSmem= %4dM in %d ptrs, BaseData: %dK in %d blk (ready to free %dK in %d blk), memQuota=%dM+%dM", mem_used_mb,
-        dagor_memory_stat::get_memchunk_count(true), RMGR.getTotalBdSzKB(), RMGR.getTotalBdCount(), RMGR.getReadyForDiscardBdSzKB(),
-        RMGR.getReadyForDiscardBdCount(), sys_mem_usage_thres_mb, sys_mem_add_free_mb);
-    else
-      debug("SYSmem= %4dM in %d ptrs, memQuota=%dM+%dM", mem_used_mb, dagor_memory_stat::get_memchunk_count(true),
-        sys_mem_usage_thres_mb, sys_mem_add_free_mb);
-
-    debug("GPUmem= %4dM (%dM pers + %dM in %d tex), (ready to free %dK in %d tex) futureMem=%dM, frame=%-5d strmQuota=%dM+%dM",
-      (RMGR.getTotalUsedTexSzKB() + observedMemUsedPersistentKb) >> 10, observedMemUsedPersistentKb >> 10,
-      RMGR.getTotalUsedTexSzKB() >> 10, RMGR.getTotalUsedTexCount(), RMGR.getReadyForDiscardTexSzKB(),
-      RMGR.getReadyForDiscardTexCount(), RMGR.getTotalAddMemNeededSzKB() >> 10, dagor_frame_no(), actual_quota_kb >> 10,
-      mem_quota_reserve_kb >> 10);
-    G_UNUSED(mem_used_mb);
-  }
+    dump_texture_streaming_memory_state();
 
   RMGR.copyMaxReqLevToPrev();
 
@@ -443,7 +493,7 @@ static void free_up_sys_mem(int mem_to_free_kb, bool force_report)
     last_fc = frame - 2, log_hide_cnt = 0;
   }
 }
-static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb)
+static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should_evict_unused)
 {
   TIME_PROFILE(free_up_gpu_mem);
   static constexpr unsigned total_budget_in_usec = 20u;
@@ -480,8 +530,8 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb)
     RMGR.updateDowngradeRange(startDowngrade, endDowngrade, downgrade_budget_in_usec);
     if (RMGR.getReadyForDiscardTexSzKB() > RMGR.getReadyForDiscardTexCount() * 4 || mem_to_free_kb < RMGR.getReadyForDiscardTexSzKB())
     {
-      bool evict_unused =
-        RMGR.getReadyForDiscardTexSzKB() < RMGR.getReadyForDiscardTexCount() * 12 || d3d::get_driver_code().is(d3d::metal);
+      bool evict_unused = RMGR.getReadyForDiscardTexSzKB() < RMGR.getReadyForDiscardTexCount() * 12 ||
+                          d3d::get_driver_code().is(d3d::metal) || should_evict_unused;
       for (unsigned i = startDowngrade, ie = endDowngrade; i < ie; i++)
       {
         if (!(RMGR.getResLFU(i) + 3 < frame && RMGR.getRefCount(i) == 0 && RMGR.getFactory(i) && RMGR.getD3dResRelaxed(i)))
@@ -515,7 +565,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb)
           if (!t)
             continue;
 
-          int size_kb = tql::sizeInKb(t->ressize());
+          int size_kb = tql::sizeInKb(t->getSize());
           if (size_kb < 16)
             continue;
 
@@ -639,6 +689,17 @@ static bool should_release_tex(BaseTexture *b)
          (tid == BAD_TEXTUREID || RMGR.getTexMemSize4K(tid.index()) > 64);
 }
 
+static bool always_release_tex_above_threshold_size(BaseTexture *b)
+{
+  TEXTUREID tid = b ? b->getTID() : BAD_TEXTUREID;
+  if (tid != BAD_TEXTUREID)
+  {
+    const int sizeKB = RMGR.getTexMemSize4K(tid.index()) * 4;
+    return (sizeKB > texmgr_internal::always_release_threshold_tex_size_kb) || should_release_tex(b);
+  }
+  return true;
+}
+
 void init_managed_textures_streaming_support(int _reload_jobmgr_id)
 {
   if (_reload_jobmgr_id == -2)
@@ -649,7 +710,7 @@ void init_managed_textures_streaming_support(int _reload_jobmgr_id)
 
 
 #endif
-    _reload_jobmgr_id = cpujobs::create_virtual_job_manager(256 << 10, threadAffinity, "reloadTex");
+    _reload_jobmgr_id = cpujobs::create_virtual_job_manager(192 << 10, threadAffinity, "reloadTex");
   }
   if (d3d::is_inited())
   {
@@ -678,8 +739,11 @@ void init_managed_textures_streaming_support(int _reload_jobmgr_id)
   tql::on_tex_released = &on_tex_released;
   tql::on_buf_changed = &on_buf_changed;
   tql::unload_on_drv_shutdown = &unload_on_drv_shutdown;
+  texmgr_internal::always_release_threshold_tex_size_kb = b.getInt("alwaysReleaseThresholdTexSizeKB", -1);
   if (!b.getBool("alwaysRelease", false))
     texmgr_internal::should_release_tex = &should_release_tex;
+  else if (texmgr_internal::always_release_threshold_tex_size_kb > 0)
+    texmgr_internal::should_release_tex = &always_release_tex_above_threshold_size;
   texmgr_internal::stop_bkg_tex_loading = &do_stop_bkg_tex_loading;
   mem_quota_reserve_kb = READ_PROP(Int, "quotaReserveMB", mem_quota_reserve_kb >> 10) << 10;
   sys_mem_usage_thres_mb = READ_PROP(Int, "sysMemUsageThresholdMB", sys_mem_usage_thres_mb);
@@ -750,13 +814,35 @@ void init_managed_textures_streaming_support(int _reload_jobmgr_id)
   if (reload_jobmgr_id >= 0 && texmgr_internal::texq_load_on_demand)
     tql::on_frame_finished = &on_frame_finished;
   else
-    register_regular_action_to_idle_cycle(
-      +[](void *) { flush_streaming_actions_to_d3d(); }, nullptr);
+    register_regular_action_to_idle_cycle(+[](void *) { flush_streaming_actions_to_d3d(); }, nullptr);
 #undef READ_PROP
 }
 
 bool is_managed_textures_streaming_active() { return tql::streaming_enabled; }
 bool is_managed_textures_streaming_load_on_demand() { return tql::streaming_enabled && texmgr_internal::texq_load_on_demand; }
+
+void dump_texture_streaming_memory_state()
+{
+  const int observedMemUsedPersistentKb = interlocked_relaxed_load(mem_used_persistent_kb);
+  int actual_quota_kb = tql::mem_quota_kb - observedMemUsedPersistentKb - mem_quota_reserve_kb;
+  size_t mem_used_mb = (dagor_memory_stat::get_memchunk_count(true) * 32 + dagor_memory_stat::get_memory_allocated(true)) >> 20;
+
+  if (RMGR.getTotalBdCount())
+    debug("SYSmem= %4dM in %d ptrs, BaseData: %dK in %d blk (ready to free %dK in %d blk), memQuota=%dM+%dM%s", mem_used_mb,
+      dagor_memory_stat::get_memchunk_count(true), RMGR.getTotalBdSzKB(), RMGR.getTotalBdCount(), RMGR.getReadyForDiscardBdSzKB(),
+      RMGR.getReadyForDiscardBdCount(), sys_mem_usage_thres_mb, sys_mem_add_free_mb,
+      texmgr_internal::is_sys_mem_enough_to_load_basedata() ? "" : " can't load BD!");
+  else
+    debug("SYSmem= %4dM in %d ptrs, memQuota=%dM+%dM", mem_used_mb, dagor_memory_stat::get_memchunk_count(true),
+      sys_mem_usage_thres_mb, sys_mem_add_free_mb);
+
+  debug("GPUmem= %4dM (%dM pers + %dM in %d tex), (ready to free %dK in %d tex) futureMem=%dM, frame=%-5d strmQuota=%dM+%dM%s",
+    (RMGR.getTotalUsedTexSzKB() + observedMemUsedPersistentKb) >> 10, observedMemUsedPersistentKb >> 10,
+    RMGR.getTotalUsedTexSzKB() >> 10, RMGR.getTotalUsedTexCount(), RMGR.getReadyForDiscardTexSzKB(), RMGR.getReadyForDiscardTexCount(),
+    RMGR.getTotalAddMemNeededSzKB() >> 10, dagor_frame_no(), actual_quota_kb >> 10, mem_quota_reserve_kb >> 10,
+    texmgr_internal::is_gpu_mem_enough_to_load_hq_tex() ? "" : " can't load HQ!");
+  G_UNUSED(mem_used_mb);
+}
 
 bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTexture &this_tex, int req_lev)
 {
@@ -769,12 +855,13 @@ bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTextu
     if (incRefCount(idx) == 1)
       RMGR.decReadyForDiscardTex(idx);
     this_tex.discardTex();
-    RMGR.changeTexUsedMem(idx, tql::sizeInKb(this_tex.ressize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
+    RMGR.changeTexUsedMem(idx, tql::sizeInKb(this_tex.getSize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
     resQS[idx].setCurQL(TQL_stub);
     resQS[idx].setLdLev(1);
     resQS[idx].setMaxReqLev(1);
     if (decRefCount(idx) == 0)
       RMGR.incReadyForDiscardTex(idx);
+    RMGR.incTexStreamingGeneration(idx);
     return true;
   }
 
@@ -784,17 +871,18 @@ bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTextu
       RMGR.decReadyForDiscardTex(idx);
     unsigned skip = (texDesc[idx].dim.maxLev - req_lev);
     unsigned w = max(texDesc[idx].dim.w >> skip, 1), h = max(texDesc[idx].dim.h >> skip, 1);
-    unsigned d = max(this_tex.restype() == RES3D_VOLTEX ? texDesc[idx].dim.d >> skip : texDesc[idx].dim.d, 1);
+    unsigned d = max(this_tex.getType() == D3DResourceType::VOLTEX ? texDesc[idx].dim.d >> skip : texDesc[idx].dim.d, 1);
     unsigned l = texDesc[idx].dim.l - skip;
 
     if (auto tmpTex = tql::makeResizedTmpTexResCopy(&this_tex, w, h, d, l, ld_lev))
+    {
+      RMGR.changeTexUsedMem(idx, tql::sizeInKb(tmpTex->getSize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
       RMGR.completeTextureUpdateAsync(idx, &this_tex, tmpTex, 0, l - 1, [req_lev](int idx) {
         resQS[idx].setCurQL(req_lev < resQS[idx].getQLev() ? calcCurQL(idx, req_lev) : resQS[idx].getMaxQL());
         resQS[idx].setLdLev(req_lev);
         resQS[idx].setMaxReqLev(req_lev);
       });
-
-    RMGR.changeTexUsedMem(idx, tql::sizeInKb(this_tex.ressize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
+    }
 
     if (decRefCount(idx) == 0)
       RMGR.incReadyForDiscardTex(idx);
@@ -881,10 +969,8 @@ void prefetch_and_wait_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_lis
       logwarn("%s called with texq_load_on_demand=0", __FUNCTION__);
       ddsx::tex_pack2_perform_delayed_data_loading();
     }
-    on_frame_finished();
-    // process pending resource updates to avoid stalling here when waiting in main thread
-    if (d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED))
-      interlocked_increment(texmgr_internal::drv_res_updates_flush_count);
+    if (is_main_thread())
+      texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread();
     sleep_msec(10);
     if (dagor_frame_no() > f + 6)
     {
@@ -945,6 +1031,15 @@ void prefetch_and_wait_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_lis
       break;
     }
   }
+}
+
+void texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread()
+{
+  G_ASSERT(is_main_thread());
+  tql::on_frame_finished ? tql::on_frame_finished() : on_frame_finished();
+  // process pending resource updates to avoid stalling here when waiting in main thread
+  if (d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED))
+    interlocked_increment(texmgr_internal::drv_res_updates_flush_count);
 }
 
 #if DAGOR_DBGLEVEL > 0

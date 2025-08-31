@@ -10,13 +10,22 @@ AddIncludes =
 ;
 
 Sources =
-  wgw_dialogs.cpp
-  wgw_dialogs_ex.cpp
-  wgw_input.cpp
-  wgw_busy.cpp
   wgw_timer.cpp
   wgw_file_update.cpp
-  wgw_clipboard.cpp
 ;
+
+if $(Platform) = windows {
+  Sources +=
+    wgw_dialogs.cpp
+    wgw_dialogs_ex.cpp
+    wgw_input.cpp
+    wgw_busy.cpp
+    wgw_clipboard.cpp
+  ;
+} else if $(Platform) = linux {
+  Sources +=
+    wgw_dialogs_linux.cpp
+  ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

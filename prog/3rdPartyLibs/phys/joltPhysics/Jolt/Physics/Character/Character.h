@@ -6,7 +6,9 @@
 
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
+#include <Jolt/Physics/Collision/TransformedShape.h>
 #include <Jolt/Physics/EActivation.h>
+#include <Jolt/Physics/Body/AllowedDOFs.h>
 
 JPH_NAMESPACE_BEGIN
 
@@ -27,6 +29,9 @@ public:
 
 	/// Value to multiply gravity with for this character
 	float								mGravityFactor = 1.0f;
+
+	/// Allowed degrees of freedom for this character
+	EAllowedDOFs						mAllowedDOFs = EAllowedDOFs::TranslationX | EAllowedDOFs::TranslationY | EAllowedDOFs::TranslationZ;
 };
 
 /// Runtime character object.
@@ -91,7 +96,7 @@ public:
 	RVec3								GetPosition(bool inLockBodies = true) const;
 
 	/// Set the position of the character, optionally activating it.
-	void								SetPosition(RVec3Arg inPostion, EActivation inActivationMode = EActivation::Activate, bool inLockBodies = true);
+	void								SetPosition(RVec3Arg inPosition, EActivation inActivationMode = EActivation::Activate, bool inLockBodies = true);
 
 	/// Get the rotation of the character
 	Quat								GetRotation(bool inLockBodies = true) const;
@@ -105,12 +110,18 @@ public:
 	/// Calculate the world transform of the character
 	RMat44								GetWorldTransform(bool inLockBodies = true) const;
 
+	/// Get the layer of the character
+	ObjectLayer							GetLayer() const										{ return mLayer; }
+
 	/// Update the layer of the character
 	void								SetLayer(ObjectLayer inLayer, bool inLockBodies = true);
 
 	/// Switch the shape of the character (e.g. for stance). When inMaxPenetrationDepth is not FLT_MAX, it checks
 	/// if the new shape collides before switching shape. Returns true if the switch succeeded.
 	bool								SetShape(const Shape *inShape, float inMaxPenetrationDepth, bool inLockBodies = true);
+
+	/// Get the transformed shape that represents the volume of the character, can be used for collision checks.
+	TransformedShape					GetTransformedShape(bool inLockBodies = true) const;
 
 	/// @brief Get all contacts for the character at a particular location
 	/// @param inPosition Position to test.

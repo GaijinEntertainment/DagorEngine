@@ -21,7 +21,7 @@ def finalize_possesion_client(evt : Event; eid, possessedByPlr : EntityId; var r
 
     if replication != null // basically same as has_network()
       if actor != null
-        *actor |> base_phys_actor_setRoleAndTickrateType(NetRole ROLE_LOCALLY_CONTROLLED_SHADOW, PhysTickRateType Normal)
+        *actor |> base_phys_actor_setRoleAndTickrateType(NetRole.ROLE_LOCALLY_CONTROLLED_SHADOW, PhysTickRateType.Normal)
       let sconn : IConnection const? = get_server_conn()
       if sconn != null
         *replication |> net_object_setControlledBy(connection_getId(*sconn))

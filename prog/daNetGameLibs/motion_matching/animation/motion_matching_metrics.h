@@ -19,9 +19,10 @@ __forceinline bool feature_metric_need_update(vec4f &__restrict best_result,
   const vec3f *__restrict current,
   const vec3f *__restrict next,
   const vec3f *__restrict weights,
+  float bias,
   int count)
 {
-  vec4f result = v_zero();
+  vec4f result = v_splats(bias);
   for (int i = 0; i < count; i++)
   {
     vec4f dif = v_mul(v_sub(current[i], next[i]), weights[i]);
@@ -40,9 +41,10 @@ __forceinline bool feature_bounded_metric_need_update(vec4f best_result,
   const vec3f *__restrict bounds_min,
   const vec3f *__restrict bounds_max,
   const vec3f *__restrict weights,
+  float bias,
   int count)
 {
-  vec4f result = v_zero();
+  vec4f result = v_splats(bias);
   for (int i = 0; i < count; i++)
   {
     vec4f dif = v_sub(current[i], v_clamp(current[i], bounds_min[i], bounds_max[i]));

@@ -48,7 +48,7 @@ public:
     // perform triangulation on every compute.
     csg.hooks.registerHook(new carve::csg::CarveTriangulatorWithImprovement, carve::csg::CSG::Hooks::PROCESS_OUTPUT_FACE_BIT);
   }
-  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed)
+  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed) override
   {
     carve_poly_t *poly = texturedMesh(mesh, wtm, node_id);
     if (only_closed && !poly->isClosed())
@@ -66,7 +66,7 @@ public:
 
     return !(((carve_poly_t *)poly)->isClosed());
   }
-  void delete_poly(void *poly)
+  void delete_poly(void *poly) override
   {
     if (poly)
       delete ((carve_poly_t *)poly);
@@ -86,10 +86,11 @@ public:
       case A_MINUS_B: return carve::csg::CSG::A_MINUS_B;
       case B_MINUS_A: return carve::csg::CSG::B_MINUS_A;
       case SYMMETRIC_DIFFERENCE: return carve::csg::CSG::SYMMETRIC_DIFFERENCE;
+      case UNKNOWN: break; // to prevent the unhandled switch case error
     };
     return carve::csg::CSG::UNION;
   }
-  void *op(OpType op_tp, void *a_, const TMatrix *atm, void *b_, const TMatrix *btm)
+  void *op(OpType op_tp, void *a_, const TMatrix *atm, void *b_, const TMatrix *btm) override
   {
     try
     {
@@ -116,7 +117,7 @@ public:
     }
   }
 
-  void convert(void *in, Mesh &mesh) { convert(*(carve_poly_t *)in, mesh); }
+  void convert(void *in, Mesh &mesh) override { convert(*(carve_poly_t *)in, mesh); }
 
   void convert(carve_poly_t &in, Mesh &mesh)
   {

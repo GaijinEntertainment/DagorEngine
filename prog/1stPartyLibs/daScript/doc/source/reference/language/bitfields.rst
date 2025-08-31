@@ -6,17 +6,17 @@ Bitfield
 
 Bitfields are a nameless types which represent a collection of up to 32-bit flags in a single integer::
 
-    var t : bitfield < one; two; three >
+    var t : bitfield < one,two,three >
 
 There is a shorthand type alias syntax to define a bitfield::
 
-    bitfield bits123
+    bitfield bits123 {
         one
         two
         three
+    }
 
-    typedef
-        bits123 = bitfield<one; two; three> // exactly the same as the declaration above
+    typedef bits123 = bitfield<one; two; three> // exactly the same as the declaration above
 
 Any two bitfields are the same type and represent 32-bit integer::
 

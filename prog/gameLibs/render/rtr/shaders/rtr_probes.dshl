@@ -1,0 +1,360 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh.dshl"
+include "ThreadGroupTilingX.dshl"
+include "rt/rt_lighting.dshl"
+include "use_prefiltered_gf.dshl"
+include "wetness_inc.dshl"
+include "bvh_common_includes.dshl"
+include "rtr_probes_use.dshl"
+
+int rtr_res_mul = 1;
+interval rtr_res_mul : full_res < 2, half_res;
+
+int4 rtr_resolutionI = (1, 1, 1, 1);
+int rtr_probe_cycle = 0;
+int rtr_probe_period = 1;
+int rtr_fix_probes = 0;
+float rtr_probe_debug_size = 20;
+
+int blue_noise_frame_index;
+
+hlsl {
+  #include <rtr_constants.hlsli>
+}
+
+shader rt_reflection_probe_location
+{
+  ENABLE_ASSERT(cs)
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+
+  USE_CALC_WORLD_POS(cs)
+
+  if (rtr_res_mul == full_res)
+  {
+    INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+    USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+    USE_CALC_GEOMETRY_NORMAL(cs)
+  }
+  else
+  {
+    USE_CALC_GEOMETRY_NORMAL_HALF(cs)
+  }
+
+  (cs) {
+    probe_locations@uav = rtr_probe_locations hlsl { RWStructuredBuffer<float4> probe_locations@uav; };
+    probe_count@u2 = (rtr_probes_w, rtr_probes_h);
+    resolution@u2 = rtr_resolutionI;
+    inv_aligned_resolution@f2 = (rtr_res_mul * screen_pos_to_texcoord.xy);
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl (cs) {
+    [numthreads(8, 8, 1)]
+    void rt_reflection_probe_location_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      uint2 tci = dtid * PROBE_AREA + PROBE_AREA / 2;
+      tci = min(tci, resolution - 1);
+
+      ##if rtr_res_mul == half_res
+        float3 rawDepth = getHalfDepth(tci);
+        float3 geomNormal = calc_geometry_normal_half(tci, inv_aligned_resolution, resolution);
+      ##else
+        float3 rawDepth = getDepth(tci);
+        float3 geomNormal = calc_geometry_normal(tci, inv_aligned_resolution, resolution);
+      ##endif
+
+      uint probeIndex = dtid.y * probe_count.x + dtid.x;
+
+      BRANCH
+      if (rawDepth.x <= 0)
+      {
+        structuredBufferAt(probe_locations, probeIndex) = 0;
+        return;
+      }
+
+      float4 oldProbeData = structuredBufferAt(probe_locations, probeIndex);
+      float w = linearize_z(rawDepth.x, zn_zfar.zw);
+      float3 probePos = calc_world_pos(tci, w, inv_aligned_resolution, world_view_pos);
+      probePos += geomNormal * 0.1;
+      float t; // How much weight the new sample will have?
+      if (oldProbeData.w == 0)
+      {
+        t = 1;
+      }
+      else
+      {
+        float move = distance(oldProbeData.xyz, probePos);
+        float moveT = saturate(move);
+        t = lerp(0.03, 1, moveT);
+      }
+
+      structuredBufferAt(probe_locations, probeIndex) = float4(probePos, t);
+    }
+  }
+
+  compile("cs_6_5", "rt_reflection_probe_location_cs");
+}
+
+shader rt_reflection_probe_color
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+
+  supports global_const_block;
+
+  ENABLE_ASSERT(cs)
+
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+
+  USE_CALC_WORLD_POS(cs)
+
+  if (rtr_res_mul == full_res)
+  {
+    INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+    USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+    USE_CALC_GEOMETRY_NORMAL(cs)
+  }
+  else
+  {
+    USE_CALC_GEOMETRY_NORMAL_HALF(cs)
+  }
+
+  (cs) {
+    probes@uav = rtr_probes hlsl { RWTexture2D<float4> probes@uav; };
+    probe_count@u2 = (rtr_probes_w, rtr_probes_h);
+    probe_locations@buf = rtr_probe_locations hlsl { StructuredBuffer<float4> probe_locations@buf; };
+    probe_cycle@u1 = rtr_probe_cycle;
+    probe_period@u1 = rtr_probe_period;
+    sky_mips@u1 = get_dimensions(envi_probe_specular, 0).z;
+    world_view_pos@f3 = world_view_pos;
+    frame_index@u1 = blue_noise_frame_index;
+  }
+
+  INIT_MAIN_BVH(cs, false, false)
+  USE_BVH_FOR_REFLECTION_PROBE(cs)
+
+  INIT_RT_LIGHTING(cs, false, true, true, false, false, false)
+  USE_RT_LIGHTING(cs, 0, true)
+
+  INIT_BVH_ATMOSPHERE(cs)
+  USE_BVH_ATMOPHERE(cs)
+
+  hlsl (cs) {
+    #define NRD_FP16_MAX 65504.0
+
+    #include <octahedral.hlsl>
+
+    // We collide with SH1 otherwise
+    namespace ml
+    {
+      #include <ml.hlsli>
+    }
+
+    float pixel_angular_radius(int resolution)
+    {
+      // Total number of pixels in the texture
+      int totalPixels = resolution * resolution;
+
+      // Each pixel covers this solid angle (in steradians)
+      float pixelSolidAngle = 4.0 * PI / totalPixels;
+
+      // Solve for angular radius from solid angle
+      float cosTheta = 1.0 - (pixelSolidAngle / (2.0 * PI));
+      float theta = acos(cosTheta); // Angular radius in radians
+
+      return theta;
+    }
+
+    float3 random_vector_under_angle(float angleRad, float rand1, float rand2)
+    {
+        // Compute cosine of the maximum angle
+        float cosMaxAngle = cos(angleRad / 2);
+
+        // Sample uniformly within the cone
+        float cosTheta = lerp(cosMaxAngle, 1.0, rand1); // polar angle
+        float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+        float phi = rand2 * 2.0 * PI; // azimuthal angle
+
+        // Convert to Cartesian coordinates (cone around +Z)
+        float x = cos(phi) * sinTheta;
+        float y = sin(phi) * sinTheta;
+        float z = cosTheta;
+
+        return float3(x, y, z); // Direction within cone in upper hemisphere
+    }
+
+    void randomize_vector(uint2 gtid, inout float3 direction)
+    {
+      float angle = pixel_angular_radius(PROBE_RESOLUTION); // This is a compile time expression actually.
+
+      ml::Rng::Hash::Initialize(gtid, frame_index);
+      float2 rand = ml::Rng::Hash::GetFloat2();
+
+      float3x3 localBasis = ml::Geometry::GetBasis(direction);
+      float3 localRay = random_vector_under_angle(angle, rand.x, rand.y);
+      direction = ml::Geometry::RotateVectorInverse(localBasis, localRay);
+    }
+
+    ##if hardware.scarlett
+    RT_GROUP_SIZE
+    ##else
+    [numthreads(PROBE_RESOLUTION, PROBE_RESOLUTION, 1)]
+    ##endif
+    void rt_reflection_probe_color_cs(uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID)
+    {
+      ##if hardware.scarlett
+        if (any(gtid >= PROBE_RESOLUTION))
+          return;
+      ##endif
+
+      gid.x = gid.x * probe_period + probe_cycle;
+      if (gid.x >= probe_count.x)
+        return;
+
+      uint probeIndex = gid.y * probe_count.x + gid.x;
+
+      uint skyMip = sky_mips - 3;
+
+      float4 probePosition = structuredBufferAt(probe_locations, probeIndex);
+      float2 uv = (gtid + 0.5) / PROBE_RESOLUTION;
+      float3 direction = octDecode(uv * 2 - 1);
+
+      randomize_vector(gtid, direction);
+
+      float3 color;
+      float distance;
+
+      BRANCH
+      if (probePosition.w == 0)
+      {
+        color = texCUBElod(envi_probe_specular, float4(direction, skyMip)).rgb;
+        distance = NRD_FP16_MAX;
+      }
+      else
+      {
+        float3 relPos = probePosition.xyz - bvh_origin;
+        float w = length(relPos);
+        HitInfo hitInfo;
+        bool isHit = trace_ray(bvhMain, relPos, direction, 0, 1000, w, bvhGroupProbe, hitInfo);
+
+        BRANCH
+        if (isHit)
+        {
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, -5);
+          color = light_hit_surface(hitSurface, -direction, w + hitInfo.t, 1000);
+          calc_atmosphere(color, hitInfo.position, hitInfo.t);
+          distance = hitInfo.t;
+        }
+        else
+        {
+          color = texCUBElod(envi_probe_specular, float4(direction, skyMip)).rgb;
+          distance = NRD_FP16_MAX;
+        }
+      }
+
+      // Very simple reprojection. Is it a fully stable reflection probe? No. Does it
+      // need to be? No. Will be used in case of noisy reflection anyways.
+      uint2 tciBase = gid * PROBE_RESOLUTION_WITH_BORDER + PROBE_BORDER;
+      uint2 tci = tciBase + gtid;
+      float4 oldSample = texture2DAt(probes, tci);
+      texture2DAt(probes, tci) = lerp(oldSample, float4(color, distance), probePosition.w);
+
+      GroupMemoryBarrierWithGroupSync();
+
+      if (all(gtid == 0))
+      {
+        for (uint x = 0; x < PROBE_RESOLUTION; ++x)
+        {
+          uint mir = PROBE_RESOLUTION - 1 - x;
+          texture2DAt(probes, uint2(tciBase.x + x, tciBase.y - 1)) = texture2DAt(probes, uint2(tciBase.x + mir, tciBase.y));
+          texture2DAt(probes, uint2(tciBase.x + x, tciBase.y + PROBE_RESOLUTION)) = texture2DAt(probes, uint2(tciBase.x + mir, tciBase.y + PROBE_RESOLUTION - 1));
+        }
+        for (uint y = 0; y < PROBE_RESOLUTION; ++y)
+        {
+          uint mir = PROBE_RESOLUTION - 1 - y;
+          texture2DAt(probes, uint2(tciBase.x - 1, tciBase.y + y)) = texture2DAt(probes, uint2(tciBase.x, tciBase.y + mir));
+          texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION, tciBase.y + y)) = texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION - 1, tciBase.y + mir));
+        }
+        texture2DAt(probes, uint2(tciBase.x - 1, tciBase.y - 1)) = texture2DAt(probes, uint2(tciBase.x, tciBase.y - 1));
+        texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION, tciBase.y - 1)) = texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION - 1, tciBase.y - 1));
+        texture2DAt(probes, uint2(tciBase.x - 1, tciBase.y + PROBE_RESOLUTION)) = texture2DAt(probes, uint2(tciBase.x, tciBase.y + PROBE_RESOLUTION));
+        texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION, tciBase.y + PROBE_RESOLUTION)) = texture2DAt(probes, uint2(tciBase.x + PROBE_RESOLUTION - 1, tciBase.y + PROBE_RESOLUTION));
+      }
+    }
+  }
+
+  compile("cs_6_5", "rt_reflection_probe_color_cs");
+}
+
+shader rt_reflection_probe_debug
+{
+  ENABLE_ASSERT(ps)
+
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+
+  z_test = true;
+  z_write = true;
+  cull_mode = none;
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    inv_resolution@f2 = 1.0 / get_viewport().zw;
+    world_view_pos@f3 = world_view_pos;
+    probe_size@f1 = rtr_probe_debug_size;
+  }
+
+  INIT_RTR_PROBES_NO_SAMPLER(vs)
+  INIT_RTR_PROBES(ps)
+  USE_RTR_PROBES(ps)
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 normal : NORMAL;
+      nointerpolation uint2 probeIndex : PROBE_INDEX;
+    };
+  }
+
+  hlsl (vs)
+  {
+    #include "spheres_vertices.hlsl"
+    VsOutput rt_reflection_probe_debug_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
+    {
+      float4 probeData = probe_locations[instanceId];
+
+      VsOutput output = (VsOutput)0;
+      if (probeData.w == 0)
+        return output;
+
+      float3 pos = get_sphere_vertex_pos(vertexId);
+      float3 worldPos = pos * probe_size + probeData.xyz;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.normal = pos;
+      output.probeIndex = uint2(instanceId % probe_count.x, instanceId / probe_count.x);
+
+      return output;
+    }
+  }
+  compile("target_vs", "rt_reflection_probe_debug_vs");
+
+  hlsl (ps)
+  {
+    float4 rt_reflection_probe_debug_ps(VsOutput input) : SV_Target0
+    {
+      return float4(sample_probe(input.probeIndex, normalize(input.normal)).rgb, 1);
+    }
+  }
+  compile("target_ps", "rt_reflection_probe_debug_ps");
+}

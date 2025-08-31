@@ -6,6 +6,7 @@
 
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/dasDagorResPtr.h>
+#include <dasModules/aotDagorDriver3d.h>
 
 #include <osApiWrappers/dag_miscApi.h>
 #include <vecmath/dag_vecMathDecl.h>

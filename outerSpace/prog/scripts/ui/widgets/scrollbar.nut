@@ -26,7 +26,7 @@ let mkScrollbar = function(scroll_handler, orientation=null, needReservePlace=tr
   let knob = @() {
     watch = stateFlags
     key = "knob"
-    size = [flex(), flex()]
+    size = flex()
     rendObj = ROBJ_SOLID
     color = calcKnobColor(stateFlags.get())
   }

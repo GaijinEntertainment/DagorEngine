@@ -13,6 +13,8 @@ struct TexImage8a;
 struct TexPixel32;
 struct TexPixel8a;
 
+// read TGA headers and dimensions
+bool read_tga32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha);
 
 // load TGA file
 TexImage32 *load_tga32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha = NULL);

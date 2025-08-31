@@ -11,7 +11,6 @@ libs = [
   "ground_holes",
   "flash_blind",
   "light_flicker",
-  "outdated_effects",
   "underwater_postfx",
   "terraform",
   "projectors",
@@ -29,7 +28,7 @@ libs = [
   "water_flowmap_obstacles",
   "puddle_query",
   "dynamic_details",
-  "volfog_volumes",
+  "nbs_volumes",
   "screen_droplets",
   "effect_area",
   "storm",
@@ -54,7 +53,7 @@ sys.path.append('../../../prog/daNetGameLibs')
 from setup_package import setup_package
 
 setup_package(libsListOrPath=libs, basePath="./", dngLibsPath="../../../prog/daNetGameLibs",
-  templateOutputPath="./gameBase/content/dng_scene_viewer/gamedata/templates/dng_lib_entities.blk",
+  templateOutputPath="./gameBase/gamedata/templates/dng_lib_entities.blk",
   jamPath="_dng_libs.jam",
-  vromfsOutputPath="./_dng_libs_prog.vromfs.blk", vromfsName="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin",
+  vromfsOutputPath="./_dng_libs_prog.vromfs.blk", vromfsName="dng_scene_viewer.vromfs.bin",
   jamPathAot="./_aot/_aot_dng_libs.jam")

@@ -10,7 +10,7 @@ from bpy.props          import (StringProperty,
                                 PointerProperty,
                                 FloatProperty,
                                 )
-from bpy.types          import PropertyGroup, Operator, AddonPreferences, Panel, Collection
+from bpy.types          import PropertyGroup, Operator, AddonPreferences, Panel, Collection, Object
 from bpy.utils          import user_resource
 from os                 import listdir
 from os.path            import exists, splitext, isfile, join
@@ -35,6 +35,14 @@ def get_projects(self, context):
         items.append(item)
         i+=1
     return items
+
+def update_parent_node(self, context):
+    if self.parent_node is None:
+        return
+    if self.parent_node.type != 'EMPTY':
+        show_popup(message = f"\"{self.parent_node.type}\" objects are not allowed! Use Empty instead")
+        self.parent_node = None
+    return
 
 def upd_palettes(self, context):
     palette_node = bpy.data.node_groups.get('.painting')
@@ -94,8 +102,8 @@ def upd_cmp_e_path(self,context):
         self.dirpath = self.dirpath.replace('"','')
     if self.dirpath.find("\\") > -1:
         self.dirpath = self.dirpath.replace("\\","/")
-    if not self.dirpath.endswith(os.sep):
-        self.dirpath = self.dirpath + os.sep
+    if not self.dirpath.endswith("/"):
+        self.dirpath = self.dirpath + "/"
     return
 
 def upd_imp_filepath(self,context):
@@ -407,7 +415,7 @@ classes.append(Dag_CMP_Import_Props)
 
 
 class Dag_CMP_Export_Props(PropertyGroup):
-    collection: PointerProperty (type = bpy.types.Collection, name = '',
+    collection: PointerProperty (type = Collection, name = '',
                     description = 'Drag&Drop collection here or select it from list')
     dirpath:    StringProperty  (name="cmp export path", default = 'C:/tmp/', subtype = 'DIR_PATH',
                     description = "Path to save your composit",  update=upd_cmp_e_path)
@@ -415,7 +423,25 @@ classes.append(Dag_CMP_Export_Props)
 
 
 class Dag_CMP_Tools_Props(PropertyGroup):
-    node:       PointerProperty (type = bpy.types.Collection, name = 'Node')
+    node:       PointerProperty (type = Collection, name = 'Node')
+    collection: PointerProperty(type = Collection, name = 'Collection')
+#split_nodes
+    recursive:      BoolProperty(default = False)
+    destructive:    BoolProperty(default = False)
+#nodes_to_asset
+    naming_mode:    EnumProperty(
+            #(identifier, name, description)
+        items = [('COLLECTION','Collection','Specify collection directly'),
+                 ('NAME','Name','Specify a name for new collection')],
+        name = "Naming mode",
+        default = 'COLLECTION')
+    asset_name:         StringProperty(default = "new_asset", description = "Name for the new asset")
+    parent_node:        PointerProperty(type = Object, name = "Parent", update = update_parent_node)
+    parent_collection:  PointerProperty(type = Collection, name = "Collection")
+    cleanup_parents:    BoolProperty(default = False, name = "Cleanup",
+        description = "Remove parent nodes with no entities")
+#composite_to_rendinst
+    collection_to_convert:  PointerProperty(type = Collection, description = "Where to put new nodes?")
 classes.append(Dag_CMP_Tools_Props)
 
 
@@ -516,10 +542,15 @@ class DagSettings(AddonPreferences):
     cmp_exp_maximized:      BoolProperty(default = True)
     cmp_entities_maximized: BoolProperty(default = True)
     cmp_tools_maximized:    BoolProperty(default = True)
+    cmp_props_maximized:    BoolProperty(default = True)
+    cmp_place_maximized:    BoolProperty(default = True)
 #UI/Composits/Tools
-    cmp_init_maximized:     BoolProperty(default = True)
-    cmp_node_prop_maximized:BoolProperty(default = True)
-    cmp_converter_maximized:BoolProperty(default = True)
+    cmp_init_maximized:         BoolProperty(default = True)
+    nodes_to_asset_maximized:   BoolProperty(default = True)
+    node_to_mesh_maximized:     BoolProperty(default = True)
+    basic_converter_maximized:  BoolProperty(default = True)
+    cmp_tm_maximized:           BoolProperty(default = True)
+    cmp_hyerarchy_maximized:    BoolProperty(default = True)
 #UI/Project
     palettes_maximized:     BoolProperty(default = True)
 

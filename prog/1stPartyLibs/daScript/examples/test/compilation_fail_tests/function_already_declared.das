@@ -1,8 +1,11 @@
+options gen2
 expect 30201   // function_already_declared
 
-def test
+def test {
     assert(false)
+}
 
-def test
+def test {
     assert(false)
+}
 

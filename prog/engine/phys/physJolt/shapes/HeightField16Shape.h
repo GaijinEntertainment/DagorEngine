@@ -20,9 +20,9 @@ JPH_NAMESPACE_BEGIN
 /// Class that constructs a HeightField16Shape
 class JPH_EXPORT HeightField16ShapeSettings final : public ShapeSettings
 {
-public:
   JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, HeightField16ShapeSettings)
 
+public:
   /// Default constructor for deserialization
   HeightField16ShapeSettings() {}
 
@@ -41,7 +41,7 @@ public:
   /// The height field is a surface defined by: mOffset + mScale * (x, mHeightSamples[y * mSampleCount + x], y).
   /// where x and y are integers in the range x and y e [0, mSampleCount - 1].
   Vec3 mOffset = Vec3::sZero();
-  Vec3 mScale = Vec3::sReplicate(1.0f);
+  Vec3 mScale = Vec3::sOne();
   uint32 mSampleCount = 0;
 
   const CompressedHeightmap *mHData = nullptr;
@@ -119,8 +119,8 @@ public:
     const ShapeFilter &inShapeFilter = {}) const override;
 
   // See: Shape::CollideSoftBodyVertices
-  virtual void CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices,
-    uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
+  virtual void CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale,
+    const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const override;
 
   // See Shape::GetTrianglesStart
   virtual void GetTrianglesStart(GetTrianglesContext &ioContext, const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation,
@@ -215,7 +215,7 @@ private:
   /// The height field is a surface defined by: mOffset + mScale * (x, mHeightSamples[y * mSampleCount + x], y).
   /// where x and y are integers in the range x and y e [0, mSampleCount - 1].
   Vec3 mOffset = Vec3::sZero();
-  Vec3 mScale = Vec3::sReplicate(1.0f);
+  Vec3 mScale = Vec3::sOne();
 
   /// Height data
   uint32 mSampleCount = 0;                            ///< See HeightField16ShapeSettings::mSampleCount

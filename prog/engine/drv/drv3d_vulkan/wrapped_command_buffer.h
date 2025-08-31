@@ -1168,6 +1168,92 @@ struct WrappedCommandBuffer
     else
       Globals::VK::dev.vkCmdResetQueryPool(cb, queryPool, firstQuery, queryCount);
   }
+
+  // vkCmdPushConstants
+  struct PushConstantsParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkPipelineLayout layout;
+    VkShaderStageFlags stageFlags;
+    uint32_t offset;
+    uint32_t size;
+    const void *pValues;
+  };
+  void wCmdPushConstants(VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void *pValues)
+  {
+    if (reorder)
+    {
+      pushCmd<PushConstantsParameters>({layout, stageFlags, offset, size, (void *)parMem.push(size, (uint8_t *)pValues)});
+    }
+    else
+      Globals::VK::dev.vkCmdPushConstants(cb, layout, stageFlags, offset, size, pValues);
+  }
+
+  // vkCmdSetEvent
+  struct SetEventParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkEvent event;
+    VkPipelineStageFlags stageMask;
+  };
+  void wCmdSetEvent(VkEvent event, VkPipelineStageFlags stageMask)
+  {
+    if (reorder)
+    {
+      pushCmd<SetEventParameters>({event, stageMask});
+    }
+    else
+      Globals::VK::dev.vkCmdSetEvent(cb, event, stageMask);
+  }
+  // vkCmdResetEvent
+  struct ResetEventParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+    VkEvent event;
+    VkPipelineStageFlags stageMask;
+  };
+  void wCmdResetEvent(VkEvent event, VkPipelineStageFlags stageMask)
+  {
+    if (reorder)
+    {
+      pushCmd<ResetEventParameters>({event, stageMask});
+    }
+    else
+      Globals::VK::dev.vkCmdResetEvent(cb, event, stageMask);
+  }
+  // vkCmdWaitEvents
+  struct WaitEventsParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+    uint32_t eventCount;
+    const VkEvent *pEvents;
+    VkPipelineStageFlags srcStageMask;
+    VkPipelineStageFlags dstStageMask;
+    uint32_t memoryBarrierCount;
+    const VkMemoryBarrier *pMemoryBarriers;
+    uint32_t bufferMemoryBarrierCount;
+    const VkBufferMemoryBarrier *pBufferMemoryBarriers;
+    uint32_t imageMemoryBarrierCount;
+    const VkImageMemoryBarrier *pImageMemoryBarriers;
+  };
+  void wCmdWaitEvents(uint32_t eventCount, const VkEvent *pEvents, VkPipelineStageFlags srcStageMask,
+    VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier *pMemoryBarriers,
+    uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier *pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount,
+    const VkImageMemoryBarrier *pImageMemoryBarriers)
+  {
+    if (reorder)
+    {
+      pushCmd<WaitEventsParameters>({eventCount, parMem.push(eventCount, pEvents), srcStageMask, dstStageMask, memoryBarrierCount,
+        parMem.push(memoryBarrierCount, pMemoryBarriers), bufferMemoryBarrierCount,
+        parMem.push(bufferMemoryBarrierCount, pBufferMemoryBarriers), imageMemoryBarrierCount,
+        parMem.push(imageMemoryBarrierCount, pImageMemoryBarriers)});
+    }
+    else
+      Globals::VK::dev.vkCmdWaitEvents(cb, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers,
+        bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
+  }
 };
 
 } // namespace drv3d_vulkan

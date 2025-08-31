@@ -1,4 +1,4 @@
-# Shader: simple_aces_detailed
+# `simple_aces_detailed`
 
 ## Overview
 

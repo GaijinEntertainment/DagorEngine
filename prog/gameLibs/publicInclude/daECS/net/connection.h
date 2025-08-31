@@ -123,9 +123,12 @@ public:
   ObjectReplica *getReplicaByObj(const Object &obj);
   const ObjectReplica *getReplicaByObj(const Object &obj) const;
 
-  static void collapseDirtyObjects();
+  static void collapseDirtyObjects(ecs::EntityManager &mgr);
 
   void setEncryptionKey(dag::ConstSpan<uint8_t> ekey, EncryptionKeyBits ebits) override;
+
+  ecs::EntityManager &getEntityManager() { return mgr; }
+  const ecs::EntityManager &getEntityManager() const { return mgr; }
 
 private:
   void killObjectReplica(ObjectReplica *repl, net::Object *obj);

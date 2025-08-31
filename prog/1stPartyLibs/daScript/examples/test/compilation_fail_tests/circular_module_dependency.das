@@ -1,7 +1,9 @@
+options gen2
 expect 30901
 
 require _mod_a
 
 [export]
-def test
+def test {
     return true
+}

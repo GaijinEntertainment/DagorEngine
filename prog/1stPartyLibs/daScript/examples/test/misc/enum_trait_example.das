@@ -1,14 +1,18 @@
+options gen2
 require daslib/enum_trait
 
-enum Foo
+enum Foo {
     a
     b
+}
 
-enum Bar
+enum Bar {
     a
     b
     c
+}
 
 [export]
-def main
-    print("foo = {typeinfo(enum_length type<Foo>)}\nbar = {typeinfo(enum_length type<Bar>)}\n")
+def main {
+    print("foo = {typeinfo enum_length(type<Foo>)}\nbar = {typeinfo enum_length(type<Bar>)}\n")
+}

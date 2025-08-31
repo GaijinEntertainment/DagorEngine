@@ -43,7 +43,7 @@ void BhvFpsBar::onAttach(Element *elem)
   elem->props.scriptDesc.SetValue(elem->csk->color, cast_color(frameTimeMetrics->getColorForFpsInfo()));
   if (elem->robjParams)
     elem->robjParams->load(elem);
-  elem->props.text.setStr(frameTimeMetrics->getFpsInfoString().c_str());
+  elem->props.text = frameTimeMetrics->getFpsInfoString().c_str();
   discard_text_cache(elem->robjParams);
 }
 
@@ -69,7 +69,7 @@ int BhvFpsBar::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)
   if (fps_text_version != frameTimeMetrics->getTextVersion())
   {
     fps_text_version = frameTimeMetrics->getTextVersion();
-    elem->props.text.setStr(frameTimeMetrics->getFpsInfoString().c_str());
+    elem->props.text = frameTimeMetrics->getFpsInfoString().c_str();
     discard_text_cache(elem->robjParams);
   }
   return 0;

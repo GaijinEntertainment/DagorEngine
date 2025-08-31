@@ -7,8 +7,6 @@ from functools import reduce
 https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst
 https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
 
-  todo
-  * @code @note @seealso @spoiler @tip @alert @danger @title(level) @preformated
 """
 def pprint(v):
   print(json.dumps(v, indent=2))
@@ -54,7 +52,7 @@ def code_block(lines, lang = "sq"):
     lines = [lines]
   res = [f'.. code-block:: {lang}\n']
   for f in lines:
-    res.append(f"  {f}")
+    res.append(f"    {f}")
   res.append("")
   return res
 
@@ -187,17 +185,19 @@ def get_func_signature(desc):
         return f'{typ} {name}{br[0]}{pstr}{br[1]}'
       else:
         return f'method {name}{br[0]}{pstr}{br[1]}'
-  return f'function {name}{br[0]}{pstr}{br[1]}'
+  func_name = "pure function" if desc.get("is_pure") else "function"
+  return f'{func_name} {name}{br[0]}{pstr}{br[1]}'
 
 def params_rst(params):
   res = []
   for param in params:
-    desc = param['description'] or " "
+    desc = param.get('description') or " "
     defvalue = param.get("defvalue")
     defvalue = f", default = {defvalue}" if defvalue else ''
+    optional = f", optional" if param.get('optional') else ''
     res.extend([
       f"  :param {param['name']}: {desc}{defvalue}",
-      f"  :type {param['name']}: {convertTypeStr(param['paramtype'])}",
+      f"  :type {param['name']}: {convertTypeStr(param['paramtype'])}{optional}",
       ""
     ])
   return res
@@ -238,6 +238,7 @@ def render_ctor(desc):
 def render_func(desc):
   funcDesc = f'{get_func_signature(desc)}'
   res = [f".. sq:function:: {funcDesc}", ""]
+
   if desc["brief"]:
     res.extend(["  "+desc["brief"],""])
   res.extend(mk_function_arguments(desc))
@@ -412,7 +413,7 @@ def renderModuleToRst(object):
   if isModule:
     res.extend(["",f"module '{pageName}'",""])
   res.extend(["",brief,""])
-  res.extend([intag("Source file: " + object["source"],"*"),""])
+  res.extend(["*Source files:*\n\n*" + "\n".join(object["sources"])+"*","",""])
   isTable = object.get("exports") in ["table", None] and isModule
   members = []
   exports = []

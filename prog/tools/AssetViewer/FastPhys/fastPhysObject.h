@@ -19,7 +19,7 @@ public:
 
 public:
   IFPObject(FpdObject *obj, FastPhysEditor &editor);
-  virtual ~IFPObject();
+  ~IFPObject() override;
 
   FpdObject *getObject() const { return mObject.get(); }
   FastPhysEditor *getObjEditor() const;
@@ -29,17 +29,16 @@ public:
   virtual void refillPanel(PropPanel::ContainerPropertyControl *panel) = 0;
 
   // RenderableEditableObject
+  void update(real dt) override {}
+  void beforeRender() override {}
+  void renderTrans() override {}
 
-  virtual void update(real dt) {}
-  virtual void beforeRender() {}
-  virtual void renderTrans() {}
-
-  virtual void render() {}
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const { return true; }
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const { return true; }
-  virtual bool getWorldBox(BBox3 &box) const { return true; }
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects){};
+  void render() override {}
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override { return true; }
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override { return true; }
+  bool getWorldBox(BBox3 &box) const override { return true; }
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override {};
 
   EO_IMPLEMENT_RTTI(HUID)
 

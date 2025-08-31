@@ -18,11 +18,11 @@ void GPUWatchMs::init_freq()
     d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuFreq);
     if (gpuFreq)
     {
-      debug("dynamicQuality: GPU ts freq %u", gpuFreq);
+      debug("GPUWatchMs: GPU ts freq %llu", gpuFreq);
       return;
     }
   }
-  logwarn("dynamicQuality: GPU timings unavailable");
+  logwarn("GPUWatchMs: GPU timings unavailable");
 }
 
 bool GPUWatchMs::available() { return gpuFreq != 0; }

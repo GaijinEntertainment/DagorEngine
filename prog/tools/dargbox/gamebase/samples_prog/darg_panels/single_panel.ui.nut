@@ -1,12 +1,8 @@
+from "dagor.math" import IPoint2, Point2, Point3
 from "%darg/ui_imports.nut" import *
-
-let {IPoint2, Point2, Point3} = require("dagor.math")
-
-
-
 let panelCursor = Cursor({
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [24, 24]
+  size = 24
   hotspot = [12, 12]
 
   commands = [
@@ -20,7 +16,7 @@ let panelCursor = Cursor({
 
 let buttonCursor = Cursor({
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [24, 24]
+  size = 24
   hotspot = [12, 12]
 
   transform = {}
@@ -79,13 +75,13 @@ let freePanelLayout = {
   //worldPointerTexture = "panel_cursor"
   cursor         = panelCursor
 
-  size           = [512, 640]
+  size           = static [512, 640]
 
   flow           = FLOW_VERTICAL
 
   children = [
     {
-      size           = [512, 512]
+      size           = 512
       rendObj        = ROBJ_SOLID
       color          = Color(50,200,50)
       halign         = ALIGN_CENTER
@@ -110,7 +106,7 @@ let freePanelLayout = {
       ]
     }
     {
-      size = [512, 128]
+      size = static [512, 128]
       rendObj = ROBJ_TEXT
       halign = ALIGN_CENTER
       valign = ALIGN_CENTER
@@ -125,10 +121,10 @@ function root() {
   return {
     size = flex()
     function onAttach() {
-      gui_scene.addPanel(14, freePanelLayout)
+      gui_scene.addPanel(15, freePanelLayout)
     }
     function onDetach() {
-      gui_scene.removePanel(14)
+      gui_scene.removePanel(15)
     }
   }
 }

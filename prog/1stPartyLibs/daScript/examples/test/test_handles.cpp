@@ -6,6 +6,7 @@
 #include "daScript/simulate/simulate_visit_op.h"
 #include "daScript/ast/ast_policy_types.h"
 
+
  int32_t TestObjectSmart::total = 0;
 
 //sample of your-engine-float3-type to be aliased as float3 in daScript.
@@ -27,6 +28,8 @@ namespace das {
 
 DAS_BASE_BIND_ENUM_98(SomeEnum_16, SomeEnum_16, SomeEnum_16_zero, SomeEnum_16_one, SomeEnum_16_two)
 
+DAS_BASE_BIND_ENUM_98(OpCode, OpCode, op_nop, op_mov_a_arg, op_mov_arg_b, op_dec_a, op_cmple_a_low_zx, op_cjmp, op_mov_c_a, op_mov_a_low_zx, op_mov_b_low_zx, op_xchange_a_b, op_add_b_a, op_loop, op_return_b)
+
 //sample of your engine annotated struct
 MAKE_TYPE_FACTORY(TestObjectSmart,TestObjectSmart)
 MAKE_TYPE_FACTORY(TestObjectFoo,TestObjectFoo)
@@ -37,6 +40,8 @@ MAKE_TYPE_FACTORY(FancyClass, FancyClass)
 
 MAKE_TYPE_FACTORY(SomeDummyType, SomeDummyType)
 MAKE_TYPE_FACTORY(Point3Array, Point3Array)
+
+MAKE_TYPE_FACTORY(ByteCode, ByteCode)
 
 namespace das {
   template <>
@@ -389,6 +394,22 @@ public:
     virtual bool isIndexMutable ( const TypeDeclPtr & ) const override { return true; }
 };
 
+MAKE_TYPE_FACTORY(BigEntityId,BigEntityId);
+
+struct BigEntityIdAnnotation final: das::ManagedValueAnnotation <BigEntityId> {
+    BigEntityIdAnnotation(ModuleLibrary & mlib) : ManagedValueAnnotation  (mlib,"BigEntityId","BigEntityId") {}
+    virtual void walk ( das::DataWalker & walker, void * data ) override {
+        if ( !walker.reading ) {
+            const BigEntityId * t = (BigEntityId *) data;
+            auto value = int4(t->value[0], t->value[1], t->value[2], t->value[3]);
+            walker.Int4(value);
+        }
+    }
+    virtual bool isLocal() const override { return true; }
+    virtual bool hasNonTrivialCtor() const override { return false; }
+    virtual bool canBePlacedInContainer() const override { return true; }
+};
+
 MAKE_TYPE_FACTORY(EntityId,EntityId);
 
 struct EntityIdAnnotation final: das::ManagedValueAnnotation <EntityId> {
@@ -447,6 +468,15 @@ SceneNodeId __create_scene_node() {
     static uint32_t id = 1;
     return SceneNodeId{id++};
 }
+
+
+struct ByteCodeAnnotation : ManagedStructureAnnotation <ByteCode> {
+    ByteCodeAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("ByteCode", ml) {
+        addField<DAS_BIND_MANAGED_FIELD(op_code)>("op_code");
+        addField<DAS_BIND_MANAGED_FIELD(high)>("high");
+        addField<DAS_BIND_MANAGED_FIELD(low)>("low");
+    }
+};
 
 Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     ModuleLibrary lib(this);
@@ -583,6 +613,8 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     // table mojo
     addExtern<DAS_BIND_FUN(tableMojo)>(*this, lib, "tableMojo",
         SideEffects::modifyExternal, "tableMojo");
+    // BigEntityId
+    addAnnotation(make_smart<BigEntityIdAnnotation>(lib));
     // EntityId
     addAnnotation(make_smart<EntityIdAnnotation>(lib));
     addExtern<DAS_BIND_FUN(make_invalid_id)>(*this, lib, "make_invalid_id",
@@ -608,6 +640,11 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     addAnnotation(make_smart<SceneNodeIdAnnotation>(lib));
     addExtern<DAS_BIND_FUN(__create_scene_node)>(*this, lib, "__create_scene_node",
         SideEffects::none, "__create_scene_node");
+    // byte code interpreter
+    addEnumeration(make_smart<EnumerationOpCode>());
+    addAnnotation(make_smart<ByteCodeAnnotation>(lib));
+    addExtern<DAS_BIND_FUN(evalByteCode)>(*this, lib, "evalByteCode",
+        SideEffects::modifyArgumentAndAccessExternal, "evalByteCode");
     // and verify
     verifyAotReady();
 }

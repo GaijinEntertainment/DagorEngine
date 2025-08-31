@@ -21,15 +21,15 @@ static inline size_t _msize(void *p) { return malloc_size(p); }
 class RtlMainAllocator : public IMemAlloc
 {
 public:
-  virtual void destroy() {}
-  virtual size_t getSize(void *p) { return p ? _msize(p) : 0; }
-  virtual void *alloc(size_t sz) { return ::malloc(sz); }
-  virtual void *tryAlloc(size_t sz) { return ::malloc(sz); }
-  virtual void *allocAligned(size_t sz, size_t alignment) { return alignment == 16 ? ::malloc(sz) : nullptr; }
-  virtual void *realloc(void *p, size_t sz) { return ::realloc(p, sz); }
-  virtual void free(void *p) { ::free(p); }
+  void destroy() override {}
+  size_t getSize(void *p) override { return p ? _msize(p) : 0; }
+  void *alloc(size_t sz) override { return ::malloc(sz); }
+  void *tryAlloc(size_t sz) override { return ::malloc(sz); }
+  void *allocAligned(size_t sz, size_t alignment) override { return alignment == 16 ? ::malloc(sz) : nullptr; }
+  void *realloc(void *p, size_t sz) override { return ::realloc(p, sz); }
+  void free(void *p) override { ::free(p); }
   void freeAligned(void *p) override { ::free(p); }
-  virtual bool resizeInplace(void *p, size_t sz)
+  bool resizeInplace(void *p, size_t sz) override
   {
 #if _TARGET_PC_WIN
     return ::_expand(p, sz);
@@ -38,7 +38,7 @@ public:
     return sz <= _msize(p);
 #endif
   }
-  virtual bool isEmpty() { return false; }
+  bool isEmpty() override { return false; }
 };
 static RtlMainAllocator main_mem;
 IMemAlloc *defaultmem = &main_mem;

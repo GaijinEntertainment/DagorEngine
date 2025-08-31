@@ -32,11 +32,11 @@ public:
   virtual void render();
 
   virtual void init(const char *script_filename);
-  virtual void shutdown(){};
+  virtual void shutdown() {}
   virtual void set_cur_height(float ht);
-  virtual void save_text(const char *){};
-  virtual void getOutputText(console::CommandList &){};
-  virtual void setOutputText(const console::CommandList &){};
+  virtual void save_text(const char *) {}
+  virtual void getOutputText(console::CommandList &) {}
+  virtual void setOutputText(const console::CommandList &) {}
   virtual void getCommandList(console::CommandList &out_list);
 };
 

@@ -37,7 +37,9 @@ typedef CodeSourceBlocks::Fragment fragment_t;
 
 struct CodeSourceBlocks::ParserContext
 {
-  ParserContext(ShaderParser::ShaderBoolEvalCB &cb, const char *s) : stack(tmpmem), evalCb(cb), stage(s) {}
+  ParserContext(ShaderParser::ShaderBoolEvalCB &cb, const char *s, shc::TargetContext &a_ctx) :
+    mainCtx{a_ctx}, evalCb(cb), stage(s), stack(tmpmem)
+  {}
 
   Tab<CodeSourceBlocks::Fragment> &topProg() { return *stack.back().prog; }
   int topState() { return stack.back().state; }
@@ -63,6 +65,7 @@ struct CodeSourceBlocks::ParserContext
   }
 
 public:
+  shc::TargetContext &mainCtx;
   ShaderParser::ShaderBoolEvalCB &evalCb;
   const char *stage = nullptr;
   dag::Vector<eastl::string> errors;
@@ -245,7 +248,8 @@ static void dump_code(dag::ConstSpan<CodeSourceBlocks::Fragment> prg, int indent
         codeBlocks.getName(prg[i].uncond.codeId), indent, "");
 }
 
-bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments)
+bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments,
+  shc::TargetContext &a_ctx)
 {
   tmpSrc = src;
   removeComments(tmpSrc);
@@ -258,7 +262,7 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
   char *code_start = p, *code_end = p;
   int fname_id = -1, line_no = -1;
 
-  ctx_t ctx(cb, stage);
+  ctx_t ctx{cb, stage, a_ctx};
   ctx.push_back(&blocks, -1, ExprValue::ConstTrue, 1, 0);
 
   // debug("\n----- parsing code:");
@@ -479,163 +483,6 @@ bool CodeSourceBlocks::ppCheckDirective(char *dtext, ctx_t &ctx)
   return true;
 }
 
-static bool is_optional_val(bool_value &value)
-{
-  if (!value.interval_ident)
-    return false;
-  int intervalName_id = IntervalValue::getIntervalNameId(value.interval_ident->text);
-  ShaderVariant::ExtType intervalIndex = ShaderGlobal::getIntervalList().getIntervalIndex(intervalName_id);
-  const Interval *interv = ShaderGlobal::getIntervalList().getInterval(intervalIndex);
-  return interv ? interv->isOptional() : false;
-}
-
-static bool is_optional_expr_not(not_expr &expr) { return is_optional_val(*expr.value); }
-
-static bool is_optional_expr_and(and_expr &expr)
-{
-  if (expr.value)
-    return is_optional_expr_not(*expr.value);
-  return is_optional_expr_and(*expr.a) && is_optional_expr_not(*expr.b);
-}
-
-static bool is_optional_expr(bool_expr &expr)
-{
-  if (expr.value)
-    return is_optional_expr_and(*expr.value);
-  return is_optional_expr(*expr.a) && is_optional_expr_and(*expr.b);
-}
-
-static String interval_val_to_branch_condition(bool_value &value)
-{
-  if (!value.interval_ident)
-    return String("(false)");
-  const char *intervalName = value.interval_ident->text;
-  int intervalNameId = IntervalValue::getIntervalNameId(intervalName);
-  int intervalValueId = IntervalValue::getIntervalNameId(value.interval_value->text);
-  ShaderVariant::ExtType intervalIndex = ShaderGlobal::getIntervalList().getIntervalIndex(intervalNameId);
-  const Interval *interv = ShaderGlobal::getIntervalList().getInterval(intervalIndex);
-  int valueIdx = -1;
-  for (int i = 0; i < interv->getValueCount(); ++i)
-    if (IntervalValue::getIntervalNameId(interv->getValueName(i)) == intervalValueId)
-      valueIdx = i;
-  RealValueRange range = interv->getValueRange(valueIdx);
-  switch (value.cmpop->op->num)
-  {
-    case SHADER_TOKENS::SHTOK_eq:
-      if (valueIdx == 0)
-        return String(0, "(%s < %f)", intervalName, range.getMax());
-      else if (valueIdx + 1 == interv->getValueCount())
-        return String(0, "(%s >= %f)", intervalName, range.getMin());
-      else
-        return String(0, "(%s >= %f && %s < %f)", intervalName, range.getMin(), intervalName, range.getMax());
-    case SHADER_TOKENS::SHTOK_noteq:
-      if (valueIdx == 0)
-        return String(0, "(%s >= %f)", intervalName, range.getMax());
-      else if (valueIdx + 1 == interv->getValueCount())
-        return String(0, "(%s < %f)", intervalName, range.getMin());
-      else
-        return String(0, "(%s < %f || %s >= %f)", intervalName, range.getMin(), intervalName, range.getMax());
-    case SHADER_TOKENS::SHTOK_smaller: return String(0, "(%s < %f)", intervalName, range.getMin());
-    case SHADER_TOKENS::SHTOK_greater: return String(0, "(%s >= %f)", intervalName, range.getMax());
-    case SHADER_TOKENS::SHTOK_smallereq: return String(0, "(%s < %f)", intervalName, range.getMax());
-    case SHADER_TOKENS::SHTOK_greatereq: return String(0, "(%s >= %f)", intervalName, range.getMin());
-    default: return String("(false)");
-  }
-}
-
-static String interval_expr_not_to_branch_condition(not_expr &expr)
-{
-  if (expr.is_not)
-    return "(!" + interval_val_to_branch_condition(*expr.value) + ")";
-  return interval_val_to_branch_condition(*expr.value);
-}
-
-static String interval_expr_and_to_branch_condition(and_expr &expr)
-{
-  if (expr.value)
-    return interval_expr_not_to_branch_condition(*expr.value);
-  return "(" + interval_expr_and_to_branch_condition(*expr.a) + " && " + interval_expr_not_to_branch_condition(*expr.b) + ")";
-}
-
-static String interval_expr_to_branch_condition(bool_expr &expr)
-{
-  if (expr.value)
-    return interval_expr_and_to_branch_condition(*expr.value);
-  return "(" + interval_expr_to_branch_condition(*expr.a) + " || " + interval_expr_and_to_branch_condition(*expr.b) + ")";
-}
-
-static bool pp_is_optional(CodeSourceBlocks::Fragment &fragment, ShaderParser::ShaderBoolEvalCB &eval_cb)
-{
-  if (!is_optional_expr(*fragment.cond->onIf.expr))
-    return false;
-  for (uint32_t i = 0; i < fragment.cond->onElif.size(); ++i)
-    if (!is_optional_expr(*fragment.cond->onElif[i].expr))
-      return false;
-  return true;
-}
-
-static ublock_t::Decl get_first_decl(fragment_t &frag)
-{
-  if (!frag.cond)
-    return frag.decl();
-  return get_first_decl(frag.cond->onIf.onTrue[0]);
-}
-
-static void eval_optional_to_branching(Tab<CodeSourceBlocks::Fragment> &prog)
-{
-  fragment_t &frag = prog.back();
-  Tab<fragment_t> blocks;
-
-  // If statement
-  ublock_t::Decl ifDecl = get_first_decl(frag);
-
-  fragment_t &ifStatement = blocks.push_back();
-  addCodeBlock(ifStatement.uncond, String(0, "BRANCH\nif %s\n{\n", interval_expr_to_branch_condition(*frag.cond->onIf.expr).c_str()),
-    ifDecl.identId, ifDecl.identValue);
-
-  for (auto &onIf : frag.cond->onIf.onTrue)
-    blocks.push_back(eastl::move(onIf));
-
-  fragment_t closeStatement;
-  addCodeBlock(closeStatement.uncond, "\n}\n", ifDecl.identId, ifDecl.identValue);
-  blocks.push_back(eastl::move(closeStatement));
-
-  // Elif statements
-  for (auto &onElif : frag.cond->onElif)
-  {
-    ublock_t::Decl elifDecl = get_first_decl(onElif.onTrue[0]);
-
-    fragment_t &elifStatement = blocks.push_back();
-    addCodeBlock(elifStatement.uncond, String(0, "else if %s\n{\n", interval_expr_to_branch_condition(*onElif.expr).c_str()),
-      elifDecl.identId, elifDecl.identValue);
-
-    for (auto &onElif2 : onElif.onTrue)
-      blocks.push_back(eastl::move(onElif2));
-
-    fragment_t closeStatement;
-    addCodeBlock(closeStatement.uncond, "\n}\n", elifDecl.identId, elifDecl.identValue);
-    blocks.push_back(eastl::move(closeStatement));
-  }
-
-  // Else statement
-  if (frag.cond->onElse.size())
-  {
-    fragment_t &elseStatement = blocks.push_back();
-    addCodeBlock(elseStatement.uncond, "else\n{\n", 0, 0);
-
-    for (auto &onElse : frag.cond->onElse)
-      blocks.push_back(eastl::move(onElse));
-
-    fragment_t closeStatement;
-    addCodeBlock(closeStatement.uncond, "\n}\n", 0, 0);
-    blocks.push_back(eastl::move(closeStatement));
-  }
-
-  prog.pop_back();
-  for (uint32_t i = 0; i < blocks.size(); ++i)
-    prog.push_back(eastl::move(blocks[i]));
-}
-
 bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, int line, ctx_t &ctx)
 {
   // debug("preproc [#%.*s]", s+len-dtext, dtext);
@@ -648,7 +495,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
     CodeSourceBlocks::Fragment &f = prg.push_back();
 
     f.cond.reset(new Condition);
-    f.cond->onIf.expr = parse_pp_condition(ctx.stage, condStr, condLen, fileNames.getName(fnameId), line);
+    f.cond->onIf.expr = parse_pp_condition(ctx.stage, condStr, condLen, fileNames.getName(fnameId), line, ctx.mainCtx);
     if (!f.cond->onIf.expr)
       return false;
 
@@ -685,7 +532,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
     G_ASSERT(cond);
 
     CodeSourceBlocks::CondIf &f = cond->onElif.push_back();
-    f.expr = parse_pp_condition(ctx.stage, condStr, condLen, fileNames.getName(fnameId), line);
+    f.expr = parse_pp_condition(ctx.stage, condStr, condLen, fileNames.getName(fnameId), line, ctx.mainCtx);
     if (!f.expr)
       return false;
 
@@ -745,11 +592,6 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
 
     Tab<CodeSourceBlocks::Fragment> &prg = ctx.topProg();
     G_ASSERT(prg.size() > 0);
-    if (shc::config().optionalIntervalsAsBranches && pp_is_optional(prg.back(), ctx.evalCb))
-    {
-      eval_optional_to_branching(prg);
-      return true;
-    }
     Condition *cond = prg.back().cond.get();
     G_ASSERT(cond);
 
@@ -809,7 +651,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
 
     f.uncond.codeId = -2;
     f.uncond.declBool.name = mangle_bool_var(ctx.stage, ident);
-    f.uncond.declBool.expr = parse_pp_condition(nullptr, ident, ident.length(), fileNames.getName(fnameId), line);
+    f.uncond.declBool.expr = parse_pp_condition(nullptr, ident, ident.length(), fileNames.getName(fnameId), line, ctx.mainCtx);
     if (!f.uncond.declBool.expr)
       return false;
     ctx.evalCb.decl_bool_alias(f.uncond.declBool.name, *f.uncond.declBool.expr);

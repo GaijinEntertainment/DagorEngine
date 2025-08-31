@@ -6,19 +6,12 @@ shader_root_dir:t="."
 include common_inc_dirs.blk
 source
 {
-  file:t = "../editor.dshl"
-  file:t = "tex_view.dshl"
-  file:t = "infinite_grid.dshl"
-  file:t = "simple_outline.dshl"
-  file:t = "debug_fx.dshl"
-  file:t = "spline_solid.dshl"
   file:t = "../deferred_shadow.dshl"
-  file:t = "../apply_wireframe.dshl"
   file:t = "../no_postfx_resolve.dshl"
-  file:t = "pack_impostor_texture.dshl"
   file:t = "../../../prog/gameLibs/vr/shaders/vrGuiSurface.dshl"
   file:t = "ssr_ps.dshl"
   include shadersList.blk
+  include shadersListForTools.blk
 }
 common_valid_variants {
   invalid {rendinst_render_pass:i = 6;}//voxelization
@@ -34,7 +27,7 @@ common_assume_vars {
 Compile
 {
   fsh:t = 5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     supports_sh_6_1:i = 0
     sparkles_enable:i=1
@@ -49,11 +42,12 @@ Compile
     wake_gradients_tex:i=0
     water_refraction_tex:i = 1
     water_reflection_tex:i = 0
+    water_heightmap_tex_enabled:i=0
     support_texture_array:i=1
     is_gather4_supported:i = 0
     ssao_quality:i = 0
     specular_tex:i = 0
-    envi_cover:i = 0
+    envi_cover_use_in_resolve:i = 0
     envi_cover_intensity_map:i = 0
     current_ambient:i = 0
     in_editor:i = 1
@@ -71,7 +65,6 @@ Compile
     volumetric_light_assumed_off:i=1
     froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_directional_blood_on_screen:i=0
-    blood_puddles_has_separate_flowmap:i=0
     small_sampled_buffers:i=0
     assume_fom_shadows:i=1
     assume_downsampled_shadows:i=0
@@ -90,7 +83,11 @@ Compile
     water_ripples_normal:i=1
     dagi_sp_has_exposure_assume:i=1
     dagi_warp64_irradiance:i=0
+    use_gui_glob_tm:i=0
+    glass_rt_reflection:i=0
+    can_use_half_precision:i=0
   }
+  required_shaders {}
 }
 
 

@@ -5,15 +5,20 @@
 #include "../imageHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <propPanel/control/treeInterface.h>
+#include <propPanel/control/treeHierarchyLineDrawer.h>
 #include <propPanel/c_common.h> // TLeafHandle
 #include <propPanel/c_window_event_handler.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
+#include <propPanel/propPanel.h>
 #include <dag/dag_vector.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
 #include <winGuiWrapper/wgw_input.h>
+
+#include <EASTL/unique_ptr.h>
+#include <imgui/imgui_internal.h>
 
 namespace PropPanel
 {
@@ -32,7 +37,9 @@ public:
   // set by the user through the UI. This behaviour can be controlled with selection_change_events_by_code.
   explicit TreeControlStandalone(bool selection_change_events_by_code, bool has_checkboxes = false, bool multi_select = false) :
     selectionChangeEventsByCode(selection_change_events_by_code), hasCheckboxes(has_checkboxes), multiSelectionEnabled(multi_select)
-  {}
+  {
+    resetMaximumSeenWidth();
+  }
 
   void setEventHandler(WindowControlEventHandler *event_handler) { eventHandler = event_handler; }
 
@@ -45,13 +52,13 @@ public:
 
   void setFocus() { focus_helper.requestFocus(this); }
 
-  void setCheckboxIcons(TEXTUREID checked, TEXTUREID unchecked)
+  void setCheckboxIcons(IconId checked, IconId unchecked)
   {
-    checkedIcon = ImageHelper::TextureIdToImTextureId(checked);
-    uncheckedIcon = ImageHelper::TextureIdToImTextureId(unchecked);
+    checkedIcon = checked;
+    uncheckedIcon = unchecked;
   }
 
-  TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], TEXTUREID icon, void *user_data = nullptr)
+  TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], IconId icon, void *user_data = nullptr)
   {
     TreeNode *parentNode = leafHandleAsNode(parent);
     if (!parentNode)
@@ -59,7 +66,7 @@ public:
 
     TreeNode *newNode = new TreeNode();
     newNode->title = caption;
-    newNode->icon = ImageHelper::TextureIdToImTextureId(icon);
+    newNode->icon = icon;
     newNode->parent = parentNode;
     newNode->userData = user_data;
     parentNode->children.push_back(newNode);
@@ -69,11 +76,11 @@ public:
 
   TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], const char icon_name[], void *user_data = nullptr)
   {
-    TEXTUREID icon = getTexture(icon_name);
+    const IconId icon = getTexture(icon_name);
     return createTreeLeaf(parent, caption, icon, user_data);
   }
 
-  TLeafHandle createTreeLeafAsFirst(TLeafHandle parent, const char caption[], TEXTUREID icon, void *user_data = nullptr)
+  TLeafHandle createTreeLeafAsFirst(TLeafHandle parent, const char caption[], IconId icon, void *user_data = nullptr)
   {
     TreeNode *parentNode = leafHandleAsNode(parent);
     if (!parentNode)
@@ -81,7 +88,7 @@ public:
 
     TreeNode *newNode = new TreeNode();
     newNode->title = caption;
-    newNode->icon = ImageHelper::TextureIdToImTextureId(icon);
+    newNode->icon = icon;
     newNode->parent = parentNode;
     newNode->userData = user_data;
     parentNode->children.insert(parentNode->children.begin(), newNode);
@@ -91,7 +98,7 @@ public:
 
   TLeafHandle createTreeLeafAsFirst(TLeafHandle parent, const char caption[], const char icon_name[], void *user_data = nullptr)
   {
-    TEXTUREID icon = getTexture(icon_name);
+    const IconId icon = getTexture(icon_name);
     return createTreeLeafAsFirst(parent, caption, icon, user_data);
   }
 
@@ -100,6 +107,7 @@ public:
     clear_all_ptr_items(rootNode.children);
     lastSelected = nullptr;
     ensureVisibleRequested = nullptr;
+    resetMaximumSeenWidth();
 
     if (selectionChangeEventsByCode && eventHandler)
       eventHandler->onWcChange(windowBaseForEventHandler);
@@ -132,6 +140,8 @@ public:
     }
 
     delete node;
+
+    resetMaximumSeenWidth();
     return true;
   }
 
@@ -179,7 +189,17 @@ public:
     if (!node)
       return;
 
-    node->icon = ImageHelper::TextureIdToImTextureId(getTexture(fname));
+    node->icon = getTexture(fname);
+  }
+
+  void copyButtonPictures(TLeafHandle from, TLeafHandle to)
+  {
+    TreeNode *nodeFrom = leafHandleAsNode(from);
+    TreeNode *nodeTo = leafHandleAsNode(to);
+    if (!nodeFrom || !nodeTo)
+      return;
+
+    nodeTo->icon = nodeFrom->icon;
   }
 
   void setColor(TLeafHandle leaf, E3DCOLOR value)
@@ -207,6 +227,7 @@ public:
       return;
 
     node->expanded = open;
+    resetMaximumSeenWidth();
   }
 
   void setExpandedRecursive(TLeafHandle leaf, bool open = true)
@@ -216,6 +237,7 @@ public:
       return;
 
     node->expanded = open;
+    resetMaximumSeenWidth();
 
     for (TreeNode *child : node->children)
       setExpandedRecursive(nodeAsLeafHandle(child), open);
@@ -230,6 +252,8 @@ public:
       node = node->parent;
       G_ASSERT(node);
     }
+
+    resetMaximumSeenWidth();
   }
 
   void setUserData(TLeafHandle leaf, void *value)
@@ -250,39 +274,42 @@ public:
     node->checkboxState = state;
   }
 
-  void setIcon(TLeafHandle leaf, TEXTUREID icon)
+  void setIcon(TLeafHandle leaf, IconId icon)
   {
     TreeNode *node = leafHandleAsNode(leaf);
     if (!node)
       return;
 
-    node->icon = ImageHelper::TextureIdToImTextureId(icon);
+    node->icon = icon;
   }
 
-  void setStateIcon(TLeafHandle leaf, TEXTUREID icon)
+  void setStateIcon(TLeafHandle leaf, IconId icon)
   {
     TreeNode *node = leafHandleAsNode(leaf);
     if (!node)
       return;
 
-    node->stateIcon = ImageHelper::TextureIdToImTextureId(icon);
+    node->stateIcon = icon;
   }
 
+  IconId getTexture(const char *name) { return image_helper.loadIcon(name); }
+
+  // This function works specially for null leafs. If leaf == 0 then it returns the number of items at the topmost level (the internal
+  // root's children count).
+  // getChildCount(0) is different than calling getChildCount(getRootLeaf()), the latter equals to getChildCount(getChild(0, 0)).
   int getChildCount(TLeafHandle leaf) const
   {
-    TreeNode *node = leafHandleAsNode(leaf);
-    if (!node)
-      return 0;
-
+    const TreeNode *node = leaf == nullptr ? &rootNode : leafHandleAsNode(leaf);
     return node->children.size();
   }
 
-  TEXTUREID getTexture(const char *name) { return image_helper.loadIcon(name); }
-
+  // This function works specially for null leafs. If leaf == 0 then it returns the items at the topmost level (the root's children).
+  // getChildLeaf(0, 0) is different than calling getChildLeaf(getRootLeaf(), 0), the latter equals to getChildLeaf(getChildLeaf(0, 0),
+  // 0).
   TLeafHandle getChildLeaf(TLeafHandle leaf, unsigned idx) const
   {
-    TreeNode *node = leafHandleAsNode(leaf);
-    if (!node || idx >= node->children.size())
+    const TreeNode *node = leaf == nullptr ? &rootNode : leafHandleAsNode(leaf);
+    if (idx >= node->children.size())
       return nullptr;
 
     return nodeAsLeafHandle(node->children[idx]);
@@ -350,6 +377,9 @@ public:
     }
   }
 
+  // Returns with the first topmost level item.
+  // If you want to get the number of topmost level items use getChildCount(nullptr), if you want to iterate over the
+  // topmost level items use getChildLeaf(nullptr, ...) instead.
   TLeafHandle getRootLeaf() const { return nodeAsLeafHandle(rootNode.getFirstChild()); }
 
   // Visible means that the item's parents are expanded, and the item might be visible.
@@ -545,7 +575,7 @@ public:
     ensureVisibleRequested = node;
   }
 
-  virtual IMenu &createContextMenu() override
+  IMenu &createContextMenu() override
   {
     contextMenu.reset(new ContextMenu());
     return *contextMenu;
@@ -596,7 +626,7 @@ public:
       }
 
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-      ImGui::PushStyleColor(ImGuiCol_Header, Constants::TREE_SELECTION_BACKGROUND_COLOR);
+      ImGui::PushStyleColor(ImGuiCol_Header, getOverriddenColor(ColorOverride::TREE_SELECTION_BACKGROUND));
       fillTree(rootNode, doubleClickedOnItem, rightClickedOnItem, clickedOnStateIcon, collapsed_item, focusRequested,
         cursorScreenPosMaxX);
       ImGui::PopStyleColor();
@@ -607,7 +637,10 @@ public:
         selectionChanged |= applySelectionRequests(*multiSelectIo);
 
       if (collapsed_item && multiSelectionEnabled)
+      {
+        PropPanel::send_immediate_focus_loss_notification();
         selectionChanged |= deselectAllVisibleChildren(collapsed_item);
+      }
 
       if (toggledCheckboxWithSpaceKey && !selectionChanged)
       {
@@ -639,7 +672,12 @@ public:
       }
 
       // Set the maximum needed horizontal scrolling.
-      ImGui::SetCursorScreenPos(ImVec2(cursorScreenPosMaxX, ImGui::GetCursorScreenPos().y));
+      // We keep track of the maximum seen row width to prevent the horizontal scrollbar from getting smaller when
+      // scrolling a longer row out of screen. This also prevents the scrollbar from continuously appearing and hiding
+      // in edge cases (for example when the longest row gets pushed out of screen by the appearance of the scrollbar).
+      const float scrollX = ImGui::GetScrollX();
+      maximumSeenWidth = max(maximumSeenWidth, cursorScreenPosMaxX + scrollX);
+      ImGui::SetCursorScreenPos(ImVec2(maximumSeenWidth - scrollX, ImGui::GetCursorScreenPos().y));
       ImGui::Dummy(ImVec2(0.0f, 0.0f));
 
       if (!message.empty())
@@ -687,8 +725,8 @@ private:
 
     String title;
     void *userData = nullptr;
-    ImTextureID icon = nullptr;
-    ImTextureID stateIcon = nullptr;
+    IconId icon = IconId::Invalid;
+    IconId stateIcon = IconId::Invalid;
     E3DCOLOR textColor = E3DCOLOR(0);
     CheckboxState checkboxState = CheckboxState::NoCheckbox;
     bool expanded = false;
@@ -741,6 +779,10 @@ private:
   bool applySelectionRequests(const ImGuiMultiSelectIO &multi_select_io)
   {
     bool selectionChanged = false;
+
+    // Send the notification regardless of the actual change if there was some input.
+    if (!multi_select_io.Requests.empty())
+      PropPanel::send_immediate_focus_loss_notification();
 
     if (multiSelectionEnabled)
     {
@@ -811,206 +853,8 @@ private:
     return selectionChanged;
   }
 
-  static void drawTreeOpenCloseIcon(ImDrawList &draw_list, const ImVec2 &center, float rectangle_radius, bool open,
-    ImU32 tree_line_color, ImU32 open_close_icon_inner_color)
-  {
-    const float r = rectangle_radius;
-    draw_list.AddRect(ImVec2(center.x - r, center.y - r), ImVec2(center.x + r + 1.0f, center.y + r + 1.0f), tree_line_color);
-
-    const float r2 = r - (r > 4.0f ? hdpi::_pxS(2) : 1); // hdpi::_pxS(1) did not work well here
-    draw_list.AddLine(ImVec2(center.x - r2 + 1.0f, center.y), ImVec2(center.x + r2, center.y), open_close_icon_inner_color);
-    if (!open)
-      draw_list.AddLine(ImVec2(center.x, center.y - r2 + 1.0f), ImVec2(center.x, center.y + r2), open_close_icon_inner_color);
-  }
-
-  void drawTreeLine(const TreeNode &node, ImDrawList &draw_list, const ImRect &item_rect, float icon_or_text_start_x, bool open,
-    ImU32 tree_line_color, ImU32 open_close_icon_inner_color)
-  {
-    const bool hasPreviousSibling = &node != node.parent->children.front();
-    const bool hasNextSibling = &node != node.parent->children.back();
-    const float treeNodeToLabelSpacing = ImGui::GetTreeNodeToLabelSpacing();
-    const float indentSpacing = ImGui::GetStyle().IndentSpacing;
-    const float centerX = floorf(item_rect.Min.x + (ImGui::GetStyle().FramePadding.x * 3.0f));
-    const float centerY = floorf((item_rect.Min.y + item_rect.Max.y) / 2.0f);
-    const float rectangleRadius = floorf(draw_list._Data->FontSize * 0.30f);
-    const float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
-    const float itemTopMinusSpacing = item_rect.Min.y - itemSpacingY;
-    const float itemBottomPlusSpacing = item_rect.Max.y + itemSpacingY;
-    const float horizontalLineRight = icon_or_text_start_x - hdpi::_pxS(3);
-
-    if (node.children.empty())
-    {
-      draw_list.AddLine(ImVec2(centerX, centerY), ImVec2(horizontalLineRight, centerY), tree_line_color);
-
-      const float verticalLineTop = hasPreviousSibling ? item_rect.Min.y : itemTopMinusSpacing;
-      const float verticalLineBottom = hasNextSibling ? itemBottomPlusSpacing : centerY;
-      draw_list.AddLine(ImVec2(centerX, verticalLineTop), ImVec2(centerX, verticalLineBottom), tree_line_color);
-    }
-    else
-    {
-      if (node.parent != &rootNode)
-      {
-        const float verticalLineTop = hasPreviousSibling ? item_rect.Min.y : itemTopMinusSpacing;
-        draw_list.AddLine(ImVec2(centerX, verticalLineTop), ImVec2(centerX, centerY - rectangleRadius), tree_line_color);
-      }
-
-      drawTreeOpenCloseIcon(draw_list, ImVec2(centerX, centerY), rectangleRadius, open, tree_line_color, open_close_icon_inner_color);
-
-      draw_list.AddLine(ImVec2(centerX + rectangleRadius, centerY), ImVec2(horizontalLineRight, centerY), tree_line_color);
-
-      if (hasNextSibling)
-        draw_list.AddLine(ImVec2(centerX, centerY + rectangleRadius), ImVec2(centerX, itemBottomPlusSpacing), tree_line_color);
-    }
-
-    float currentTreeLineCenterX = centerX;
-    for (const TreeNode *currentNode = node.parent; currentNode != &rootNode; currentNode = currentNode->parent)
-    {
-      currentTreeLineCenterX -= indentSpacing; // Do it before the first draw because we started at the parent.
-
-      const bool currentHasNextSibling = currentNode != currentNode->parent->children.back();
-      if (currentHasNextSibling)
-      {
-        const float verticalLineBottom = currentHasNextSibling ? itemBottomPlusSpacing : centerY;
-        draw_list.AddLine(ImVec2(currentTreeLineCenterX, item_rect.Min.y), ImVec2(currentTreeLineCenterX, verticalLineBottom),
-          tree_line_color);
-      }
-    }
-  }
-
   void fillTree(TreeNode &parent_node, bool &double_clicked_on_item, bool &right_clicked_on_item, bool &clicked_on_state_icon,
-    TreeNode *&collapsed_item, bool focus_selected, float &cursor_screen_pos_max_x)
-  {
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImGuiWindow *window = ImGui::GetCurrentWindow();
-
-    for (TreeNode *node : parent_node.children)
-    {
-      // SetNextItemOpen does nothing if SkipItems is set, so to avoid unintended openness change we do nothing too.
-      if (window->SkipItems)
-        break;
-
-      const bool hasChild = node->children.size() != 0;
-      const bool wasSelected = multiSelectionEnabled ? node->multiSelected : node == lastSelected;
-      ImGuiTreeNodeFlags flags =
-        ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-      if (!hasChild)
-        flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-
-      if (wasSelected)
-      {
-        flags |= ImGuiTreeNodeFlags_Selected;
-
-        if (focus_selected)
-          ImGui::SetKeyboardFocusHere();
-      }
-
-      ImGui::SetNextItemOpen(node->expanded);
-
-      G_STATIC_ASSERT(sizeof(ImGuiSelectionUserData) == sizeof(TreeNode *));
-      ImGui::SetNextItemSelectionUserData((ImGuiSelectionUserData)node);
-
-      bool clickedOnThisStateIcon = false;
-
-      ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
-      const bool isOpen = ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(node->title, flags, endData,
-        /*allow_blocked_hover = */ false, /*show_arrow = */ false);
-
-      if (endData.draw)
-      {
-        const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::ImguiHelper::getFontSizedIconSize();
-        const float iconWidthWithSpacing = fontSizedIconSize.x + ImGui::GetStyle().ItemInnerSpacing.x;
-        const float iconOrTextStartX = endData.textPos.x;
-        ImVec2 iconPos = endData.textPos;
-
-        ImTextureID stateIcon = node->stateIcon;
-        if (hasCheckboxes)
-        {
-          if (node->checkboxState == CheckboxState::Checked)
-            stateIcon = checkedIcon;
-          else if (node->checkboxState == CheckboxState::Unchecked)
-            stateIcon = uncheckedIcon;
-        }
-
-        if (stateIcon)
-          endData.textPos.x += iconWidthWithSpacing;
-        if (node->icon)
-          endData.textPos.x += iconWidthWithSpacing;
-
-        const bool hasColor = node->textColor != E3DCOLOR(0);
-        if (hasColor)
-          ImGui::PushStyleColor(ImGuiCol_Text, node->textColor);
-
-        PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(endData);
-
-        if (hasColor)
-          ImGui::PopStyleColor();
-
-        if (stateIcon)
-        {
-          const ImVec2 iconRectRightBottom(iconPos.x + fontSizedIconSize.x, iconPos.y + fontSizedIconSize.y);
-          window->DrawList->AddImage(stateIcon, iconPos, iconRectRightBottom);
-
-          clickedOnThisStateIcon = endData.hovered && ImGui::IsItemClicked(ImGuiMouseButton_Left) &&
-                                   ImRect(iconPos, iconRectRightBottom).Contains(ImGui::GetMousePos());
-          iconPos.x += iconWidthWithSpacing;
-        }
-
-        if (node->icon)
-        {
-          const ImVec2 iconRectRightBottom(iconPos.x + fontSizedIconSize.x, iconPos.y + fontSizedIconSize.y);
-          window->DrawList->AddImage(node->icon, iconPos, iconRectRightBottom);
-        }
-
-        const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-        drawTreeLine(*node, *drawList, itemRect, iconOrTextStartX, isOpen, Constants::TREE_HIERARCHY_LINE_COLOR,
-          Constants::TREE_OPEN_CLOSE_ICON_INNER_COLOR);
-
-        const float currentMaxX = endData.textPos.x + endData.labelSize.x;
-        if (currentMaxX > cursor_screen_pos_max_x)
-          cursor_screen_pos_max_x = currentMaxX;
-      }
-
-      if (node->expanded != isOpen)
-      {
-        node->expanded = isOpen;
-
-        if (!isOpen)
-        {
-          G_ASSERT(!collapsed_item);
-          collapsed_item = node;
-        }
-      }
-
-      if (ImGui::IsItemHovered())
-      {
-        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-          double_clicked_on_item = true;
-        // Imitate Windows where the context menu comes up on mouse button release. (BeginPopupContextItem also does this.)
-        else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-          right_clicked_on_item = true;
-      }
-
-      if (clickedOnThisStateIcon && hasCheckboxes && node->checkboxState != CheckboxState::NoCheckbox)
-      {
-        node->checkboxState = node->checkboxState == CheckboxState::Checked ? CheckboxState::Unchecked : CheckboxState::Checked;
-        clicked_on_state_icon = true;
-      }
-
-      if (node == ensureVisibleRequested)
-      {
-        ensureVisibleRequested = nullptr;
-        ImGui::SetScrollHereY();
-      }
-
-      if (isOpen && hasChild)
-      {
-        fillTree(*node, double_clicked_on_item, right_clicked_on_item, clicked_on_state_icon, collapsed_item, focus_selected,
-          cursor_screen_pos_max_x);
-        ImGui::TreePop();
-      }
-    }
-  }
+    TreeNode *&collapsed_item, bool focus_selected, float &cursor_screen_pos_max_x);
 
   void drawMessage()
   {
@@ -1025,6 +869,10 @@ private:
     ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), posMin, posMax, posMax.x, posMax.x, message, nullptr, &textSize);
   }
 
+  void resetMaximumSeenWidth() { maximumSeenWidth = 0.0f; }
+
+  friend class TreeHierarchyLineDrawer<TreeNode>;
+
   const bool selectionChangeEventsByCode;
   const bool hasCheckboxes;
   const bool multiSelectionEnabled;
@@ -1034,10 +882,11 @@ private:
   TreeNode rootNode;
   TreeNode *lastSelected = nullptr;
   TreeNode *ensureVisibleRequested = nullptr;
-  ImTextureID checkedIcon = nullptr;
-  ImTextureID uncheckedIcon = nullptr;
+  IconId checkedIcon = IconId::Invalid;
+  IconId uncheckedIcon = IconId::Invalid;
   eastl::unique_ptr<ContextMenu> contextMenu;
   String message;
+  float maximumSeenWidth;
 };
 
 } // namespace PropPanel

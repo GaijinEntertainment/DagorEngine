@@ -19,12 +19,11 @@ void CloudsLightRenderer::init()
     gen_clouds_light_texture_ps.init("gen_clouds_light_texture_ps");
   clouds_light_color.close();
   int texflags = gen_clouds_light_texture_cs ? TEXCF_UNORDERED : TEXCF_RTARGET;
-  int texfmt =
-    (d3d::get_texformat_usage(TEXFMT_R11G11B10F, RES3D_TEX) & texflags) == texflags ? TEXFMT_R11G11B10F : TEXFMT_A16B16G16R16F;
+  int texfmt = (d3d::get_texformat_usage(TEXFMT_R11G11B10F, D3DResourceType::TEX) & texflags) == texflags ? TEXFMT_R11G11B10F
+                                                                                                          : TEXFMT_A16B16G16R16F;
   if (VoltexRenderer::is_compute_supported() && d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput)
     texfmt = TEXFMT_A32B32G32R32F;
   clouds_light_color = dag::create_voltex(8, 8, 2 * CLOUDS_LIGHT_TEXTURE_WIDTH, texfmt | texflags, 1, "clouds_light_color");
-  clouds_light_color->disableSampler();
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = d3d::AddressMode::Clamp;
   smpInfo.address_mode_v = d3d::AddressMode::Clamp;

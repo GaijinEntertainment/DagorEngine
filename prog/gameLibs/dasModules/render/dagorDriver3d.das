@@ -20,7 +20,7 @@ enum BlendOperation : uint8
   MAX              = BLENDOP_MAX
   INVALID          = 0
 
-enum BlendType : uint
+enum BlendType : uint8
   ZERO              = BLEND_ZERO
   ONE               = BLEND_ONE
   SRCCOLOR          = BLEND_SRCCOLOR
@@ -64,17 +64,18 @@ bitfield RenderState
   CONSERVATIVE
   SCISSOR_ENABLED
   ALPHA_TO_COVERAGE
+  Z_WRITE_ENABLE
 
 struct OverrideRenderState
   bits : RenderState = bitfield(0)
-  zFunc : ZCompareFunc = ZCompareFunc INVALID
+  zFunc : ZCompareFunc = ZCompareFunc.INVALID
   forcedSampleCount : uint8 = uint8(0)
-  blendOp : BlendOperation = BlendOperation INVALID
-  blendOpA : BlendOperation = BlendOperation INVALID
-  sblend : BlendType = BlendType INVALID
-  dblend : BlendType = BlendType INVALID
-  sblenda : BlendType = BlendType INVALID
-  dblenda : BlendType = BlendType INVALID
-  colorWr : WriteMask = WriteMask ALL
+  blendOp : BlendOperation = BlendOperation.INVALID
+  blendOpA : BlendOperation = BlendOperation.INVALID
+  sblend : BlendType = BlendType.INVALID
+  dblend : BlendType = BlendType.INVALID
+  sblenda : BlendType = BlendType.INVALID
+  dblenda : BlendType = BlendType.INVALID
+  colorWr : WriteMask = WriteMask.ALL
   zBias : float = 0f
   slopeZBias : float = 0f

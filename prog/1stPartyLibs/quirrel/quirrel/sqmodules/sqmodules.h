@@ -39,6 +39,7 @@ public:
     Sqrat::Object exports;
     Sqrat::Object stateStorage;
     Sqrat::Object refHolder;
+    Sqrat::Object scriptClosure;
     string  __name__;
   };
 
@@ -52,6 +53,8 @@ public:
     compilationOptions.useAbsolutePath = false;
     sq_enablesyntaxwarnings(false);
   }
+
+  ~SqModules() { resetStaticMemos(); }
 
   HSQUIRRELVM getVM() { return sqvm; }
 
@@ -67,7 +70,9 @@ public:
 
   bool  reloadAll(string &err_msg);
 
-  bool  addNativeModule(const char *module_name, const Sqrat::Object &exports);
+  void  resetStaticMemos();
+
+  bool  addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string = nullptr);
 
   void  registerMathLib();
   void  registerStringLib();
@@ -76,6 +81,7 @@ public:
   void  registerIoLib();
   void  registerDateTimeLib();
   void  registerDebugLib();
+  void  registerModulesLib();
 
   Sqrat::Object *findNativeModule(const string &module_name);
 
@@ -86,6 +92,7 @@ private:
   // Script API
   //   require(file_name, must_exist=true)
   template<bool must_exist> static SQInteger sqRequire(HSQUIRRELVM vm);
+  static SQInteger sqResetStaticMemos(HSQUIRRELVM vm);
 
   void  resolveFileName(const char *fn, string &res);
   bool  checkCircularReferences(const char *resolved_fn, const char *orig_fn);
@@ -119,6 +126,7 @@ public:
 private:
   std::vector<Module>  modules;
   std::vector<Module>  prevModules; //< for hot reload
+  std::vector<Sqrat::Object> runningScriptClosuresStack;
 
   std::unordered_map<string, Sqrat::Object> nativeModules;
   std::vector<string>  runningScripts;

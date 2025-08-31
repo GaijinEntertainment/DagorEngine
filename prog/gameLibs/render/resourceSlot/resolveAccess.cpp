@@ -328,7 +328,7 @@ void resource_slot::resolve_access()
 
       G_ASSERTF_CONTINUE(node.id == nodeId, "Unexpected node.id=%d for node %s<%d>", int(node.id), storage.nodeMap.name(nodeId), i);
 
-      node.nodeHandle = dabfg::NodeHandle{};
+      node.nodeHandle = dafg::NodeHandle{};
       node.status = resource_slot::detail::NodeStatus::Valid;
       ++storage.validNodeCount;
     }

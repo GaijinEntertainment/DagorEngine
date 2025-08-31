@@ -119,7 +119,7 @@ Element::~Element()
 HSQUIRRELVM Element::getVM() const { return props.storage.GetVM(); }
 
 
-bool Element::isInMainTree() const { return etree->guiScene->getElementTree() == etree; }
+bool Element::isInMainTree() const { return etree->screen && etree->screen->isMainScreen; }
 
 bool Element::isMainTreeRoot() const { return !parent && isInMainTree(); }
 
@@ -319,6 +319,7 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
       xmb = etree->allocateXmbData();
     if (xmb != nullptr)
     {
+      xmbNode.GetObject()._flags &= ~SQOBJ_FLAG_IMMUTABLE;
       xmbNode.SetValue(csk->elem, this->getRef(xmbNode.GetVM()));
       xmb->nodeDesc = xmbNode;
     }
@@ -350,6 +351,41 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
   for (eastl::unique_ptr<Animation> &anim : animations)
     anim->setup(setup_mode == SM_INITIAL);
 
+  /* @page daRg.layout
+    default layout flags in element script description table:
+
+    @code
+      flow = FLOW_VERTICAL|FLOW_HORIZONTAL
+      halign = ALIGN_CENTER|ALIGN_LEFT|ALIGN_RIGHT
+      valign = ALIGN_CENTER|ALIGN_BOTTOM|ALIGN_TOP
+      hplace = ALIGN_CENTER|ALIGN_LEFT|ALIGN_RIGHT
+      vplace = ALIGN_CENTER|ALIGN_BOTTOM|ALIGN_TOP
+      margin = Size|[Size for vertical| Size for horizontal] | [Size up| Size right | Size down | Size left]
+      padding = Size|[Size for vertical| Size for horizontal] | [Size up| Size right | Size down | Size left]
+      gap = element or numeric, used for flow
+      clipChildren = true|false
+      eventHandlers = {<eventName:string>: function(event){}}
+      subPixel = true|false
+      stopMouse = true|false
+      stopHover = true|false
+      stopHotkeys = true|false
+      inputPassive = true|false
+      skipDirPadNav = true|false //for cursor gamepad navigation
+      ignoreEarlyClip = true|false
+      disableInput = true|false
+      joystickScroll = true|false
+      isHidden = true|false
+      cursor = <Cursor instance>
+      moveResizeCursors = table of cursors instances
+      stickCursor = true|false //for cursor gamepad navigation
+      hotkeys = [[<hotkey string>, function]]
+      animations = array of tables of animations descriptions
+    code@
+
+    Event in EventHandlers can have fields:
+      "dur" - duration in milliseconfs,
+      appActive - is appActive. Eventname is dainput eventName or `eventName:end`
+  */
   bool isFlowing = layout.flowType == FLOW_HORIZONTAL || layout.flowType == FLOW_VERTICAL || (parent && (parent->flags & F_FLOWING));
   bool isSubpixel = scriptDesc.RawGetSlotValue(csk->subPixel, (flags & F_SUBPIXEL) != 0);
   bool stickCursor = (!scriptDesc.RawGetSlot(csk->onClick).IsNull() || !scriptDesc.RawGetSlot(csk->onDoubleClick).IsNull()) &&
@@ -1602,8 +1638,8 @@ float Element::calcContentSizeByAxis(int axis)
     if (textSizeCache.x < 0)
     {
       if (!rparams->passChar)
-        textSizeCache =
-          calc_text_size(props.text, props.text.length(), rparams->fontId, rparams->spacing, rparams->monoWidth, rparams->fontHt);
+        textSizeCache = calc_text_size(props.text.c_str(), props.text.length(), rparams->fontId, rparams->spacing, rparams->monoWidth,
+          rparams->fontHt);
       else
       {
         int chars = utf8::distance(props.text.c_str(), props.text.c_str() + props.text.length());
@@ -2041,10 +2077,8 @@ bool Element::calcSoundPos(Point2 &res)
 
 bool Element::hitTest(const Point2 &p) const
 {
-  //  const Point2 &lt = screenCoord.screenPos;
-  //  Point2 rb = lt + screenCoord.size;
-  //  return (p.x >= lt.x && p.y >= lt.y && p.x <= rb.x && p.y <= rb.y);
-  return !bboxIsClippedOut() && (clippedScreenRect & p);
+  return !bboxIsClippedOut() && p.x >= clippedScreenRect[0].x && p.x < clippedScreenRect[1].x && p.y >= clippedScreenRect[0].y &&
+         p.y < clippedScreenRect[1].y;
 }
 
 static float dist_to_box(const BBox2 &box, const Point2 &p)
@@ -2073,12 +2107,6 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
   if (hitTest(p))
     return true;
 
-  // Use touch margin only for main subscene, not for panel
-  // This may be fixed, but for this we should pass the correspondint input stack here
-  // instead of quetly using one from GuiScene
-  if (etree != etree->guiScene->getElementTree())
-    return false;
-
   if (!should_use_outside_area(device))
     return false;
 
@@ -2097,7 +2125,7 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
     return false;
 
   int priority = props.getInt(csk->touchMarginPriority, 0);
-  InputStack &stack = etree->guiScene->getInputStack();
+  InputStack &stack = etree->screen->getInputStack();
   for (InputStack::Stack::iterator it = stack.stack.begin(); it != stack.stack.end(); ++it)
   {
     const Element *e = it->elem;

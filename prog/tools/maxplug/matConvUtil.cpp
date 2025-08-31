@@ -50,14 +50,13 @@ public:
 
   ICustEdit *atestEdit;
 
-  bool twoSided, realTwoSided;
+  IDagorMat::Sides twosided;
   int atest;
 
-
   MatConvUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
 
   void Init(HWND hWnd);
   void Destroy(HWND hWnd);
@@ -72,16 +71,20 @@ static MatConvUtil util;
 class MatConvUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &util; }
-  const TCHAR *ClassName() { return GetString(IDS_MatConvUtil_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &util; }
+  const TCHAR *ClassName() override { return GetString(IDS_MatConvUtil_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return MatConvUtil_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return MatConvUtil_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
 };
 
 IOResult MatConvUtilDesc::Save(ISave *io) { return IO_OK; }
@@ -107,8 +110,9 @@ static INT_PTR CALLBACK MatConvUtilDlgProc(HWND hWnd, UINT msg, WPARAM wParam, L
         case IDC_SIMPLE_LIGHTMAP: util.convertNodes(MAT_SIMPLE, LIGHT_LIGHTMAP); break;
         case IDC_ABLEND_VLTMAP: util.convertNodes(MAT_ABLEND, LIGHT_VLTMAP); break;
         case IDC_ABLEND_LIGHTMAP: util.convertNodes(MAT_ABLEND, LIGHT_LIGHTMAP); break;
-        case IDC_2SIDED: util.twoSided = IsDlgButtonChecked(hWnd, LOWORD(wParam)) ? true : false; break;
-        case IDC_REAL2SIDED: util.realTwoSided = IsDlgButtonChecked(hWnd, LOWORD(wParam)) ? true : false; break;
+        case IDC_ENUM_2SIDED:
+          util.twosided = IDagorMat::Sides(::SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0));
+          break;
       }
       break;
       /*
@@ -130,8 +134,7 @@ MatConvUtil::MatConvUtil()
   hPanel = NULL;
   atestEdit = NULL;
 
-  twoSided = false;
-  realTwoSided = false;
+  twosided = IDagorMat::Sides::OneSided;
   atest = 0;
 }
 
@@ -153,8 +156,12 @@ void MatConvUtil::EndEditParams(Interface *ip, IUtil *iu)
 
 void MatConvUtil::Init(HWND hw)
 {
-  CheckDlgButton(hw, IDC_2SIDED, twoSided);
-  CheckDlgButton(hw, IDC_REAL2SIDED, realTwoSided);
+  HWND h2sided = ::GetDlgItem(hw, IDC_ENUM_2SIDED);
+  ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("1 sided"));
+  ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("2 sided"));
+  ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("Real 2 sided"));
+  ::SendMessage(h2sided, CB_SETCURSEL, WPARAM(twosided), NULL);
+
   atestEdit = GetICustEdit(GetDlgItem(hw, IDC_ATEST));
   atestEdit->SetText(atest);
 }
@@ -232,7 +239,7 @@ bool MatConvUtil::convertMat(Mtl *&mat, int type, int lighting, const TCHAR *slo
     assert(d);
 
     dm->SetName(mat->GetName());
-    d->set_2sided(twoSided || realTwoSided); // sm->GetTwoSided()
+    d->set_2sided(twosided);
 
     d->set_amb(amb);
     d->set_diff(diff);
@@ -297,7 +304,7 @@ bool MatConvUtil::convertMat(Mtl *&mat, int type, int lighting, const TCHAR *slo
     if (atestVal > 0)
       sprintf(script + strlen(script), "atest=%d\r\n", atestVal);
 
-    if (realTwoSided)
+    if (twosided == IDagorMat::Sides::RealDoubleSided)
       strcat(script, "real_two_sided=yes\r\n");
 
     d->set_script(strToWide(script).c_str());

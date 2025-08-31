@@ -34,37 +34,37 @@ public:
   My2LoadCB(const char *fn, AScene *, int flg, bool fatal_on_error = true);
   ~My2LoadCB();
 
-  void nomem_error(const char *fn);
-  void open_error(const char *fn);
-  void format_error(const char *fn);
-  void read_error(const char *fn);
+  void nomem_error(const char *fn) override;
+  void open_error(const char *fn) override;
+  void format_error(const char *fn) override;
+  void read_error(const char *fn) override;
 
-  int load_textures(int num);
-  int load_material(const char *name);
-  int load_node();
-  int load_node_children();
-  int load_node_data();
-  int load_node_tm();
-  int load_node_mat(int numsubs);
-  int load_node_script();
-  int load_node_obj();
-  int load_node_bones(int);
-  int load_node_bonesinf(int);
+  int load_textures(int num) override;
+  int load_material(const char *name) override;
+  int load_node() override;
+  int load_node_children() override;
+  int load_node_data() override;
+  int load_node_tm() override;
+  int load_node_mat(int numsubs) override;
+  int load_node_script() override;
+  int load_node_obj() override;
+  int load_node_bones(int) override;
+  int load_node_bonesinf(int) override;
 
-  int load_texture(int, const char *texfn);
-  int load_material(ImpMat &);
-  int load_node_data(char *name, uint16_t id, int numchild, int flg);
-  int load_node_tm(TMatrix &);
-  int load_node_submat(int, uint16_t id);
-  int load_node_script(const char *);
-  int load_node_mesh(Mesh *);
-  int load_node_splines(SplineShape *);
-  int load_node_light(D3dLight &);
-  int load_node_bone(int, uint16_t nodeid, TMatrix &);
-  int load_node_bonesinf(real *inf);
+  int load_texture(int, const char *texfn) override;
+  int load_material(ImpMat &) override;
+  int load_node_data(char *name, uint16_t id, int numchild, int flg) override;
+  int load_node_tm(TMatrix &) override;
+  int load_node_submat(int, uint16_t id) override;
+  int load_node_script(const char *) override;
+  int load_node_mesh(Mesh *) override;
+  int load_node_splines(SplineShape *) override;
+  int load_node_light(D3dLight &) override;
+  int load_node_bone(int, uint16_t nodeid, TMatrix &) override;
+  int load_node_bonesinf(real *inf) override;
 
-  virtual bool load_node_morph(int num);
-  virtual bool load_node_morph_target(int index, uint16_t nodeid, const char *name);
+  bool load_node_morph(int num) override;
+  bool load_node_morph_target(int index, uint16_t nodeid, const char *name) override;
 
 
 private:

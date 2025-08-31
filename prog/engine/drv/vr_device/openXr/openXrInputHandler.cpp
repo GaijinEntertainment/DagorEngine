@@ -213,10 +213,6 @@ void OpenXrInputHandler::updateActionsState()
   asi.countActiveActionSets = countof(as);
   asi.activeActionSets = as;
   XR_REPORT(xrSyncActions(session, &asi));
-
-  // Changes can only happen in between xrSyncActions, and we want first update asap.
-  if (currentBindingMasks.empty())
-    updateCurrentBindings();
 }
 
 
@@ -529,6 +525,20 @@ void OpenXrInputHandler::updateCurrentBindings()
     for (XrPath src : currentBindings[i].second)
       if (src != INVALID_ACTION_BINDING_ID)
         updateBindingMask(i, src, uniqueSources);
+
+  for (const char *path : {"/user/hand/left", "/user/hand/right"})
+  {
+    XrInteractionProfileState xips{XR_TYPE_INTERACTION_PROFILE_STATE, nullptr, XR_NULL_PATH};
+    XrPath xrPath = as_xr_path(instance, path);
+    if (XrResult r = xrGetCurrentInteractionProfile(session, xrPath, &xips);
+        r == XR_SUCCESS && xips.interactionProfile != XR_NULL_PATH)
+      debug("[XR][HID] current interaction profile for '%s' is '%s'", path,
+        xr_path_as_string(instance, xips.interactionProfile).c_str());
+    else if (xips.interactionProfile == XR_NULL_PATH)
+      debug("[XR][HID] no current interaction profile for '%s'", path);
+    else
+      debug("[XR][HID] failed to get interaction profile for '%s': 0x%x", path, r);
+  }
 }
 
 
@@ -545,8 +555,12 @@ void OpenXrInputHandler::updateBindingMask(ActionIndex action_idx, XrPath bindin
 
 HumanInput::ButtonBits OpenXrInputHandler::getCurrentBindingsMask(ActionId a) const
 {
+  if (currentBindingMasks.empty())
+    return {};
+
   XrAction action;
   ActionIndex idx = findActionById(a, action);
+  G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] could not find action '%d' to get bindings mask", a);
   return currentBindingMasks[idx];
 }
 

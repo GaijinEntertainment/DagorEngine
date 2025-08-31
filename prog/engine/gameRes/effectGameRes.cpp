@@ -270,7 +270,6 @@ public:
             BaseTexture *tex = acquire_managed_tex(texid);
             if (tex)
             {
-              tex->setAnisotropy(1);
               add_anisotropy_exception(texid);
             }
             textag_mark_end();

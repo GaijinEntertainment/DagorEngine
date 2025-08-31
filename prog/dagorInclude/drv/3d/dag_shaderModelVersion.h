@@ -63,7 +63,7 @@ class BasicMap : protected Cmp
       return;
     if (wasMatched)
       return;
-    ::new (&object()) T{(T &&) v};
+    ::new (&object()) T{(T &&)v};
     wasMatched = true;
   }
   /**
@@ -99,7 +99,7 @@ class BasicMap : protected Cmp
       return;
     if (wasMatched)
       return;
-    ::new (&object()) T{(Vs &&) vs...};
+    ::new (&object()) T{(Vs &&)vs...};
     wasMatched = true;
   }
 
@@ -110,11 +110,11 @@ public:
   BasicMap(const BasicMap &) = delete;
   //! Basic move constructor that moves internal state from \p other to this.
   //! \param other Other instance that is used to initialize this, should a value be stored, it is moved to this.
-  BasicMap(BasicMap &&other) : value{(V &&) other.value}, wasMatched{other.wasMatched} // -V730
+  BasicMap(BasicMap &&other) : value{(V &&)other.value}, wasMatched{other.wasMatched} // -V730
   {
     if (wasMatched)
     {
-      ::new (&object()) T{(T &&) other.object()};
+      ::new (&object()) T{(T &&)other.object()};
     }
   }
   //! Copy is not allowed as we don't want users to copy maps around.
@@ -131,7 +131,7 @@ public:
   template <typename OV>
   BasicMap(const V &v, const OV &cmp, T &&t) : value{v} // -V730
   {
-    cMove(this->compare(value, cmp), (T &&) t);
+    cMove(this->compare(value, cmp), (T &&)t);
   }
   //! Constructor that initializes the compare value state and does one map operation.
   //! \param v Value that should be used with matchers.
@@ -141,7 +141,7 @@ public:
   template <typename OV, typename C>
   BasicMap(const V &v, const OV &cmp, C &&c) : value{v} // -V730
   {
-    cContruct(this->compare(value, cmp), (C &&) c);
+    cContruct(this->compare(value, cmp), (C &&)c);
   }
   //! Constructor that initializes the compare value state and does one map operation.
   //! \param v Value that should be used with matchers.
@@ -150,7 +150,7 @@ public:
   template <typename OV, typename... Vs>
   BasicMap(const V &v, const OV &cmp, Vs &&...vs) : value{v} // -V730
   {
-    cEmplace(this->compare(value, cmp), (Vs &&) vs...);
+    cEmplace(this->compare(value, cmp), (Vs &&)vs...);
   }
   //! Maps a matcher to a value.
   //! \param cmp Value matcher.
@@ -159,7 +159,7 @@ public:
   template <typename OV>
   BasicMap &map(const OV &cmp, T &&t)
   {
-    cMove(this->compare(value, cmp), (T &&) t);
+    cMove(this->compare(value, cmp), (T &&)t);
     return *this;
   }
   //! Maps a matcher to a value.
@@ -169,7 +169,7 @@ public:
   template <typename OV, typename C>
   BasicMap &map(const OV &cmp, C &&c)
   {
-    cContruct(this->compare(value, cmp), (C &&) c);
+    cContruct(this->compare(value, cmp), (C &&)c);
     return *this;
   }
   //! Maps a matcher to a value.
@@ -179,7 +179,7 @@ public:
   template <typename OV, typename... Vs>
   BasicMap &map(const OV &cmp, Vs &&...vs)
   {
-    cContruct(this->compare(value, cmp), (Vs &&) vs...);
+    cContruct(this->compare(value, cmp), (Vs &&)vs...);
     return *this;
   }
   //! Maps final type to a value.
@@ -191,9 +191,9 @@ public:
     (void)cmp;
     if (wasMatched)
     {
-      return (T &&) object();
+      return (T &&)object();
     }
-    return (T &&) t;
+    return (T &&)t;
   }
   //! Maps final type to a value.
   //! \param cmp Final value matcher.
@@ -203,8 +203,8 @@ public:
   T &&map(const FinalMapType &cmp, C &&c)
   {
     (void)cmp;
-    cContruct(true, (C &&) c);
-    return (T &&) object();
+    cContruct(true, (C &&)c);
+    return (T &&)object();
   }
   //! Maps final type to a value.
   //! \param cmp Final value matcher.
@@ -214,8 +214,8 @@ public:
   T &&map(const FinalMapType &cmp, Vs &&...vs)
   {
     (void)cmp;
-    cEmplace(this->compare(value, cmp), (Vs &&) vs...);
-    return (T &&) object();
+    cEmplace(this->compare(value, cmp), (Vs &&)vs...);
+    return (T &&)object();
   }
   //! Gets the stored value.
   //! \param c Receiver of the value, should any value be stored in this.
@@ -224,7 +224,7 @@ public:
   {
     if (wasMatched)
     {
-      o = (T &&) object();
+      o = (T &&)object();
     }
     return wasMatched;
   }
@@ -236,7 +236,7 @@ public:
   {
     if (wasMatched)
     {
-      c((T &&) object());
+      c((T &&)object());
     }
     return wasMatched;
   }
@@ -281,7 +281,7 @@ struct Version
   template <typename T>
   matcher::Map<T, Version> map(const Version &version, T &&value) const
   {
-    return {*this, version, (T &&) value};
+    return {*this, version, (T &&)value};
   }
   //! Begins a map from versions over this version to a value.
   //! \param version The matcher of the first value matcher pair.
@@ -330,7 +330,7 @@ struct VersionConstant
   template <typename T>
   matcher::Map<T, Version> map(const Version &version, T &&value) const
   {
-    return {*this, version, (T &&) value};
+    return {*this, version, (T &&)value};
   }
   //! Begins a map from versions over this version to a value.
   //! \param version The matcher of the first value matcher pair.

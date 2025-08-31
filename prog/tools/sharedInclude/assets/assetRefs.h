@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <generic/dag_span.h>
+#include <generic/dag_tabFwd.h>
 #include <dag/dag_relocatable.h>
 #include <memory/dag_mem.h>
 
@@ -83,13 +83,13 @@ public:
   virtual void __stdcall onRegister() = 0;
   virtual void __stdcall onUnregister() = 0;
 
-  //! resolves references and returns referenced assets and refslot attributes (uses highly temporary buffer)
-  virtual dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) = 0;
+  //! resolves references and returns referenced assets and refslot attributes
+  virtual void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &out_refs) = 0;
 
-  //! resolves references and returns referenced assets and refslot attributes (uses highly temporary buffer)
-  virtual dag::ConstSpan<Ref> __stdcall getAssetRefsEx(DagorAsset &a, unsigned /*target*/, const char * /*profile*/)
+  //! resolves references and returns referenced assets and refslot attributes (for specified target and profile)
+  virtual void __stdcall getAssetRefsEx(DagorAsset &a, Tab<Ref> &out_refs, unsigned /*target*/, const char * /*profile*/)
   {
-    return getAssetRefs(a);
+    getAssetRefs(a, out_refs);
   }
 };
 DAG_DECLARE_RELOCATABLE(IDagorAssetRefProvider::Ref);

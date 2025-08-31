@@ -11,6 +11,7 @@
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_rendInstRes.h>
 #include <math/dag_Point4.h>
+#include <util/dag_threadPool.h>
 
 class Sbuffer;
 class LandMeshManager;
@@ -21,12 +22,29 @@ struct RaytraceGeometryDescription;
 struct RaytraceBottomAccelerationStructure;
 struct RiGenVisibility;
 struct BVHConnection;
+class DynamicRenderableSceneResource;
 enum class RaytraceBuildFlags : uint32_t;
+
+namespace bvh
+{
+struct Context;
+using ContextId = Context *;
+} // namespace bvh
 
 namespace dynrend
 {
 enum class ContextId;
-}
+using BVHSetInstanceData = void (*)(int instance_offset);
+struct BVHCamoData
+{
+  float condition = 1, scale = 1, rotation = 0;
+  TEXTUREID burntCamo;
+};
+using BVHIterateOneInstanceCallback = void (*)(const DynamicRenderableSceneInstance &inst, const DynamicRenderableSceneResource &res,
+  const uint8_t *path_filter, uint32_t path_filter_size, uint8_t render_mask, dag::ConstSpan<int> offsets,
+  BVHSetInstanceData set_instance_data, bool animate, BVHCamoData &camo_data, void *user_data);
+using BVHIterateCallback = void (*)(BVHIterateOneInstanceCallback iter, const Point3 &view_position, void *user_data);
+} // namespace dynrend
 
 struct SbufferDeleter
 {
@@ -221,7 +239,7 @@ struct BVHBufferReference
   bool operator!() const { return buffer == nullptr; }
 
   Sbuffer *get() const { return buffer; }
-  uint32_t size() const { return buffer ? buffer->ressize() : 0; }
+  uint32_t size() const { return buffer ? buffer->getSize() : 0; }
 };
 
 struct UniqueOrReferencedBVHBuffer
@@ -281,11 +299,11 @@ struct TreeData
   float windDetailAmp;
   float windSpeed;
   float windTime;
-  Color4 windChannelStrength;
-  Color4 windBlendParams;
-  TEXTUREID ppPosition;
-  TEXTUREID ppDirection;
-  Color4 ppWindPerLevelAngleRotMax;
+  Point4 windChannelStrength;
+  Point4 windBlendParams;
+  Texture *ppPosition;
+  Texture *ppDirection;
+  Point4 ppWindPerLevelAngleRotMax;
   float ppWindNoiseSpeedBase;
   float ppWindNoiseSpeedLevelMul;
   float ppWindAngleRotBase;
@@ -293,8 +311,10 @@ struct TreeData
   float ppWindParentContrib;
   float ppWindMotionDampBase;
   float ppWindMotionDampLevelMul;
+  float AnimWindScale;
+  bool apply_tree_wind;
   E3DCOLOR color;
-  uint32_t perInstanceRenderDataOffset;
+  uint32_t perInstanceRenderAdditionalData;
 };
 
 struct TreeInfo
@@ -369,8 +389,6 @@ struct MeshInfo
   uint32_t normalOffset = invalidOffset;
   uint32_t colorOffset = invalidOffset;
 
-  bool enableCulling = true;
-
   // Only needed for skinned meshes
   uint32_t indicesOffset = invalidOffset; // only needed for skinned meshes
   uint32_t weightsOffset = invalidOffset; // only needed for skinned meshes
@@ -407,12 +425,18 @@ struct MeshInfo
   bool isClipmap = false;
   bool hasInstanceColor = false;
   bool isCamo = false;
+  bool isMFD = false;
   bool isHeliRotor = false;
   bool isEmissive = false;
 
   bool painted = false;
   Point4 paintData;
   Point4 colorOverride = Point4(0.5, 0.5, 0.5, 0);
+  uint32_t detailsData1 = 0;
+  uint32_t detailsData2 = 0;
+  uint32_t detailsData3 = 0;
+  uint32_t detailsData4 = 0;
+
 
   bool useAtlas = false;
   float atlasTileU = 1.0;
@@ -421,6 +445,8 @@ struct MeshInfo
   uint32_t atlasLastTile = 0;
 
   bool isLayered = false;
+  bool isPerlinLayered = false;
+  bool isEye = false;
   float maskGammaStart = 0.5;
   float maskGammaEnd = 2;
   float maskTileU = 1;
@@ -431,6 +457,12 @@ struct MeshInfo
   float detail2TileV = 1;
 
   float texcoordScale = 1.f;
+};
+
+struct ObjectInfo
+{
+  dag::Vector<MeshInfo> meshes;
+  bool isAnimated = false;
 };
 
 struct Context;
@@ -515,19 +547,25 @@ void update_terrain(ContextId context_id, const Point2 &location);
 
 void set_for_gpu_objects(ContextId context_id);
 
-void set_ri_extra_range(ContextId context_id, float range);
-
 void prepare_ri_extra_instances();
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &frustum,
-  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_plane_context_id, RiGenVisibility *ri_gen_visibility);
+void set_ri_dist_mul(float mul);
 
-// The upper 32 bits of the mesh_id are reserved for RI
-void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info);
+void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
 
-void add_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform);
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
+  threadpool::JobPriority prio);
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
+  threadpool::JobPriority prio);
 
-void remove_mesh(ContextId context_id, uint64_t mesh_id);
+// The upper 32 bits of the object_id are reserved for RI
+void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info);
+
+void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transform);
+
+void remove_object(ContextId context_id, uint64_t object_id);
 
 enum class BuildBudget
 {
@@ -542,11 +580,17 @@ void process_meshes(ContextId context_id, BuildBudget budget = BuildBudget::High
 
 void bind_resources(ContextId context_id, int render_width);
 
+// ps5 specific functions. Currently ps5 doesn't support tlas shader vars
+void bind_tlas_stage(ContextId context_id, ShaderStage stage);
+void unbind_tlas_stage(ShaderStage stage);
+
 void on_load_scene(ContextId context_id);
 
 void on_scene_loaded(ContextId context_id);
 
 void on_before_unload_scene(ContextId context_id);
+
+void on_before_settings_changed(ContextId context_id);
 
 void on_unload_scene(ContextId context_id);
 
@@ -565,6 +609,8 @@ void finalize_async_atmosphere_update(ContextId context_id);
 bool is_building(ContextId context_id);
 
 void set_grass_range(ContextId context_id, float range);
+
+void set_debug_view_min_t(float min_t);
 
 void enable_per_frame_processing(bool enable);
 } // namespace bvh

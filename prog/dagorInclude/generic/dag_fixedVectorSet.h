@@ -67,6 +67,8 @@ public:
     erase(it);
     return (size_type)1;
   }
+
+  friend bool operator==(const FixedVectorSet &, const FixedVectorSet &) = default;
 };
 
 template <typename T, size_t N, bool O, typename E, typename A, typename C>

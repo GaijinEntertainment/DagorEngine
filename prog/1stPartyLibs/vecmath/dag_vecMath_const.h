@@ -6,13 +6,6 @@
 
 #include "dag_vecMathDecl.h"
 
-#ifdef __cplusplus
-#include <cmath> // for INFINITY
-#else
-#include <math.h>
-#endif
-
-
 #if defined(_MSC_VER) && !defined(__clang__)
   #define DECL_VEC_CONST extern const __declspec(selectany) __declspec(align(16))
 #else
@@ -39,7 +32,7 @@
 #if defined(__clang__) || defined(__GNUC__)
   DECL_VEC_CONST vec4f_const V_C_INF = { REPLICATE(__builtin_inff()) };
 #else
-  DECL_VEC_CONST vec4f_const V_C_INF = { REPLICATE(INFINITY) };
+  DECL_VEC_CONST vec4f_const V_C_INF = { REPLICATE(((float)(1e+300 * 1e+300))) };
 #endif
 
   #define DECL_VECFLOAT4(X,Y,Z,W) {X,Y,Z,W}
@@ -118,9 +111,9 @@
   #define DECL_VECFLOAT4(X,Y,Z,W) (float32x4_t){X,Y,Z,W}
   #define DECL_VECUINT4(X,Y,Z,W)  (int32x4_t){(int)X,(int)Y,(int)Z,(int)W}
 #elif defined(_MSC_VER)
-  #define V_C_INF             vdupq_n_f32(INFINITY)
+  #define V_C_INF             vdupq_n_f32(((float)(1e+300 * 1e+300)))
 
-  constexpr struct vec4f_const_hlp
+  struct vec4f_const_hlp
   {
     constexpr vec4f_const_hlp(float x, float y, float z, float w)
     {
@@ -131,7 +124,7 @@
     }
     __n128 v;
   };
-  constexpr struct vec4i_const_hlp
+  struct vec4i_const_hlp
   {
     constexpr vec4i_const_hlp(int x, int y, int z, int w)
     {

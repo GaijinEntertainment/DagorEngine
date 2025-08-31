@@ -65,8 +65,8 @@ def draw_debug_tube_buffered(p0, p1 : float3; radius; color : E3DCOLOR = DEFAULT
   _builtin_draw_debug_tube_buffered(p0, p1, float(radius), color, segs, float(circle_density), frames)
 
 [generic]
-def draw_debug_cone_buffered(p0, p1 : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segs : int = 24; frames : int = DEFAULT_DEBUG_FRAMES)
-  _builtin_draw_debug_cone_buffered(p0, p1, float(radius), color, segs, frames)
+def draw_debug_cone_buffered(p0, p1 : float3; angle; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segs : int = 24; frames : int = DEFAULT_DEBUG_FRAMES)
+  _builtin_draw_debug_cone_buffered(p0, p1, float(angle), color, segs, frames)
 
 [generic]
 def draw_debug_capsule_buffered(p0, p1 : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segments : int = 24; frames : int = DEFAULT_DEBUG_FRAMES)

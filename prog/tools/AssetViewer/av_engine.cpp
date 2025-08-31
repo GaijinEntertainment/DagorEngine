@@ -10,6 +10,7 @@
 #include <de3_skiesService.h>
 #include <de3_dynRenderService.h>
 #include <de3_interface.h>
+#include <de3_rendInstGen.h>
 #include <render/debugTexOverlay.h>
 
 #include <de3_huid.h>
@@ -31,12 +32,21 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <assets/asset.h>
+#include <assets/assetHlp.h>
+#include <assets/assetRefs.h>
+#include <assets/daBuildInterface.h>
+#include <gameRes/dag_gameResSystem.h>
 
 #include <propPanel/control/panelWindow.h>
 
+#include <EASTL/vector_set.h>
+
 #include "assetUserFlags.h"
 
+extern void *get_generic_render_helper_service();
 extern void *get_generic_dyn_render_service();
+extern void *get_dng_based_render_service();
+extern void *get_dng_based_skies_service();
 extern void *get_tiff_bit_mask_image_mgr();
 extern void *get_generic_asset_service();
 extern void *get_gen_light_service();
@@ -53,6 +63,77 @@ extern InitOnDemand<DebugTexOverlay> av_show_tex_helper;
 
 
 static int worldViewPosVarId = -2;
+
+static void getAssetReferencesRecursively(DagorAsset &asset, eastl::vector_set<DagorAsset *> &references,
+  Tab<IDagorAssetRefProvider::Ref> &tmp_refs)
+{
+  IDagorAssetRefProvider *refProvider = asset.getMgr().getAssetRefProvider(asset.getType());
+  if (!refProvider)
+    return;
+
+  refProvider->getAssetRefs(asset, tmp_refs);
+  Tab<DagorAsset *> new_assets;
+  for (const IDagorAssetRefProvider::Ref &ref : tmp_refs)
+  {
+    if (DagorAsset *refAsset = ref.getAsset())
+    {
+      if (references.insert(refAsset).second) // If it was inserted.
+        new_assets.push_back(refAsset);
+    }
+    else if (ref.flags & IDagorAssetRefProvider::RFLG_BROKEN)
+    {
+      DAEDITOR3.conWarning("Asset \"%s\" has broken reference to \"%s\".", asset.getNameTypified().c_str(), ref.getBrokenRef());
+    }
+  }
+  for (DagorAsset *refAsset : new_assets)
+    getAssetReferencesRecursively(*refAsset, references, tmp_refs);
+}
+
+static bool hasAssetBeenLoadedPreviouslyInThisSession(DagorAsset &asset)
+{
+  const int resId = dabuildcache::get_asset_res_id(asset);
+  const int classId = get_game_res_class_id(resId);
+  return classId != 0 && is_game_resource_loaded(GAMERES_HANDLE_FROM_STRING(asset.getName()), classId);
+}
+
+static void logAssetBuildWarningsForASingleAsset(DagorAsset &asset)
+{
+  IDaBuildInterface *dabuild = dabuildcache::get_dabuild();
+  if (!dabuild)
+    return;
+
+  IDagorAssetExporter *exporter = asset.getMgr().getAssetExporter(asset.getType());
+  if (!exporter)
+    return;
+
+  dag::Vector<IDaBuildInterface::BuildWarning> warnings;
+  bool cacheUpToDate;
+  if (!dabuild->getBuiltResWarnings(asset, *exporter, assetlocalprops::makePath("cache"), warnings, cacheUpToDate) || !cacheUpToDate)
+    return;
+
+  for (const IDaBuildInterface::BuildWarning &warning : warnings)
+    DAEDITOR3.getCon().addMessage(warning.messageType, "%s", warning.message.c_str());
+}
+
+static void logAssetBuildWarnings(DagorAsset &asset, bool show_once_per_session)
+{
+  // If we only need to show the build warnings once per session and the asset has been loaded previously then its
+  // references has been loaded too.
+  if (show_once_per_session && hasAssetBeenLoadedPreviouslyInThisSession(asset))
+    return;
+
+  eastl::vector_set<DagorAsset *> assetReferences;
+  Tab<IDagorAssetRefProvider::Ref> tmp_refs;
+  getAssetReferencesRecursively(asset, assetReferences, tmp_refs);
+
+  // Log the warnings from the dependencies first.
+  for (DagorAsset *assetReference : assetReferences)
+    if (assetReference != &asset && (!show_once_per_session || !hasAssetBeenLoadedPreviouslyInThisSession(*assetReference)))
+      logAssetBuildWarningsForASingleAsset(*assetReference);
+
+  // Log the warnings from the main asset last.
+  logAssetBuildWarningsForASingleAsset(asset);
+}
 
 //=============================================================================
 void AssetViewerApp::terminateInterface()
@@ -84,7 +165,7 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
     return get_gen_light_service();
 
   if (huid == HUID_ISkiesService)
-    return get_generic_skies_service();
+    return useDngBasedSceneRender ? get_dng_based_skies_service() : get_generic_skies_service();
 
   if (huid == HUID_IColorRangeService)
     return get_generic_color_range_service();
@@ -93,13 +174,16 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
     return get_generic_rendinstgen_service();
 
   if (huid == HUID_IDynRenderService)
-    return get_generic_dyn_render_service();
+    return useDngBasedSceneRender ? get_dng_based_render_service() : get_generic_dyn_render_service();
+
+  if (huid == HUID_IRenderHelperService)
+    return get_generic_render_helper_service();
 
   if (huid == HUID_ISplineGenService)
     return get_generic_spline_gen_service();
 
   if (huid == HUID_IWindService)
-    return get_generic_wind_service();
+    return !useDngBasedSceneRender ? get_generic_wind_service() : nullptr;
 
   if (huid == HUID_IPixelPerfectSelectionService)
     return get_pixel_perfect_selection_service();
@@ -112,18 +196,17 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
   return NULL;
 }
 
-void AssetViewerApp::screenshotRender()
+void AssetViewerApp::screenshotRender(bool skip_debug_objects)
 {
-  bool last_skipRenderEnvi = skipRenderEnvi;
-  if (screenshotObjOnTranspBkg)
-    skipRenderObjects = skipRenderEnvi = true;
+  const bool lastSkipDebugObjects = skipRenderObjects;
+
+  skipRenderObjects = skip_debug_objects;
   skipSetViewProj = true;
 
   queryEditorInterface<IDynRenderService>()->renderScreenshot();
 
   skipSetViewProj = false;
-  skipRenderObjects = false;
-  skipRenderEnvi = last_skipRenderEnvi;
+  skipRenderObjects = lastSkipDebugObjects;
 }
 
 //=============================================================================
@@ -176,21 +259,18 @@ void AssetViewerApp::switchToPlugin(int id)
 {
   class InfoDrawStub : public IGenEventHandler
   {
-    virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) {}
-    virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
+    bool handleMouseMove(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseLBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseLBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseRBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseRBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseCBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseCBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+    bool handleMouseWheel(IGenViewportWnd *, int, int, int, int) override { return false; }
+    bool handleMouseDoubleClick(IGenViewportWnd *, int, int, int) override { return false; }
+    void handleViewChange(IGenViewportWnd *) override {}
 
-    virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-    virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) { return false; }
-    virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) { return false; }
-    virtual void handleViewChange(IGenViewportWnd *wnd) {}
-
-    virtual void handleViewportPaint(IGenViewportWnd *wnd) { ::get_app().drawAssetInformation(wnd); }
+    void handleViewportPaint(IGenViewportWnd *wnd) override { ::get_app().drawAssetInformation(wnd); }
   };
   static InfoDrawStub infoDrawStub;
 
@@ -201,8 +281,6 @@ void AssetViewerApp::switchToPlugin(int id)
     reloadAsset(*curAsset, curAsset->getNameId(), curAsset->getType());
     return;
   }
-
-  int curId = curPluginId;
 
   IGenEditorPlugin *cur = curPlugin();
 
@@ -216,6 +294,9 @@ void AssetViewerApp::switchToPlugin(int id)
     curPluginId = oldCur;
     return;
   }
+
+  if (curAsset && assetBuildWarningDisplay != AssetBuildWarningDisplay::ShowWhenBuilding)
+    logAssetBuildWarnings(*curAsset, assetBuildWarningDisplay == AssetBuildWarningDisplay::ShowOncePerSession);
 
   showAdditinalToolWindow(next ? next->haveToolPanel() : false);
 
@@ -307,7 +388,7 @@ PropPanel::ContainerPropertyControl *AssetViewerApp::getCustomPanel(int id) cons
 
 
 //==================================================================================================
-void AssetViewerApp::addPropPanel(int type, hdpi::Px width) { mManager->setWindowType(nullptr, type); }
+void AssetViewerApp::addPropPanel(int type, hdpi::Px) { mManager->setWindowType(nullptr, type); }
 
 
 void AssetViewerApp::removePropPanel(void *hwnd) { mManager->removeWindow(hwnd); }
@@ -381,7 +462,7 @@ bool AssetViewerApp::getSelectionBox(BBox3 &box)
 void AssetViewerApp::setupColliderParams(int, const BBox3 &) {}
 
 //==================================================================================================
-bool AssetViewerApp::traceRay(const Point3 &src, const Point3 &dir, float &dist, Point3 *out_norm, bool use_zero_plane)
+bool AssetViewerApp::traceRay(const Point3 &src, const Point3 &dir, float &dist, Point3 *out_norm, bool /*use_zero_plane*/)
 {
   if (fabs(dir.y) < 0.0001)
     return false;
@@ -419,6 +500,7 @@ void AssetViewerApp::actObjects(real dt)
   timeToTrackFiles -= dt;
 
   environment::renderEnviEntity(assetLtData);
+  act_camera_objects_config_dialog();
 
   if (timeToTrackFiles < 0)
   {
@@ -447,6 +529,10 @@ void AssetViewerApp::actObjects(real dt)
         assetToInitiallySelect.clear();
         if (asset)
           selectAsset(*asset);
+
+        if (mPropPanel)
+          mPropPanel->loadState(propPanelStateOfTheAssetToInitiallySelect, true);
+        propPanelStateOfTheAssetToInitiallySelect.reset();
       }
     }
   }
@@ -549,8 +635,6 @@ void AssetViewerApp::renderGrid()
   Tab<Point3> pt(tmpmem);
   Tab<Point3> dirs(tmpmem);
 
-  Point3 center;
-
   const int gridConersNum = 4;
   const int gridDirectionsNum = 2;
   const real fakeGridSize = 200.f;
@@ -611,6 +695,10 @@ void AssetViewerApp::startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside,
     ged.curEH = eh;
   }
 }
+
+//==============================================================================
+
+void AssetViewerApp::endGizmo(bool apply) { gizmoEH->endGizmo(apply); }
 
 //==============================================================================
 

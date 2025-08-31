@@ -14,16 +14,14 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(efx)
 class EfxRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const override { return "efx refs"; }
-  virtual const char *__stdcall getAssetType() const override { return TYPE; }
+  const char *__stdcall getRefProviderIdStr() const override { return "efx refs"; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() override {}
-  virtual void __stdcall onUnregister() override {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  virtual dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static dag::Vector<Ref> refs;
-
     refs.clear();
 
     const char *fxName = a.props.getStr("fx", "");
@@ -46,24 +44,22 @@ public:
       else
         sfxRef.setBrokenRef(sfxName);
     }
-
-    return refs;
   }
 };
 
 class EfxRefProviderPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk) override { return true; }
-  virtual void __stdcall destroy() override { delete this; }
+  bool __stdcall init(const DataBlock &appblk) override { return true; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() override { return 0; }
-  virtual const char *__stdcall getExpType(int) override { return nullptr; }
-  virtual IDagorAssetExporter *__stdcall getExp(int) override { return nullptr; }
+  int __stdcall getExpCount() override { return 0; }
+  const char *__stdcall getExpType(int) override { return nullptr; }
+  IDagorAssetExporter *__stdcall getExp(int) override { return nullptr; }
 
-  virtual int __stdcall getRefProvCount() override { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) override { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   EfxRefs ref;

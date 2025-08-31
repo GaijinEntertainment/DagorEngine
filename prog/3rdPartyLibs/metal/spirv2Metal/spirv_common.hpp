@@ -220,7 +220,7 @@ static inline std::string convert_to_string(int32_t value)
 	// INT_MIN is ... special on some backends. If we use a decimal literal, and negate it, we
 	// could accidentally promote the literal to long first, then negate.
 	// To workaround it, emit int(0x80000000) instead.
-	if (value == std::numeric_limits<int32_t>::min())
+	if (value == (std::numeric_limits<int32_t>::min)())
 		return "int(0x80000000)";
 	else
 		return std::to_string(value);
@@ -231,7 +231,7 @@ static inline std::string convert_to_string(int64_t value, const std::string &in
 	// INT64_MIN is ... special on some backends.
 	// If we use a decimal literal, and negate it, we might overflow the representable numbers.
 	// To workaround it, emit int(0x80000000) instead.
-	if (value == std::numeric_limits<int64_t>::min())
+	if (value == (std::numeric_limits<int64_t>::min)())
 		return join(int64_type, "(0x8000000000000000u", (long_long_literal_suffix ? "ll" : "l"), ")");
 	else
 		return std::to_string(value) + (long_long_literal_suffix ? "ll" : "l");
@@ -574,11 +574,19 @@ struct SPIRType : IVariant
 		Sampler,
 		AccelerationStructure,
 		RayQuery,
+		CoopVecNV,
 
 		// Keep internal types at the end.
 		ControlPointArray,
 		Interpolant,
-		Char
+		Char,
+		// MSL specific type, that is used by 'object'(analog of 'task' from glsl) shader.
+		MeshGridProperties,
+		BFloat16,
+		FloatE4M3,
+		FloatE5M2,
+
+		Tensor
 	};
 
 	// Scalar/vector/matrix support.
@@ -602,6 +610,30 @@ struct SPIRType : IVariant
 	uint32_t pointer_depth = 0;
 	bool pointer = false;
 	bool forward_pointer = false;
+
+	union
+	{
+		struct
+		{
+			uint32_t use_id;
+			uint32_t rows_id;
+			uint32_t columns_id;
+			uint32_t scope_id;
+		} cooperative;
+
+		struct
+		{
+			uint32_t component_type_id;
+			uint32_t component_count_id;
+		} coopVecNV;
+
+		struct
+		{
+			uint32_t type;
+			uint32_t rank;
+			uint32_t shape;
+		} tensor;
+	} ext;
 
 	spv::StorageClass storage = spv::StorageClassGeneric;
 
@@ -659,6 +691,12 @@ struct SPIRExtension : IVariant
 		NonSemanticGeneric
 	};
 
+	enum ShaderDebugInfoOps
+	{
+		DebugLine = 103,
+		DebugSource = 35
+	};
+
 	explicit SPIRExtension(Extension ext_)
 	    : ext(ext_)
 	{
@@ -684,6 +722,7 @@ struct SPIREntryPoint
 	FunctionID self = 0;
 	std::string name;
 	std::string orig_name;
+	std::unordered_map<uint32_t, uint32_t> fp_fast_math_defaults;
 	SmallVector<VariableID> interface_variables;
 
 	Bitset flags;
@@ -745,6 +784,10 @@ struct SPIRExpression : IVariant
 
 	// A list of expressions which this expression depends on.
 	SmallVector<ID> expression_dependencies;
+
+	// Similar as expression dependencies, but does not stop the tracking for force-temporary variables.
+	// We need to know the full chain from store back to any SSA variable.
+	SmallVector<ID> invariance_dependencies;
 
 	// By reading this expression, we implicitly read these expressions as well.
 	// Used by access chain Store and Load since we read multiple expressions in this case.
@@ -1020,6 +1063,9 @@ struct SPIRFunction : IVariant
 	// consider arrays value types.
 	SmallVector<ID> constant_arrays_needed_on_stack;
 
+	// Does this function (or any function called by it), emit geometry?
+	bool emits_geometry = false;
+
 	bool active = false;
 	bool flush_undeclared = true;
 	bool do_combined_parameters = true;
@@ -1121,6 +1167,9 @@ struct SPIRVariable : IVariant
 	// Set to true while we're inside the for loop.
 	bool loop_variable_enable = false;
 
+	// Used to find global LUTs
+	bool is_written_to = false;
+
 	SPIRFunction::Parameter *parameter = nullptr;
 
 	SPIRV_CROSS_DECLARE_CLONE(SPIRVariable)
@@ -1217,6 +1266,26 @@ struct SPIRConstant : IVariant
 		return u.f32;
 	}
 
+	static inline float fe4m3_to_f32(uint8_t v)
+	{
+		if ((v & 0x7f) == 0x7f)
+		{
+			union
+			{
+				float f32;
+				uint32_t u32;
+			} u;
+
+			u.u32 = (v & 0x80) ? 0xffffffffu : 0x7fffffffu;
+			return u.f32;
+		}
+		else
+		{
+			// Reuse the FP16 to FP32 code. Cute bit-hackery.
+			return f16_to_f32((int16_t(int8_t(v)) << 7) & (0xffff ^ 0x4000)) * 256.0f;
+		}
+	}
+
 	inline uint32_t specialization_constant_id(uint32_t col, uint32_t row) const
 	{
 		return m.c[col].id[row];
@@ -1255,6 +1324,24 @@ struct SPIRConstant : IVariant
 	inline float scalar_f16(uint32_t col = 0, uint32_t row = 0) const
 	{
 		return f16_to_f32(scalar_u16(col, row));
+	}
+
+	inline float scalar_bf16(uint32_t col = 0, uint32_t row = 0) const
+	{
+		uint32_t v = scalar_u16(col, row) << 16;
+		float fp32;
+		memcpy(&fp32, &v, sizeof(float));
+		return fp32;
+	}
+
+	inline float scalar_floate4m3(uint32_t col = 0, uint32_t row = 0) const
+	{
+		return fe4m3_to_f32(scalar_u8(col, row));
+	}
+
+	inline float scalar_bf8(uint32_t col = 0, uint32_t row = 0) const
+	{
+		return f16_to_f32(scalar_u8(col, row) << 8);
 	}
 
 	inline float scalar_f32(uint32_t col = 0, uint32_t row = 0) const
@@ -1327,9 +1414,10 @@ struct SPIRConstant : IVariant
 
 	SPIRConstant() = default;
 
-	SPIRConstant(TypeID constant_type_, const uint32_t *elements, uint32_t num_elements, bool specialized)
+	SPIRConstant(TypeID constant_type_, const uint32_t *elements, uint32_t num_elements, bool specialized, bool replicated_ = false)
 	    : constant_type(constant_type_)
 	    , specialization(specialized)
+	    , replicated(replicated_)
 	{
 		subconstants.reserve(num_elements);
 		for (uint32_t i = 0; i < num_elements; i++)
@@ -1401,8 +1489,15 @@ struct SPIRConstant : IVariant
 	// If true, this is a LUT, and should always be declared in the outer scope.
 	bool is_used_as_lut = false;
 
+	// If this is a null constant of array type with specialized length.
+	// May require special handling in initializer
+	bool is_null_array_specialized_length = false;
+
 	// For composites which are constant arrays, etc.
 	SmallVector<ConstantID> subconstants;
+
+	// Whether the subconstants are intended to be replicated (e.g. OpConstantCompositeReplicateEXT)
+	bool replicated = false;
 
 	// Non-Vulkan GLSL, HLSL and sometimes MSL emits defines for each specialization constant,
 	// and uses them to initialize the constant. This allows the user
@@ -1595,6 +1690,8 @@ struct AccessChainMeta
 	bool flattened_struct = false;
 	bool relaxed_precision = false;
 	bool access_meshlet_position_y = false;
+	bool chain_is_builtin = false;
+	spv::BuiltIn builtin = {};
 };
 
 enum ExtendedDecorations
@@ -1668,6 +1765,8 @@ enum ExtendedDecorations
 	// lack of constructors in the 'threadgroup' address space.
 	SPIRVCrossDecorationWorkgroupStruct,
 
+	SPIRVCrossDecorationOverlappingBinding,
+
 	SPIRVCrossDecorationCount
 };
 
@@ -1695,7 +1794,9 @@ struct Meta
 		uint32_t spec_id = 0;
 		uint32_t index = 0;
 		spv::FPRoundingMode fp_rounding_mode = spv::FPRoundingModeMax;
+		spv::FPFastMathModeMask fp_fast_math_mode = spv::FPFastMathModeMaskNone;
 		bool builtin = false;
+		bool qualified_alias_explicit_override = false;
 
 		struct Extended
 		{

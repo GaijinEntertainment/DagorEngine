@@ -1,20 +1,11 @@
 include "cloudsLighting.dshl"
 include "cloudsShadowVolume.dshl"
 include "skyLight.dshl"
-//include "sky_shader_global.dshl"
-//same as:
 include "hardware_defines.dshl"
+include "shader_global.dshl"
 include "writeToTex.dshl"
 
-hlsl {
-  float clampedPow(float X,float Y) { return pow(max(abs(X),0.000001f),Y); }
-  half luminance(half3 col)  { return dot(col, half3(0.299, 0.587, 0.114)); }
-}
-float4 skies_primary_sun_light_dir = (0,0.4,0.6,0);
-float skies_planet_radius = 6360;//replace with planet_radius!
-//--
-
-int cloud_shadow_samples_cnt = 40;//
+int cloud_shadow_samples_cnt = 40;
 
 float4 clouds_start_compute_offset;
 float4 clouds_compute_width;
@@ -30,7 +21,26 @@ macro INIT_COPY_CLOUD_SHADOWS_VOLUME(stage)
   }
   hlsl(stage) {
     #include <cloud_settings.hlsli>
-    uint encode(float v, uint shift) {return uint(v*255+0.5)<<shift;}
+
+    uint encode_cloud_shadow_channel(float v, uint shift)
+    {
+      return uint(v*255+0.5)<<shift;
+    }
+    uint encode_cloud_shadow(float4 v)
+    {
+      return encode_cloud_shadow_channel(v.x,0) |
+        encode_cloud_shadow_channel(v.y,8) |
+        encode_cloud_shadow_channel(v.z,16) |
+        encode_cloud_shadow_channel(v.w,24);
+    }
+    uint get_cloud_shadow(uint3 dtid)
+    {
+      uint3 tid = uint3(dtid.x*2, dtid.yz) + uint3(start_compute_offset.xyz);//todo: use some jitter instead (z-curve)
+      float4 currentValues;
+      currentValues.xy = clouds_shadows_volume[tid].xy;
+      currentValues.zw = clouds_shadows_volume[tid+uint3(1,0,0)].xy;
+      return encode_cloud_shadow(currentValues);
+    }
   }
 endmacro
 
@@ -43,12 +53,9 @@ shader copy_cloud_shadows_volume
 
     #pragma wave32
     [numthreads(CLOUD_SHADOWS_WARP_SIZE_XZ/2, CLOUD_SHADOWS_WARP_SIZE_XZ, CLOUD_SHADOWS_WARP_SIZE_Y)]
-    void cs_main(uint3 dtid : SV_DispatchThreadID) {
-      uint3 tid = uint3(dtid.x*2, dtid.yz) + uint3(start_compute_offset.xyz);//todo: use some jitter instead (z-curve)
-      float4 currentValues;
-      currentValues.xy = clouds_shadows_volume[tid].xy;
-      currentValues.zw = clouds_shadows_volume[tid+uint3(1,0,0)].xy;
-      texture3DAt(output, dtid) = encode(currentValues.x,0) | encode(currentValues.y,8) | encode(currentValues.z,16) | encode(currentValues.w,24);
+    void cs_main(uint3 dtid : SV_DispatchThreadID)
+    {
+      texture3DAt(output, dtid) = get_cloud_shadow(dtid);
     }
   }
   compile("cs_5_0", "cs_main")
@@ -66,11 +73,7 @@ shader copy_cloud_shadows_volume_ps
     uint ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       uint3 dtid = dispatchThreadID(input);
-      uint3 tid = uint3(dtid.x*2, dtid.yz) + uint3(start_compute_offset.xyz);//todo: use some jitter instead (z-curve)
-      float4 currentValues;
-      currentValues.xy = clouds_shadows_volume[tid].xy;
-      currentValues.zw = clouds_shadows_volume[tid+uint3(1,0,0)].xy;
-      return encode(currentValues.x,0) | encode(currentValues.y,8) | encode(currentValues.z,16) | encode(currentValues.w,24);
+      return get_cloud_shadow(dtid);
     }
   }
   compile("target_ps", "ps_main")
@@ -80,8 +83,7 @@ macro USE_GEN_CLOUD_SHADOWS_VOLUME(stage)
   hlsl {
     #define SIMPLIFIED_ALT_FRACTION 1
   }
-  //RAY_INTERSECT_TWO()
-  local float4 offseted_view_pos  = (0,0,0,0);
+  local float4 offseted_view_pos  = (0,0,0,0); // unused
   SAMPLE_CLOUDS_DENSITY_TEXTURE(stage, offseted_view_pos)
   local float low_sun_mul = (1-max(skies_primary_sun_light_dir.z, -skies_primary_sun_light_dir.z));
   (stage) {
@@ -136,9 +138,6 @@ macro GEN_CLOUD_SHADOWS_VOLUME_MAIN(stage)
 
       uint firstSampleCount = cloud_shadow_samples_cnt.y;
       float firstShadowStep = shadow_step.z;
-      //shadowSamples += shadowSamples;
-      //shadowStep*=0.5;
-      //expStep*=0.75;
       #if TEMPORAL_UPDATE_SHADOW
         //partial update implementation (temporal)
         uint3 tid = dtid + uint3(start_compute_offset.xyz);//todo: use some jitter instead (z-curve)
@@ -228,8 +227,7 @@ macro GEN_CLOUD_SHADOWS_VOLUME_MAIN(stage)
 
       #if TEMPORAL_UPDATE_SHADOW
         float2 currentValues = get_old_values(dtid);
-        result.x = lerp(currentValues.x, result.x, clouds_new_shadow_ambient_weight.x);
-        result.y = lerp(currentValues.y, result.y, clouds_new_shadow_ambient_weight.y);
+        result = lerp(currentValues, result, clouds_new_shadow_ambient_weight);
       #endif
       return tid;
     }

@@ -1,4 +1,5 @@
 return {
   get_xbox_login_url = @() ""
   login_live = @(...) null
+  have_game_pass_subscription = @(...) null
 }

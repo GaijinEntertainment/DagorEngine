@@ -3,6 +3,7 @@
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/basePath.h>
+#include <stddef.h>
 #include <string.h>
 #include <debug/dag_debug.h>
 

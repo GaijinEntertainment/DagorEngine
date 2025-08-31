@@ -13,8 +13,8 @@ public:
   bool updateImgui();
 
 private:
-  virtual bool isContextMenu() const override { return true; }
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  bool isContextMenu() const override { return true; }
+  void onImguiDelayedCallback(void *user_data) override;
 
   bool calledOpenPopup = false;
   bool waitingForDelayedCallback = false;

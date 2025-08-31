@@ -180,7 +180,7 @@ shader rendinst_impostor_octahedral
       float4 color;
 
       // PC and PS3 instancing.
-      output.colorMul_opacity.xyz = get_random_color(worldLocalPos).rgb;
+      output.colorMul_opacity.xyz = get_random_color(worldLocalPos, 0).rgb;
 
       float worldScale = length(worldLocalX);
       float invScale = 1/worldScale;

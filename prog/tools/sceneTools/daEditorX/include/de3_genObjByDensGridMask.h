@@ -6,6 +6,7 @@
 
 #include <math/dag_bounds2.h>
 #include <math/dag_TMatrix.h>
+#include <gameMath/objgenPrng.h>
 #include <de3_objEntity.h>
 #include <de3_interface.h>
 #include <de3_landClassData.h>
@@ -15,48 +16,10 @@
 
 namespace objgenerator
 {
-static __forceinline void _rnd_ivec2_mbit(int &seed, int &x, int &y)
-{
-  static const int CMASK = landclass::DensMapLeaf::SZ - 1;
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  x = signed(a >> 16) & CMASK;
-  y = signed(b >> 16) & CMASK;
-  seed = (int)b;
-}
-static __forceinline void _rnd_ivec2(int &seed, int &x, int &y)
-{
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  x = signed(a >> 16) & 0x7FFF;
-  y = signed(b >> 16) & 0x7FFF;
-  seed = (int)b;
-}
-
-static __forceinline void _rnd_fvec2(int &seed, float &x, float &y)
-{
-  int ix, iy;
-  _rnd_ivec2(seed, ix, iy);
-  y = iy / 32768.0f;
-  x = ix / 32768.0f;
-}
-
-static __forceinline void _skip6_rnd(int &seed)
-{
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b, c, d, e, f;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  c = (unsigned)b * 0x41C64E6D + 0x3039;
-  d = (unsigned)c * 0x41C64E6D + 0x3039;
-  e = (unsigned)d * 0x41C64E6D + 0x3039;
-  f = (unsigned)e * 0x41C64E6D + 0x3039;
-  seed = (int)f;
-}
-__forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd(s); }
-
 
 #define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                                             \
   float rndx, rndy;                                                                                                         \
-  _rnd_fvec2(seed, rndx, rndy);                                                                                             \
+  rnd_fvec2(seed, rndx, rndy);                                                                                              \
   pos.x = mx + (ou + rndx) * gstepx;                                                                                        \
   pos.y = init_y0;                                                                                                          \
   pos.z = my + (ov + rndy) * gstepy;                                                                                        \
@@ -64,12 +27,12 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
       !mask.getClamped((pos.x - world0_x) * world2sampler, (pos.z - world0_y) * world2sampler) ||                           \
       !is_place_allowed(pos.x + entity_ofs_x, pos.z + entity_ofs_z))                                                        \
   {                                                                                                                         \
-    _skip6_rnd(seed);                                                                                                       \
-    _rnd(seed);                                                                                                             \
+    skip6_rnd(seed);                                                                                                        \
+    rnd(seed);                                                                                                              \
     ret_word;                                                                                                               \
   }                                                                                                                         \
                                                                                                                             \
-  float w = floorf(_frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                                \
+  float w = floorf(frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                                 \
   int objId, entIdx = -1;                                                                                                   \
   for (objId = 0; objId < sgeg.obj.size(); ++objId)                                                                         \
   {                                                                                                                         \
@@ -87,7 +50,7 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
   }                                                                                                                         \
   if (ent[entIdx] && ent[entIdx]->getAssetTypeId() == skip_asset_type)                                                      \
   {                                                                                                                         \
-    _skip6_rnd(seed);                                                                                                       \
+    skip6_rnd(seed);                                                                                                        \
     ret_word;                                                                                                               \
   }                                                                                                                         \
   pos.x += entity_ofs_x;                                                                                                    \
@@ -164,7 +127,7 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
   e->setTm(tm);                                                                                                             \
   IColor *ecol = e->queryInterface<IColor>();                                                                               \
   if (ecol)                                                                                                                 \
-    ecol->setColor(sgeg.colorRangeIdx), _skip_rnd_ivec4(seed);
+    ecol->setColor(sgeg.colorRangeIdx), skip_rnd_ivec4(seed);
 
 namespace internal
 {
@@ -206,14 +169,17 @@ struct GenObjCB
       numc = CSZ * CSZ;
     }
     else
-      for (i = 0; i < CSZ * CSZ; ++i)
+    {
+      char *cuPtr = &cu[0][0];
+      for (i = 0; i < CSZ * CSZ; ++i, ++cuPtr)
         if (l->getByIdx(i))
         {
-          cu[0][i] = 1;
+          *cuPtr = 1;
           ++numc;
         }
         else
-          cu[0][i] = 0;
+          *cuPtr = 0;
+    }
 
     if (!numc)
       return;
@@ -223,8 +189,8 @@ struct GenObjCB
     tm.identity();
 
     int seed1 = u0 + 97, seed2 = v0 + 79;
-    _rnd(seed1);
-    _rnd(seed2);
+    rnd(seed1);
+    rnd(seed2);
     int seed = (sgeg.rseed ^ seed1 ^ seed2) + seed1 + seed2;
 
     int numu = 0;
@@ -236,7 +202,7 @@ struct GenObjCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (cu[ov][ou] == 1)
           break;
       }
@@ -244,9 +210,10 @@ struct GenObjCB
       if (++numu >= numc)
       {
         numu = 0;
-        for (i = 0; i < CSZ * CSZ; ++i)
-          if (cu[0][i] == 2)
-            cu[0][i] = 1;
+        char *cuPtr = &cu[0][0];
+        for (i = 0; i < CSZ * CSZ; ++i, ++cuPtr)
+          if (*cuPtr == 2)
+            *cuPtr = 1;
       }
       ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, continue);
     }
@@ -256,11 +223,11 @@ struct GenObjCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (cu[ov][ou] == 1)
           break;
       }
-      if (_rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? int(num * 32768) + 1 : 0))
+      if (rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? int(num * 32768) + 1 : 0))
       {
         ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, return);
       }
@@ -328,8 +295,8 @@ inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities
       memset(cu2, 0, sizeof(cu2));
 
       int seed1 = int(mx / dx) + 97, seed2 = int(my / dy) + 79;
-      _rnd(seed1);
-      _rnd(seed2);
+      rnd(seed1);
+      rnd(seed2);
       int seed = (sgeg.rseed ^ seed1 ^ seed2) + seed1 + seed2;
 
       int numu = 0;
@@ -340,7 +307,7 @@ inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities
         int ou, ov;
         for (;;)
         {
-          _rnd_ivec2_mbit(seed, ou, ov);
+          rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
           if (!(cu2[ov] & (1 << ou)))
             break;
         }
@@ -358,11 +325,11 @@ inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities
         int ou, ov;
         for (;;)
         {
-          _rnd_ivec2_mbit(seed, ou, ov);
+          rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
           if (!(cu2[ov] & (1 << ou)))
             break;
         }
-        if (_frnd(seed) <= num)
+        if (frnd(seed) <= num)
         {
           ADD_ENTITY_BYMASK(1, mask, internal::rect, planted.ent, continue);
         }

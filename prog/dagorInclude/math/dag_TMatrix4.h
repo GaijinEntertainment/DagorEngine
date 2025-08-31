@@ -465,9 +465,18 @@ INLINE TMatrix4 matrix_ortho_off_center_lh(float l, float r, float b, float t, f
   return result;
 }
 
+INLINE TMatrix4 matrix_perspective_reverse(float wk, float hk, float zn, float zf, float ox, float oy)
+{
+  TMatrix4 res = TMatrix4(wk, 0, 0, 0, 0, hk, 0, 0, 0, 0, -zn / (zf - zn), 1, 0, 0, zn * zf / (zf - zn), 0);
+  res(2, 0) += ox;
+  res(2, 1) += oy;
+
+  return res;
+}
+
 INLINE TMatrix4 matrix_perspective_reverse(float wk, float hk, float zn, float zf)
 {
-  return TMatrix4(wk, 0, 0, 0, 0, hk, 0, 0, 0, 0, -zn / (zf - zn), 1, 0, 0, zn * zf / (zf - zn), 0);
+  return matrix_perspective_reverse(wk, hk, zn, zf, 0.0f, 0.0f);
 }
 
 INLINE TMatrix4 matrix_perspective_forward(float wk, float hk, float z_near, float z_far)
@@ -514,6 +523,12 @@ INLINE TMatrix4 matrix_perspective_crop(float l, float r, float b, float t, floa
 {
   return TMatrix4(2.0f / (r - l), 0, 0, 0, 0, 2.0f / (t - b), 0, 0, 0, 0, 1.0f / (zf - zn), 0, (l + r) / (l - r), (t + b) / (b - t),
     -zn / (zf - zn), 1.0f);
+}
+
+INLINE void matrix_perspective_add_jitter(TMatrix4 &proj, const float ox, const float oy)
+{
+  proj(2, 0) += ox;
+  proj(2, 1) += oy;
 }
 
 INLINE TMatrix tmatrix(const TMatrix4 &a)

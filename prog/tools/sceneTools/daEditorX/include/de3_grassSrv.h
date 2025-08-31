@@ -22,7 +22,7 @@ public:
   virtual void enableGrass(bool flag) = 0;
 
   virtual void beforeRender(Stage stage) = 0;
-  virtual void renderGeometry(Stage stage) = 0;
+  void renderGeometry(Stage stage) override = 0;
   virtual BBox3 *getGrassBbox() = 0;
 
   virtual int addDefaultLayer() = 0;

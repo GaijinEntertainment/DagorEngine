@@ -41,6 +41,12 @@ hlsl(code) {
     half emission_part;
     float material;
     bool dynamic;
+    uint isLandscape;
+
+    bool isTwoSided;
+    bool isGlass;
+    bool isGrass;
+    bool isUnstable;
   };
 
   struct UnpackedGbuffer
@@ -54,11 +60,18 @@ hlsl(code) {
     half emission_part;//either translucent or metallic or emission
 
 
+    half impostorMask;
     half ao;//either ao, or emission
     half emission_strength;//either ao, or emission
     half shadow;
     float material;
     bool dynamic;
+    uint isLandscape;
+
+    bool isTwoSided;
+    bool isGlass;
+    bool isGrass;
+    bool isUnstable;
   };
 
   struct PackedGbuffer
@@ -118,7 +131,7 @@ hlsl(code) {
   }
   UnpackedGbuffer unpackGbuffer(PackedGbuffer gbuf)
   {
-    UnpackedGbuffer gbuffer;
+    UnpackedGbuffer gbuffer = (UnpackedGbuffer)0;
 
     gbuffer.material = floor(gbuf.normal_smoothness_material.w*3.f);
     //half metallTranslucency_shadow = gbuf.metallTranslucency_shadow.x*(255.0/16.0);
@@ -144,7 +157,7 @@ hlsl(code) {
   }
   ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
   {
-    ProcessedGbuffer gbuffer;
+    ProcessedGbuffer gbuffer = (ProcessedGbuffer)0;
     gbuffer.material = gbuf.material;
     gbuffer.normal = gbuf.normal;
     gbuffer.linearRoughness = 1-gbuf.smoothness;
@@ -162,7 +175,7 @@ hlsl(code) {
     //if (gbuffer.material == SHADING_FOLIAGE)
     //  gbuffer.translucencyColor *= float3(0.6,1,0.5);
 
-    half fresnel0Dielectric = 0.04f;// + (gbuf.material == SHADING_NORMAL ? 0.2 * (1-gbuf.shadow) : 0);//lerp(0.16f,0.01f, roughness);//sqr((1.0 - refractiveIndex)/(1.0 + refractiveIndex)) for dielectrics;
+    half fresnel0Dielectric = 0.04;// + (gbuf.material == SHADING_NORMAL ? 0.2 * (1-gbuf.shadow) : 0);//lerp(0.16f,0.01f, roughness);//sqr((1.0 - refractiveIndex)/(1.0 + refractiveIndex)) for dielectrics;
     //fresnel0Dielectric = gbuffer.material != SHADING_FOLIAGE ? lerp(0.04f, 0.01f, gbuffer.roughness) : fresnel0Dielectric;
     fresnel0Dielectric = lerp(fresnel0Dielectric, 0.01f, gbuffer.roughness*gbuffer.translucency);
     fresnel0Dielectric *= (1-gbuffer.translucency);
@@ -177,9 +190,15 @@ hlsl(code) {
     result.albedo = result.normal = 0;
     result.smoothness = result.metallness = result.translucency = 0;
     result.emission_part = result.emission_strength = 0;
+    result.impostorMask = 0;
     result.ao = result.shadow = 1;
     result.material = SHADING_NORMAL;
     result.dynamic = false;
+    result.isLandscape = false;
+    result.isTwoSided = false;
+    result.isGlass = false;
+    result.isGrass = false;
+    result.isUnstable = false;
   }
   void init_dynamic(inout UnpackedGbuffer result, bool dynamic)
     {result.dynamic = dynamic;}
@@ -238,6 +257,24 @@ if (compatibility_mode == compatibility_mode_off)
       return write_gbuffer(pack_gbuffer(gbuffer));
     }
     #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a)
+    #if BLEND_GBUFFER
+    GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuffer, half alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_ao.w = ret.normal_smoothness_material.w = ret.metallTranslucency_shadow_dynamic.w = alpha;
+      return ret;
+    }
+    GBUFFER_OUTPUT encode_gbuffer_alpha3_raw(UnpackedGbuffer gbuffer, half3 alpha)
+    {
+      GBUFFER_OUTPUT ret = write_gbuffer(pack_gbuffer(gbuffer));
+      ret.albedo_ao.w = alpha.x;
+      ret.normal_smoothness_material.w = alpha.y;
+      ret.metallTranslucency_shadow_dynamic.w = alpha.z;
+      return ret;
+    }
+    #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a,b)
+    #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a,b)
+    #endif
   }
 }
 
@@ -448,6 +485,15 @@ endmacro
 
 macro INIT_LOAD_MOTION_BUFFER_BASE(code)
   (code) {motion_gbuf_load@tex2d = motion_gbuf;}
+endmacro
+
+macro USE_READ_DYNAMIC_FLAG(code)
+  hlsl(code) {
+    uint isGbufferDynamic(float2 uv)
+    {
+      return uint(tex2Dlod(material_gbuf_read, float4(uv,0,0)).a);
+    }
+  }
 endmacro
 
 macro USE_LOAD_MOTION_BUFFER_BASE(code)

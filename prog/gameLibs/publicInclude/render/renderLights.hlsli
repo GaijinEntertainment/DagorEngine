@@ -19,7 +19,7 @@ struct RenderSpotLight
   float4 lightPosRadius;
   float4 lightColorAngleScale;
   float4 lightDirectionAngleOffset;
-  float4 texId_scale_shadow_contactshadow;
+  float4 texId_scale_illuminatingplane_shadow_contactshadow;
 };
 
 struct SpotlightShadowDescriptor
@@ -29,6 +29,13 @@ struct SpotlightShadowDescriptor
   float hasDynamic; //bool
   float4 uvMinMax;
 };
+
+#ifndef __cplusplus
+float4 get_omni_light_color(RenderOmniLight light)
+{
+  return float4(abs(light.colorFlags.rgb), light.colorFlags.a);
+}
+#endif
 
 //Implemented here, to avoid needing to pass these two values in a buffer
 //inline needed to avoid duplicate symbol link error in c++

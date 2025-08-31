@@ -111,6 +111,7 @@ __forceinline void visit_as_ith(size_t index, const void *address, V &&v)
 template <typename T, typename... Ts, size_t... Is>
 constexpr size_t type_index_of_impl(eastl::index_sequence<Is...>)
 {
+  static_assert((eastl::is_same_v<T, Ts> || ...));
   return ([&]() {
     if constexpr (eastl::is_same_v<T, Ts>)
       return Is;
@@ -210,8 +211,9 @@ public:
   template <typename U, typename... Us>
   void constructAt(void *address, Us &&...us)
   {
-    auto newIndex = typeIndexOf<U>();
-    ::new ((void *)&castTo<U>(address)) U{eastl::forward<Us>(us)...};
+    using ConstructT = typename eastl::remove_cvref_t<U>;
+    auto newIndex = typeIndexOf<ConstructT>();
+    ::new ((void *)&castTo<ConstructT>(address)) ConstructT{eastl::forward<Us>(us)...};
     index = newIndex;
   }
 
@@ -592,6 +594,7 @@ class VariantArray<N, Ts...>::iterator // satisfies LegacyRandomAccessIterator
 
 public:
   iterator(const iterator &) = default;
+  iterator &operator=(const iterator &) = default;
 
   using value_type = ElementProxy;
   using difference_type = ptrdiff_t;
@@ -661,6 +664,7 @@ class VariantArray<N, Ts...>::const_iterator // satisfies LegacyRandomAccessIter
 
 public:
   const_iterator(const const_iterator &) = default;
+  const_iterator &operator=(const const_iterator &) = default;
 
   using value_type = ConstElementProxy;
   using difference_type = ptrdiff_t;
@@ -731,6 +735,7 @@ class VariantArray<N, Ts...>::typed_iterator // satisfies LegacyForwardIterator
 
 public:
   typed_iterator(const typed_iterator &) = default;
+  typed_iterator &operator=(const typed_iterator &) = default;
 
   using value_type = U;
   using difference_type = ptrdiff_t;
@@ -769,6 +774,7 @@ class VariantArray<N, Ts...>::typed_const_iterator // satisfies LegacyForwardIte
 
 public:
   typed_const_iterator(const typed_const_iterator &) = default;
+  typed_const_iterator &operator=(const typed_const_iterator &) = default;
 
   using value_type = U;
   using difference_type = ptrdiff_t;

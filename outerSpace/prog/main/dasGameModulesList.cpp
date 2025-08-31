@@ -4,7 +4,4 @@
 #include <daScript/daScriptModule.h>
 #include <package_physobj/pullDas.h>
 
-void pull_game_das()
-{
-  NEED_MODULES_PACKAGE_PHYSOBJ()
-}
+void pull_game_das() { NEED_MODULES_PACKAGE_PHYSOBJ() }

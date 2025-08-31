@@ -95,7 +95,7 @@ typedef D3DRESID TEXTUREID;
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 inline D3DRESID constexpr BAD_D3DRESID;
 #else
-static constexpr D3DRESID BAD_D3DRESID;  //-V1043
+static constexpr D3DRESID BAD_D3DRESID; //-V1043
 #endif
 
 //! Alias for backwards compatibility and readability

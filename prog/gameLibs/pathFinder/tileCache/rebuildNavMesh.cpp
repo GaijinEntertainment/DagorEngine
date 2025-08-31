@@ -178,15 +178,25 @@ public:
     pools.resize(rendinst::getRiGenExtraResCount());
     pools.reset();
 
+    transparentPools.clear();
+
     obstaclePools.clear();
 
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { pools.set(pool); });
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { pools.reset(pool); });
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { pools.set(pool); });
 
+    const int blkSkipNameId1 = navmblk.getNameId("filter");
+    const int blkSkipNameId2 = navmblk.getNameId("filter_exclude");
+    const int blkSkipNameId3 = navmblk.getNameId("filter_include");
+
     for (int blkIt = 0; blkIt < navmblk.blockCount(); blkIt++)
     {
       const DataBlock *blk = navmblk.getBlock(blkIt);
+      const int blkNameId = blk->getBlockNameId();
+      if (blkNameId == blkSkipNameId1 || blkNameId == blkSkipNameId2 || blkNameId == blkSkipNameId3)
+        continue;
+
       if (blk->getBool("ignoreCollision", false))
       {
         for (int i = 0; i < blk->blockCount(); i++)
@@ -196,7 +206,8 @@ public:
             pools.set(pool);
         }
       }
-      else
+
+      if (blk->getBool("returnCollision", false))
       {
         for (int i = 0; i < blk->blockCount(); i++)
         {
@@ -460,7 +471,7 @@ void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices
 
   RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
     navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-  rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+  rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
   cb.procAllCollision();
 }
 

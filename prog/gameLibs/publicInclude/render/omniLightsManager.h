@@ -5,7 +5,6 @@
 #pragma once
 
 #include "omniLight.h"
-#include <atomic>
 #include <osApiWrappers/dag_spinlock.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_tabFwd.h>
@@ -13,13 +12,20 @@
 #include <generic/dag_carray.h>
 #include <3d/dag_texMgr.h>
 #include <math/dag_hlsl_floatx.h>
-#include <util/dag_oaHashNameMap.h>
 #include "renderLights.hlsli"
 
 #include <render/iesTextureManager.h>
 
 #include <EASTL/bitset.h>
-#include <EASTL/vector.h>
+
+#include "light_mask_inc.hlsli"
+
+inline OmniLightMaskType &operator|=(OmniLightMaskType &lhs, OmniLightMaskType rhs)
+{
+  lhs = static_cast<OmniLightMaskType>(static_cast<eastl::underlying_type<OmniLightMaskType>::type>(lhs) | //-V1016
+                                       static_cast<eastl::underlying_type<OmniLightMaskType>::type>(rhs)); //-V1016
+  return lhs;
+}
 
 struct Frustum;
 class Occlusion;
@@ -46,15 +52,8 @@ class OmniLightsManager
 public:
   typedef OmniLight Light;
   typedef Light RawLight;
-  typedef uint8_t mask_type_t;
 
   static constexpr int MAX_LIGHTS = 2048;
-  enum
-  {
-    GI_LIGHT_MASK = 0x1, // TODO: maybe rename it
-    MASK_LENS_FLARE = 0x2,
-    MASK_ALL = 0xFF
-  };
 
   OmniLightsManager();
   ~OmniLightsManager();
@@ -64,15 +63,17 @@ public:
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    mask_type_t accept_mask = MASK_ALL) const;
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane, Occlusion *,
     bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(), mask_type_t accept_mask = MASK_ALL) const;
+    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside, Tab<uint16_t> &lights_with_camera_outside,
     Occlusion *, bbox3f &inside_box, bbox3f &outside_box, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(), mask_type_t accept_mask = MASK_ALL) const;
+    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
 
   void drawDebugInfo();
   void renderDebugBboxes();
@@ -133,8 +134,8 @@ public:
 
   void setLightTexture(unsigned int id, int tex);
 
-  mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
-  void setLightMask(unsigned int id, mask_type_t mask) { masks[id] = mask; }
+  OmniLightMaskType getLightMask(unsigned int id) const { return masks[id]; }
+  void setLightMask(unsigned int id, OmniLightMaskType mask) { masks[id] = mask; }
 
   const Light &getLight(unsigned int id) const { return rawLights[id]; }
   void setLight(unsigned int id, const Light &l)
@@ -171,7 +172,7 @@ private:
   carray<uint8_t, MAX_LIGHTS> lightPriority;
   // masks allows to ignore specific lights in specific cases
   // for example, we can ignore highly dynamic lights for GI
-  carray<mask_type_t, MAX_LIGHTS> masks; //-V730_NOINIT
+  carray<OmniLightMaskType, MAX_LIGHTS> masks; //-V730_NOINIT
   StaticTab<uint16_t, MAX_LIGHTS> freeLightIds DAG_TS_GUARDED_BY(lightAllocationSpinlock);
   IesTextureCollection *photometryTextures = nullptr;
   OSSpinlock lightAllocationSpinlock;

@@ -69,6 +69,10 @@ int DagorWinMain(bool debugmode)
   dd_simplify_fname_c(exe_dir);
   String cwd = String(exe_dir);
 
+  // dng default
+  version2syntax = false;
+  gen2MakeSyntax = true;
+
   DataBlock config;
   for (int ai = 0; ai != dgs_argc; ++ai)
   {
@@ -91,7 +95,17 @@ int DagorWinMain(bool debugmode)
               dd_add_base_path(basePath);
             }
             else if (strcmp(name, "project") == 0)
+            {
               modulePath = String(config.getStr(i));
+            }
+            else if (strcmp(name, "version2syntax") == 0)
+            {
+              version2syntax = config.getBool(i);
+            }
+            else if (strcmp(name, "gen2MakeSyntax") == 0)
+            {
+              gen2MakeSyntax = config.getBool(i);
+            }
           }
         }
       }
@@ -109,8 +123,11 @@ int DagorWinMain(bool debugmode)
   dd_set_named_mount_path("daslibEcs", "gameLibs/das/ecs/");
   dd_set_named_mount_path("daslib", "1stPartyLibs/daScript/daslib/");
   bind_dascript::set_das_root("1stPartyLibs/daScript/"); // use exe dir as root path
+  auto syntax = version2syntax   ? bind_dascript::DasSyntax::V2_0
+                : gen2MakeSyntax ? bind_dascript::DasSyntax::V1_5
+                                 : bind_dascript::DasSyntax::V1_0;
   bind_dascript::init_systems(bind_dascript::AotMode::NO_AOT, bind_dascript::HotReload::DISABLED, bind_dascript::LoadDebugCode::YES,
-    bind_dascript::LogAotErrors::NO, modulePath.empty() ? nullptr : modulePath.c_str());
+    bind_dascript::LogAotErrors::NO, syntax, modulePath.empty() ? nullptr : modulePath.c_str());
 
   return aot_main(dgs_argc, (char **)dgs_argv);
 }

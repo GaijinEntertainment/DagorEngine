@@ -40,12 +40,12 @@ def test_tags(opt : Object; all_tags : Object) : bool
   return true
 
 
-def get_option_path_string(obj : Object const; is_watched : bool; var result : string&) : bool
-  if is_watched && has(obj, "hero")
-    result = obj.hero ?? "error"
+def get_option_path_string(obj : Object const; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
+  if is_watched && has(obj, watched_key)
+    result = obj[watched_key] ?? "error"
     return true
-  elif !is_watched && has(obj, "enemy")
-    result = obj.enemy ?? "error"
+  elif !is_watched && has(obj, unwatched_key)
+    result = obj[unwatched_key] ?? "error"
     return true
   elif has(obj, "path")
     result = obj.path ?? "error"
@@ -53,31 +53,31 @@ def get_option_path_string(obj : Object const; is_watched : bool; var result : s
   return false
 
 
-def get_option_path(path : Object; path_id : int; is_watched : bool; var result : string&) : bool
+def get_option_path(path : Object; path_id : int; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
   if !has(path, "options")
     if path_id == 0
-      return get_option_path_string(path, is_watched, result)
+      return get_option_path_string(path, is_watched, result, watched_key, unwatched_key)
     return false
   let opts = *(path["options"]) as Array
   if opts != null
     if path_id >= 0 && path_id < length(*opts)
       let opt = (*opts)[path_id] as Object
       if opt != null
-        return get_option_path_string(*opt, is_watched, result)
+        return get_option_path_string(*opt, is_watched, result, watched_key, unwatched_key)
   return false
 
 
-def get_option_path(path : Object; tags : Object; is_watched : bool; var result : string&) : bool
+def get_option_path(path : Object; tags : Object; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
   if !has(path, "options")
     if test_tags(path, tags)
-      return get_option_path_string(path, is_watched, result)
+      return get_option_path_string(path, is_watched, result, watched_key, unwatched_key)
     return false
   let opts = *(path["options"]) as Array
   if opts != null
     for it in *opts
       let opt = it as Object
       if opt != null && test_tags(*opt, tags)
-        return get_option_path_string(*opt, is_watched, result)
+        return get_option_path_string(*opt, is_watched, result, watched_key, unwatched_key)
   return false
 
 
@@ -94,6 +94,14 @@ def get_option_path(path : Object const?; tags : Object; is_watched : bool; var 
   return path != null && get_option_path(*path, tags, is_watched, result)
 
 
+def get_option_object(opts : Object; tags : Object) : Object const?
+  for it in opts
+    let opt = it.value as Object
+    if opt != null && test_tags(*opt, tags)
+      return opt
+  return null
+
+
 def get_path_by_name(paths : Object; path_name : string)
   let path = paths[path_name] ?as Object
   return path != null ? path : get_ecs_object(paths, "default")
@@ -107,14 +115,14 @@ def is_valid(obj : Object)
 def is_valid(obj : Object; all_tags : Object)
   return is_valid(obj) && test_tags(obj, all_tags)
 
-def play_name_path_impl(name : string; path : string; id : uint; pos : float3; var group : SoundEventGroup&)
-  let handle = soundEvent::play(name, path, pos)
+def play_name_path_impl(name : string; path : string; id : uint; pos : float3; var group : SoundEventGroup&; delay = 0.)
+  let handle = soundEvent::delayed_play(name, path, pos, delay)
   reject_sound(group, id)
   add_sound(group, id, handle)
   return handle
 
-def play_name_path_impl(name : string; path : string; pos : float3; is_abandon : bool)
-  var handle = soundEvent::play(name, path, pos)
+def play_name_path_impl(name : string; path : string; pos : float3; is_abandon : bool; delay = 0.)
+  var handle = soundEvent::delayed_play(name, path, pos, delay)
   if is_abandon
     abandon(handle)
   return handle
@@ -123,16 +131,18 @@ def play_name_path(name : string;
                    path : string;
                    id : uint;
                    pos : float3;
-                   var group : SoundEventGroup&)
+                   var group : SoundEventGroup&;
+                   delay = 0.)
   reject_sound(group, id)
-  return play_name_path_impl(name, path, id, pos, group)
+  return play_name_path_impl(name, path, id, pos, group, delay)
 
 def play_name_path(name : string;
                    path : string;
                    pos : float3;
-                   is_abandon : bool = true)
+                   is_abandon : bool = true;
+                   delay = 0.)
   if !empty(name) || !empty(path)
-    return play_name_path_impl(name, path, pos, is_abandon)
+    return play_name_path_impl(name, path, pos, is_abandon, delay)
   return invalid_sound_event_handle()
 
 
@@ -150,7 +160,7 @@ def play_desc_path(desc : Object;
   if !empty(path) && is_valid(desc)
     let name = get_name(desc, is_watched_sound)
     if !empty(name)
-      return play_name_path_impl(name, path, id, pos, group)
+      return play_name_path_impl(name, path, id, pos, group, desc.delay ?? 0.)
   return invalid_sound_event_handle()
 
 def play_desc_path(desc : Object;
@@ -161,7 +171,7 @@ def play_desc_path(desc : Object;
   if !empty(path) && is_valid(desc)
     let name = get_name(desc, is_watched_sound)
     if !empty(name)
-      return play_name_path_impl(name, path, pos, is_abandon)
+      return play_name_path_impl(name, path, pos, is_abandon, desc.delay ?? 0.)
   return invalid_sound_event_handle()
 
 
@@ -209,11 +219,14 @@ def play_path(path_obj : Object;
               tags : Object;
               is_watched_sound : bool;
               pos : float3;
-              is_abandon : bool = true)
+              is_abandon : bool = true;
+              delay = 0.;
+              prefix = "")
   var path = ""
   if get_option_path(path_obj, tags, is_watched_sound, path)
     let name = apply_watched_prefix_name_path(path, is_watched_sound)
-    return play_name_path(name, path, pos, is_abandon)
+    path = "{prefix}{path}"
+    return play_name_path(name, path, pos, is_abandon, delay)
   return invalid_sound_event_handle()
 
 
@@ -221,10 +234,11 @@ def play_path(path_obj : Object;
               name : string;
               is_watched_sound : bool;
               pos : float3;
-              is_abandon : bool = true)
+              is_abandon : bool = true;
+              delay = 0.)
   var path = ""
   if get_option_path_string(path_obj, is_watched_sound, path)
-    return play_name_path(name, path, pos, is_abandon)
+    return play_name_path(name, path, pos, is_abandon, delay)
   return invalid_sound_event_handle()
 
 
@@ -233,12 +247,15 @@ def play_path(path_obj : Object;
               is_watched_sound : bool;
               pos : float3;
               id : uint;
-              var group : SoundEventGroup&)
+              var group : SoundEventGroup&;
+              delay = 0.;
+              prefix = "")
   reject_sound(group, id)
   var path = ""
   if get_option_path(path_obj, tags, is_watched_sound, path)
     let name = apply_watched_prefix_name_path(path, is_watched_sound)
-    return play_name_path(name, path, id, pos, group)
+    path = "{prefix}{path}"
+    return play_name_path(name, path, id, pos, group, delay)
   return invalid_sound_event_handle()
 
 
@@ -247,10 +264,11 @@ def play_path(path_id : string;
               tags : Object;
               is_watched_sound : bool;
               pos : float3;
-              is_abandon : bool = true)
+              is_abandon : bool = true;
+              prefix = "")
   let path = get_desc(paths, path_id)
   if path != null
-    return play_path(*path, tags, is_watched_sound, pos, is_abandon)
+    return play_path(*path, tags, is_watched_sound, pos, is_abandon, 0., prefix)
   sound_debug("no path '{path_id}' exists")
   return invalid_sound_event_handle()
 
@@ -261,11 +279,12 @@ def play_path(path_id : string;
               is_watched_sound : bool;
               pos : float3;
               id : uint;
-              var group : SoundEventGroup&)
+              var group : SoundEventGroup&;
+              prefix = "")
   reject_sound(group, id)
   let path = get_desc(paths, path_id)
   if path != null
-    return play_path(*path, tags, is_watched_sound, pos, id, group)
+    return play_path(*path, tags, is_watched_sound, pos, id, group, 0., prefix)
   sound_debug("no path '{path_id}' exists")
   return invalid_sound_event_handle()
 
@@ -284,7 +303,7 @@ def play(desc_id : string;
       if get_option_path(path_obj, tags, is_watched_sound, path)
         let name = get_name(*desc, is_watched_sound, desc_id)
         if !empty(name)
-          return play_name_path(name, path, pos, is_abandon)
+          return play_name_path(name, apply_watched_prefix(path, is_watched_sound), pos, is_abandon, desc?.delay ?? 0.)
     return invalid_sound_event_handle()
   sound_debug("no desc '{desc_id}' exists")
   return invalid_sound_event_handle()
@@ -306,7 +325,7 @@ def play(desc_id : string;
       if get_option_path(path_obj, tags, is_watched_sound, path)
         let name = get_name(*desc, is_watched_sound, desc_id)
         if !empty(name)
-          return play_name_path(name, path, id, pos, group)
+          return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc?.delay ?? 0.)
     return invalid_sound_event_handle()
   sound_debug("no desc '{desc_id}' exists")
   return invalid_sound_event_handle()
@@ -325,7 +344,7 @@ def play_desc(desc_obj : Object;
     if get_option_path(path_obj, tags, is_watched_sound, path)
       let name = get_name(desc_obj, is_watched_sound)
       if !empty(name)
-        return play_name_path(name, path, id, pos, group)
+        return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc_obj.delay ?? 0.)
   return invalid_sound_event_handle()
 
 
@@ -340,7 +359,7 @@ def play_desc(desc_obj : Object;
     if get_option_path(path_obj, tags, is_watched_sound, path)
       let name = get_name(desc_obj, is_watched_sound)
       if !empty(name)
-        return play_name_path(name, path, pos, is_abandon)
+        return play_name_path(name, apply_watched_prefix(path, is_watched_sound), pos, is_abandon, desc_obj.delay ?? 0.)
   return invalid_sound_event_handle()
 
 
@@ -407,7 +426,7 @@ def private play_or_release_impl(var event : SoundEvent&; name : string; should_
 
 // for use from update()
 // event.enabled is a user state(tag)
-// event.enabled SHOULD NOT depend from sound state (cvs1.gaijin.lan/c/dagor4/+/540012)
+// event.enabled SHOULD NOT depend from sound state
 
 def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
   return play_or_release_impl(event, name, pos, should_play, false)
@@ -420,3 +439,13 @@ def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should
 
 def play_or_abandon(var event : SoundEvent&; name : string; should_play : bool)
   return play_or_release_impl(event, name, should_play, true)
+
+def release_play_or(var event : SoundEvent&)
+  if is_valid_handle_value(event)
+    event |> release()
+  event.enabled = false
+
+def abandon_play_or(var event : SoundEvent&)
+  if is_valid_handle_value(event)
+    event |> abandon()
+  event.enabled = false

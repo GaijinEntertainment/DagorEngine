@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <UnitTest++/UnitTestPP.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 #include <daNet/bitStream.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
@@ -9,124 +12,132 @@
 #include <generic/dag_tab.h>
 #include <EASTL/vector.h>
 
-#define DECL_BITSTREAM_COMPRESSED_TEST(name, num, sz)   \
-  TEST(DAG_CONCAT(CheckBitStreamWriteCompressed, name)) \
-  {                                                     \
-    danet::BitStream bs;                                \
-    uint32_t a = num, b = 0;                            \
-    bs.WriteCompressed(a);                              \
-    CHECK(bs.GetNumberOfBytesUsed() == sz);             \
-    CHECK(bs.ReadCompressed(b));                        \
-    CHECK_EQUAL(a, b);                                  \
-  }
+static uint32_t ones(uint32_t n) { return (1 << n) - 1; }
 
-DECL_BITSTREAM_COMPRESSED_TEST(7Bit, (1 << 7) - 1, 1)
-DECL_BITSTREAM_COMPRESSED_TEST(100, 0x100, 2)
-DECL_BITSTREAM_COMPRESSED_TEST(14Bit, (1 << 14) - 1, 2)
-DECL_BITSTREAM_COMPRESSED_TEST(15Bit, (1 << 15) - 1, 3)
-DECL_BITSTREAM_COMPRESSED_TEST(21Bit, (1 << 21) - 1, 3)
-DECL_BITSTREAM_COMPRESSED_TEST(22Bit, (1 << 22) - 1, 4)
-DECL_BITSTREAM_COMPRESSED_TEST(28Bit, (1 << 28) - 1, 4)
-DECL_BITSTREAM_COMPRESSED_TEST(100100, 0x100100, 3)
+TEST_CASE("BitStream compressed read/write identity", "[bitstream][compressed]")
+{
+  // clang-format off
+  const auto[a, sz] = GENERATE(table<uint32_t, uint32_t>({
+      {ones(7),  1},
+      {0x100,    2},
+      {ones(14), 2},
+      {ones(15), 3},
+      {ones(21), 3},
+      {ones(22), 4},
+      {ones(28), 4},
+      {0x100100, 3}
+    }));
+  // clang-format on
 
-TEST(CheckBitStreamWriteCompressed32BitMax)
+  danet::BitStream bs;
+  bs.WriteCompressed(a);
+  CHECK(bs.GetNumberOfBytesUsed() == sz);
+  uint32_t b = 0;
+  CHECK(bs.ReadCompressed(b));
+  CHECK(a == b);
+}
+
+TEST_CASE("BitStream write compressed 32 bit max", "[bitstream][compressed]")
 {
   danet::BitStream bs;
-  uint32_t v = ~0u, r = 0;
+  const uint32_t v = ~0u;
   bs.WriteCompressed(v);
+  uint32_t r = 0;
   CHECK(bs.ReadCompressed(r));
-  CHECK_EQUAL(v, r);
+  CHECK(v == r);
 }
 
-TEST(CheckBitStreamWriteCompressed3216BitAll)
+TEST_CASE("BitStream 32-bit compressed all 16-bit values read/write identity", "[bitstream][compressed]")
 {
-  for (unsigned a = 0; a < (1 << 16); ++a)
-  {
-    danet::BitStream bs;
-    bs.WriteCompressed(a);
-    unsigned b = ~0u;
-    CHECK(bs.ReadCompressed(b));
-    CHECK_EQUAL(a, b);
-  }
+  const uint32_t a = static_cast<uint32_t>(GENERATE(range(0, 1 << 16)));
+  danet::BitStream bs;
+  bs.WriteCompressed(a);
+  uint32_t b = ~0u;
+  CHECK(bs.ReadCompressed(b));
+  CHECK(a == b);
 }
 
-TEST(CheckBitStreamWriteCompressed1616BitAll)
+TEST_CASE("Bit stream 16-bit compressed all 16-bit values read/write", "[bitstream][compressed]")
 {
-  for (uint16_t a = 0;; ++a)
-  {
-    danet::BitStream bs;
-    bs.WriteCompressed(a);
-    uint16_t b = a - 1;
-    CHECK(bs.ReadCompressed(b));
-    CHECK_EQUAL(a, b);
-    if (a == uint16_t(-1))
-      break;
-  }
+  const uint16_t a = static_cast<uint16_t>(GENERATE(range(0, 1 << 16)));
+
+  danet::BitStream bs;
+  bs.WriteCompressed(a);
+  uint16_t b = a - 1;
+  CHECK(bs.ReadCompressed(b));
+  CHECK(a == b);
 }
 
 namespace eastl
 {
 inline std::ostream &operator<<(std::ostream &stream, const eastl::string &str) { return stream << str.c_str(); }
 } // namespace eastl
-template <typename S>
-static void test_string_impl()
-{
-  S str(__FUNCTION__), str2;
-  danet::BitStream bs;
-  bs.Write(str);
-  G_VERIFY(bs.Read(str2));
-  CHECK_EQUAL(str.length(), str2.length());
-  CHECK_EQUAL(str, str2);
-}
-TEST(sting_arr)
+
+TEST_CASE("Stack array string read/write", "[bitstream][string]")
 {
   char foo[128];
   strncpy(foo, __FUNCTION__, sizeof(foo));
   eastl::string bar;
   danet::BitStream bs;
   bs.Write(foo);
-  G_VERIFY(bs.Read(bar));
-  CHECK_EQUAL(strlen(foo), bar.length());
-  CHECK_EQUAL(foo, bar);
+  REQUIRE(bs.Read(bar));
+  CHECK(strlen(foo) == bar.length());
+  CHECK(foo == bar);
 }
-TEST(sting_arr_raw)
+
+TEST_CASE("Test multiple strings read/write identity", "[bitstream][string]")
 {
-  eastl::string foo[4], bar[countof(foo)];
+  danet::BitStream bs;
+
+  eastl::string foo[4];
   for (int i = 0; i < countof(foo); ++i)
     foo[i] = eastl::string(eastl::string::CtorSprintf(), "%s%d", __FUNCTION__, i);
-  danet::BitStream bs;
   bs.Write(foo);
-  G_VERIFY(bs.Read(bar));
-  for (int i = 0; i < countof(foo); ++i)
-    CHECK_EQUAL(foo[i], bar[i]);
-}
-TEST(String) { test_string_impl<String>(); }
-TEST(SimpleString) { test_string_impl<SimpleString>(); }
-TEST(ESString) { test_string_impl<eastl::string>(); }
 
-template <typename T>
-static void test_arr_int()
+  eastl::string bar[countof(foo)];
+  REQUIRE(bs.Read(bar));
+
+  for (int i = 0; i < countof(foo); ++i)
+    CHECK(foo[i] == bar[i]);
+}
+
+TEMPLATE_TEST_CASE("Test various string types read/write identity", "[bitstream][string]", SimpleString, String, eastl::string)
 {
-  T arr, arr2;
+  TestType str(__FUNCTION__);
+
+  danet::BitStream bs;
+  bs.Write(str);
+
+  TestType str2;
+  REQUIRE(bs.Read(str2));
+
+  CHECK(str == str2);
+}
+
+TEMPLATE_TEST_CASE("Test various vector types read/write identity", "[bitstream]", Tab<int>, eastl::vector<int>, dag::Vector<int>)
+{
+  danet::BitStream bs;
+
+  TestType arr;
   constexpr int n = 3;
   arr.resize(n);
   for (int i = 0; i < n; ++i)
     arr[i] = i;
-  danet::BitStream bs;
   bs.Write(arr);
-  G_VERIFY(bs.Read(arr2));
-  CHECK_EQUAL(arr.size(), arr2.size());
-  for (int i = 0; i < arr.size(); ++i)
-    CHECK_EQUAL(arr[i], arr2[i]);
-}
-TEST(TabInt) { test_arr_int<Tab<int>>(); }
-TEST(DynTabInt) { test_arr_int<Tab<int>>(); }
-TEST(EAVecInt) { test_arr_int<eastl::vector<int>>(); }
 
-template <typename T>
-static void test_arr_str()
+  TestType arr2;
+  REQUIRE(bs.Read(arr2));
+
+  CHECK(arr.size() == arr2.size());
+  for (int i = 0; i < eastl::min(arr.size(), arr2.size()); ++i)
+    CHECK(arr[i] == arr2[i]);
+}
+
+TEMPLATE_TEST_CASE("Test various vector of string types read/write identity", "[bitstream]", Tab<String>, eastl::vector<eastl::string>)
 {
-  T arr, arr2;
+  danet::BitStream bs;
+
+  TestType arr;
   constexpr int n = 4;
   arr.resize(n);
   char tmp[128];
@@ -135,97 +146,93 @@ static void test_arr_str()
     snprintf(tmp, sizeof(tmp), "%s%d", __FUNCTION__, i);
     arr[i] = tmp;
   }
-  danet::BitStream bs;
   bs.Write(arr);
-  G_VERIFY(bs.Read(arr2));
-  CHECK_EQUAL(arr.size(), arr2.size());
-  for (int i = 0; i < arr.size(); ++i)
-    CHECK_EQUAL(arr[i], arr2[i]);
-}
-TEST(DynTabStr) { test_arr_str<Tab<String>>(); }
-TEST(EAVecStr) { test_arr_str<eastl::vector<eastl::string>>(); }
 
-TEST(RWBitAligned)
-{
-  uint8_t zero = 0, one = 1, two = 2;
-  for (int i = 0; i < 8; ++i)
-  {
-    danet::BitStream bs;
-    bs.WriteBits(&zero, i);
-    uint32_t pos = bs.GetWriteOffset();
-    bs.WriteBits(&one, 2);
-    bs.SetWriteOffset(pos);
-    bs.WriteBits(&two, 2);
+  TestType arr2;
+  REQUIRE(bs.Read(arr2));
 
-    uint8_t r = 0;
-    bs.SetReadOffset(pos);
-    G_VERIFY(bs.ReadBits(&r, 2));
-    CHECK_EQUAL((int)two, (int)r);
-  }
+  CHECK(arr.size() == arr2.size());
+  for (int i = 0; i < eastl::min(arr.size(), arr2.size()); ++i)
+    CHECK(arr[i] == arr2[i]);
 }
 
-TEST(RWBitAlignedByteSize)
+TEST_CASE("RWBitAligned", "[bitstream]")
 {
-  for (int j = 0; j < 4; ++j)
-  {
-    danet::BitStream bs;
-    uint8_t a[2] = {0xff, 0xff};
-    bs.WriteBits(a, 16);
+  const uint8_t zero = 0, one = 1, two = 2;
+  int i = GENERATE(range(0, 8));
 
-    bs.SetWriteOffset(2);
-    uint8_t b[2] = {0xcc, (uint8_t)j};
-    bs.WriteBits(b, 16);
+  danet::BitStream bs;
+  bs.WriteBits(&zero, i);
+  uint32_t pos = bs.GetWriteOffset();
+  bs.WriteBits(&one, 2);
+  bs.SetWriteOffset(pos);
+  bs.WriteBits(&two, 2);
 
-    uint8_t c[2] = {0xff, 0xff};
-    bs.SetReadOffset(2);
-    bs.ReadBits(c, 16);
-
-    CHECK_EQUAL(0xcc, (int)c[0]);
-    CHECK_EQUAL(j, (int)c[1]);
-  }
+  uint8_t r = 0;
+  bs.SetReadOffset(pos);
+  G_VERIFY(bs.ReadBits(&r, 2));
+  CHECK((int)two == (int)r);
 }
 
-TEST(RWBitAlignedByteFit)
+TEST_CASE("RWBitAlignedByteSize", "[bitstream]")
 {
-  for (int j = 0; j < 4; ++j)
-  {
-    danet::BitStream bs;
-    uint8_t a[2] = {0xff, 0xff};
-    bs.WriteBits(a, 16);
+  int j = GENERATE(range(0, 4));
 
-    bs.SetWriteOffset(5);
-    uint8_t b[2] = {0xcc, (uint8_t)j};
-    bs.WriteBits(b, 10);
-    bs.SetWriteOffset(16);
+  danet::BitStream bs;
+  uint8_t a[2] = {0xff, 0xff};
+  bs.WriteBits(a, 16);
 
-    uint8_t c[2] = {0xff, 0xff};
-    bs.SetReadOffset(5);
-    bs.ReadBits(c, 10);
-    bool bVal = bs.ReadBit();
+  bs.SetWriteOffset(2);
+  uint8_t b[2] = {0xcc, (uint8_t)j};
+  bs.WriteBits(b, 16);
 
-    CHECK_EQUAL(0xcc, (int)c[0]);
-    CHECK_EQUAL(j, (int)c[1]);
-    CHECK_EQUAL(true, bVal);
-  }
+  uint8_t c[2] = {0xff, 0xff};
+  bs.SetReadOffset(2);
+  bs.ReadBits(c, 16);
+
+  CHECK(0xcc == (int)c[0]);
+  CHECK(j == (int)c[1]);
 }
 
-TEST(RWBitAlignedByteBorder)
+TEST_CASE("RWBitAlignedByteFit", "[bitstream]")
 {
-  for (int j = 0; j < 4; ++j)
-  {
-    danet::BitStream bs;
-    uint8_t a[2] = {0xff, 0xff};
-    bs.WriteBits(a, 16);
+  int j = GENERATE(range(0, 4));
 
-    bs.SetWriteOffset(7);
-    uint8_t b[2] = {0xcc, (uint8_t)j};
-    bs.WriteBits(b, 10);
+  danet::BitStream bs;
+  uint8_t a[2] = {0xff, 0xff};
+  bs.WriteBits(a, 16);
 
-    uint8_t c[2] = {0xff, 0xff};
-    bs.SetReadOffset(7);
-    bs.ReadBits(c, 10);
+  bs.SetWriteOffset(5);
+  uint8_t b[2] = {0xcc, (uint8_t)j};
+  bs.WriteBits(b, 10);
+  bs.SetWriteOffset(16);
 
-    CHECK_EQUAL(0xcc, (int)c[0]);
-    CHECK_EQUAL(j, (int)c[1]);
-  }
+  uint8_t c[2] = {0xff, 0xff};
+  bs.SetReadOffset(5);
+  bs.ReadBits(c, 10);
+  bool bVal = bs.ReadBit();
+
+  CHECK(0xcc == (int)c[0]);
+  CHECK(j == (int)c[1]);
+  CHECK(bVal);
+}
+
+TEST_CASE("RWBitAlignedByteBorder", "[bitstream]")
+{
+  int j = GENERATE(range(0, 4));
+
+  danet::BitStream bs;
+  uint8_t a[2] = {0xff, 0xff};
+  bs.WriteBits(a, 16);
+
+  bs.SetWriteOffset(7);
+  uint8_t b[2] = {0xcc, (uint8_t)j};
+  bs.WriteBits(b, 10);
+
+  uint8_t c[2] = {0xff, 0xff};
+  bs.SetReadOffset(7);
+  bs.ReadBits(c, 10);
+
+  CHECK(0xcc == (int)c[0]);
+  CHECK(j == (int)c[1]);
 }

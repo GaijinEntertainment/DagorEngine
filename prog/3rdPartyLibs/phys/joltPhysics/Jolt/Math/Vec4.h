@@ -38,6 +38,9 @@ public:
 	/// Vector with all zeros
 	static JPH_INLINE Vec4		sZero();
 
+	/// Vector with all ones
+	static JPH_INLINE Vec4		sOne();
+
 	/// Vector with all NaN's
 	static JPH_INLINE Vec4		sNaN();
 
@@ -78,8 +81,8 @@ public:
 	/// Calculates inMul1 * inMul2 + inAdd
 	static JPH_INLINE Vec4		sFusedMultiplyAdd(Vec4Arg inMul1, Vec4Arg inMul2, Vec4Arg inAdd);
 
-	/// Component wise select, returns inV1 when highest bit of inControl = 0 and inV2 when highest bit of inControl = 1
-	static JPH_INLINE Vec4		sSelect(Vec4Arg inV1, Vec4Arg inV2, UVec4Arg inControl);
+	/// Component wise select, returns inNotSet when highest bit of inControl = 0 and inSet when highest bit of inControl = 1
+	static JPH_INLINE Vec4		sSelect(Vec4Arg inNotSet, Vec4Arg inSet, UVec4Arg inControl);
 
 	/// Logical or (component wise)
 	static JPH_INLINE Vec4		sOr(Vec4Arg inV1, Vec4Arg inV2);
@@ -175,7 +178,7 @@ public:
 	/// Subtract two float vectors (component wise)
 	JPH_INLINE Vec4				operator - (Vec4Arg inV2) const;
 
-	/// Add two float vectors (component wise)
+	/// Subtract two float vectors (component wise)
 	JPH_INLINE Vec4 &			operator -= (Vec4Arg inV2);
 
 	/// Divide (component wise)
@@ -276,7 +279,7 @@ public:
 	};
 };
 
-static_assert(is_trivial<Vec4>(), "Is supposed to be a trivial type!");
+static_assert(std::is_trivial<Vec4>(), "Is supposed to be a trivial type!");
 
 JPH_NAMESPACE_END
 

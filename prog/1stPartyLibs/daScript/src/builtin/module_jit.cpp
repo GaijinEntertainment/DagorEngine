@@ -110,7 +110,7 @@ extern "C" {
         }
         auto length = writer.tellp();
         if ( length ) {
-            auto str = context.allocateString(writer.c_str(), uint32_t(length),&call->debugInfo);
+            auto str = context.allocateTempString(writer.c_str(), uint32_t(length),&call->debugInfo);
             context.freeTempString(str,&call->debugInfo);
             return str;
         } else {
@@ -218,23 +218,23 @@ extern "C" {
         context->to_out(at, ssw.str().c_str());
     }
 
-    bool jit_iterator_iterate ( const das::Sequence &it, void *data, das::Context *context ) {
+    bool jit_iterator_iterate ( das::Sequence &it, void *data, das::Context *context ) {
         return builtin_iterator_iterate(it, data, context);
     }
 
-    void jit_iterator_delete ( const das::Sequence &it, das::Context *context ) {
+    void jit_iterator_delete ( das::Sequence &it, das::Context *context ) {
         return builtin_iterator_delete(it, context);
     }
 
-    void jit_iterator_close ( const das::Sequence &it, void *data, das::Context *context ) {
+    void jit_iterator_close ( das::Sequence &it, void *data, das::Context *context ) {
         return builtin_iterator_close(it, data, context);
     }
 
-    bool jit_iterator_first ( const das::Sequence &it, void *data, das::Context *context, das::LineInfoArg *at ) {
+    bool jit_iterator_first ( das::Sequence &it, void *data, das::Context *context, das::LineInfoArg *at ) {
         return builtin_iterator_first(it, data, context, at);
     }
 
-    bool jit_iterator_next ( const das::Sequence &it, void *data, das::Context *context, das::LineInfoArg *at ) {
+    bool jit_iterator_next ( das::Sequence &it, void *data, das::Context *context, das::LineInfoArg *at ) {
         return builtin_iterator_next(it, data, context, at);
     }
 
@@ -333,7 +333,7 @@ extern "C" {
     }
 
     void * das_get_jit_table_at ( int32_t baseType, Context * context, LineInfoArg * at ) {
-        JIT_TABLE_FUNCTION(jit_table_at);
+        JIT_TABLE_FUNCTION(&jit_table_at);
     }
 
     template <typename KeyType>
@@ -345,7 +345,7 @@ extern "C" {
     }
 
     void * das_get_jit_table_erase ( int32_t baseType, Context * context, LineInfoArg * at ) {
-        JIT_TABLE_FUNCTION(jit_table_erase);
+        JIT_TABLE_FUNCTION(&jit_table_erase);
     }
 
     template <typename KeyType>
@@ -356,7 +356,7 @@ extern "C" {
     }
 
     void * das_get_jit_table_find ( int32_t baseType, Context * context, LineInfoArg * at ) {
-        JIT_TABLE_FUNCTION(jit_table_find);
+        JIT_TABLE_FUNCTION(&jit_table_find);
     }
 
     void * das_get_jit_new ( TypeDeclPtr htype, Context * context, LineInfoArg * at ) {
@@ -396,20 +396,20 @@ extern "C" {
         char cmd[1024];
 
         if (!check_file_present(jitModuleObj)) {
-            das_to_stderr("Error: File '%s', containing daScript library, does not exist\n", jitModuleObj);
+            LOG(LogLevel::error) << "File '" << jitModuleObj << "' , containing daScript library, does not exist\n";
             return;
         }
         if (!check_file_present(objFilePath)) {
-            das_to_stderr("Error: File '%s', containing compiled definitions, does not exist\n", objFilePath);
+            LOG(LogLevel::error) << "File '" << objFilePath << "' , containing compiled definitions, does not exist\n";
             return;
         }
 
         #if defined(_WIN32) || defined(_WIN64)
-            auto result = fmt::format_to(cmd, "clang-cl {} {} -link -DLL -OUT:{} 2>&1", objFilePath, jitModuleObj, libraryName);
+            auto result = fmt::format_to(cmd, FMT_STRING("clang-cl {} {} -link -DLL -OUT:{} 2>&1"), objFilePath, jitModuleObj, libraryName);
         #elif defined(__APPLE__)
-            auto result = fmt::format_to(cmd, "clang -shared -o {} {} {} 2>&1", libraryName, objFilePath, jitModuleObj);
+            auto result = fmt::format_to(cmd, FMT_STRING("clang -shared -o {} {} {} 2>&1"), libraryName, objFilePath, jitModuleObj);
         #else
-            auto result = fmt::format_to(cmd, "gcc -shared -o {} {} {} 2>&1", libraryName, objFilePath, jitModuleObj);
+            auto result = fmt::format_to(cmd, FMT_STRING("gcc -shared -o {} {} {} 2>&1"), libraryName, objFilePath, jitModuleObj);
         #endif
             *result = '\0';
 
@@ -420,7 +420,7 @@ extern "C" {
 
         FILE * fp = popen(cmd, "r");
         if ( fp == NULL ) {
-            das_to_stderr("Failed to run command '%s'\n", cmd);
+            LOG(LogLevel::error) << "Failed to run command '" << cmd << "'\n";
             return;
         }
 
@@ -444,10 +444,10 @@ extern "C" {
         }
 
         if ( int status = pclose(fp); status != 0 ) {
-            das_to_stderr("Failed to make shared library %s, command '%s'\n", libraryName, cmd);
+            LOG(LogLevel::error) << "Failed to make shared library " << libraryName << ", command '" << cmd << "'\n";
             printf("Output:\n%s", output);
         } else {
-            das_to_stdout("Library %s made - ok\n", libraryName);
+            LOG(LogLevel::debug) << "Library " << libraryName << " made - ok\n";
         }
     }
 #else

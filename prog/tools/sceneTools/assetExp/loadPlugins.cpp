@@ -105,7 +105,7 @@ bool loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr, const
   }
   return p != NULL;
 #else
-  return NULL;
+  return false;
 #endif
 }
 
@@ -113,20 +113,17 @@ bool loadExporterPlugins(const DataBlock &appblk, DagorAssetMgr &mgr, const char
   ILogWriter &log)
 {
 #if !_TARGET_STATIC_LIB
-  alefind_t ff;
   const String mask(260, "%s/*" DAGOR_OS_DLL_SUFFIX, dirpath);
   String fname;
 
-  if (::dd_find_first(mask, DA_FILE, &ff))
-    do
-    {
-      fname.printf(260, "%s/%s", dirpath, ff.name);
-      if (!fname.suffix(DAGOR_DLL))
-        continue;
-      loadSingleExporterPlugin(appblk, mgr, simplify_fname(fname), exp_types_mask, log);
-    } while (::dd_find_next(&ff));
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
+  {
+    fname.printf(260, "%s/%s", dirpath, ff.name);
+    if (!fname.suffix(DAGOR_DLL))
+      continue;
+    loadSingleExporterPlugin(appblk, mgr, simplify_fname(fname), exp_types_mask, log);
+  }
 
-  dd_find_close(&ff);
 #else
   if (plugins.size()) // only one scan!
     return true;

@@ -74,11 +74,13 @@ struct DagorFontBinDump
     Tab<FontMetrics> fontMx;
 
     int ttfNid;
-    uint16_t addFontRange[2];   //< start/end index for wcRangesPair and wcRangeFontIdx (/2)
-    uint64_t addFontMask;       //< 64 bitmask for 1024-char subranges (pre-check before iterating ranges)
     int16_t pixHt;              //< default height for font (in pixels)
     uint16_t initialPixHt : 15; //< (invariant) initial height for font (in pixels), read from .dynFont.blk
     uint16_t forceAutoHint : 1;
+
+    static constexpr int AFR_SUBDIV_CNT = 256;
+    uint64_t addFontMask;                      //< 64-bit mask for 1024-char subranges (pre-check before iterating ranges)
+    uint16_t addFontRange[AFR_SUBDIV_CNT + 1]; //< start/end index for wcRangesPair and wcRangeFontIdx (/2)
 
     // parallel arrays, wcRangesPair.count == wcRangeFontIdx.count*2 == wcRangeFontScl.count*2
     static Tab<uint16_t> wcRangePair, wcRangeFontIdx;
@@ -423,7 +425,7 @@ public:
       debug("gen_sys_tex: uses dynamic sz=%d,%d due to refHRes:i=%d and screen size %dx%d", gen_sz.x, gen_sz.y, ref_hres, scrw, scrh);
     }
 
-    gen_sys_tex.init(gen_sz, TEXFMT_L8);
+    gen_sys_tex.init(gen_sz, TEXFMT_R8);
   }
   static void termInscriptions()
   {
@@ -541,7 +543,7 @@ enum Hash2IdxStratum
   H2I_CHAR,
   H2I__COUNT
 };
-static constexpr int HASH_BITS = 32;
+static constexpr int HASH_BITS = 64;
 typedef HashVal<HASH_BITS> hash_t;
 typedef ska::flat_hash_map<hash_t, int, ska::power_of_two_std_hash<hash_t>> HashToIdx;
 

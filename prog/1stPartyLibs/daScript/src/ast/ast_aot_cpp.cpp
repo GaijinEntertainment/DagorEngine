@@ -1,14 +1,15 @@
+#include <optional>
 #include "daScript/misc/platform.h"
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
-#include "daScript/ast/ast_generate.h"
+#include "daScript/das_common.h"
 #include "daScript/ast/ast_interop.h"
+#include "daScript/ast/aot_templates.h"
+#include "daScript/ast/ast_aot_cpp.h"
 
 #include "daScript/misc/enums.h"
 #include "daScript/simulate/hash.h"
-
-das::Context * get_context ( int stackSize = 0 );
 
 namespace das {
 
@@ -200,12 +201,15 @@ namespace das {
         return aotSuffixNameEx(st->name,"");
     }
 
-    string describeCppTypeEx ( const TypeDeclPtr & type,
+    static bool crossPlatform = false; // It'll be better to forward this flag everywhere in describeTypeEx
+
+    string describeCppTypeEx ( const smart_ptr_raw<TypeDecl> & type,
                             CpptSubstitureRef substituteRef,
                             CpptSkipRef skipRef,
                             CpptSkipConst skipConst,
                             CpptRedundantConst redundantConst,
-                            CpptUseAlias useAlias ) {
+                            CpptUseAlias useAlias,
+                            ChooseSmartPtr chooseSmartPtr) {
 
         TextWriter stream;
         auto baseType = type->baseType;
@@ -241,27 +245,41 @@ namespace das {
             }
         } else if ( baseType==Type::tArray ) {
             if ( type->firstType ) {
-                stream << "TArray<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias) << ">";
+                stream << "TArray<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr) << ">";
             } else {
                 stream << "Array";
             }
         } else if ( baseType==Type::tTable ) {
             if ( type->firstType && type->secondType ) {
-                stream << "TTable<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias)
-                << "," << describeCppTypeEx(type->secondType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias) << ">";
+                stream << "TTable<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr)
+                << "," << describeCppTypeEx(type->secondType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr) << ">";
             } else {
                 stream << "Table";
             }
         } else if ( baseType==Type::tTuple ) {
-            stream << "TTuple<" << int(type->getTupleSize());
+            if (crossPlatform) {
+                stream << "AutoTuple<";
+            } else {
+                stream << "TTuple<" << int(type->getTupleSize());
+            }
             for ( const auto & arg : type->argTypes ) {
-                stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
+                if (!crossPlatform || arg != type->argTypes.front()) {
+                    stream << ",";
+                }
+                stream << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr);
             }
             stream << ">";
         } else if ( baseType==Type::tVariant ) {
-            stream << "TVariant<" << int(type->getVariantSize()) << "," << int(type->getVariantAlign());
+            if (crossPlatform) {
+                stream << "AutoVariant<";
+            } else {
+                stream << "TVariant<" << int(type->getVariantSize()) << "," << int(type->getVariantAlign());
+            }
             for ( const auto & arg : type->argTypes ) {
-                stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
+                if (!crossPlatform || arg != type->argTypes.front()) {
+                    stream << ",";
+                }
+                stream << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr);
             }
             stream << ">";
         } else if ( baseType==Type::tStructure ) {
@@ -277,17 +295,17 @@ namespace das {
         } else if ( baseType==Type::tPointer ) {
             if ( !type->smartPtr ) {
                 if ( type->firstType ) {
-                    stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias) << " *";
+                    stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias, chooseSmartPtr) << " *";
                 } else {
                     stream << "void *";
                 }
             } else {
                 if ( type->firstType ) {
-                    stream  << (type->smartPtrNative ? "smart_ptr<" : "smart_ptr_raw<")
-                            <<  describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias)
+                    stream  << (type->smartPtrNative && chooseSmartPtr == ChooseSmartPtr::yes ? "smart_ptr<" : "smart_ptr_raw<")
+                            <<  describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no,useAlias, chooseSmartPtr)
                             << ">";
                 } else {
-                    stream  << (type->smartPtrNative ? "smart_ptr<" : "smart_ptr_raw<") << "void>";
+                    stream  << (type->smartPtrNative && chooseSmartPtr == ChooseSmartPtr::yes ? "smart_ptr<" : "smart_ptr_raw<") << "void>";
                 }
             }
         } else if ( type->isEnumT() ) {
@@ -304,7 +322,7 @@ namespace das {
             }
         } else if ( baseType==Type::tIterator ) {
             if ( type->firstType ) {
-                stream << "Sequence DAS_COMMENT((" << describeCppTypeEx(type->firstType,substituteRef,skipRef,skipConst,CpptRedundantConst::yes,useAlias) << "))";
+                stream << "Sequence DAS_COMMENT((" << describeCppTypeEx(type->firstType,substituteRef,skipRef,skipConst,CpptRedundantConst::yes,useAlias, chooseSmartPtr) << "))";
             } else {
                 stream << "Sequence";
             }
@@ -314,13 +332,13 @@ namespace das {
             }
             stream << das_to_cppString(baseType) << " DAS_COMMENT((";
             if ( type->firstType ) {
-                stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
+                stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr);
             } else {
                 stream << "void";
             }
             if ( type->argTypes.size() ) {
                 for ( const auto & arg : type->argTypes ) {
-                    stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias);
+                    stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,useAlias, chooseSmartPtr);
                 }
             }
             stream << "))";
@@ -347,12 +365,12 @@ namespace das {
         return stream.str();
     }
 
-    string describeCppType ( const TypeDeclPtr & type,
+    string describeCppType ( const smart_ptr_raw<TypeDecl> & type,
                             CpptSubstitureRef substituteRef,
                             CpptSkipRef skipRef,
                             CpptSkipConst skipConst,
-                            CpptRedundantConst redundantConst ) {
-        return describeCppTypeEx(type, substituteRef, skipRef, skipConst, redundantConst, CpptUseAlias::no);
+                            CpptRedundantConst redundantConst, ChooseSmartPtr chooseSmartPtr ) {
+        return describeCppTypeEx(type, substituteRef, skipRef, skipConst, redundantConst, CpptUseAlias::no, chooseSmartPtr);
     }
 
 
@@ -384,7 +402,7 @@ namespace das {
         // looks like call
         virtual void preVisit ( ExprLooksLikeCall * call ) override {
             Visitor::preVisit(call);
-            if ( call->name=="invoke" ) {
+            if ( call->name=="invoke" ) {   // invoke of anonymous block
                 if ( call->arguments.size() && call->arguments[0]->rtti_isMakeBlock() ) {
                     auto mkb = static_pointer_cast<ExprMakeBlock>(call->arguments[0]);
                     auto blk = static_pointer_cast<ExprBlock>(mkb->block);
@@ -497,45 +515,45 @@ namespace das {
                 ss << " };\n";
             }
         }
+
         string str() const {
             TextWriter ss;
             // extern declarations
-            for ( auto & ti : smn2s ) {
+            for ( const auto & ti : ordered(smn2s) ) {
                 ss << "extern StructInfo " << structInfoName(ti.second) << ";\n";
             }
-            for ( auto & ti : tmn2t ) {
+            for ( const auto & ti : ordered(tmn2t) ) {
                 ss << "extern TypeInfo " << typeInfoName(ti.second) << ";\n";
             }
-            for ( auto & ti : vmn2v ) {
+            for ( const auto & ti : ordered(vmn2v) ) {
                 ss << "extern VarInfo " << varInfoName(ti.second) << ";\n";
             }
-            for ( auto & ti : fmn2f ) {
+            for ( const auto & ti : ordered(fmn2f) ) {
                 ss << "extern FuncInfo " << funcInfoName(ti.second) << ";\n";
             }
-            for ( auto & ti : emn2e ) {
+            for ( const auto & ti : ordered(emn2e) ) {
                 ss << "extern EnumInfo " << enumInfoName(ti.second) << ";\n";
             }
             ss << "\n";
-            for ( auto & ti : emn2e ) {
-                describeCppEnumInfoValues(ss, ti.second);
-                ss << "EnumInfo " << enumInfoName(ti.second) << " = { ";
-                describeCppEnumInfo(ss, ti.second);
+            for ( const auto & [_, tinfo] : ordered(emn2e) ) {
+                describeCppEnumInfoValues(ss, tinfo);
+                ss << "EnumInfo " << enumInfoName(tinfo) << " = { ";
+                describeCppEnumInfo(ss, tinfo);
                 ss << " };\n";
             }
-            for ( auto & ti : smn2s ) {
-                describeCppStructInfoFields(ss, ti.second);
-                ss << "StructInfo " << structInfoName(ti.second) << " = {";
-                describeCppStructInfo(ss, ti.second);
+            for ( const auto & [_, tinfo] : ordered(smn2s))  {
+                describeCppStructInfoFields(ss, tinfo);
+                ss << "StructInfo " << structInfoName(tinfo) << " = {";
+                describeCppStructInfo(ss, tinfo);
                 ss << " };\n";
             }
-            for ( auto & ti : this->fmn2f ) {
-                describeCppFuncInfoFields(ss, ti.second);
-                ss << "FuncInfo " << funcInfoName(ti.second) << " = {";
-                describeCppFuncInfo(ss, ti.second);
+            for ( const auto & [_, tinfo] : ordered(fmn2f)) {
+                describeCppFuncInfoFields(ss, tinfo);
+                ss << "FuncInfo " << funcInfoName(tinfo) << " = {";
+                describeCppFuncInfo(ss, tinfo);
                 ss << " };\n";
             }
-            for ( auto & ti : tmn2t ) {
-                auto tinfo = ti.second;
+            for ( const auto & [_, tinfo] : ordered(tmn2t) ) {
                 writeDim(ss, tinfo);
                 writeArgTypes(ss, tinfo);
                 writeArgNames(ss, tinfo);
@@ -545,13 +563,17 @@ namespace das {
             }
             ss << "\n";
             ss << "static void resolveTypeInfoAnnotations()\n{\n";
-            for ( auto & ti : tmn2t ) {
-                auto tinfo = ti.second;
+            ss << "    vector<TypeInfo> annotations = {";
+            for ( const auto & [_, tinfo] : ordered(tmn2t) ) {
                 if ( tinfo->type==Type::tHandle ) {
-                    ss << "\t" << typeInfoName(ti.second) << ".resolveAnnotation();\n";
+                    ss << typeInfoName(tinfo) << ", ";
                 };
             }
-            ss << "}\n\n";
+            ss << "};\n";
+            ss << "    for (auto& ann : annotations) {\n"
+                  "        ann.resolveAnnotation();\n"
+                  "    }\n"
+                  "}\n\n";
             return ss.str();
         }
         string enumInfoName ( EnumInfo * info ) const {
@@ -580,11 +602,22 @@ namespace das {
             return ss.str();
         }
     protected:
-        void describeCppVarInfo ( TextWriter & ss, VarInfo * info, const string & suffix ) const {
+        void describeCppVarInfo ( TextWriter & ss, string_view structName, VarInfo * info, const string & suffix ) const {
             describeCppTypeInfo(ss, info, suffix);
             ss << ", \"" << info->name << "\", ";
-            ss << info->offset << ", " << info->nextGcField;
-
+            if (crossPlatform) {
+                ss << "offsetof(";
+                ss << structName.data() << "," << info->name << ")";
+            } else {
+                ss << info->offset;
+            }
+            ss << ", " << info->nextGcField;
+        }
+        void describeCppVarFuncInfo ( TextWriter & ss, string_view structName, VarInfo * info, const string & suffix ) const {
+            describeCppTypeInfo(ss, info, suffix);
+            // Note: info offset is platform dependant, however for functions it's not done yet and always zero.
+            DAS_ASSERT(info->offset == 0);
+            ss << ", \"" << info->name << "\", " << 0 << ", " << info->nextGcField;
         }
         void describeCppStructInfoFields ( TextWriter & ss, StructInfo * info ) const {
             if ( !info->fields ) return;
@@ -594,7 +627,8 @@ namespace das {
                 writeArgTypes(ss, info->fields[fi], suffix);
                 writeArgNames(ss, info->fields[fi], suffix);
                 ss << "VarInfo " << structInfoName(info) << "_field_" << fi << " =  { ";
-                describeCppVarInfo(ss, info->fields[fi],suffix);
+                auto prefix = info->module_name != nullptr ? string(info->module_name) + "::" : "";
+                describeCppVarInfo(ss, (prefix + info->name), info->fields[fi],suffix);
                 ss << " };\n";
             }
             ss << "VarInfo * " << structInfoName(info) << "_fields[" << info->count << "] =  { ";
@@ -612,7 +646,15 @@ namespace das {
                 ss << "nullptr, ";
             }
             ss << info->count << ", ";
-            ss << info->size << ", ";
+            if (crossPlatform) {
+                const auto typeName = s2cppTypeName.find(info);
+                DAS_ASSERT(typeName != s2cppTypeName.end());
+                // ss << "[]() constexpr {static_assert(TypeSize<" << typeName->second << ">::size == " << info->size << ", \"Oh no\"); return TypeSize<" << typeName->second << ">::size; }()";
+                ss << "TypeSize<" << typeName->second << ">::size";
+            } else {
+                ss << info->size;
+            }
+            ss << ", ";
             ss << "UINT64_C(0x" << HEX << info->init_mnh << DEC << "), ";
             ss << "nullptr, ";  // annotation list
             ss << "UINT64_C(0x" << HEX << info->hash << DEC << "), ";
@@ -626,7 +668,7 @@ namespace das {
                 writeArgTypes(ss, info->fields[fi], suffix);
                 writeArgNames(ss, info->fields[fi], suffix);
                 ss << "VarInfo " << funcInfoName(info) << "_field_" << fi << " =  { ";
-                describeCppVarInfo(ss, info->fields[fi],suffix);
+                describeCppVarFuncInfo(ss, info->name, info->fields[fi],suffix);
                 ss << " };\n";
             }
             ss << "VarInfo * " << funcInfoName(info) << "_fields[" << info->count << "] =  { ";
@@ -730,7 +772,14 @@ namespace das {
                 ss << "nullptr";
             }
             ss << ", " << info->flags;
-            ss << ", " << info->size;
+            if (crossPlatform) {
+                const auto typeName = t2cppTypeName.find(info);
+                DAS_ASSERT(typeName!=t2cppTypeName.end());
+                // ss << ", []() constexpr {static_assert(TypeSize<" << typeName->second << ">::size == " << info->size << ", \"Oh no\"); return TypeSize<" << typeName->second << ">::size; }()";
+                ss << ", TypeSize<" << typeName->second << ">::size";
+            } else {
+                ss << ", " << info->size;
+            }
             ss << ", UINT64_C(0x" << HEX << info->hash << DEC << ")";
         }
 
@@ -752,12 +801,18 @@ namespace das {
         }
     }
 
-    vector<Function *> collectUsedFunctions ( vector<Module *> & modules, int totalFunctions ) {
+    static vector<Function *> collectUsedFunctions ( const vector<Module *> & modules, int totalFunctions, Module *thisModule, bool allModules, bool isAll = false ) {
         vector<Function *> fnn; fnn.reserve(totalFunctions);
         for (auto & pm : modules) {
             pm->functions.foreach([&](auto pfun){
+                if ( !allModules && pfun->module != thisModule )
+                    return;
+                DAS_ASSERT(pfun->index < 0 == !pfun->used);
                 if (pfun->index < 0 || !pfun->used)
                     return;
+                if (!isAll) {
+                    if ( pfun->builtIn || pfun->noAot) return;
+                }
                 fnn.push_back(pfun.get());
             });
         }
@@ -924,7 +979,7 @@ namespace das {
             ss << "(*)";
         }
         ss << " ( Context * __context__";
-        for ( auto & var : fn->arguments ) {
+        for ( const auto & var : fn->arguments ) {
             ss << ", ";
             if (isLocalVec(var->type)) {
                 describeLocalCppType(ss, var->type);
@@ -945,17 +1000,25 @@ namespace das {
 
     class CppAot : public Visitor {
     public:
-        CppAot ( const ProgramPtr & prog, BlockVariableCollector & cl ) : program(prog), collector(cl) {
+        CppAot ( const ProgramPtr & prog, BlockVariableCollector & cl, bool cross_platform )
+            : program(prog), collector(cl), cross_platform(cross_platform) {
             helper.rtti = program->options.getBoolOption("rtti",false);
             prologue = program->options.getBoolOption("aot_prologue",false) ||
                 program->getDebugger();
             solidContext = program->policies.solid_context || program->options.getBoolOption("solid_context",false);
         }
         string str() const {
-            return "\n" + helper.str() + sti.str()  + stg.str() + ss.str();
-        };
+            return "\n" + declarations + helper.str() + sti.str() + stg.str() + ss.str();
+        }
+
+        void clear() {
+            ss.clear();
+            sti.clear();
+            stg.clear();
+        }
     public:
         TextWriter                  ss, sti, stg;
+        string                      declarations;
     protected:
         uint64_t                    lastNewLine = -1ul;
         int                         tab = 0;
@@ -963,10 +1026,14 @@ namespace das {
         AotDebugInfoHelper          helper;
         ProgramPtr                  program;
         BlockVariableCollector &    collector;
-        das_set<string>       aotPrefix;
+        das_set<string>             aotPrefix;
         vector<ExprBlock *>         scopes;
         bool                        prologue = false;
         bool                        solidContext = false;
+        bool                        cross_platform = true;
+
+        mutable das_map<Expression *,size_t> localTempNames;
+
     protected:
         void newLine () {
             auto nlPos = ss.tellp();
@@ -975,6 +1042,10 @@ namespace das {
                 lastNewLine = ss.tellp();
             }
         }
+        string tabs() const {
+            return string(4 * tab, ' ');
+        }
+
         __forceinline static bool noBracket ( Expression * expr ) {
             return expr->topLevel || expr->bottomLevel || expr->argLevel;
         }
@@ -990,7 +1061,7 @@ namespace das {
         }
         virtual void preVisitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
             Visitor::preVisitEnumerationValue(enu, name, value, last);
-            ss << "\t" << name << " = " << das_to_cppString(enu->baseType) << "(";
+            ss << "    " << name << " = " << das_to_cppString(enu->baseType) << "(";
         }
         virtual ExpressionPtr visitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
             ss << ")";
@@ -1004,25 +1075,15 @@ namespace das {
             if ( enu->external ) {
                 ss << "#endif // external enum\n";
             } else {
-                string enuName;
-                if ( !enu->cppName.empty() ) {
-                    enuName = enu->cppName;
-                } else if ( enu->module && !enu->module->name.empty() ) {
-                    enuName = aotModuleName(enu->module) + "::" + enu->name;
-                } else {
-                    enuName = enu->name;
-                }
-                auto castType = das_to_cppString(enu->baseType);
-                ss  << "}\n"
-                    << "template <> struct cast< das::" << program->thisNamespace << "::" << enuName
-                    << " > : cast_enum < das::" << program->thisNamespace << "::" << enuName << " > {};\n"
-                    << "namespace " << program->thisNamespace << " {\n";
             }
             return Visitor::visit(enu);
         }
     // strcuture
         virtual bool canVisitStructureFieldInit ( Structure * ) override {
             return false;
+        }
+        virtual bool canVisitStructure ( Structure * st ) override {
+            return !st->isTemplate;     // not a thing with templates
         }
         virtual void preVisit ( Structure * that ) override {
             Visitor::preVisit(that);
@@ -1050,10 +1111,13 @@ namespace das {
             Visitor::preVisitStructureField(that, decl, last);
             auto from = that->findFieldParent(decl.name);
             if ( that->cppLayout && from!=that ) {
-                ss << "\t/* skipping " << decl.name << ", from " << from->name << " */";
+                ss << "    /* skipping " << decl.name << ", from " << from->name << " */";
                 return;
             }
-            ss << "\t" << describeCppType(decl.type) << " " << decl.name << ";";
+            const auto typeStr = describeCppType(decl.type, CpptSubstitureRef::no,
+                CpptSkipRef::no, CpptSkipConst::yes);
+            // We can't have const fields in aot due to absence of default ctor for such classes.
+            ss << "    " << typeStr << " " << decl.name << ";";
             if ( decl.parentType ) {
                 ss << " /* from " << from->name << " */";
             }
@@ -1064,7 +1128,7 @@ namespace das {
         }
         virtual StructurePtr visit ( Structure * that ) override {
             ss << "};\n";   // structure
-            if ( that->fields.size() ) {
+            if ( !cross_platform && that->fields.size() ) {
                 ss << "static_assert(sizeof(" << aotStructName(that) << ")==" << that->getSizeOf() << ",\"structure size mismatch with DAS\");\n";
                 for ( auto & tf : that->fields ) {
                     ss << "static_assert(offsetof(" << aotStructName(that) << "," << tf.name << ")=="
@@ -1085,6 +1149,8 @@ namespace das {
     // program body
         virtual void preVisitProgramBody ( Program * prog, Module * ) override {
             // functions
+            declarations = ss.str();
+            ss.clear();
             ss << "\n";
             prog->thisModule->functions.foreach([&](auto fn){
                 if ( !fn->builtIn && !fn->noAot ) {
@@ -1101,7 +1167,7 @@ namespace das {
             // pre-declare locals
             auto & temps = collector.localTemps[nullptr];
             for ( auto & tmp : temps ) {
-                ss << string(tab,'\t');
+                ss << tabs();
                 describeVarLocalCppType(ss, tmp->type);
                 ss << " " << makeLocalTempName(tmp) << ";\n";
             }
@@ -1114,7 +1180,7 @@ namespace das {
     // global
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
             Visitor::preVisitGlobalLet(var);
-            ss << string(tab,'\t');
+            ss << tabs();
             if ( !var->used ) ss << "/* ";
             if ( var->global_shared ) {
                 ss << "if ( __init_shared ) ";
@@ -1148,6 +1214,7 @@ namespace das {
     // function
         virtual bool canVisitFunction ( Function * fun ) override {
             if ( fun->noAot ) return false;
+            if ( fun->isTemplate ) return false;
             return true;
         }
         virtual void preVisit ( Function * fn) override {
@@ -1199,16 +1266,15 @@ namespace das {
         }
     // block
         string makeLocalTempName ( Expression * expr ) const {
-            uint32_t stackTop = 0;
+            if (localTempNames.count(expr) == 0) {
+                localTempNames[expr] = localTempNames.size();
+            }
             if ( expr->rtti_isMakeLocal() ) {
-                stackTop = ((ExprMakeLocal *)expr)->stackTop;
             } else if ( expr->rtti_isCall() ) {
-                stackTop = ((ExprCall *)expr)->stackTop;
             } else {
                 DAS_ASSERT(0 && "we should not be here. we need stacktop for the name");
-                stackTop = (expr->at.line<<16) + expr->at.column;
             }
-            return "_temp_make_local_" + to_string(expr->at.line) + "_" + to_string(expr->at.column) + "_" + to_string(stackTop);
+            return "_temp_make_local_" + to_string(expr->at.line) + "_" + to_string(expr->at.column) + "_" + to_string(localTempNames.find(expr)->second);
         }
         virtual void preVisit ( ExprBlock * block ) override {
             Visitor::preVisit(block);
@@ -1220,20 +1286,20 @@ namespace das {
             // pre-declare variables
             auto & vars = collector.variables[block];
             for ( auto & var : vars ) {
-                ss << string(tab,'\t');
+                ss << tabs();
                 describeVarLocalCppType(ss, var->type);
                 auto vname = collector.getVarName(var);
-                ss  << " " << vname;
                 if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
-                    ss << "_ConstRef";
+                    vname += "_ConstRef";
                 }
-                ss << "; " << "memset(&" << vname << ",0,sizeof(" << vname << "));"
+                ss  << " " << vname;
+                ss << "; " << "memset((void*)&" << vname << ",0,sizeof(" << vname << "));"
                     << "\n";
             }
             // pre-declare locals
             auto & temps = collector.localTemps[block];
             for ( auto & tmp : temps ) {
-                ss << string(tab,'\t');
+                ss << tabs();
                 describeVarLocalCppType(ss, tmp->type);
                 auto tempName = makeLocalTempName(tmp);
                 ss << " " << tempName << "; " << tempName << ";\n";
@@ -1249,7 +1315,7 @@ namespace das {
         }
         virtual void preVisitBlockExpression ( ExprBlock * block, Expression * expr ) override {
             Visitor::preVisitBlockExpression(block, expr);
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual ExpressionPtr visitBlockExpression ( ExprBlock * block, Expression * that ) override {
             ss << ";"; newLine();
@@ -1257,7 +1323,7 @@ namespace das {
         }
         virtual ExpressionPtr visit ( ExprBlock * block ) override {
             tab --;
-            ss << string(tab,'\t') << "}";
+            ss << tabs() << "}";
             block->finallyBeforeBody = false;
             block->finallyDisabled = false;
             scopes.pop_back();
@@ -1268,18 +1334,18 @@ namespace das {
         }
         virtual void preVisitBlockFinal ( ExprBlock * block ) override {
             Visitor::preVisitBlockFinal(block);
-            ss << string(tab-1,'\t') << "/* finally */ auto " << finallyName(block) << "= das_finally([&](){\n";
+            ss << tabs() << "/* finally */ auto " << finallyName(block) << "= das_finally([&](){\n";
         }
         virtual void preVisitBlockFinalExpression ( ExprBlock * block, Expression * expr ) override {
             Visitor::preVisitBlockFinalExpression(block, expr);
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual ExpressionPtr visitBlockFinalExpression ( ExprBlock * block, Expression * that ) override {
             ss << ";"; newLine();
             return Visitor::visitBlockFinalExpression(block, that);
         }
         virtual void visitBlockFinal ( ExprBlock * block ) override {
-            ss << string(tab-1,'\t') << "/* end finally */ });\n";
+            ss << tabs() << "/* end finally */ });\n";
             Visitor::visitBlockFinal(block);
         }
     // let
@@ -1292,7 +1358,7 @@ namespace das {
                 blk->aotSkipMakeBlock = true;
                 ss << "auto " << vname << "_TempFunctor = ";
                 var->init->visit(*this);
-                ss << ";\n" << string(tab,'\t');
+                ss << ";\n" << tabs();
                 blk->aotSkipMakeBlock = false;
                 mkb->aotFunctorName = vname + "_TempFunctor";
             }
@@ -1304,15 +1370,20 @@ namespace das {
             if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
                 cvname += "_ConstRef";
             }
-            ss << cvname;
-            if ( !var->init && var->type->canInitWithZero() ) {
+            if (var->init) {
+                ss << cvname;
+            } else if (var->type->canInitWithZero() ) {
+                ss << cvname;
                 if ( isLocalVec(var->type) ) {
                     ss << " = v_zero()";
                 } else {
                     ss << " = 0";
                 }
-            } else if ( !var->init && !var->type->canInitWithZero() ) {
-                ss << "; das_zero(" << cvname;
+            } else {
+                if (!collector.isMoved(var)) {
+                    ss << cvname << ";";
+                }
+                ss << "das_zero(" << cvname;
                 ss << ")";
             }
         }
@@ -1320,7 +1391,7 @@ namespace das {
             if ( !last ) ss << "; ";
             if ( var->type->constant && var->type->isRefType() && !var->type->ref ) {
                 auto vname = collector.getVarName(var);
-                ss << ";\n\t";
+                ss << ";\n    ";
                 describeLocalCppType(ss, var->type);
                 ss << " & " << vname << " = " << vname << "_ConstRef; ";
             }
@@ -1353,7 +1424,7 @@ namespace das {
             if ( !expr->type->isPointer() && !var->type->ref && expr->type->isAotAlias() && !var->type->isAotAlias() ) {
                 if ( expr->type->alias.empty() ) {
                     ss << "das_reinterpret<"
-                    << describeCppTypeEx(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::yes) << ">::pass(";
+                    << describeCppTypeEx(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::yes, ChooseSmartPtr::no) << ">::pass(";
                 } else {
                     ss << "das_alias<" << expr->type->alias << ">::from(";
                 }
@@ -1365,7 +1436,8 @@ namespace das {
                 ss << "das_auto_cast<" << describeCppType(var->type) << ">::cast(";
             }
             if ( expr->type->isString() ) {
-                ss << "(char *)(";
+                auto maybeRef = var->type->ref ? " &" : "";
+                ss << "(char *" << maybeRef << ")(";
             }
         }
         virtual ExpressionPtr visitLetInit ( ExprLet * let , const VariablePtr & var, Expression * expr ) override {
@@ -1413,12 +1485,12 @@ namespace das {
                     for ( const auto & ex : blk->list ) {
                         if ( ex->rtti_isLabel() ) {
                             auto lab = static_pointer_cast<ExprLabel>(ex);
-                            ss << string(tab,'\t') << "case " << lab->label <<": goto label_" << lab->label << ";\n";
+                            ss << tabs() << "case " << lab->label <<": goto label_" << lab->label << ";\n";
                         }
                     }
                 }
-                ss << string(tab,'\t') << "default: __context__->throw_error(\"invalid label\");\n";
-                ss << string(tab,'\t') << "}";
+                ss << tabs() << "default: __context__->throw_error(\"invalid label\");\n";
+                ss << tabs() << "}";
             }
             return Visitor::visit(that);
         }
@@ -1517,6 +1589,7 @@ namespace das {
             if ( isalpha(that->op[0]) ) return true;
             if ( that->op=="/" || that->op=="%" ) return true;
             if ( that->op=="<<<" || that->op==">>>" || that->op=="<<<=" || that->op==">>>=" ) return true;
+            if ( that->op=="<<" || that->op==">>" || that->op=="<<=" || that->op==">>=" ) return true;
             return that->type->isPolicyType() || that->left->type->isPolicyType() || that->right->type->isPolicyType();
         }
         const TypeDeclPtr & opPolicyBase ( ExprOp2 * that ) const {
@@ -1571,7 +1644,8 @@ namespace das {
                 }
                 outPolicy(pt);
                 ss << "::" << opPolicyName(that) << "(";
-                if ( isRefPolicyOp(that) ) {
+                // If first arg is reference and it's vector types or string we pass it as char*
+                if ( isRefPolicyOp(that) && (pt->isVectorType() || pt->isString()) ) {
                     ss << "(char *)&(";
                 } else if ( policyArgNeedCast(pt, that->left->type) ) {
                     if (that->left->type->isRefType()) {
@@ -1593,7 +1667,7 @@ namespace das {
                 CallFunc_preVisitCallArg(that, that->right.get(), true);
             } else if ( isOpPolicy(that) ) {
                 auto pt = opPolicyBase(that);
-                if ( isRefPolicyOp(that) ) {
+                if ( isRefPolicyOp(that) && (pt->isVectorType() || pt->isString()) ) {
                     ss << ")";
                 } else if ( policyArgNeedCast(pt, that->left->type) ) {
                     if (that->left->type->isRefType()) {
@@ -1767,16 +1841,32 @@ namespace das {
             }
             return Visitor::visit(nc);
         }
+
+        void dumpVariadicTypes(const vector<TypeDeclPtr>& types) {
+            for ( const auto & arg : types ) {
+                ss << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::no, ChooseSmartPtr::no);
+            }
+        }
+
     // is variant
         virtual void preVisit(ExprIsVariant * field) override {
             Visitor::preVisit(field);
-            ss << "das_get_variant_field<"
-                << describeCppType(field->value->type->argTypes[field->fieldIndex])
-                << ","
-                << field->value->type->getVariantFieldOffset(field->fieldIndex)
-                << ","
-                << field->fieldIndex
-                << ">::is(";
+            if (cross_platform) {
+                ss << "das_get_auto_variant_field<"
+                   << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                   << ","
+                   << field->fieldIndex;
+                dumpVariadicTypes(field->value->type->argTypes);
+                ss << ">::is(";
+            } else {
+                ss << "das_get_variant_field<"
+                   << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                   << ","
+                   << field->value->type->getVariantFieldOffset(field->fieldIndex)
+                   << ","
+                   << field->fieldIndex
+                   << ">::is(";
+            }
         }
         virtual ExpressionPtr visit ( ExprIsVariant * field ) override {
             ss << ")";
@@ -1788,13 +1878,21 @@ namespace das {
             if ( field->type->aotAlias ) {
                 ss << "das_alias<" << field->type->alias << ">::from(";
             }
-            ss << "das_get_variant_field<"
-                << describeCppType(field->value->type->argTypes[field->fieldIndex])
-                << ","
-                << field->value->type->getVariantFieldOffset(field->fieldIndex)
-                << ","
-                << field->fieldIndex
-                << ">::as(";
+            if (cross_platform) {
+                ss << "das_get_auto_variant_field<"
+                   << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                   << ","
+                   << field->fieldIndex;
+                dumpVariadicTypes(field->value->type->argTypes);
+            } else {
+                ss << "das_get_variant_field<"
+                   << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                   << ","
+                   << field->value->type->getVariantFieldOffset(field->fieldIndex)
+                   << ","
+                   << field->fieldIndex;
+            }
+            ss << ">::as(";
         }
         virtual ExpressionPtr visit ( ExprAsVariant * field ) override {
             ss << ",__context__)";
@@ -1810,15 +1908,23 @@ namespace das {
             if ( fieldT->aotAlias ) {
                 ss << "das_alias<" << fieldT->alias << ">::from(";
             }
-            ss << "das_get_variant_field<"
-                << describeCppType(fieldT->argTypes[field->fieldIndex])
-                << ","
-                << fieldT->getVariantFieldOffset(field->fieldIndex)
-                << ","
-                << field->fieldIndex
-                << ">::safe_as"
-                << (field->skipQQ ? "_ptr" : "")
-                << "(";
+            if (cross_platform) {
+                ss << "das_get_auto_variant_field<"
+                   << describeCppType(fieldT->argTypes[field->fieldIndex])
+                   << ","
+                   << field->fieldIndex;
+                dumpVariadicTypes( field->value->type->argTypes );
+            } else {
+                ss << "das_get_variant_field<"
+                   << describeCppType(fieldT->argTypes[field->fieldIndex])
+                   << ","
+                   << fieldT->getVariantFieldOffset(field->fieldIndex)
+                   << ","
+                   << field->fieldIndex;
+            }
+            ss << ">::safe_as"
+               << (field->skipQQ ? "_ptr" : "")
+               << "(";
         }
         virtual ExpressionPtr visit ( ExprSafeAsVariant * field ) override {
             ss << ")";
@@ -1851,9 +1957,15 @@ namespace das {
             if ( vtype->isHandle() ) {
                 ss  << ">::get(";
             } else if ( vtype->isGoodTupleType() ) {
+                if (cross_platform) {
+                    DAS_FATAL_ERROR("Platform independent code enabled. But field %s is tuple", field->name.c_str());
+                }
                 ss  << ", " << vtype->getTupleFieldOffset(field->fieldIndex)
                     << ">::get(";
             } else if ( vtype->isGoodVariantType() ) {
+                if (cross_platform) {
+                    DAS_FATAL_ERROR("Platform independent code enabled. But field %s is variant", field->name.c_str());
+                }
                 ss  << ", " << vtype->getVariantFieldOffset(field->fieldIndex)
                     << ", " << field->fieldIndex
                     <<  ">::get(";
@@ -1889,19 +2001,35 @@ namespace das {
             if ( field->value->type->isBitfield() ) {
                 ss << "das_get_bitfield(";
             } else if ( field->value->type->isTuple() ) {
-                ss << "das_get_tuple_field<"
-                    << describeCppType(field->value->type->argTypes[field->fieldIndex])
-                    << ","
-                    << field->value->type->getTupleFieldOffset(field->fieldIndex)
-                    << ">::get(";
+                if (cross_platform) {
+                    ss << "das_get_auto_tuple_field<"
+                       << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                       << ","
+                       << field->fieldIndex;
+                    dumpVariadicTypes( field->value->type->argTypes );
+                } else {
+                    ss << "das_get_tuple_field<"
+                       << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                       << ","
+                       << field->value->type->getTupleFieldOffset(field->fieldIndex);
+                }
+                ss << ">::get(";
             } else if ( field->value->type->isVariant() ) {
-                ss << "das_get_variant_field<"
-                    << describeCppType(field->value->type->argTypes[field->fieldIndex])
-                    << ","
-                    << field->value->type->getVariantFieldOffset(field->fieldIndex)
-                    << ","
-                    << field->fieldIndex
-                    << ">::get(";
+                if (cross_platform) {
+                    ss << "das_get_auto_variant_field<"
+                       << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                       << ","
+                       << field->fieldIndex;
+                    dumpVariadicTypes( field->value->type->argTypes );
+                } else {
+                    ss << "das_get_variant_field<"
+                       << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                       << ","
+                       << field->value->type->getVariantFieldOffset(field->fieldIndex)
+                       << ","
+                       << field->fieldIndex;
+                }
+                ss << ">::get(";
             } else if ( field->value->type->isHandle() ) {
                 if (field->type->isString()) {
                     ss << "((" << describeCppType(field->type) << ")(";  // c-cast const char * etc string casts to char * or char * const
@@ -1911,19 +2039,36 @@ namespace das {
                 if ( field->value->type->firstType->isHandle() ) {
                     field->value->type->firstType->annotation->aotPreVisitGetFieldPtr(ss, field->name);
                 } else if ( field->value->type->firstType->isTuple() ) {
-                    ss << "das_get_tuple_field_ptr<"
-                        << describeCppType(field->value->type->firstType->argTypes[field->fieldIndex])
-                        << ","
-                        << field->value->type->firstType->getTupleFieldOffset(field->fieldIndex)
-                        << ">::get(";
+                    auto baseType = field->value->type->firstType;
+                    if (cross_platform) {
+                        ss << "das_get_auto_tuple_field_ptr<"
+                           << describeCppType(baseType->argTypes[field->fieldIndex])
+                           << ","
+                           << field->fieldIndex;
+                        dumpVariadicTypes( baseType->argTypes );
+                    } else {
+                        ss << "das_get_tuple_field_ptr<"
+                           << describeCppType(baseType->argTypes[field->fieldIndex])
+                           << ","
+                           << baseType->getTupleFieldOffset(field->fieldIndex);
+                    }
+                    ss << ">::get(";
                 } else if ( field->value->type->firstType->isVariant() ) {
-                    ss << "das_get_variant_field_ptr<"
-                        << describeCppType(field->value->type->firstType->argTypes[field->fieldIndex])
-                        << ","
-                        << field->value->type->firstType->getVariantFieldOffset(field->fieldIndex)
-                        << ","
-                        << field->fieldIndex
-                        << ">::get(";
+                    if (cross_platform) {
+                        ss << "das_get_auto_variant_field_ptr<"
+                           << describeCppType(field->value->type->argTypes[field->fieldIndex])
+                           << ","
+                           << field->fieldIndex;
+                        dumpVariadicTypes( field->value->type->argTypes );
+                    } else {
+                        ss << "das_get_variant_field_ptr<"
+                           << describeCppType(field->value->type->firstType->argTypes[field->fieldIndex])
+                           << ","
+                           << field->value->type->firstType->getVariantFieldOffset(field->fieldIndex)
+                           << ","
+                           << field->fieldIndex;
+                    }
+                    ss << ">::get(";
                 }
             }
         }
@@ -2059,7 +2204,11 @@ namespace das {
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstInt64 * c ) override {
-            ss << "INT64_C(" << c->getValue() << ")";
+            if (c->getValue() == INT64_MIN) {
+                ss << "INT64_MIN"; // silence overflow warning
+            } else {
+                ss << "INT64_C(" << c->getValue() << ")";
+            }
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstUInt8 * c ) override {
@@ -2242,7 +2391,7 @@ namespace das {
                     ss << "{\n";
                     tab ++;
                     block->visitFinally(*this);
-                    ss << string(tab,'\t');
+                    ss << tabs();
                 }
             }
             ss << "while ( ";
@@ -2250,14 +2399,14 @@ namespace das {
         virtual void preVisitWhileBody ( ExprWhile * wh, Expression * body ) override {
             Visitor::preVisitWhileBody(wh,body);
             ss << " )\n";
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual ExpressionPtr visit ( ExprWhile * wh ) override {
             if ( wh->body->rtti_isBlock() ) {
                 auto * block = static_cast<ExprBlock *>(wh->body.get());
                 if ( !block->finalList.empty() ) {
                     tab --;
-                    ss << "\n" << string(tab,'\t') << "}";
+                    ss << "\n" << tabs() << "}";
                 }
             }
             return Visitor::visit(wh);
@@ -2270,7 +2419,7 @@ namespace das {
         virtual void preVisitIfBlock ( ExprIfThenElse * ifte, Expression * block ) override {
             Visitor::preVisitIfBlock(ifte,block);
             ss << " )\n";
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual void preVisitElseBlock ( ExprIfThenElse * ifte, Expression * block ) override {
             Visitor::preVisitElseBlock(ifte, block);
@@ -2415,12 +2564,12 @@ namespace das {
         virtual void preVisit ( ExprTryCatch * tc ) override {
             Visitor::preVisit(tc);
             ss << "das_try_recover(__context__, [&]()\n";
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual void preVisitCatch ( ExprTryCatch * tc, Expression * block ) override {
             Visitor::preVisitCatch(tc, block);
             ss << ", [&]()\n";
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         virtual ExpressionPtr visit ( ExprTryCatch * tc ) override {
             ss << ")";
@@ -2453,11 +2602,17 @@ namespace das {
             return Visitor::visit(ref2ptr);
         }
     // addr
+        string queryByMNH(string_view name, uint64_t hash) {
+            TextWriter tw;
+            tw << "Func(__context__->fnByMangledName(/*" << name.data() << "*/ 0x" << HEX << hash << DEC << "))";
+            return tw.str();
+        }
+
         virtual void preVisit ( ExprAddr * expr ) override {
             if (expr->func) {
                 auto mangledName = expr->func->getMangledName();
                 uint64_t hash = expr->func->getMangledNameHash();
-                ss << "Func(__context__->fnByMangledName(/*" << mangledName << "*/ " << hash << "u))";
+                ss << queryByMNH(mangledName, hash);
             } else {
                 ss << "Func(0 /*nullptr*/)";
             }
@@ -2629,24 +2784,33 @@ namespace das {
                 << (needTempSrc(expr) ? "&" : "") << " {\n";
             tab ++;
             if ( !needTempSrc(expr) ) {
-                ss << string(tab,'\t') << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
+                ss << tabs() << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
                     << " " << mkvName(expr) << ";\n";
             }
             if ( expr->variants.empty() ) {
-                ss << string(tab,'\t') << "das_zero(" << mkvName(expr) << ");\n";
+                ss << tabs() << "das_zero(" << mkvName(expr) << ");\n";
             }
         }
         virtual void preVisitMakeVariantField ( ExprMakeVariant * expr, int index, MakeFieldDecl * decl, bool last ) override {
             Visitor::preVisitMakeVariantField(expr,index,decl,last);
             auto variantIndex = expr->type->findArgumentIndex(decl->name);
             DAS_ASSERT(variantIndex != -1 && "should not infer otherwise");
-            ss  << string(tab,'\t') << "das_get_variant_field<"
-                << describeCppType(expr->type->argTypes[variantIndex])
-                << ","
-                << expr->type->getVariantFieldOffset(variantIndex)
-                << ","
-                << variantIndex
-                << ">::set(";
+            ss  << tabs();
+            if (cross_platform) {
+                ss << "das_get_auto_variant_field<"
+                   << describeCppType(expr->type->argTypes[variantIndex])
+                   << ","
+                   << variantIndex;
+                dumpVariadicTypes(expr->type->argTypes);
+            } else {
+                ss  << "das_get_variant_field<"
+                    << describeCppType(expr->type->argTypes[variantIndex])
+                    << ","
+                    << expr->type->getVariantFieldOffset(variantIndex)
+                    << ","
+                    << variantIndex;
+            }
+            ss << ">::set(";
             ss << mkvName(expr);
             if ( expr->variants.size()!=1 ) ss << "(" << index << ",__context__)";
             ss <<  ") = ";
@@ -2656,9 +2820,9 @@ namespace das {
             return Visitor::visitMakeVariantField(expr,index,decl,last);
         }
         virtual ExpressionPtr visit ( ExprMakeVariant * expr ) override {
-            ss << string(tab,'\t') << "return " << mkvName(expr)<< ";\n";
+            ss << tabs() << "return " << mkvName(expr)<< ";\n";
             tab --;
-            ss << string(tab,'\t') << "})())";
+            ss << tabs() << "})())";
             return Visitor::visit(expr);
         }
     // make structure
@@ -2684,17 +2848,17 @@ namespace das {
             tab ++;
             if ( !expr->isNewHandle ) {
                 if ( !needTempSrc(expr) ) {
-                    ss << string(tab,'\t') << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
+                    ss << tabs() << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
                         << " " << mksName(expr);
                     if ( expr->constructor ) {
                         ss << " = ";
                         auto call_func = expr->constructor;
                         if ( isHybridCall(call_func) ) {
-                            ss << "das_invoke_function<" << describeCppType(call_func->result) << ">::invoke_cmres";
+                            ss << "das_invoke_function<" << describeCppType(call_func->result, CpptSubstitureRef::no, CpptSkipRef::no, CpptSkipConst::yes) << ">::invoke_cmres";
                             auto mangledName = call_func->getMangledName();
                             uint64_t hash = call_func->getMangledNameHash();
                             ss << "(__context__,nullptr,";
-                            ss << "Func(__context__->fnByMangledName(/*" << mangledName << "*/ " << hash << "u))";
+                            ss << queryByMNH(mangledName, hash);
                             ss << ");\n";
                         } else {
                             ss << aotFuncName(call_func) << "(__context__);\n";
@@ -2702,14 +2866,14 @@ namespace das {
                     } else ss << ";\n";
                 } else {
                     if ( expr->constructor ) {
-                        ss << string(tab,'\t') << mksName(expr) << " = ";
+                        ss << tabs() << mksName(expr) << " = ";
                         auto call_func = expr->constructor;
                         if ( isHybridCall(call_func) ) {
-                            ss << "das_invoke_function<" << describeCppType(call_func->result) << ">::invoke_cmres";
+                            ss << "das_invoke_function<" << describeCppType(call_func->result, CpptSubstitureRef::no, CpptSkipRef::no, CpptSkipConst::yes) << ">::invoke_cmres";
                             auto mangledName = call_func->getMangledName();
                             uint64_t hash = call_func->getMangledNameHash();
                             ss << "(__context__,nullptr,";
-                            ss << "Func(__context__->fnByMangledName(/*" << mangledName << "*/ " << hash << "u))";
+                            ss << queryByMNH(mangledName, hash);
                             ss << ");\n";
                         } else {
                             ss << aotFuncName(call_func) << "(__context__);\n";
@@ -2717,13 +2881,13 @@ namespace das {
                     }
                 }
                 if ( (!expr->constructor && !expr->initAllFields) || (expr->makeType->baseType==Type::tTuple && expr->structs.size()==0) ) {
-                    ss << string(tab,'\t') << "das_zero(" << mksName(expr) << ");\n";
+                    ss << tabs() << "das_zero(" << mksName(expr) << ");\n";
                 }
             }
         }
         virtual void preVisitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool last ) override {
             Visitor::preVisitMakeStructureField(expr,index,decl,last);
-            ss << string(tab,'\t');
+            ss << tabs();
             ss << (decl->moveSemantics ? "das_move((" : "das_copy((");
             if ( expr->makeType->baseType==Type::tHandle ) {
                 expr->makeType->annotation->aotPreVisitGetField(ss, decl->name);
@@ -2750,14 +2914,14 @@ namespace das {
                 DAS_ASSERT(mkb->block->rtti_isBlock());
                 auto blk = static_pointer_cast<ExprBlock>(mkb->block);
                 collector.renameVariable(blk->arguments[0].get(), mksName(expr));
-                ss << string(tab,'\t');
+                ss << tabs();
                 blk->visit(*this);
             }
             if ( !expr->isNewHandle ) {
-                ss << string(tab,'\t') << "return " << mksName(expr) << ";\n";
+                ss << tabs() << "return " << mksName(expr) << ";\n";
             }
             tab --;
-            ss << string(tab,'\t') << "})";
+            ss << tabs() << "})";
             if ( !expr->isNewHandle ) ss << "()" ;
             ss << ")";
             return Visitor::visit(expr);
@@ -2776,25 +2940,25 @@ namespace das {
                 << (needTempSrc(expr) ? "&" : "") << " {\n";
             tab ++;
             if ( !needTempSrc(expr) ) {
-                ss << string(tab,'\t') << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
+                ss << tabs() << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
                     << " " << mkaName(expr) << ";\n";
             }
             if ( !expr->initAllFields ) {
-                ss << string(tab,'\t') << "das_zero(" << mkaName(expr) << ");\n";
+                ss << tabs() << "das_zero(" << mkaName(expr) << ");\n";
             }
         }
         virtual void preVisitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastField ) override {
             Visitor::preVisitMakeArrayIndex(expr, index, init, lastField);
-            ss << string(tab,'\t') << mkaName(expr) << "(" << index << ",__context__) = ";
+            ss << tabs() << mkaName(expr) << "(" << index << ",__context__) = ";
         }
         virtual ExpressionPtr visitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastField ) override {
             ss << ";\n";
             return Visitor::visitMakeArrayIndex(expr, index, init, lastField);
         }
         virtual ExpressionPtr visit ( ExprMakeArray * expr ) override {
-            ss << string(tab,'\t') << "return " << mkaName(expr)<< ";\n";
+            ss << tabs() << "return " << mkaName(expr)<< ";\n";
             tab --;
-            ss << string(tab,'\t') << "})())";
+            ss << tabs() << "})())";
             return Visitor::visit(expr);
         }
    // make tuple
@@ -2811,29 +2975,38 @@ namespace das {
                 << (needTempSrc(expr) ? "&" : "") << " {\n";
             tab ++;
             if ( !needTempSrc(expr) ) {
-                ss << string(tab,'\t') << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
+                ss << tabs() << describeCppType(expr->type,CpptSubstitureRef::no,CpptSkipRef::yes)
                     << " " << mktName(expr) << ";\n";
             }
             if ( !expr->initAllFields ) {
-                ss << string(tab,'\t') << "das_zero(" << mktName(expr) << ");\n";
+                ss << tabs() << "das_zero(" << mktName(expr) << ");\n";
             }
         }
         virtual void preVisitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool lastField ) override {
             Visitor::preVisitMakeTupleIndex(expr, index, init, lastField);
-            ss << string(tab,'\t') << "das_get_tuple_field<"
-                << describeCppType(expr->makeType->argTypes[index])
-                << ","
-                << expr->makeType->getTupleFieldOffset(index)
-                << ">::get(" << mktName(expr) << ") = ";
+            ss << tabs();
+            if (cross_platform) {
+                ss << "das_get_auto_tuple_field<"
+                   << describeCppType(expr->makeType->argTypes[index])
+                   << ","
+                   << index;
+                dumpVariadicTypes( expr->makeType->argTypes );
+            } else {
+                ss << "das_get_tuple_field<"
+                   << describeCppType(expr->makeType->argTypes[index])
+                   << ","
+                   << expr->makeType->getTupleFieldOffset(index);
+            }
+            ss << ">::get(" << mktName(expr) << ") = ";
         }
         virtual ExpressionPtr visitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool lastField ) override {
             ss << ";\n";
             return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
         }
         virtual ExpressionPtr visit ( ExprMakeTuple * expr ) override {
-            ss << string(tab,'\t') << "return " << mktName(expr)<< ";\n";
+            ss << tabs() << "return " << mktName(expr)<< ";\n";
             tab --;
-            ss << string(tab,'\t') << "})())";
+            ss << tabs() << "})())";
             return Visitor::visit(expr);
         }
     // ExprMakeBlock
@@ -2931,10 +3104,11 @@ namespace das {
                 ss << "__builtin_table_keys(__context__,";
             } else if (call->name == "values") {
                 ss << "__builtin_table_values(__context__,";
-            } else if ( call->name=="invoke" ) {
-                auto bt = call->arguments[0]->type->baseType;
+            } else if ( call->name=="invoke" || call->rtti_isInvoke() ) {
+                const auto argType = call->arguments[0]->type;
+                auto bt = argType->baseType;
                 int methodOffset = -1;
-                string methodName;
+                std::optional<string> methodName;
                 if ( bt==Type::tFunction ) {
                     auto einv = static_cast<ExprInvoke *>(call);
                     if ( einv->isInvokeMethod ) {
@@ -2949,14 +3123,21 @@ namespace das {
                 }
                 if (bt == Type::tBlock) ss << "das_invoke";
                 else if (bt == Type::tLambda) ss << "das_invoke_lambda";
-                else if (bt == Type::tFunction && methodOffset!=-1) ss << "das_invoke_method";
+                else if (bt == Type::tFunction && methodName) ss << "das_invoke_method";
                 else if (bt == Type::tFunction) ss << "das_invoke_function";
                 else if (bt == Type::tString) ss << "das_invoke_function_by_name";
                 else ss << "das_invoke /*unknown*/";
                 ExprInvoke * einv = static_cast<ExprInvoke *>(call);
-                ss << "<" << describeCppType(call->type);
-                if ( methodOffset!=-1 ) {
-                    ss << "," << methodOffset << "/*" << methodName << "*/";
+                ss << "<" << describeCppType(call->type, CpptSubstitureRef::no, CpptSkipRef::no, CpptSkipConst::yes);
+                if ( methodName ) {
+                    if (crossPlatform) {
+                        ss << ",offsetof(" << describeCppType(argType->argTypes.at(0),
+                                                              CpptSubstitureRef::no,
+                                                              CpptSkipRef::yes,
+                                                              CpptSkipConst::yes) << "," << methodName.value() << ")";
+                    } else {
+                        ss << "," << methodOffset << "/*" << methodName.value() << "*/";
+                    }
                 }
                 ss << ">::invoke";
                 if ( einv->isCopyOrMove() ) ss << "_cmres";
@@ -2977,14 +3158,14 @@ namespace das {
                 }
                 ss << "(__context__,nullptr,";
             } else if ( call->name=="memzero" ) {
-                ss << "memset(&(";
+                ss << "memset((void*)&(";
             } else if ( call->name=="static_assert" ) {
                 ss << "das_static_assert(";
             } else {
                 ss << call->name << "(";
             }
         }
-        virtual bool canVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) override {
+        virtual bool canVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool ) override {
             if ( call->arguments.size()>=1 && call->arguments[0].get()==arg &&  call->rtti_isInvoke() ) {
                 auto * inv = (ExprInvoke *) call;
                 if ( inv->isInvokeMethod ) return false;
@@ -3024,7 +3205,13 @@ namespace das {
             if ( call->name=="assert" || call->name=="verify" || call->name=="debug" ) {
                 ss << "))";
             } else if ( call->name=="memzero" ) {
-                ss << "), 0, " << call->arguments[0]->type->getSizeOf() << ")";
+                const auto type = call->arguments[0]->type;
+                if (cross_platform) {
+                    auto typeName = describeCppType(type,CpptSubstitureRef::no,CpptSkipRef::yes);
+                    ss << "), 0, TypeSize<" << typeName << ">::size)";
+                } else {
+                    ss << "), 0, " << type->getSizeOf() << ")";
+                }
             } else {
                 ss << ")";
             }
@@ -3167,7 +3354,7 @@ namespace das {
                 }
             } else {
                 if ( isHybridCall(call->func) ) {
-                    ss << "das_invoke_function<" << describeCppType(call->func->result) << ">::invoke";
+                    ss << "das_invoke_function<" << describeCppType(call->func->result, CpptSubstitureRef::no, CpptSkipRef::no, CpptSkipConst::yes) << ">::invoke";
                     if ( call->func->result->isRefType() && !call->func->result->ref ) {
                         ss << "_cmres";
                     }
@@ -3185,10 +3372,10 @@ namespace das {
                             }
                         }
                         ss << ">(__context__,nullptr,";
-                        ss << "Func(__context__->fnByMangledName(/*" << mangledName << "*/ " << hash << "u)),";
+                        ss << queryByMNH(mangledName, hash) << ",";
                     } else {
                         ss << "(__context__,nullptr,";
-                        ss << "Func(__context__->fnByMangledName(/*" << mangledName << "*/ " << hash << "u))";
+                        ss << queryByMNH(mangledName, hash);
                     }
                 } else {
                     ss << aotFuncName(call->func) << "(__context__";
@@ -3223,8 +3410,7 @@ namespace das {
             auto funArgType = call->func->arguments[it-call->arguments.begin()]->type;
             if ( funArgType->isAotAlias() ) {
                 if ( funArgType->alias.empty() ) {
-                    ss << "das_reinterpret<"
-                    << describeCppTypeEx(funArgType,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::yes) << ">::pass(";
+                    ss << "das_reinterpret<" << describeCppTypeEx(funArgType,CpptSubstitureRef::no,CpptSkipRef::yes,CpptSkipConst::no,CpptRedundantConst::yes,CpptUseAlias::yes, ChooseSmartPtr::no) << ">::pass(";
                 } else {
                     ss << "das_alias<" << funArgType->alias << ">::to(";
                 }
@@ -3342,7 +3528,7 @@ namespace das {
         }
     // for
         string forSrcName ( const string & varName ) const {
-            return "__" + varName + "_iterator";
+            return "__" + aotSuffixNameEx(varName, "") + "_iterator";
         }
         string needLoopName ( ExprFor * ffor ) const {
             return "__need_loop_" + to_string(ffor->at.line);
@@ -3352,7 +3538,7 @@ namespace das {
             ss << "{\n";
             tab ++;
             auto nl = needLoopName(ffor);
-            ss << string(tab,'\t') << "bool " << nl << " = true;\n";
+            ss << tabs() << "bool " << nl << " = true;\n";
         }
         virtual void preVisitForBody ( ExprFor * ffor, Expression * body ) override {
             Visitor::preVisitForBody(ffor, body);
@@ -3363,7 +3549,7 @@ namespace das {
                     block->visitFinally(*this);
                 }
             }
-            ss << string(tab,'\t') << "for ( ; " << nl << " ; " << nl << " = ";
+            ss << tabs() << "for ( ; " << nl << " ; " << nl << " = ";
             for ( auto & var : ffor->iteratorVariables ) {
                 if (var != ffor->iteratorVariables.front()) {
                     ss << " && ";
@@ -3372,7 +3558,7 @@ namespace das {
                 ss << "(" << collector.getVarName(var) << "))";
             }
             ss << " )\n";
-            ss << string(tab,'\t');
+            ss << tabs();
         }
         bool isCountOrUCount ( Expression * expr ) const {
             if ( !expr->rtti_isCallFunc() ) return false;
@@ -3390,11 +3576,11 @@ namespace das {
             }
             auto & src = ffor->sources[idx];
             auto & var = ffor->iteratorVariables[idx];
-            ss << string(tab,'\t') << "// " << var->name << ": " << var->type->describe() << "\n";
+            ss << tabs() << "// " << var->name << ": " << var->type->describe() << "\n";
             if ( isCountOrUCount(src.get()) ) {
-                ss << string(tab,'\t') << "das_iterator_" << ((ExprCallFunc *) src.get())->func->name << " DAS_COMMENT(";
+                ss << tabs() << "das_iterator_" << ((ExprCallFunc *) src.get())->func->name << " DAS_COMMENT(";
             } else {
-                ss << string(tab,'\t') << "das_iterator<"
+                ss << tabs() << "das_iterator<"
                     << describeCppType(src->type,CpptSubstitureRef::yes,CpptSkipRef::yes,CpptSkipConst::no)
                         << "> " << forSrcName(var->name) << "(";
             }
@@ -3421,12 +3607,12 @@ namespace das {
             }
             // source
             bool skipTC = var->type->isString() && !var->type->ref;
-            ss << string(tab,'\t') << describeCppType(var->type,CpptSubstitureRef::yes,CpptSkipRef::no,
+            ss << tabs() << describeCppType(var->type,CpptSubstitureRef::yes,CpptSkipRef::no,
                                                       skipTC ? CpptSkipConst::yes : CpptSkipConst::no)
                 << " " << collector.getVarName(var) << ";\n";
             // loop
             auto nl = needLoopName(ffor);
-            ss << string(tab, '\t') << nl << " = " << forSrcName(var->name)
+            ss << tabs() << nl << " = " << forSrcName(var->name)
                 << ".first(__context__,";
             ss << "(" << collector.getVarName(var) << ")";
             ss << ") && " << nl << ";\n";
@@ -3435,11 +3621,11 @@ namespace das {
         virtual ExpressionPtr visit ( ExprFor * ffor ) override {
             ss << "\n";
             for ( auto & var : ffor->iteratorVariables ) {
-                ss << string(tab, '\t') << forSrcName(var->name) << ".close(__context__,";
+                ss << tabs() << forSrcName(var->name) << ".close(__context__,";
                 ss << "(" << collector.getVarName(var) << "));\n";
             }
             tab --;
-            ss << string(tab,'\t') << "}";
+            ss << tabs() << "}";
             return Visitor::visit(ffor);
         }
     };
@@ -3458,16 +3644,22 @@ namespace das {
         return hash;
     }
 
-    void Program::writeStandaloneContextMethods ( TextWriter & logs ) {
-        vector<Function *> fnn = collectUsedFunctions(library.modules, totalFunctions);
+    static void writeStandaloneContextMethods ( ProgramPtr prog, TextWriter & logs, const string &prefix, bool declare_only ) {
+        const auto fnn = collectUsedFunctions(prog->library.getModules(), prog->totalFunctions, prog->getThisModule(), false);
         BlockVariableCollector collector;
 
-        for ( auto fn : fnn ) {
+        for ( const auto fn : fnn ) {
             if ( !fn->exports ) continue;
-            if ( fn->module != thisModule.get() ) continue;
-            logs << "    auto " << aotFunctionName(fn->getOrigin() ? fn->getOrigin()->name : fn->name) << " ( ";
+            if (declare_only) {
+                logs << "    ";
+            }
+            logs << "auto " << prefix + aotFunctionName(fn->getOrigin() ? fn->getOrigin()->name : fn->name) << " ( ";
         // describe arguments
-            for ( auto & var : fn->arguments ) {
+            for ( const auto & var : fn->arguments ) {
+                if (var->type->baseType == Type::tStructure && declare_only) {
+                    // It doesn't cover all cases, but anyway we'll get CE.
+                    DAS_FATAL_ERROR("Structures is not allowed in standalone contexts arguments.")
+                }
                 if (isLocalVec(var->type)) {
                     describeLocalCppType(logs, var->type);
                 } else {
@@ -3481,395 +3673,206 @@ namespace das {
                 bool last = &var == &fn->arguments.back();
                 if ( ! last ) logs << ", ";
             }
-            logs << " ) -> ";
-            describeLocalCppType(logs,fn->result,CpptSubstitureRef::no, CpptSkipConst::yes);
-            logs << " {\n";
-            logs << "        return " << aotFuncName(fn) << "(this";
-            for ( auto & var : fn->arguments ) {
-                logs << ", " << collector.getVarName(var);
+            if (!fn->arguments.empty()) {
+                logs << " ";
             }
-            logs << "); \n";
-            logs << "    }\n\n";
+            logs << ") -> ";
+            if (fn->result->baseType == Type::tStructure && declare_only) {
+                // It doesn't cover all cases, but anyway we'll get CE.
+                DAS_FATAL_ERROR("Structures is not allowed in standalone contexts return types.");
+            }
+            describeLocalCppType(logs,fn->result,CpptSubstitureRef::no, CpptSkipConst::yes);
+            if (declare_only) {
+                logs << ";\n";
+            } else {
+                logs << " {\n";
+                logs << "    return " << aotFuncName(fn) << "(this";
+                for ( const auto & var : fn->arguments ) {
+                    logs << ", " << collector.getVarName(var);
+                }
+                logs << ");\n";
+                logs << "}\n\n";
+            }
         }
     }
 
     void Program::registerAotCpp ( TextWriter & logs, Context & context, bool headers, bool allModules ) {
-        vector<Function *> fnn = collectUsedFunctions(library.modules, totalFunctions);
+        const auto fnn = collectUsedFunctions(library.modules, totalFunctions, getThisModule(), allModules);
         if ( headers ) {
             logs << "\nvoid registerAot ( AotLibrary & aotLib )\n{\n";
         }
         bool funInit = false;
-        for ( int i=0, is=context.totalFunctions; i!=is; ++i ) {
-            if ( !allModules && fnn[i]->module != thisModule.get() )
-                continue;
-            if ( fnn[i]->init ) {
+        for ( const auto fn : fnn ) {
+            if ( fn->init ) {
                 funInit = true;
             }
-            if ( fnn[i]->noAot )
-                continue;
-            // SimFunction * fn = context.getFunction(i);
-            uint64_t semH = fnn[i]->aotHash;
-            logs << "\t// " << aotFuncName(fnn[i]) << "\n";
-            logs << "\taotLib[0x" << HEX << semH << DEC << "] = +[](Context & ctx) -> SimNode* {\n\t\treturn ";
-            logs << "ctx.code->makeNode<SimNode_Aot";
-            if ( fnn[i]->copyOnReturn || fnn[i]->moveOnReturn ) {
+            uint64_t semH = fn->aotHash;
+            logs << "    aotLib[0x" << HEX << semH << DEC << "] = +[](Context & ctx) -> SimNode* {\n";
+            logs << "        return ctx.code->makeNode<AutoSimNode_Aot";
+            if ( fn->copyOnReturn || fn->moveOnReturn ) {
                 logs << "CMRES";
             }
-            logs << "<" << describeCppFunc(fnn[i],nullptr,false,false) << ",";
-            logs << "&" << aotFuncName(fnn[i]) << ">>();\n\t};\n";
+            logs << "<&" << aotFuncName(fn) << ">>();\n    };\n";
         }
         if ( context.totalVariables || funInit ) {
             uint64_t semH = context.getInitSemanticHash();
             semH = getInitSemanticHashWithDep(semH);
-            logs << "\t// [[ init script ]]\n";
-            logs << "\taotLib[0x" << HEX << semH << DEC << "] = +[](Context & ctx) -> SimNode* {\n";
-            logs << "\t\tctx.aotInitScript = ctx.code->makeNode<SimNode_Aot<void (*)(Context *, bool),&__init_script>>();\n";
-            logs << "\t\treturn ctx.aotInitScript;\n";
-            logs << "\t};\n";
+            logs << "    // [[ init script ]]\n";
+            logs << "    aotLib[0x" << HEX << semH << DEC << "] = +[](Context & ctx) -> SimNode* {\n";
+            logs << "        ctx.aotInitScript = ctx.code->makeNode<AutoSimNode_Aot<&__init_script>>();\n";
+            logs << "        return ctx.aotInitScript;\n";
+            logs << "    };\n";
         }
         if ( headers ) {
             logs << "}\n";
         }
     }
 
-    void Program::writeStandaloneContext ( TextWriter & logs ) {
-
-        logs << "\n\n";
-        logs << "class StandaloneContext : public Context {\n";
-        logs << "public: \n";
-        writeStandaloneContextMethods(logs);
-        logs << "    StandaloneContext() {\n";
-
-        auto disableInit = options.getBoolOption("no_init", policies.no_init);
-        logs << "    auto & context = *this;\n";
-        logs << "    context.breakOnException |= " << policies.debugger << " /*policies.debugger*/;\n";
-        logs << "    context.persistent = " << options.getBoolOption("persistent_heap", policies.persistent_heap) << " /*options.getBoolOption(\"persistent_heap\", policies.persistent_heap)*/;\n";
-        logs << "    if ( context.persistent ) {\n";
-        logs << "        context.heap = make_smart<PersistentHeapAllocator>();\n";
-        logs << "        context.stringHeap = make_smart<PersistentStringAllocator>();\n";
-        logs << "    } else {\n";
-        logs << "        context.heap = make_smart<LinearHeapAllocator>();\n";
-        logs << "        context.stringHeap = make_smart<LinearStringAllocator>();\n";
-        logs << "    }\n";
-        logs << "    context.heap->setInitialSize ( " << options.getIntOption("heap_size_hint", policies.heap_size_hint) << " /*options.getIntOption(\"heap_size_hint\", policies.heap_size_hint)*/);\n";
-        logs << "    context.stringHeap->setInitialSize ( " << options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) << " /*options.getIntOption(\"string_heap_size_hint\", policies.string_heap_size_hint)*/);\n";
-        logs << "    context.constStringHeap = make_shared<ConstStringAllocator>();\n";
-        logs << "    if ( " << globalStringHeapSize << " /*globalStringHeapSize*/) {\n";
-        logs << "        context.constStringHeap->setInitialSize(" << globalStringHeapSize << "/*globalStringHeapSize*/);\n";
-        logs << "    }\n";
-
-        // logs << "DebugInfoHelper helper(context.debugInfo);\n";
-        // logs << "helper.rtti = " << options.getBoolOption("rtti",policies.rtti) << ";\n";
-        // logs << "context.thisHelper = &helper;\n";
-        logs << "    context.globalVariables = (GlobalVariable *) context.code->allocate( " << totalVariables << "/*totalVariables*/*sizeof(GlobalVariable) );\n";
-        logs << "    context.globalsSize = 0;\n";
-        logs << "    context.sharedSize = 0;\n";
-
-        if ( totalVariables ) {
-            for (auto & pm : library.modules ) {
-                pm->globals.foreach([&](auto pvar){
+    static void writeStandaloneCtor(const StandaloneContextCfg & cfg, const string &initFunctions, TextWriter &tw, Program &program) {
+        vector<VariablePtr> lookupVariableTable;
+        if ( program.totalVariables ) {
+            for (const auto & pm : program.library.getModules() ) {
+                pm->globals.foreach([&](auto pvar) {
                     if (!pvar->used)
                         return;
                     if ( pvar->index<0 ) {
-                        error("Internal compiler errors. Simulating variable which is not used" + pvar->name,
-                            "", "", LineInfo());
+                        program.error("Internal compiler errors. Simulating variable which is not used" + pvar->name,
+                                      "", "", LineInfo());
                         return;
                     }
-                    logs << "     // totalVariables  "  << "\n";
-                    logs << "    {\n";
-                    logs << "        auto & gvar = context.globalVariables[" << pvar->index << "/*pvar->index*/];\n";
-                    logs << "        gvar.name = context.code->allocateName(\"" << pvar->name << "\"/*pvar->name*/);\n";
-                    logs << "        gvar.size = " << pvar->type->getSizeOf() << "/*pvar->type->getSizeOf()*/;\n";
-                    // logs << "        gvar.debugInfo = helper.makeVariableDebugInfo(*pvar);\n";
-                    logs << "        gvar.flags = 0;\n";
-                    logs << "        if ( " << pvar->global_shared << " /*pvar->global_shared*/) {\n";
-                    logs << "            gvar.offset = context.sharedSize;\n";
-                    logs << "            gvar.shared = true;\n";
-                    logs << "            context.sharedSize = (context.sharedSize + gvar.size + 0xf) & ~0xf;\n";
-                    logs << "        } else {\n";
-                    logs << "            gvar.offset = context.globalsSize;\n";
-                    logs << "            context.globalsSize = (context.globalsSize + gvar.size + 0xf) & ~0xf;\n";
-                    logs << "        }\n";
-                    logs << "        gvar.mangledNameHash = 0x" << HEX << pvar->getMangledNameHash() << DEC  << "/*pvar->getMangledNameHash()*/;\n";
-                    logs << "        gvar.init = nullptr;\n";
-                    logs << "    }\n";
-                });
-            }
-        }
-        logs << "    context.globals = (char *) das_aligned_alloc16(context.globalsSize);\n";
-        logs << "    context.shared = (char *) das_aligned_alloc16(context.sharedSize);\n";
-        logs << "    context.sharedOwner = true;\n";
-        logs << "    context.totalVariables = " << totalVariables << "/*totalVariables*/;\n";
-        logs << "    context.functions = (SimFunction *) context.code->allocate( " << totalFunctions << "/*totalFunctions*/*sizeof(SimFunction) );\n";
-        logs << "    context.totalFunctions = " << totalFunctions << "/*totalFunctions*/;\n";
-        logs << "    auto debuggerOrGC = "  << getDebugger()                      << "/*getDebugger()*/ || "
-                                            << options.getBoolOption("gc", false) << "/*options.getBoolOption(\"gc\", false)*/;\n";
-        vector<FunctionPtr> lookupFunctionTable;
-        logs << "    bool anyPInvoke = false;\n";
-        if ( totalFunctions ) {
-            for (auto & pm : library.modules) {
-                pm->functions.foreach([&](auto pfun){
-                    if (pfun->index < 0 || !pfun->used)
-                        return;
-                    if ( (pfun->init || pfun->shutdown) && disableInit ) {
-                        error("[init] is disabled in the options or CodeOfPolicies",
-                            "internal compiler error: [init] function made it all the way to simulate somehow", "",
-                                pfun->at, CompilationError::no_init);
-                    }
-                    logs << "     // totalFunctions  "  << "\n";
-                    logs << "    {\n";
-                    logs << "        string mangledName = \"" << pfun->getMangledName() << "\"/*pfun->getMangledName()*/;\n";
-                    logs << "        auto MNH = hash_blockz64((uint8_t *)mangledName.c_str());\n";
-                    logs << "        auto & gfun = context.functions[" << pfun->index << "/*pfun->index*/];\n";
-                    logs << "        gfun.name = context.code->allocateName(\"" << pfun->name << "\"/*pfun->name*/);\n";
-                    logs << "        gfun.mangledName = context.code->allocateName(mangledName);\n";
-                    logs << "        gfun.stackSize = " << pfun->totalStackSize << "/*pfun->totalStackSize*/;\n";
-                    logs << "        gfun.mangledNameHash = MNH;\n";
-                    logs << "        gfun.aotFunction = nullptr;\n";
-                    logs << "        gfun.flags = 0;\n";
-                    logs << "        gfun.fastcall = " << pfun->fastCall << "/*pfun->fastCall*/;\n";
-                    logs << "        gfun.unsafe = " << pfun->unsafeOperation << "/*pfun->unsafeOperation*/;\n";
-                    logs << "        if ( " << (pfun->result->isRefType() && !pfun->result->ref)
-                                        << "/*(pfun->result->isRefType() && !pfun->result->ref)*/ ) {\n";
-                    logs << "            gfun.cmres = true;\n";
-                    logs << "        }\n";
-                    logs << "        if ( " << (pfun->module->builtIn && !pfun->module->promoted)
-                                        << "/*(pfun->module->builtIn && !pfun->module->promoted)*/ ) {\n";
-                    logs << "            gfun.builtin = true;\n";
-                    logs << "        }\n";
-
-                    logs << "        if ( " << pfun->pinvoke << "/*pfun->pinvoke*/ ) {\n";
-                    logs << "            anyPInvoke = true;\n";
-                    logs << "            gfun.pinvoke = true;\n";
-                    logs << "        }\n";
-                    logs << "    }\n";
-                    lookupFunctionTable.push_back(pfun);
+                    lookupVariableTable.emplace_back(pvar);
                 });
             }
         }
 
-        logs << "    if ( anyPInvoke || " << (policies.threadlock_context || policies.debugger)
-                                        << "/*(policies.threadlock_context || policies.debugger)*/ ) {\n";
-        logs << "        context.contextMutex = new recursive_mutex;\n";
-        logs << "    }\n";
+        tw << cfg.class_name << "::" << cfg.class_name << "() {\n";
+        /**
+         * Same as in Program::simulate
+         * However, here we should delay it to execution time.
+         */
+        tw << "    auto & context = *this;\n";
+        tw << "    CodeOfPolicies policies;";
+        tw << "    policies.debugger = " << program.policies.debugger << " /*policies.debugger*/;\n";
+        tw << "    policies.persistent_heap = " << program.options.getBoolOption("persistent_heap", program.policies.persistent_heap) << ";\n";
+        tw << "    policies.heap_size_hint = " << program.options.getIntOption("heap_size_hint", program.policies.heap_size_hint) << ";\n";
+        tw << "    policies.string_heap_size_hint = " << program.options.getIntOption("string_heap_size_hint", program.policies.string_heap_size_hint) << ";\n";
 
-        logs << "    context.tabMnLookup = make_shared<das_hash_map<uint64_t,SimFunction *>>();\n";
-        logs << "    context.tabMnLookup->clear();\n";
+        tw << "    context.setup(" << program.totalVariables << "/*totalVariables*/, "
+                                   << program.globalStringHeapSize << " /*globalStringHeapSize*/, policies, {});\n";
 
-        for ( const auto & fn : lookupFunctionTable ) {
-            auto mnh = fn->getMangledNameHash();
+        tw << "     // start totalVariables\n";
+        for (const auto& pvar: lookupVariableTable) {
+            tw << "    InitGlobalVar(context, &context.globalVariables[" << pvar->index << "/*pvar->index*/], GlobalVarInfo(\""
+               << pvar->name << "\", \""
+               << pvar->getMangledName() << "\", ";
+            if (crossPlatform) {
+                tw << "TypeSize<" << describeCppType(pvar->type) << ">::size, ";
+            } else {
+                tw << pvar->type->getSizeOf() << ", ";
+            }
+            tw << pvar->global_shared << ")"
+               << ");\n";
+        }
+        tw << "     // end totalVariables\n\n";
+        tw << "    context.allocateGlobalsAndShared();\n";
+        tw << "    context.totalVariables = " << program.totalVariables << "/*totalVariables*/;\n";
+        tw << "    context.functions = (SimFunction *) context.code->allocate( " << program.totalFunctions << "/*totalFunctions*/*sizeof(SimFunction) );\n";
+        tw << "    context.totalFunctions = " << program.totalFunctions << "/*totalFunctions*/;\n";
+        tw << "    bool anyPInvoke = false;\n";
 
-            logs << "    // " << fn->getMangledName() << "\n";
-            logs << "    (*context.tabMnLookup)["<< mnh <<"/*mnh*/] = context.functions + " << fn->index << "/*fn->index*/;\n";
+        tw << "    if ( anyPInvoke || " << (program.policies.threadlock_context || program.policies.debugger)
+             << "/*(policies.threadlock_context || policies.debugger)*/ ) {\n";
+        tw << "        context.contextMutex = new recursive_mutex;\n";
+        tw << "    }\n";
+
+        tw << "    context.tabMnLookup = make_shared<das_hash_map<uint64_t,SimFunction *>>();\n";
+        tw << "    context.tabMnLookup->clear();\n";
+
+
+        // MSVC forbide arrays of size 0
+        if (!initFunctions.empty()) {
+            tw << "     // start totalFunctions\n";
+            tw << "    struct FunctionStorage { int idx; FunctionInfo funcInfo; FuncInfo* debugInfo; };\n";
+            tw << "    FunctionStorage usedFunctions[] = {\n";
+            tw << initFunctions;
+            tw << "    };\n";
+            tw << "    // end totalFunctions\n";
+            tw << "    vector<pair<uint64_t, SimFunction*>> id_to_funcs;\n";
+            tw << "    for (const auto& [index, func_info, debug_info]: usedFunctions) {\n";
+            tw << "        InitAotFunction(context, &context.functions[index], func_info);\n";
+            tw << "        context.functions[index].debugInfo = debug_info;\n";
+            tw << "        (*context.tabMnLookup)[func_info.mnh] = context.functions + index;\n";
+            tw << "        id_to_funcs.emplace_back(func_info.aotHash, &context.functions[index]);\n";
+            tw << "        anyPInvoke |= func_info.pinvoke;\n";
+            tw << "    }\n";
+
         }
 
-        logs << "    context.tabGMnLookup = make_shared<das_hash_map<uint64_t,uint32_t>>();\n";
-        logs << "    context.tabGMnLookup->clear();\n";
-        logs << "    for ( int i=0, is=context.totalVariables; i!=is; ++i ) {\n";
-        logs << "        auto mnh = context.globalVariables[i].mangledNameHash;\n";
-        logs << "        (*context.tabGMnLookup)[mnh] = context.globalVariables[i].offset;\n";
-        logs << "    }\n";
-
-        logs << "    for ( int i=0, is=context.totalVariables; i!=is; ++i ) {\n";
-        logs << "        auto & gvar = context.globalVariables[i];\n";
-        logs << "        uint32_t voffset = context.globalOffsetByMangledName(gvar.mangledNameHash);\n";
-        logs << "    }\n";
-
-        logs << "    context.tabAdLookup = make_shared<das_hash_map<uint64_t,uint64_t>>();\n";
-        for (auto & pm : library.modules ) {
+        tw << "    context.tabGMnLookup = make_shared<das_hash_map<uint64_t,uint32_t>>();\n";
+        tw << "    context.tabGMnLookup->clear();\n";
+        tw << "    for ( int i=0, is=context.totalVariables; i!=is; ++i ) {\n";
+        tw << "        auto mnh = context.globalVariables[i].mangledNameHash;\n";
+        tw << "        (*context.tabGMnLookup)[mnh] = context.globalVariables[i].offset;\n";
+        tw << "    }\n";
+        tw << "    context.tabAdLookup = make_shared<das_hash_map<uint64_t,uint64_t>>();\n";
+        for (const auto & pm : program.library.getModules() ) {
             for(auto s2d : pm->annotationData ) {
-                logs << "    (*context.tabAdLookup)["<< s2d.first <<"] = "<< s2d.second <<";\n";
+                tw << "    (*context.tabAdLookup)["<< HEX << s2d.first << DEC <<"] = "<< s2d.second <<";\n";
             }
         }
 
-        vector<pair<string, uint64_t>> fnn; fnn.reserve(totalFunctions);
-        for (auto & pm : library.modules) {
-            pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used)
-                    return;
-                fnn.emplace_back(pfun->name, getFunctionAotHash(pfun.get()));
-            });
+        // aot init
+        if ( program.initSemanticHashWithDep ) {
+            tw << "    {\n";
+            tw << "        auto it = getGlobalAotLibrary().find(0x" << HEX << program.initSemanticHashWithDep << DEC << "/*initSemanticHashWithDep*/);\n";
+            tw << "        if ( it != getGlobalAotLibrary().end() ) {\n";
+            tw << "            (it->second)(context);\n";
+            tw << "        }\n";
+            tw << "    }\n";
         }
 
-        logs << "    auto & aotLib = getGlobalAotLibrary();\n";
-        logs << "    SimFunction * fn = nullptr;\n";
-
-        for ( int fni=0, fnis=totalFunctions; fni!=fnis; ++fni ) {
-            const auto & [name, aotHash] = fnn[fni];
-            logs << " // fnis = " << fni << "\n";
-            logs << "    fn = &context.functions[" << fni << "/*fni*/];\n";
-            logs << "    {\n";
-            logs << "        // " << name << "\n";
-            logs << "        uint64_t semHash = 0x" << HEX << aotHash << DEC << "/*fnn[fni]*/;\n";
-            logs << "        auto it = aotLib.find(semHash);\n";
-            logs << "        if ( it != aotLib.end() ) {\n";
-            logs << "            fn->code = (it->second)(context);\n";
-            logs << "            fn->aot = true;\n";
-            logs << "            auto fcb = (SimNode_CallBase *) fn->code;\n";
-            logs << "            fn->aotFunction = fcb->aotFunction;\n";
-            logs << "        }\n";
-            logs << "    }\n";
+        if (!initFunctions.empty()) {
+            tw << "    FillFunction(context, getGlobalAotLibrary(), id_to_funcs);\n";
         }
-    // aot init
-        if ( initSemanticHashWithDep ) {
-            logs << "    {\n";
-            logs << "        uint64_t semHash = 0x" << HEX << initSemanticHashWithDep << DEC <<"/*initSemanticHashWithDep*/;\n";
-            logs << "        auto it = aotLib.find(semHash);\n";
-            logs << "        if ( it != aotLib.end() ) {\n";
-            logs << "            (it->second)(context);\n";
-            logs << "        }\n";
-            logs << "    }\n";
+        tw << "    context.runInitScript();\n";
+        tw << "}\n";
+    }
+
+    static void writeStandaloneContext ( ProgramPtr program, const string &initFunctions, TextWriter & header, TextWriter & source, const StandaloneContextCfg & cfg ) {
+
+        header << "\n\n";
+        {
+            auto guard = ClassGuard(header, cfg.class_name + " : public Context");
+            header << "public:\n";
+            header << "    " << cfg.class_name << "();\n";
+            writeStandaloneContextMethods(program, header, "", true);
         }
 
-        logs << "    context.runInitScript();\n";
+        writeStandaloneContextMethods(program, source, cfg.class_name + "::", false);
+        writeStandaloneCtor(cfg, initFunctions, source, *program);
 
-        logs << "    }\n";
-        logs << "};\n";
-
-        logs << "#ifdef STANDALONE_CONTEXT_TESTS\n";
-        logs << "static Context * registerStandaloneTest ( ) {\n";
-        logs << "    auto ctx = new StandaloneContext();\n";
-        logs << "    return ctx;\n";
-        logs << "}\n";
-        logs << "StandaloneContextNode node(registerStandaloneTest);\n";
-        logs << "#endif\n";
-
+        source << "#ifdef STANDALONE_CONTEXT_TESTS\n";
+        source << "static Context * registerStandaloneTest ( ) {\n";
+        source << "    auto ctx = new StandaloneContext();\n";
+        source << "    return ctx;\n";
+        source << "}\n";
+        source << "StandaloneContextNode node(registerStandaloneTest);\n";
+        source << "#endif\n";
     }
 
     class StandaloneContextGen : public CppAot {
     public:
-      StandaloneContextGen(ProgramPtr prog, BlockVariableCollector &coll,
-                           string cppOutD, string standaloneContextName)
-          : CppAot(prog, coll), contextNameSuffix(standaloneContextName) {
-            cppOutputDir = cppOutD;
+      StandaloneContextGen(ProgramPtr prog, BlockVariableCollector &coll, bool cross_platform)
+          : CppAot(prog, coll, cross_platform) {
       }
-    private:
-        void writeAotHeaderIncludes () {
-            ss << "#include \"daScript/misc/platform.h\"\n\n";
 
-            ss << "#include \"daScript/simulate/simulate.h\"\n";
-            ss << "#include \"daScript/simulate/aot.h\"\n";
-            ss << "#include \"daScript/simulate/aot_library.h\"\n";
-            ss << "\n";
-        }
-
-        void writeAotHeader () {
-            ss << "\n";
-            ss << "#if defined(_MSC_VER)\n";
-            ss << "#pragma warning(push)\n";
-            ss << "#pragma warning(disable:4100)   // unreferenced formal parameter\n";
-            ss << "#pragma warning(disable:4189)   // local variable is initialized but not referenced\n";
-            ss << "#pragma warning(disable:4244)   // conversion from 'int32_t' to 'float', possible loss of data\n";
-            ss << "#pragma warning(disable:4114)   // same qualifier more than once\n";
-            ss << "#pragma warning(disable:4623)   // default constructor was implicitly defined as deleted\n";
-            ss << "#pragma warning(disable:4946)   // reinterpret_cast used besseen related classes\n";
-            ss << "#pragma warning(disable:4269)   // 'const' automatic data initialized with compiler generated default constructor produces unreliable results\n";
-            ss << "#pragma warning(disable:4555)   // result of expression not used\n";
-            ss << "#endif\n";
-            ss << "#if defined(__EDG__)\n";
-            ss << "#pragma diag_suppress 826\n";
-            ss << "#elif defined(__GNUC__) && !defined(__clang__)\n";
-            ss << "#pragma GCC diagnostic push\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wunused-parameter\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wunused-variable\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wunused-function\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wwrite-strings\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wreturn-local-addr\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wignored-qualifiers\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wsign-compare\"\n";
-            ss << "#pragma GCC diagnostic ignored \"-Wsubobject-linkage\"\n";
-            ss << "#endif\n";
-            ss << "#if defined(__clang__)\n";
-            ss << "#pragma clang diagnostic push\n";
-            ss << "#pragma clang diagnostic ignored \"-Wunused-parameter\"\n";
-            ss << "#pragma clang diagnostic ignored \"-Wwritable-strings\"\n";
-            ss << "#pragma clang diagnostic ignored \"-Wunused-variable\"\n";
-            ss << "#pragma clang diagnostic ignored \"-Wunused-but-set-variable\"\n";
-            ss << "#pragma clang diagnostic ignored \"-Wunsequenced\"\n";
-            ss << "#pragma clang diagnostic ignored \"-Wunused-function\"\n";
-            ss << "#endif\n";
-            ss << "\n";
-        }
-
-        void writeAotFooter () {
-            ss << "#if defined(_MSC_VER)\n";
-            ss << "#pragma warning(pop)\n";
-            ss << "#endif\n";
-            ss << "#if defined(__EDG__)\n";
-            ss << "#pragma diag_default 826\n";
-            ss << "#elif defined(__GNUC__) && !defined(__clang__)\n";
-            ss << "#pragma GCC diagnostic pop\n";
-            ss << "#endif\n";
-            ss << "#if defined(__clang__)\n";
-            ss << "#pragma clang diagnostic pop\n";
-            ss << "#endif\n";
-        }
-
-        void writeRegistration ( Context & context ) {
-            ss << "namespace "      << program->thisNamespace << " {\n";
-            ss << "\nstatic void registerAotFunctions ( AotLibrary & aotLib ) {\n";
-            program->registerAotCpp(ss, context, false, true);
-            ss << "\tresolveTypeInfoAnnotations();\n";
-            ss << "};\n";
-            ss << "\n";
-            ss << "AotListBase impl(registerAotFunctions);\n";
-            ss << "} // namespace " << program->thisNamespace << "\n";
-
-            ss << "namespace "      << contextNameSuffix << " {\n";
-            program->writeStandaloneContext(ss);
-            ss << "} // namespace " << contextNameSuffix << "\n";
-        }
-
-        void writeRequiredModulesFor ( Module * mod ) {
-            // lets comment on required modules
-            for ( auto [req, pub] : mod->requireModule ) {
-                if ( req->name=="" ) {
-                    // nothing, its main program module. i.e ::
-                } else {
-                    if ( req->name=="$" ) {
-                        ss << " // require builtin\n";
-                    } else {
-                        ss << " // require " << req->name << "\n";
-                    }
-                    if ( req->aotRequire(ss)==ModuleAotType::no_aot ) {
-                        ss << "  // no_aot ignored in standalone context\n";
-                    }
-                }
-            }
-        }
-
-        void setAotHashes ( Context & context ) {
-            // compute semantic hash for each used function
-            int fni = 0;
-            for ( auto & pm : program->library.getModules() ) {
-                pm->functions.foreach([&](auto pfun){
-                    if (pfun->index < 0 || !pfun->used)
-                        return;
-                    SimFunction * fn = context.getFunction(fni);
-                    pfun->hash = getFunctionHash(pfun.get(), fn->code, &context);
-                    fni++;
-                });
-            }
-            // compute AOT hash for each used function
-            // its the same as semantic hash, only takes dependencies into account
-            for (auto & pm : program->library.getModules() ) {
-                pm->functions.foreach([&](auto pfun){
-                    if (pfun->index < 0 || !pfun->used)
-                        return;
-                    pfun->aotHash = getFunctionAotHash(pfun.get());
-                    fni++;
-                });
-            }
-        }
-
-        bool saveToFile ( const string & fname, const string & str ) {
-            FILE * f = fopen (fname.c_str(), "w");
-            if ( !f ) return false;
-            size_t bytes_written = fwrite(str.c_str(), str.length(), 1, f);
-            fclose(f);
-            return bytes_written == str.length();
-        }
     public:
+        das_hash_set<string> used_functions;
+
+        AotDebugInfoHelper& GetDebugInfo() {
+            return helper;
+        }
+
         virtual void visitGlobalLetBody ( Program * prog ) override {
             vector<Variable*> globals;
             prog->library.foreach([&]( Module * pm ) {
@@ -3896,105 +3899,59 @@ namespace das {
         }
         virtual void preVisitProgramBody ( Program * prog, Module * that ) override {
             // functions
+            declarations = ss.str();
+            ss.clear();
             ss << "\n";
             // print forward declarations
-            vector<Function *> fnn; fnn.reserve(prog->totalFunctions);
-            prog->library.foreach([&](Module * pm) {
-                pm->functions.foreach([&](auto pfun) {
-                    if ( pfun->index < 0 || !pfun->used ) return true;
-                    if ( pfun->builtIn || pfun->noAot) return true;
-                    auto needInline = that == pm;
-                    ss << describeCppFunc(pfun.get(), &collector, true, needInline) << ";\n";
-                    return true;
-                });
-                return true;
-            }, "*");
-            ss << "\n";
-        }
-        bool run() {
-            shared_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
-            if ( !program->simulate(*pctx, tw) ) {
-                tw << "failed to simulate\n";
-                for ( auto & err : program->errors ) {
-                    tw << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+            const auto fnn = collectUsedFunctions(prog->library.getModules(), prog->totalFunctions, prog->getThisModule(), false);
+            for (const auto pfun: fnn) {
+                auto needInline = that == pfun->module;
+                if (needInline) {
+                    ss << describeCppFunc(pfun, &collector, true, needInline) << ";\n";
+                    used_functions.emplace(aotFuncName(pfun));
                 }
-                return false;
             }
-            Context & context = *pctx;
-            // header
-
-            daScriptEnvironment::bound->g_Program = program;    // setting it for the AOT macros
-
-
-            // mark prologue
-            PrologueMarker pmarker;
-            program->visit(pmarker);
-
-            setAotHashes(context);
-
-            // now, for that AOT
-            program->setPrintFlags();
-            program->visit(collector);
-
-
-            program->library.foreach([&] (Module * mod) {
-                // if ( mod->isProperBuiltin() ) return true;
-                moduleNamespace = mod->promoted ? "" : mod->name;
-
-                ss << "// Module " << mod->name << "\n";
-
-                writeAotHeaderIncludes();
-                writeRequiredModulesFor(mod);
-                writeAotHeader();
-
-                ss << "namespace das {\n";
-                program->visitModule(*this, mod);
-                if ( mod->name.empty() ) writeRegistration(context);
-                ss << "} // namespace das\n";
-
-                writeAotFooter();
-
-                nameToOutput[mod->name] = ss.str();
-                ss = std::move(TextWriter{}); // clear the stream
-                return true;
-            }, "*");
-
-            // get the name of the current file from program?
-
-            for ( auto & [nm, out] : nameToOutput ) {
-                if ( nm.empty() ) nm = contextNameSuffix;
-                const auto outputFile = cppOutputDir + '/' + nm + ".das.cpp";
-                saveToFile(outputFile, out);
-            }
-
-            daScriptEnvironment::bound->g_Program.reset();
-
-            return true;
+            ss << "\n";
         }
     private:
         TextWriter                  tw;
-        das_map<string, string>     nameToOutput;
-        string                      cppOutputDir;
-        string                      moduleNamespace;
-        const string                contextNameSuffix;
     };
 
-    void runStandaloneVisitor ( ProgramPtr prog, string cppOutputDir, string standaloneContextName ) {
-        BlockVariableCollector coll;
-        StandaloneContextGen gen(prog, coll, cppOutputDir, standaloneContextName);
-        gen.run();
+
+    static void writeRegistration ( TextWriter &header, TextWriter &source, const string &initFunctions, ProgramPtr program, const StandaloneContextCfg cfg, Context & context ) {
+        source << "using namespace " << program->thisNamespace << ";\n";
+        {
+            NamespaceGuard guard1(header, cfg.context_name);
+            NamespaceGuard guard2(source, cfg.context_name);
+            dumpRegisterAot(source, program, context, false);
+            writeStandaloneContext(program, initFunctions, header, source, cfg);
+        }
     }
 
-    void Program::aotCpp ( Context & context, TextWriter & logs ) {
-        // run no-aot marker
-        NoAotMarker marker;
-        visit(marker);
-        // mark prologue
-        PrologueMarker pmarker;
-        visit(pmarker);
+    static void writeRequiredModulesFor ( TextWriter &ss, ProgramPtr program ) {
+        // lets comment on required modules
+        program->library.foreach_in_order([&](Module * mod){
+            if ( mod->name=="" ) {
+                // nothing, its main program module. i.e ::
+            } else {
+                if ( mod->name=="$" ) {
+                    ss << " // require builtin\n";
+                } else {
+                    ss << " // require " << mod->name << "\n";
+                }
+                if ( mod->aotRequire(ss)==ModuleAotType::no_aot ) {
+                    ss << "  // AOT disabled due to this module\n";
+                }
+            }
+            return true;
+        }, program->getThisModule());
+    }
+
+
+    static void setAotHashes ( Context & context, ProgramPtr program ) {
         // compute semantic hash for each used function
         int fni = 0;
-        for (auto & pm : library.modules) {
+        for ( auto & pm : program->library.getModules() ) {
             pm->functions.foreach([&](auto pfun){
                 if (pfun->index < 0 || !pfun->used)
                     return;
@@ -4005,7 +3962,7 @@ namespace das {
         }
         // compute AOT hash for each used function
         // its the same as semantic hash, only takes dependencies into account
-        for (auto & pm : library.modules) {
+        for (auto & pm : program->library.getModules() ) {
             pm->functions.foreach([&](auto pfun){
                 if (pfun->index < 0 || !pfun->used)
                     return;
@@ -4013,45 +3970,201 @@ namespace das {
                 fni++;
             });
         }
-        // now, for that AOT
-        setPrintFlags();
-        BlockVariableCollector collector;
-        visit(collector);
-        CppAot aotVisitor(this,collector);
-        // pre visit all enumerations and structures for each dependency
-        bool remUS = options.getBoolOption("remove_unused_symbols",true);
+    }
+
+    void dumpRegisterAot(TextWriter &tw, ProgramPtr program, Context &context, bool allModules) {
+        tw << "\nstatic void registerAotFunctions ( AotLibrary & aotLib ) {\n";
+        program->registerAotCpp(tw, context, false, allModules);
+        tw << "    resolveTypeInfoAnnotations();\n";
+        tw << "};\n";
+        tw << "\n";
+        tw << "static AotListBase impl(registerAotFunctions);\n";
+    }
+
+    static void dumpDependencies(ProgramPtr program, CppAot& aotVisitor) {
         UseTypeMarker utm;
-        visit(utm);
-        for ( auto & pm : library.modules ) {
+        program->visit(utm);
+        bool remUS = program->options.getBoolOption("remove_unused_symbols",true);
+        for ( auto & pm : program->library.getModules() ) {
             pm->structures.foreach([&](auto ps){
                 aotVisitor.ss << "namespace " << aotModuleName(ps->module) << " { struct " << aotStructName(ps.get()) << "; };\n";
             });
+            pm->functions.foreach([&](auto fn){
+                if (fn->index < 0 || !fn->used)
+                    return;
+                fn->visit(utm);
+            });
         }
-        for ( auto & pm : library.modules ) {
-            if ( pm == thisModule.get() ) {
+        for ( auto & pm : program->library.getModules() ) {
+            if ( pm == program->thisModule.get() ) {
                 continue;
             }
+            das_hash_map<string, EnumerationPtr> enums;
             pm->enumerations.foreach([&](auto penum){
+                enums.emplace(penum->name, penum);
+            });
+            for (const auto &[name, penum]: ordered(enums)) {
                 auto pe = penum.get();
                 if ( !remUS || utm.useEnums.find(pe)!=utm.useEnums.end() ) {
-                    visitEnumeration(aotVisitor, pe);
+                    program->visitEnumeration(aotVisitor, pe);
                 } else {
-                    aotVisitor.ss << "// unused enumeration " << pe->name << "\n";
+                    aotVisitor.ss << "// unused enumeration " << name << "\n";
                 }
-            });
-            // aotVisitor.ss << "namespace " << aotModuleName(pm) << " {\n";
+            }
             pm->structures.foreach([&](auto ps){
                 if ( !remUS || utm.useStructs.find(ps.get())!=utm.useStructs.end() ) {
-                    visitStructure(aotVisitor, ps.get());
+                    program->visitStructure(aotVisitor, ps.get());
                 } else {
                     aotVisitor.ss << "// unused structure " << ps->name << "\n";
                 }
             });
-            // aotVisitor.ss << "\n}; // " << pm->name << "\n";
         }
+
+    }
+
+    /**
+     * Adds debug info to AotDebugInfoHelper
+     * @return String with initialization of all functions
+     */
+    string GetFunctionInfo(FunctionPtr pfun, std::optional<string> info = std::nullopt) {
+        TextWriter tw;
+        tw << "        {" << pfun->index << ", "
+           << "FunctionInfo(\"" << pfun->name << "\", \""
+           << pfun->getMangledName() << "\", "
+           << "0x" << HEX << pfun->getMangledNameHash() << DEC << ", "
+           << "0x" << HEX << pfun->aotHash << DEC << ", "
+           << pfun->totalStackSize << ", "
+           << pfun->unsafeOperation << ", "
+           << pfun->fastCall << ", "
+           << pfun->module->builtIn << ", "
+           << pfun->module->promoted << ", "
+           << (pfun->result->isRefType() && !pfun->result->ref) << ", "
+           << pfun->pinvoke
+           << ")";
+        if (info) {
+            tw << ", &" << info.value();
+        }
+        tw << "},\n";
+        return tw.str();
+    }
+
+    string addFunctionInfo(bool /*disableInit*/, bool rtti, const vector<Function *> &fnn, Module* module, AotDebugInfoHelper& helper) {
+        helper.rtti = rtti;
+        vector<pair<FunctionPtr, FuncInfo*>> lookupFunctionTable;
+        for (auto& pfun : fnn) {
+                auto info = helper.makeFunctionDebugInfo(*pfun);
+                lookupFunctionTable.emplace_back(pfun, info);
+        }
+
+        TextWriter tw;
+        for (auto &[pfun, info]: lookupFunctionTable) {
+            tw << GetFunctionInfo(pfun, helper.funcInfoName(info));
+        }
+        return tw.str();
+    }
+
+    void runStandaloneVisitor(ProgramPtr program, const string& cppOutputDir, const StandaloneContextCfg &cfg) {
+        crossPlatform = cfg.cross_platform;
+        auto printer = TextPrinter();
+        auto pctx = SimulateWithErrReport(program, printer);
+        if (!pctx) {
+            return;
+        }
+        Context & context = *pctx;
+        (*daScriptEnvironment::bound)->g_Program = program;    // setting it for the AOT macros
+
+        // mark prologue
+        PrologueMarker pmarker;
+        program->visit(pmarker);
+
+        setAotHashes(context, program);
+
+        // now, for that AOT
+        program->setPrintFlags();
+        BlockVariableCollector coll;
+        program->visit(coll);
+
+        CppAot aotVisitor(program,coll, cfg.cross_platform);
+        dumpDependencies(program, aotVisitor);
+
+        auto mod = program->thisModule.get();
+        // if ( mod->isProperBuiltin() ) return true;
+        const auto mod_name = (mod->promoted ? "" : mod->name);
+
+        TextWriter header;
+        TextWriter source;
+
+        if (mod_name.empty()) {
+            header << AOT_INCLUDES;
+        } else {
+            source << "// Module " << mod_name << "\n";
+            source << AOT_INCLUDES;
+        }
+
+        source << "#include \"daScript/simulate/standalone_ctx_utils.h\"\n";
+        writeRequiredModulesFor(source, program);
+        source << "#include \"" << (mod->name.empty() ? cfg.context_name : mod->name) << ".das.h\"\n";
+        source << AOT_HEADERS;
+        {
+            NamespaceGuard guard1(source, "das");
+            NamespaceGuard guard2(header, "das");
+            string initFunctions;
+            {
+                StandaloneContextGen gen(program, coll, cfg.cross_platform);
+                program->visitModule(gen, mod);
+
+                NamespaceGuard anon_guard(source, program->thisNamespace); // anonymous
+                source << aotVisitor.ss.str();
+
+                initFunctions = addFunctionInfo(program->options.getBoolOption("no_init", program->policies.no_init),
+                                                program->options.getBoolOption("rtti",program->policies.rtti),
+                                                collectUsedFunctions(program->library.getModules(), program->totalFunctions, program->getThisModule(), true, false),
+                                                program->getThisModule(),
+                                                gen.GetDebugInfo());
+                source << gen.str();
+                gen.clear();
+            }
+            writeRegistration(header, source, initFunctions, program, cfg, context);
+        }
+        source << AOT_FOOTER;
+
+        das_map<string, pair<string, string>>     nameToOutput;
+        nameToOutput[mod->name] = {header.str(), source.str()};
+
+        // get the name of the current file from program?
+
+        auto logger = TextPrinter();
+        for ( const auto & [nm, out] : nameToOutput ) {
+            const auto &[header_content, source_content] = out;
+            auto modd = nm.empty() ? cfg.context_name : nm;
+            const auto outputFile = cppOutputDir + '/' + modd + ".das";
+//            if (nm.empty()) {
+                saveToFile(logger, outputFile + ".h", header_content);
+//            }
+            saveToFile(logger, outputFile + ".cpp", source_content);
+        }
+
+        (*daScriptEnvironment::bound)->g_Program.reset();
+    }
+
+    void Program::aotCpp ( Context & context, TextWriter & logs, bool cross_platform ) {
+        // run no-aot marker
+        crossPlatform = cross_platform;
+        NoAotMarker marker;
+        visit(marker);
+        // mark prologue
+        PrologueMarker pmarker;
+        visit(pmarker);
+        // compute semantic hash for each used function
+        setAotHashes(context, this);
+        // now, for that AOT
+        setPrintFlags();
+        BlockVariableCollector collector;
+        CppAot aotVisitor(this,collector,cross_platform);
+        visit(collector);
+        dumpDependencies(this, aotVisitor);
         // now to the main body
         visit(aotVisitor);
         logs << aotVisitor.str();
     }
 }
-

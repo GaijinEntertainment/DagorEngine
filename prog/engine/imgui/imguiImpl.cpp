@@ -8,6 +8,7 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/implot.h>
 #include <imgui/misc/freetype/imgui_freetype.h>
+
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
 
@@ -21,6 +22,15 @@
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_threads.h>
+
+#ifdef ENABLE_NET_IMGUI
+#include <netImgui/NetImgui_Api.h>
+#endif
+
+extern bool ImGui_Multiview_Init();
+extern void ImGui_Multiview_Shutdown();
+extern void ImGui_Multiview_NewFrame();
 
 static ImGuiState imgui_state = ImGuiState::OFF;
 static ImGuiState requested_state = ImGuiState::OFF;
@@ -42,6 +52,7 @@ static eastl::optional<String> custom_blk_path;
 static String custom_ini_path;
 static String custom_log_path;
 
+static bool app_was_active = true;
 
 static float active_window_bg_alpha = 1.0f;
 static float overlay_window_bg_alpha = 0.5f;
@@ -56,11 +67,19 @@ static bool frameEnded = true;
 
 static bool imguiSubmenuEnabled = true;
 
+void *imgui_main_window_override = nullptr;
+
 void imgui_set_override_blk(const DataBlock &imgui_blk_)
 {
   G_ASSERTF(!is_initialized, "imgui_set_override_blk() should be called before imgui_init_on_demand()");
   override_imgui_blk = eastl::make_unique<DataBlock>();
   override_imgui_blk->setFrom(&imgui_blk_);
+}
+
+void imgui_set_main_window_override(void *hwnd)
+{
+  G_ASSERTF(!is_initialized, "imgui_set_main_window_override() should be called before imgui_init_on_demand()");
+  imgui_main_window_override = hwnd;
 }
 
 void imgui_enable_imgui_submenu(bool enabled) { imguiSubmenuEnabled = enabled; }
@@ -127,6 +146,11 @@ static bool init()
   ImGui::CreateContext();
   ImPlot::CreateContext();
 
+#ifdef ENABLE_NET_IMGUI
+  NetImgui::Startup();
+  NetImgui::ConnectFromApp("NetImGuiClient");
+#endif
+
   ImGuiIO &io = ImGui::GetIO();
 
   // Load blk
@@ -160,9 +184,22 @@ static bool init()
 
   io.ConfigWindowsMoveFromTitleBarOnly = true;
 
+  if (imgui_blk->getBool("imgui_multiview", true))
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+  if (imgui_blk->getBool("imgui_docking", true))
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
   // Init our own renderer backend
   renderer = eastl::make_unique<DagImGuiRenderer>();
   renderer->setBackendFlags(io);
+
+  if (!(io.BackendFlags & ImGuiBackendFlags_RendererHasViewports))
+    io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    if (!ImGui_Multiview_Init())
+      return false;
 
   is_initialized = true;
   return true;
@@ -211,12 +248,19 @@ void imgui_shutdown()
 {
   if (is_initialized)
   {
+#ifdef ENABLE_NET_IMGUI
+    NetImgui::Shutdown();
+#endif
+
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+      ImGui_Multiview_Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
   }
 
   imgui_save_blk();
 
+  imgui_main_window_override = nullptr;
   is_initialized = false;
   renderer.reset();
   imgui_blk.reset();
@@ -312,11 +356,25 @@ static ImFont *add_imgui_font(const char *file_name, const ImFontConfig *cfg)
   return nullptr;
 }
 
+void handle_app_activity_change()
+{
+  if (!ImGui::GetCurrentContext())
+    return;
+
+  bool appActive = ::dgs_app_active;
+
+  if (app_was_active != appActive)
+    ImGui::GetIO().AddFocusEvent(appActive);
+
+  app_was_active = appActive;
+}
+
 void imgui_update(int display_width, int display_height)
 {
+  handle_app_activity_change();
   handle_state_change_request();
 
-  if (imgui_state == ImGuiState::OFF)
+  if (imgui_state == ImGuiState::OFF && (!is_initialized || ImGui::GetPlatformIO().Viewports.size() <= 1))
     return;
 
   ImGuiIO &io = ImGui::GetIO();
@@ -351,11 +409,13 @@ void imgui_update(int display_width, int display_height)
   io.DeltaTime = ref_time_delta_to_usec(curt - reft) * 1e-6f;
   reft = curt;
 
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    ImGui_Multiview_NewFrame();
+
   // work-around to handle issue when fullscreen game loses focus and throw endless assertion:
   // "(g.FrameCount == 0 || g.FrameCountEnded == g.FrameCount) && "Forgot to call Render() or EndFrame() at the end of the previous
   // frame?""
-  if (!frameEnded)
-    imgui_endframe();
+  imgui_endframe();
   ImGui::NewFrame();
   frameEnded = false;
 }
@@ -363,16 +423,27 @@ void imgui_update(int display_width, int display_height)
 void imgui_endframe()
 {
   imgui_set_default_font();
-  ImGui::EndFrame();
-  frameEnded = true;
+  if (!frameEnded)
+  {
+    ImGui::EndFrame();
+    ImGui::UpdatePlatformWindows();
+    frameEnded = true;
+  }
 }
 
 void imgui_render()
 {
+  if (!frameEnded)
+  {
+    ImGui::EndFrame();
+    ImGui::UpdatePlatformWindows();
+    frameEnded = true;
+  }
   ImGui::Render();
-  renderer->render(ImGui::GetDrawData());
-  frameEnded = true;
+  renderer->render(ImGui::GetPlatformIO());
 }
+
+void imgui_render_drawdata_to_texture(ImDrawData *draw_data, BaseTexture *rt) { renderer->renderDrawDataToTexture(draw_data, rt); }
 
 DataBlock *imgui_get_blk() { return imgui_blk.get(); }
 
@@ -630,6 +701,12 @@ int map_imgui_key_to_dagor(int imgui_key)
 
 bool imgui_window_is_visible(const char *, const char *name) { return load_window_opened(name); }
 
+bool imgui_window_is_collapsed(const char *, const char *name)
+{
+  ImGuiWindow *window = ImGui::FindWindowByName(name);
+  return window ? window->Collapsed : true;
+}
+
 static int menu_bar_height = 0;
 
 int imgui_get_menu_bar_height() { return menu_bar_height; }
@@ -725,6 +802,8 @@ void imgui_perform_registered(bool with_menu_bar)
 
     ImGui::EndMainMenuBar();
   }
+
+  ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
   // Execute window functions
   for (ImGuiFunctionQueue *q = ImGuiFunctionQueue::windowHead; q; q = q->next)

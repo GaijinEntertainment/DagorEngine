@@ -88,6 +88,10 @@ bool clipboard::set_clipboard_bmp_image(struct TexPixel32* , int , int , int )
 {
   return false;
 }
+bool clipboard::set_clipboard_file(const char *)
+{
+  return false;
+}
 
 #define EXPORT_PULL dll_pull_osapiwrappers_clipboard
 #include <supp/exportPull.h>

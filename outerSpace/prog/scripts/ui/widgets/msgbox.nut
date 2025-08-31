@@ -1,22 +1,22 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import defer
-from "simpleComponents.nut" import menuBtn
+from "%scripts/ui/widgets/simpleComponents.nut" import menuBtn
 from "%sqstd/string.nut" import tostring_r
 
 let mkMessageText = @(text) {
-  size = [flex(), sh(40)]
+  size = static [flex(), sh(30)]
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  padding = [sh(2), 0]
+  padding = static [sh(2), 0]
   clipChildren = true
   children = type(text)=="string" ? {
-    size = [sw(50), SIZE_TO_CONTENT]
+    size = static [sw(50), SIZE_TO_CONTENT]
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
     preformatted = true
     halign = text.len()>100 ? null : ALIGN_CENTER
     text
-  } : {size = [sw(50), SIZE_TO_CONTENT], children = text}
+  } : {size = static [sw(50), SIZE_TO_CONTENT], children = text}
 }
 
 let widgets = persist($"msgbox_widgets", @() [])
@@ -83,7 +83,7 @@ let animations = [
   { prop=AnimProp.scale,  from=[1, 1], to=[1,0.5], duration=0.15, playFadeOut=true, easing=OutQuintic }
 ]
 
-let showMsgbox = kwarg(function(text, onClose = null, buttons=null, uid = null) {
+let showMsgbox = kwarg(function(text, onClose = null, buttons=null, uid = null, children=null) {
   log($"[MSGBOX] show: text = '{text}'")
   uid = uid ?? {}
   let msgbox = {v=null}
@@ -108,22 +108,19 @@ let showMsgbox = kwarg(function(text, onClose = null, buttons=null, uid = null) 
   let content = {
     rendObj = ROBJ_SOLID
     color = Color(30,30,30,250)
-    size = [sw(100), sh(50)]
+    size = static [sw(100), sh(50)]
     vplace = ALIGN_CENTER
     padding = sh(2)
     key = uid
     flow = FLOW_VERTICAL
     halign = ALIGN_CENTER
-    children = [
-      mkMessageText(text)
-      buttonsBlock
-    ]
+    children = [mkMessageText(text)].extend(typeof(children)=="array" ? children : [children]).append(buttonsBlock)
   }
 
   msgbox.v = {
     uid
     rendObj = ROBJ_SOLID
-    size = [sw(100), sh(100)]
+    size = static [sw(100), sh(100)]
     color = Color(0, 0, 0, 200)
     behavior = Behaviors.Button
     transform = {}

@@ -20,7 +20,7 @@ enum CockpitReprojectionMode
   COCKPIT_REPROJECT_ANIMATED       // Cockpit pixels will be reprojected using separate matrix (for animated cockpit).
 };
 
-class OcclusionSystem : protected OcclusionTest<OCCLUSION_W, OCCLUSION_H> // Inherit for empty base class optimization
+class OcclusionSystem
 {
 protected:
   enum
@@ -32,7 +32,7 @@ protected:
 public:
   virtual ~OcclusionSystem() {}
   static OcclusionSystem *create();
-  virtual void init() = 0;
+  virtual void init(const char *hzb_tex_name = "hzb") = 0;
   virtual void close() = 0;
   virtual void reset() = 0;
   virtual bool hasGPUFrame() const = 0;
@@ -56,10 +56,10 @@ public:
   // the bigger mip number, the coarser check, which matters only on close distance.
   // if dip is cheap, use bigger (4..5), if it is very expensive - use lower (0..2)
   // 3 provides reasonable average quality
-  VECTORCALL static __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip,
+  VECTORCALL __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip,
     int mip = DEFAULT_MAX_TEST_MIP)
   {
-    return OcclusionTest<WIDTH, HEIGHT>::testVisibility(bmin, bmax, threshold, clip, mip);
+    return occlusionTest.testVisibility(bmin, bmax, threshold, clip, mip);
   }
 
   virtual void initSWRasterization() = 0;
@@ -76,10 +76,15 @@ public:
     uint32_t last_tile) = 0;
   virtual void getMaskedResolution(uint32_t &width, uint32_t &height) const = 0;
 
+  OcclusionTest<WIDTH, HEIGHT> &getOcclusionTest() { return occlusionTest; }
+
   enum
   {
     CULL_FRUSTUM = OcclusionTest<WIDTH, HEIGHT>::CULL_FRUSTUM,
     VISIBLE = OcclusionTest<WIDTH, HEIGHT>::VISIBLE,
     CULL_OCCLUSION = OcclusionTest<WIDTH, HEIGHT>::CULL_OCCLUSION
   };
+
+protected:
+  OcclusionTest<WIDTH, HEIGHT> occlusionTest;
 };

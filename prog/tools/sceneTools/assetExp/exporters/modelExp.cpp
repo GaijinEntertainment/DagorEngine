@@ -33,18 +33,17 @@ using namespace modelexp;
 class PrefabRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "prefab refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "prefab refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return "prefab"; }
+  const char *__stdcall getAssetType() const override { return "prefab"; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    tmp_refs.clear();
-    add_dag_texture_and_proxymat_refs(a.getTargetFilePath(), tmp_refs, a);
-    return tmp_refs;
+    refs.clear();
+    add_dag_texture_and_proxymat_refs(a.getTargetFilePath(), refs, a);
   }
 };
 
@@ -185,7 +184,7 @@ public:
     riRef = dmRef = rgRef = NULL;
   }
 
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     const char *sh_file = appblk.getStr("shadersAbs", "compiledShaders/tools");
     const char *ver_suffix = "ps50.shdump.bin";
@@ -210,7 +209,8 @@ public:
       debug("using dabuild-specific shader dump:        %s", shaderBinFname.str());
       for (int i = 0; i < countof(codes); i++)
       {
-        String fn(0, "%s.%s.exp.%s", sh_file, mkbindump::get_target_str(codes[i]), ver_suffix);
+        uint64_t tc_storage = 0;
+        String fn(0, "%s.%s.exp.%s", sh_file, mkbindump::get_target_str(codes[i], tc_storage), ver_suffix);
         if (dd_file_exist(fn))
         {
           DabuildIntStrPair &pair = shaderBinFnameAlt.push_back();
@@ -265,13 +265,13 @@ public:
       debug("ShaderMesh allows OODLE");
     }
     if (first_managed_d3dres() == BAD_TEXTUREID)
-      enable_tex_mgr_mt(true, 64 << 10);
+      enable_tex_mgr_mt(true, appblk.getInt("texMgrReserveTIDcount", 128 << 10));
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 4; }
-  virtual const char *__stdcall getExpType(int idx)
+  int __stdcall getExpCount() override { return 4; }
+  const char *__stdcall getExpType(int idx) override
   {
     switch (idx)
     {
@@ -282,7 +282,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx)
+  IDagorAssetExporter *__stdcall getExp(int idx) override
   {
     switch (idx)
     {
@@ -306,8 +306,8 @@ public:
     }
   }
 
-  virtual int __stdcall getRefProvCount() { return 4; }
-  virtual const char *__stdcall getRefProvType(int idx)
+  int __stdcall getRefProvCount() override { return 4; }
+  const char *__stdcall getRefProvType(int idx) override
   {
     switch (idx)
     {
@@ -318,7 +318,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx)
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override
   {
     switch (idx)
     {
@@ -340,7 +340,7 @@ public:
     }
   }
 
-  virtual bool resolveTextureName(const char *src_name, String &out_str)
+  bool resolveTextureName(const char *src_name, String &out_str) override
   {
     if (!cur_asset)
       return false;

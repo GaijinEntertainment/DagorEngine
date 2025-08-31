@@ -173,10 +173,6 @@
 #define XM_ALIGNED_STRUCT(x) __declspec(align(x)) struct
 #endif
 
-#if (__cplusplus >= 202002L)
-#include <compare>
-#endif
-
 /****************************************************************************
  *
  * Conditional intrinsics
@@ -599,11 +595,6 @@ namespace DirectX
 
         constexpr XMFLOAT2(float _x, float _y) noexcept : x(_x), y(_y) {}
         explicit XMFLOAT2(_In_reads_(2) const float* pArray)  noexcept : x(pArray[0]), y(pArray[1]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT2&) const = default;
-        auto operator <=> (const XMFLOAT2&) const = default;
-#endif
     };
 
     // 2D Vector; 32 bit floating point components aligned on a 16 byte boundary
@@ -629,11 +620,6 @@ namespace DirectX
 
         constexpr XMINT2(int32_t _x, int32_t _y) noexcept : x(_x), y(_y) {}
         explicit XMINT2(_In_reads_(2) const int32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMINT2&) const = default;
-        auto operator <=> (const XMINT2&) const = default;
-#endif
     };
 
     // 2D Vector; 32 bit unsigned integer components
@@ -652,11 +638,6 @@ namespace DirectX
 
         constexpr XMUINT2(uint32_t _x, uint32_t _y) noexcept : x(_x), y(_y) {}
         explicit XMUINT2(_In_reads_(2) const uint32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMUINT2&) const = default;
-        auto operator <=> (const XMUINT2&) const = default;
-#endif
     };
 
     //------------------------------------------------------------------------------
@@ -703,11 +684,6 @@ namespace DirectX
 
         constexpr XMINT3(int32_t _x, int32_t _y, int32_t _z) noexcept : x(_x), y(_y), z(_z) {}
         explicit XMINT3(_In_reads_(3) const int32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMINT3&) const = default;
-        auto operator <=> (const XMINT3&) const = default;
-#endif
     };
 
     // 3D Vector; 32 bit unsigned integer components
@@ -727,11 +703,6 @@ namespace DirectX
 
         constexpr XMUINT3(uint32_t _x, uint32_t _y, uint32_t _z) noexcept : x(_x), y(_y), z(_z) {}
         explicit XMUINT3(_In_reads_(3) const uint32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMUINT3&) const = default;
-        auto operator <=> (const XMUINT3&) const = default;
-#endif
     };
 
     //------------------------------------------------------------------------------
@@ -753,11 +724,6 @@ namespace DirectX
 
         constexpr XMFLOAT4(float _x, float _y, float _z, float _w) noexcept : x(_x), y(_y), z(_z), w(_w) {}
         explicit XMFLOAT4(_In_reads_(4) const float* pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT4&) const = default;
-        auto operator <=> (const XMFLOAT4&) const = default;
-#endif
     };
 
     // 4D Vector; 32 bit floating point components aligned on a 16 byte boundary
@@ -785,11 +751,6 @@ namespace DirectX
 
         constexpr XMINT4(int32_t _x, int32_t _y, int32_t _z, int32_t _w) noexcept : x(_x), y(_y), z(_z), w(_w) {}
         explicit XMINT4(_In_reads_(4) const int32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMINT4&) const = default;
-        auto operator <=> (const XMINT4&) const = default;
-#endif
     };
 
     // 4D Vector; 32 bit unsigned integer components
@@ -810,11 +771,6 @@ namespace DirectX
 
         constexpr XMUINT4(uint32_t _x, uint32_t _y, uint32_t _z, uint32_t _w) noexcept : x(_x), y(_y), z(_z), w(_w) {}
         explicit XMUINT4(_In_reads_(4) const uint32_t* pArray) noexcept : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMUINT4&) const = default;
-        auto operator <=> (const XMUINT4&) const = default;
-#endif
     };
 
 #ifdef __clang__
@@ -856,11 +812,6 @@ namespace DirectX
 
         float  operator() (size_t Row, size_t Column) const  noexcept { return m[Row][Column]; }
         float& operator() (size_t Row, size_t Column) noexcept { return m[Row][Column]; }
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT3X3&) const = default;
-        auto operator <=> (const XMFLOAT3X3&) const = default;
-#endif
     };
 
     //------------------------------------------------------------------------------
@@ -900,11 +851,6 @@ namespace DirectX
 
         float  operator() (size_t Row, size_t Column) const  noexcept { return m[Row][Column]; }
         float& operator() (size_t Row, size_t Column) noexcept { return m[Row][Column]; }
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT4X3&) const = default;
-        auto operator <=> (const XMFLOAT4X3&) const = default;
-#endif
     };
 
     // 4x3 Row-major Matrix: 32 bit floating point components aligned on a 16 byte boundary
@@ -947,11 +893,6 @@ namespace DirectX
 
         float  operator() (size_t Row, size_t Column) const noexcept { return m[Row][Column]; }
         float& operator() (size_t Row, size_t Column) noexcept { return m[Row][Column]; }
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT3X4&) const = default;
-        auto operator <=> (const XMFLOAT3X4&) const = default;
-#endif
     };
 
     // 3x4 Column-major Matrix: 32 bit floating point components aligned on a 16 byte boundary
@@ -996,11 +937,6 @@ namespace DirectX
 
         float  operator() (size_t Row, size_t Column) const noexcept { return m[Row][Column]; }
         float& operator() (size_t Row, size_t Column) noexcept { return m[Row][Column]; }
-
-#if (__cplusplus >= 202002L)
-        bool operator == (const XMFLOAT4X4&) const = default;
-        auto operator <=> (const XMFLOAT4X4&) const = default;
-#endif
     };
 
     // 4x4 Matrix: 32 bit floating point components aligned on a 16 byte boundary

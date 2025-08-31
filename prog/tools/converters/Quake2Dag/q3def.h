@@ -106,7 +106,7 @@ private:
 class QuakeNode
 {
 public:
-  QuakeNode(void){};
+  QuakeNode(void) {}
   QuakeNode(const int *node);
   int GetLeftChild(void) const { return mLeftChild; };
   int GetRightChild(void) const { return mRightChild; };
@@ -125,7 +125,7 @@ typedef std::vector<QuakeNode> QuakeNodeVector;
 class QuakeLeaf
 {
 public:
-  QuakeLeaf(void){};
+  QuakeLeaf(void) {}
   QuakeLeaf(const int *leaf);
   const Rect3d<float> &GetBound(void) const { return mBound; };
   int GetCluster(void) const { return mCluster; };
@@ -148,7 +148,7 @@ typedef std::vector<QuakeLeaf> QuakeLeafVector;
 class QuakeVertex
 {
 public:
-  QuakeVertex(void){};
+  QuakeVertex(void) {}
   QuakeVertex(const int *vert);
 
   void Get(LightMapVertex &vtx) const;
@@ -168,7 +168,7 @@ typedef std::vector<QuakeVertex> QuakeVertexVector;
 class QuakeModel
 {
 public:
-  QuakeModel(void){};
+  QuakeModel(void) {}
   QuakeModel(const int *mem);
 
 private:
@@ -184,7 +184,7 @@ typedef std::vector<QuakeModel> QuakeModelVector;
 class QuakeFace
 {
 public:
-  QuakeFace(void){};
+  QuakeFace(void) {}
   QuakeFace(const int *face);
   ~QuakeFace(void);
 

@@ -16,12 +16,12 @@ float shadowDistScale = 0.0;
 float shadowDistBias = 0.0;
 float shadowZBias = 0.0;
 float shadowSlopeZBias = 0.0;
-float point_lights_ao_effect = 0.99;
+float dynamic_lights_ao_effect = 0.99;
 
 float debug_disable_dynamic_pcf_center_sample = 0;
 
 macro INIT_POINT_LIGHTS_AO(code)
-  (code) { point_lights_ao_effect@f2 = (min(point_lights_ao_effect, 1), max(0, 1-point_lights_ao_effect),0,0); }
+  (code) { dynamic_lights_ao_effect@f2 = (min(dynamic_lights_ao_effect, 1), max(0, 1-dynamic_lights_ao_effect),0,0); }
 endmacro
 
 macro INIT_PHOTOMETRY_TEXTURES(code)
@@ -169,7 +169,7 @@ macro USE_OMNI_LIGHTS_CB(code)
     }
 
     half4 getFinalColor(RenderOmniLight ol, float3 worldPos) {
-      return half4(abs(ol.colorFlags.rgb), ol.colorFlags.a) * getOmniLightFade(ol, worldPos) * getOmniLightIntensity(ol, worldPos);
+      return half4(get_omni_light_color(ol)) * getOmniLightFade(ol, worldPos) * getOmniLightIntensity(ol, worldPos);
     }
   }
 endmacro
@@ -195,10 +195,10 @@ macro USE_LIGHT_SHADOWS(code)
     }
 
     #include <interleavedGradientNoise.hlsl>
-    half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, half radius, float frame)
+    half dynamic_shadow_sample_8tap_dither(float2 screenpos, float2 pos, float z, half radius, float dither)
     {
       float2 rotation;
-      sincos((2*PI)*interleavedGradientNoiseFramed(screenpos, frame), rotation.x, rotation.y);
+      sincos((2*PI)*frac(dither * 43758.5453), rotation.x, rotation.y);
       half2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
       const int NUM_SAMPLES = 4;
       const half2 offsets[32] =//fixme: move to separate const buffer!
@@ -255,7 +255,7 @@ macro USE_LIGHT_SHADOWS(code)
       };*/
       //float radius = texel_size.x;
       half shadow = 0;
-      rotationMatrix *= radius*half((interleavedGradientNoiseFramed(screenpos+1.1, frame*1.13))*0.25h+0.75h);
+      rotationMatrix *= radius*half(dither*0.25h+0.75h);
       //uint indexOffset = 0;//uint(interleavedGradientNoiseFramed(screenpos+1.1, frame) * 7.9)*NUM_SAMPLES;
       // shadow map space offsetted lookups must be clamped by non offsetted lookup to avoid acne
       half centerShadowSample = dynamic_shadow_sample(pos.xy, z);
@@ -265,11 +265,16 @@ macro USE_LIGHT_SHADOWS(code)
       for (int i = 0; i < NUM_SAMPLES; ++i)
       {
         half2 sampleOffset = mul(offsets[i], rotationMatrix);
-        sampleOffset.y *= shadowAtlasTexel.y;
+        sampleOffset.y *= half(shadowAtlasTexel.y);
         //sampleOffset = rotationMatrix[0]*((i+frame/8.0+1)/NUM_SAMPLES);
         shadow += min(centerShadowSample, dynamic_shadow_sample(pos.xy+sampleOffset, z));
       }
       return shadow*(1.h/NUM_SAMPLES);
+    }
+
+    half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, half radius, float frame)
+    {
+      return dynamic_shadow_sample_8tap_dither(screenpos, pos, z, radius, interleavedGradientNoiseFramed(screenpos, frame));
     }
 
     #include <octahedral.hlsl>

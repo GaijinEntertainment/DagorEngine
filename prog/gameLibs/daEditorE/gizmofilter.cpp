@@ -7,6 +7,7 @@
 #include <debug/dag_debug.h>
 #include <3d/dag_render.h>
 #include <math/dag_math2d.h>
+#include <math/dag_TMatrix.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <gui/dag_stdGuiRenderEx.h>
 
@@ -51,7 +52,7 @@ bool GizmoEventFilter::handleMouseMove(int x, int y, bool inside, int buttons, i
     const float maxDownscale = 0.05;
     mousePos = Point2(x, y);
 
-    const Point3 gcPos = gizmo.client->getPt();
+    const Point3 gcPos = gizmo.client->shouldComputeDeltaFromStartPos() ? startPos : gizmo.client->getPt();
 
     Point2 gPos;
     DAEDITOR4.worldToClient(gcPos, gPos);
@@ -1007,7 +1008,8 @@ void GizmoEventFilter::drawRotateGizmo(int sel)
 
     const float deltaAngle = rotAngle - startRotAngle;
     const float rotAbs = fabs(deltaAngle);
-    const bool rotWorld = DAEDITOR4.getGizmoBasisType() == IDaEditor4Engine::BASIS_world;
+    const IDaEditor4Engine::BasisType basis = DAEDITOR4.getGizmoBasisType();
+    const bool rotWorld = basis == IDaEditor4Engine::BASIS_world || basis == IDaEditor4Engine::BASIS_parent;
 
     float angle = rotWorld ? rotAngle : startRotAngle - deltaAngle;
 

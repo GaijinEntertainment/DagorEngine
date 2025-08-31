@@ -4,11 +4,12 @@
 #include "../av_appwnd.h"
 
 #include "phys.h"
-#include "../av_cm.h"
+#include "phys_cm.h"
 #include <assets/asset.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_randomSeed.h>
+#include <de3_dynRenderService.h>
 #include <EditorCore/ec_workspace.h>
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_simpleString.h>
@@ -19,9 +20,7 @@
 #include <phys/dag_physResource.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameRes.h>
-#include <shaders/dag_dynSceneRes.h>
 #include <de3_entityFilter.h>
-#include <render/dynmodelRenderer.h>
 
 #include <propPanel/control/container.h>
 #include <workCycle/dag_workCycle.h>
@@ -137,21 +136,21 @@ public:
     physType = physsimulator::getDefaultPhys();
   }
 
-  ~PhysObjViewPlugin() { end(); }
+  ~PhysObjViewPlugin() override { end(); }
 
 
-  virtual const char *getInternalName() const { return "physObjViewer"; }
+  const char *getInternalName() const override { return "physObjViewer"; }
 
-  virtual void registered()
+  void registered() override
   {
     rendGeomMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("rend_ent_geom");
     collisionMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("collision");
 
     physsimulator::init();
   }
-  virtual void unregistered() { physsimulator::close(); }
+  void unregistered() override { physsimulator::close(); }
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     simulationStat.reset();
     dasset = asset;
@@ -180,7 +179,7 @@ public:
 
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     physsimulator::end();
 
@@ -201,11 +200,11 @@ public:
     return true;
   }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     if (!entity)
       return false;
@@ -215,7 +214,7 @@ public:
     return true;
   }
 
-  virtual void actObjects(float dt)
+  void actObjects(float dt) override
   {
     if (nowSimulated)
     {
@@ -226,9 +225,9 @@ public:
         repaintView();
     }
   }
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects()
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override
   {
     if (nowSimulated)
     {
@@ -258,7 +257,7 @@ public:
     end_draw_cached_debug_lines();
   }
 
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!getVisible())
       return;
@@ -272,16 +271,23 @@ public:
           physsimulator::render();
         break;
 
+      case STG_RENDER_DYNAMIC_DECALS:
+        if (testBits(getRendSubTypeMask(), rendGeomMask))
+          physsimulator::renderDecals();
+        break;
+
       case STG_RENDER_DYNAMIC_TRANS:
         if (nowSimulated && testBits(getRendSubTypeMask(), rendGeomMask))
           physsimulator::renderTrans(false, true, false, false, false, false);
         break;
+
+      default: break;
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "physObj") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "physObj") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override
   {
     if (!entity || !dynPhysObjData)
       return;
@@ -455,10 +461,10 @@ public:
   }
 
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_PHYSOBJ_DRAW_C_MASS)
       drawCmass = panel->getBool(pcb_id);
@@ -494,7 +500,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
 
     if (pcb_id == PID_PHYSOBJ_SIMULATE)
@@ -575,14 +581,14 @@ public:
     drawText(wnd, left, bottom - ystep * 0, String(0, "mean min %d us", simulationStat.meanMin));
   }
 
-  virtual void handleViewportPaint(IGenViewportWnd *wnd)
+  void handleViewportPaint(IGenViewportWnd *wnd) override
   {
     drawInfo(wnd);
     if (nowSimulated)
       drawSimulationInfo(wnd);
   }
 
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!inside || !nowSimulated)
       return false;
@@ -594,7 +600,7 @@ public:
     return springConnected;
   }
 
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!nowSimulated || !springConnected)
       return false;
@@ -603,7 +609,7 @@ public:
     return physsimulator::disconnectSpring();
   }
 
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!nowSimulated || !springConnected)
       return false;
@@ -616,7 +622,7 @@ public:
     return true;
   }
 
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!nowSimulated)
       return false;
@@ -706,9 +712,9 @@ class VehicleViewPlugin : public PhysObjViewPlugin
 public:
   VehicleViewPlugin() : car(NULL) {}
 
-  virtual const char *getInternalName() const { return "vehicleViewer"; }
+  const char *getInternalName() const override { return "vehicleViewer"; }
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     physType = physsimulator::getDefaultPhys();
     dasset = asset;
@@ -746,7 +752,7 @@ public:
     fillPluginPanel();
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     destroy_it(car);
     physsimulator::end();
@@ -769,7 +775,19 @@ public:
     return true;
   }
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  void registerMenuAccelerators() override
+  {
+    IWndManager &wndManager = *EDITORCORE->getWndManager();
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_SIM_TOGGLE_DRIVER, ImGuiKey_Enter);
+  }
+
+  void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override
+  {
+    if (id == CM_PHYSOBJ_SIM_TOGGLE_DRIVER)
+      onClick(PID_PHYSOBJ_SIM_TOGGLE_DRIVER, getPluginPanel());
+  }
+
+  bool getSelectionBox(BBox3 &box) const override
   {
     if (!car)
       return false;
@@ -778,7 +796,7 @@ public:
     return true;
   }
 
-  virtual void actObjects(float dt)
+  void actObjects(float dt) override
   {
     if (!car)
       return;
@@ -797,6 +815,8 @@ public:
 
       if (physType == physsimulator::PHYS_BULLET)
         IPhysCar::applyCarPhysModeChangesBullet();
+      else if (physType == physsimulator::PHYS_JOLT)
+        IPhysCar::applyCarPhysModeChangesJolt();
 
       if (simulationStat.update(get_time_usec(ref), ::dagor_game_time_scale * dt))
         repaintView();
@@ -811,7 +831,7 @@ public:
         steady = moveless;
     }
   }
-  virtual void beforeRenderObjects() { PhysObjViewPlugin::beforeRenderObjects(); }
+  void beforeRenderObjects() override { PhysObjViewPlugin::beforeRenderObjects(); }
   void renderObjects() override {}
   void renderTransObjects() override
   {
@@ -825,6 +845,9 @@ public:
     IPhysCarLegacyRender *carRender = car ? car->getLegacyRender() : nullptr;
     if (!getVisible() || !carRender)
       return;
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
 
     switch (stage)
     {
@@ -835,36 +858,24 @@ public:
 
       case STG_RENDER_SHADOWS:
       case STG_RENDER_DYNAMIC_OPAQUE:
-        if (testBits(getRendSubTypeMask(), rendGeomMask))
-        {
-          if (auto *c_inst = carRender->getModel())
-            if (!dynrend::render_in_tools(c_inst, dynrend::RenderMode::Opaque))
-              c_inst->render();
-          for (int w = 0; w < car->wheelsCount(); w++)
-            if (auto *w_inst = carRender->getWheelModel(w))
-              if (!dynrend::render_in_tools(w_inst, dynrend::RenderMode::Opaque))
-                w_inst->render();
-        }
-        break;
-
       case STG_RENDER_DYNAMIC_TRANS:
         if (testBits(getRendSubTypeMask(), rendGeomMask))
         {
           if (auto *c_inst = carRender->getModel())
-            if (!dynrend::render_in_tools(c_inst, dynrend::RenderMode::Translucent))
-              c_inst->render();
+            rs->renderOneDynModelInstance(c_inst, stage);
           for (int w = 0; w < car->wheelsCount(); w++)
             if (auto *w_inst = carRender->getWheelModel(w))
-              if (!dynrend::render_in_tools(w_inst, dynrend::RenderMode::Translucent))
-                w_inst->render();
+              rs->renderOneDynModelInstance(w_inst, stage);
         }
         break;
+
+      default: break;
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "vehicle") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "vehicle") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setEventHandler(this);
 
@@ -920,7 +931,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_PHYSOBJ_SIM_TOGGLE_DRIVER)
     {
@@ -934,7 +945,7 @@ public:
       PhysObjViewPlugin::onClick(pcb_id, panel);
   }
 
-  virtual bool restartSim()
+  bool restartSim() override
   {
     destroy_it(car);
     if (nowSimulated)
@@ -945,6 +956,8 @@ public:
 
     if (physType == physsimulator::PHYS_BULLET)
       car = create_bullet_raywheel_car(dasset->getName(), TMatrix::IDENT, physsimulator::getPhysWorld(), false, false);
+    else if (physType == physsimulator::PHYS_JOLT)
+      car = create_jolt_raywheel_car(dasset->getName(), TMatrix::IDENT, physsimulator::getPhysWorld(), false, false);
     else
       car = NULL;
 
@@ -965,22 +978,7 @@ public:
     return nowSimulated = true;
   }
 
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    if (vk == wingw::V_RETURN && !modif)
-    {
-      driverEnabled = !driverEnabled;
-      if (!driverEnabled)
-        driver.disable();
-
-      if (getPluginPanel())
-        getPluginPanel()->setCaption(PID_PHYSOBJ_SIM_TOGGLE_DRIVER, driverEnabled ? "disable driver" : "enable driver (WASD)");
-
-      repaintView();
-    }
-  }
-
-  virtual void handleViewportPaint(IGenViewportWnd *wnd)
+  void handleViewportPaint(IGenViewportWnd *wnd) override
   {
     PhysObjViewPlugin::handleViewportPaint(wnd);
 

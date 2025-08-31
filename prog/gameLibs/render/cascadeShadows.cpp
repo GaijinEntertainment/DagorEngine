@@ -27,7 +27,6 @@
 #include <generic/dag_carray.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix4.h>
-#include <render/dynmodelRenderer.h>
 #include <shaders/dag_overrideStates.h>
 #include "EASTL/unique_ptr.h"
 #include <3d/dag_resPtr.h>
@@ -207,7 +206,7 @@ private:
   TextureInfo shadowCascadesTexInfo;
   d3d::SamplerHandle internalCascadesSampler = d3d::INVALID_SAMPLER_HANDLE;
 
-  UniqueTexHolder shadowCascadesFakeRT;
+  UniqueTex shadowCascadesFakeRT;
   d3d::RenderPass *mobileAreaUpdateRP;
 
   int numCascadesToRender = 0;
@@ -235,6 +234,10 @@ private:
   UniqueBuf csmBuffer;
   bool needSsss = false;
   int maxCascadesPossible = CascadeShadows::MAX_CASCADES;
+#if DA_PROFILER_ENABLED
+  uint32_t shadow_cascade_clear_dap[CascadeShadows::MAX_CASCADES];
+  uint32_t shadow_cascade_render_dap[CascadeShadows::MAX_CASCADES];
+#endif
 };
 
 void CascadeShadowsPrivate::destroyOverrides()
@@ -269,6 +272,17 @@ CascadeShadowsPrivate::CascadeShadowsPrivate(ICascadeShadowsClient *in_client, c
   client(in_client), settings(in_settings), dbgModeSettings(false), mobileAreaUpdateRP(nullptr), resPostfix(std::move(res_postfix))
 {
   G_ASSERT(client);
+#if DA_PROFILER_ENABLED
+  for (int i = 0; i < CascadeShadows::MAX_CASCADES; ++i)
+  {
+    char name[64];
+    SNPRINTF(name, sizeof(name), "shadow_cascade_%d_clear", i);
+    shadow_cascade_clear_dap[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, name);
+
+    SNPRINTF(name, sizeof(name), "shadow_cascade_%d_render", i);
+    shadow_cascade_render_dap[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, name);
+  }
+#endif
 
 #define VAR(a)                                              \
   {                                                         \
@@ -314,7 +328,7 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
   const uint32_t format = high_precision_depth ? TEXFMT_DEPTH32 : TEXFMT_DEPTH16;
   shadowCascadesTexInfo.cflg = format | TEXCF_RTARGET | TEXCF_TC_COMPATIBLE;
   shadowCascadesTexInfo.mipLevels = 1;
-  shadowCascadesTexInfo.resType = RES3D_TEX;
+  shadowCascadesTexInfo.type = D3DResourceType::TEX;
   shadowCascadesTexInfo.w = splits_w * width;
   shadowCascadesTexInfo.h = splits_h * height;
 
@@ -327,11 +341,11 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.filter_mode = d3d::FilterMode::Compare;
+      smpInfo.mip_map_mode = d3d::MipMapMode::Point;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       internalCascadesSampler = d3d::request_sampler(smpInfo);
       ShaderGlobal::set_sampler(get_shader_variable_id("shadow_cascade_depth_tex_samplerstate", true), internalCascadesSampler);
     }
-    internalCascades->disableSampler();
 
     // sometimes we use this target as SRV while not writing something to it
     // causing it be in initial clear RT/DS state
@@ -344,8 +358,7 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
   {
     const uint32_t rtFmt = TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_TRANSIENT;
     shadowCascadesFakeRT =
-      UniqueTexHolder(dag::create_tex(NULL, splits_w * width, splits_h * height, rtFmt, 1, "shadowCascadeDepthTex2D_fakeRT"),
-        "shadow_cascade_depth_tex");
+      UniqueTex(dag::create_tex(NULL, splits_w * width, splits_h * height, rtFmt, 1, "shadowCascadeDepthTex2D_fakeRT"));
     createMobileRP(format, rtFmt);
   }
 
@@ -410,10 +423,19 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
                               : external_cascades;
   d3d::set_depth(cascades.getTex2D(), DepthAccess::RW);
 
-  if (!clearPerView)
+  if (!clearPerView && !mobileAreaUpdateRP)
   {
     TIME_D3D_PROFILE(clearShadows);
     d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
+  }
+
+  if (mobileAreaUpdateRP)
+  {
+    RenderPassArea area = {0, 0, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h, 0, 1};
+    RenderPassTarget targets[] = {{{cascades.getTex2D(), 0, 0}, make_clear_value(1.0f, 0)},
+      {{shadowCascadesFakeRT.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
+
+    d3d::begin_render_pass(mobileAreaUpdateRP, area, targets);
   }
 
   shaders::OverrideStateId curStateId = shaders::overrides::get_current();
@@ -423,6 +445,9 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
   client->prepareRenderShadowCascades();
 
   render_cascades_cb(numCascadesToRender, clearPerView);
+
+  if (mobileAreaUpdateRP)
+    d3d::end_render_pass();
 
   if (curStateId)
     shaders::overrides::set(curStateId);
@@ -933,45 +958,19 @@ void CascadeShadowsPrivate::renderShadowCascadeDepth(int cascadeNo, bool clearPe
     d3d::setview(ss.viewport[0].x, ss.viewport[0].y, ss.viewport.width().x, ss.viewport.width().y, 0, 1);
     if (clearPerView && !mobileAreaUpdateRP)
     {
-#if DAGOR_DBGLEVEL > 0 // don't waste perf in release on searching perf marker names
-      char name[64];
-      SNPRINTF(name, sizeof(name), "clear_cascade_%d", cascadeNo);
-      TIME_D3D_PROFILE_NAME(renderShadowCascade, name);
-#else
-      TIME_D3D_PROFILE(clear_cascade);
-#endif
+      DA_PROFILE_EVENT_DESC(shadow_cascade_clear_dap[cascadeNo]);
       d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
     }
     if (cascades)
     {
-#if DAGOR_DBGLEVEL > 0 // don't waste perf in release on searching perf marker names
-      char name[64] = "shadow_cascade_0_render";
-      name[sizeof("shadow_cascade_") - 1] += cascadeNo;
-      TIME_D3D_PROFILE_NAME(renderShadowCascade, name);
-#else
-      TIME_D3D_PROFILE(shadow_cascade_render);
-#endif
+      DA_PROFILE_EVENT_DESC(shadow_cascade_render_dap[cascadeNo]);
       auto clientRenderDepth = [&]() {
         shaders::overrides::set(cascadeOverride[cascadeNo]);
         client->renderCascadeShadowDepth(cascadeNo, ss.znzf);
         shaders::overrides::reset();
       };
 
-      if (mobileAreaUpdateRP)
-      {
-        SCOPE_RENDER_TARGET;
-
-        RenderPassArea area = {(uint32_t)ss.viewport[0].x, (uint32_t)ss.viewport[0].y, (uint32_t)ss.viewport.width().x,
-          (uint32_t)ss.viewport.width().y, 0, 1};
-        RenderPassTarget targets[] = {{{cascades.getTex2D(), 0, 0}, make_clear_value(1.0f, 0)},
-          {{shadowCascadesFakeRT.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
-
-        d3d::begin_render_pass(mobileAreaUpdateRP, area, targets);
-        clientRenderDepth();
-        d3d::end_render_pass();
-      }
-      else
-        clientRenderDepth();
+      clientRenderDepth();
     }
   }
 }

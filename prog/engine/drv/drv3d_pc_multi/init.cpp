@@ -5,6 +5,7 @@
 #include <drv/3d/dag_res.h>
 #include <ioSys/dag_dataBlock.h>
 #include <generic/dag_carray.h>
+#include <generic/dag_staticTab.h>
 #include <util/dag_localization.h>
 #include <util/dag_string.h>
 #include <startup/dag_globalSettings.h>
@@ -48,6 +49,7 @@ namespace d3d_multi_vulkan
 {
 #include "d3d_api.inc.h"
 }
+extern bool is_vulkan_supported();
 #endif
 
 #if USE_MULTI_D3D_Metal
@@ -55,8 +57,6 @@ namespace d3d_multi_metal
 {
 #include "d3d_api.inc.h"
 }
-
-
 extern bool isMetalAvailable();
 #endif
 
@@ -155,11 +155,42 @@ static void message_box_os_compatibility_mode()
 }
 #endif
 
+#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
+dag::ConstSpan<DriverCode> d3d::pcwin::get_supported_graphics_apis()
+{
+  static StaticTab<DriverCode, 3> supportedApis;
+  if (!supportedApis.empty())
+    return supportedApis;
+
+#if USE_MULTI_D3D_DX11
+  if (d3d_multi_dx11::is_inited() || is_dx11_supported_by_os())
+    supportedApis.push_back(DriverCode::make(d3d::dx11));
+#endif
+#if USE_MULTI_D3D_Metal
+  if (d3d_multi_metal::is_inited() || isMetalAvailable())
+    supportedApis.push_back(DriverCode::make(d3d::metal));
+#endif
+#if USE_MULTI_D3D_DX12 && _TARGET_64BIT
+  if (d3d_multi_dx12::is_inited() || get_dx12_support_status() == APISupport::FULL_SUPPORT)
+    supportedApis.push_back(DriverCode::make(d3d::dx12));
+#endif
+#if USE_MULTI_D3D_vulkan
+  if (d3d_multi_vulkan::is_inited() || is_vulkan_supported())
+    supportedApis.push_back(DriverCode::make(d3d::vulkan));
+#endif
+#if USE_MULTI_D3D_DX11
+  if (supportedApis.empty() && detect_os_compatibility_mode())
+    supportedApis.push_back(DriverCode::make(d3d::dx11));
+#endif
+
+  return supportedApis;
+}
+#endif // _TARGET_PC_WIN | _TARGET_PC_MACOSX
 
 static int detect_api(const char *drv)
 {
 #if USE_MULTI_D3D_DX12
-  if (strcmp(drv, "dx12") == 0 || strcmp(drv, "auto") == 0)
+  if (bool dx12Requested = strcmp(drv, "dx12") == 0; dx12Requested || strcmp(drv, "auto") == 0)
   {
 #if _TARGET_64BIT
     static bool messageShown = dgs_execute_quiet;
@@ -169,7 +200,7 @@ static int detect_api(const char *drv)
         crash_fallback_helper->beforeStartup();
       // this is divergent behavior compared to any other driver, but this was specifically
       // requested to test proper support even when explicitly requested.
-      const APISupport status = get_dx12_support_status(strcmp(drv, "dx12") == 0);
+      const APISupport status = get_dx12_support_status(dx12Requested);
       switch (status)
       {
         case APISupport::FULL_SUPPORT: return API_DX12;
@@ -186,6 +217,19 @@ static int detect_api(const char *drv)
             const char *address = "https://support.gaijin.net/hc/articles/4405867465489";
             String message(1024, "%s\n<a href=\"%s\">%s</a>", get_localized_text("video/outdated_driver"), address, address);
             drv_message_box(message.data(), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK | GUI_MB_ICON_ERROR);
+          }
+          break;
+        case APISupport::INSUFFICIENT_DEVICE:
+          if (dx12Requested)
+          {
+            if (crash_fallback_helper)
+              crash_fallback_helper->setSettingToAuto();
+            if (!messageShown)
+            {
+              messageShown = true;
+              drv_message_box(get_localized_text("video/d3d12_not_full_support_text"),
+                get_localized_text("video/d3d12_not_full_support_caption"), GUI_MB_OK);
+            }
           }
           break;
         default: break;

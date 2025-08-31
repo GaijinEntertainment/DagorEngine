@@ -9,6 +9,8 @@ texture blur_src_tex;
 float bloom_threshold;
 float bloom_radius;
 
+float4 bloom_src_uv_transform = (1, 1, 0, 0);
+
 macro POSTFX()
   cull_mode=none;
   z_write=false;
@@ -51,6 +53,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
   }
   (ps) {
     _tex0@smp2d = blur_src_tex;
+    src_uv_transform@f4 = bloom_src_uv_transform;
     TexSize@f2 = (1.0 / get_dimensions(blur_src_tex, 0).xy, 0, 0);
   }
 
@@ -93,6 +96,10 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
       half3 blockTL = 0, blockTR = 0, blockBR = 0, blockBL = 0;
       half3 tex;
       float2 tc = IN.tc;
+
+      ##if shader == frame_bloom_downsample
+        tc = tc * src_uv_transform.xy + src_uv_transform.zw;
+      ##endif
 
       ##if shader != frame_bloom_downsample
 

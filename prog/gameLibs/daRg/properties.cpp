@@ -4,6 +4,7 @@
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_picture.h>
 #include <math/dag_color.h>
+#include <ioSys/dag_dataBlock.h>
 
 #include "scriptUtil.h"
 #include "dargDebugUtils.h"
@@ -32,13 +33,13 @@ void Properties::load(const Sqrat::Table &desc, const Sqrat::Object &builder, co
   uniqueKey = desc.RawGetSlot(csk->key);
 
   Sqrat::Object textObj = desc.RawGetSlot(csk->text);
-  if (textObj.IsNull())
-    text = "";
-  else
+  if (!textObj.IsNull())
   {
     auto textVar = textObj.GetVar<const char *>();
-    text = String(textVar.value, textVar.valueLen);
+    text.assign(textVar.value, textVar.valueLen);
   }
+  else
+    text.clear();
 
   baseOpacity = clamp(getFloat(csk->opacity, 1.0f), 0.0f, 1.0f);
 }
@@ -175,6 +176,15 @@ Picture *Properties::getPicture(const Sqrat::Object &key) const
   return NULL;
 }
 
+DataBlock *Properties::getBlk(const Sqrat::Object &key) const
+{
+  Sqrat::Object val = scriptDesc.RawGetSlot(key);
+  SQObjectType type = val.GetType();
+  if (type == OT_INSTANCE)
+    return val.Cast<DataBlock *>();
+
+  return NULL;
+}
 
 template <typename T>
 bool Properties::getSoundInternal(const StringKeys *csk, T field_name, Sqrat::string &out_name, Sqrat::Object &out_params,

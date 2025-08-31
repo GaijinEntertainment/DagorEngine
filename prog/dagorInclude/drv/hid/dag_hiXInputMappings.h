@@ -108,9 +108,7 @@ static carray<const char *, JOY_XINPUT_REAL_BTN_COUNT> joyXInputButtonName = {"D
 static carray<const char *, JOY_XINPUT_REAL_AXIS_COUNT> joyXInputAxisName = {
   "L.Thumb.h", "L.Thumb.v", "R.Thumb.h", "R.Thumb.v", "L.Trigger", "R.Trigger", "R+L.Trigger"};
 
-enum
-{
-  JOY_XINPUT_MIN_AXIS_VAL = -32000,
-  JOY_XINPUT_MAX_AXIS_VAL = 32000
-};
+static constexpr int JOY_XINPUT_MIN_AXIS_VAL = -32000;
+static constexpr int JOY_XINPUT_MAX_AXIS_VAL = 32000;
+
 } // namespace HumanInput

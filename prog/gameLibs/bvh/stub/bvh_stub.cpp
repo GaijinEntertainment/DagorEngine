@@ -26,17 +26,25 @@ void update_terrain(ContextId, const Point2 &) {}
 
 void set_for_gpu_objects(ContextId) {}
 
-void set_ri_extra_range(ContextId, float) {}
-
 void prepare_ri_extra_instances() {}
 
-void update_instances(ContextId, const Point3 &, const Frustum &, dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *) {}
+void set_ri_dist_mul(float) {}
 
-void add_mesh(ContextId, uint64_t, const MeshInfo &) {}
+void override_out_of_camera_ri_dist_mul(float) {}
+
+void update_instances(ContextId, const Point3 &, const Frustum &, const Frustum &, dynrend::ContextId *, dynrend::ContextId *,
+  RiGenVisibility *, threadpool::JobPriority)
+{}
+
+void update_instances(ContextId, const Point3 &, const Frustum &, const Frustum &, const dag::Vector<RiGenVisibility *> &,
+  dynrend::BVHIterateCallback, threadpool::JobPriority)
+{}
+
+void add_object(ContextId, uint64_t, const ObjectInfo &) {}
 
 void add_instance(ContextId, uint64_t, const mat43f &) {}
 
-void remove_mesh(ContextId, uint64_t) {}
+void remove_object(ContextId, uint64_t) {}
 
 void build(ContextId, const TMatrix &, const TMatrix4 &, const Point3 &, const Point3 &) {}
 
@@ -47,6 +55,8 @@ void render_debug(ContextId, const IPoint2 &) {}
 void bind_resources(ContextId, int) {}
 
 void on_before_unload_scene(ContextId) {}
+
+void on_before_settings_changed(ContextId) {}
 
 void on_unload_scene(ContextId) {}
 
@@ -68,7 +78,12 @@ bool is_building(ContextId) { return false; }
 
 void set_grass_range(ContextId, float) {}
 
+void set_debug_view_min_t(float) {}
+
 void ChannelParser::enum_shader_channel(int, int, int, int, int, ChannelModifier, int) {}
 
 void enable_per_frame_processing(bool) {}
+void bind_tlas_stage(ContextId, ShaderStage) {}
+void unbind_tlas_stage(ShaderStage) {}
+
 } // namespace bvh

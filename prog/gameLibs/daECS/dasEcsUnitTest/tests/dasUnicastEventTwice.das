@@ -8,14 +8,14 @@ def send_das_event_twice(evt : Event)
   print("creating entity")
   let eid = createEntity("checkUnicastTwice")
   print("sending event")
-  sendEvent(eid, [[DasUnicastEventTwice]])
+  sendEvent(eid, DasUnicastEventTwice())
 
 [es(on_event=EventStart2)]
 def send_das_event_twice2(evt : Event)
   print("creating entity2")
   let eid2 = createEntity("checkUnicastTwice")
   print("sending event2")
-  sendEvent(eid2, [[DasUnicastEventTwice]])
+  sendEvent(eid2, DasUnicastEventTwice())
 
 [es(REQUIRE=checkUnicastTwice)]
 def receive_das_event_twice(evt : DasUnicastEventTwice)

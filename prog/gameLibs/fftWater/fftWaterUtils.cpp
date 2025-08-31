@@ -232,7 +232,7 @@ void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, 
   apply_wave_preset(water, defWaves(spectrum), bf_scale, wind_dir);
 }
 
-void get_wave_preset(FFTWater *water, WavePreset &out_preset)
+void get_wave_preset(const FFTWater *water, WavePreset &out_preset)
 {
   Point2 windDir;
   float cascadeR;

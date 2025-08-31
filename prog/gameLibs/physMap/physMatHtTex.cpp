@@ -20,7 +20,7 @@ public:
   uint32_t texFmt;
   PhysMapTexData(uint32_t fmt) : texFmt(fmt)
   {
-    if (fmt == TEXFMT_L8)
+    if (fmt == TEXFMT_R8)
       clear_and_resize(texData, TEXSIZE * TEXSIZE);
     else if (fmt == TEXFMT_DXT1 || fmt == TEXFMT_ATI1N)
       clear_and_resize(texData, TEXSIZE * TEXSIZE / 2);
@@ -41,7 +41,7 @@ Texture *create_phys_map_ht_tex(PhysMapTexData *data)
   }
   int strideBytes;
   uint8_t *pixels = NULL;
-  if (!tex->lockimg((void **)&pixels, strideBytes, 0, TEXLOCK_WRITE | TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_DELSYSMEMCOPY)) //
+  if (!tex->lockimg((void **)&pixels, strideBytes, 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY)) //
   {
     logerr("can not lock physmatht  texture");
     del_d3dres(tex);
@@ -59,8 +59,6 @@ Texture *create_phys_map_ht_tex(PhysMapTexData *data)
       memcpy(pixels, srcPixels, TEXSIZE);
   }
   tex->unlockimg();
-  tex->texaddr(TEXADDR_BORDER);
-  tex->texbordercolor(0);
   return tex;
 }
 
@@ -72,13 +70,13 @@ PhysMapTexData *render_phys_map_ht_data(const PhysMap &phys_map, const BBox2 &re
   uint32_t texFmt = TEXFMT_ATI1N;
   if (!(d3d::get_texformat_usage(texFmt) & d3d::USAGE_VERTEXTEXTURE))
   {
-    if (!(d3d::get_texformat_usage(TEXFMT_L8) & d3d::USAGE_VERTEXTEXTURE))
+    if (!(d3d::get_texformat_usage(TEXFMT_R8) & d3d::USAGE_VERTEXTEXTURE))
     {
-      logerr("L8 is not supported as vertex texture");
+      logerr("R8 is not supported as vertex texture");
       return NULL;
     }
     else
-      texFmt = TEXFMT_L8;
+      texFmt = TEXFMT_R8;
   }
   maxHt = 0.f;
   for (int i = 0; i < phys_map.materials.size(); ++i)
@@ -139,7 +137,7 @@ PhysMapTexData *render_phys_map_ht_data(const PhysMap &phys_map, const BBox2 &re
     }
 
     const uint8_t *src = horline[1] + 1;
-    if (texFmt == TEXFMT_L8)
+    if (texFmt == TEXFMT_R8)
     {
       for (int line = 0; line < 4; ++line, src += 2)
         for (int x = 0; x < TEXSIZE; x++, pixels++, src++)
@@ -149,7 +147,7 @@ PhysMapTexData *render_phys_map_ht_data(const PhysMap &phys_map, const BBox2 &re
           *pixels = (pixel + 15) >> 5;
         }
     }
-    else if (texFmt == TEXFMT_ATI1N)
+    else if (texFmt == TEXFMT_ATI1N) //-V547
     {
       for (int x = 0; x < TEXSIZE; x += 4, src += 4, pixels += 8)
       {

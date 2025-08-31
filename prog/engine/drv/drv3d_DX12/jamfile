@@ -17,6 +17,7 @@ Sources =
   swapchain.cpp
   format_store.cpp
   device_context.cpp
+  synced_command_store.cpp
   shader.cpp
   texture.cpp
   pipeline.cpp
@@ -25,6 +26,9 @@ Sources =
   resource_memory_heap.cpp
   resource_manager/heap_components.cpp
   resource_manager/buffer_components.cpp
+  resource_manager/buffer_components_heap.cpp
+  resource_manager/buffer_components_heap_state.cpp
+  resource_manager/buffer_components_heap_suballocator.cpp
   resource_manager/rtx_components.cpp
   resource_manager/host_shared_components.cpp
   resource_update_buffer.cpp
@@ -36,7 +40,20 @@ CPPopt = -DINSIDE_DRIVER ;
 # do not include stuff that depends on wrl, including wrl is a mess
 CPPopt += -DD3DX12_NO_STATE_OBJECT_HELPERS ;
 
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/drv/drv3d_commonCode
+  $(Root)/prog/engine/drv/drv3d_DX12
+  $(Root)/prog/engine/shaders
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/3rdPartyLibs/aftermath/2025.4.0.250729/include
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+if $(Platform) in windows xboxOne scarlett {
+  CPPopt += -FId3d_config.h ;
+  CPPopt += -DUSE_RESOURCE_HEAPS ;
+}
 
 if $(Config) != rel {
   Sources +=
@@ -57,20 +74,38 @@ if $(Platform) in windows {
     debug/pipeline_resource_reporter.cpp
     shader_library.cpp
   ;
-  if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
-  if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
-    CPPopt += -DHAS_GF_AFTERMATH ;
-    Sources += debug/gpu_postmortem_nvidia_aftermath.cpp ;
-  }
-  local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
-  if [ GLOB $(AgsSdkDir) : * ] && $(Platform)-$(PlatformArch) = windows-x86_64 && $(AgsEnabled) = yes {
-    CPPopt += -DHAS_AMD_GPU_SERVICES ;
-    Sources +=
-      debug/amd_ags_init.cpp
-      debug/gpu_postmortem_ags_trace.cpp
-    ;
-    AddIncludes += $(AgsSdkDir)/include ;
-    AddLibs += $(AgsSdkDir)/lib/amd_ags_x64.lib ;
+
+  if $(PlatformArch) = x86_64 {
+    local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
+    if [ GLOB $(AgsSdkDir) : * ] && $(AgsEnabled) = yes {
+      AddIncludes += $(AgsSdkDir)/include ;
+      AddLibs += $(AgsSdkDir)/lib/amd_ags_x64.lib ;
+      CPPopt += -DHAS_AMD_GPU_SERVICES ;
+      Sources +=
+        debug/amd_ags_init.cpp
+        debug/gpu_postmortem_ags_trace.cpp
+      ;
+    }
+
+    local 3rdPartyDir = $(Root)/prog/3rdPartyLibs ;
+    if [ GLOB $(3rdPartyDir)/aftermath : * ] {
+      CPPopt += -DHAS_GF_AFTERMATH ;
+      Sources +=
+        debug/gpu_postmortem_nvidia_aftermath.cpp
+      ;
+    }
+
+    if [ GLOB $(3rdPartyDir)/nvapi : * ] {
+      AddIncludes += $(3rdPartyDir)/nvapi ;
+      CPPopt += -DHAS_NVAPI ;
+    }
+
+    if [ GLOB $(3rdPartyDir)/winpixeventruntime : * ] {
+      AddIncludes += $(3rdPartyDir)/winpixeventruntime/Include ;
+      AddLibs += $(3rdPartyDir)/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
+      AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
+      CPPopt += -DUSE_PIX ;
+    }
   }
 } else if $(Platform) in xboxOne scarlett {
   CPPopt += /wd4062 ; # enumerator 'XXX' in switch of enum 'YYY' is not handled
@@ -84,28 +119,6 @@ if $(Platform) in windows {
   Sources +=
     platform_xbox.cpp
   ;
-}
-
-if $(Platform) in windows xboxOne scarlett {
-  CPPopt += -FId3d_config.h ;
-  CPPopt += -DUSE_RESOURCE_HEAPS=1 ;
-}
-
-AddIncludes +=
-  $(Root)/prog/engine/sharedInclude
-  $(Root)/prog/engine/drv/drv3d_commonCode
-  $(Root)/prog/engine/drv/drv3d_DX12
-  $(Root)/prog/engine/shaders
-  $(Root)/prog/dagorInclude
-  $(Root)/prog/3rdPartyLibs/aftermath/2024.1.0.24075/include
-  $(Root)/prog/3rdPartyLibs/imgui
-;
-
-if $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/winpixeventruntime : * ] {
-  CPPopt += -DUSE_PIX=1 ;
-  AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
-  AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
-  AddIncludes += $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include ;
 }
 
 if $(XessEnabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/xess_sdk : * ] {
@@ -127,11 +140,16 @@ if $(Fsr2Enabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 {
 
 if $(Platform)-$(PlatformArch) = windows-x86_64 {
   Sources += amdFsrD3D12_windows.cpp ;
-  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1/include ;
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/FidelityFX
+    $(Root)/prog/3rdPartyLibs/FidelityFX/api/include
+    $(Root)/prog/3rdPartyLibs/FidelityFX/framegeneration/include
+    $(Root)/prog/3rdPartyLibs/FidelityFX/upscalers/include
+  ;
 }
 else if $(Platform) in xboxOne scarlett {
   Sources += amdFsrD3D12_xbox.cpp ;
-  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr2_xbox ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1.3_xbox/include ;
 }
 
 if $(Platform) in windows {
@@ -156,9 +174,5 @@ UseProgLibs +=
   engine/drv/drv3d_commonCode
   engine/shaders
 ;
-
-if $(PlatformSpec) = clang && ! $(CLangVer) in 15.0.7 14.0.6 12.0.1 11.0.0 10.0.0 { # >= 16 implied
-  CPPopt += -Wno-enum-constexpr-conversion ;
-}
 
 include $(Root)/prog/_jBuild/build.jam ;

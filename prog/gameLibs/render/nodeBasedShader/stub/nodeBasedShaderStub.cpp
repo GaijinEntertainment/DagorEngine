@@ -10,17 +10,16 @@ NodeBasedShader::~NodeBasedShader() = default;
 void NodeBasedShader::dispatch(int, int, int) const {}
 void NodeBasedShader::setArrayValue(const char *, const Tab<Point4> &) {}
 bool NodeBasedShader::update(const String &, const DataBlock &, String &) { return true; }
-void NodeBasedShader::init(const DataBlock &) {}
 void NodeBasedShader::init(const String &, bool) {}
 void NodeBasedShader::closeShader() {}
 void NodeBasedShader::reset() {}
 bool NodeBasedShader::isValid() const { return false; }
 void NodeBasedShader::enableOptionalGraph(const String &, bool) {}
 PROGRAM *NodeBasedShader::getProgram() { return nullptr; }
-const DataBlock &NodeBasedShader::getMetadata() const { return emptyBlk; }
 
 namespace nodebasedshaderutils
 {
+eastl::vector<String> getAvailableVolumeChannels() { return {}; }
 eastl::vector<String> getAvailableInt() { return {}; }
 eastl::vector<String> getAvailableFloat() { return {}; }
 eastl::vector<String> getAvailableFloat4() { return {}; }

@@ -17,7 +17,13 @@ rule SignPackageRule
 rule ProcessLinkTarget
 {
   local _WIN_LIBS = user32.lib ole32.lib kernel32.lib gdi32.lib winmm.lib dbghelp.lib ;
-  if $(Sanitize) = address { _WIN_LIBS += clang_rt.asan-x86_64.lib ; }
+  if $(Sanitize) = address {
+    if $(PlatformSpec) = vc17 {
+      _WIN_LIBS += clang_rt.asan_static_runtime_thunk-x86_64.lib ;
+    } else {
+      _WIN_LIBS += clang_rt.asan-x86_64.lib ;
+    }
+  }
   _WIN_LIBS += $(AdditionalWinLibs) ;
   if $(PlatformArch) = x86 { BaseAddress ?= 0x00400000 ; }
 

@@ -101,7 +101,7 @@ struct ComponentDescAnnotation final : das::ManagedStructureAnnotation<ecs::Comp
 };
 
 bool das_get_underlying_ecs_type(das::TypeDeclPtr info, bool with_module_name,
-  const das::TBlock<void, das::TTemporary<const char *>> &block, das::Context *context, das::LineInfoArg *at)
+  const das::TBlock<void, const das::TTemporary<const char *>> &block, das::Context *context, das::LineInfoArg *at)
 {
   das::string typeName;
   das::Type baseType;
@@ -111,12 +111,12 @@ bool das_get_underlying_ecs_type(das::TypeDeclPtr info, bool with_module_name,
   return res;
 }
 
-static bool read_component(const char *name, Tab<ecs::ComponentDesc> &out_comps)
+static bool read_component(ecs::EntityManager &mgr, const char *name, Tab<ecs::ComponentDesc> &out_comps)
 {
   if (name == nullptr || name[0] == '\0')
     return true; // empty component name, mark is valid for dynamic query
-  const ecs::DataComponents &dataComponents = g_entity_mgr->getDataComponents();
-  const ecs::ComponentTypes &componentTypes = g_entity_mgr->getComponentTypes();
+  const ecs::DataComponents &dataComponents = mgr.getDataComponents();
+  const ecs::ComponentTypes &componentTypes = mgr.getComponentTypes();
   auto nameHash = ECS_HASH_SLOW(name);
   auto compId = dataComponents.findComponentId(nameHash.hash);
   if (compId != ecs::INVALID_COMPONENT_INDEX)
@@ -131,17 +131,23 @@ static bool read_component(const char *name, Tab<ecs::ComponentDesc> &out_comps)
 static bool ecs_dynamic_query(das::TArray<char *> const &comps_name_rq, das::TArray<char *> const &comps_name_no,
   const das::TBlock<void, ecs::EntityId> &block, das::Context *context, das::LineInfoArg *at)
 {
+  ecs::EntityManager *mgr = cast_es_context(context)->mgr;
+  if (!mgr)
+  {
+    context->throw_error_at(at, "ECS manager is not initialized");
+    return false;
+  }
   TIME_PROFILE(ecs_dynamic_query);
   Tab<ecs::ComponentDesc> comps_rq;
   comps_rq.reserve(comps_name_rq.size);
   for (int i = 0; i < comps_name_rq.size; i++)
-    if (!read_component(comps_name_rq[i], comps_rq))
+    if (!read_component(*mgr, comps_name_rq[i], comps_rq))
       return false;
 
   Tab<ecs::ComponentDesc> comps_no;
   comps_no.reserve(comps_name_no.size);
   for (int i = 0; i < comps_name_no.size; i++)
-    read_component(comps_name_no[i], comps_no); // if have invalid component do not exit, because this component is not required
+    read_component(*mgr, comps_name_no[i], comps_no); // if have invalid component do not exit, because this component is not required
 
   Tab<ecs::ComponentDesc> comps_ro(1, {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()});
   ecs::NamedQueryDesc desc{
@@ -158,13 +164,23 @@ static bool ecs_dynamic_query(das::TArray<char *> const &comps_name_rq, das::TAr
     context->invoke(block, &args, nullptr, at);
   };
 
-  ecs::QueryId qid = g_entity_mgr->createQuery(desc);
-  ecs::perform_query(g_entity_mgr.get(), qid, [&callback](const ecs::QueryView &qv) {
+  ecs::QueryId qid = mgr->createQuery(desc);
+  ecs::perform_query(mgr, qid, [&callback](const ecs::QueryView &qv) {
     for (auto it = qv.begin(), endIt = qv.end(); it != endIt; ++it)
       callback(qv.getComponentRO<ecs::EntityId>(0, it));
   });
-  g_entity_mgr->destroyQuery(qid);
+  mgr->destroyQuery(qid);
   return true;
+}
+
+bool set_is_in_aot(bool value)
+{
+  if (*das::daScriptEnvironment::bound)
+  {
+    (*das::daScriptEnvironment::bound)->g_isInAot = value;
+    return true;
+  }
+  return false;
 }
 
 class EcsUtilsModule final : public das::Module
@@ -317,6 +333,9 @@ public:
       "bind_dascript::create_entities_blk");
     das::addExtern<DAS_BIND_FUN(getComponentRef), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "getComponentRef",
       das::SideEffects::none, "bind_dascript::getComponentRef");
+
+    das::addExtern<DAS_BIND_FUN(set_is_in_aot)>(*this, lib, "set_is_in_aot", das::SideEffects::modifyExternal,
+      "bind_dascript::set_is_in_aot");
 
     das::addConstant(*this, "DONT_REPLICATE", (ecs::component_flags_t)ecs::DataComponent::DONT_REPLICATE);
     das::addConstant(*this, "HAS_SERIALIZER", (ecs::component_flags_t)ecs::DataComponent::HAS_SERIALIZER);

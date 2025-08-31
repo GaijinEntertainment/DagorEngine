@@ -35,6 +35,8 @@ class Aftermath
     // Also indicates if API is available or not
     PFN_GFSDK_Aftermath_DX12_Initialize initialize = nullptr;
     PFN_GFSDK_Aftermath_DX12_CreateContextHandle createContextHandle = nullptr;
+    PFN_GFSDK_Aftermath_DX12_RegisterResource registerResource = nullptr;
+    PFN_GFSDK_Aftermath_DX12_UnregisterResource unregisterResource = nullptr;
     PFN_GFSDK_Aftermath_ReleaseContextHandle releaseContextHandle = nullptr;
     PFN_GFSDK_Aftermath_SetEventMarker setEventMarker = nullptr;
     PFN_GFSDK_Aftermath_GetDeviceStatus getDeviceStatus = nullptr;
@@ -80,11 +82,19 @@ class Aftermath
   LibPointer library;
   ApiTable api;
   CommandListStorage<ContextPointer> commandListTable;
+  HRESULT lastError = S_OK;
   WinCritSec crashWriteMutex;
+
+  static inline struct Proxy
+  {
+    Aftermath *object;
+  } proxy{nullptr};
 
   static LibPointer try_load_library();
   static ApiTable try_load_api(HMODULE module);
   bool tryEnableDumps();
+
+  void waitForDump() const;
 
   void onCrashDumpGenerate(const void *dump, const uint32_t size, bool manually_send);
   void onShaderDebugInfo(const void *dump, const uint32_t size);
@@ -101,59 +111,38 @@ public:
   // Have to delete move constructor, otherwise compiler / templated stuff of variant tries to be smart and results in compile errors.
   Aftermath(Aftermath &&) = delete;
   Aftermath &operator=(Aftermath &&) = delete;
-  Aftermath(LibPointer &&lib, const ApiTable &table) : library{eastl::move(lib)}, api{table} {}
-  ~Aftermath()
+  Aftermath(LibPointer &&lib, const ApiTable &table) : library{eastl::move(lib)}, api{table}
   {
-    if (api.disableGpuCrashDumps)
-    {
-      logdbg("DX12: Shutting down NVIDIA Aftermath API");
-      api.disableGpuCrashDumps();
-    }
+    G_ASSERT(!proxy.object);
+    proxy.object = this;
   }
+  ~Aftermath();
 
   void configure();
-  void beginCommandBuffer(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
-  void endCommandBuffer(ID3D12GraphicsCommandList *cmd);
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path);
-  void endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path);
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  void draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-    uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology);
-  void drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-    uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology);
-  void drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-    const BufferResourceReferenceAndOffset &buffer);
-  void drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-    const BufferResourceReferenceAndOffset &buffer);
-  void dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-    ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer);
-  void dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &stage,
-    ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z);
-  void dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z);
-  void dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-    const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
-  void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd);
-#if D3D_HAS_RAY_TRACING
-  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp);
-  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
-#endif
+  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd);
+  void endCommandBuffer(D3DGraphicsCommandList *cmd);
+  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path);
+  void endEvent(D3DGraphicsCommandList *cmd, const eastl::string &full_path);
+  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
   bool sendGPUCrashDump(const char *type, const void *data, uintptr_t size);
   void onDeviceShutdown();
-  bool onDeviceSetup(ID3D12Device *device, const Configuration &config, const Direct3D12Enviroment &d3d_env);
+  bool onDeviceSetup(D3DDevice *device, const Configuration &config, const Direct3D12Enviroment &d3d_env);
+  template <typename K>
+  bool onDeviceSetup(D3DDevice *device, const Configuration &config, const Direct3D12Enviroment &env, const K &)
+  {
+    return onDeviceSetup(device, config, env);
+  }
+  template <typename... Ts>
+  auto onDeviceCreated(Ts &&...ts)
+  {
+    return onDeviceSetup(eastl::forward<Ts>(ts)...);
+  }
 
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; }
 
   template <typename T>
-  static bool load(const Configuration &config, const Direct3D12Enviroment &, T &target)
+  static bool load(const Configuration &config, const Direct3D12Enviroment &, T &&target)
   {
     if (!config.enableAftermath)
     {
@@ -189,6 +178,15 @@ public:
     logdbg("DX12: ...using NVIDIA Aftermath API for GPU postmortem trace");
     return true;
   }
+
+  template <typename T, typename K>
+  static bool load(const Configuration &config, const Direct3D12Enviroment &e, const K &, T &&target)
+  {
+    return load(config, e, target);
+  }
+
+  void nameResource(ID3D12Resource *, eastl::string_view);
+  void nameResource(ID3D12Resource *, eastl::wstring_view);
 };
 } // namespace debug::gpu_postmortem::nvidia
 } // namespace drv3d_dx12

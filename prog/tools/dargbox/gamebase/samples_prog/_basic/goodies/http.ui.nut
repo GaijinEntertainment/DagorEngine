@@ -1,7 +1,6 @@
+from "dagor.http" import httpRequest, HTTP_SUCCESS, HTTP_FAILED, HTTP_ABORTED
 from "%darg/ui_imports.nut" import *
 from "iostream" import blob
-
-let { httpRequest, HTTP_SUCCESS, HTTP_FAILED, HTTP_ABORTED } = require("dagor.http")
 let cursors = require("samples_prog/_cursors.nut")
 
 let statusText = {
@@ -15,7 +14,7 @@ function mkhttpButton(text, request){
   return @() {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
-    size = [200,50]
+    size = static [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER

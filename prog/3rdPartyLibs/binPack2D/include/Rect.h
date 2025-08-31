@@ -78,6 +78,12 @@ public:
 		return true;
 	}
 
+	// Removes rectangles contained in r
+	void RemoveContainedIn(const Rect &r)
+	{
+		eastl::erase_if(rects, [&r](const Rect &rect) { return IsContainedIn(rect, r); });
+	}
+
 	void Clear()
 	{
 		rects.clear();

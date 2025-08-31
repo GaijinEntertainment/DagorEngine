@@ -73,6 +73,46 @@ static inline bool check_vertex_format_support_for_acceleration_structure_build(
   return d3di.raytrace.check_vertex_format_support_for_acceleration_structure_build(format);
 }
 
+static inline ::raytrace::AccelerationStructurePool create_acceleration_structure_pool(
+  const ::raytrace::AccelerationStructurePoolCreateInfo &info)
+{
+  return d3di.raytrace.create_acceleration_structure_pool(info);
+}
+
+static inline void destroy_acceleration_structure_pool(::raytrace::AccelerationStructurePool pool)
+{
+  d3di.raytrace.destroy_acceleration_structure_pool(pool);
+}
+
+static inline RaytraceAccelerationStructureGpuHandle get_pool_base_address(::raytrace::AccelerationStructurePool pool)
+{
+  return d3di.raytrace.get_pool_base_address(pool);
+}
+
+static inline ::raytrace::AccelerationStructureSizes calculate_acceleration_structure_sizes(
+  const ::raytrace::AccelerationStructureSizeCalculcationInfo &info)
+{
+  return d3di.raytrace.calculate_acceleration_structure_sizes(info);
+}
+
+static inline ::raytrace::AnyAccelerationStructure create_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  const ::raytrace::AccelerationStructurePlacementInfo &placement_info)
+{
+  return d3di.raytrace.create_acceleration_structure(pool, placement_info);
+}
+
+static inline void destroy_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  ::raytrace::AnyAccelerationStructure structure)
+{
+  d3di.raytrace.destroy_acceleration_structure(pool, structure);
+}
+
+static inline void build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters build_params,
+  ::raytrace::AccelerationStructureBuildMode build_mode = ::raytrace::AccelerationStructureBuildMode::Synchronous)
+{
+  d3di.raytrace.build_acceleration_structure(build_params, build_mode);
+}
+
 static inline ::raytrace::Pipeline create_pipeline(const ::raytrace::PipelineCreateInfo &pci)
 {
   return d3di.raytrace.create_pipeline(pci);

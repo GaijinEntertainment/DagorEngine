@@ -1,0 +1,630 @@
+sampler global_linear_clamp_sampler;
+
+macro CONTACT_SHADOWS_NEW(code)
+(code) {
+    comparison_decode_depth@f1 = (zn_zfar.x / (zn_zfar.y-zn_zfar.x),0,0,0);
+  }
+hlsl (code) {
+  #pragma hlsl2021
+  float2 cs_to_uv(float2 cs) {
+      return cs * float2(0.5, -0.5) + float2(0.5, 0.5);
+  }
+
+  float2 uv_to_cs(float2 uv) {
+      return uv * float2(2, -2) + float2(-1, +1);
+  }
+
+  float3 position_world_to_sample(float3 v) {
+      float4 p = mul(float4(v, 1), globtm_no_ofs_psf);
+      return p.xyz / p.w;
+  }
+
+  float4 direction_world_to_clip(float3 v) {
+      return mul(float4(v, 0), globtm_no_ofs_psf);
+  }
+  // Copyright (c) 2023 Tomasz Stachowiak
+  //
+  // This contribution is dual licensed under EITHER OF
+  //
+  //     Apache License, Version 2.0, (http://www.apache.org/licenses/LICENSE-2.0)
+  //     MIT license (http://opensource.org/licenses/MIT)
+  //
+  // at your option.
+
+  struct DistanceResult {
+      float min_raw_depth, max_raw_depth;
+      bool valid, intersected; // distance < 0 && valid
+      float penetration;
+  };
+  struct DistanceWithPenetration : DistanceResult {
+      float distance;
+      float penetration;
+  };
+
+  struct HybridRootFinder {
+      uint linear_steps;
+      uint bisection_steps;
+      bool use_secant;
+      float linear_march_exponent;
+      bool use_sloppy_march_first_step, use_sloppy_march_steps;
+
+      float jitter;
+      float min_t;
+      float max_t;
+
+      static HybridRootFinder new_with_linear_steps(uint v) {
+          HybridRootFinder res;
+          res.linear_steps = v;
+          res.bisection_steps = 0;
+          res.use_secant = false;
+          res.use_sloppy_march_first_step = false;
+          res.use_sloppy_march_steps = true;
+          res.linear_march_exponent = 1;
+          res.jitter = 1;
+          res.min_t = 0;
+          res.max_t = 1;
+          return res;
+      }
+
+      void with_bisection_steps(uint v) {
+          bisection_steps = v;
+      }
+
+      void with_use_secant(bool v) {
+          use_secant = v;
+      }
+
+      void with_linear_march_exponent(float v) {
+          linear_march_exponent = v;
+      }
+
+      void with_jitter(float v) {
+          jitter = v;
+      }
+
+      void with_min_t(uint v) {
+          min_t = v;
+      }
+
+      void with_max_t(uint v) {
+          max_t = v;
+      }
+
+      // IntersectionFn: (Point) -> DistanceTy, where `DistanceTy` inherits from `RootFinderInput`.
+      template<typename IntersectionFn>
+      bool find_root(float3 start, float3 end, IntersectionFn distance_fn, inout float hit_t, inout float miss_t, out DistanceWithPenetration hit_d) {
+          start.xy = cs_to_uv(start.xy);
+          end.xy = cs_to_uv(end.xy);
+          const float3 dir = end - start;
+
+          float min_t = this.min_t;
+          float max_t = this.max_t;
+
+          DistanceResult min_d = (DistanceResult)0;
+          DistanceResult max_d = (DistanceResult)0;
+
+          const float step_size = (max_t - min_t) / linear_steps;
+
+          bool intersected = false;
+
+          //
+          // Ray march using linear steps
+
+          {
+              //const float candidate_t = min_t + step_size * jitter;
+              const float step_t = (this.max_t-this.min_t) / linear_steps;
+              float current_t = this.min_t + jitter*step_t;
+              const float candidate_t = this.linear_march_exponent == 1 ? current_t : lerp(this.min_t, this.max_t, pow((0 + jitter) / linear_steps, this.linear_march_exponent));
+
+              const float3 candidate = start + dir * candidate_t;
+              distance_fn.use_sloppy_march = this.use_sloppy_march_first_step;
+              const DistanceResult candidate_d = distance_fn(candidate);
+              intersected = distance_fn.isIntersected(candidate_d);
+
+              if (intersected) {
+                  max_t = candidate_t;
+                  max_d = candidate_d;
+                  // The `[min_t .. max_t]` interval contains an intersection. End the linear search.
+              } else {
+                  // No intersection yet. Carry on.
+                  min_t = candidate_t;
+                  min_d = candidate_d;
+                  current_t += step_t;
+                  distance_fn.use_sloppy_march = this.use_sloppy_march_steps;
+                  for (uint step = 1; step < linear_steps; ++step, current_t += step_t) {
+                      //const float candidate_t = min_t + step_size;
+                      const float candidate_t = this.linear_march_exponent == 1 ? current_t : lerp(this.min_t, this.max_t, pow((step + jitter) / linear_steps, this.linear_march_exponent));
+
+                      const float3 candidate = start + dir * candidate_t;
+                      const DistanceResult candidate_d = distance_fn(candidate);
+                      intersected = distance_fn.isIntersected(candidate_d);
+
+                      if (intersected) {
+                          max_t = candidate_t;
+                          max_d = candidate_d;
+                          // The `[min_t .. max_t]` interval contains an intersection. End the linear search.
+                          break;
+                      } else {
+                          // No intersection yet. Carry on.
+                          min_t = candidate_t;
+                          min_d = candidate_d;
+                      }
+                  }
+              }
+          }
+
+          miss_t = min_t;
+          hit_t = min_t;
+
+          //
+          // Refine the hit using bisection
+
+          if (intersected) {
+              UNROLL
+              for (uint step = 0; step < bisection_steps; ++step) {
+                  const float mid_t = (min_t + max_t) * 0.5;
+                  const float3 candidate = start + dir * mid_t;
+                  const DistanceResult candidate_d = distance_fn(candidate);
+
+                  if (distance_fn.isIntersected(candidate_d)) {
+                      // Intersection at the mid float3. Refine the first half.
+                      max_t = mid_t;
+                      max_d = candidate_d;
+                  } else {
+                      // No intersection yet at the mid point. Refine the second half.
+                      min_t = mid_t;
+                      min_d = candidate_d;
+
+                      // This in practice seems to yield worse results as they end up being too sharp,
+                      // and not diffused by noise, resulting in lots of pixel stretching:
+                      //miss_t = min_t;
+                  }
+              }
+
+              DistanceWithPenetration max_d2 = distance_fn.getDistance(max_d, start.z + max_t*dir.z);
+              FLATTEN
+              if (this.use_secant) {
+                  // Finish with one application of the secant method
+                  DistanceWithPenetration min_d2 = distance_fn.getDistance(min_d, start.z + min_t*dir.z);
+                  const float total_d = min_d2.distance - max_d2.distance;
+
+                  const float mid_t = lerp(min_t, max_t, min_d2.distance / total_d);
+                  const float3 candidate = start + dir * mid_t;
+                  const DistanceWithPenetration candidate_d = distance_fn.getDistance(distance_fn(candidate), candidate.z);
+
+                  // Only accept the result of the secant method if it improves upon the previous result.
+                  //
+                  // Technically this should be `abs(candidate_d.distance) < min(min_d.distance, -max_d.distance) * frac`,
+                  // but this seems sufficient.
+                  FLATTEN
+                  if (abs(candidate_d.distance) < min_d2.distance * 0.9 && distance_fn.isValid(candidate_d)) {
+                      hit_t = mid_t;
+                      hit_d = candidate_d;
+                  } else {
+                      hit_t = max_t;
+                      hit_d = max_d2;
+                  }
+
+                  return true;
+              } else {
+                  hit_t = max_t;
+                  hit_d = max_d2;
+                  return true;
+              }
+          } else {
+              // Mark the conservative miss distance.
+              hit_t = min_t;
+              return false;
+          }
+      }
+  };
+
+  struct DepthRaymarchDistanceFn {
+      SamplerState sampler_llc, sampler_nnc;
+      Texture2D<float4> depth_tex;
+      float2 depth_tex_size;
+
+      bool march_behind_surfaces;
+      float depth_thickness;
+
+      bool use_sloppy_march;
+      bool isValid(DistanceResult d) {return d.valid;}
+      bool isIntersected(DistanceResult d) {return d.intersected;}
+
+      DistanceWithPenetration getDistance(DistanceResult v, float ray_depth_raw)
+      {
+        float ray_depth = linearize_z(ray_depth_raw, zn_zfar.zw);
+        DistanceWithPenetration r;
+        r.valid = v.valid;
+        r.intersected = v.intersected;
+        float min_depth = linearize_z(v.min_raw_depth, zn_zfar.zw);
+        float max_depth = linearize_z(v.max_raw_depth, zn_zfar.zw);
+        const float bias = 0.000002;
+        r.distance = max_depth*(1+bias) - ray_depth;
+        r.penetration = ray_depth - min_depth;
+        return r;
+      }
+      DistanceResult operator()(float3 ray_point_uv_z) {
+          const float2 interp_uv = ray_point_uv_z.xy;//cs_to_uv(ray_point_cs.xy);
+
+          // We're using both point-sampled and bilinear-filtered values from the depth buffer.
+          //
+          // That's really stupid but works like magic. For samples taken near the ray origin,
+          // the discrete nature of the depth buffer becomes a problem. It's not a land of continuous surfaces,
+          // but a bunch of stacked duplo bricks.
+          //
+          // Technically we should be taking discrete steps in this duplo land, but then we're at the mercy
+          // of arbitrary quantization of our directions -- and sometimes we'll take a step which would
+          // claim that the ray is occluded -- even though the underlying smooth surface wouldn't occlude it.
+          //
+          // If we instead take linear taps from the depth buffer, we reconstruct the linear surface.
+          // That fixes acne, but introduces false shadowing near object boundaries, as we now pretend
+          // that everything is shrink-wrapped by this continuous 2.5D surface, and our depth thickness
+          // heuristic ends up falling apart.
+          //
+          // The fix is to consider both the smooth and the discrete surfaces, and only claim occlusion
+          // when the ray descends below both.
+          //
+          // The two approaches end up fixing each other's artifacts:
+          // * The false occlusions due to duplo land are rejected because the ray stays above the smooth surface.
+          // * The shrink-wrap surface is no longer continuous, so it's possible for rays to miss it.
+
+          #if 1
+              const float unfiltered_raw_depth = depth_tex.SampleLevel(sampler_nnc, interp_uv, 0).x;
+              float linear_raw_depth = unfiltered_raw_depth;
+              if (!use_sloppy_march)
+                linear_raw_depth = depth_tex.SampleLevel(sampler_llc, interp_uv, 0).x;
+          #else
+              // Manual bilinear; in case using a linear sampler on the depth format is not supported.
+              const float unfiltered_depth = linearize_z(depth_tex.SampleLevel(sampler_nnc, interp_uv, 0).x, zn_zfar.zw);
+              const float2 coord = interp_uv * depth_tex_size - 0.5;
+              const float2 floorCrd = floor(coord);
+              const float2 frac_px = coord - floorCrd;
+              float2 gatherUV = (floorCrd+1)/depth_tex_size;
+              const float4 depth_vals = depth_tex.GatherRed(sampler_nnc, gatherUV, 0);
+              float linear_depth = unfiltered_depth;
+              if (!use_sloppy_march)
+                linear_depth = linearize_z(lerp(
+                    lerp(depth_vals.w, depth_vals.z, frac_px.x),
+                    lerp(depth_vals.x, depth_vals.y, frac_px.x),
+                    frac_px.y
+                ), zn_zfar.zw);
+
+          #endif
+
+          float max_raw_depth;
+          float min_raw_depth;
+
+          if (use_sloppy_march) {
+              max_raw_depth = unfiltered_raw_depth;
+              min_raw_depth = unfiltered_raw_depth;
+          } else {
+              max_raw_depth = min(linear_raw_depth, unfiltered_raw_depth);
+              min_raw_depth = max(linear_raw_depth, unfiltered_raw_depth);
+          }
+
+
+          DistanceResult res;
+          const float bias = 0.000002;
+          //lD = 1/(a*rD + b)
+          ///(a/depth_thickness)*(rD2-rD1) < ((a*rD1 + b)*(a*rD2 + b))
+
+          // This will be used at the end of the ray march to potentially discard the hit.
+          //res.valid = !this.march_behind_surfaces || linearize_z(ray_point_uv_z.z, zn_zfar.zw) - linearize_z(min_raw_depth, zn_zfar.zw) < depth_thickness;
+
+          // same as 1/(ray_point_uv_z.z*zn_zfar.z + zn_zfar.w) - 1/(min_raw_depth*zn_zfar.z + zn_zfar.w) < depth_thickness;
+          // same as (min_raw_depth - ray_point_uv_z.z)*zn_zfar.z/((min_raw_depth*zn_zfar.z + zn_zfar.w)*(ray_point_uv_z.z*zn_zfar.z + zn_zfar.w)) < depth_thickness
+          // same as (min_raw_depth - ray_point_uv_z.z)*zn_zfar.z < ((min_raw_depth*zn_zfar.z + zn_zfar.w)*(ray_point_uv_z.z*zn_zfar.z + zn_zfar.w))*depth_thickness
+          // same as (min_raw_depth - ray_point_uv_z.z) < ((min_raw_depth + zn_zfar.w/zn_zfar.z)*(ray_point_uv_z.z + zn_zfar.w/zn_zfar.z))*depth_thickness
+          // same as res.valid = !this.march_behind_surfaces || (min_raw_depth - ray_point_uv_z.z)*zn_zfar.w < ((min_raw_depth*zn_zfar.w + zn_zfar.z)*(ray_point_uv_z.z*zn_zfar.w + zn_zfar.z))*depth_thickness;
+          // same as res.valid = !this.march_behind_surfaces || (min_raw_depth - ray_point_uv_z.z) < ((min_raw_depth + comparison_decode_depth)*(ray_point_uv_z.z*zn_zfar.w + zn_zfar.z))*depth_thickness;
+          res.valid = !this.march_behind_surfaces || min_raw_depth < ((min_raw_depth + comparison_decode_depth)*(ray_point_uv_z.z*zn_zfar.w + zn_zfar.z))*depth_thickness + ray_point_uv_z.z;
+          res.intersected = res.valid && max_raw_depth > ray_point_uv_z.z*(1+bias);
+          res.min_raw_depth = min_raw_depth;
+          res.max_raw_depth = max_raw_depth;
+
+          //res.distance = max_depth * (1.0 + bias) - ray_depth;
+          //res.penetration = ray_depth - min_depth;
+
+          return res;
+      }
+  };
+
+  struct DepthRayMarchResult {
+      /// True if the raymarch hit something.
+      bool hit;
+
+      /// In case of a hit, the normalized distance to it.
+      ///
+      /// In case of a miss, the furthest the ray managed to travel, which could either be
+      /// exceeding the max range, or getting behind a surface further than the depth thickness.
+      ///
+      /// Range: `0..=1` as a lerp factor over `ray_start_cs..=ray_end_cs`.
+      float hit_t;
+
+      /// UV correspindong to `hit_t`.
+      float2 hit_uv;
+
+      /// The distance that the hit point penetrates into the hit surface.
+      /// Will normally be non-zero due to limited precision of the ray march.
+      ///
+      /// In case of a miss: undefined.
+      float hit_penetration;
+
+      /// Ditto, within the range `0..DepthRayMarch::depth_thickness_linear_z`
+      ///
+      /// In case of a miss: undefined.
+      float hit_penetration_frac;
+  };
+
+  struct DepthRayMarch {
+      /// Number of steps to be taken at regular intervals to find an initial intersection.
+      /// Must not be zero.
+      uint linear_steps;
+
+      /// Exponent to be applied in the linear part of the march.
+      ///
+      /// A value of 1.0 will result in equidistant steps, and higher values will compress
+      /// the earlier steps, and expand the later ones. This might be desirable in order
+      /// to get more detail close to objects in SSR or SSGI.
+      ///
+      /// For optimal performance, this should be a small compile-time unsigned integer,
+      /// such as 1 or 2.
+      float linear_march_exponent;
+
+      /// Number of steps in a bisection (binary search) to perform once the linear search
+      /// has found an intersection. Helps narrow down the hit, increasing the chance of
+      /// the secant method finding an accurate hit point.
+      ///
+      /// Useful when sampling color, e.g. SSR or SSGI, but pointless for contact shadows.
+      uint bisection_steps;
+
+      /// Approximate the root position using the secant method -- by solving for line-line
+      /// intersection between the ray approach rate and the surface gradient.
+      ///
+      /// Useful when sampling color, e.g. SSR or SSGI, but pointless for contact shadows.
+      bool use_secant;
+
+      /// Jitter to apply to the first step of the linear search; 0..=1 range, mapping
+      /// to the extent of a single linear step in the first phase of the search.
+      /// Use 1.0 if you don't want jitter.
+      float jitter;
+
+      /// Clip space coordinates (w=1) of the ray.
+      float3 ray_start_cs;
+      float3 ray_end_cs;
+
+      /// Should be used for contact shadows, but not for any color bounce, e.g. SSR.
+      ///
+      /// For SSR etc. this can easily create leaks, but with contact shadows it allows the rays
+      /// to pass over invalid occlusions (due to thickness), and find potentially valid ones ahead.
+      ///
+      /// Note that this will cause the linear search to potentially miss surfaces,
+      /// because when the ray overshoots and ends up penetrating a surface further than
+      /// `depth_thickness_linear_z`, the ray marcher will just carry on.
+      ///
+      /// For this reason, this may require a lot of samples, or high depth thickness,
+      /// so that `depth_thickness_linear_z >= world space ray length / linear_steps`.
+      bool march_behind_surfaces;
+
+      /// If `true`, the ray marcher only performs nearest lookups of the depth buffer,
+      /// resulting in aliasing and false occlusion when marching tiny detail.
+      /// It should work fine for longer traces with fewer rays though.
+      bool use_sloppy_march_first_step;
+      bool use_sloppy_march_steps;
+
+      /// When marching the depth buffer, we only have 2.5D information, and don't know how
+      /// thick surfaces are. We shall assume that the depth buffer fragments are litte squares
+      /// with a constant thickness defined by this parameter.
+      float depth_thickness_linear_z;
+
+      /// Size of the depth buffer we're marching in, in pixels.
+      float2 depth_tex_size;
+
+      /// The depth buffer. Must use reverse Z with an infinite far plane.
+      Texture2D<float4> depth_tex;
+      SamplerState sampler_llc, sampler_nnc;
+
+
+      static DepthRayMarch new_from_depth(
+          SamplerState sampler_llc, SamplerState sampler_nnc,
+          Texture2D<float4> depth_tex,
+          float2 depth_tex_size
+      ) {
+          DepthRayMarch res = (DepthRayMarch)0;
+          res.sampler_llc = sampler_llc;
+          res.sampler_nnc = sampler_nnc;
+          res.jitter = 1;
+          res.linear_steps = 4;
+          res.bisection_steps = 0;
+          res.linear_march_exponent = 1;
+          res.depth_tex = depth_tex;
+          res.depth_tex_size = depth_tex_size;
+          res.depth_thickness_linear_z = 1;
+          res.march_behind_surfaces = false;
+          res.use_sloppy_march_first_step = false;
+          res.use_sloppy_march_steps = false;
+          return res;
+      }
+
+      void with_linear_steps(uint v) {
+          linear_steps = v;
+      }
+
+      void with_bisection_steps(uint v) {
+          bisection_steps = v;
+      }
+
+      void with_use_secant(bool v) {
+          use_secant = v;
+      }
+
+      void with_linear_march_exponent(float v) {
+          linear_march_exponent = v;
+      }
+
+      void with_jitter(float v) {
+          jitter = v;
+      }
+
+      void with_depth_thickness(float v) {
+          depth_thickness_linear_z = v;
+      }
+
+      void with_march_behind_surfaces(bool v) {
+          march_behind_surfaces = v;
+      }
+
+      void with_use_sloppy_march_first_step(bool v) {
+          use_sloppy_march_first_step = v;
+      }
+      void with_use_sloppy_march_steps(bool v) {
+          use_sloppy_march_steps = v;
+      }
+
+      /// March from a clip-space position (w = 1)
+      void from_cs(float3 v) {
+          ray_start_cs = v;
+      }
+
+      /// March towards a clip-space direction.
+      /// If `infinite` is `true`, then the ray is extended to cover the whole view frustum.
+      /// If `infinite` is `false`, then the ray length is that of the `dir_cs` parameter.
+      //
+      /// Must be called after `from_cs`, as it will clip the world-space ray to the view frustum.
+      void to_cs_dir_impl(float4 dir_cs, bool infinite) {
+          float4 end_cs = float4(this.ray_start_cs, 1) + dir_cs;
+
+          // Perform perspective division, but avoid dividing by zero for rays
+          // heading directly towards the eye.
+          end_cs /= (end_cs.w >= 0 ? 1 : -1) * max(1e-10, abs(end_cs.w));
+
+          // Clip ray start to the view frustum
+          //if (any(abs(this.ray_start_cs) > 1))
+          if (true)
+          {
+              const float3 delta_cs = end_cs.xyz - this.ray_start_cs;
+              const float3 near_edge = select(delta_cs < 0, float3(1, 1, 1), float3(-1, -1, 0));
+              const float3 dist_to_near_edge = (near_edge - this.ray_start_cs) / delta_cs;
+              //const float max_dist_to_near_edge = max(max(dist_to_near_edge.x, dist_to_near_edge.y), dist_to_near_edge.z);
+              const float max_dist_to_near_edge = max(dist_to_near_edge.x, dist_to_near_edge.y);
+              this.ray_start_cs += delta_cs * max(0.0, max_dist_to_near_edge);
+          }
+
+          // Clip ray end to the view frustum
+
+          float3 delta_cs = end_cs.xyz - this.ray_start_cs;
+          const float3 far_edge = select(delta_cs >= 0, float3(1, 1, 1), float3(-1, -1, 0));
+          const float3 dist_to_far_edge = (far_edge - this.ray_start_cs) / delta_cs;
+          const float min_dist_to_far_edge = min(min(dist_to_far_edge.x, dist_to_far_edge.y), dist_to_far_edge.z);
+
+          if (infinite) {
+              delta_cs *= min_dist_to_far_edge;
+          } else {
+              // If unbounded, would make the ray reach the end of the frustum
+              delta_cs *= min(1.0, min_dist_to_far_edge);
+          }
+
+          ray_end_cs = this.ray_start_cs + delta_cs;
+      }
+
+      /// March to a clip-space position (w = 1)
+      ///
+      /// Must be called after `from_cs`, as it will clip the world-space ray to the view frustum.
+      void to_cs(float3 end_cs) {
+          float4 dir = float4(end_cs - this.ray_start_cs, 0) * sign(end_cs.z);
+          to_cs_dir_impl(dir, false);
+      }
+
+      /// March towards a clip-space direction. Infinite (ray is extended to cover the whole view frustum).
+      ///
+      /// Must be called after `from_cs`, as it will clip the world-space ray to the view frustum.
+      void to_cs_dir(float4 dir) {
+          return to_cs_dir_impl(dir, true);
+      }
+
+      /// March to a world-space position.
+      ///
+      /// Must be called after `from_cs`, as it will clip the world-space ray to the view frustum.
+      void to_ws(float3 end) {
+          to_cs(position_world_to_sample(end));
+      }
+
+      /// March towards a world-space direction. Infinite (ray is extended to cover the whole view frustum).
+      ///
+      /// Must be called after `from_cs`, as it will clip the world-space ray to the view frustum.
+      void to_ws_dir(float3 dir) {
+          to_cs_dir_impl(direction_world_to_clip(dir), true);
+      }
+
+      /// Perform the ray march.
+      DepthRayMarchResult march() {
+          DepthRayMarchResult res = (DepthRayMarchResult)0;
+
+          const float2 ray_start_uv = cs_to_uv(ray_start_cs.xy);
+          const float2 ray_end_uv = cs_to_uv(ray_end_cs.xy);
+
+          const float2 ray_uv_delta = ray_end_uv - ray_start_uv;
+          const float2 ray_len_px = ray_uv_delta * depth_tex_size;
+
+          //const uint MIN_PX_PER_STEP = 1;
+          //const int step_count = max(2, min(linear_steps, int(floor(length(ray_len_px) / MIN_PX_PER_STEP))));
+          const uint step_count = linear_steps;
+
+          const float depth_thickness = this.depth_thickness_linear_z;
+
+          DepthRaymarchDistanceFn distance_fn;
+          distance_fn.sampler_llc = sampler_llc;
+          distance_fn.sampler_nnc = sampler_nnc;
+          distance_fn.depth_tex = depth_tex;
+          distance_fn.depth_tex_size = depth_tex_size;
+          distance_fn.march_behind_surfaces = this.march_behind_surfaces;
+          distance_fn.depth_thickness = depth_thickness;
+
+          DistanceWithPenetration hit;
+
+          float miss_t;
+          HybridRootFinder finder = HybridRootFinder::new_with_linear_steps(step_count);
+          finder.with_bisection_steps(this.bisection_steps);
+          finder.with_use_secant(this.use_secant);
+          finder.with_linear_march_exponent(this.linear_march_exponent);
+          finder.with_jitter(this.jitter);
+          finder.use_sloppy_march_first_step = use_sloppy_march_first_step;
+          finder.use_sloppy_march_steps = use_sloppy_march_steps;
+          bool intersected = finder.find_root(ray_start_cs, ray_end_cs, distance_fn, res.hit_t, miss_t, hit);
+
+          if (intersected && hit.penetration < depth_thickness && hit.distance < depth_thickness) {
+              res.hit = true;
+              res.hit_uv = lerp(ray_start_uv, ray_end_uv, res.hit_t);
+              res.hit_penetration = hit.penetration;
+              res.hit_penetration_frac = hit.penetration / depth_thickness;
+              return res;
+          }
+
+          res.hit_t = miss_t;
+          res.hit_uv = lerp(ray_start_uv, ray_end_uv, res.hit_t);
+
+          return res;
+      }
+    };
+}
+
+endmacro
+
+
+int shadow_frame = 0;
+float contact_shadow_len = 0.2;
+float contact_shadow_step_offset = 0.2;
+
+macro CONTACT_SHADOWS_BASE(code)
+  (code) {
+    projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3};
+    contact_shadow_len@f1 = contact_shadow_len;
+    globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+    global_linear_clamp_sampler@sampler = global_linear_clamp_sampler;
+  }
+  hlsl(code) {
+    #include "interleavedGradientNoise.hlsl"
+    #include "contactShadows.hlsl"
+  }
+endmacro

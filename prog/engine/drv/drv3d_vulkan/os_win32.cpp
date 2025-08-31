@@ -13,6 +13,11 @@
 #include <startup/dag_globalSettings.h>
 #include "globals.h"
 
+namespace
+{
+bool displayModeModified = false;
+}
+
 using namespace drv3d_vulkan;
 // code borrowed from opengl driver
 void drv3d_vulkan::get_video_modes_list(Tab<String> &list)
@@ -128,7 +133,11 @@ VulkanSurfaceKHRHandle drv3d_vulkan::init_window_surface(VulkanInstance &instanc
 
 void drv3d_vulkan::os_restore_display_mode()
 {
-  ChangeDisplaySettings(nullptr, 0);
+  if (displayModeModified)
+  {
+    ChangeDisplaySettings(nullptr, 0);
+    displayModeModified = false;
+  }
   Globals::window.updateRefreshRateFromCurrentDisplayMode();
 }
 
@@ -165,7 +174,6 @@ void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
   }
 
   devm.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-  Globals::window.refreshRate = devm.dmDisplayFrequency;
 
   LONG res = ChangeDisplaySettings(&devm, CDS_FULLSCREEN);
   if (res != DISP_CHANGE_SUCCESSFUL)
@@ -177,13 +185,14 @@ void drv3d_vulkan::os_set_display_mode(int res_x, int res_y)
   }
   else
   {
+    Globals::window.refreshRate = devm.dmDisplayFrequency;
+    displayModeModified = true;
     if ((mode_w != res_x) || (mode_h != res_y))
       debug("vulkan: can't set display mode %dx%d, falling back to %dx%d", res_x, res_y, mode_w, mode_h);
   }
 }
 
-eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle,
-  const eastl::vector<VkExtensionProperties> &)
+eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle, const dag::Vector<VkExtensionProperties> &)
 {
   return "";
 }

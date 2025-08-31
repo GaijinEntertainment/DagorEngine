@@ -3,6 +3,7 @@ include "viewVecVS.dshl"
 include "distanceToClouds2.dshl"
 include "clouds_tiled_dist.dshl"
 include "clouds_close_layer_outside.dshl"
+include "camera_in_camera.dshl"
 
 float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
@@ -129,6 +130,7 @@ macro CLOUDS_TAA(code)
     #define TAA_LUMINANCE_MAX 100
     #include "daCloudsTonemap.hlsl"
     #include "temporalClouds.hlsl"
+
     half4 clouds_taa(out half curTaaWeight, uint2 screenpos, float2 tc)
     {
       BRANCH
@@ -153,10 +155,13 @@ endmacro
 
 shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   cull_mode=none;
   z_write=false;
   //DACLOUDS_SETTINGS()
-  if (is_gather4_supported == supported || shader != clouds2_taa_ps)
+  bool use_gather4 = is_gather4_supported == supported || shader != clouds2_taa_ps;
+  if (use_gather4)
   {
     hlsl {
       #define SUPPORT_TEXTURE_GATHER 1
@@ -191,6 +196,8 @@ shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
     };
     MRT clouds_ps(VsOutput input HW_USE_SCREEN_POS)
     {
+      DISCARD_IF_INVALID_VIEW_AREA_PS(input.tc);
+
       float4 screenpos = GET_SCREEN_POS(input.pos);
       MRT ret;
       ret.color = clouds_taa(ret.taaWeight, screenpos.xy, input.tc);
@@ -211,10 +218,11 @@ shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
   }
 
   compile("target_vs", "clouds_vs");
-  if (is_gather4_supported == supported || shader != clouds2_taa_ps)
+  if (!hardware.fsh_5_0 && use_gather4)
   {
     compile("ps_4_1", "clouds_ps");
-  } else
+  }
+  else
   {
     compile("target_ps", "clouds_ps");
   }
@@ -222,6 +230,8 @@ shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
 
 shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
   hlsl {
     #define SUPPORT_TEXTURE_GATHER 1
   }

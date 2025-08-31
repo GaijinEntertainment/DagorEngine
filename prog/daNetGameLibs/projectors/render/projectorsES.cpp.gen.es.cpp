@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "projectorsES.cpp.inl"
 ECS_DEF_PULL_VAR(projectors);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc update_projectors_atmosphere_es_comps[] =
 {
@@ -74,7 +76,7 @@ static constexpr ecs::ComponentDesc init_manager_es_event_handler_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("projectors_manager"), ecs::ComponentTypeInfo<ProjectorsManager>()},
-  {ECS_HASH("projectors_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("projectors_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("projectors_manager__atmosphereMoveDir"), ecs::ComponentTypeInfo<Point3>()},
 //start of 3 ro components at [3]
   {ECS_HASH("projectors_manager__atmosphereDensity"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
@@ -86,7 +88,7 @@ static void init_manager_es_event_handler_all_events(const ecs::Event &__restric
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_manager_es_event_handler(evt
         , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_manager", ProjectorsManager)
-    , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_node", dafg::NodeHandle)
     , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_manager__atmosphereMoveDir", Point3)
     , ECS_RO_COMP_OR(init_manager_es_event_handler_comps, "projectors_manager__atmosphereDensity", float(1.0f))
     , ECS_RO_COMP_OR(init_manager_es_event_handler_comps, "projectors_manager__noiseScale", float(1.0f))

@@ -39,10 +39,17 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
   hlsl(code) {
     #include "pbr/pbr.hlsl"
     #include "clustered/punctualLights.hlsl"
+    #include "spot_light_shadow_flags.hlsli"
+    ##if (dynamic_lights_count != lights_off)
+      #define applyDynamicAoEffect(gbufferAO) ((gbufferAO)*dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y)
+    ##else
+      #define applyDynamicAoEffect(gbufferAO) (gbufferAO)
+    ##endif
     half3 get_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float3 view, float w, float2 screenpos, float NoV, float3 specularColor, float2 tc, half enviAO)
     {
       half3 result = 0;
       ##if (dynamic_lights_count != lights_off)
+        half dynamicAO = applyDynamicAoEffect(gbuffer.ao);
         #if DYNAMIC_LIGHTS_SPECULAR
         half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
         #else
@@ -51,9 +58,11 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
         //BRANCH
         //if (all( abs(lights_box_center_count.xyz-worldPos.xyz) < lights_box_extent))
         {
+          #if OMNI_CONTACT_SHADOWS || SPOT_CONTACT_SHADOWS
           float3 contactStartCameraToPoint = -w*view;
-          #if OMNI_CONTACT_SHADOWS && defined(shadow_frame)
           float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
+          #endif
+          #if OMNI_CONTACT_SHADOWS
           #define OMNI_CONTACT_SHADOWS_CALC \
             BRANCH\
             if (color_and_specular.w > 0 && max(omniLight.r, omniLight.g)/(max3(color_and_specular.r, color_and_specular.g, 1e-6))>0.001)\
@@ -109,8 +118,8 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               uint bitIndex = firstbitlow( mergedMask );
               mergedMask ^= ( 1U << bitIndex );
               uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
-              #if defined(CHECK_OMNI_LIGHT_MASK)
-              if ( !check_omni_light(omni_light_index, CHECK_OMNI_LIGHT_MASK))
+              #if defined(ENABLE_OMNI_LIGHT_MASK)
+              if ( !check_omni_light(omni_light_index, OMNI_LIGHT_MASK_GI)) // TODO: make mask a parameter
                 continue;
               #endif
               RenderOmniLight ol = omni_lights_cb[omni_light_index];
@@ -121,7 +130,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               #else
                 float4 shadowTcToAtlas = float4(0, 0, 0, 0);
               #endif
-              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
               OMNI_CONTACT_SHADOWS_CALC
 
@@ -139,8 +148,8 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               uint bitIndex = firstbitlow( mergedMask );
               mergedMask ^= ( 1U << bitIndex );
               uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
-              #if defined(CHECK_SPOT_LIGHT_MASK)
-              if ( !check_spot_light(spot_light_index, CHECK_SPOT_LIGHT_MASK))
+              #if defined(ENABLE_SPOT_LIGHT_MASK)
+              if ( !check_spot_light(spot_light_index, SPOT_LIGHT_MASK_GI)) // TODO: make mask a parameter
                 continue;
               #endif
 
@@ -148,8 +157,11 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               float4 lightPosRadius = sl.lightPosRadius;
               float4 lightColor = sl.lightColorAngleScale;
               float4 lightDirection = sl.lightDirectionAngleOffset;
-              float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
-              bool needsContactShadows = sl.texId_scale_shadow_contactshadow.w != 0;
+              float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+              float ao = dynamicAO;
+              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
+              uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
+              bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
 
               #define EXIT_STATEMENT continue
               #ifndef SPOT_SHADOWS
@@ -160,7 +172,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
             }
           }
           //dynamicLighting += ((clusterGrid[clusterIndex].counts>>8)&0xFF)/8.0;
-          half pointLightsFinalAO = (enviAO*point_lights_ao_effect.x + point_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
+          half pointLightsFinalAO = (enviAO*dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
           result += dynamicLighting*pointLightsFinalAO;
         }
       ##endif

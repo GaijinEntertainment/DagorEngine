@@ -6,7 +6,7 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
 #include <render/world/cameraParams.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 
 class DeepLearningSuperSampling : public AntiAliasing
 {
@@ -40,9 +40,11 @@ public:
   bool needDepthHistory() const override { return isFrameGenerationEnabled(); }
 
 private:
-  dabfg::NodeHandle applierNode;
-  dabfg::NodeHandle frameGenerationNode;
-  dabfg::NodeHandle lifetimeExtenderNode;
+  dafg::NodeHandle applierNode;
+  dafg::NodeHandle frameGenerationNode;
+  dafg::NodeHandle lifetimeExtenderNode;
+  dafg::NodeHandle rayReconstructionPrepareNode;
+  bool rrEnabled = false;
 };
 
 void dlss_render(Texture *in_color,
@@ -50,4 +52,5 @@ void dlss_render(Texture *in_color,
   Point2 jitter_offset,
   const AntiAliasing::OptionalInputParams &params,
   const CameraParams &camera,
-  const CameraParams &prev_camera);
+  const CameraParams &prev_camera,
+  uint32_t frame_id);

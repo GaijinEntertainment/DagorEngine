@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeMobileNodes.h"
 
 #include <drv/3d/dag_viewScissor.h>
@@ -26,9 +26,9 @@ extern ConVarT<bool, false> vrs_dof;
 SCOPE_VRS_MASK_VARS
 #undef VAR
 
-dabfg::NodeHandle mk_scope_prepass_forward_node()
+dafg::NodeHandle mk_scope_prepass_forward_node()
 {
-  return dabfg::register_node("scope_prepass_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_prepass_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().depthRw("depth_for_opaque");
 
@@ -46,9 +46,9 @@ dabfg::NodeHandle mk_scope_prepass_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_forward_node()
+dafg::NodeHandle mk_scope_forward_node()
 {
-  return dabfg::register_node("scope_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("scope_prepass_forward");
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().color({"target_for_opaque"}).depthRw("depth_for_opaque");
@@ -67,18 +67,18 @@ dabfg::NodeHandle mk_scope_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_lens_mask_forward_node()
+dafg::NodeHandle mk_scope_lens_mask_forward_node()
 {
-  return dabfg::register_node("scope_lens_mask_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_lens_mask_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     shaders::OverrideState overrideState;
     overrideState.set(shaders::OverrideState::Z_WRITE_DISABLE);
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame").enableOverride(overrideState);
     registry.requestRenderPass()
-      .color({registry.create("scope_lens_mask", dabfg::History::No)
+      .color({registry.create("scope_lens_mask", dafg::History::No)
                 .texture({TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})})
       .depthRoAndBindToShaderVars("depth_for_opaque", {"depth_gbuf"});
-    registry.create("scope_lens_sampler", dabfg::History::No).blob(d3d::request_sampler({}));
+    registry.create("scope_lens_sampler", dafg::History::No).blob(d3d::request_sampler({}));
 
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
     auto aimDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
@@ -95,28 +95,28 @@ dabfg::NodeHandle mk_scope_lens_mask_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_vrs_mask_forward_node()
+dafg::NodeHandle mk_scope_vrs_mask_forward_node()
 {
   if (!d3d::get_driver_desc().caps.hasVariableRateShadingTexture)
-    return dabfg::NodeHandle();
+    return dafg::NodeHandle();
 
-  return dabfg::register_node("scope_vrs_mask_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_vrs_mask_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("scope_lens_mask_forward");
     registry.orderMeBefore("scope_lens_hole_forward_node");
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    registry.readTexture("scope_lens_mask").atStage(dabfg::Stage::COMPUTE).bindToShaderVar("scope_lens_mask");
+    registry.readTexture("scope_lens_mask").atStage(dafg::Stage::COMPUTE).bindToShaderVar("scope_lens_mask");
     registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
 
     auto scopeVrsHndl =
-      registry.create("scope_vrs_mask_tex", dabfg::History::No)
+      registry.create("scope_vrs_mask_tex", dafg::History::No)
         .texture({TEXFMT_R8UI | TEXCF_VARIABLE_RATE | TEXCF_UNORDERED, registry.getResolution<2>("texel_per_vrs_tile")})
-        .atStage(dabfg::Stage::COMPUTE)
-        .useAs(dabfg::Usage::SHADER_RESOURCE)
+        .atStage(dafg::Stage::COMPUTE)
+        .useAs(dafg::Usage::SHADER_RESOURCE)
         .handle();
 
     auto depthHndl =
-      registry.readTexture("depth_for_opaque").atStage(dabfg::Stage::COMPUTE).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+      registry.readTexture("depth_for_opaque").atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
 
     auto aimDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
 
@@ -134,9 +134,9 @@ dabfg::NodeHandle mk_scope_vrs_mask_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_lens_hole_forward_node()
+dafg::NodeHandle mk_scope_lens_hole_forward_node()
 {
-  return dabfg::register_node("scope_lens_hole_forward_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_lens_hole_forward_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     shaders::OverrideState overrideState;
     overrideState.set(shaders::OverrideState::Z_FUNC);
     overrideState.zFunc = CMPF_ALWAYS;
@@ -148,7 +148,7 @@ dabfg::NodeHandle mk_scope_lens_hole_forward_node()
       // be treated as dynamic objects (as logically we have sky behind the lens after this pass).
       .color({registry.modifyTexture("material_gbuf_tex").optional()});
 
-    registry.readTexture("scope_lens_mask").atStage(dabfg::Stage::PS).bindToShaderVar("scope_lens_mask");
+    registry.readTexture("scope_lens_mask").atStage(dafg::Stage::PS).bindToShaderVar("scope_lens_mask");
     registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
 
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();

@@ -11,10 +11,10 @@
 #include <daECS/core/coreEvents.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_computeShaders.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/resourceSlot/registerAccess.h>
 #include <render/resourceSlot/ecs/nodeHandleWithSlotsAccess.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderSettings.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/renderEvent.h>
@@ -74,11 +74,11 @@ AdaptationManager::AdaptationManager()
   static constexpr int exposureNormalizationFlags = TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R32F;
   exposureNormalizationFactor = dag::create_tex(NULL, 1, 1, exposureNormalizationFlags, 1, "exposure_normalization_factor");
 
-  registerExposureNodeHandle = dabfg::register_node("register_adaptation_resources", DABFG_PP_NODE_SRC,
-    [normFactorView = ManagedTexView(exposureNormalizationFactor)](dabfg::Registry registry) {
-      registry.multiplex(dabfg::multiplexing::Mode::None);
-      registry.registerTexture2d("exposure_normalization_factor", [normFactorView](auto) -> ManagedTexView { return normFactorView; });
-      registry.executionHas(dabfg::SideEffects::External);
+  registerExposureNodeHandle = dafg::register_node("register_adaptation_resources", DAFG_PP_NODE_SRC,
+    [normFactorView = ManagedTexView(exposureNormalizationFactor)](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::None);
+      registry.registerTexture("exposure_normalization_factor", [normFactorView](auto) -> ManagedTexView { return normFactorView; });
+      registry.executionHas(dafg::SideEffects::External);
     });
 }
 
@@ -167,8 +167,10 @@ void AdaptationManager::setExposure(bool value)
 
 bool AdaptationManager::writeExposure(float exposure)
 {
-  alignas(16) ExposureBuffer initExposure = {exposure, 1.0f / exposure, 1, 0.0f, kInitialMinLog, kInitialMaxLog,
-    kInitialMaxLog - kInitialMinLog, 1.0f / (kInitialMaxLog - kInitialMinLog)};
+  // this is not correct, we can't know for sure that prev frame Exposure was same (i.e. initExposure[3] = 1./exposure is not correct)
+  // todo: correct way is continue call shader (different one, which will write buffer[3] = prevBuffer[1], and write everything else)
+  alignas(16) ExposureBuffer initExposure = {exposure, 1.0f / exposure, 1, 1.0f / exposure, kInitialMinLog, kInitialMaxLog,
+    kInitialMaxLog - kInitialMinLog, 1.0f / (kInitialMaxLog - kInitialMinLog), 1.f, 1.f};
 
   if (g_Exposure.getBuf()->updateData(0, data_size(initExposure), initExposure.data(), VBLOCK_WRITEONLY))
   {
@@ -241,13 +243,13 @@ void AdaptationManager::updateReadbackExposure()
   exposureReadback->startCPUCopy();
 }
 
-static dabfg::NodeHandle makeUpdateReadbackExposureNode(
+static dafg::NodeHandle makeUpdateReadbackExposureNode(
   AdaptationManager &adaptation__manager, bool adaptation, bool gpu_resident_adaptation, bool forward_rendering)
 {
-  return dabfg::register_node("update_readback_exposure", DABFG_PP_NODE_SRC,
-    [&adaptation__manager, adaptation, gpu_resident_adaptation, forward_rendering](dabfg::Registry registry) {
+  return dafg::register_node("update_readback_exposure", DAFG_PP_NODE_SRC,
+    [&adaptation__manager, adaptation, gpu_resident_adaptation, forward_rendering](dafg::Registry registry) {
       registry.orderMeAfter(forward_rendering ? "postfx_mobile" : "post_fx_node");
-      registry.executionHas(dabfg::SideEffects::External);
+      registry.executionHas(dafg::SideEffects::External);
 
       return [&adaptation__manager, adaptation, gpu_resident_adaptation]() {
         if (adaptation)
@@ -263,16 +265,16 @@ static dabfg::NodeHandle makeUpdateReadbackExposureNode(
     });
 }
 
-static dabfg::NodeHandle makeGenHistogramForwardNode(AdaptationManager &adaptation__manager, bool full_deferred)
+static dafg::NodeHandle makeGenHistogramForwardNode(AdaptationManager &adaptation__manager, bool full_deferred)
 {
-  return dabfg::register_node("gen_histogram", DABFG_PP_NODE_SRC, [&adaptation__manager, full_deferred](dabfg::Registry registry) {
+  return dafg::register_node("gen_histogram", DAFG_PP_NODE_SRC, [&adaptation__manager, full_deferred](dafg::Registry registry) {
     registry.orderMeBefore("postfx_mobile");
 
-    registry.readTexture("postfx_input").atStage(dabfg::Stage::CS).bindToShaderVar("frame_tex");
+    registry.readTexture("postfx_input").atStage(dafg::Stage::CS).bindToShaderVar("frame_tex");
 
-    registry.readTexture("prev_frame_tex").atStage(dabfg::Stage::COMPUTE).bindToShaderVar("no_effects_frame_tex").optional();
+    registry.readTexture("prev_frame_tex").atStage(dafg::Stage::COMPUTE).bindToShaderVar("no_effects_frame_tex").optional();
     registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("no_effects_frame_tex_samplerstate").optional();
-    registry.modify("raw_exposure_histogram").buffer().atStage(dabfg::Stage::CS).bindToShaderVar("RawHistogram");
+    registry.modify("raw_exposure_histogram").buffer().atStage(dafg::Stage::CS).bindToShaderVar("RawHistogram");
 
     return [&adaptation__manager, full_deferred]() {
       if (adaptation__manager.isFixedExposure())
@@ -287,28 +289,28 @@ static dabfg::NodeHandle makeGenHistogramForwardNode(AdaptationManager &adaptati
 
 static resource_slot::NodeHandleWithSlotsAccess makeGenHistogramNode(AdaptationManager &adaptation__manager, bool full_deferred)
 {
-  return resource_slot::register_access("gen_histogram", DABFG_PP_NODE_SRC, {resource_slot::Read{"postfx_input_slot"}},
-    [&adaptation__manager, full_deferred](resource_slot::State slotsState, dabfg::Registry registry) {
+  return resource_slot::register_access("gen_histogram", DAFG_PP_NODE_SRC, {resource_slot::Read{"postfx_input_slot"}},
+    [&adaptation__manager, full_deferred](resource_slot::State slotsState, dafg::Registry registry) {
       registry.orderMeAfter("prepare_post_fx_node");
 
-      read_gbuffer(registry, dabfg::Stage::PS, readgbuffer::ALBEDO);
+      read_gbuffer(registry, dafg::Stage::PS, readgbuffer::ALBEDO);
 
-      registry.readTexture("close_depth").atStage(dabfg::Stage::COMPUTE).bindToShaderVar("downsampled_close_depth_tex").optional();
+      registry.readTexture("close_depth").atStage(dafg::Stage::COMPUTE).bindToShaderVar("downsampled_close_depth_tex").optional();
       registry.read("close_depth_sampler")
         .blob<d3d::SamplerHandle>()
         .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
         .optional();
 
       registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot"))
-        .atStage(dabfg::Stage::COMPUTE)
+        .atStage(dafg::Stage::COMPUTE)
         .bindToShaderVar("frame_tex");
-      registry.create("histogram_frame_sampler", dabfg::History::No)
+      registry.create("histogram_frame_sampler", dafg::History::No)
         .blob(d3d::request_sampler({}))
         .bindToShaderVar("frame_tex_samplerstate");
 
-      registry.readTexture("prev_frame_tex").atStage(dabfg::Stage::COMPUTE).bindToShaderVar("no_effects_frame_tex").optional();
+      registry.readTexture("prev_frame_tex").atStage(dafg::Stage::COMPUTE).bindToShaderVar("no_effects_frame_tex").optional();
       registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("no_effects_frame_tex_samplerstate").optional();
-      registry.modify("raw_exposure_histogram").buffer().atStage(dabfg::Stage::CS).bindToShaderVar("RawHistogram");
+      registry.modify("raw_exposure_histogram").buffer().atStage(dafg::Stage::CS).bindToShaderVar("RawHistogram");
 
       return [&adaptation__manager, full_deferred]() {
         if (adaptation__manager.isFixedExposure())
@@ -340,23 +342,20 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
   bool render_settings__forwardRendering)
 {
   adaptation_node_init_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("adaptation_manager")),
-    [&](AdaptationManager &adaptation__manager, dabfg::NodeHandle &adaptation__update_readback_exposure_node,
-      dabfg::NodeHandle &adaptation__create_histogram_node, dabfg::NodeHandle &adaptation__gen_histogram_forward_node,
-      resource_slot::NodeHandleWithSlotsAccess &adaptation__gen_histogram_node, dabfg::NodeHandle &adaptation__accumulate_histogram,
-      dabfg::NodeHandle &adaptation__adapt_exposure_node, dabfg::NodeHandle &adaptation__set_exposure_node) {
+    [&](AdaptationManager &adaptation__manager, dafg::NodeHandle &adaptation__update_readback_exposure_node,
+      dafg::NodeHandle &adaptation__create_histogram_node, dafg::NodeHandle &adaptation__gen_histogram_forward_node,
+      resource_slot::NodeHandleWithSlotsAccess &adaptation__gen_histogram_node, dafg::NodeHandle &adaptation__accumulate_histogram,
+      dafg::NodeHandle &adaptation__adapt_exposure_node, dafg::NodeHandle &adaptation__set_exposure_node) {
       adaptation__update_readback_exposure_node = makeUpdateReadbackExposureNode(adaptation__manager, render_settings__adaptation,
         render_settings__gpuResidentAdaptation, render_settings__forwardRendering);
 
       adaptation__manager.sheduleClear();
 
       // Set exposure at beginnig of frame
-      adaptation__set_exposure_node = dabfg::register_node("set_exposure", DABFG_PP_NODE_SRC,
-        [&adaptation__manager, render_settings__gpuResidentAdaptation, render_settings__forwardRendering](dabfg::Registry registry) {
+      adaptation__set_exposure_node = dafg::register_node("set_exposure", DAFG_PP_NODE_SRC,
+        [&adaptation__manager, render_settings__gpuResidentAdaptation, render_settings__forwardRendering](dafg::Registry registry) {
           registry.orderMeBefore(render_settings__forwardRendering ? "frame_data_setup_mobile" : "setup_world_rendering_node");
-          registry.modify("exposure_normalization_factor")
-            .buffer()
-            .atStage(dabfg::Stage::PS_OR_CS)
-            .useAs(dabfg::Usage::SHADER_RESOURCE);
+          registry.modify("exposure_normalization_factor").buffer().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE);
 
           return [&adaptation__manager, render_settings__gpuResidentAdaptation]() {
             adaptation__manager.clearNormalizationFactor();
@@ -382,19 +381,18 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
         return;
 
       adaptation__create_histogram_node =
-        dabfg::register_node("clear_histogram", DABFG_PP_NODE_SRC, [&adaptation__manager](dabfg::Registry registry) {
-          const auto histogram_hndl = registry.create("raw_exposure_histogram", dabfg::History::No)
+        dafg::register_node("clear_histogram", DAFG_PP_NODE_SRC, [&adaptation__manager](dafg::Registry registry) {
+          const auto histogram_hndl = registry.create("raw_exposure_histogram", dafg::History::No)
                                         .structuredBufferUaSr<uint32_t>(256 * 32)
-                                        .atStage(dabfg::Stage::CS)
-                                        .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                        .atStage(dafg::Stage::CS)
+                                        .useAs(dafg::Usage::SHADER_RESOURCE)
                                         .handle();
 
           return [&adaptation__manager, histogram_hndl]() {
             if (adaptation__manager.isFixedExposure())
               return;
 
-            uint32_t v[4] = {0, 0, 0, 0};
-            d3d::clear_rwbufi(histogram_hndl.view().getBuf(), v);
+            d3d::zero_rwbufi(histogram_hndl.view().getBuf());
           };
         });
 
@@ -408,12 +406,12 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
       }
 
       adaptation__accumulate_histogram =
-        dabfg::register_node("accumulate_histogram", DABFG_PP_NODE_SRC, [&adaptation__manager](dabfg::Registry registry) {
-          registry.read("raw_exposure_histogram").buffer().atStage(dabfg::Stage::CS).bindToShaderVar("RawHistogram");
+        dafg::register_node("accumulate_histogram", DAFG_PP_NODE_SRC, [&adaptation__manager](dafg::Registry registry) {
+          registry.read("raw_exposure_histogram").buffer().atStage(dafg::Stage::CS).bindToShaderVar("RawHistogram");
 
-          registry.create("exposure_histogram", dabfg::History::No)
+          registry.create("exposure_histogram", dafg::History::No)
             .structuredBufferUaSr<uint32_t>(256)
-            .atStage(dabfg::Stage::CS)
+            .atStage(dafg::Stage::CS)
             .bindToShaderVar("Histogram");
 
           return [&adaptation__manager]() {
@@ -424,11 +422,11 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
           };
         });
 
-      adaptation__adapt_exposure_node = dabfg::register_node("adapt_exposure", DABFG_PP_NODE_SRC,
-        [&adaptation__manager, render_settings__forwardRendering](dabfg::Registry registry) {
+      adaptation__adapt_exposure_node = dafg::register_node("adapt_exposure", DAFG_PP_NODE_SRC,
+        [&adaptation__manager, render_settings__forwardRendering](dafg::Registry registry) {
           registry.orderMeBefore(render_settings__forwardRendering ? "postfx_mobile" : "post_fx_node");
 
-          registry.read("exposure_histogram").buffer().atStage(dabfg::Stage::CS).bindToShaderVar("Histogram");
+          registry.read("exposure_histogram").buffer().atStage(dafg::Stage::CS).bindToShaderVar("Histogram");
 
           return [&adaptation__manager]() {
             if (adaptation__manager.isFixedExposure())

@@ -8,6 +8,7 @@
 #include <assetsGui/av_favoritesTab.h>
 #include <assetsGui/av_recentlyUsedTab.h>
 #include <ioSys/dag_dataBlock.h>
+#include <propPanel/colors.h>
 
 MainAssetSelector::MainAllAssetsTab::MainAllAssetsTab(IAssetBaseViewClient &client,
   IAssetSelectorContextMenuHandler &asset_menu_handler) :
@@ -83,14 +84,18 @@ void MainAssetSelector::addAssetToRecentlyUsed(const DagorAsset &asset)
     return;
 
   if (activeTab == ActiveTab::RecentlyUsed)
-    recentlyUsedTab->fillTree();
+    recentlyUsedTab->fillTree(recentlyUsedTab->getSelectedAsset());
   else
     recentlyUsedFilledGenerationId = -1;
 }
 
 void MainAssetSelector::selectNextItemInActiveTree(bool forward) { mainAllAssetsTab.getTree().selectNextItem(forward); }
 
-void MainAssetSelector::onAssetRemoved() { mainAllAssetsTab.refillTree(); }
+void MainAssetSelector::onAssetRemoved()
+{
+  lastSelectedAsset = nullptr;
+  mainAllAssetsTab.refillTree();
+}
 
 void MainAssetSelector::setActiveTab(ActiveTab tab)
 {
@@ -110,6 +115,8 @@ void MainAssetSelector::setActiveTab(ActiveTab tab)
       favoritesTab->onAllowedTypesChanged(AssetSelectorCommon::getAllAssetTypeIndexes());
       favoritesFilledGenerationId = AssetSelectorGlobalState::getFavoritesGenerationId();
     }
+
+    favoritesTab->setSelectedAsset(lastSelectedAsset);
   }
   else if (activeTab == ActiveTab::RecentlyUsed)
   {
@@ -119,9 +126,14 @@ void MainAssetSelector::setActiveTab(ActiveTab tab)
       recentlyUsedTab->onAllowedTypesChanged(AssetSelectorCommon::getAllAssetTypeIndexes());
       recentlyUsedFilledGenerationId = AssetSelectorGlobalState::getRecentlyUsedGenerationId();
     }
-  }
 
-  onSelectionChanged(getSelectedAsset());
+    recentlyUsedTab->setSelectedAsset(lastSelectedAsset);
+  }
+  else if (activeTab == ActiveTab::All)
+  {
+    if (lastSelectedAsset)
+      mainAllAssetsTab.selectAsset(*lastSelectedAsset);
+  }
 
   G_ASSERT(!allowChangingRecentlyUsedList);
   allowChangingRecentlyUsedList = true;
@@ -142,13 +154,26 @@ DagorAsset *MainAssetSelector::getSelectedAsset() const
 
 void MainAssetSelector::onAvClose() { client.onAvClose(); }
 
-void MainAssetSelector::onAvAssetDblClick(DagorAsset *asset, const char *asset_name) { client.onAvAssetDblClick(asset, asset_name); }
+void MainAssetSelector::onAvAssetDblClick(DagorAsset *asset, const char *asset_name)
+{
+  if (!asset)
+    return;
+
+  lastSelectedAsset = asset;
+
+  client.onAvAssetDblClick(asset, asset_name);
+}
 
 void MainAssetSelector::onAvSelectAsset(DagorAsset *asset, const char *asset_name)
 {
+  if (!asset)
+    return;
+
+  lastSelectedAsset = asset;
+
   client.onAvSelectAsset(asset, asset_name);
 
-  if (allowChangingRecentlyUsedList && asset)
+  if (allowChangingRecentlyUsedList)
     addAssetToRecentlyUsed(*asset);
 }
 
@@ -165,13 +190,10 @@ void MainAssetSelector::onSelectionChanged(const DagorAsset *asset)
   if (asset)
     name = asset->getNameTypified();
 
-  client.onAvSelectAsset(const_cast<DagorAsset *>(asset), name);
-
-  if (allowChangingRecentlyUsedList && asset)
-    addAssetToRecentlyUsed(*asset);
+  onAvSelectAsset(const_cast<DagorAsset *>(asset), name);
 }
 
-void MainAssetSelector::onSelectionDoubleClicked(const DagorAsset *asset) {}
+void MainAssetSelector::onSelectionDoubleClicked(const DagorAsset *) {}
 
 bool MainAssetSelector::tabPage(const char *title, bool selected)
 {
@@ -179,7 +201,9 @@ bool MainAssetSelector::tabPage(const char *title, bool selected)
   if (selected)
     ImGui::PushStyleColor(ImGuiCol_Tab, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
 
+  ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::getOverriddenColor(PropPanel::ColorOverride::TAB_BAR_TITLE));
   const bool pressed = ImGui::TabItemButton(title);
+  ImGui::PopStyleColor();
 
   if (selected)
     ImGui::PopStyleColor();
@@ -212,7 +236,7 @@ void MainAssetSelector::updateImgui()
       G_ASSERT(allowChangingRecentlyUsedList);
       allowChangingRecentlyUsedList = false;
 
-      favoritesTab->fillTree();
+      favoritesTab->fillTree(lastSelectedAsset);
 
       G_ASSERT(!allowChangingRecentlyUsedList); //-V547 Ignore expression is always true.
       allowChangingRecentlyUsedList = true;
@@ -229,7 +253,7 @@ void MainAssetSelector::updateImgui()
       G_ASSERT(allowChangingRecentlyUsedList);
       allowChangingRecentlyUsedList = false;
 
-      recentlyUsedTab->fillTree();
+      recentlyUsedTab->fillTree(lastSelectedAsset);
 
       G_ASSERT(!allowChangingRecentlyUsedList); //-V547 Ignore expression is always true.
       allowChangingRecentlyUsedList = true;

@@ -92,7 +92,7 @@ public:
   {
     for (auto &cb : storage)
       if (cb)
-        cb(std::forward<Args>(args)...);
+        cb(eastl::forward<Args>(args)...);
   }
 
 private:

@@ -6,6 +6,7 @@
 #include "render/drawOrder.h"
 #include "riGen/riGenExtra.h"
 
+#include <EASTL/unique_ptr.h>
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_multidrawContext.h>
@@ -20,11 +21,11 @@ inline constexpr uint32_t ADDITIONAL_DATA_IDX = rendinst::RIEXTRA_VECS_COUNT - 1
 
 struct VbExtraCtx
 {
-  RingDynamicSB *vb = nullptr;
+  eastl::unique_ptr<RingDynamicSB> vb;
   uint32_t gen = 0;
   int lastSwitchFrameNo = 0;
 };
-extern VbExtraCtx vbExtraCtx[rendinst::RIEX_RENDERING_CONTEXTS];
+extern carray<rendinst::render::VbExtraCtx, RI_EXTRA_VB_CTX_CNT> vbExtraCtx;
 extern UniqueBuf riExtraPerDrawData;
 
 extern float riExtraLodDistSqMul;
@@ -60,7 +61,7 @@ void allocateRIGenExtra(rendinst::render::VbExtraCtx &vbctx);
 
 extern CallbackToken meshRElemsUpdatedCbToken;
 
-void on_ri_mesh_relems_updated(const RenderableInstanceLodsResource *r, bool);
+void on_ri_mesh_relems_updated(const RenderableInstanceLodsResource *r, bool, int);
 void on_ri_mesh_relems_updated_pool(uint32_t poolId);
 void updateShaderElems(uint32_t poolI);
 
@@ -79,6 +80,7 @@ void renderRIGenExtraSortedTransparentInstanceElems(const RiGenVisibility &v, co
 void write_ri_extra_per_instance_data(vec4f *dest_buffer, const RendinstTiledScene &tiled_scene, scene::pool_index pool_id,
   scene::node_index ni, mat44f_cref m, bool is_dynamic);
 
+uint32_t get_per_draw_offset(scene::pool_index pool_id);
 } // namespace rendinst::render
 
 template <int N>
@@ -98,6 +100,26 @@ inline int find_lod<4>(const float *__restrict lod_dists, float dist)
   if (dist < lod_dists[1])
     return (dist < lod_dists[0] ? 0 : 1);
   return (dist < lod_dists[2] ? 2 : 3);
+}
+
+template <>
+inline int find_lod<8>(const float *__restrict lod_dists, float dist)
+{
+  dist *= rendinst::render::riExtraLodsShiftDistMul;
+  if (dist < lod_dists[3])
+  {
+    if (dist < lod_dists[1])
+      return (dist < lod_dists[0] ? 0 : 1);
+    else
+      return (dist < lod_dists[2] ? 2 : 3);
+  }
+  else
+  {
+    if (dist < lod_dists[5])
+      return (dist < lod_dists[4] ? 4 : 5);
+    else
+      return (dist < lod_dists[6] ? 6 : 7);
+  }
 }
 
 __forceinline vec4f make_pos_and_rad(mat44f_cref tm, vec4f center_and_rad)

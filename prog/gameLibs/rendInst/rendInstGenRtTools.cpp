@@ -19,7 +19,7 @@
 static constexpr const unsigned riPoolBits = 16u;
 static constexpr const unsigned riPoolBitsMask = (1u << riPoolBits) - 1u;
 static bool rigenNeedSyncPrepare = true, pendingReinit = false;
-static int ri_inited_pregen_cnt[16] = {0};
+static unsigned ri_future_pregen_cnt[16] = {0};
 static struct RiGenLastSetSweepMask
 {
   rendinst::gen::EditableHugeBitmask *bm;
@@ -29,6 +29,15 @@ static Point3 curSunDir(0, -1, 0);
 static bool globalShadowsNeeded = false;
 
 static rendinst::rigen_prepare_pools_t riGenPreparePools = nullptr;
+
+inline void assign_res(PatchablePtr<RenderableInstanceLodsResource> &dest, RenderableInstanceLodsResource *res)
+{
+  if (res)
+    res->addRef();
+  if (dest)
+    dest->delRef();
+  dest = res;
+}
 
 static void updateGlobalShadows()
 {
@@ -159,19 +168,39 @@ static RendInstGenData *alloc_rigen_data(float ofs_x, float ofs_z, float grid2wo
   }
   return ri;
 }
-static void clearRigenRtdata(RendInstGenData *rgl)
+static void clearRigenRtdataAndReinitPregenEnt(RendInstGenData *rgl, unsigned new_pregen_ent_size)
 {
   if (!rgl->rtData)
     return;
 
   {
     ScopedLockWrite lock(rgl->rtData->riRwCs);
+    // addref riRes in future pregenEnt
+    for (auto *p = rgl->pregenEnt.data(), *pe = p + new_pregen_ent_size; p < pe; p++)
+      if (p->riRes)
+        p->riRes->addRef();
+
     for (int i = 0; i < rgl->cells.size(); i++)
       del_it(rgl->cells[i].rtData);
+    if (rendinst::unregCollCb)
+      for (RendInstGenData::CollisionResData &collResData : rgl->rtData->riCollRes)
+        rendinst::unregCollCb(collResData.handle);
+    G_ASSERTF(rgl->pregenEnt.size() <= rgl->rtData->riCollRes.size(), "rtData=%p rgl->pregenEnt.size()=%d rtData->riCollRes.size()=%d",
+      rgl->rtData, rgl->pregenEnt.size(), rgl->rtData->riCollRes.size());
+    for (int i = 0; i < rgl->pregenEnt.size(); i++) // we release only collres acquired by pregenEnt (not ones from land classes!)
+    {
+      // release riRes in currently inited pregenEnt
+      if (rgl->pregenEnt[i].riRes)
+        rgl->pregenEnt[i].riRes->delRef();
+      release_game_resource((GameResource *)rgl->rtData->riCollRes[i].collRes);
+    }
+    rgl->rtData->riCollRes.clear();
     rgl->rtData->clear();
     rgl->beforeReleaseRtData();
   }
   del_it(rgl->rtData);
+  // update pregenEnt size
+  rgl->pregenEnt.init(rgl->pregenEnt.data(), new_pregen_ent_size);
 }
 int rendinst::register_rt_pregen_ri(RenderableInstanceLodsResource *ri_res, int layer_idx, E3DCOLOR cf, E3DCOLOR ct,
   const char *res_nm)
@@ -180,31 +209,37 @@ int rendinst::register_rt_pregen_ri(RenderableInstanceLodsResource *ri_res, int 
   if (!rgl || !ri_res)
     return -1;
 
-  for (int i = 0; i < rgl->pregenEnt.size(); i++)
-    if (rgl->pregenEnt[i].riRes == ri_res)
+  if (ri_future_pregen_cnt[layer_idx] < rgl->pregenEnt.size())
+    ri_future_pregen_cnt[layer_idx] = rgl->pregenEnt.size();
+  auto pregenEnt = make_span(rgl->pregenEnt.data(), ri_future_pregen_cnt[layer_idx]);
+  for (int i = 0; i < pregenEnt.size(); i++)
+    if (pregenEnt[i].riRes == ri_res)
     {
-      rgl->pregenEnt[i].colPair[0] = cf;
-      rgl->pregenEnt[i].colPair[1] = ct;
+      pregenEnt[i].colPair[0] = cf;
+      pregenEnt[i].colPair[1] = ct;
       return i | (layer_idx << riPoolBits);
     }
 
-  if (rgl->pregenEnt.size() < MAX_PREGEN_RI)
+  if (pregenEnt.size() < MAX_PREGEN_RI)
   {
     while (!rendinst::isRIGenPrepareFinished())
       sleep_msec(10);
 
-    int idx = rgl->pregenEnt.size();
-    rgl->pregenEnt[idx].riRes = ri_res;
-    rgl->pregenEnt[idx].riName = res_nm;
-    rgl->pregenEnt[idx].colPair[0] = cf;
-    rgl->pregenEnt[idx].colPair[1] = ct;
-    rgl->pregenEnt[idx].posInst = ri_res->hasImpostor();
-    rgl->pregenEnt[idx].paletteRotation = ri_res->isBakedImpostor() ? 1 : 0;
-    rgl->pregenEnt[idx].zeroInstSeeds = 0;
-    rgl->pregenEnt[idx]._resv29 = 0;
-    rgl->pregenEnt[idx].paletteRotationCount = ri_res->getRotationPaletteSize();
+    int idx = pregenEnt.size();
+    pregenEnt = make_span(pregenEnt.data(), idx + 1);
 
-    rgl->pregenEnt.init(rgl->pregenEnt.data(), idx + 1);
+    auto &new_ent = pregenEnt[idx];
+    new_ent.riRes = ri_res;
+    new_ent.riName = res_nm;
+    new_ent.colPair[0] = cf;
+    new_ent.colPair[1] = ct;
+    new_ent.posInst = ri_res->hasImpostor();
+    new_ent.paletteRotation = ri_res->isBakedImpostor() ? 1 : 0;
+    new_ent.zeroInstSeeds = 0;
+    new_ent._resv29 = 0;
+    new_ent.paletteRotationCount = ri_res->getRotationPaletteSize();
+
+    ri_future_pregen_cnt[layer_idx] = pregenEnt.size();
     pendingReinit = true;
     return idx | (layer_idx << riPoolBits);
   }
@@ -221,11 +256,22 @@ void rendinst::update_rt_pregen_ri(int pregen_id, RenderableInstanceLodsResource
   int layerIdx = pregen_id >> riPoolBits;
   int idx = pregen_id & riPoolBitsMask;
 
+  G_ASSERTF(layerIdx < rendinst::rgLayer.size(), "pregen_id=0x%x layerIdx=%d rendinst::rgLayer.size()=%d", pregen_id, layerIdx,
+    rendinst::rgLayer.size());
   RendInstGenData *rgl = rendinst::rgLayer[layerIdx];
   if (!rgl)
     return;
 
-  rgl->pregenEnt[idx].riRes = &ri_res;
+  if (ri_future_pregen_cnt[layerIdx] < rgl->pregenEnt.size())
+    ri_future_pregen_cnt[layerIdx] = rgl->pregenEnt.size();
+  auto pregenEnt = make_span(rgl->pregenEnt.data(), ri_future_pregen_cnt[layerIdx]);
+  G_ASSERTF(idx < pregenEnt.size(), "pregen_id=0x%x idx=%d pregenEnt.size()=%d rgl->pregenEnt.size()=%d", pregen_id, idx,
+    pregenEnt.size(), rgl->pregenEnt.size());
+
+  if (idx < rgl->pregenEnt.size())
+    assign_res(pregenEnt[idx].riRes, &ri_res);
+  else
+    pregenEnt[idx].riRes = &ri_res; // it is not inited yet so we replace it without delref/addref
   pendingReinit = true;
 }
 
@@ -263,6 +309,7 @@ bool rendinst::create_rt_rigen_data(float ofs_x, float ofs_z, float grid2world, 
     }
     rendinst::rgLayer[layer] = alloc_rigen_data(ofs_x, ofs_z, grid2world, l_cell_sz, l_cell_num_x, l_cell_num_z, land_cls, layer,
       per_inst_data_dwords, dens_map_px, dens_map_pz);
+    ri_future_pregen_cnt[layer] = rendinst::rgLayer[layer]->pregenEnt.size();
   }
 
   rendinst::rebuildRgRenderMasks();
@@ -270,14 +317,6 @@ bool rendinst::create_rt_rigen_data(float ofs_x, float ofs_z, float grid2world, 
 
   rendinst::set_rigen_sweep_mask(lastSweep.bm, lastSweep.ox, lastSweep.oz, lastSweep.scale);
   rendinst::prepareRIGen(true);
-  memset(ri_inited_pregen_cnt, 0, sizeof(ri_inited_pregen_cnt));
-  debug_("create: pregenEnt-per-layer:");
-  FOR_EACH_RG_LAYER_DO (rgl)
-  {
-    ri_inited_pregen_cnt[_layer] = rgl->pregenEnt.size();
-    debug_("  %d", rgl->pregenEnt.size());
-  }
-  debug("");
   rendinst_alloc_coll_props(0);
   updateGlobalShadows();
   rigenNeedSyncPrepare = true;
@@ -285,24 +324,13 @@ bool rendinst::create_rt_rigen_data(float ofs_x, float ofs_z, float grid2world, 
 }
 void rendinst::release_rt_rigen_data()
 {
-  Tab<RendInstGenData::PregenEntPoolDesc> pregenEntCopy[16];
   FOR_EACH_RG_LAYER_DO (rgl)
   {
-    pregenEntCopy[_layer] = rgl->pregenEnt;
-    rgl->pregenEnt.init(rgl->pregenEnt.data(), ri_inited_pregen_cnt[_layer]);
-    for (int i = 0; i < rgl->pregenEnt.size(); i++)
-      rgl->pregenEnt[i].riRes = nullptr;
     for (int i = 0; i < rgl->landCls.size(); i++)
       rgl->landCls[i].asset = nullptr;
   }
-
   rendinst::clearRIGen();
-  memset(ri_inited_pregen_cnt, 0, sizeof(ri_inited_pregen_cnt));
-  FOR_EACH_RG_LAYER_DO (rgl)
-  {
-    rgl->pregenEnt.init(rgl->pregenEnt.data(), pregenEntCopy[_layer].size());
-    mem_copy_from(rgl->pregenEnt, pregenEntCopy[_layer].data());
-  }
+  memset(ri_future_pregen_cnt, 0, sizeof(ri_future_pregen_cnt));
   RendInstGenData::riGenValidateGeneratedCell = nullptr;
 }
 
@@ -389,23 +417,10 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
   {
     rigenNeedSyncPrepare = true;
     FOR_EACH_RG_LAYER_DO (rgl)
-    {
-      int ri_new_pregen_cnt = rgl->pregenEnt.size();
-      rgl->pregenEnt.init(rgl->pregenEnt.data(), ri_inited_pregen_cnt[_layer]);
-      clearRigenRtdata(rgl);
-      rgl->pregenEnt.init(rgl->pregenEnt.data(), ri_new_pregen_cnt);
-    }
+      clearRigenRtdataAndReinitPregenEnt(rgl, ri_future_pregen_cnt[_layer]);
 
     rendinst::set_rigen_sweep_mask(lastSweep.bm, lastSweep.ox, lastSweep.oz, lastSweep.scale);
     rendinst::prepareRIGen();
-    memset(ri_inited_pregen_cnt, 0, sizeof(ri_inited_pregen_cnt));
-    debug_("prepare: pregenEnt-per-layer:");
-    FOR_EACH_RG_LAYER_DO (rgl)
-    {
-      ri_inited_pregen_cnt[_layer] = rgl->pregenEnt.size();
-      debug_("  %d", rgl->pregenEnt.size());
-    }
-    debug("");
     updateGlobalShadows();
     rendinst_alloc_coll_props(0);
     pendingReinit = false;
@@ -441,6 +456,7 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
       riGenPreparePools(false);
   }
   rigenNeedSyncPrepare = false;
+  rendinst::updateHeapVb();
 }
 bool rendinst::compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, float &out_hmin, float &out_hdelta)
 {
@@ -993,4 +1009,37 @@ rendinst::QuantizeRendInstMatrixResult rendinst::quantize_rendinst_matrix(int la
 
   v_mat_43cu_from_mat44(out_tm.array, unpackedTm44);
   return rendinst::QuantizeRendInstMatrixResult::Success;
+}
+
+unsigned rendinst::precompute_ri_cells_for_stats(DataBlock &out_stats)
+{
+  debug("%s started...", __FUNCTION__);
+  int total_ri_count = 0;
+  FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
+  {
+    DataBlock &blk = *out_stats.addNewBlock("rgl");
+    int layer_ri_count = 0;
+    blk.setIPoint2("cells", IPoint2(rgl->cellNumW, rgl->cellNumH));
+    blk.setPoint2("world0", Point2(rgl->world0x(), rgl->world0z()));
+    blk.setInt("cellSz", rgl->cellSz);
+    blk.setReal("grid2world", rgl->grid2world);
+    for (int z = 0; z < rgl->cellNumH; z++)
+    {
+      DataBlock &r_blk = *blk.addNewBlock("cellsRow");
+      for (int x = 0; x < rgl->cellNumW; x++)
+      {
+        RendInstGenData::CellRtData *crt = new RendInstGenData::CellRtData(rgl->rtData->riRes.size(), rgl->rtData);
+        int ri_count = rgl->precomputeCell(*crt, x, z);
+        float x0 = x * rgl->grid2world * rgl->cellSz + rgl->world0x();
+        float z0 = z * rgl->grid2world * rgl->cellSz + rgl->world0z();
+        r_blk.addPoint4("riCntInCell", Point4(ri_count, crt->vbSize, x0, z0));
+        total_ri_count += ri_count;
+        layer_ri_count += ri_count;
+        delete crt;
+      }
+    }
+    blk.setInt("totalRI", layer_ri_count);
+  }
+  debug("%s done, ri_count=%d", __FUNCTION__, total_ri_count);
+  return total_ri_count;
 }

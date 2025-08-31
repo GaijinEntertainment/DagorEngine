@@ -7,6 +7,7 @@
 #include "physical_device_set.h"
 #include "device_memory.h"
 #include "buffer_resource.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -32,11 +33,12 @@ VkDeviceSize BufferAlignment::calculateForUsageAndFlags(VkBufferCreateFlags flag
   bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   bci.queueFamilyIndexCount = 0;
   bci.pQueueFamilyIndices = NULL;
-  const VkResult resCode = VULKAN_CHECK_RESULT(Globals::VK::dev.vkCreateBuffer(Globals::VK::dev.get(), &bci, NULL, ptr(tmpBuf)));
+  const VkResult resCode =
+    VULKAN_CHECK_RESULT(Globals::VK::dev.vkCreateBuffer(Globals::VK::dev.get(), &bci, VKALLOC(buffer), ptr(tmpBuf)));
   if (resCode == VK_SUCCESS)
   {
-    MemoryRequirementInfo ret = get_memory_requirements(Globals::VK::dev, tmpBuf);
-    Globals::VK::dev.vkDestroyBuffer(Globals::VK::dev.get(), tmpBuf, nullptr);
+    MemoryRequirementInfo ret = get_memory_requirements(tmpBuf);
+    Globals::VK::dev.vkDestroyBuffer(Globals::VK::dev.get(), tmpBuf, VKALLOC(buffer));
     return ret.requirements.alignment;
   }
   return 0;
@@ -50,10 +52,10 @@ void BufferAlignment::init()
                                        Globals::VK::phy.properties.limits.minUniformBufferOffsetAlignment),
                                    Globals::VK::phy.properties.limits.nonCoherentAtomSize));
 
-#define ALIGMENT_CALC(x)                                                \
-  {                                                                     \
-    VkBufferUsageFlags buflags = Buffer::getUsage(Globals::VK::dev, x); \
-    perUsageFlags[buflags] = calculateForUsageAndFlags(0, buflags);     \
+#define ALIGMENT_CALC(x)                                            \
+  {                                                                 \
+    VkBufferUsageFlags buflags = Buffer::getUsage(x);               \
+    perUsageFlags[buflags] = calculateForUsageAndFlags(0, buflags); \
   }
 
   ALIGMENT_CALC(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER);

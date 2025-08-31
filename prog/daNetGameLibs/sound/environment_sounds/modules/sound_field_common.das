@@ -6,6 +6,70 @@ require DagorMath
 require Dacoll
 
 
+def get(x, y : int; field : array<float>; num_cells : int2)
+  return field[x + y * num_cells.x]
+
+
+def set(f : float; x, y : int; var field : array<float>&; num_cells : int2)
+  field[x + y * num_cells.x] = f
+
+
+def replace(f : float; x, y : int; var field : array<float>&; num_cells : int2)
+  let idx = x + y * num_cells.x
+  field[idx] = max(f, field[idx])
+
+
+def append(f : float; x, y : int; var field : array<float>&; num_cells : int2)
+  field[x + y * num_cells.x] += f
+
+
+def neighbor_blend(num_cells : int2;
+                   var field : array<float>&)
+
+  for z in range(0, num_cells.y - 1)
+    for x in range(0, num_cells.x - 1)
+      let c = get(x, z, field, num_cells)
+      let cx = (get(x + 1, z, field, num_cells) + c) * 0.5
+      let cz = (get(x, z + 1, field, num_cells) + c) * 0.5
+      let cxz = (get(x + 1, z + 1, field, num_cells) + c) * 0.5
+      set(max(max(max(c, cx), cz), cxz), x, z, field, num_cells)
+
+  var z = num_cells.y
+  while --z > 0
+    var x = num_cells.x
+    while --x > 0
+      let c = get(x, z, field, num_cells)
+      let cx = (get(x - 1, z, field, num_cells) + c) * 0.5
+      let cz = (get(x, z - 1, field, num_cells) + c) * 0.5
+      let cxz = (get(x - 1, z - 1, field, num_cells) + c) * 0.5
+      set(max(max(max(c, cx), cz), cxz), x, z, field, num_cells)
+
+
+/*
+def distance_field(num_cells : int2
+                   var field : array<float>&)
+
+  let d2 = sqrt(2.)
+  for z in range(1, num_cells.y)
+    for x in range(1, num_cells.x)
+      let c = get(x, z, field, num_cells)
+      let cx = get(x - 1, z, field, num_cells)
+      let cz = get(x, z - 1, field, num_cells)
+      let cxz = get(x - 1, z - 1, field, num_cells)
+      set(min(min(min(c, cx + 1.), cz + 1.), cxz + d2), x, z, field, num_cells)
+
+  var z = num_cells.y - 1
+  while --z >= 0
+    var x = num_cells.x - 1
+    while --x >= 0
+      let c = get(x, z, field, num_cells)
+      let cx = get(x + 1, z, field, num_cells)
+      let cz = get(x, z + 1, field, num_cells)
+      let cxz = get(x + 1, z + 1, field, num_cells)
+      set(min(min(min(c, cx + 1.), cz + 1.), cxz + d2), x, z, field, num_cells)
+*/
+
+
 def pack(idx0, idx1, val0, val1 : uint) : uint
   return val1 << 24u | val0 << 16u | idx1 << 8u | idx0
 

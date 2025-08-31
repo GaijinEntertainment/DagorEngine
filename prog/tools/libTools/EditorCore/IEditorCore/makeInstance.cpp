@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "implementIEditorCore.h"
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 static EditorCoreImpl editorCoreImpl;
 IEditorCore &IEditorCore::make_instance() { return editorCoreImpl; }

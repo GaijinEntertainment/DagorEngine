@@ -23,6 +23,7 @@ int dagdp_volume__viewport_index;
 
 int dagdp_volume__prng_seed_placeable;
 int dagdp_volume__prng_seed_slope;
+int dagdp_volume__prng_seed_occlusion;
 int dagdp_volume__prng_seed_scale;
 int dagdp_volume__prng_seed_yaw;
 int dagdp_volume__prng_seed_pitch;
@@ -35,6 +36,7 @@ buffer dagdp_volume__placeables;
 buffer dagdp_volume__placeable_weights;
 buffer dagdp_volume__renderable_indices;
 buffer dagdp_volume__variants;
+buffer dagdp_volume__volume_variants;
 
 shader dagdp_volume_terrain_set_args
 {
@@ -130,6 +132,11 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
       StructuredBuffer<VariantGpuData> variants@buf;
     }
 
+    volume_variants@buf = dagdp_volume__volume_variants hlsl {
+      #include "dagdp_volume.hlsli"
+      StructuredBuffer<VolumeVariantGpuData> volume_variants@buf;
+    }
+
     num_renderables@i1 = dagdp_volume__num_renderables;
     num_placeables@i1 = dagdp_volume__num_placeables;
     tile_start_index@i1 = dagdp_volume__tile_start_index;
@@ -144,6 +151,7 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
     prng_seed_jitter_z@i1 = dagdp_volume__prng_seed_jitter_z;
     prng_seed_placeable@i1 = dagdp_volume__prng_seed_placeable;
     prng_seed_slope@i1 = dagdp_volume__prng_seed_slope;
+    prng_seed_occlusion@i1 = dagdp_volume__prng_seed_occlusion;
     prng_seed_scale@i1 = dagdp_volume__prng_seed_scale;
     prng_seed_yaw@i1 = dagdp_volume__prng_seed_yaw;
     prng_seed_pitch@i1 = dagdp_volume__prng_seed_pitch;
@@ -154,7 +162,7 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
     #define lower_level 0
   }
 
-  USE_DAGDP_COMMON_HEIGHTMAP(true, shader == dagdp_volume_terrain_place_stage1)
+  USE_DAGDP_COMMON_HEIGHTMAP(shader == dagdp_volume_terrain_place_stage1)
   USE_DAGDP_VOLUME_UTILS()
 
   hlsl(cs) {
@@ -181,13 +189,14 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
       const VolumeTerrainTile tile = structuredBufferAt(tiles, tile_start_index + dtId.x);
       const VolumeGpuData volume = structuredBufferAt(volumes, tile.volumeIndex);
       const VariantGpuData variant = structuredBufferAt(variants, volume.variantIndex);
+      const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
 
       const int2 stablePos = tile.intPosXZ * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
       const float2 randPosJitter = float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z));
       float2 instancePosXZ = tile.instancePosDelta * (stablePos + randPosJitter);
 
       PlacementDetails pd;
-      initPlacementDetails(instancePosXZ, pd);
+      initPlacementDetails(instancePosXZ, pd, volumeVariant.sampleRange);
 
       uint placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
 
@@ -196,17 +205,20 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
       if (placeableIndex != ~0u)
         placeable = structuredBufferAt(placeables, placeableIndex);
 
-      adjustPlacement(placeableIndex, placeable, stablePos, pd);
+      adjustPlacement(placeableIndex, placeable, stablePos, pd, volume.axis, volumeVariant.flags);
 
+      float3 localPos = localVolumePos(pd.position, volume);
       FLATTEN
-      if (!isInsideVolume(volume.volumeType, pd.position, volume))
+      if (!isInsideVolumeLocal(localPos, volume.volumeType))
         placeableIndex = ~0u;
 
       BRANCH
       if (!threadGroupAnyTrue(placeableIndex != ~0u, tId.y)) // Whole tile is culled, can safely exit.
         return;
 
-      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant);
+      float dist = localVolumeDistance(localPos - volumeVariant.distBasedCenter, volume.volumeType);
+      float scaleFactor = lerp(volumeVariant.distBasedScale.x, volumeVariant.distBasedScale.y, dist * volumeVariant.distBasedInvRange);
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant, scaleFactor);
     }
   }
   compile("target_cs", "main");

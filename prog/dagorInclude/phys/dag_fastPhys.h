@@ -42,6 +42,8 @@ enum
   AID_SET_BONE_LENGTH_WITH_CONE,
 
   AID_LOOK_AT_BONE_CTRL,
+
+  AID_HINGE_CONSTRAINT,
 };
 
 
@@ -79,7 +81,7 @@ public:
   virtual void perform(FastPhysSystem &system) = 0;
 
   virtual void reset(FastPhysSystem &system) = 0;
-  virtual void debugRender(){};
+  virtual void debugRender() {}
 };
 
 

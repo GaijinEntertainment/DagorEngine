@@ -4,8 +4,19 @@
 //
 #pragma once
 
-#include <stddef.h>
 #include <util/dag_preprocessor.h>
+#if defined(_TARGET_C2)
+
+
+
+#elif !defined(__cplusplus)
+#include <stddef.h>
+#else
+using size_t = decltype(sizeof(int));
+#ifndef NULL
+#define NULL 0
+#endif
+#endif
 
 #ifdef DAGOR_PREFER_HEAP_ALLOCATION
 #elif defined(__clang__) && defined(__has_feature)
@@ -144,12 +155,9 @@ public:
 //
 /// Global allocators
 //
-#define DECL_MEM(name)            \
-  extern KRNLIMP IMemAlloc *name; \
-  inline IMemAlloc *name##_ptr()  \
-  {                               \
-    return name;                  \
-  }                               \
+#define DECL_MEM(name)                            \
+  extern KRNLIMP IMemAlloc *name;                 \
+  inline IMemAlloc *name##_ptr() { return name; } \
   DECLARE_DELETER(name)
 
 DECL_MEM(stdmem);    //< standard c/c++ memory allocator

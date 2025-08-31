@@ -10,6 +10,8 @@ interval fx_debug_editor_mode:base<1, hdr_emission;
 
 shader debug_fx_final_render
 {
+  ENABLE_ASSERT(ps)
+
   z_test = false;
   z_write = false;
   supports none;

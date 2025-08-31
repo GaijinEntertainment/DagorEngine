@@ -39,7 +39,7 @@ function mkImage(func) {
   let pic = mkBitmapPicture(80, 80, func)
   return {
     rendObj = ROBJ_IMAGE
-    size = [sh(20), sh(20)]
+    size = sh(20)
     image = pic
   }
 }

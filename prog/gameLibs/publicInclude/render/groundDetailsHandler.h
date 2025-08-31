@@ -8,7 +8,7 @@
 #include <3d/dag_ringCPUTextureLock.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <generic/dag_smallTab.h>
+#include <generic/dag_tab.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_Point4.h>
 #include <math/dag_Point3.h>

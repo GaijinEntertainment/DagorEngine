@@ -17,10 +17,10 @@ public:
 public:
   FpdInitPointAction(FpdPoint *o) : pointObj(o) { actionName = "initPt"; }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree) {}
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader) { return true; }
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override {}
+  bool load(const DataBlock &blk, IFpdLoad &loader) override { return true; }
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -32,10 +32,10 @@ public:
 public:
   FpdLinkPointAction(FpdPoint *o) : pointObj(o) { actionName = "linkPt"; }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree) {}
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader) { return true; }
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override {}
+  bool load(const DataBlock &blk, IFpdLoad &loader) override { return true; }
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -57,11 +57,11 @@ public:
 public:
   FpdPoint();
 
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
 
-  virtual void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld);
-  virtual void getActions(Tab<FpdAction *> &actions);
+  void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld) override;
+  void getActions(Tab<FpdAction *> &actions) override;
 
   void exportFastPhys(mkbindump::BinDumpSaveCB &cwr);
 
@@ -78,7 +78,7 @@ public:
     }
   }
 
-  virtual bool setPos(const Point3 &p)
+  bool setPos(const Point3 &p) override
   {
     if (nodeWtm)
     {
@@ -92,5 +92,5 @@ public:
     return FpdObject::setPos(p);
   }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdPoint::HUID || FpdObject::isSubOf(id); }
+  bool isSubOf(DClassID id) override { return id == FpdPoint::HUID || FpdObject::isSubOf(id); }
 };

@@ -12,6 +12,7 @@ DAS_BASE_BIND_ENUM(BloodPuddles::DecalGroup,
   BLOOD_DECAL_GROUP_SPRAY,
   BLOOD_DECAL_GROUP_LEAK,
   BLOOD_DECAL_GROUP_FOOTPRINT,
+  BLOOD_DECAL_GROUP_EXPLOSION,
   BLOOD_DECAL_GROUPS_COUNT);
 
 struct BloodPuddlesAnnotation final : das::ManagedStructureAnnotation<BloodPuddles, false>

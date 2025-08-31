@@ -8,10 +8,12 @@
 #include <util/dag_oaHashNameMap.h>
 #include <render/dynamicShadowRenderExtensions.h>
 #include <render/world/dynamicShadowRenderExtender.h>
+#include <render/world/shoreRenderer.h>
 
 class BaseStreamingSceneHolder;
 class RenderScene;
 class LandMeshManager;
+struct WorldSDF;
 class FFTWater;
 class DataBlock;
 class DaSkies;
@@ -65,9 +67,9 @@ public:
     const TMatrix &view_itm,
     const DPoint3 &view_pos,
     const Driver3dPerspective &persp) = 0;
-  virtual void draw(float real_dt) = 0;
+  virtual void draw(uint32_t frame_id, float real_dt) = 0;
   virtual void debugDraw() = 0;
-  virtual void beforeLoadLevel(const DataBlock &level_blk, ecs::EntityId level_eid) = 0; // to be called from main thread
+  virtual void beforeLoadLevel(const DataBlock &level_blk) = 0; // to be called from main thread
 
   // to be called from main thread. It will keep reference on LandMeshManager *lmesh and OWN BaseStreamingSceneHolder *scn
   virtual void onLevelLoaded(const DataBlock &level_blk) = 0;
@@ -79,6 +81,7 @@ public:
   virtual void onLandmeshLoaded(const DataBlock &level_blk, const char *bin, LandMeshManager *lmesh) = 0;
 
   virtual void unloadLevel() = 0;
+  virtual void closeNBSShaders() = 0;
   virtual void onSettingsChanged(const FastNameMap &changed_fields, bool apply_after_reset) = 0;
   virtual void beforeDeviceReset(bool full_reset) = 0;
   virtual void afterDeviceReset(bool full_reset) = 0;
@@ -99,6 +102,7 @@ public:
   virtual void setWater(FFTWater *water) = 0; // to be called from main thread. It will keep reference on water!
   virtual FFTWater *getWater() = 0;
   virtual void setMaxWaterTessellation(int value) = 0;
+  virtual ShoreRenderer *getShore() = 0;
 
   // screenshots
   virtual const ManagedTex &getFinalTargetTex() const = 0;
@@ -106,17 +110,9 @@ public:
   virtual ManagedTexView getSuperResolutionScreenshot() const = 0;
   // virtual TEXTUREID getUiBlurTexId() const = 0;
 
-  virtual bool getBoxAround(const Point3 &position, TMatrix &box) const = 0;
+  virtual WorldSDF *getWorldSDF() = 0;
 
-  virtual void setupShore(bool enabled, int texture_size, float hmap_size, float rivers_width, float significant_wave_threshold) = 0;
-  virtual void setupShoreSurf(float wave_height_to_amplitude,
-    float amplitude_to_length,
-    float parallelism_to_wind,
-    float width_k,
-    const Point4 &waves_dist,
-    float depth_min,
-    float depth_fade_interval,
-    float gerstner_speed) = 0;
+  virtual bool getBoxAround(const Point3 &position, TMatrix &box) const = 0;
 
   virtual dynamic_shadow_render::QualityParams getShadowRenderQualityParams() const = 0;
   virtual DynamicShadowRenderExtender::Handle registerShadowRenderExtension(DynamicShadowRenderExtender::Extension &&extension) = 0;
@@ -145,6 +141,7 @@ void pull_render_das();
 IRenderWorld *create_world_renderer(); // Note: reentrant
 void destroy_world_renderer();
 
+void update_world_renderer(float dt, float rdt, const TMatrix &itm, bool scene_loading);
 void close_world_renderer(); // after destroy, static shutdowns of factories
 
 IRenderWorld *get_world_renderer();
@@ -152,14 +149,14 @@ IRenderWorld *get_world_renderer_unsafe(); // UB if WR wasn't inited or already 
 
 webui::HttpPlugin *get_renderer_http_plugins();
 void init_fog_shader_graph_plugin();
+void init_envi_cover_graph_plugin();
 
 void init_tex_streaming();
 bool have_renderer(); // this is possibility of this exe to have renderer, not that it have it right now. check get_world_renderer
                       // after init if you need to know if it have it right now.
 
-void before_draw_scene(
-  int realtime_elapsed_usec, float gametime_elapsed_sec, float time_speed, ecs::EntityId cur_cam, TMatrix &view_itm);
+void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, float time_speed, ecs::EntityId cur_cam);
 void finish_rendering_ui();
-void draw_scene(const TMatrix &view_itm);
+void draw_scene(uint32_t frame_id);
 
 void toggle_hide_gui();

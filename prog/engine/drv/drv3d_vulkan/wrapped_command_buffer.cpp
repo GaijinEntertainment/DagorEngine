@@ -428,6 +428,37 @@ void WrappedCommandBuffer::flush()
         Globals::VK::dev.vkCmdResetQueryPool(cb, cmdPar.queryPool, cmdPar.firstQuery, cmdPar.queryCount);
         break;
       }
+      case PushConstantsParameters::ID:
+      {
+
+        auto &cmdPar = ((CmdAndParamater<PushConstantsParameters> *)cmdPtr)->param;
+        cmdPtr += sizeof(CmdAndParamater<PushConstantsParameters>);
+        Globals::VK::dev.vkCmdPushConstants(cb, cmdPar.layout, cmdPar.stageFlags, cmdPar.offset, cmdPar.size, cmdPar.pValues);
+        break;
+      }
+      case SetEventParameters::ID:
+      {
+        auto &cmdPar = ((CmdAndParamater<SetEventParameters> *)cmdPtr)->param;
+        cmdPtr += sizeof(CmdAndParamater<SetEventParameters>);
+        Globals::VK::dev.vkCmdSetEvent(cb, cmdPar.event, cmdPar.stageMask);
+        break;
+      }
+      case ResetEventParameters::ID:
+      {
+        auto &cmdPar = ((CmdAndParamater<ResetEventParameters> *)cmdPtr)->param;
+        cmdPtr += sizeof(CmdAndParamater<ResetEventParameters>);
+        Globals::VK::dev.vkCmdResetEvent(cb, cmdPar.event, cmdPar.stageMask);
+        break;
+      }
+      case WaitEventsParameters::ID:
+      {
+        auto &cmdPar = ((CmdAndParamater<WaitEventsParameters> *)cmdPtr)->param;
+        cmdPtr += sizeof(CmdAndParamater<WaitEventsParameters>);
+        Globals::VK::dev.vkCmdWaitEvents(cb, cmdPar.eventCount, cmdPar.pEvents, cmdPar.srcStageMask, cmdPar.dstStageMask,
+          cmdPar.memoryBarrierCount, cmdPar.pMemoryBarriers, cmdPar.bufferMemoryBarrierCount, cmdPar.pBufferMemoryBarriers,
+          cmdPar.imageMemoryBarrierCount, cmdPar.pImageMemoryBarriers);
+        break;
+      }
       default: G_ASSERTF(0, "vulkan: unrecognized command %u at reorder flush", *((CmdID *)cmdPtr)); break;
     }
   }

@@ -37,6 +37,44 @@ void AnimationDataBase::changePBCWeightOverride(int pbc_id, float weight)
     pbcWeightOverrides.emplace_back(pbc_id, weight);
 }
 
+template <class T>
+static inline T get_denormalized_feature(int clip_idx, int frame_idx, int feature_offset, const AnimationDataBase &database)
+{
+  dag::ConstSpan<vec4f> frameFeatures = database.clips[clip_idx].features.get_features_raw(frame_idx);
+  T normalizedFeature = *reinterpret_cast<const T *>(reinterpret_cast<const char *>(frameFeatures.data()) + feature_offset);
+  int normalizationOffset =
+    feature_offset + database.clips[clip_idx].featuresNormalizationGroup * database.featuresSize * sizeof(vec4f);
+  T avg = *reinterpret_cast<const T *>(reinterpret_cast<const char *>(database.featuresAvg.data()) + normalizationOffset);
+  T std = *reinterpret_cast<const T *>(reinterpret_cast<const char *>(database.featuresStd.data()) + normalizationOffset);
+  return mul(normalizedFeature, std) + avg;
+}
+
+Point3 AnimationDataBase::getNodePositionFeature(int clip_idx, int frame_idx, int node_idx) const
+{
+  int featureOffset = clips[clip_idx].features.getFeatureOffset(FrameFeatures::FeatureType::NODE_POSITION, node_idx);
+  return get_denormalized_feature<Point3>(clip_idx, frame_idx, featureOffset, *this);
+}
+
+Point3 AnimationDataBase::getNodeVelocityFeature(int clip_idx, int frame_idx, int node_idx) const
+{
+  int featureOffset = clips[clip_idx].features.getFeatureOffset(FrameFeatures::FeatureType::NODE_VELOCITY, node_idx);
+  return get_denormalized_feature<Point3>(clip_idx, frame_idx, featureOffset, *this);
+}
+
+Point2 AnimationDataBase::getTrajectoryPositionFeature(int clip_idx, int frame_idx, int trajectory_sample_idx) const
+{
+  int featureOffset =
+    clips[clip_idx].features.getFeatureOffset(FrameFeatures::FeatureType::TRAJECTORY_POSITION, trajectory_sample_idx);
+  return get_denormalized_feature<Point2>(clip_idx, frame_idx, featureOffset, *this);
+}
+
+Point2 AnimationDataBase::getTrajectoryDirectionFeature(int clip_idx, int frame_idx, int trajectory_sample_idx) const
+{
+  int featureOffset =
+    clips[clip_idx].features.getFeatureOffset(FrameFeatures::FeatureType::TRAJECTORY_DIRECTION, trajectory_sample_idx);
+  return get_denormalized_feature<Point2>(clip_idx, frame_idx, featureOffset, *this);
+}
+
 void AnimationDataBase::requestResources(const char *, const ecs::resource_request_cb_t &res_cb)
 {
   for (const ecs::string &path : res_cb.get<ecs::StringList>(ECS_HASH("data_bases_paths")))
@@ -57,7 +95,14 @@ void AnimationDataBase::requestResources(const char *, const ecs::resource_reque
       res_cb(clip_name, Anim2DataGameResClassId);
     }
   }
+  const ecs::string &skeletonRes = res_cb.get<ecs::string>(ECS_HASH("main_database__skeletonRes"));
+  if (!skeletonRes.empty())
+    res_cb(skeletonRes.c_str(), GeomNodeTreeGameResClassId);
+  const ecs::string &animGraphRes = res_cb.get<ecs::string>(ECS_HASH("main_database__animGraphRes"));
+  if (!animGraphRes.empty())
+    res_cb(animGraphRes.c_str(), AnimCharGameResClassId);
 }
+
 void calculate_acceleration_struct(dag::Vector<AnimationClip> &clips, int features)
 {
 #if EXTRA_LOG

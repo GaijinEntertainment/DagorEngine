@@ -16,7 +16,10 @@ AddIncludes =
 
 Sources += src/dasStdDlg.cpp ;
 
-if $(Platform) in windows {
+if $(dasStdDlg_UserProvidedPlatform) = yes {
+  # No extra source file, the user provides the implementation.
+  Target = $(Target:S=~upp.lib) ;
+} else if $(Platform) in windows {
   Sources += src/dasStdDlgWin.cpp ;
 } else if $(Platform) = linux {
   Sources += src/dasStdDlgGtk.cpp ;

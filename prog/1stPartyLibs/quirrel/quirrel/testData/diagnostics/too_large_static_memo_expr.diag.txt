@@ -1,0 +1,8 @@
+ERROR: static expression is too big
+testData/diagnostics/too_large_static_memo_expr.nut.txt:3:14
+
+let x = static(
+              ^
+  (a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+(a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a())+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a()+a())+
+
+

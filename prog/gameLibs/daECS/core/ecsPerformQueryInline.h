@@ -193,8 +193,7 @@ inline void EntityManager::performQueryES(QueryId h, ESFuncType fun, const ESPay
   if (DAGOR_UNLIKELY(min_quant && maxNumJobs && querySize > min_quant * 2)) // doesn't make sense to run multithreading if there is
                                                                             // less work than for one additional thread. We use 3 as
                                                                             // heurestics, because threadpool has it's own cost as well
-    if (performMTQuery(
-          query, [&evt, &fun](const QueryView &qv) { fun(evt, qv); }, user_data, min_quant))
+    if (performMTQuery(query, [&evt, &fun](const QueryView &qv) { fun(evt, qv); }, user_data, min_quant))
       return;
   performSTQuery(query, user_data, [&fun, &evt](const QueryView &__restrict qv) { fun(evt, qv); });
 }

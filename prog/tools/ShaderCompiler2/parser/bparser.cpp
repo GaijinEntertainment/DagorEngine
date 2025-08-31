@@ -9,7 +9,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <stdio.h>
 
-ParserFileInput::IncFile::~IncFile()
+InputFile::IncFile::~IncFile()
 {
   if (fn)
     memfree((void *)fn, strmem);
@@ -17,7 +17,7 @@ ParserFileInput::IncFile::~IncFile()
     memfree(text, strmem);
 }
 
-void ParserFileInput::IncFile::free_text()
+void InputFile::IncFile::free_text()
 {
   if (text)
   {
@@ -27,7 +27,7 @@ void ParserFileInput::IncFile::free_text()
   }
 }
 
-ParserFileInput::ParserFileInput(BaseLexicalAnalyzer *p) : parser(p), incfile(tmpmem), incstk(tmpmem)
+InputFile::InputFile(BaseLexicalAnalyzer *l) : lexer(l), incfile(tmpmem), incstk(tmpmem)
 {
   curfile = -1;
   curpos = 0;
@@ -35,35 +35,33 @@ ParserFileInput::ParserFileInput(BaseLexicalAnalyzer *p) : parser(p), incfile(tm
   _keep_all_text = false;
 }
 
-ParserFileInput::~ParserFileInput() {}
-
-void ParserFileInput::stream_set(BaseLexicalAnalyzer &p)
+void InputFile::stream_set(BaseLexicalAnalyzer &l)
 {
-  parser = &p;
-  if (parser)
+  lexer = &l;
+  if (lexer)
   {
-    parser->set_cur_file(curfile);
-    parser->set_cur_offset(curpos);
+    lexer->set_cur_file(curfile);
+    lexer->set_cur_offset(curpos);
   }
 }
 
-const char *ParserFileInput::get_filename(int f)
+const char *InputFile::get_filename(int f)
 {
   if (f < 0 || f >= incfile.size())
     return NULL;
   return incfile[f].fn;
 }
 
-bool ParserFileInput::is_real_eof() { return curfile < 0 || curfile >= incfile.size(); }
+bool InputFile::is_real_eof() { return curfile < 0 || curfile >= incfile.size(); }
 
-bool ParserFileInput::eof()
+bool InputFile::eof()
 {
   if (curfile < 0 || curfile >= incfile.size())
     return true;
   return at_eof;
 }
 
-char ParserFileInput::get()
+char InputFile::get()
 {
   if (curfile < 0 || curfile >= incfile.size())
     return 0;
@@ -85,12 +83,12 @@ char ParserFileInput::get()
     const FilePos &p = incstk.back();
     curfile = p.file;
     curpos = p.pos;
-    if (parser)
+    if (lexer)
     {
-      parser->set_cur_file(curfile);
-      parser->set_cur_line(p.line);
-      parser->set_cur_column(p.col);
-      parser->set_cur_offset(curpos);
+      lexer->set_cur_file(curfile);
+      lexer->set_cur_line(p.line);
+      lexer->set_cur_column(p.col);
+      lexer->set_cur_offset(curpos);
     }
     incstk.pop_back();
   }
@@ -102,7 +100,7 @@ char ParserFileInput::get()
   return incfile[curfile].text[curpos++];
 }
 
-int ParserFileInput::find_incfile(const char *fn)
+int InputFile::find_incfile(const char *fn)
 {
   if (!fn)
     return -1;
@@ -113,7 +111,7 @@ int ParserFileInput::find_incfile(const char *fn)
   return -1;
 }
 
-bool ParserFileInput::include(int f)
+bool InputFile::include(int f)
 {
   if (f < 0 || f >= incfile.size())
     return false;
@@ -121,12 +119,12 @@ bool ParserFileInput::include(int f)
   {
     FilePos fp;
     fp.file = curfile;
-    if (parser)
+    if (lexer)
     {
-      fp.line = parser->get_cur_line();
-      fp.col = parser->get_cur_column();
-      curpos -= parser->buffer_size();
-      parser->clear_buffer();
+      fp.line = lexer->get_cur_line();
+      fp.col = lexer->get_cur_column();
+      curpos -= lexer->buffer_size();
+      lexer->clear_buffer();
     }
     else
     {
@@ -138,18 +136,18 @@ bool ParserFileInput::include(int f)
   }
   curfile = f;
   curpos = 0;
-  if (parser)
+  if (lexer)
   {
-    parser->set_cur_file(curfile);
-    parser->set_cur_line(1);
-    parser->set_cur_column(1);
-    parser->set_cur_offset(curpos);
-    parser->clear_eof();
+    lexer->set_cur_file(curfile);
+    lexer->set_cur_line(1);
+    lexer->set_cur_column(1);
+    lexer->set_cur_offset(curpos);
+    lexer->clear_eof();
   }
   return true;
 }
 
-bool ParserFileInput::include(const char *text, unsigned sz, const char *fn)
+bool InputFile::include(const char *text, unsigned sz, const char *fn)
 {
   if (!text)
     return false;
@@ -197,7 +195,7 @@ bool ParserFileInput::include(const char *text, unsigned sz, const char *fn)
   return include(f);
 }
 
-int ParserFileInput::get_include_file_index(const char *fn)
+int InputFile::get_include_file_index(const char *fn)
 {
   struct AutoErase
   {
@@ -285,22 +283,22 @@ int ParserFileInput::get_include_file_index(const char *fn)
   return f;
 }
 
-bool ParserFileInput::include_alefile(const char *fn)
+bool InputFile::include_alefile(const char *fn)
 {
   int f = get_include_file_index(fn);
   return f >= 0 ? include(f) : false;
 }
 
-void ParserFileInput::err_nomem() { G_VERIFY(0); }
+void InputFile::err_nomem() { G_VERIFY(0); }
 
-void ParserFileInput::err_fileopen(const char *fn)
+void InputFile::err_fileopen(const char *fn)
 {
-  if (parser)
-    parser->set_error(String("can't open file ") + fn);
+  if (lexer)
+    lexer->set_error(String("can't open file ") + fn);
 }
 
-void ParserFileInput::err_fileread(const char *fn)
+void InputFile::err_fileread(const char *fn)
 {
-  if (parser)
-    parser->set_error(String("error reading file ") + fn);
+  if (lexer)
+    lexer->set_error(String("error reading file ") + fn);
 }

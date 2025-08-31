@@ -463,7 +463,7 @@ void dtNavMesh::connectExtLinks(dtMeshTile* tile, dtMeshTile* target, int side)
 // dtNavMesh::connectExtOffMeshLinks and dtNavMesh::baseOffMeshLinks was reworked to support complex jumplinks
 // and moved out to detourNavMeshDagor.cpp to simplify library updates.
 // Complex jumplink means joined 2 jumplinks with joint in highest position of link
-// related: https://cvs1.gaijin.lan/c/dagor4/+/299124
+// there are related changes in prog/tools/sceneTools/daEditor3/HeightmapLand/buildJumpLinks.cpp
 
 /*
 // moved to "detourNavMeshDagor.cpp" // dagor

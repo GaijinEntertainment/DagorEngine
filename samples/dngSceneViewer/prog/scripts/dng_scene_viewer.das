@@ -11,5 +11,7 @@ def load
   ok = load_folder("%scripts/das") && ok
   ok = load_folder("%scripts/das/effects") && ok
   ok = load_folder("%scripts/das/character_controller") && ok
-  if ecs_has_tag("sound") || app::get_game_name() == "aot"
+  if ecs_has_tag("input") || is_in_aot()
+    ok = load_folder("%scripts/das/input") && ok
+  if ecs_has_tag("sound") || is_in_aot()
     ok = load_folder("%scripts/das/sound") && ok

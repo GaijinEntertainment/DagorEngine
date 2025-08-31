@@ -1,6 +1,7 @@
 require webSocket
 
 require rtti
+options indenting = 2
 
 class WebSocket
   _websocket : smart_ptr<WebSocketServer>

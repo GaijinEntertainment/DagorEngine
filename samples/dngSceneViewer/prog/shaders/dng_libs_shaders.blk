@@ -4,7 +4,6 @@
 include "../../../../prog/daNetGameLibs/render_debug/_shaders.blk"
 include "../../../../prog/daNetGameLibs/screen_vhs/_shaders.blk"
 include "../../../../prog/daNetGameLibs/flash_blind/_shaders.blk"
-include "../../../../prog/daNetGameLibs/outdated_effects/_shaders.blk"
 include "../../../../prog/daNetGameLibs/projectors/_shaders.blk"
 include "../../../../prog/daNetGameLibs/semi_trans_render/_shaders.blk"
 include "../../../../prog/daNetGameLibs/distant_haze/_shaders.blk"

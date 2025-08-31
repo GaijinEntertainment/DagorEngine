@@ -6,15 +6,12 @@
 
 #include <streaming/dag_streamingMgr.h>
 #include <streaming/dag_streamingCtrl.h>
-#include <shaders/dag_renderScene.h>
 #include <scene/dag_renderSceneMgr.h>
-#include <drv/3d/dag_matricesAndPerspective.h>
-#include <drv/3d/dag_driver.h>
-#include <3d/dag_texPackMgr2.h>
-#include <ioSys/dag_dataBlock.h>
-#include <ioSys/dag_genIo.h>
 #include <util/dag_simpleString.h>
 
+class RenderScene;
+class DataBlock;
+class IGenLoad;
 
 class BaseStreamingSceneHolder : public IStreamingSceneStorage
 {
@@ -29,25 +26,9 @@ protected:
   SimpleString baseFolderPath;
 
 public:
-  BaseStreamingSceneHolder()
-  {
-    envi = NULL;
-    enviPos = Point3(0, 0, 0);
-
-    ssm = NULL;
-    ssmCtrl = NULL;
-    mainBindump = NULL;
-  }
-
-  ~BaseStreamingSceneHolder()
-  {
-    clear();
-    if (ssm)
-    {
-      ssm->destroy();
-      ssm = NULL;
-    }
-  }
+  BaseStreamingSceneHolder();
+  BaseStreamingSceneHolder(const BaseStreamingSceneHolder &) = delete;
+  ~BaseStreamingSceneHolder();
 
   // IStreamingSceneStorage interface implementation
   virtual bool bdlGetPhysicalWorldBbox(BBox3 & /*bbox*/) { return false; }
@@ -61,12 +42,7 @@ public:
     if (bindump_id == -1) // for master bindump only!
       envi = _envi;
   }
-  virtual void bdlSceneLoaded(unsigned bindump_id, RenderScene *scene)
-  {
-    if (bindump_id != -1)
-      ddsx::tex_pack2_perform_delayed_data_loading();
-    rs.addScene(scene, bindump_id);
-  }
+  virtual void bdlSceneLoaded(unsigned bindump_id, RenderScene *scene);
   virtual void bdlBinDumpLoaded(unsigned /*bindump_id*/) {}
 
   virtual bool bdlCustomLoad(unsigned /*bindump_id*/, int /*tag*/, IGenLoad & /*crd*/, dag::ConstSpan<TEXTUREID> /*texId*/)
@@ -84,28 +60,7 @@ public:
   virtual void unloadAllBinDumps() { rs.delAllScenes(); }
 
   // routers for internal data
-  void renderEnvi(const TMatrix &view_tm, float roty = 0.0f)
-  {
-    if (envi)
-    {
-      TMatrix tm;
-      if (float_nonzero(roty))
-        tm = view_tm * rotyTM(roty);
-      else
-        tm = view_tm;
-      tm.setcol(3, -tm % enviPos);
-      d3d::settm(TM_VIEW, tm);
-
-      for (int ei = 0; ei < envi->obj.size(); ei++)
-      {
-        if (envi->obj[ei].lods.size())
-          envi->obj[ei].lods[0].mesh->render();
-        // the_scene.enviscene->obj[ei].lods[0].mesh->render_trans();
-      }
-
-      d3d::settm(TM_VIEW, view_tm);
-    }
-  }
+  void renderEnvi(const TMatrix &view_tm, float roty = 0.0f);
   void render(const VisibilityFinder &vf, int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU)
   {
     rs.render(vf, render_id, render_flags_mask);
@@ -121,25 +76,8 @@ public:
       ssm->act();
   }
 
-  void openStreaming(const DataBlock &blk, const char *folderPath, bool auto_by_distance = true)
-  {
-    clear();
-    if (!folderPath)
-      folderPath = blk.getStr("baseFolderPath", "");
-    baseFolderPath = folderPath;
+  void openStreaming(const DataBlock &blk, const char *folderPath, bool auto_by_distance = true);
 
-    const char *md_fname = blk.getStr("maindump", NULL);
-    if (md_fname)
-      mainBindump = load_binary_dump(String(0, "%s/%s", folderPath, md_fname), *this, -1);
-    if (!ssm)
-    {
-      ssm = IStreamingSceneManager::create();
-      ssm->setClient(this);
-    }
-
-    if (auto_by_distance)
-      ssmCtrl = new (inimem) StreamingSceneController(*ssm, blk, baseFolderPath);
-  }
   void openSingle(const char *level_fn)
   {
     clear();
@@ -153,25 +91,7 @@ public:
     }
   }
 
-  void clear()
-  {
-    if (ssm)
-      ssm->unloadAllBinDumps();
-    if (ssmCtrl)
-      delete ssmCtrl;
-    ssmCtrl = NULL;
-
-    unloadAllBinDumps();
-    if (envi)
-    {
-      delete envi;
-      envi = NULL;
-    }
-
-    if (mainBindump)
-      unload_binary_dump(mainBindump, false);
-    mainBindump = NULL;
-  }
+  void clear();
 
   void waitForLoadingDone(const Point3 &view_pos)
   {
@@ -190,27 +110,7 @@ public:
 
   void setEnviPos(const Point3 &p) { enviPos = p; }
 
-  bool hasClipmap() const
-  {
-    for (auto &scene : rs.getScenes())
-      if (scene->hasClipmap())
-        return true;
-    return false;
-  }
+  bool hasClipmap() const;
 
-  bool getClipmapMinMaxHeight(float &min_height, float &max_height) const
-  {
-    min_height = 100000;
-    max_height = -100000;
-    for (auto &scene : rs.getScenes())
-    {
-      float minH, maxH;
-      if (scene->getClipmapMinMaxHeight(minH, maxH))
-      {
-        min_height = min(minH, min_height);
-        max_height = max(maxH, max_height);
-      }
-    }
-    return min_height < max_height;
-  }
+  bool getClipmapMinMaxHeight(float &min_height, float &max_height) const;
 };

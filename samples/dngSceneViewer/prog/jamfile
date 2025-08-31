@@ -1,4 +1,5 @@
 Game     = dng_scene_viewer ;
+GameMainVromFilePath = dng_scene_viewer.vromfs.bin ;
 Root    ?= ../../.. ;
 Location = samples/dngSceneViewer/prog ;
 PlatformArch_windows = x86_64 ;
@@ -33,6 +34,7 @@ local AllSrcFolder_ES = ;
 #fill game-specific files
 AllSrcFolder_DAS =
   scripts/das
+  scripts/das/input
   scripts/das/character_controller
   scripts/das/effects
 ;
@@ -135,10 +137,12 @@ if $(VRDeviceSupport) = yes {
   ;
 }
 
+if $(DumpBuildCmds) != yes {
 echo building Target\=$(Target) to $(_Output) "
   "\ using\ GlobalCPPopt\=$(GlobalCPPopt:J=" ") "
   "\ using\ CPPopt\=$(CPPopt:J=" ") "
   " HaveRenderer\=$(HaveRenderer) HaveFx\=$(HaveFx) HaveSound\=$(HaveSound) HaveTamVoice\=$(HaveTamVoice)
     HaveEnlist\=$(HaveEnlist) HaveWebui\=$(HaveWebui) HaveConsole\=$(HaveConsole) HaveEditor\=$(HaveEditor) ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,4 +1,5 @@
-file:t = "./screenProbes/screenspace_probes_filtering.dshl"
+file:t = "screenProbes/screenspace_probes_backs.dshl"
+file:t = "screenProbes/screenspace_probes_filtering.dshl"
 file:t = "screenProbes/screenspace_probes_placement.dshl"
 file:t = "screenProbes/screenspace_probes_debug.dshl"
 file:t = "screenProbes/screenspace_probes_trace.dshl"

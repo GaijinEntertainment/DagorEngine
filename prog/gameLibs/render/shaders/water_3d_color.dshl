@@ -1,0 +1,805 @@
+include "water_projected_effects.dshl"
+
+int underwater_render = 0;
+interval underwater_render : no<1, yes;
+
+int use_water_fresnel_reflections = 0;
+interval use_water_fresnel_reflections : no<1, yes;
+
+hlsl {
+  #define WATER_GEOMORPHING FULL_GEOMORPH_LODS
+}
+hlsl(ps) {
+  #define NORMALIZE_FFTWATER_NORMAL 0
+  #define USE_BILATERAL_REFLECTIONS 0
+}
+
+float water_refraction_scale = 0.05;
+float underwater_refraction_scale = 0.1;
+
+float sun_roughness_for_water_to_cube = 0;
+float clouds_shadow_water_influence = 0.75;
+
+// Reflection coefficient for light incoming parallel to the normal (F0 or fresnel bias)
+float4 water_fresnel_reflectance = (0.02, 0.5, 0.5, 0); // specular intensity, ambient reflection, Fresnel reflection
+float4 water_reflection_mip_range = (0, 6, 0, 0);
+
+float4 underwater_primary_color = (0.035, 0.055, 0.055, 2); // Snell window size in W, physical value is ~2
+
+int far_water_transparency = 1;
+int rt_water_reflections = 0;
+
+float foam_reflectivity = 0.1;
+float4 surface_folding_foam_params = (0, 1, 0, 0);
+
+float4 gbuffer_fix_color;
+float water_sss_height_factor = 1.0;
+float water_sss_sun_coherency_factor = 1.0;
+float water_sss_max_view_angle_cos = 0.8;
+
+float tacview_gridXZ;
+float4 tacview_gridXZ_color;
+float4 tacView_watercolor = (0.0, 0.0, 0.1, 0.0);
+
+float4 water_perlin_smoothness_tc_factors = (0.00011, 0.00041, 0, 0);
+float4 water_perlin_fadeout = (500, 800, 0, 0);
+float water_perlin_mip_influence = 1.0;
+
+float zFarSphere_radius = 1000000;
+float zFarSphere_error = 0;
+
+macro INIT_WATER_3D_DEFERRED_COLOR()
+  // Declarations pulled from shader_global.dshl due to the need to get rid of "shadow_buffer_tex@smp = shadow_buffer_tex;" declaration
+  (ps) {
+    foam_tiling_bdamp_srough@f3 = (foam_tiling / (height_tiling + 1), water_depth_hardness * (2 - height_tiling), sun_roughness_for_water_to_cube);
+    // reduce cloud shadows hack influence when  sun is low
+    clouds_shadow_water_influence@f2 = (clouds_shadow_water_influence * max(-from_sun_direction.y, 0),
+                                     1 - clouds_shadow_water_influence * max(-from_sun_direction.y, 0));
+    water_refraction_scale@f2 = (water_refraction_scale, underwater_refraction_scale);
+    water_fresnel_reflectance@f4 = water_fresnel_reflectance;
+    underwater_primary_color@f4 = underwater_primary_color;
+    surface_folding_foam_params@f2 = surface_folding_foam_params;
+    sss_height_coherency_maxVertCos@f3 = (water_sss_height_factor, water_sss_sun_coherency_factor, water_sss_max_view_angle_cos);
+  }
+  (ps) {
+    foam_tex@smp2d = foam_tex;
+    foam_reflectivity@f1 = foam_reflectivity;
+    far_water_transparency@f1 = (far_water_transparency, 0, 0, 0);
+    water_perlin_smoothness_tc_factors@f4 = water_perlin_smoothness_tc_factors;
+    perlin_fadeout@f2 = water_perlin_fadeout;
+    perlin_mip_influence@f1 = water_perlin_mip_influence;
+    rcpFadeDist@f1 = (1 / min(zn_zfar.y, zFarSphere_radius - zFarSphere_error));
+    hmd_device@i1 = hmd_device;
+  }
+endmacro
+
+macro USE_WATER_3D_DEFERRED_COLOR()
+  INIT_HDR(ps)
+
+  if (underwater_render == yes)
+  {
+    hlsl {
+      #define is_underwater_on 1
+      #define REFRACTION_SCALE water_refraction_scale.y
+    }
+  }
+  else
+  {
+    hlsl {
+      #define REFRACTION_SCALE water_refraction_scale.x
+    }
+  }
+
+  USE_HDR(ps)
+  FOG_PS_NO_STCODE()
+  if (underwater_render == no)
+  {
+    CUSTOM_FOG(ps)
+  }
+  GET_WATER_COLOR(ps)
+  INIT_SKY_UP_DIFFUSE(ps)
+  USE_SKY_UP_DIFFUSE()
+
+  INIT_UNDERWATER_FOG(ps)
+  GET_UNDERWATER_FOG_PERLIN(ps)
+
+  USE_NORMAL_DETAIL()
+
+  INIT_SKY()
+  USE_SKY_DIFFUSE()
+
+  INIT_BOUNDING_VIEW_REPROJECTION_PS()
+  USE_BOUNDING_VIEW_REPROJECTION_PS()
+
+  USE_ENVI_PROBE()
+  INIT_WATER_PROJECTED_EFFECTS(ps)
+  USE_WATER_PROJECTED_EFFECTS(ps)
+
+  (ps) { viewport@f4 = get_viewport(); }
+
+  (ps) {
+    water_grid@f1 = (1 / (tacview_gridXZ + 0.00000001), 0, 0, 0);
+    gridXZ_color@f4 = tacview_gridXZ_color;
+    tacView_watercolor@f4 = tacView_watercolor;
+  }
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    GET_SKY_GROUND_COLOR_COMPATIBILITY()
+  }
+
+  USE_SCREENPOS_TO_TC()
+  USE_DERIVATIVE_MAPS()
+  USE_CUBE_RAIN_DROPLETS(0)
+  USE_WATER_CASCADES_ROUGHNESS()
+  USE_SUN_DISK_SPECULAR()
+  USE_AND_INIT_VIEW_VEC_PS()
+  WATER_3D_COMMON_PS()
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (ps) {
+      gbuffer_fix_color@f4 = gbuffer_fix_color;
+    }
+  }
+
+  hlsl(ps) {
+##if water_refraction_tex != NULL && (shaderlod == high || underwater_render == yes)
+    #define has_seabed_refraction 1
+##endif
+
+    #define SCATTERING_EFFECTS_POWER 0.05h
+
+    struct ViewData
+    {
+      float4 screenPos;
+      float3 pos_world_undisplaced;
+      float3 pointToEye;
+      float3 worldPos;
+      float distSq;
+      float invDist;
+      float dist;
+
+      float4 screenTc;
+#if has_projection_effects
+      float3 wfxTc;
+#endif
+
+      half waterColorToEnvColorKoef;
+
+      float distToZfar;
+      float3 pointToEyeNormalized;
+      float3 reflectDirNormalized;
+      float3 reflectSampleDir;
+
+      half3 worldNormal;
+      float3 halfDir;
+      float NoV;
+      float3 view;
+      half NoL;
+      float absNoL;
+      half NdotV;
+      float VoH;
+      float NoH;
+      half fresnelView;
+      half enviBRDF;
+      half3 skyColor;
+
+      float roughness;
+      float enviMip;
+
+#if has_perlin_noise
+      float perlinSmoothness; // Used to modulate smoothness for sun BRDF
+      float2 perlinSurf; // .x - underwater fog color perlin, .y - gradient smoothing perlin
+      float perlinSpotInfluence; // 1 - inside spots, 0 - outside
+#endif
+
+      half3 wakeGradient;
+      half3 wakeDetail; // r:roughness, g:reflectance, b: ao
+
+      GradientsData surfaceAttributes;
+      ShoreData shoreData;
+
+      float3 fogAdd;
+      float3 fogMul;
+
+#if has_water_flowmap
+      float3 worldPos_a, worldPos_b;
+      float crossFade;
+#endif
+    };
+
+    struct SunReflections
+    {
+      half3 sunReflection;
+    };
+
+    struct DeepnessData
+    {
+      float waterDepth;
+      float3 underWaterPos;
+      half shore_blending_coeff;
+      float2 refractionTexcoord;
+    };
+
+    struct FoamData
+    {
+      half foamFactor;
+      half4 diffuseColor;
+      half scatterFoamFactor;
+      half FoamLowFreq;
+      float additionalTransparency;
+#if has_projection_effects
+      float oilAutodetectVal;
+#endif
+    };
+
+    struct SeabedRefraction
+    {
+      half3 seabedColor;
+    };
+
+    struct SubSurfScattering
+    {
+      half scatterFactor;
+    };
+
+    struct RefractionsData
+    {
+      half3 finalLitRefraction;
+#if !has_seabed_refraction
+      half waterOpacity;
+#endif
+    };
+
+    struct WaterBaseContext
+    {
+      ViewData vd;
+      DeepnessData deepnessData;
+      FoamData foamData;
+    };
+  }
+
+  INIT_SAMPLE_DEPTH_TEX(ps)
+  USE_SAMPLE_DEPTH_TEX(ps)
+  INIT_WATER_REFLECTIONS_SAMPLING(ps)
+  USE_WATER_REFLECTIONS_SAMPLING(ps)
+
+  INIT_WATER_SHADOWS(ps)
+  USE_WATER_SHADOWS(ps)
+
+  USE_UNDERWATER_SCATTERING(ps)
+
+  hlsl(ps) {
+    DeepnessData getDeepness(const ViewData vd)
+    {
+      DeepnessData deepnessData;
+      // Getting seabed color (refracted terrain & objects)
+#if has_seabed_refraction
+      float roughWaterDepth = max(-vd.shoreData.landHeight, 0);
+      float refraction_scale = REFRACTION_SCALE;
+      float refractionDistortion = refraction_scale * min(1, 10.0 * roughWaterDepth / (roughWaterDepth + vd.dist));
+      float2 distortionVector = vd.worldNormal.xz; // Dependency from camera rotation looks unrealistic.
+      float2 refractionDisturbance = refractionDistortion * float2(-distortionVector.x, distortionVector.y);
+      refractionDisturbance *= saturate((linearize_z(sample_far_depth_tex(vd.screenTc.xy + refractionDisturbance, 0), zn_zfar.zw) - vd.screenTc.w) * 2 - 0.1); // Fix scene leaks from above the water.
+      refractionDisturbance *= saturate(10 * (1 - max(abs(vd.screenTc.x * 2 - 1), abs(vd.screenTc.y * 2 - 1))) * vd.screenTc.w); // Fix scene leaks at screen border
+      deepnessData.refractionTexcoord = vd.screenTc.xy + refractionDisturbance;
+#else
+      deepnessData.refractionTexcoord = screen_pos_to_tc(vd.screenPos.xy);
+#endif
+
+##if shaderlod == low && underwater_render == no
+      deepnessData.waterDepth = 100;
+      deepnessData.shore_blending_coeff = 1.0h;
+      deepnessData.underWaterPos = world_view_pos.xyz;
+##else
+      float floorZ = linearize_z(sample_far_depth_tex(deepnessData.refractionTexcoord, 0), zn_zfar.zw);
+      floorZ += max(0, vd.screenTc.w - zn_zfar.y + 100); // Artificially increase water depth at farplane to fix transparent water over the border of the world.
+      float realWaterDepth = floorZ - vd.screenTc.w;
+      deepnessData.waterDepth = realWaterDepth > -0.5 ? abs(realWaterDepth) : 10;
+      float water_depth_hardness = foam_tiling_bdamp_srough.y;
+      deepnessData.shore_blending_coeff = (half)saturate(deepnessData.waterDepth * water_depth_hardness);
+
+      float3 viewVect = lerp_view_vec(deepnessData.refractionTexcoord);
+      deepnessData.underWaterPos = world_view_pos.xyz + viewVect * floorZ;
+##endif
+      return deepnessData;
+    }
+
+    FoamData calcFoam(const ViewData vd, const DeepnessData deepnessData)
+    {
+      FoamData foamData;
+      foamData.scatterFoamFactor = 0.0h;
+      foamData.additionalTransparency = 1.0;
+
+      // Adding some turbulence based bubbles spread in water
+
+      // Getting foam textures
+      float2 offs = vd.wakeGradient.xz * 0.03 + vd.worldNormal.xz * 0.1;
+
+#if has_water_flowmap
+      float2 foamUV_a = (vd.worldPos_a.xz + offs) * foam_tiling_bdamp_srough.x;
+      float2 foamUV_b = (vd.worldPos_b.xz + offs) * foam_tiling_bdamp_srough.x;
+      half foamLowFreq_a = (half)tex2D(foam_tex, foamUV_a).r;
+      half foamLowFreq_b = (half)tex2D(foam_tex, foamUV_b).r;
+      foamData.FoamLowFreq = lerp(foamLowFreq_a, foamLowFreq_b, vd.crossFade);
+#else
+      float2 foamUV = (vd.pos_world_undisplaced.xy + offs) * foam_tiling_bdamp_srough.x;
+      half foamLowFreq = (half)tex2D(foam_tex, foamUV).r; // 0.051 plane, 0.101 tank
+      foamData.FoamLowFreq = foamLowFreq;
+#endif
+
+      // Calculating shore waves foam
+      float gerstnerFoam = foamData.FoamLowFreq * vd.shoreData.gerstnerFoamFactor;
+
+      // Calculating turbulence energy based foam
+      float oceanFoamFactor = saturate(foamData.FoamLowFreq * min(1.0, 4.0 * vd.surfaceAttributes.foam_turbulent_energy));
+
+      // Clumping foam on folded areas
+      oceanFoamFactor *= 1.0 + saturate(vd.surfaceAttributes.foam_surface_folding);
+##if compatibility_mode == compatibility_mode_on
+      oceanFoamFactor = saturate(surface_folding_foam_params.x * pow(saturate(vd.surfaceAttributes.foam_surface_folding), surface_folding_foam_params.y)) * foamData.FoamLowFreq;
+##endif
+
+      gerstnerFoam *= 1.0 + saturate(vd.surfaceAttributes.foam_surface_folding * vd.shoreData.oceanWavesMultiplier);
+
+      // Applying foam wave hats
+
+      oceanFoamFactor += 0.1 * saturate(foamData.FoamLowFreq * vd.surfaceAttributes.foam_wave_hats);
+      //gerstnerFoamFactor += 0.5 * saturate(FoamLowFreq*gerstner_breaker * 3.0 * (UltraLowFreqModulator2));
+
+#if has_water_flowmap
+      float flowFoamFactor = foamData.FoamLowFreq * getWaterFlowmapFoam(vd.worldPos, vd.dist);
+      flowFoamFactor = smoothstep(0, water_flowmap_foam_softness, flowFoamFactor);
+#else
+      float flowFoamFactor = 0;
+#endif
+
+      // Combining shore and ocean foam, using high power of oceanWavesMultiplier to leave leewind areas without ocean foam
+      foamData.foamFactor = (half)saturate(vd.shoreData.oceanWavesMultiplier * oceanFoamFactor + gerstnerFoam + flowFoamFactor);
+
+      foamData.foamFactor *= deepnessData.shore_blending_coeff;
+
+#if has_perlin_noise
+      float dampen = saturate(5 * pow2(vd.perlinSurf.y)) * perlin_cascade_factors1.y * perlin_cascade_factors1.z;
+      foamData.foamFactor *= lerp(1.0, dampen, vd.perlinSpotInfluence);
+#endif
+
+      half4 diffuseColor = half4(foamData.foamFactor.xxx * 1.5h, 1.0h);
+##if shaderlod == low
+      diffuseColor = half4(0.0h, 0.0h, 0.0h, 1.0h);
+      foamData.foamFactor = 0.0h;
+##endif
+
+      // Applying projected on water effects
+#if has_projection_effects
+      // Sample initial color
+      half4 effectsColor = h4tex2D(projected_on_water_effects_tex, vd.wfxTc.xy);
+
+      #if has_wfx_wake
+        // Fix a stretched texture on the vertical gradients
+        half4 vFoam = half4(foamData.FoamLowFreq.xxx, 0.5h);
+        half wakeContribUnclamped = (0.99h - vd.wakeGradient.y) / 0.1h;
+        half wakeContrib = saturate(wakeContribUnclamped);
+        half viewContribUnclamped = half(vd.pointToEyeNormalized.y) / 0.2h;
+        half viewContrib = 1.0h - saturate(viewContribUnclamped);
+        effectsColor = lerp(effectsColor, vFoam, wakeContrib * viewContrib);
+      #endif
+
+      effectsColor = lerp(half4(0.0h, 0.0h, 0.0h, 1.0h), effectsColor, (half)vd.wfxTc.z);
+
+      foamData.oilAutodetectVal = saturate(1.1*(1.0f-effectsColor.a) - 5*length(effectsColor.rgb));
+
+      // Apply scattering based on 25% alpha and fade out effects completely when alpha reach 90%
+      foamData.scatterFoamFactor += (1.0h - abs(saturate(effectsColor.a - 0.75h) - 0.125h) * 8.0h) * SCATTERING_EFFECTS_POWER;
+
+      half effectColorScale = effectsColor.a < 1.0h ? 1.0h - effectsColor.a : 1.0h;
+      effectsColor.a = saturate(lerp(1.0h, saturate(effectsColor.a / 0.9h), deepnessData.shore_blending_coeff));
+      effectsColor.rgb = effectsColor.rgb / effectColorScale * (1.0h - effectsColor.a);
+
+      // Mix with final foam color
+      diffuseColor.rgb = diffuseColor.rgb * effectsColor.a + effectsColor.rgb;
+      diffuseColor.a = effectsColor.a;
+#endif
+
+      foamData.diffuseColor = diffuseColor;
+      return foamData;
+    }
+
+    WaterBaseContext computeWaterBaseContext(VS_OUTPUT In, float4 screenPos)
+    {
+      // Calc vertexData
+      ViewData vd;
+      vd.pos_world_undisplaced = In.pos_world_undisplaced;
+      vd.pointToEye = In.nvsf_eye_vec.xzy;
+      vd.worldPos = world_view_pos.xyz - vd.pointToEye;
+      vd.distSq = dot(vd.pointToEye, vd.pointToEye);
+      vd.invDist = rsqrt(vd.distSq);
+      vd.dist = vd.distSq * vd.invDist;
+      float distLog2 = log2(vd.dist);
+      vd.distToZfar = saturate(vd.dist * rcpFadeDist);
+      vd.pointToEyeNormalized = vd.pointToEye * vd.invDist;
+      // waterColorToEnvColorKoef: fading from zFar*0.5 to zFar. On VR we use distance (instead of .W) for fading to sky sphere.
+      vd.waterColorToEnvColorKoef = (half)saturate((hmd_device ? vd.distToZfar : In.nvsf_eye_vec.w) * 2.0 - 1.0);
+      float perlinSurfGrad = 1;
+      float perlinSpotInfluence = 0;
+#if has_perlin_noise
+      float2 wind_dir = wind_dir_speed.xy;
+      vd.perlinSmoothness = tex2D(perlin_noise, float2(water_perlin_smoothness_tc_factors.x * (vd.worldPos.x * wind_dir.x - vd.worldPos.z * wind_dir.y),
+                                                     water_perlin_smoothness_tc_factors.y * (vd.worldPos.x * wind_dir.y + vd.worldPos.z * wind_dir.x))).g;
+      vd.perlinSurf = getWaterPerlinSpots(vd.worldPos, perlinSpotInfluence);
+      perlinSpotInfluence = saturate(perlinSpotInfluence - smoothstep(perlin_fadeout.x, perlin_fadeout.y, vd.dist));
+      perlinSurfGrad = vd.perlinSurf.y;
+      vd.perlinSpotInfluence = perlinSpotInfluence;
+#endif
+      // Material
+      vd.roughness = get_cascades_roughness(distLog2);
+      vd.roughness = lerp(vd.roughness, 1.0 - (0.71 + 0.28 * 0.5), vd.waterColorToEnvColorKoef);
+
+      // Getting surface attributes from WaveWorks funcs
+      getShoreAttributes(vd.worldPos, vd.shoreData);
+
+      BRANCH
+      if ((vd.shoreData.landHeight > 0) && (vd.worldPos.y > vd.shoreData.waterHeight + water_level_max_wave_height.y))
+        discard;
+
+      #if has_water_flowmap
+        float3 worldPos_a, worldPos_b;
+        float viewDist_a, viewDist_b;
+        float crossFade;
+        calcWaterFlowmapParams(vd.worldPos, vd.dist, worldPos_a, worldPos_b, viewDist_a, viewDist_b, crossFade);
+
+        GradientsData surfaceAttributes_a = getWaterGradients(worldPos_a, viewDist_a, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+        GradientsData surfaceAttributes_b = getWaterGradients(worldPos_b, viewDist_b, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+
+        vd.surfaceAttributes.normal = normalize(lerp(surfaceAttributes_a.normal, surfaceAttributes_b.normal, crossFade));
+        vd.surfaceAttributes.foam_surface_folding = lerp(surfaceAttributes_a.foam_surface_folding, surfaceAttributes_b.foam_surface_folding, crossFade);
+        vd.surfaceAttributes.foam_turbulent_energy = lerp(surfaceAttributes_a.foam_turbulent_energy, surfaceAttributes_b.foam_turbulent_energy, crossFade);
+        vd.surfaceAttributes.foam_wave_hats = lerp(max(surfaceAttributes_a.foam_wave_hats, -0.5), max(surfaceAttributes_b.foam_wave_hats, -0.5), crossFade);
+
+        vd.worldPos_a = worldPos_a;
+        vd.worldPos_b = worldPos_b;
+        vd.crossFade = crossFade;
+      #else
+        vd.surfaceAttributes = getWaterGradients(vd.worldPos, vd.dist, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+      #endif
+
+      vd.screenPos = screenPos;
+      vd.pos_world_undisplaced = vd.pos_world_undisplaced;
+
+      vd.screenTc = In.screenTc;
+      vd.screenTc.xy /= vd.screenTc.w;
+#if has_projection_effects
+      vd.wfxTc = normalize_wfx_tc(In.pos_clip_undisplaced);
+#endif
+
+      // Calc world normal
+      vd.worldNormal = (half3)vd.surfaceAttributes.normal.xzy;
+
+      // Add flowmap normal
+#if has_water_flowmap
+      vd.worldNormal = RNM_ndetail_normalized(vd.worldNormal.xzy, In.flowmap_normal.xzy).xzy;
+#endif
+
+      // Wake
+      vd.wakeDetail = half3(1.0h, 1.0h, 1.0h);
+      vd.wakeGradient = half3(0.0h, 1.0h, 0.0h);
+#if has_wfx_wake
+      // Normalize
+      vd.worldNormal = normalize(vd.worldNormal);
+      half2 wfxNormalsColor = h4tex2D(wfx_normals, vd.wfxTc.xy).rg;
+      wfxNormalsColor = lerp(half2(0.5h, 0.5h), wfxNormalsColor, (half)vd.wfxTc.z);
+      half3 wfxNorm = restore_normal(wfxNormalsColor);
+      vd.wakeGradient = wfxNorm.xzy;
+      ##if compatibility_mode == compatibility_mode_off
+        // Details
+        half3 wfxDetails = (half3)wfx_details.Sample(wfx_normals_samplerstate, vd.wfxTc.xy).rgb;
+        wfxDetails = lerp(half3(0.0h, 1.0h, 1.0h), wfxDetails, (half)vd.wfxTc.z);
+        vd.wakeDetail = half3(1.0h - wfxDetails.r, wfxDetails.g, wfxDetails.b);
+      ##else
+        vd.wakeDetail = half3(1.0h, 1.0h, 1.0h);
+      ##endif
+#endif
+#if has_water_ripples
+      vd.wakeGradient = RNM_ndetail_normalized(vd.wakeGradient.xzy, get_water_ripples_gradient(vd.worldPos).xzy).xzy;
+#endif
+      // Apply wake
+      vd.worldNormal = RNM_ndetail_normalized(vd.worldNormal.xzy, vd.wakeGradient.xzy).xzy;
+
+      // Applying faders to normals
+      vd.worldNormal = normalize(half3(vd.worldNormal.xz*vd.shoreData.gerstner_normal.y + vd.shoreData.gerstner_normal.xz*vd.worldNormal.y, vd.shoreData.gerstner_normal.y*vd.worldNormal.y).xzy);
+      float normalEnvColorFade = saturate(lerp(-1.05, 1.05, vd.waterColorToEnvColorKoef)); // Fade normal from waterColorToEnvColorKoe*0.5 until waterColorToEnvColorKoef*0.952.
+      vd.worldNormal = normalize(lerp(vd.worldNormal, float3(0, 1, 0), normalEnvColorFade));
+
+      // Apply rain
+      apply_rain_ripples_water(vd.worldPos, vd.dist, vd.worldNormal);
+
+      ##if water_heightmap_pages != NULL
+        float3x3 tangentSpace = float3x3(In.tangent, cross(In.bitangent, In.tangent), In.bitangent);
+        vd.worldNormal = mul(vd.worldNormal, tangentSpace);
+      ##endif
+
+      // Getting water depth and opacity for blending
+      const DeepnessData deepnessData = getDeepness(vd);
+
+      // Calc foam
+      FoamData foamData = calcFoam(vd, deepnessData);
+      vd.roughness = lerp(vd.wakeDetail.r, vd.roughness, foamData.diffuseColor.a);
+      vd.roughness = lerp(vd.roughness, 1.0, saturate((1.0 - foamData.diffuseColor.a) * foam_reflectivity));
+      vd.enviMip = ComputeReflectionCaptureMipFromRoughness((half)vd.roughness);
+
+      // Calc dir for reflections
+      vd.reflectDirNormalized = reflect(-vd.pointToEyeNormalized, vd.worldNormal);
+      vd.reflectSampleDir = vd.reflectDirNormalized;
+      vd.reflectSampleDir.y = abs(vd.reflectSampleDir.y); // This hack is preventing reflection belowe horizon. In real water it can happen, but will only reflect reflecting water.
+#if is_underwater_on
+      vd.worldNormal = -vd.worldNormal;
+      vd.reflectDirNormalized = refract(-vd.pointToEyeNormalized, vd.worldNormal, 0.8);
+#endif
+
+      // Calc view params
+      vd.halfDir = normalize(vd.pointToEyeNormalized.xyz - from_sun_direction.xyz);
+      vd.view = vd.pointToEyeNormalized;
+      vd.NoH = saturate( dot(vd.worldNormal, vd.halfDir) );
+      vd.VoH = saturate( dot(vd.view, vd.halfDir) );
+      vd.NdotV = (half)dot(vd.worldNormal, vd.pointToEyeNormalized);
+      vd.NoV = abs(vd.NdotV) + 1e-5;
+      vd.NoL = (half)dot(-from_sun_direction.xyz, vd.worldNormal);
+      vd.absNoL = abs(vd.NoL);
+      half Fc = pow5(1.0h - (half)vd.NoV);
+      vd.fresnelView = Fc + water_fresnel_reflectance.x * (1.0h - Fc);
+      // fixme: optimize for water
+      // making water/terrain intersections looking smooth (fresnel is faded to 0 on depths 0.33..0m)
+      vd.enviBRDF = saturate(EnvBRDFApprox(water_fresnel_reflectance.x, half(vd.roughness), half(vd.NoV)).x) * vd.wakeDetail.g;
+
+      vd.skyColor = GetSkySHDiffuse(vd.worldNormal);
+
+      //get fog
+      vd.fogAdd = 0;
+      vd.fogMul = 1;
+      ##if underwater_render == no
+        ##if hardware.metal // currently volfog is not work with metal properly
+          get_scattering_tc_fog(vd.screenTc.xy, vd.pointToEye, vd.fogMul, vd.fogAdd);
+        ##else
+          float2 volfogTc = vd.screenTc.xy;
+          if (use_bounding_vr_reprojection != 0)
+            volfogTc = vr_bounding_view_reproject_tc(volfogTc, vd.screenTc.z / vd.screenTc.w);
+          get_volfog_with_scattering(volfogTc, volfogTc, vd.pointToEye, vd.screenTc.w, vd.fogMul, vd.fogAdd);
+        ##endif
+      ##endif
+
+#if has_projection_effects
+      // oil reflectance hack
+      #define OIL_REFLECTANCE 0.4f
+      foamData.diffuseColor.a = lerp(foamData.diffuseColor.a, OIL_REFLECTANCE * (1 - 0.6 * vd.NdotV), pow2(foamData.oilAutodetectVal));
+#endif
+      foamData.diffuseColor.a *= 1 - foamData.foamFactor;
+
+      WaterBaseContext context;
+      context.vd = vd;
+      context.deepnessData = deepnessData;
+      context.foamData = foamData;
+
+      return context;
+    }
+
+    // If you change calcSun shading, please consider doing the needed changes on sky_ground_color or/and add fading.
+    SunReflections calcSunReflections(const ViewData vd, const ShadowsData shadowsData)
+    {
+      SunReflections sunReflections;
+      //float smoothness = 0.75 * lerp(1, 0.5 + 0.5 * underocean.a, farFactor);  // BY TIM //: to prevent dark "holes" in specular
+      half perlinSmoothness = 0.1h;
+#if has_perlin_noise
+      perlinSmoothness = (half)vd.perlinSmoothness;
+#endif
+
+      half smoothness_mul = lerp(perlinSmoothness, 0.5h, vd.distToZfar);
+      float smoothness = (0.71 + 0.28 * smoothness_mul);  // BY TIM //: to prevent dark "holes" in specular
+      float sun_roughness = 1 - smoothness;
+      float sun_roughness_for_water_to_cube = foam_tiling_bdamp_srough.z;
+      sun_roughness = max(sun_roughness, sun_roughness_for_water_to_cube);
+      sun_roughness = max(sun_roughness, 0.7 * (1 - shadowsData.cloudShadow)); // under clouds we have rough specular
+
+      float D, G;
+      float3 F;
+      sunDiskSpecular( water_fresnel_reflectance.x, vd.NoV, half(sun_roughness*sun_roughness), -from_sun_direction.xyz, vd.view, vd.worldNormal, D, G, F );
+      G = 1.0;
+
+      //float D = BRDF_distribution( sun_roughness, vd.vd.NoH );
+      //float G = BRDF_geometricVisibility( roughness, vd.NoV, vd.NoL, vd.VoH );
+      //float G = 1;
+      float sunSpec = (D*G*vd.absNoL);
+
+      // calculating hf specular factor
+      half3 hf_normal = normalize(half3(vd.worldNormal.x, 0.25, vd.worldNormal.z)); // 0.25 - tweakable - "spread" of sparkles
+      //float D_sparkles, G_sparkles, F_sparkles;
+      //sunWaterSpecular( NoV, sun_roughness * 0.5, -from_sun_direction.xyz, view, hf_normal, D_sparkles, G_sparkles, F_sparkles);
+      float NoH_sparkles = saturate( dot(vd.halfDir, hf_normal) );
+      float D_sparkles = BRDF_distribution( pow2(sun_roughness * 0.5), NoH_sparkles );
+      float maxSpec = 6.0;
+      sunSpec += min(D_sparkles * G * vd.absNoL, maxSpec * (1 - vd.waterColorToEnvColorKoef)) * 0.5;
+      sunSpec = min(sunSpec*F.x, maxSpec);
+      sunSpec *= pow2(shadowsData.sunReflectionShadow);
+      sunSpec *= pow3(saturate(1.0h - vd.NdotV));
+
+  #if is_underwater_on
+      sunSpec = vd.enviBRDF * pow3(pow3(pow3(saturate(dot(vd.reflectDirNormalized, -from_sun_direction.xyz)))));
+  #endif
+
+      sunReflections.sunReflection = half3(sun_color_0 * sunSpec);
+      //result.rgb = apply_fog(sunReflections.sunReflection, pointToEye.xyz);   // simul_fog on PC, none on consoles.
+      //result.rgb = pack_hdr(result.rgb).rgb;
+      //result.a = 1;
+      //return result;
+      return sunReflections;
+    }
+
+    SeabedRefraction getSeabedRefraction(const ViewData vd, const DeepnessData deepnessData)
+    {
+      SeabedRefraction seabedRefraction;
+      // Getting seabed color (refracted terrain & objects)
+#if has_seabed_refraction
+      seabedRefraction.seabedColor.rgb = (half3)tex2Dlod(water_refraction_tex, float4(deepnessData.refractionTexcoord, 0, 0)).rgb;
+      seabedRefraction.seabedColor.rgb = (half3)max(float3(0.0,0.0,0.0), unpack_hdr(seabedRefraction.seabedColor.rgb)); // currently works not precise
+
+      // tricky one: on seabed refraction we already have applied fog (in deferred_resolve)
+      // so on final color calculations we'll have twice applied fog, producing unrealistic shoreline
+      // so we try to restore original seabed color by applying fog in reversal way
+      seabedRefraction.seabedColor = (half3)((seabedRefraction.seabedColor - vd.fogAdd) / max(float3(0.01, 0.01, 0.01), vd.fogMul));
+#else
+      seabedRefraction.seabedColor = half3(0.07h, 0.1h, 0.07h); // fixme: sample lastclip here
+#endif
+      return seabedRefraction;
+    }
+
+    SubSurfScattering getSubSurfScattering(const ViewData vd)
+    {
+      // Adding subsurface scattering/double refraction to refraction color
+      // simulating scattering/double refraction: light hits the side of wave, travels some distance in water, and leaves wave on the other side
+      // it is difficult to do it physically correct without photon mapping/ray tracing, so using simple but plausible emulation below
+
+      // scattering needs to be faded out at distance
+      SubSurfScattering subSurfScattering;
+##if water_vs_cascades != zero && shaderlod == high
+      const half scatterIntensity = 1.0h;
+      half distanceFaderStartingAt1000m =  rcp(1.0h + half(vd.dist) * (1.0h / 1000.0h));
+
+      // only the crests of water waves generate double refracted light
+      half displaceY = (half)max(1.0h, vd.worldPos.y - vd.pos_world_undisplaced.z + 2.0h);
+      subSurfScattering.scatterFactor = half(scatterIntensity * displaceY * distanceFaderStartingAt1000m * lrefl_scatter_hdr_psize.y * sss_height_coherency_maxVertCos.x);
+
+      subSurfScattering.scatterFactor *= (half)(1 - smoothstep(0, sss_height_coherency_maxVertCos.z, abs(vd.pointToEyeNormalized.y)));
+
+      // the waves that lie between camera and light projection on water plane generate maximal amount of double refracted light
+      subSurfScattering.scatterFactor *= (half)(max(0.0, dot((float3(from_sun_direction.x, 0.0,from_sun_direction.z)), vd.pointToEyeNormalized)));
+
+      // the slopes of waves that are oriented back to light generate maximal amount of double refracted light
+      subSurfScattering.scatterFactor *= (half)(1.0h - min(1.0, sss_height_coherency_maxVertCos.y * vd.NoL)); // up to 2^4
+
+      //scatterFactor *= 1-saturate(sdf.x * heightmap_min_max.z + heightmap_min_max.w - vd.worldPos.y + 2);
+      subSurfScattering.scatterFactor *= 1.0h - (half)saturate(vd.shoreData.landHeight);
+##else
+      subSurfScattering.scatterFactor = 0.0h;
+##endif
+      return subSurfScattering;
+    }
+
+    RefractionsData getRefractions(const ViewData vd, const ShadowsData shadowsData, const DeepnessData deepnessData, const SeabedRefraction seabedRefraction, const SubSurfScattering subSurfScattering, const UnderWaterScattering underWaterScattering)
+    {
+      RefractionsData refractionsData;
+#if !has_seabed_refraction
+      refractionsData.waterOpacity = saturate(3.0h * (1.0h-luminance(underWaterScattering.loss))) * deepnessData.shore_blending_coeff; // There is not much to see underwater without refraction
+#endif
+
+      half3 lighting = half3(sun_color_0) * (subSurfScattering.scatterFactor * (shadowsData.cloudShadow * clouds_shadow_water_influence.x + clouds_shadow_water_influence.y) * shadowsData.vsmShadow
+                     + (shadowsData.vsmShadow*0.5h + 0.5h)*saturate(0.6h + 0.4h * max(half(vd.NoL), 0.0h))) + vd.skyColor * shadowsData.cloudShadow;
+
+      // Getting final refraction color
+#if has_seabed_refraction
+      refractionsData.finalLitRefraction = underWaterScattering.loss * seabedRefraction.seabedColor.rgb + underWaterScattering.inscatter * lighting;
+#else
+      refractionsData.finalLitRefraction = underWaterScattering.inscatter * lighting;
+#endif
+      refractionsData.finalLitRefraction = refractionsData.finalLitRefraction * (1.0h - vd.enviBRDF * deepnessData.shore_blending_coeff);
+      return refractionsData;
+    }
+
+    half4 calcFinalColor(const ViewData vd, const ShadowsData shadowsData, const FoamData foamData, const DeepnessData deepnessData, const RefractionsData refractionsData, const ReflectionsData reflectionsData, const SunReflections sunReflections)
+    {
+      // Combine reflections and refractions
+##if (use_water_fresnel_reflections == yes)
+      #if is_underwater_on
+        half fresnel = water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(half(underwater_primary_color.w) * (1.0h - vd.NdotV)));
+        half3 reflection = half3(sun_color_0 * underwater_primary_color.rgb);
+      #else
+        half fresnel = water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(1.0h - vd.NdotV));
+        half3 reflection = reflectionsData.reflectionColor;
+      #endif
+
+      half3 sunReflFinal = lerp(sunReflections.sunReflection, half3(0.0h, 0.0h, 0.0h), saturate(foamData.foamFactor * 10.0h));
+
+      half3 col = lerp(refractionsData.finalLitRefraction, reflection, fresnel);
+      half4 result = half4(col + sunReflFinal, 1.0h);
+##else
+      half4 result = half4(refractionsData.finalLitRefraction + reflectionsData.reflectionColor, 1.0h);
+##endif
+
+      // Blend to env on far plane
+      result.rgb = lerp(result.rgb, reflectionsData.envReflection, vd.waterColorToEnvColorKoef);
+
+      // Apply a power of four to the NoL to get a more relief for a wave/wake foam and multiply skyColor as a compensation
+      half diffK = pow4(max(vd.NoL, 0.0h)) * shadowsData.vsmShadow;
+      half3 foamLighting = half3(sun_color_0) * diffK + vd.skyColor * lerp(3.0h, 1.0h, diffK);
+
+      // Applying surface foam
+      result.rgb = result.rgb * foamData.diffuseColor.a + foamData.diffuseColor.rgb * foamLighting;
+
+      result.rgb *= (shadowsData.cloudShadow * clouds_shadow_water_influence.x + clouds_shadow_water_influence.y);
+
+      result.rgb += reflectionsData.reflectionColor * (1.0h - foamData.diffuseColor.a);
+
+      // Applying AO and shadows
+      result.rgb *= vd.wakeDetail.b;
+
+      result.a = 1.0h;
+#if !has_seabed_refraction
+      ##if shaderlod == high
+        result.a = lerp(refractionsData.waterOpacity, 1.0h, foamData.foamFactor);
+        result.a = lerp(result.a, 0.0h, far_water_transparency * vd.waterColorToEnvColorKoef);
+        ##if underwater_render == yes
+          half underWaterFresnel = pow2(saturate(1.0h - 0.7*vd.NdotV));
+          result.a = underWaterFresnel;
+        ##endif
+      ##endif
+#else
+      // hide intersection line between water and shore
+      // if fresnel is high, we use lesser blending distance
+      float blendCoeff = lerp(saturate(deepnessData.shore_blending_coeff * 3), saturate(deepnessData.shore_blending_coeff * 6), vd.fresnelView);
+      result.rgb = lerp(refractionsData.finalLitRefraction, result.rgb, blendCoeff);
+#endif
+      // Applying fog
+      result.rgb = result.rgb * vd.fogMul + vd.fogAdd;
+
+      return result;
+    }
+
+    float4 calc_water_color_from_ps_input(VS_OUTPUT In, const ViewData vd, const DeepnessData deepnessData, const FoamData foamData)
+    {
+      // Caclulating reflection color
+
+      // Reflections from objects
+      const PlanarReflections planarReflections = getPlanarReflections(vd);
+
+      // Environment reflections
+      const EnvReflections envReflections = getEnvReflections(vd, planarReflections);
+
+      // Shadow factors
+      const ShadowsData shadowsData = getShadows(vd, planarReflections, envReflections);
+
+      // Calculating specular
+      const SunReflections sunReflections = calcSunReflections(vd, shadowsData);
+
+      const ReflectionsData reflectionsData = getReflections(vd, envReflections, planarReflections, sunReflections, foamData, deepnessData);
+
+      // Getting final refraction color
+      RefractionsData refractionsData;
+      {
+        // Underwater
+        const SeabedRefraction seabedRefraction = getSeabedRefraction(vd, deepnessData);
+
+        // Surface scattering
+        const SubSurfScattering subSurfScattering = getSubSurfScattering(vd);
+
+        // Underwater scattering
+        const UnderWaterScattering underWaterScattering = getUnderWaterScattering(vd, deepnessData, foamData);
+
+        refractionsData = getRefractions(vd, shadowsData, deepnessData, seabedRefraction, subSurfScattering, underWaterScattering);
+      }
+
+      // Final color
+      half4 result = calcFinalColor(vd, shadowsData, foamData, deepnessData, refractionsData, reflectionsData, sunReflections);
+      result.rgb = pack_hdr(result.rgb).rgb;
+      return result;
+    }
+  }
+endmacro

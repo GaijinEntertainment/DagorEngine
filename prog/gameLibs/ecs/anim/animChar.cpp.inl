@@ -14,6 +14,7 @@
 #include <generic/dag_relocatableFixedVector.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
+#include <util/dag_convar.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -23,6 +24,11 @@
 #include "render/animCharTexReplace.h"
 #include <ecs/anim/animcharUpdateEvent.h>
 #include <daECS/core/componentType.h>
+#include <ecs/anim/animchar_visbits.h>
+
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+static CONSOLE_BOOL_VAL("animchar", perf_markers_names, false);
+#endif
 
 static int harmonization_required = -1;
 
@@ -163,9 +169,9 @@ public:
           replace_animchar_resource(*this, acBase, animCharRes, animCharReplHarmObj, animCharSetHarmObj);
         }
       }
+      if (!getSceneInstance())
+        setVisualResource(getVisualResource(), true, acBase.getNodeTree());
     }
-    if (!getSceneInstance())
-      setVisualResource(getVisualResource(), true, acBase.getNodeTree());
     mgr.setOptional<float>(eid, ECS_HASH("animchar_render__dist_sq"), getRenderDistanceSq());
   }
 };
@@ -175,10 +181,34 @@ bool AnimcharNodesMat44::onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid)
   const AnimV20::AnimcharBaseComponent &acBase = mgr.get<AnimV20::AnimcharBaseComponent>(eid, ECS_HASH("animchar"));
 
   clear_and_resize(nwtm, acBase.getNodeTree().nodeCount());
+  if (DAGOR_UNLIKELY(nwtm.empty()))
+    return false;
   acBase.copyNodesTo(*this);
   mgr.set<vec3f>(eid, ECS_HASH("animchar_render__root_pos"), nwtm[0].col3);
   return true;
 }
+
+// Holds reference to original animchar resource, while entity is alive. Avoid cleaning it up right after being loaded,
+// and then reloading it again, when unused resources are being freed, while creating several similar entities.
+// It is also used to fix leak of AnimData in same scenario, until the core issue is fixed.
+struct AnimcharResourceReferenceHolder
+{
+  EA_NON_COPYABLE(AnimcharResourceReferenceHolder);
+  AnimcharResourceReferenceHolder(ecs::EntityManager &mgr, ecs::EntityId eid)
+  {
+    if (const char *animCharResName = mgr.getOr(eid, ECS_HASH("animchar__res"), ecs::nullstr))
+      animcharRes =
+        (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(animCharResName), CharacterGameResClassId);
+  }
+  AnimcharResourceReferenceHolder(AnimcharResourceReferenceHolder &&rhs) : animcharRes(eastl::exchange(rhs.animcharRes, nullptr)) {}
+  ~AnimcharResourceReferenceHolder()
+  {
+    if (animcharRes)
+      ::release_game_resource((GameResource *)animcharRes);
+  }
+
+  AnimV20::IAnimCharacter2 *animcharRes = nullptr;
+};
 
 // currently we can't use template magic, because object is actually created within onLoaded.
 // After we refactor it to requestResourse / create, it will be just InplaceCreator
@@ -188,9 +218,14 @@ ECS_REGISTER_MANAGED_TYPE(AnimV20::AnimcharRendComponent, nullptr,
   typename ecs::CreatorSelector<AnimV20::AnimcharRendComponent ECS_COMMA AnimcharRendConstruct>::type);
 ECS_REGISTER_RELOCATABLE_TYPE(AnimcharNodesMat44, nullptr);
 
+ECS_DECLARE_RELOCATABLE_TYPE(AnimcharResourceReferenceHolder);
+ECS_REGISTER_RELOCATABLE_TYPE(AnimcharResourceReferenceHolder, nullptr);
+ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimcharResourceReferenceHolder, "animchar__resRefHolder", nullptr, 0, "animchar__res")
+
 ECS_AUTO_REGISTER_COMPONENT(ecs::Object, "animchar__animState", nullptr, 0); // as animchar writes to animState
 ECS_AUTO_REGISTER_COMPONENT(ecs::string, "animchar__res", nullptr, 0);
-ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharBaseComponent, "animchar", nullptr, 0, "?animchar__animState", "animchar__res");
+ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharBaseComponent, "animchar", nullptr, 0, "?animchar__animState", "animchar__res",
+  "?animchar__resRefHolder");
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimV20::AnimcharBaseComponent, "saved_animchar", nullptr, 0, "?animchar");
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimcharNodesMat44, "animchar_node_wtm", nullptr, 0, "animchar", "animchar_render",
   "animchar_render__root_pos", "animchar_render__dist_sq");
@@ -201,7 +236,7 @@ ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_bbox", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_shadow_cull_bbox", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_attaches_bbox", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_attaches_bbox_precalculated", nullptr, 0);
-ECS_AUTO_REGISTER_COMPONENT(uint8_t, "animchar_visbits", nullptr, 0);
+ECS_AUTO_REGISTER_COMPONENT(animchar_visbits_t, "animchar_visbits", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(vec3f, "animchar_render__root_pos", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(float, "animchar_render__dist_sq", nullptr, 0);
 ECS_DEF_PULL_VAR(animchar);
@@ -242,40 +277,50 @@ struct AnimcharAttachRec
 };
 DAG_DECLARE_RELOCATABLE(AnimcharAttachRec);
 
-#define ANIMCHAR_ACT(dt, accum_dt, dt_threshold) \
-  anim::animchar_act(dt, accum_dt, dt_threshold, animchar, animchar__turnDir, transform, animchar_node_wtm, animchar_render__root_pos)
-void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, AnimV20::AnimcharBaseComponent &animchar,
-  bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm, vec3f *animchar_render__root_pos)
-{
-  TIME_PROFILE_DEV(animchar_act);
 
+static __forceinline void animchar_act_impl(float dt, float *accum_dt, const float *dt_threshold,
+  AnimV20::AnimcharBaseComponent &animchar, bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm,
+  vec3f *animchar_render__root_pos, volatile int *pnfullacts = nullptr, volatile int *pncalcwtms = nullptr)
+{
   animchar_set_tm(animchar, animchar__turnDir, transform);
+  auto animcharAct = [&](float anim_dt) {
+    animchar.act(anim_dt, /*calc_anim*/ true);
+    pnfullacts ? interlocked_increment(*pnfullacts) : 0;
+  };
   if (!accum_dt)
-    animchar.act(dt, /*calc_anim*/ true);
+    animcharAct(dt);
   else
   {
     *accum_dt += dt;
     if (*accum_dt >= *dt_threshold)
     {
-      animchar.act(*accum_dt, /*calc_anim*/ true);
+      animcharAct(*accum_dt);
       *accum_dt = 0.f;
     }
     else
     {
-      TIME_PROFILE_DEV(animchar_recalc_wtm);
       animchar.recalcWtm();
+      pncalcwtms ? interlocked_increment(*pncalcwtms) : 0;
     }
   }
   if (!animchar_node_wtm)
     return;
-
-  TIME_PROFILE_DEV(animchar_copy_nodes);
   animchar_copy_nodes(animchar, *animchar_node_wtm, *animchar_render__root_pos);
-
 #if DAECS_EXTENSIVE_CHECKS
   for (auto &n : animchar_node_wtm->nwtm)
     ANIMCHAR_VERIFY_NODE_POS(n.col3, eastl::distance(animchar_node_wtm->nwtm.data(), &n), animchar);
 #endif
+}
+
+#define ANIMCHAR_ACT_EXT(fn, dt, accum_dt, dt_threshold, ...) \
+  fn(dt, accum_dt, dt_threshold, animchar, animchar__turnDir, transform, animchar_node_wtm, animchar_render__root_pos, ##__VA_ARGS__)
+#define ANIMCHAR_ACT(dt, accum_dt, dt_threshold) ANIMCHAR_ACT_EXT(anim::animchar_act, dt, accum_dt, dt_threshold)
+#define ANIMCHAR_ACT_0                           ANIMCHAR_ACT(0.f, nullptr, nullptr)
+
+void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, AnimV20::AnimcharBaseComponent &animchar,
+  bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm, vec3f *animchar_render__root_pos)
+{
+  ANIMCHAR_ACT_EXT(animchar_act_impl, dt, accum_dt, dt_threshold);
 }
 
 ECS_REGISTER_EVENT(UpdateAnimcharEvent);
@@ -290,26 +335,47 @@ static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info)
   {
     TIME_PROFILE_DEV(assemble_attaches);
     animchar_pre_update_ecs_query([&](ecs::EntityId eid, int slot_attach__slotId, AnimV20::AnimcharBaseComponent &animchar,
-                                    ecs::EntityId slot_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
+                                    ecs::EntityId animchar_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
       if (slot_attach__slotId < 0)
         return;
-      ECS_GET_ENTITY_COMPONENT_RW(AnimV20::AnimcharBaseComponent, animCharAttachedTo, slot_attach__attachedTo, animchar);
+      ECS_GET_ENTITY_COMPONENT_RW(AnimV20::AnimcharBaseComponent, animCharAttachedTo, animchar_attach__attachedTo, animchar);
       if (animCharAttachedTo)
       {
         int aid = animCharAttachedTo->setAttachedChar(slot_attach__slotId, ecs::entity_id_t(eid), &animchar, /*recalcable*/ false);
-        attachRecords.emplace_back(animCharAttachedTo, aid, slot_attach__attachedTo);
+        attachRecords.emplace_back(animCharAttachedTo, aid, animchar_attach__attachedTo);
       }
     });
   }
 
-  // update animchars with attachments
-  animchar_update_ecs_query(
-    [&](ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand) ECS_REQUIRE_NOT(ecs::Tag animchar__physSymDependence)
-          ECS_REQUIRE(eastl::true_type animchar__updatable = true) AnimV20::AnimcharBaseComponent &animchar,
-      float *animchar__accumDt, const float *animchar__dtThreshold,
-      AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
-      vec3f *animchar_render__root_pos,      // always on client, never on server
-      const TMatrix &transform, bool animchar__turnDir = false) { ANIMCHAR_ACT(info.dt, animchar__accumDt, animchar__dtThreshold); });
+  // Update animchars with attachments
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+  volatile int nacts = 0, nfullacts = 0, ncalcwtms = 0;
+#endif
+  animchar_update_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand) ECS_REQUIRE_NOT(ecs::Tag animchar__physSymDependence)
+                                  AnimV20::AnimcharBaseComponent &animchar,
+                              float *animchar__accumDt, const float *animchar__dtThreshold,
+                              AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+                              vec3f *animchar_render__root_pos,      // always on client, never on server
+                              const TMatrix &transform, bool animchar__updatable = true, bool animchar__turnDir = false) {
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+    interlocked_increment(nacts);
+    if (!animchar__updatable)
+      return;
+    if (DAGOR_UNLIKELY(perf_markers_names))
+    {
+      TIME_PROFILE_NAME(animchar_act, animchar.getResName())
+      ANIMCHAR_ACT_EXT(animchar_act_impl, info.dt, animchar__accumDt, animchar__dtThreshold, &nfullacts, &ncalcwtms);
+    }
+    else
+      ANIMCHAR_ACT_EXT(animchar_act_impl, info.dt, animchar__accumDt, animchar__dtThreshold, &nfullacts, &ncalcwtms);
+#else
+    if (animchar__updatable)
+      ANIMCHAR_ACT_EXT(animchar_act_impl, info.dt, animchar__accumDt, animchar__dtThreshold);
+#endif
+  });
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+  DA_PROFILE_TAG(animchar_es, "nacts=%d nfullacts=%d ncalcwtms=%d", nacts, nfullacts, ncalcwtms);
+#endif
 }
 
 ECS_AFTER(anim_phys_es)
@@ -342,7 +408,7 @@ static __forceinline void animchar_act_on_demand_es_event_handler(const ecs::Eve
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 
@@ -353,17 +419,17 @@ static __forceinline void animchar_act_on_demand_detach_es_event_handler(const e
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 ECS_REQUIRE(ecs::Tag disableUpdate)
 ECS_TRACK(transform, animchar__turnDir)
 ECS_ON_EVENT(on_appear)
-static __forceinline void animchar_non_updatable_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
+static __forceinline void animchar_non_updatable_es(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 ECS_REQUIRE(ecs::Tag disableUpdate)
@@ -373,26 +439,25 @@ static __forceinline void animchar_non_updatable_detach_es_event_handler(const e
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 ECS_TRACK(skeleton_attach__attached)
 ECS_TAG(gameClient)
 ECS_REQUIRE(eastl::false_type skeleton_attach__attached)
-ECS_AFTER(skeleton_attach_clear_attach_es)
 static __forceinline void animchar_skeleton_attach_destroy_attach_es_event_handler(const ecs::Event &,
   AnimV20::AnimcharBaseComponent &animchar,
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 static __forceinline void animchar_act_on_phys_teleport_es(const EventOnEntityTeleported &, AnimV20::AnimcharBaseComponent &animchar,
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
-  ANIMCHAR_ACT(0.f, NULL, NULL);
+  ANIMCHAR_ACT_0;
 }
 
 ECS_TRACK(animchar__objTexReplace)

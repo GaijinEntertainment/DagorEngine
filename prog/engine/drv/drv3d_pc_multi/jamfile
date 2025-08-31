@@ -41,7 +41,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/nvapi
 ;
 
-CPPopt = -D__B_DRVDX -DINSIDE_DRIVER -DUSE_MULTI_D3D_$(UseD3DMultiList) ;
+CPPopt = -DINSIDE_DRIVER -DUSE_MULTI_D3D_$(UseD3DMultiList) ;
 
 UseProgLibs =
   engine/drv/drv3d_commonCode

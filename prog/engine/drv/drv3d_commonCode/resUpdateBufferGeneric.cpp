@@ -2,10 +2,10 @@
 
 #include "resUpdateBufferGeneric.h"
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
-#include <debug/dag_assert.h>
 
 rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,
   unsigned dest_slice, unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth)
@@ -23,21 +23,21 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   uint32_t targetDepth = ti.d;
   if (fmtInfo.isBlockFormat)
   {
-    G_ASSERT_RETURN(0 == offset_x % fmtInfo.elementWidth, nullptr);
-    G_ASSERT_RETURN(0 == offset_y % fmtInfo.elementHeight, nullptr);
-    G_ASSERT_RETURN(0 == width % fmtInfo.elementWidth, nullptr);
-    G_ASSERT_RETURN(0 == height % fmtInfo.elementHeight, nullptr);
+    D3D_CONTRACT_ASSERT_RETURN(0 == offset_x % fmtInfo.elementWidth, nullptr);
+    D3D_CONTRACT_ASSERT_RETURN(0 == offset_y % fmtInfo.elementHeight, nullptr);
+    D3D_CONTRACT_ASSERT_RETURN(0 == width % fmtInfo.elementWidth, nullptr);
+    D3D_CONTRACT_ASSERT_RETURN(0 == height % fmtInfo.elementHeight, nullptr);
     // getinfo may yield incorrectly calculated values for block compressed formats
     targetWidth = max<uint32_t>(targetWidth, fmtInfo.elementWidth);
     targetHeight = max<uint32_t>(targetHeight, fmtInfo.elementHeight);
   }
 
-  G_ASSERT_RETURN(offset_x < targetWidth, nullptr);
-  G_ASSERT_RETURN(offset_y < targetHeight, nullptr);
-  G_ASSERT_RETURN(offset_z < targetDepth, nullptr);
-  G_ASSERT_RETURN(offset_x + width <= targetWidth, nullptr);
-  G_ASSERT_RETURN(offset_y + height <= targetHeight, nullptr);
-  G_ASSERT_RETURN(offset_z + depth <= targetDepth, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_x < targetWidth, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_y < targetHeight, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_z < targetDepth, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_x + width <= targetWidth, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_y + height <= targetHeight, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(offset_z + depth <= targetDepth, nullptr);
 
   bool updateDirectly = d3d::is_in_device_reset_now();
   if (d3d::get_driver_code().is(d3d::metal))
@@ -50,15 +50,15 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   {
     stagingTex = dest_base_texture;
     bool ret = false;
-    switch (ti.resType)
+    switch (ti.type)
     {
-      case RES3D_VOLTEX:
+      case D3DResourceType::VOLTEX:
         ret = stagingTex->lockbox((void **)&dst, dstPitch, slicePitch, dest_mip, TEXLOCK_WRITE);
         G_ASSERT(slicePitch == dstPitch * ti.h / fmtInfo.elementHeight);
         break;
-      case RES3D_ARRTEX:
-      case RES3D_CUBETEX:
-      case RES3D_CUBEARRTEX: ret = stagingTex->lockimg((void **)&dst, dstPitch, dest_slice, dest_mip, TEXLOCK_WRITE); break;
+      case D3DResourceType::ARRTEX:
+      case D3DResourceType::CUBETEX:
+      case D3DResourceType::CUBEARRTEX: ret = stagingTex->lockimg((void **)&dst, dstPitch, dest_slice, dest_mip, TEXLOCK_WRITE); break;
       default: ret = stagingTex->lockimg((void **)&dst, dstPitch, dest_mip, TEXLOCK_WRITE); break;
     }
     if (!ret || !dst)
@@ -73,7 +73,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   }
   else
   {
-    bool voltex = (ti.resType == RES3D_VOLTEX);
+    bool voltex = (ti.type == D3DResourceType::VOLTEX);
     stagingTex = voltex ? d3d::create_voltex(width, height, depth, cflg, 1) : d3d::create_tex(nullptr, width, height, cflg, 1);
     if (!stagingTex)
     {
@@ -144,15 +144,17 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
   {
     staging_tex = dest_tex;
     bool ret = false;
-    switch (dest_tex->restype())
+    switch (dest_tex->getType())
     {
-      case RES3D_VOLTEX:
+      case D3DResourceType::VOLTEX:
         ret = staging_tex->lockbox((void **)&dst, dst_pitch, slice_pitch, dest_mip, TEXLOCK_WRITE);
         G_ASSERT(slice_pitch == dst_pitch * (is_block_fmt ? ti.h / 4 : ti.h));
         break;
-      case RES3D_ARRTEX:
-      case RES3D_CUBETEX:
-      case RES3D_CUBEARRTEX: ret = staging_tex->lockimg((void **)&dst, dst_pitch, dest_slice, dest_mip, TEXLOCK_WRITE); break;
+      case D3DResourceType::ARRTEX:
+      case D3DResourceType::CUBETEX:
+      case D3DResourceType::CUBEARRTEX:
+        ret = staging_tex->lockimg((void **)&dst, dst_pitch, dest_slice, dest_mip, TEXLOCK_WRITE);
+        break;
       default: ret = staging_tex->lockimg((void **)&dst, dst_pitch, dest_mip, TEXLOCK_WRITE); break;
     }
     if (!ret || !dst)
@@ -161,14 +163,14 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
         D3D_ERROR("failed to lock RUB.staging %dx%d,L%d cfg=0x%x %s", ti.w, ti.h, 1, ti.cflg, dest_tex->getTexName());
       return nullptr;
     }
-    if (RES3D_VOLTEX == dest_tex->restype())
+    if (D3DResourceType::VOLTEX == dest_tex->getType())
     {
       dst += slice_pitch * dest_slice;
     }
   }
   else
   {
-    bool voltex = (dest_tex->restype() == RES3D_VOLTEX);
+    bool voltex = (dest_tex->getType() == D3DResourceType::VOLTEX);
     staging_tex = voltex ? d3d::create_voltex(ti.w, ti.h, 1, cflg, 1) : d3d::create_tex(nullptr, ti.w, ti.h, cflg, 1);
     if (!staging_tex)
     {
@@ -198,14 +200,14 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
   rub->size = rub->slicePitch;
   rub->x = 0;
   rub->y = 0;
-  rub->z = (dest_tex->restype() == RES3D_VOLTEX) ? dest_slice : 0;
+  rub->z = (dest_tex->getType() == D3DResourceType::VOLTEX) ? dest_slice : 0;
   rub->w = ti.w;
   rub->h = ti.h;
   rub->d = 1;
   rub->cflg = ti.cflg;
   rub->destTex = dest_tex;
   rub->destMip = dest_mip;
-  rub->destSlice = (dest_tex->restype() == RES3D_VOLTEX) ? 0 : dest_slice;
+  rub->destSlice = (dest_tex->getType() == D3DResourceType::VOLTEX) ? 0 : dest_slice;
   return rub;
 }
 
@@ -213,7 +215,7 @@ static void unlock_update_buffer(rubgeneric::ResUpdateBuffer *rub)
 {
   if (!rub || !rub->staging || !rub->ptr)
     return;
-  bool voltex = (rub->staging->restype() == RES3D_VOLTEX);
+  bool voltex = (rub->staging->getType() == D3DResourceType::VOLTEX);
   if ((voltex && !rub->staging->unlockbox()) || (!voltex && !rub->staging->unlockimg()))
     if (!d3d::is_in_device_reset_now())
       D3D_ERROR("failed to unlock RUB.staging");
@@ -248,14 +250,14 @@ bool rubgeneric::update_texture_and_release_update_buffer(ResUpdateBuffer *&src_
   unlock_update_buffer(src_rub);
   if (src_rub->staging != src_rub->destTex)
   {
-    G_ASSERT_RETURN(src_rub->staging, false);
+    D3D_CONTRACT_ASSERT_RETURN(src_rub->staging, false);
 
-    bool voltex = (src_rub->staging->restype() == RES3D_VOLTEX);
+    bool voltex = (src_rub->staging->getType() == D3DResourceType::VOLTEX);
     BaseTexture *dest = src_rub->destTex;
     int dest_mip = src_rub->destMip;
     int dest_slice = src_rub->destSlice;
-    G_ASSERTF_RETURN((dest->restype() == RES3D_VOLTEX) == voltex, false, "dest->type=%d staging->type=%d", dest->restype(),
-      src_rub->staging->restype());
+    D3D_CONTRACT_ASSERTF_RETURN((dest->getType() == D3DResourceType::VOLTEX) == voltex, false, "dest->type=%d staging->type=%d",
+      eastl::to_underlying(dest->getType()), eastl::to_underlying(src_rub->staging->getType()));
     if (!dest->updateSubRegion(/*src*/ src_rub->staging, 0, 0, 0, 0, /*size*/ src_rub->w, src_rub->h, src_rub->d,
           /*dest*/ dest->calcSubResIdx(dest_mip, dest_slice), src_rub->x, src_rub->y, src_rub->z))
       if (!d3d::is_in_device_reset_now())

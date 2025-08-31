@@ -128,32 +128,32 @@ class PxFileBufSaveCB : public physx::PxFileBuf
 public:
   PxFileBufSaveCB(mkbindump::BinDumpSaveCB &_cwr) : cwr(_cwr) {}
 
-  virtual OpenMode getOpenMode(void) const { return OPEN_WRITE_ONLY; }
+  OpenMode getOpenMode(void) const override { return OPEN_WRITE_ONLY; }
 
-  virtual SeekType isSeekable(void) const { return SEEKABLE_WRITE; }
+  SeekType isSeekable(void) const override { return SEEKABLE_WRITE; }
 
-  virtual PxU32 getFileLength(void) const { return cwr.getSize(); }
+  PxU32 getFileLength(void) const override { return cwr.getSize(); }
 
-  virtual PxU32 seekRead(PxU32 loc) { return cwr.tell(); }
-  virtual PxU32 seekWrite(PxU32 loc)
+  PxU32 seekRead(PxU32 loc) override { return cwr.tell(); }
+  PxU32 seekWrite(PxU32 loc) override
   {
     cwr.seekto(loc);
     return cwr.tell();
   }
 
-  virtual PxU32 read(void *mem, PxU32 len) { return 0; }
-  virtual PxU32 peek(void *mem, PxU32 len) { return 0; }
+  PxU32 read(void *mem, PxU32 len) override { return 0; }
+  PxU32 peek(void *mem, PxU32 len) override { return 0; }
 
-  virtual PxU32 write(const void *mem, PxU32 len)
+  PxU32 write(const void *mem, PxU32 len) override
   {
     cwr.writeRaw(mem, len);
     return len;
   }
 
-  virtual PxU32 tellRead(void) const { return cwr.tell(); }
-  virtual PxU32 tellWrite(void) const { return cwr.tell(); }
+  PxU32 tellRead(void) const override { return cwr.tell(); }
+  PxU32 tellWrite(void) const override { return cwr.tell(); }
 
-  virtual void flush(void) {}
+  void flush(void) override {}
 };
 
 
@@ -161,14 +161,14 @@ class ApexDestrExp : public IDagorAssetExporter
 {
   static constexpr unsigned ApexDestrGameResClassId = 0x73A10E01u; // ApexDestr
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "apexDestr exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "apexDestr exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return ApexDestrGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return preferZstdPacking ? 21 : 20; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return ApexDestrGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return preferZstdPacking ? 21 : 20; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -178,7 +178,7 @@ public:
       add_proxymat_dep_files(a.getTargetFilePath(), files, a.getMgr());
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
   DataBlock appBlkCopy;
 
@@ -186,7 +186,7 @@ public:
   {
   public:
     CB(const char *fn) : fpath(fn) {}
-    virtual int node(Node &c)
+    int node(Node &c) override
     {
       if (c.obj && c.obj->isSubOf(OCID_MESHHOLDER) && ((MeshHolderObj *)c.obj)->mesh)
       {
@@ -209,7 +209,7 @@ public:
   static IProcessMaterialData *processMat;
   static MaterialData *processMaterial(MaterialData *m) { return processMat ? processMat->processMaterial(m, true) : m; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
 #if _TARGET_64BIT
     if (!apex)
@@ -745,7 +745,7 @@ public:
     }
 
     // create tmp buffer srcCwr which we will pack later with lzma_compress_data()
-    mkbindump::BinDumpSaveCB srcCwr(8 << 20, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB srcCwr(8 << 20, cwr);
     PxFileBufSaveCB fileStream(srcCwr);
 
     const NxParameterized::Interface *fractureNxParameterized = author->getNxParameterized();
@@ -778,7 +778,7 @@ public:
 
     if (writeAssetCache)
     {
-      mkbindump::BinDumpSaveCB srcCwrCached(8 << 20, cwr.getTarget(), cwr.WRITE_BE);
+      mkbindump::BinDumpSaveCB srcCwrCached(8 << 20, cwr);
       PxFileBufSaveCB fileStreamCached(srcCwrCached);
       String cachedName(120, "%s%i", a.getName(), node_index);
       write_cache(fileStreamCached, author, serializer, cachedName.str(), log);
@@ -1518,7 +1518,7 @@ public:
   public:
     Listener() {}
     virtual ~Listener() {}
-    virtual void setProgress(int, const char *) {}
+    void setProgress(int, const char *) override {}
   };
 
   bool fracture_cutout(const char *meshName, NxDestructibleAssetAuthoring *author, fracture::FractureDesc &desc,
@@ -1689,7 +1689,7 @@ IProcessMaterialData *ApexDestrExp::processMat = nullptr;
 class ApexDestrExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
 #if _TARGET_64BIT
     const char *appDir = appblk.getStr("appDir", ".");
@@ -1744,7 +1744,7 @@ public:
     return true;
 #endif
   }
-  virtual void __stdcall destroy()
+  void __stdcall destroy() override
   {
 #if _TARGET_64BIT
     del_it(apex);
@@ -1752,13 +1752,13 @@ public:
     delete this;
   }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 0; }
-  virtual const char *__stdcall getRefProvType(int idx) { return NULL; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return NULL; }
+  int __stdcall getRefProvCount() override { return 0; }
+  const char *__stdcall getRefProvType(int idx) override { return NULL; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return NULL; }
 
 protected:
   ApexDestrExp exp;

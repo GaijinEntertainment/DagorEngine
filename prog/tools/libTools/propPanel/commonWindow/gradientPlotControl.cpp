@@ -7,7 +7,6 @@
 #include <propPanel/c_util.h>
 #include "../c_constants.h"
 
-#include <windows.h>
 #include <generic/dag_tab.h>
 #include <libTools/util/hdpiUtil.h>
 #include <math/dag_mathBase.h>
@@ -79,9 +78,9 @@ protected:
 class GPCModeH : public IGradientPlotController
 {
 public:
-  // virtual bool needUpdate() { return false; }
+  // bool needUpdate() override { return false; }
 
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -91,7 +90,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -100,7 +99,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -120,7 +119,7 @@ protected:
 class GPCModeS : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -130,7 +129,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -139,7 +138,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -159,7 +158,7 @@ protected:
 class GPCModeV : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -169,7 +168,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -178,7 +177,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -198,7 +197,7 @@ protected:
 class GPCModeR : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -208,7 +207,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -217,7 +216,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -237,7 +236,7 @@ protected:
 class GPCModeG : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -247,7 +246,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -256,7 +255,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -276,7 +275,7 @@ protected:
 class GPCModeB : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -286,7 +285,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1)
       return Point2(0, 0);
@@ -295,7 +294,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1)
       return;
@@ -315,9 +314,9 @@ protected:
 class GPCModeHS : public IGradientPlotController
 {
 public:
-  // virtual bool needUpdate() { return false; }
+  // bool needUpdate() override { return false; }
 
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -330,7 +329,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -339,7 +338,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -358,9 +357,9 @@ protected:
 class GPCModeHV : public IGradientPlotController
 {
 public:
-  // virtual bool needUpdate() { return false; }
+  // bool needUpdate() override { return false; }
 
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -373,7 +372,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -382,7 +381,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -401,7 +400,7 @@ protected:
 class GPCModeSV : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -414,7 +413,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -423,7 +422,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -442,7 +441,7 @@ protected:
 class GPCModeRG : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -455,7 +454,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -464,7 +463,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -483,7 +482,7 @@ protected:
 class GPCModeRB : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -496,7 +495,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -505,7 +504,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -524,7 +523,7 @@ protected:
 class GPCModeGB : public IGradientPlotController
 {
 public:
-  virtual Point3 pickPlotValue(int x, int y)
+  Point3 pickPlotValue(int x, int y) override
   {
     x = clamp(x, 0, (int)w - 1);
     y = clamp(y, 0, (int)h - 1);
@@ -537,7 +536,7 @@ public:
     return value;
   }
 
-  virtual Point2 getPlotPos()
+  Point2 getPlotPos() override
   {
     if (w <= 1 || h <= 1)
       return Point2(0, 0);
@@ -546,7 +545,7 @@ public:
   }
 
 protected:
-  virtual void recalculate()
+  void recalculate() override
   {
     if (w <= 1 || h <= 1)
       return;
@@ -653,9 +652,6 @@ void GradientPlotControl::drawGradientToTexture()
   BaseTexture *texture = d3d::create_tex(nullptr, textureWidth, textureHeight, TEXFMT_A8R8G8B8, 1, textureName);
   if (!texture)
     return;
-
-  TextureMetaData textureMetaData;
-  apply_gen_tex_props(texture, textureMetaData);
 
   LockedImage2DView<uint32_t> lockedTexture = lock_texture<uint32_t>(texture, 0, TEXLOCK_WRITE);
   if (!lockedTexture)
@@ -953,7 +949,8 @@ void GradientPlotControl::draw()
   }
 
   if (gradientTextureId != BAD_TEXTUREID)
-    drawList->AddImage((ImTextureID)((unsigned)gradientTextureId), ImVec2(x0, y0) + viewOffset, ImVec2(x1, y1) + viewOffset);
+    drawList->AddImage((ImTextureID)((uintptr_t)((unsigned)gradientTextureId)), ImVec2(x0, y0) + viewOffset,
+      ImVec2(x1, y1) + viewOffset);
 
   drawList->AddRect(ImVec2(x0 - 1, y0 - 1), ImVec2(x1, y1), IM_COL32(0, 0, 0, 255));
 

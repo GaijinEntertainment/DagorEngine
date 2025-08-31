@@ -7,12 +7,13 @@
 #include <EASTL/fixed_function.h>
 #include <shaders/dag_shaderCommon.h>
 #include <shaders/dag_shaderVar.h>
+#include <shaders/dag_stcode.h>
 #include <generic/dag_DObject.h>
 #include <3d/dag_texMgr.h>
 #include <memory/dag_mem.h>
 #include <util/dag_globDef.h>
 
-// forward declarations for external classes
+// Forward declarations for external classes
 class Sbuffer;
 typedef Sbuffer Ibuffer;
 typedef Sbuffer Vbuffer;
@@ -27,8 +28,8 @@ struct ShaderMatData;
 
 struct AdditionalInstanced;
 
-
-// return variableId for shader variable name (with optional fatal when name not found)
+/// @brief Global flag for allowing all shader variables to be treated as optional.
+/// @return variableId for shader variable name (with optional fatal when name not found)
 extern bool dgs_all_shader_vars_optionals;
 __forceinline int get_shader_variable_id(const char *name, bool is_optional = false)
 {
@@ -41,16 +42,27 @@ __forceinline int get_shader_variable_id(const char *name, bool is_optional = fa
   return varId;
 };
 
-// obsolete
+/// @brief Obsolete.
 __forceinline int get_shader_glob_var_id(const char *name, bool is_optional = false)
 {
   return get_shader_variable_id(name, is_optional);
 };
 
-// returns size of shader channel for specified type
+/**
+ * @brief Get the size in bytes of a shader channel type.
+ *
+ * @param type Shader channel type enum.
+ * @return Size of shader channel for specified type
+ */
 int shader_channel_type_size(int t);
 
-
+/**
+ * @class ShaderMaterial
+ * @brief Abstract base class for all shader materials.
+ *
+ * Provides an interface to manage shader parameters, flags, cloning, and binding behavior.
+ * Can be extended by scripting systems (e.g., ScriptedShaderMaterial).
+ */
 class ShaderMaterial : public DObject
 {
 public:
@@ -80,14 +92,16 @@ public:
   virtual bool getTextureVariable(const int variable_id, TEXTUREID &value) const = 0;
   virtual bool getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const = 0;
 
-  // returns false if shader is not renderable in specified mode (if pi==NULL - default rm)
+  virtual ShaderVarType getVariableType(const int variable_id) const = 0;
+
+  /// @return false if shader is not renderable in specified mode (if pi==NULL - default rm).
   virtual bool enum_channels(ShaderChannelsEnumCB &, int &ret_code_flags) const = 0;
   virtual ShaderElement *make_elem(bool acquire_tex_refs, const char *info) = 0;
   inline ShaderElement *make_elem(const char *info = NULL) { return make_elem(true, info); }
 
   virtual bool isPositionPacked() const = 0;
 
-  // return true, if channels are valid for this material & specified render mode (if pi==NULL - default rm)
+  /// @return true, if channels are valid for this material & specified render mode (if pi==NULL - default rm).
   virtual bool checkChannels(CompiledShaderChannelId *ch, int ch_count) const = 0;
 
   virtual int get_num_textures() const = 0;
@@ -100,22 +114,27 @@ public:
 
   virtual void getMatData(ShaderMatData &out_data) const = 0;
 
-  //! build material data from shader material (if orig_mat_script is passed then it is used to filter out default values)
+  /**
+   * @brief Build material data from shader material (if orig_mat_script is passed then it is used to filter out
+   * default values).
+   */
   virtual void buildMaterialData(MaterialData &out_data, const char *orig_mat_script = nullptr) = 0;
 
-  // get shader script name
+  /// @brief Get shader script name.
   virtual const char *getShaderClassName() const = 0;
 
-  // Disable some shaders for debug.
+  /// @brief Disable some shaders for debug.
   virtual bool isSelectedForDebug() const = 0;
 
-  // get material info for debug
+  /// @brief Get material info for debug.
   virtual const String getInfo() const = 0;
 
-  // set sting for error info while loading material. don't forget to clear it after loading!
+  /// @brief Set sting for error info while loading material.
+  /// @note Don't forget to clear it after loading!
   static void setLoadingString(const char *s);
 
-  // get string for error info. return NULL, if no error string set
+  /// @brief Get string for error info.
+  /// @return NULL, if no error string set.
   static const char *getLoadingString();
 
 private:
@@ -146,11 +165,11 @@ public:
   virtual void acquireTexRefs() = 0;
   virtual void releaseTexRefs() = 0;
 
-  // return element flags
+  /// @return element flags.
   virtual const char *getShaderClassName() const = 0;
   virtual void setProgram(uint32_t variant) = 0;
 
-  // Return vertex size on shader input.
+  /// @return vertex size on shader input.
   virtual unsigned int getVertexStride() const = 0;
 
   virtual dag::ConstSpan<ShaderChannelId> getChannels() const = 0;
@@ -162,10 +181,10 @@ public:
   virtual bool setReqTexLevel(int req_level = 15) const = 0;
 
   virtual bool checkAndPrefetchMissingTextures() const = 0;
-  //! invalidates internal cached state block (to force block re-apply and d3d program update)
+
+  /// @brief Invalidates internal cached state block (to force block re-apply and d3d program update).
   static void invalidate_cached_state_block();
 };
-
 
 ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp = false, bool do_log = true);
 ShaderMaterial *new_shader_material_by_name_optional(const char *shader_name, const char *mat_script = NULL,
@@ -176,69 +195,86 @@ const char *get_shader_class_name_by_material_name(const char *mat_name);
 
 d3d::shadermodel::Version getMaxFSHVersion();
 
-// startups shaders (if shbindump_base!= NULL schedules shaders data loading)
+/// @brief Startups shaders (if shbindump_base!= NULL schedules shaders data loading).
 void startup_shaders(const char *shbindump_base, d3d::shadermodel::Version shader_model_version = d3d::smAny);
 
-
-// direct load/unload shaders binary dump (called from shaders startup proc)
+/// @brief Direct load/unload shaders binary dump (called from shaders startup proc).
 bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version shader_model_version, bool sec_dump_for_exp = false);
 void unload_shaders_bindump(bool sec_dump_for_exp = false);
 
-bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version);
-
-// all job mangers whose jobs are going to use shaders bindump should call this function
+/// @brief All job mangers whose jobs require shaders bindump to be loaded should call this function.
 void register_job_manager_requiring_shaders_bindump(int job_mgr_id);
 
-// enable usage of stateblocks in shaders (default is platform-specific)
+/**
+ * @brief (Re)load of shaders bindump which is allowed to be called concurrently with jobs that require valid dump
+ * (those on registered mgrs).
+ * Inside this call:
+ * 1) Manager registration via register_job_manager_requiring_shaders_bindump will be blocked.
+ * 2) All currently registered managers will be awaited to finish current work and then blocked.
+ * 3) Bindump will be (re)loaded.
+ * 4) The blocked managers (and in-flight registrations) will be released.
+ */
+bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version);
+
+/// @brief Load debug shaderdump (compiled with -debug).
+bool load_shaders_debug_bindump(d3d::shadermodel::Version version);
+
+/// @brief Unload debug shaderdump (compiled with -debug).
+bool unload_shaders_debug_bindump(d3d::shadermodel::Version version);
+
+/// @brief Enable usage of stateblocks in shaders (default is platform-specific).
 inline void enable_shaders_use_stateblock(bool) {}
 
-// enable emulation of stateblocks in shaders (default is false)
+/// @brief Enable emulation of stateblocks in shaders (default is false).
 inline void enable_shaders_emulate_stateblock(bool) {}
 
-// discards shader stateblocks (useful after 3d reset or when internal texture data is changed)
+/// @brief Discards shader stateblocks (useful after 3d reset or when internal texture data is changed).
 void rebuild_shaders_stateblocks();
 
-// discards shader stateblocks, if too many were destroyed
-void defrag_shaders_stateblocks(bool force); //
+/// @brief Discards shader stateblocks, if too many were destroyed.
+void defrag_shaders_stateblocks(bool force);
 
-// registers console processor for shader-related commands, such as 'reload_shader'
+/// @brief Registers console processor for shader-related commands, such as 'reload_shader'.
 using ShaderReloadCb = eastl::fixed_function<sizeof(void *), void(bool)>;
-void shaders_register_console(
-  bool allow_reload = true, const ShaderReloadCb &after_reload_cb = [](bool) {});
+void shaders_register_console(bool allow_reload = true, const ShaderReloadCb &after_reload_cb = [](bool) {});
 
-// enable or disable shaders reloading depending on build configuration and settings
+/// @brief Enable or disable shaders reloading depending on build configuration and settings.
 void shaders_set_reload_flags();
 
-// Shaders global time:
-
+/// @brief Shaders global time.
 float get_shader_global_time();
 
 void set_shader_global_time(float);
 
-// Adds specified elapsed time to global time variable.
+/// @brief Adds specified elapsed time to global time variable.
 void advance_shader_global_time(float dt);
 
-// Returns global time phase (number in range [0,1)) for specified period and time offset.
+/// @return global time phase (number in range [0,1)) for specified period and time offset.
 real get_shader_global_time_phase(float period, float offset);
 
+/// @brief Sets interpreter for custom directives in stcode tag: stcode/tag:t=$directive in blk.
+void set_stcode_special_tag_interp(stcode::SpecialBlkTagInterpreter &&interp);
+
 //************************************************************************
-//* low-level dynamic shader rendering
+//* Low-level Dynamic Shader Rendering
 //************************************************************************
 namespace dynrender
 {
-// [9/28/2004] Tigrenok
-// This is optional structure for rendering.
-// You can use this structure (fill it & call render()) or
-// set params to driver and render all data manually (shElem->render())
+/**
+ * @brief [9/28/2004] Tigrenok
+ * This is optional structure for rendering.
+ * You can use this structure (fill it & call render()) or
+ * set params to driver and render all data manually (shElem->render())
+ */
 struct RElem
 {
-  Ptr<ShaderElement> shElem; // element to render
-  Ibuffer *ib;               // index buffer
-  Vbuffer *vb;               // vertex buffer
-  VDECL vDecl;               // vdecl
-  int stride;                // stride
+  Ptr<ShaderElement> shElem; ///< element to render
+  Ibuffer *ib;               ///< index buffer
+  Vbuffer *vb;               ///< vertex buffer
+  VDECL vDecl;               ///< vdecl
+  int stride;                ///< stride
 
-  // this parameters required only for member function render()
+  // This parameters required only for member function render()
   int minVert;
   int numVert;
   int startIndex;
@@ -246,17 +282,20 @@ struct RElem
 
   inline RElem() : shElem(NULL), ib(NULL), vb(NULL), vDecl(BAD_VDECL), stride(-1), minVert(0), numVert(0), startIndex(0), numPrim(0) {}
 
-  // set ib, vb, vdecl & render this element
-  // if ib field is NULL or indexed == false, use d3d::draw instead d3d::drawind
+  /**
+   * @brief set ib, vb, vdecl & render this element
+   * if ib field is NULL or indexed == false, use d3d::draw instead d3d::drawind
+   */
   void render(bool indexed = true, int base_vertex_index = 0) const;
   void setBuffers(bool indexed = true) const;
   void setStates(bool indexed = true) const;
 };
 
-// add vdecl or get existing for specified channel set. if stride < 0, calculate it automatically
+/// @brief Add vdecl or get existing for specified channel set. If stride < 0, calculate it automatically.
 VDECL addShaderVdecl(const CompiledShaderChannelId *ch, int numch, int stride = -1, dag::Span<VSDTYPE> add_vsd = {});
 
-// get stride for channel set. return -1, if failed
+/// @brief Get stride for channel set.
+/// @return -1, if failed.
 int getStride(const CompiledShaderChannelId *ch, int numch);
 
 void convert_channels_to_vsd(const CompiledShaderChannelId *ch, int numch, Tab<VSDTYPE> &out_vsd);

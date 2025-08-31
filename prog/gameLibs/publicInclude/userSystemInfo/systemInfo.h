@@ -39,6 +39,7 @@ bool get_os_common_name(String &osCommonName);
 
 bool get_cpu_info(String &cpu, String &cpuFreq, String &cpuVendor, String &cpu_series, int &cores_count);
 bool get_cpu_features(String &cpu_arch, String &cpu_uarch, Tab<String> &cpu_features);
+bool get_soc_info(String &soc);
 
 bool get_mac(String &adapter, String &mac);
 

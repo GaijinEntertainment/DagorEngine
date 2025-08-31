@@ -6,6 +6,7 @@
 #include <3d/dag_texMgr.h>
 #include <generic/dag_patchTab.h>
 #include <generic/dag_smallTab.h>
+#include <dag/dag_vectorSet.h>
 #include <util/dag_stdint.h>
 #include <shaders/shInternalTypes.h>
 #include <shaders/shader_layout.h>
@@ -20,6 +21,8 @@
 #include <EASTL/span.h>
 #include <EASTL/bonus/lru_cache.h>
 #include <EASTL/array.h>
+
+#include "shaderVarsState.h"
 
 struct Color4;
 struct ShaderChannelId;
@@ -82,6 +85,11 @@ struct ScriptedShadersBinDumpOwner
 
   dag::Vector<int> vprId;
   dag::Vector<int> fshId;
+  dag::Vector<int> cshId;
+
+  ShaderVarsState globVarsState;
+
+  dag::VectorSet<int> violatedAssumedIntervals;
 
   // Runtime map name id -> internal dump id
   // @NOTE: have to set size on construction, cause das AOT accesses these arrays in funciton simulation without intializing the
@@ -95,7 +103,11 @@ struct ScriptedShadersBinDumpOwner
   size_t maxShadervarCnt() const { return varIndexMap.size(); }
 
 private:
+#ifdef SET_DEFAULT_MAX_SHVARS
+  static constexpr size_t DEFAULT_MAX_SHVARS = SET_DEFAULT_MAX_SHVARS;
+#else
   static constexpr size_t DEFAULT_MAX_SHVARS = 4096;
+#endif
 
   struct DecompressedGroup
   {
@@ -139,8 +151,8 @@ extern bool autoBlockStateWordChange;
 extern const ShaderClass *shClassUnderDebug;
 
 void dumpShaderInfo(const ShaderClass &cls, bool dump_variants = true);
-void dumpVar(const shaderbindump::VarList &vars, int var);
-void dumpVars(const shaderbindump::VarList &vars);
+void dumpVar(const shaderbindump::VarList &vars, const ShaderVarsState *state, int var);
+void dumpVars(const shaderbindump::VarList &vars, const ShaderVarsState *state);
 void dumpUnusedVariants(const shaderbindump::ShaderClass &cls);
 
 void add_exec_stcode_time(const shaderbindump::ShaderClass &cls, const __int64 &time);
@@ -191,8 +203,7 @@ inline ScriptedShadersBinDump &get_dump_safe(ScriptedShadersBinDump *d) { return
 } // namespace shaderbindump
 
 inline ScriptedShadersBinDumpOwner &shBinDumpOwner() { return shaderbindump::shadersBinDump; }
-inline ScriptedShadersBinDump &shBinDumpRW() { return shaderbindump::get_dump_safe(shBinDumpOwner().getDump()); }
-inline const ScriptedShadersBinDump &shBinDump() { return shBinDumpRW(); }
+inline const ScriptedShadersBinDump &shBinDump() { return shaderbindump::get_dump_safe(shBinDumpOwner().getDump()); }
 
 ScriptedShadersBinDumpOwner &shBinDumpExOwner(bool main);
 inline ScriptedShadersBinDump &shBinDumpExRW(bool main) { return shaderbindump::get_dump_safe(shBinDumpExOwner(main).getDump()); }

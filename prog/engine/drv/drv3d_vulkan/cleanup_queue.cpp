@@ -5,7 +5,7 @@
 #include "buffer_resource.h"
 #include "image_resource.h"
 #include "driver.h"
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
 #include <EASTL/algorithm.h>
@@ -17,65 +17,57 @@ namespace drv3d_vulkan
 {
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<Buffer, Buffer::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<Buffer, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return bufferDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<Image, Image::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<Image, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return imageDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<Image, Image::CLEANUP_DELAYED_DESTROY>> &CleanupQueue::getQueue()
-{
-  return imageDelayedDestructions;
-}
-
-template <>
-Tab<CleanupQueue::DelayedCleanup<VariatedGraphicsPipeline, VariatedGraphicsPipeline::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<VariatedGraphicsPipeline, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return variatedGrPipelineDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<ComputePipeline, ComputePipeline::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<ComputePipeline, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return computePipelineDestructions;
 }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 template <>
-Tab<CleanupQueue::DelayedCleanup<RaytraceAccelerationStructure, RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>>
-  &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<RaytraceAccelerationStructure, CleanupTag::DESTROY_TOP>> &CleanupQueue::getQueue()
 {
   return rtASTopDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<RaytraceAccelerationStructure, RaytraceAccelerationStructure::CLEANUP_DESTROY_BOTTOM>>
-  &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<RaytraceAccelerationStructure, CleanupTag::DESTROY_BOTTOM>> &CleanupQueue::getQueue()
 {
   return rtASBottomDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<RaytracePipeline, RaytracePipeline::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<RaytracePipeline, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return raytracePipelineDestructions;
 }
 #endif
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<RenderPassResource, RenderPassResource::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<RenderPassResource, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return renderPassDestructions;
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<MemoryHeapResource, MemoryHeapResource::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+Tab<CleanupQueue::DelayedCleanup<MemoryHeapResource, CleanupTag::DESTROY>> &CleanupQueue::getQueue()
 {
   return heapDestructions;
 }
@@ -85,36 +77,12 @@ Tab<CleanupQueue::DelayedCleanup<MemoryHeapResource, MemoryHeapResource::CLEANUP
 
 using namespace drv3d_vulkan;
 
-void CleanupQueue::checkValid()
-{
-#if DAGOR_DBGLEVEL > 0
-  G_ASSERTF(!referencedByGpuWork, "vulkan: use external storage for cleanups or reduce pending CPU replays");
-#endif
-}
-
 void CleanupQueue::backendAfterFrameSubmitCleanup()
 {
-#if DAGOR_DBGLEVEL > 0
-  referencedByGpuWork = true;
-#endif
-
   visitAll([](auto &data) {
     for (auto &i : data)
       i.backendCleanup();
   });
-}
-
-void CleanupQueue::backendAfterReplayCleanup()
-{
-#if DAGOR_DBGLEVEL > 0
-  referencedByGpuWork = true;
-#endif
-
-  visitAll([&](auto &data) {
-    for (auto &i : data)
-      i.backendCleanup();
-  });
-  Backend::gpuJob->cleanupsRefs.push_back(this);
 }
 
 void CleanupQueue::backendAfterGPUCleanup()
@@ -125,10 +93,6 @@ void CleanupQueue::backendAfterGPUCleanup()
       i.backendFinish();
     data.clear();
   });
-
-#if DAGOR_DBGLEVEL > 0
-  referencedByGpuWork = false;
-#endif
 }
 
 void CleanupQueue::dumpData(FaultReportDump &dump) const
@@ -150,5 +114,5 @@ size_t CleanupQueue::capacity() const
 
   // DelayedCleanup size does not depend on T
   // can multiply once
-  return ret * sizeof(DelayedCleanup<uint64_t, 0>);
+  return ret * sizeof(DelayedCleanup<uint64_t, CleanupTag::DESTROY>);
 }

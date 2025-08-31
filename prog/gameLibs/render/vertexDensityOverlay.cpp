@@ -104,8 +104,7 @@ void VertexDensityOverlay::before_render()
   if (overlayBlendFactor.pullValueChange())
     ShaderGlobal::set_real(vertexDensityOverlayBlendFactorVarId, overlayBlendFactor.get());
 
-  float v[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-  d3d::clear_rwbuff(uav.getBuf(), v);
+  d3d::zero_rwbufi(uav.getBuf());
 }
 
 void VertexDensityOverlay::bind_UAV()

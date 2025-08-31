@@ -10,6 +10,11 @@
 #include "shExpr.h"
 #include "shVarVecTypes.h"
 
+namespace shc
+{
+class TargetContext;
+}
+
 //************************************************************************
 //* forwards
 //************************************************************************
@@ -57,7 +62,7 @@ class LocalVarTable
 {
 public:
   // ctor/dtor
-  LocalVarTable();
+  explicit LocalVarTable(shc::TargetContext &a_ctx);
   ~LocalVarTable();
 
   // clear all table
@@ -79,7 +84,6 @@ public:
     return const_cast<LocalVarTable *>(this)->getVariableByName(var_name_id);
   }
 
-
   // return local variable by ID (NULL, if failed)
   LocalVar *getVariableById(int var_id) { return (var_id < 0 || var_id >= varTable.size()) ? NULL : &varTable[var_id]; }
   const LocalVar *getVariableById(int var_id) const { return const_cast<LocalVarTable *>(this)->getVariableById(var_id); }
@@ -93,11 +97,10 @@ public:
 
 private:
   Tab<LocalVar> varTable;
+  shc::TargetContext &ctx;
 
 private:
-  LocalVarTable(const LocalVarTable &other) : varTable(midmem) { operator=(other); }
-
-  LocalVarTable &operator=(const LocalVarTable &other) { return *this; }
+  LocalVarTable(const LocalVarTable &other) : varTable(midmem), ctx{other.ctx} {}
 
   void addBuiltinConstants();
 }; // class LocalVarTable

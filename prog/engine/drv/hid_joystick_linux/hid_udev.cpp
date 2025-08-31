@@ -2,6 +2,8 @@
 
 #include <debug/dag_debug.h>
 #include "hid_udev.h"
+#include <math/dag_mathUtils.h>
+#include <util/dag_finally.h>
 
 #include <string.h>
 #include <sys/select.h>
@@ -11,6 +13,8 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <errno.h>
+
+#include "evdev_helpers.h"
 
 namespace HumanInput
 {
@@ -70,22 +74,35 @@ bool load_udev_api(void *udev_lib)
   return true;
 }
 
+
 // if device has some axes assume that it joystick
 bool is_device_joystick(const char *path)
 {
   int fd = open(path, O_RDONLY, 0);
   if (fd < 0)
     return false;
+  FINALLY([fd] { ::close(fd); });
 
-  unsigned char absbit[ABS_MAX];
-  memset(absbit, 0, sizeof(absbit));
-  int res = ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit);
-  close(fd);
-  if (res < 0)
+  InputBitArray<EV_CNT> evbits;
+  if (!evbits.evdevRead(fd, 0))
     return false;
-  for (int i = 0; i < ABS_MAX; ++i)
-    if (absbit[i] != 0)
+
+  // joystick must have atleast one axis
+  if (!evbits.test(EV_ABS))
+    return false;
+  InputBitArray<ABS_CNT> absbits;
+  if (!absbits.evdevRead(fd, EV_ABS))
+    return false;
+
+  // ABS_VOLUME usually used by usb-speakers
+  // ABS_MISC may present in gamepad but as addition to common axes
+  for (int axis = 0; axis < ABS_CNT; ++axis)
+  {
+    if (axis == ABS_MISC || axis == ABS_VOLUME)
+      continue;
+    if (absbits.test(axis))
       return true;
+  }
   return false;
 }
 
@@ -157,6 +174,17 @@ static bool is_dev_property_set(udev_device *dev, const char *propname)
   return val != NULL && *val == '1';
 }
 
+static const char *devclass_name(UDev::DeviceClass dclass)
+{
+  switch (dclass)
+  {
+    case UDev::KEYBOARD: return "Keyboard";
+    case UDev::MOUSE: return "Mouse";
+    case UDev::JOYSTICK: return "Joystick";
+    default: return "Unknown";
+  }
+}
+
 void UDev::onDeviceAction(udev_device *dev, Action action)
 {
   const char *path = udev_device_get_devnode(dev);
@@ -193,7 +221,7 @@ void UDev::onDeviceAction(udev_device *dev, Action action)
 
   if (action == ADDED)
   {
-    char namebuf[256];
+    char namebuf[256] = "Unknown";
     struct stat sb;
     if (stat(path, &sb) == -1)
       return;
@@ -202,14 +230,14 @@ void UDev::onDeviceAction(udev_device *dev, Action action)
     if (fd < 0)
     {
       char error_buf[128];
-      debug("failed to open device node: %s", strerror_r(errno, error_buf, 128));
+      debug("failed to open device node '%s': %s", path, strerror_r(errno, error_buf, 128));
       return;
     }
+    FINALLY([fd] { ::close(fd); });
 
     if (ioctl(fd, EVIOCGID, &device.id) < 0)
     {
       // device is not evdev interface
-      close(fd);
       return;
     }
 
@@ -221,7 +249,6 @@ void UDev::onDeviceAction(udev_device *dev, Action action)
       else
       {
         debug("[UDEV] failed to get device name %s", device.model);
-        close(fd);
         return;
       }
     }
@@ -229,14 +256,12 @@ void UDev::onDeviceAction(udev_device *dev, Action action)
     {
       device.name = namebuf;
     }
-
-    close(fd);
   }
 
   if (action == ADDED)
-    debug("[UDEV] device added %s (%s)", device.model, path);
+    debug("[UDEV] device added %s (%s) as %s", device.name, path, devclass_name(device.devClass));
   else
-    debug("[UDEV] removed added %s (%s)", device.model, path);
+    debug("[UDEV] device removed %s (%s)", device.name, path);
 
   callback(device, action, userData);
 }

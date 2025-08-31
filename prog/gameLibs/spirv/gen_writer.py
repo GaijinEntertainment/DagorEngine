@@ -746,7 +746,7 @@ def make_encoder_for_node(language, node):
     result += '    visitNode(inst, visitor);\n'
     result += '  for (auto && prop : as<NodeOpLabel>(block)->properties)\n'
     result += '     visitProperty(prop.get(), BranchPropertyWriter{writer});\n'
-    result += '  visitNode(block->exit, visitor);\n'
+    result += '  if (block->exit)\n    visitNode(block->exit, visitor);\n'
     result += '}\n'
     result += 'writer.beginInstruction(Op::OpFunctionEnd, 0)\n;'
     result += ' writer.endWrite();\n'

@@ -14,9 +14,9 @@ JPH_NAMESPACE_BEGIN
 /// See: https://en.wikipedia.org/wiki/Anti-roll_bar
 class JPH_EXPORT VehicleAntiRollBar
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, VehicleAntiRollBar)
 
+public:
 	/// Saves the contents in binary form to inStream.
 	void					SaveBinaryState(StreamOut &inStream) const;
 
@@ -27,5 +27,7 @@ public:
 	int						mRightWheel = 1;							///< Index (in mWheels) that represents the right wheel of this anti-rollbar
 	float					mStiffness = 1000.0f;						///< Stiffness (spring constant in N/m) of anti rollbar, can be 0 to disable the anti-rollbar
 };
+
+using VehicleAntiRollBars = Array<VehicleAntiRollBar>;
 
 JPH_NAMESPACE_END

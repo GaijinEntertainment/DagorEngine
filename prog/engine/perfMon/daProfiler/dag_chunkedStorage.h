@@ -202,7 +202,7 @@ public:
       t = addChunk();
       index = 0;
     }
-    return push_back_internal(t, index, (T &&) v);
+    return push_back_internal(t, index, (T &&)v);
   }
   T &push_back()
   {
@@ -313,7 +313,7 @@ public:
     swap(c.freeChunks, freeChunks);
     return *this;
   }
-  ChunkedStorage(ChunkedStorage &&c) { *this = (ChunkedStorage &&) c; }
+  ChunkedStorage(ChunkedStorage &&c) { *this = (ChunkedStorage &&)c; }
   ~ChunkedStorage()
   {
     clear();
@@ -374,7 +374,7 @@ protected:
   }
   __forceinline T &push_back_internal(Node *t, size_type index, T &&v)
   {
-    T &ret = *(new (t->at(index), _NEW_INPLACE) T((T &&) v));
+    T &ret = *(new (t->at(index), _NEW_INPLACE) T((T &&)v));
     inc_count(t);
     return ret;
   }
@@ -462,8 +462,8 @@ protected:
   template <class ST>
   void swap(ST &a, ST &b)
   {
-    ST c = (ST &&) a;
-    a = (ST &&) b;
-    b = (ST &&) c;
+    ST c = (ST &&)a;
+    a = (ST &&)b;
+    b = (ST &&)c;
   }
 };

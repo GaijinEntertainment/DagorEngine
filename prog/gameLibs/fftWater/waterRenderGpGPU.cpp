@@ -180,6 +180,11 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
   G_ASSERT(numCascades <= MAX_NUM_CASCADES);
 
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  defaultSampler = d3d::request_sampler(smpInfo); // -V1048 this is a false-positive
+
   const int N = 1 << fft[0].getParams().fft_resolution_bits;
 
   const int tileW = (numCascades + 1) / 2;
@@ -190,17 +195,14 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   // better be replaced with TEXFMT_A16B16G16R16, but with scale
   ht0 = dag::create_tex(NULL, (N + 1) * tileW, N + 1, TEXCF_RTARGET | fmt, 1, "fftHt0Tex"); // TEXFMT_A16B16G16R16F
   // 129*2 * 129*4*4 - bytes
-  ht0.getTex2D()->texfilter(TEXFILTER_POINT);
-  ht0.getTex2D()->texaddr(TEXADDR_CLAMP);
 
   k_texVarId = get_shader_variable_id("k_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("k_tex_samplerstate", true), defaultSampler);
 
   int gauss_resolution, gauss_stride;
   const cpu_types::float2 *in_gauss = get_global_gauss_data(gauss_resolution, gauss_stride);
   gauss = dag::create_tex(NULL, gauss_resolution + 1, gauss_resolution + 1, TEXFMT_G32R32F, 1, "gaussTex"); // can be replaced with
                                                                                                             // G16R16, with scale?
-  gauss.getTex2D()->texfilter(TEXFILTER_POINT);
-  gauss.getTex2D()->texaddr(TEXADDR_CLAMP);
 
   gauss_texVarId = get_shader_variable_id("gauss_tex");
 
@@ -212,6 +214,7 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     memcpy(data, in_gauss, (gauss_resolution + 1) * sizeof(Point2));
   gauss.getTex2D()->unlockimg();
   ShaderGlobal::set_texture(gauss_texVarId, gauss);
+  ShaderGlobal::set_sampler(get_shader_variable_id("gauss_tex_samplerstate", true), defaultSampler);
 
 
   for (int i = 0; i < 3; ++i)
@@ -219,25 +222,21 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     String texName;
     texName.printf(128, "htPingTex%d", i);
     htPing[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str());
-    htPing[i].getTex2D()->texfilter(TEXFILTER_POINT);
-    htPing[i].getTex2D()->texaddr(TEXADDR_CLAMP);
 
     texName.printf(128, "htPongTex%d", i);
     htPong[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str());
-    htPong[i].getTex2D()->texfilter(TEXFILTER_POINT);
-    htPong[i].getTex2D()->texaddr(TEXADDR_CLAMP);
   }
   htRenderer.init("update_ht");
   current_water_timeVarId = get_shader_variable_id("current_water_time");
   fft_sizeVarId = get_shader_variable_id("fft_size");
   omega_texVarId = get_shader_variable_id("omega_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("omega_tex_samplerstate", true), defaultSampler);
 
   // fixme:omega can be replaced with G16R16 but with scale(s)
   omega = dag::create_tex(NULL, N * tileW, N, TEXFMT_G32R32F, 1, "omegaTex"); // 128*2 * 128*2*4 - bytes
-  omega.getTex2D()->texfilter(TEXFILTER_POINT);
-  omega.getTex2D()->texaddr(TEXADDR_CLAMP);
   fft_source_texture_no = ShaderGlobal::get_int_fast(get_shader_variable_id("fft_source_texture_no"));
   butterfly_texVarId = get_shader_variable_id("butterfly_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("butterfly_tex_samplerstate", true), defaultSampler);
   choppy_scale0123VarId = get_shader_variable_id("choppy_scale0123", true);
   choppy_scale4567VarId = get_shader_variable_id("choppy_scale4567", true);
   const int miNumButterflies = get_log2w(N);
@@ -245,8 +244,6 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   // can be replaced with argb8 texture (for up to 256x256)! coordinates. weight can be indexed, there are only 2*log2(N) of them.
   // Should be faster, than floats!
   butterfly = dag::create_tex(NULL, N, miNumButterflies, TEXFMT_A32B32G32R32F, 1, "butterflyIndex");
-  butterfly.getTex2D()->texfilter(TEXFILTER_POINT);
-  butterfly.getTex2D()->texaddr(TEXADDR_CLAMP);
   if (!butterfly.getTex2D()->lockimg((void **)&data, stride, 0, TEXLOCK_WRITE))
     return false;
 
@@ -315,11 +312,8 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
       String texName;
       texName.printf(128, "water3d_disp_gpu%d", cascadeNo);
       dispGPU[cascadeNo] = dag::create_tex(NULL, N, N, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, texName.str());
-      dispGPU[cascadeNo]->disableSampler();
     }
   }
-  else
-    dispArray->disableSampler();
   return true;
 }
 
@@ -677,6 +671,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
     {
       d3d::set_render_target(i, isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0);
       d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
+      d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
     // ShaderGlobal::set_texture(fft_source_textureVarId, isPing ? htPongTexId[i] : htPingTexId[i]);
     // ShaderGlobal::set_real(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
@@ -685,6 +680,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
 #if _TARGET_TVOS
     d3d::set_render_target(0, isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0);
     d3d::settex(fft_source_texture_no + 0, isPing ? htPong[2].getTex2D() : htPing[2].getTex2D());
+    d3d::set_sampler(STAGE_PS, fft_source_texture_no + 0, defaultSampler);
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 #endif
 
@@ -703,6 +699,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
     {
       d3d::set_render_target(i, isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0);
       d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
+      d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
     // ShaderGlobal::set_real(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
     // fftVPass.render();
@@ -711,6 +708,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
 #if _TARGET_TVOS
     d3d::set_render_target(0, isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0);
     d3d::settex(fft_source_texture_no + 0, isPing ? htPong[2].getTex2D() : htPing[2].getTex2D());
+    d3d::set_sampler(STAGE_PS, fft_source_texture_no + 0, defaultSampler);
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 #endif
 
@@ -814,6 +812,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   for (int i = 0; i < 3; ++i)
   {
     d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
+    d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
   }
   for (int i = 0; i < numCascades; ++i)
   {

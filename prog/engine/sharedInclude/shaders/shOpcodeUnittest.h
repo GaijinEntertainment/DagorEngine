@@ -36,9 +36,9 @@ bool formatUnittest()
     }
 
     debug("testing op2...");
-    for (p1 = -1; p1 < 0xFFF; p1++)
+    for (p1 = -1; p1 < 0x3FF; p1++)
     {
-      for (p2 = -1; p2 < 0xFFF; p2++)
+      for (p2 = -1; p2 < 0x3FFF; p2++)
       {
         opcode = shaderopcode::makeOp2(o, p1, p2);
         _o = shaderopcode::getOp(opcode);

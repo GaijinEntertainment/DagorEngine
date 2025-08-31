@@ -216,7 +216,7 @@ SplineObject::~SplineObject()
   dagRender->deleteDebugPrimitivesVbuffer(bezierBuf);
 }
 
-void SplineObject::prepareSplineClassInPoints()
+void SplineObject::prepareSplineClassInPoints(bool report_missing_splcls)
 {
   if (poly)
   {
@@ -238,10 +238,14 @@ void SplineObject::prepareSplineClassInPoints()
   if (poly && landClass && landClass->data && landClass->data->splineClassAssetName.length())
     splineClassAssetName = landClass->data->splineClassAssetName;
 
-  splineclass::AssetData *a = points[0]->prepareSplineClass(splineClassAssetName, NULL);
+  FastNameMap missing_splcls, *eff_missing_splcls = report_missing_splcls ? &missing_splcls : nullptr;
+  splineclass::AssetData *a = points[0]->prepareSplineClass(splineClassAssetName, NULL, eff_missing_splcls);
   int pnum = isClosed() ? points.size() - 1 : points.size();
   for (int pi = 1; pi < pnum; ++pi)
-    a = points[pi]->prepareSplineClass(NULL, a);
+    a = points[pi]->prepareSplineClass(NULL, a, eff_missing_splcls);
+  if (eff_missing_splcls)
+    iterate_names(*eff_missing_splcls,
+      [nm = getName()](int, const char *splcls) { DAEDITOR3.conError("%s: missing spline-class <%s>", nm, splcls); });
 
   // erase old objects in last segment (only when spline is not circular!)
   if (!isClosed())
@@ -744,11 +748,12 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     if (!poly)
     {
       Tab<String> names(tmpmem);
-      names.resize(3);
+      names.resize(4);
 
       names[0] = "No modify";
       names[1] = "Modify self";
       names[2] = "Modify heightmap";
+      names[3] = "HeightBake (ex-delaunay)";
 
       modGroup->createCombo(PID_MODIFTYPE_S, "Modify type", names, props.modifType);
     }
@@ -1193,6 +1198,8 @@ void SplineObject::changeAsset(ObjectEditor &object_editor, dag::ConstSpan<Rende
 {
   const char *asset_name = DAEDITOR3.selectAssetX(initially_selected_asset_name, is_poly ? "Select landclass" : "Select splineclass",
     is_poly ? "land" : "spline");
+  if (!asset_name)
+    return;
 
   object_editor.getUndoSystem()->begin();
 
@@ -1226,6 +1233,8 @@ void SplineObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &
   else if (pid == PID_GENBLKNAME2)
   {
     const char *asset_name = DAEDITOR3.selectAssetX(points[0]->getProps().blkGenName, "Select border splineclass", "spline");
+    if (!asset_name)
+      return;
 
     for (int i = 0; i < objects.size(); i++)
     {
@@ -1779,7 +1788,7 @@ void SplineObject::load(const DataBlock &blk, bool use_undo)
   props.rndSeed = blk.getInt("rseed", points[1]->getPt().lengthSq() * 1000);
   props.perInstSeed = blk.getInt("perInstSeed", 0);
 
-  prepareSplineClassInPoints();
+  prepareSplineClassInPoints(true);
   markModifChangedWhenUsed();
 }
 
@@ -2151,22 +2160,22 @@ void SplineObject::putObjTransformUndo()
   public:
     ObjTransformUndo(SplineObject *o) : obj(o) {}
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       obj->pointChanged(-1);
       if (obj->isAffectingHmap())
         obj->markModifChanged();
     }
-    virtual void redo()
+    void redo() override
     {
       obj->pointChanged(-1);
       if (obj->isAffectingHmap())
         obj->markModifChanged();
     }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "ObjTransformUndo"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "ObjTransformUndo"; }
   };
 
   getObjEditor()->getUndoSystem()->put(new ObjTransformUndo(this));
@@ -2809,7 +2818,7 @@ void SplineObject::reApplyModifiers(bool apply_now, bool force)
 {
   if (splineInactive)
     return;
-  if (!force && !isAffectingHmap())
+  if (!force && !isAffectingHmap() && !(isHeightBake() && HmapLandPlugin::self->shouldApplyModOnHeightBakeSplineEdit()))
   {
     modifChanged = false;
     return;
@@ -2941,7 +2950,7 @@ UndoRedoObject *SplineObject::makePointListUndo()
 
     UndoPointsListChange(SplineObject *_s) : s(_s), pt(_s->points) {}
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       PtrTab<SplinePointObject> pt1(s->points);
       s->points = pt;
@@ -2951,7 +2960,7 @@ UndoRedoObject *SplineObject::makePointListUndo()
       s->pointChanged(-1);
     }
 
-    virtual void redo()
+    void redo() override
     {
       PtrTab<SplinePointObject> pt1(s->points);
       s->points = pt;
@@ -2961,9 +2970,9 @@ UndoRedoObject *SplineObject::makePointListUndo()
       s->pointChanged(-1);
     }
 
-    virtual size_t size() { return sizeof(*this) + pt.size() * 4; }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoSplinePtListChange"; }
+    size_t size() override { return sizeof(*this) + pt.size() * 4; }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoSplinePtListChange"; }
   };
 
   return new (midmem) UndoPointsListChange(this);
@@ -2989,6 +2998,7 @@ SplineObject *SplineObject::clone()
   }
   obj->props.blkGenName = props.blkGenName;
   obj->markAssetChanged(0);
+  on_object_entity_name_changed(*obj); // Needed because the assignment to blkGenName happens after addObject().
   return obj;
 }
 

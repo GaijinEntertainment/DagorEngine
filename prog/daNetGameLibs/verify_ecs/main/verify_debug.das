@@ -6,5 +6,5 @@ require DagorConsole
 
 [console_cmd(name="ecs.verify_systems_templates")]
 def verify_ecs_console_command()
-  broadcastEvent([[VerifyEcsSystems]])
-  broadcastEvent([[VerifyEcsTemplates]])
+  broadcastEvent(VerifyEcsSystems())
+  broadcastEvent(VerifyEcsTemplates())

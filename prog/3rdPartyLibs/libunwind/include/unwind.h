@@ -1,207 +1,155 @@
-//===----------------------------------------------------------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//
-// C++ ABI Level 1 ABI documented at:
-//   https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html
-//
-//===----------------------------------------------------------------------===//
+/* libunwind - a platform-independent unwind library
+   Copyright (C) 2003 Hewlett-Packard Co
+        Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
-#ifndef __UNWIND_H__
-#define __UNWIND_H__
+This file is part of libunwind.
 
-#include <__libunwind_config.h>
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
+
+#ifndef _UNWIND_H
+#define _UNWIND_H
+
+/* For uint64_t */
 #include <stdint.h>
-#include <stddef.h>
-
-#if defined(__SEH__) && !defined(__USING_SJLJ_EXCEPTIONS__) && defined(_WIN32)
-#include <windows.h>
-#include <ntverp.h>
-#endif
-
-#if defined(__APPLE__)
-#define LIBUNWIND_UNAVAIL __attribute__ (( unavailable ))
-#else
-#define LIBUNWIND_UNAVAIL
-#endif
-
-typedef enum {
-  _URC_NO_REASON = 0,
-  _URC_OK = 0,
-  _URC_FOREIGN_EXCEPTION_CAUGHT = 1,
-  _URC_FATAL_PHASE2_ERROR = 2,
-  _URC_FATAL_PHASE1_ERROR = 3,
-  _URC_NORMAL_STOP = 4,
-  _URC_END_OF_STACK = 5,
-  _URC_HANDLER_FOUND = 6,
-  _URC_INSTALL_CONTEXT = 7,
-  _URC_CONTINUE_UNWIND = 8,
-#if defined(_LIBUNWIND_ARM_EHABI)
-  _URC_FAILURE = 9
-#endif
-} _Unwind_Reason_Code;
-
-typedef enum {
-  _UA_SEARCH_PHASE = 1,
-  _UA_CLEANUP_PHASE = 2,
-  _UA_HANDLER_FRAME = 4,
-  _UA_FORCE_UNWIND = 8,
-  _UA_END_OF_STACK = 16 // gcc extension to C++ ABI
-} _Unwind_Action;
-
-typedef struct _Unwind_Context _Unwind_Context;   // opaque
-
-#if defined(_LIBUNWIND_ARM_EHABI)
-#include "unwind_arm_ehabi.h"
-#else
-#include "unwind_itanium.h"
-#endif
-
-typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn)
-    (int version,
-     _Unwind_Action actions,
-     _Unwind_Exception_Class exceptionClass,
-     _Unwind_Exception* exceptionObject,
-     struct _Unwind_Context* context,
-     void* stop_parameter);
+#include <stdalign.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern uintptr_t _Unwind_GetRegionStart(struct _Unwind_Context *context);
-extern uintptr_t
-    _Unwind_GetLanguageSpecificData(struct _Unwind_Context *context);
-#ifdef __USING_SJLJ_EXCEPTIONS__
-extern _Unwind_Reason_Code
-    _Unwind_SjLj_ForcedUnwind(_Unwind_Exception *exception_object,
-                              _Unwind_Stop_Fn stop, void *stop_parameter);
-#else
-extern _Unwind_Reason_Code
-    _Unwind_ForcedUnwind(_Unwind_Exception *exception_object,
-                         _Unwind_Stop_Fn stop, void *stop_parameter);
-#endif
+/* Minimal interface as per C++ ABI draft standard:
 
-#ifdef __USING_SJLJ_EXCEPTIONS__
-typedef struct _Unwind_FunctionContext *_Unwind_FunctionContext_t;
-extern void _Unwind_SjLj_Register(_Unwind_FunctionContext_t fc);
-extern void _Unwind_SjLj_Unregister(_Unwind_FunctionContext_t fc);
-#endif
+        http://www.codesourcery.com/cxx-abi/abi-eh.html */
 
-//
-// The following are semi-suppoted extensions to the C++ ABI
-//
+typedef enum
+  {
+    _URC_NO_REASON = 0,
+    _URC_FOREIGN_EXCEPTION_CAUGHT = 1,
+    _URC_FATAL_PHASE2_ERROR = 2,
+    _URC_FATAL_PHASE1_ERROR = 3,
+    _URC_NORMAL_STOP = 4,
+    _URC_END_OF_STACK = 5,
+    _URC_HANDLER_FOUND = 6,
+    _URC_INSTALL_CONTEXT = 7,
+    _URC_CONTINUE_UNWIND = 8
+  }
+_Unwind_Reason_Code;
 
-//
-//  called by __cxa_rethrow().
-//
-#ifdef __USING_SJLJ_EXCEPTIONS__
-extern _Unwind_Reason_Code
-    _Unwind_SjLj_Resume_or_Rethrow(_Unwind_Exception *exception_object);
-#else
-extern _Unwind_Reason_Code
-    _Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object);
-#endif
+typedef int _Unwind_Action;
 
-// _Unwind_Backtrace() is a gcc extension that walks the stack and calls the
-// _Unwind_Trace_Fn once per frame until it reaches the bottom of the stack
-// or the _Unwind_Trace_Fn function returns something other than _URC_NO_REASON.
-typedef _Unwind_Reason_Code (*_Unwind_Trace_Fn)(struct _Unwind_Context *,
+#define _UA_SEARCH_PHASE        1
+#define _UA_CLEANUP_PHASE       2
+#define _UA_HANDLER_FRAME       4
+#define _UA_FORCE_UNWIND        8
+
+struct _Unwind_Context;         /* opaque data-structure */
+struct _Unwind_Exception;       /* forward-declaration */
+
+typedef void (*_Unwind_Exception_Cleanup_Fn) (_Unwind_Reason_Code,
+                                              struct _Unwind_Exception *);
+
+typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn) (int, _Unwind_Action,
+                                                uint64_t,
+                                                struct _Unwind_Exception *,
+                                                struct _Unwind_Context *,
                                                 void *);
-extern _Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn, void *);
 
-// _Unwind_GetCFA is a gcc extension that can be called from within a
-// personality handler to get the CFA (stack pointer before call) of
-// current frame.
-extern uintptr_t _Unwind_GetCFA(struct _Unwind_Context *);
+/* The C++ ABI requires exception_class, private_1, and private_2 to
+   be of type uint64 and the entire structure to be
+   double-word-aligned. Please note that exception_class stays 64-bit 
+   even on 32-bit machines for gcc compatibility.  */
+struct _Unwind_Exception
+  {
+    alignas(8) uint64_t exception_class;
+    _Unwind_Exception_Cleanup_Fn exception_cleanup;
+    unsigned long private_1;
+    unsigned long private_2;
+  };
 
+extern _Unwind_Reason_Code _Unwind_RaiseException (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code _Unwind_ForcedUnwind (struct _Unwind_Exception *,
+                                                 _Unwind_Stop_Fn, void *);
+extern void _Unwind_Resume (struct _Unwind_Exception *);
+extern void _Unwind_DeleteException (struct _Unwind_Exception *);
+extern unsigned long _Unwind_GetGR (struct _Unwind_Context *, int);
+extern void _Unwind_SetGR (struct _Unwind_Context *, int, unsigned long);
+extern unsigned long _Unwind_GetIP (struct _Unwind_Context *);
+extern unsigned long _Unwind_GetIPInfo (struct _Unwind_Context *, int *);
+extern void _Unwind_SetIP (struct _Unwind_Context *, unsigned long);
+extern unsigned long _Unwind_GetLanguageSpecificData (struct _Unwind_Context*);
+extern unsigned long _Unwind_GetRegionStart (struct _Unwind_Context *);
 
-// _Unwind_GetIPInfo is a gcc extension that can be called from within a
-// personality handler.  Similar to _Unwind_GetIP() but also returns in
-// *ipBefore a non-zero value if the instruction pointer is at or before the
-// instruction causing the unwind. Normally, in a function call, the IP returned
-// is the return address which is after the call instruction and may be past the
-// end of the function containing the call instruction.
-extern uintptr_t _Unwind_GetIPInfo(struct _Unwind_Context *context,
-                                   int *ipBefore);
+#ifdef _GNU_SOURCE
 
+/* Callback for _Unwind_Backtrace().  The backtrace stops immediately
+   if the callback returns any value other than _URC_NO_REASON. */
+typedef _Unwind_Reason_Code (*_Unwind_Trace_Fn) (struct _Unwind_Context *,
+                                                 void *);
 
-// __register_frame() is used with dynamically generated code to register the
-// FDE for a generated (JIT) code.  The FDE must use pc-rel addressing to point
-// to its function and optional LSDA.
-// __register_frame() has existed in all versions of Mac OS X, but in 10.4 and
-// 10.5 it was buggy and did not actually register the FDE with the unwinder.
-// In 10.6 and later it does register properly.
-extern void __register_frame(const void *fde);
-extern void __deregister_frame(const void *fde);
+/* See http://gcc.gnu.org/ml/gcc-patches/2001-09/msg00082.html for why
+   _UA_END_OF_STACK exists.  */
+# define _UA_END_OF_STACK       16
 
-// _Unwind_Find_FDE() will locate the FDE if the pc is in some function that has
-// an associated FDE. Note, Mac OS X 10.6 and later, introduces "compact unwind
-// info" which the runtime uses in preference to DWARF unwind info.  This
-// function will only work if the target function has an FDE but no compact
-// unwind info.
-struct dwarf_eh_bases {
-  uintptr_t tbase;
-  uintptr_t dbase;
-  uintptr_t func;
-};
-extern const void *_Unwind_Find_FDE(const void *pc, struct dwarf_eh_bases *);
+/* If the unwind was initiated due to a forced unwind, resume that
+   operation, else re-raise the exception.  This is used by
+   __cxa_rethrow().  */
+extern _Unwind_Reason_Code
+          _Unwind_Resume_or_Rethrow (struct _Unwind_Exception *);
 
+/* See http://gcc.gnu.org/ml/gcc-patches/2003-09/msg00154.html for why
+   _Unwind_GetBSP() exists.  */
+extern unsigned long _Unwind_GetBSP (struct _Unwind_Context *);
 
-// This function attempts to find the start (address of first instruction) of
-// a function given an address inside the function.  It only works if the
-// function has an FDE (DWARF unwind info).
-// This function is unimplemented on Mac OS X 10.6 and later.  Instead, use
-// _Unwind_Find_FDE() and look at the dwarf_eh_bases.func result.
-extern void *_Unwind_FindEnclosingFunction(void *pc);
+/* Return the "canonical frame address" for the given context.
+   This is used by NPTL... */
+extern unsigned long _Unwind_GetCFA (struct _Unwind_Context *);
 
-// Mac OS X does not support text-rel and data-rel addressing so these functions
-// are unimplemented.
-extern uintptr_t _Unwind_GetDataRelBase(struct _Unwind_Context *context)
-    LIBUNWIND_UNAVAIL;
-extern uintptr_t _Unwind_GetTextRelBase(struct _Unwind_Context *context)
-    LIBUNWIND_UNAVAIL;
+/* Return the base-address for data references.  */
+extern unsigned long _Unwind_GetDataRelBase (struct _Unwind_Context *);
 
-// Mac OS X 10.4 and 10.5 had implementations of these functions in
-// libgcc_s.dylib, but they never worked.
-/// These functions are no longer available on Mac OS X.
-extern void __register_frame_info_bases(const void *fde, void *ob, void *tb,
-                                        void *db) LIBUNWIND_UNAVAIL;
-extern void __register_frame_info(const void *fde, void *ob)
-    LIBUNWIND_UNAVAIL;
-extern void __register_frame_info_table_bases(const void *fde, void *ob,
-                                              void *tb, void *db)
-    LIBUNWIND_UNAVAIL;
-extern void __register_frame_info_table(const void *fde, void *ob)
-    LIBUNWIND_UNAVAIL;
-extern void __register_frame_table(const void *fde)
-    LIBUNWIND_UNAVAIL;
-extern void *__deregister_frame_info(const void *fde)
-    LIBUNWIND_UNAVAIL;
-extern void *__deregister_frame_info_bases(const void *fde)
-    LIBUNWIND_UNAVAIL;
+/* Return the base-address for text references.  */
+extern unsigned long _Unwind_GetTextRelBase (struct _Unwind_Context *);
 
-#if defined(__SEH__) && !defined(__USING_SJLJ_EXCEPTIONS__)
-#ifndef _WIN32
-typedef struct _EXCEPTION_RECORD EXCEPTION_RECORD;
-typedef struct _CONTEXT CONTEXT;
-typedef struct _DISPATCHER_CONTEXT DISPATCHER_CONTEXT;
-#elif !defined(__MINGW32__) && VER_PRODUCTBUILD < 8000
-typedef struct _DISPATCHER_CONTEXT DISPATCHER_CONTEXT;
-#endif
-// This is the common wrapper for GCC-style personality functions with SEH.
-extern EXCEPTION_DISPOSITION _GCC_specific_handler(EXCEPTION_RECORD *exc,
-                                                   void *frame, CONTEXT *ctx,
-                                                   DISPATCHER_CONTEXT *disp,
-                                                   _Unwind_Personality_Fn pers);
-#endif
+/* Call _Unwind_Trace_Fn once for each stack-frame, without doing any
+   cleanup.  The first frame for which the callback is invoked is the
+   one for the caller of _Unwind_Backtrace().  _Unwind_Backtrace()
+   returns _URC_END_OF_STACK when the backtrace stopped due to
+   reaching the end of the call-chain or _URC_FATAL_PHASE1_ERROR if it
+   stops for any other reason.  */
+extern _Unwind_Reason_Code _Unwind_Backtrace (_Unwind_Trace_Fn, void *);
+
+/* Find the start-address of the procedure containing the specified IP
+   or NULL if it cannot be found (e.g., because the function has no
+   unwind info).  Note: there is not necessarily a one-to-one
+   correspondence between source-level functions and procedures: some
+   functions don't have unwind-info and others are split into multiple
+   procedures.  */
+extern void *_Unwind_FindEnclosingFunction (void *);
+
+/* See also Linux Standard Base Spec:
+    http://www.linuxbase.org/spec/refspecs/LSB_1.3.0/gLSB/gLSB/libgcc-s.html */
+
+#endif /* _GNU_SOURCE */
 
 #ifdef __cplusplus
-}
+};
 #endif
 
-#endif // __UNWIND_H__
+#endif /* _UNWIND_H */

@@ -122,7 +122,6 @@ void DaScattering::initMsApproximation()
   {
     skies_transmittance_texture =
       dag::create_tex(NULL, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, flags | fmt, 1, "skies_transmittance_texture");
-    skies_transmittance_texture->disableSampler();
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_transmittance_texture_samplerstate"), clampSamplerHndl);
   }
 
@@ -130,7 +129,6 @@ void DaScattering::initMsApproximation()
   {
     skies_irradiance_texture =
       dag::create_tex(NULL, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, flags | fmt, 1, "skies_irradiance_texture");
-    skies_irradiance_texture->disableSampler();
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_irradiance_texture_samplerstate"), clampSamplerHndl);
   }
 
@@ -138,7 +136,6 @@ void DaScattering::initMsApproximation()
   {
     skies_ms_texture =
       dag::create_tex(NULL, SKIES_MULTIPLE_SCATTERING_APPROX, SKIES_MULTIPLE_SCATTERING_APPROX, flags | fmt, 1, "skies_ms_texture");
-    skies_ms_texture->disableSampler();
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_ms_texture_samplerstate"), clampSamplerHndl);
   }
 }
@@ -157,7 +154,9 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
   skies->rangeScale = params.scatteringRangeScale < 0 ? -1.0f : clamp(params.scatteringRangeScale, 0.01f, 2.5f);
   uint32_t fmtOut = TEXFMT_A16B16G16R16F;
   uint32_t fmtLoss = TEXFMT_R11G11B10F;
-  const uint32_t flg = checkComputeUse() ? TEXCF_UNORDERED : TEXCF_RTARGET;
+  // clear on create to avoid speculative garbage read
+  // due to binding of uninitialized textures that are conditionally readed
+  const uint32_t flg = (checkComputeUse() ? TEXCF_UNORDERED : TEXCF_RTARGET) | TEXCF_CLEAR_ON_CREATE;
   if (!(d3d::get_texformat_usage(fmtLoss) & flg))
     fmtLoss = TEXFMT_A16B16G16R16F;
   if (checkComputeUse() && d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput)
@@ -171,7 +170,6 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
     const int prepared_texsize = 32 * clamp(params.transmittanceColorQuality, 1, 4);
     name.printf(128, "%s_loss", base_name);
     skies->preparedLoss = dag::create_tex(NULL, prepared_texsize, prepared_texsize, flg | fmtLoss, 1, name);
-    skies->preparedLoss->disableSampler();
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = d3d::AddressMode::Clamp;
     smpInfo.address_mode_v = d3d::AddressMode::Clamp;
@@ -188,7 +186,6 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
       name.printf(0, "%s_skies_frustum_scattering%d", base_name, i);
       skies->scatteringVolume[i] = dag::create_voltex(16 * wMul * scatteringQuality, (skies->panoramic ? 12 : 24) * scatteringQuality,
         slices, fmtOut | flg, 1, name.c_str());
-      skies->scatteringVolume[i]->disableSampler();
       d3d::resource_barrier({skies->scatteringVolume[i].getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     }
     d3d::SamplerInfo smpInfo;
@@ -217,12 +214,10 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
     {
       name.printf(0, "%s_skies_lut_tex_%d", base_name, i);
       skies->skiesLutTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str()); // noAlphaHdrFmt
-      skies->skiesLutTex[i]->disableSampler();
 
       name.printf(0, "%s_skies_lut_mie_tex_%d", base_name, i);
       skies->skiesLutMieTex[i].close();
       skies->skiesLutMieTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str());
-      skies->skiesLutMieTex[i]->disableSampler();
     }
     skies->skiesLutRestartTemporal = true;
     skies->resetGen = 0;
@@ -531,19 +526,19 @@ void DaScattering::startGpuReadback()
 {
   if (!skies_irradiance_texture)
     return;
-  int stride; // start copy to CPU
-  if (skies_irradiance_texture->lockimg(nullptr, stride, 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK))
-    skies_irradiance_texture->unlockimg();
+  request_readback_nosyslock(skies_irradiance_texture.getTex2D(), 0);
   gpuReadbackStarted = true;
   // todo: implement event/fence
 }
 
-bool DaScattering::finishGpuReadback()
+bool DaScattering::finishGpuReadback(bool force_sync_readback)
 {
   if (!gpuReadbackStarted || !skies_irradiance_texture)
     return false;
   TIME_PROFILE(skies_updateCPUIrradiance);
-  if (auto lockedTex = lock_texture_ro(skies_irradiance_texture.getTex2D(), 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK))
+  // use sync readback in case of unfinished gpu readback before precompute_ms_approximation
+  const uint32_t readbackLockFlags = force_sync_readback ? 0 : TEXLOCK_NOSYSLOCK;
+  if (auto lockedTex = lock_texture_ro(skies_irradiance_texture.getTex2D(), 0, TEXLOCK_READ | readbackLockFlags))
   {
 #if DAGOR_DBGLEVEL > 0
     debug("updateCPUIrradiance from GPU");
@@ -615,11 +610,12 @@ void DaScattering::precompute_ms_approximation()
 void DaScattering::precompute(bool invalidateCpu)
 {
   setParamsToShader();
+  // synchroniosly finish gpu readback if it was started before precompute where we use skies_irradiance_texture
+  finishGpuReadback(true /*force_sync_readback*/);
   precompute_ms_approximation();
 
   if (invalidateCpu)
     invalidateCPUData();
-  finishGpuReadback(); // just in case
   multipleScatteringGeneration++;
 }
 

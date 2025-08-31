@@ -6,9 +6,9 @@ Target      = tools/libTools/scriptHelpers.lib ;
 
 Sources =
   scriptGradientBox.cpp
-  ScriptCurves.cpp
-  ScriptGui.cpp
-  ScriptLoad.cpp
+  scriptCurves.cpp
+  scriptGui.cpp
+  scriptLoad.cpp
   scriptPanel.cpp
 ;
 

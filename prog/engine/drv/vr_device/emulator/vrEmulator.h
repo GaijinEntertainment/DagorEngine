@@ -5,6 +5,7 @@
 #include <shaders/dag_overrideStateId.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
+#include <perfMon/dag_sleepPrecise.h>
 
 #include "vrEmulatorInputHandler.h"
 
@@ -85,4 +86,5 @@ private:
   VrEmulatorInputHandler inputHandler;
 
   int fpsLimit;
+  PreciseSleepContext preciseSleepContext = {};
 };

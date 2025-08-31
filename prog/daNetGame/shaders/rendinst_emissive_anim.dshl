@@ -108,7 +108,7 @@ shader rendinst_emissive_anim
     hlsl(ps) {
       #define get_special_anim_params get_emissive_anim
     }
-    EMISSIVE_PS()
+    EMISSIVE_PS(true)
   }
   compile("target_vs", "simple_vs");
 }

@@ -38,8 +38,9 @@ public:
   };
   enum class DistantFogQuality
   {
-    DisableDistantFog,
-    EnableDistantFog,
+    Disabled,
+    Medium,
+    High,
   };
 
   static bool IS_SUPPORTED;
@@ -64,12 +65,14 @@ public:
   void performFroxelFogOcclusion();
   void performFroxelFogFillMedia();
   void performVolfogShadow();
-  void performDistantFogRaymarch();
+  void performDistantFogRaymarch(const bool is_main_view = true);
+  void generateDistantFogOcclusionWeightsMips();
   void performFroxelFogPropagate();
   void performDistantFogReconstruct();
+  void performDistantFogReconstructFxMipGen();
 
   bool updateShaders(const String &shader_name, const DataBlock &shader_blk, String &out_errors);
-  void initShaders(const DataBlock &shader_blk);
+  void initShaders(const String &root_graph);
   void enableOptionalShader(const String &shader_name, bool enable);
 
   template <class F>
@@ -168,7 +171,6 @@ protected:
   float currentRange = 128; // arbitrary, setRange should be called to not rely on it
   Point3 prevCameraPos = IPoint3::ZERO;
 
-  Point4 froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB;
   bool useNodeBasedInput = false;
   Point3 distantFogOcclusionPosDiff = Point3::ZERO;
 
@@ -182,7 +184,7 @@ protected:
   bool isReady = false;
   bool preferLinearAccumulation = false;
   VolfogQuality volfogQuality = VolfogQuality::Default;
+  DistantFogQuality distantFogQuality = DistantFogQuality::Disabled;
 
   bool enableVolfogShadows = false;
-  bool enableDistantFog = false;
 };

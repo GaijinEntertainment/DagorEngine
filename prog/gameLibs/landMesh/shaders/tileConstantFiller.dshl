@@ -18,14 +18,13 @@ macro TILE_CONSTANT_FILLER()
   }
 
   (vs) {
-    //inv_texture_size@f2 = (1./(clipmapTexMips*TILE_WIDTH), 1./TILE_WIDTH,0,0);
-    clipmapTexMips@f1 = (clipmapTexMips);
+    clipmap_tex_mips@f1 = (clipmap_tex_mips);
   }
   hlsl(vs) {
     VsOutput fill_constant_vs(int2 pos_wh : POSITION, float4 color:TEXCOORD0)
     {
       VsOutput output;
-      float2 texture_size = float2(TILE_WIDTH*clipmapTexMips*MAX_VTEX_CNT, TILE_WIDTH);
+      float2 texture_size = float2(TILE_WIDTH*clipmap_tex_mips*MAX_VTEX_CNT, TILE_WIDTH);
       float2 pos_pixels = pos_wh.xy;
       float2 pos_screen = (pos_pixels)/(texture_size);
       output.pos = float4(pos_screen * YTWO + YMINONE, 1, 1);

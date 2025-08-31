@@ -247,7 +247,7 @@ static dag::Vector<eastl::unique_ptr<DestructableObject, DestructableObjectDelet
 static FixedBlockAllocator destructablesListAllocator;
 void DestructableObjectDeleter::operator()(DestructableObject *object)
 {
-  (*(volatile int *)&object->gen)++; // Cast to disable DSE
+  interlocked_increment(*(volatile int *)&object->gen); // Cast to disable DSE
   object->~DestructableObject();
   destructablesListAllocator.freeOneBlock(object);
 }

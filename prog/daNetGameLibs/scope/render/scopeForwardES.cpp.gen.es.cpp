@@ -1,31 +1,33 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "scopeForwardES.cpp.inl"
 ECS_DEF_PULL_VAR(scopeForward);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc init_forward_scope_rendering_es_event_handler_comps[] =
 {
 //start of 8 rw components at [0]
-  {ECS_HASH("forward__setup_aim_rendering_data_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__prepass_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__lens_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__vrs_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__lens_hole_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__lens_mobile_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("setup_scope_aim_rendering_data_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("forward__setup_aim_rendering_data_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__prepass_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__lens_mask_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__vrs_mask_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__lens_hole_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__lens_mobile_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("setup_scope_aim_rendering_data_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void init_forward_scope_rendering_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_forward_scope_rendering_es_event_handler(evt
-        , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "forward__setup_aim_rendering_data_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__prepass_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__lens_mask_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__vrs_mask_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__lens_hole_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__lens_mobile_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "setup_scope_aim_rendering_data_node", dabfg::NodeHandle)
+        , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "forward__setup_aim_rendering_data_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__prepass_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__lens_mask_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__vrs_mask_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__forward__lens_hole_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "scope__lens_mobile_node", dafg::NodeHandle)
+    , ECS_RW_COMP(init_forward_scope_rendering_es_event_handler_comps, "setup_scope_aim_rendering_data_node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -44,27 +46,27 @@ static ecs::EntitySystemDesc init_forward_scope_rendering_es_event_handler_es_de
 static constexpr ecs::ComponentDesc forward_scope_render_features_changed_es_event_handler_comps[] =
 {
 //start of 8 rw components at [0]
-  {ECS_HASH("forward__setup_aim_rendering_data_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__prepass_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__lens_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__vrs_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__forward__lens_hole_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("scope__lens_mobile_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("setup_scope_aim_rendering_data_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("forward__setup_aim_rendering_data_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__prepass_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__lens_mask_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__vrs_mask_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__forward__lens_hole_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("scope__lens_mobile_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("setup_scope_aim_rendering_data_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void forward_scope_render_features_changed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     forward_scope_render_features_changed_es_event_handler(evt
-        , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "forward__setup_aim_rendering_data_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__prepass_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__lens_mask_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__vrs_mask_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__lens_hole_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__lens_mobile_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "setup_scope_aim_rendering_data_node", dabfg::NodeHandle)
+        , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "forward__setup_aim_rendering_data_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__prepass_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__lens_mask_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__vrs_mask_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__forward__lens_hole_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "scope__lens_mobile_node", dafg::NodeHandle)
+    , ECS_RW_COMP(forward_scope_render_features_changed_es_event_handler_comps, "setup_scope_aim_rendering_data_node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }

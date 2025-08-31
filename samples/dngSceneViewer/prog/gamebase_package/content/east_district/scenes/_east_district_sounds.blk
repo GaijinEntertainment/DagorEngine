@@ -1,0 +1,5 @@
+import { scene:t="gamedata/scenes/_common_sounds.blk"; }
+
+entity{
+  _template:t="east_district_ambient_sound"
+}

@@ -38,6 +38,9 @@ public:
   /// @param[in] class_name - name of shader used for rendering
   DynRenderBuffer(const char *class_name = "editor_helper");
 
+  /// Destructor.
+  ~DynRenderBuffer();
+
   /// Get vertex count.
   /// @return number of vertices in buffer
   inline int getVertexCount() const { return edVerts.size(); }
@@ -114,7 +117,7 @@ public:
   /// The function begins process of rendering shader geometry
   /// and calls addFaces().
   /// @param[in] tid - ID of texture used for rendering
-  void flushToBuffer(TEXTUREID tid);
+  void flushToBuffer(TEXTUREID tid) { addFaces(tid); }
 
   /// The function moves data from internal buffer to shader buffer.
   /// @param[in] tid - ID of texture used for rendering
@@ -145,6 +148,7 @@ private:
   Ptr<ShaderElement> edShader;
 
   int texVarId;
+  int texSamplerstateVarId;
   VertexTab edVerts;
   FaceTab edFaces;
   unsigned vertexMaxCount;

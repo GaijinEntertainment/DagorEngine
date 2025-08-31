@@ -5,7 +5,6 @@
 #include <ecs/core/entityManager.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animState.h>
-#include <ecs/anim/animchar_visbits.h>
 
 #include <daECS/core/coreEvents.h>
 #include <anim/dag_animBlend.h>

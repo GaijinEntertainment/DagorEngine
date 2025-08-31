@@ -1,5 +1,5 @@
-Compute shader dispatch API
+Compute Shader Dispatch API
 =================================================
 
-.. autodoxygenfile:: dag_dispatch.h
+.. doxygenfile:: dag_dispatch.h
   :project: d3dAPI

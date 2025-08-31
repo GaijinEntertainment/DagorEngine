@@ -15,4 +15,4 @@ bool cmpBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, cons
 SimpleString paramStrValue(const DataBlock &source, const int s_ind, const bool with_param_name = true);
 SimpleString blockStrValue(const DataBlock &source, const char *line_separator = "\r\n"); // show user this
 SimpleString blkTextData(const DataBlock &source);                                        // save or transmit this
-};                                                                                        // namespace blk_util
+}; // namespace blk_util

@@ -113,20 +113,14 @@ public:
   // set rumble motors relative speed, freq = 0..1
   virtual void doRumble(float /*lowFreq*/, float /*highFreq*/) {}
   // set (or reset) light effect on device
-  virtual void resetSensorsOrientation()
-  { /* VOID */
-  }
+  virtual void resetSensorsOrientation() { /* VOID */ }
   virtual void setLight(bool /*set*/, unsigned char /*r*/, unsigned char /*g*/, unsigned char /*b*/) {}
   // returns device connection status
   virtual bool isConnected() = 0;
   virtual bool isRemoteController() const { return false; }
 
-  virtual void enableSensorsTiltCorrection(bool /*enable*/)
-  { /* VOID */
-  }
-  virtual void reportGyroSensorsAngDelta(bool /*report_ang_delta*/)
-  { /* VOID */
-  }
+  virtual void enableSensorsTiltCorrection(bool /*enable*/) { /* VOID */ }
+  virtual void reportGyroSensorsAngDelta(bool /*report_ang_delta*/) { /* VOID */ }
 
 protected:
   bool isFxEnabled = true;
@@ -173,7 +167,7 @@ public:
   virtual float getStickDeadZoneAbs(int /*stick_idx*/, bool /*main_gamepad*/, IGenJoystick * /*for_joy*/ = nullptr) const { return 0; }
 
   //! enable/disable gyroscope in device (main_gamepad means XInput devices for PC/XboxOne, gamepad for PS4)
-  virtual void enableGyroscope(bool /*enable*/, bool /*main_dev*/){};
+  virtual void enableGyroscope(bool /*enable*/, bool /*main_dev*/) {}
 
   //! return vendor identifer of the current gamepad (return -1 for default), maybe usefull if a platform can use different gamepad
   //! types

@@ -37,10 +37,4 @@ inline char *get_resource_name(ID3D12Object *res, char (&cbuf)[N])
   return cbuf;
 }
 
-#if DX12_DOES_SET_DEBUG_NAMES
-#define DX12_SET_DEBUG_OBJ_NAME(obj, name) obj->SetName(name)
-#else
-#define DX12_SET_DEBUG_OBJ_NAME(obj, name)
-#endif
-
 } // namespace drv3d_dx12

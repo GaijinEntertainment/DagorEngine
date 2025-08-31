@@ -5,7 +5,6 @@
 namespace ecs
 {
 
-volatile uint32_t EventInfoLinkedList::generation = 0;
 EventInfoLinkedList *EventInfoLinkedList::tail = nullptr;
 EventInfoLinkedList *EventInfoLinkedList::registered_tail = nullptr;
 static const char *EV_CAST_STR_TYPES[] = {"Unknowncast", "Unicast", "Broadcast", "Bothcast"};
@@ -128,7 +127,7 @@ void EventsDB::validateInternal()
 }
 
 // out of line
-void EventsDB::destroy(Event &e) const
+void EventsDB::destroy(EntityManager &mgr, Event &e) const
 {
   DAECS_EXT_FAST_ASSERT(e.getFlags() & EVFLG_DESTROY);
   auto it = eventsDestroyMap.find(e.getType());
@@ -137,15 +136,15 @@ void EventsDB::destroy(Event &e) const
     logerr("event 0x%X|%s has no registered destroy func", e.getType(), e.getName());
     return;
   }
-  it->second(e);
+  it->second(mgr, e);
 }
 
-void EventsDB::moveOut(void *__restrict to, Event &&e) const
+void EventsDB::moveOut(EntityManager &mgr, void *__restrict to, Event &&e) const
 {
   DAECS_EXT_FAST_ASSERT(e.getFlags() & EVFLG_DESTROY);
   auto it = eventsMoveMap.find(e.getType());
   DAECS_EXT_ASSERTF_RETURN(it != eventsMoveMap.end(), , "0x%X|%s", e.getType(), e.getName());
-  it->second(to, eastl::move(e));
+  it->second(mgr, to, eastl::move(e));
 }
 
 

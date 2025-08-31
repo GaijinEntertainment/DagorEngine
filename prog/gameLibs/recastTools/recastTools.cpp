@@ -14,8 +14,8 @@ struct VolumeI2D
   int minv;
 
   VolumeI2D() {} //-V730
-  VolumeI2D(int max_in, int min_in) : maxv(max_in), minv(min_in){};
-  explicit VolumeI2D(const rcSpan *span) : maxv(span->smax), minv(span->smin){};
+  VolumeI2D(int max_in, int min_in) : maxv(max_in), minv(min_in) {}
+  explicit VolumeI2D(const rcSpan *span) : maxv(span->smax), minv(span->smin) {}
 
   inline void addVolume(const VolumeI2D &other)
   {

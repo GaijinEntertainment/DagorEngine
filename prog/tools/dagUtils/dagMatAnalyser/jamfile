@@ -1,0 +1,50 @@
+Root ?= ../../../.. ;
+Location = prog/tools/dagUtils/dagMatAnalyser ;
+ConsoleExe = yes ;
+PlatformArch_windows ?= x86_64 ;
+Exceptions = yes ;
+
+
+TargetType  = exe ;
+Target      = util/mat_analyser.exe ;
+
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
+
+CPPopt += -DSET_DEFAULT_MAX_SHVARS=8192 ;
+
+AddIncludes =
+  $(Root)/prog/engine/shaders
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  mat_analyser.cpp
+  con_main.cpp
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+
+  engine/lib3d
+  engine/drv/drv3d_null
+  engine/shaders
+
+  tools/libTools/util
+  tools/libTools/dagFileRW
+
+  3rdPartyLibs/eastl
+;
+
+AddLibs =
+  d3dcompiler.lib
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

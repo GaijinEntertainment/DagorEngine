@@ -10,9 +10,10 @@
 
 #define ERRMSG_DELAY 3000
 
-
 std::string wideToStr(const TCHAR *sw);
 M_STD_STRING strToWide(const char *sz);
+
+int get_save_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, TSTR &exp_fname);
 
 class FontUtil : public UtilityObj
 {
@@ -20,12 +21,12 @@ public:
   IUtil *iu;
   Interface *ip;
   HWND hPanel;
-  TCHAR fd_fname[256];
+  TSTR fd_fname;
 
   FontUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
 
   void Init(HWND hWnd);
   void Destroy(HWND hWnd);
@@ -37,16 +38,20 @@ static FontUtil util;
 class FontUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &util; }
-  const TCHAR *ClassName() { return GetString(IDS_FONTUTIL_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &util; }
+  const TCHAR *ClassName() override { return GetString(IDS_FONTUTIL_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return FontUtil_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return FontUtil_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
 };
 
 enum
@@ -57,7 +62,7 @@ enum
 IOResult FontUtilDesc::Save(ISave *io)
 {
   //        ULONG nw;
-  if (util.fd_fname[0])
+  if (util.fd_fname.Length())
   {
     io->BeginChunk(CH_FD_FNAME);
     if (io->WriteCString(util.fd_fname) != IO_OK)
@@ -78,7 +83,7 @@ IOResult FontUtilDesc::Load(ILoad *io)
       case CH_FD_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcsncpy(util.fd_fname, str, 255);
+        util.fd_fname = str;
         break;
     }
     io->CloseChunk();
@@ -126,7 +131,6 @@ FontUtil::FontUtil()
   iu = NULL;
   ip = NULL;
   hPanel = NULL;
-  fd_fname[0] = 0;
 }
 
 void FontUtil::BeginEditParams(Interface *ip, IUtil *iu)
@@ -151,47 +155,10 @@ void FontUtil::Destroy(HWND hWnd) {}
 
 int FontUtil::input_fd_fname()
 {
-  static TCHAR fname[256];
-  _tcscpy(fname, fd_fname);
-  OPENFILENAME ofn;
-  memset(&ofn, 0, sizeof(ofn));
   FilterList fl;
   fl.Append(GetString(IDS_FONTDATA_FILES));
   fl.Append(_T("*.fd"));
-  TSTR title = GetString(IDS_SAVE_FONTDATA_TITLE);
-
-  ofn.lStructSize = sizeof(OPENFILENAME);
-  ofn.hwndOwner = hPanel;
-  ofn.lpstrFilter = fl;
-  ofn.lpstrFile = fname;
-  ofn.nMaxFile = 256;
-  ofn.lpstrInitialDir = _T("");
-  ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-  ofn.lpstrDefExt = _T("fd");
-  ofn.lpstrTitle = title;
-
-tryAgain:
-  if (GetSaveFileName(&ofn))
-  {
-    if (DoesFileExist(fname))
-    {
-      TSTR buf1;
-      buf1.printf(GetString(IDS_FILE_EXISTS), fname);
-      if (IDYES != MessageBox(hPanel, buf1, title, MB_YESNO | MB_ICONQUESTION))
-        goto tryAgain;
-    }
-    if (_tcscmp(fd_fname, fname) != 0)
-    {
-      _tcscpy(fd_fname, fname);
-#if MAX_RELEASE >= 3000
-      SetSaveRequiredFlag();
-#else
-      SetSaveRequired();
-#endif
-    }
-    return 1;
-  }
-  return 0;
+  return get_save_filename(hPanel, GetString(IDS_SAVE_FONTDATA_TITLE), fl, _T("fd"), fd_fname);
 }
 
 struct VDiv
@@ -248,7 +215,7 @@ public:
   TimeValue time;
 
   FontENCB(TimeValue t) { time = t; }
-  ~FontENCB()
+  ~FontENCB() override
   {
     for (int i = 0; i < chars.Count(); ++i)
       if (chars[i].s)
@@ -263,7 +230,7 @@ public:
     if (v)
       *v = p.z;
   }
-  int proc(INode *n)
+  int proc(INode *n) override
   {
     if (!n)
       return ECB_CONT;
@@ -357,7 +324,7 @@ public:
     }
     return 1;
   }
-  int save(TCHAR *fn, Interface *ip)
+  int save(const TCHAR *fn, Interface *ip)
   {
     FILE *h = _tfopen(fn, _T("wt"));
     if (!h)
@@ -413,6 +380,6 @@ void FontUtil::exportData()
   enum_nodes(ip->GetRootNode(), &cb);
   if (!cb.check(ip))
     return;
-  if (!cb.save(fd_fname, ip))
+  if (!cb.save(fd_fname.data(), ip))
     return;
 }

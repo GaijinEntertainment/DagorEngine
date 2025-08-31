@@ -16,13 +16,17 @@
 #include <rendInst/rendInstCollision.h>
 #include <rendInst/debugCollisionVisualization.h>
 #include <rendInst/gpuObjects.h>
+#include <rendInst/constants.h>
 #include <gamePhys/phys/rendinstDestr.h>
 #include <math/dag_TMatrix.h>
 #include <dasModules/aotDagorMath.h>
 
-DAS_BASE_BIND_ENUM(rendinst::DrawCollisionsFlag, DrawCollisionsFlags, RendInst, RendInstExtra, All, Wireframe, Opacity, Invisible,
-  RendInstCanopy, PhysOnly, TraceOnly)
+DAS_BASE_BIND_ENUM(rendinst::DrawCollisionsFlag, DrawCollisionsFlags, RendInst, RendInstExtra, All, Wireframe, Opacity, //-V1096
+  Invisible, RendInstCanopy, PhysOnly, TraceOnly)
 DAS_BIND_ENUM_CAST(rendinst::DrawCollisionsFlag)
+DAS_BASE_BIND_ENUM(rendinst::GatherRiTypeFlag, GatherRiTypeFlags, RiGenTmOnly, RiGenPosOnly, RiExtraOnly, RiGenOnly, //-V1096
+  RiGenTmAndExtra, RiGenAndExtra)
+DAS_BIND_ENUM_CAST(rendinst::GatherRiTypeFlag)
 
 MAKE_TYPE_FACTORY(RiExtraComponent, RiExtraComponent);
 MAKE_TYPE_FACTORY(RendInstDesc, rendinst::RendInstDesc);
@@ -100,6 +104,23 @@ inline void gather_ri_gen_extra_collidable_in_transformed_box(const TMatrix &tra
   context->invoke(block, &arg, nullptr, at);
 }
 
+inline void gather_ri_gen_extra_collidable_max(const BSphere3 &sphere, float max_size,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<rendinst::riex_handle_t>>> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  rendinst::riex_collidable_t handles;
+  rendinst::gatherRIGenExtraCollidableMax(handles, sphere, max_size);
+
+  das::Array arr;
+  arr.data = (char *)handles.data();
+  arr.size = uint32_t(handles.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
+
 inline void get_ri_gen_extra_instances(int res_idx,
   const das::TBlock<void, const das::TTemporary<const das::TArray<rendinst::riex_handle_t>>> &block, das::Context *context,
   das::LineInfoArg *at)
@@ -123,6 +144,23 @@ inline void get_ri_gen_extra_instances_by_box(int res_idx, const bbox3f &box,
 {
   Tab<rendinst::riex_handle_t> handles(framemem_ptr());
   rendinst::getRiGenExtraInstances(handles, res_idx, box);
+
+  das::Array arr;
+  arr.data = (char *)handles.data();
+  arr.size = uint32_t(handles.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
+
+inline void get_ri_gen_extra_instances_by_sphere(int res_idx, const BSphere3 &sphere,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<rendinst::riex_handle_t>>> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  Tab<rendinst::riex_handle_t> handles(framemem_ptr());
+  rendinst::getRiGenExtraInstances(handles, res_idx, sphere);
 
   das::Array arr;
   arr.data = (char *)handles.data();
@@ -173,7 +211,7 @@ inline int rendinst_cloneRIGenExtraResIdx(const char *source_res_name, const cha
   return rendinst::cloneRIGenExtraResIdx(source_res_name ? source_res_name : "", new_res_name ? new_res_name : "");
 }
 
-inline void rendinst_foreachRIGenInBox(const BBox3 &box, bool test_riextra_col,
+inline void rendinst_foreachInBox(const BBox3 &box, int type_flags,
   const das::TBlock<void, const rendinst::RendInstDesc, const TMatrix, bool> &block, das::Context *context, das::LineInfoArg *at)
 {
   vec4f args[3];
@@ -206,18 +244,14 @@ inline void rendinst_foreachRIGenInBox(const BBox3 &box, bool test_riextra_col,
       cb.context = context;
       cb.code = code;
 
-      rendinst::foreachRIGenInBox(box,
-        test_riextra_col ? rendinst::GatherRiTypeFlag::RiGenAndExtra : rendinst::GatherRiTypeFlag::RiGenOnly, cb);
+      rendinst::foreachRIGenInBox(box, static_cast<rendinst::GatherRiTypeFlag>(type_flags), cb);
     },
     at);
 }
 
-inline void rendinst_foreachTreeInBox(const bbox3f &bbox, const das::TBlock<void, const rendinst::CollisionInfo> &block,
+inline void rendinst_foreachTreeInBox(const BBox3 &bbox, const das::TBlock<void, const rendinst::CollisionInfo> &block,
   das::Context *context, das::LineInfoArg *at)
 {
-  BBox3 bb;
-  v_stu_bbox3(bb, bbox);
-
   vec4f args[1];
   context->invokeEx(
     block, args, nullptr,
@@ -240,12 +274,12 @@ inline void rendinst_foreachTreeInBox(const bbox3f &bbox, const das::TBlock<void
       cb.context = context;
       cb.code = code;
 
-      rendinst::testObjToRIGenIntersection(bb, cb, rendinst::GatherRiTypeFlag::RiGenOnly);
+      rendinst::testObjToRendInstIntersection(bbox, cb, rendinst::GatherRiTypeFlag::RiGenOnly);
     },
     at);
 }
 
-inline void get_ri_color_infos(const das::TBlock<void, E3DCOLOR, E3DCOLOR, das::TTemporary<const char *>> &block,
+inline void get_ri_color_infos(const das::TBlock<void, E3DCOLOR, E3DCOLOR, const das::TTemporary<const char *>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
   rendinst::get_ri_color_infos([&](E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name) {
@@ -254,7 +288,7 @@ inline void get_ri_color_infos(const das::TBlock<void, E3DCOLOR, E3DCOLOR, das::
   });
 }
 
-inline void iterate_riextra_map(const das::TBlock<void, int, das::TTemporary<const char *>> &block, das::Context *context,
+inline void iterate_riextra_map(const das::TBlock<void, int, const das::TTemporary<const char *>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
   rendinst::iterateRIExtraMap([&](int id, const char *name) {

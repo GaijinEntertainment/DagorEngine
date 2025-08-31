@@ -52,12 +52,12 @@ def draw_phys_vars_edit(eid : array<EntityId> implicit; flags : uint; name : str
     imgui::SameLine()
     *filter |> Draw("##physVarsFilter_{eid}")
 
-    if BeginTable("PhysVars", 5, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
-      TableSetupColumn("Id", ImGuiTableColumnFlags WidthFixed)
-      TableSetupColumn("[P]", ImGuiTableColumnFlags WidthFixed)
-      TableSetupColumn("Name", ImGuiTableColumnFlags WidthStretch)
-      TableSetupColumn("Value", ImGuiTableColumnFlags WidthStretch)
-      TableSetupColumn("*", ImGuiTableColumnFlags WidthFixed)
+    if BeginTable("PhysVars", 5, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
+      TableSetupColumn("Id", ImGuiTableColumnFlags.WidthFixed)
+      TableSetupColumn("[P]", ImGuiTableColumnFlags.WidthFixed)
+      TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch)
+      TableSetupColumn("Value", ImGuiTableColumnFlags.WidthStretch)
+      TableSetupColumn("*", ImGuiTableColumnFlags.WidthFixed)
       TableHeadersRow()
 
     for i in 0..varsCount
@@ -74,11 +74,14 @@ def draw_phys_vars_edit(eid : array<EntityId> implicit; flags : uint; name : str
       imgui::TableNextColumn()
       imgui::Text(varName)
       imgui::TableNextColumn()
-      let varValueText = "{phys_vars |> getVar(i)}"
-      imgui::Text(varValueText)
+      let step = 0.1f
+      let fastStep = 1f
+      let varVal = phys_vars |> getVar(i)
+      if InputScalar("##{varName}", ImGuiDataType.Float, safe_addr(varVal), safe_addr(step), safe_addr(fastStep), "%.2f", ImGuiInputTextFlags.None)
+        phys_vars |> setVar(i, varVal)
 
       imgui::TableNextColumn()
-      draw_popup(varName, varValueText)
+      draw_popup(varName, "{varVal}")
     EndTable()
 
   default_menu(eid, name, "PhysVars", changed, sub_menu)

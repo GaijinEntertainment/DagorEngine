@@ -27,13 +27,14 @@ class Occlusion
 {
 public:
   Occlusion() = default;
-  void init()
+  void init(const char *hzb_tex_name = "hzb")
   {
     occ = OcclusionSystem::create();
-    occ->init();
+    occ->init(hzb_tex_name);
   }
   void close() { del_it(occ); }
   ~Occlusion() { close(); }
+  Occlusion &operator=(const Occlusion &) = delete;
   inline void reset() { occ->reset(); }
   inline operator bool() const { return occ != nullptr; }
   inline void prepareDebug()
@@ -284,6 +285,10 @@ public:
   inline int getRasterizedBoxOccluders() const { return 0; }
   inline int getRasterizedQuadOccluders() const { return 0; }
 #endif
+
+  OcclusionTest<OCCLUSION_W, OCCLUSION_H> &getOcclusionTest() { return occ->getOcclusionTest(); }
+  const OcclusionTest<OCCLUSION_W, OCCLUSION_H> &getOcclusionTest() const { return occ->getOcclusionTest(); }
+
 protected:
   mat44f curViewProj = {};
   mat44f curView = {};

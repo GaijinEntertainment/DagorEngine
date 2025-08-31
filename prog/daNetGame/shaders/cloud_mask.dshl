@@ -2,14 +2,14 @@
 include "clouds2/cloud_volume_mask.dshl"
 include "vr_reprojection.dshl"
 
-macro GET_CLOUD_VOLUME_MASK()
-  if (cloud_volume != NULL)
-  {
-    INIT_BOUNDING_VIEW_REPROJECTION(ps)
-    USE_BOUNDING_VIEW_REPROJECTION(ps)
+int disable_cloud_volume_mask = 1 always_referenced; // TODO: disabled by default, needs more testing
+interval disable_cloud_volume_mask : no < 1, yes;
 
+macro GET_CLOUD_VOLUME_MASK_STAGE(stage)
+  if (cloud_volume != NULL && disable_cloud_volume_mask == no)
+  {
     CLOUD_VOLUME_MASK()
-    hlsl(ps) {
+    hlsl(stage) {
       half get_cloud_volume_mask(float4 scrTexcoord)
       {
         return get_screen_cloud_volume_mask(scrTexcoord.xy/scrTexcoord.w, scrTexcoord.w);
@@ -17,10 +17,14 @@ macro GET_CLOUD_VOLUME_MASK()
     }
   } else
   {
-    hlsl(ps) {
+    hlsl(stage) {
       #define get_screen_cloud_volume_mask(scrTex, w) 1
       #define get_cloud_volume_mask(scrTex) 1
     }
   }
+endmacro
+
+macro GET_CLOUD_VOLUME_MASK()
+  GET_CLOUD_VOLUME_MASK_STAGE(ps)
 endmacro
 

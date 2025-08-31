@@ -165,13 +165,14 @@ void LandClassAssetMgr::onAssetChanged(const DagorAsset &asset, int asset_name_i
     if (!refProvider)
       return;
 
+    Tab<IDagorAssetRefProvider::Ref> refs;
     for (SharedLandClassAssetData *landClassAssetData : assets)
     {
       DagorAsset *landClassAsset = DAEDITOR3.getAssetByName(landClassAssetData->assetName, landAssetType);
       if (!landClassAsset)
         continue;
 
-      const dag::ConstSpan<IDagorAssetRefProvider::Ref> refs = refProvider->getAssetRefs(*landClassAsset);
+      refProvider->getAssetRefs(*landClassAsset, refs);
       for (const IDagorAssetRefProvider::Ref &ref : refs)
         if (ref.getAsset() == &asset)
         {

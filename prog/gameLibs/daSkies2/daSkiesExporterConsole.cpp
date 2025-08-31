@@ -152,24 +152,19 @@ static bool convert_weather_blk_to_entity_console_handler(const char *argv[], in
     eastl::string mask = folder + "*.blk";
     eastl::vector<NamedDataBlock> weatherBlks;
 
-    alefind_t fh;
-    if (dd_find_first(mask.c_str(), 0, &fh))
+    for (const alefind_t &fh : dd_find_iterator(mask.c_str(), DA_FILE))
     {
-      do
-      {
-        char buf[260];
-        const char *fname = dd_get_fname_without_path_and_ext(buf, countof(buf), fh.name);
-        eastl::string filePath = folder + fh.name;
-        DataBlock weatherBlk;
-        weatherBlk.load(filePath.c_str());
-        // It's considered a weather blk, if it contains at least one of these blocks.
-        if (weatherBlk.blockCountByName("clouds_rendering") > 0 || weatherBlk.blockCountByName("strata_clouds") > 0 ||
-            weatherBlk.blockCountByName("clouds_form") > 0 || weatherBlk.blockCountByName("clouds_settings") > 0 ||
-            weatherBlk.blockCountByName("clouds_weather_gen") > 0 || weatherBlk.blockCountByName("ground") > 0 ||
-            weatherBlk.blockCountByName("sky") > 0)
-          weatherBlks.push_back({eastl::string(fname), eastl::move(weatherBlk)});
-      } while (dd_find_next(&fh));
-      dd_find_close(&fh);
+      char buf[260];
+      const char *fname = dd_get_fname_without_path_and_ext(buf, countof(buf), fh.name);
+      eastl::string filePath = folder + fh.name;
+      DataBlock weatherBlk;
+      weatherBlk.load(filePath.c_str());
+      // It's considered a weather blk, if it contains at least one of these blocks.
+      if (weatherBlk.blockCountByName("clouds_rendering") > 0 || weatherBlk.blockCountByName("strata_clouds") > 0 ||
+          weatherBlk.blockCountByName("clouds_form") > 0 || weatherBlk.blockCountByName("clouds_settings") > 0 ||
+          weatherBlk.blockCountByName("clouds_weather_gen") > 0 || weatherBlk.blockCountByName("ground") > 0 ||
+          weatherBlk.blockCountByName("sky") > 0)
+        weatherBlks.push_back({eastl::string(fname), eastl::move(weatherBlk)});
     }
 
     for (auto &weatherBlk : weatherBlks)

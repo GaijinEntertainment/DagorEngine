@@ -10,6 +10,7 @@ bool cpu_feature_popcnt_checked = false;
 bool cpu_feature_fma_checked = false;
 bool cpu_feature_avx_checked = false;
 bool cpu_feature_avx2_checked = false;
+bool cpu_feature_f16c_checked = false;
 bool cpu_feature_fast_256bit_avx_checked = false;
 
 #ifdef _TARGET_SIMD_SSE
@@ -48,7 +49,8 @@ static bool dag_check_cpu_features()
     SSE42_BIT = 1 << 20,
     POPCNT_BIT = 1 << 23,
     OSXSAVE_BIT = 1 << 27,
-    AVX_BIT = 1 << 28
+    AVX_BIT = 1 << 28,
+    F16C_BIT = 1 << 29,
   };
   enum CpuFeatures70Ebx : uint32_t // eax=7, ecx=0
   {
@@ -71,6 +73,7 @@ static bool dag_check_cpu_features()
   cpu_feature_popcnt_checked = ecx & CpuFeatures1Ecx::POPCNT_BIT;
   cpu_feature_fma_checked = ecx & CpuFeatures1Ecx::FMA3_BIT;
   bool osxsave = ecx & CpuFeatures1Ecx::OSXSAVE_BIT;
+  cpu_feature_f16c_checked = ecx & CpuFeatures1Ecx::F16C_BIT;
 #if _TARGET_PC_WIN
   osxsave &= isAvxXStateFeatureEnabled();
 #endif

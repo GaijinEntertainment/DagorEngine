@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursor = Cursor(@() {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [32, 32]
+  size = 32
   commands = [
     [VECTOR_WIDTH, 2],
     [VECTOR_COLOR, 0xFFCC33],
@@ -23,19 +23,19 @@ function mkBtn(behavior) {
   return @() {
     watch = stateFlags
     rendObj = ROBJ_SOLID
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     minWidth = SIZE_TO_CONTENT
     halign = ALIGN_CENTER
     behavior
     padding = 10
     color = 0x557755
-    onElemState = @(sf) stateFlags(sf)
+    onElemState = @(sf) stateFlags.set(sf)
     cursor
     children = {
       rendObj = ROBJ_TEXT
       text
-      color = stateFlags.value & S_ACTIVE ? 0xFFFFFF
-        : stateFlags.value & S_HOVER ? 0xFFCC33
+      color = stateFlags.get() & S_ACTIVE ? 0xFFFFFF
+        : stateFlags.get() & S_HOVER ? 0xFFCC33
         : 0xFF000000
     }
   }
@@ -59,7 +59,7 @@ return {
     // front pane that overlapping left part of active elements to compare event shielding effect
     {
       rendObj = ROBJ_SOLID
-      size = [pw(50), flex()]
+      size = static [pw(50), flex()]
       color = 0x22222222
       // cursors of bottom active elements should not override default one!
       stopMouse = true

@@ -4,6 +4,8 @@ include "viewVecVS.dshl"
 float4x4 infinite_grid_view_proj;
 float4 infinite_grid_major_line_color;
 float4 infinite_grid_minor_line_color;
+float4 infinite_grid_x_axis_color;
+float4 infinite_grid_z_axis_color;
 float infinite_grid_major_line_width;
 float infinite_grid_minor_line_width;
 float infinite_grid_major_subdivisions;
@@ -14,6 +16,8 @@ shader infinite_grid
   cull_mode = none;
   blend_src = 1;
   blend_dst = isa;
+  z_test = true;
+  z_write = false;
 
   USE_AND_INIT_VIEW_VEC_VS()
 
@@ -46,6 +50,8 @@ shader infinite_grid
 
     infinite_grid_major_line_color@f4 = infinite_grid_major_line_color;
     infinite_grid_minor_line_color@f4 = infinite_grid_minor_line_color;
+    infinite_grid_x_axis_color@f4 = infinite_grid_x_axis_color;
+    infinite_grid_z_axis_color@f4 = infinite_grid_z_axis_color;
     infinite_grid_major_line_width@f1 = infinite_grid_major_line_width;
     infinite_grid_minor_line_width@f1 = infinite_grid_minor_line_width;
     infinite_grid_major_subdivisions@f1 = infinite_grid_major_subdivisions;
@@ -62,6 +68,10 @@ shader infinite_grid
       return dot(point_on_plane - ray_start, plane_normal) / divisor;
     }
 
+    float4 blendColors(float4 a, float4 b) {
+        return float4(b.xyz + a.xyz * (1.0 - b.w), b.w + a.w * (1.0 - b.w));
+    }
+
     float calculateGrid(float2 uv, float line_width)
     {
       // Based on "The Best Darn Grid Shader (Yet)" by Ben Golus
@@ -75,6 +85,19 @@ shader infinite_grid
       return lerp(grid2.x, 1.0, grid2.y);
     }
 
+    float2 calculateAxis(float2 uv, float line_width)
+    {
+      float2 uvDeriv = fwidth(uv);
+      float drawWidth = clamp(line_width, uvDeriv.x, 0.5);
+      float lineAa = uvDeriv.x * 1.5;
+      float gridUv = abs(uv.x) * 2.0;
+      float g = smoothstep(drawWidth + lineAa, drawWidth - lineAa, gridUv);
+      g *= saturate(line_width / drawWidth);
+      g *= smoothstep(lineAa * 2.0, 0.0, abs(uv.x) - abs(uv.y));
+      float b = 0.55 + 0.45 * step(0.0, uv.y);
+      return float2(g, b);
+    }
+
     float4 infinite_grid_ps(VsOutput input, out float depth : SV_Depth) : SV_Target
     {
       float3 dir = input.viewVect;
@@ -85,13 +108,25 @@ shader infinite_grid
       float3 worldPos = world_view_pos + w * dir;
       float2 uv = worldPos.xz;
       float minorGrid = calculateGrid(uv, infinite_grid_minor_line_width);
-      float majorGrid = calculateGrid(uv / infinite_grid_major_subdivisions, infinite_grid_major_line_width / infinite_grid_major_subdivisions);
+      float majorGridWidth = infinite_grid_major_line_width / infinite_grid_major_subdivisions;
+      float2 majorGridUv = uv / infinite_grid_major_subdivisions;
+      float majorGrid = calculateGrid(majorGridUv, majorGridWidth);
+      float2 majorAxisX = calculateAxis(majorGridUv.yx, majorGridWidth * 1.5);
+      float2 majorAxisZ = calculateAxis(majorGridUv.xy, majorGridWidth * 1.5);
+
+      // remove axis lines from grid
+      float axisLines = max(majorAxisX.x, majorAxisZ.x) * infinite_grid_x_axis_color.w * infinite_grid_z_axis_color.w;
+      majorGrid = max(majorGrid - 2.0 * axisLines, 0.0);
+      minorGrid = max(minorGrid - 2.0 * axisLines, 0.0);
 
       float4 projectedPos = mul(infinite_grid_view_proj, float4(worldPos, 1.0));
       depth = projectedPos.z / projectedPos.w;
 
       float4 color = infinite_grid_minor_line_color * minorGrid;
-      return lerp(color, infinite_grid_major_line_color, majorGrid);
+      color = blendColors(color, infinite_grid_major_line_color * majorGrid);
+      color = blendColors(color, infinite_grid_x_axis_color * float4(majorAxisX.yyy,1.0) * majorAxisX.x);
+      color = blendColors(color, infinite_grid_z_axis_color * float4(majorAxisZ.yyy,1.0) * majorAxisZ.x);
+      return color;
     }
   }
   compile("target_ps", "infinite_grid_ps");

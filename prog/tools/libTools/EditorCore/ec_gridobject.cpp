@@ -21,6 +21,8 @@
 
 static int infinite_grid_major_line_colorVarId = -1;
 static int infinite_grid_minor_line_colorVarId = -1;
+static int infinite_grid_x_axis_colorVarId = -1;
+static int infinite_grid_z_axis_colorVarId = -1;
 static int infinite_grid_major_line_widthVarId = -1;
 static int infinite_grid_minor_line_widthVarId = -1;
 static int infinite_grid_major_subdivisionsVarId = -1;
@@ -46,10 +48,13 @@ void GridObject::resetToDefault()
   isRotateSnap = false;
   isScaleSnap = false;
   isDrawMajorLines = true;
+  isDrawAxisLines = true;
 
   isUseInfiniteGrid = true;
   infiniteGridMajorLineColor = E3DCOLOR(0, 0, 0);
   infiniteGridMinorLineColor = E3DCOLOR(150, 150, 150);
+  infiniteGridXAxisColor = e3dcolor_lerp(E3DCOLOR(228, 55, 80, 255), infiniteGridMinorLineColor, 0.5f);
+  infiniteGridZAxisColor = e3dcolor_lerp(E3DCOLOR(46, 131, 228, 255), infiniteGridMinorLineColor, 0.5f);
   infiniteGridMajorLineWidth = 0.05f;
   infiniteGridMinorLineWidth = 0.01f;
   infiniteGridMajorSubdivisions = 5;
@@ -63,6 +68,8 @@ void GridObject::renderInfiniteGrid()
 
     infinite_grid_major_line_colorVarId = get_shader_variable_id("infinite_grid_major_line_color", true);
     infinite_grid_minor_line_colorVarId = get_shader_variable_id("infinite_grid_minor_line_color", true);
+    infinite_grid_x_axis_colorVarId = get_shader_variable_id("infinite_grid_x_axis_color", true);
+    infinite_grid_z_axis_colorVarId = get_shader_variable_id("infinite_grid_z_axis_color", true);
     infinite_grid_major_line_widthVarId = get_shader_variable_id("infinite_grid_major_line_width", true);
     infinite_grid_minor_line_widthVarId = get_shader_variable_id("infinite_grid_minor_line_width", true);
     infinite_grid_major_subdivisionsVarId = get_shader_variable_id("infinite_grid_major_subdivisions", true);
@@ -93,11 +100,11 @@ void GridObject::renderInfiniteGrid()
   const TMatrix4 viewProj = TMatrix4(viewTm) * projTm;
   const bool drawMajorLines = isDrawMajorLines && infiniteGridMajorSubdivisions > 1;
 
-  ShaderGlobal::set_color4(infinite_grid_major_line_colorVarId,
-    drawMajorLines ? infiniteGridMajorLineColor : infiniteGridMinorLineColor);
+  ShaderGlobal::set_color4(infinite_grid_major_line_colorVarId, drawMajorLines ? infiniteGridMajorLineColor : E3DCOLOR(0, 0, 0, 0));
   ShaderGlobal::set_color4(infinite_grid_minor_line_colorVarId, infiniteGridMinorLineColor);
-  ShaderGlobal::set_real(infinite_grid_major_line_widthVarId,
-    drawMajorLines ? infiniteGridMajorLineWidth : infiniteGridMinorLineWidth);
+  ShaderGlobal::set_color4(infinite_grid_x_axis_colorVarId, isDrawAxisLines ? infiniteGridXAxisColor : E3DCOLOR(0, 0, 0, 0));
+  ShaderGlobal::set_color4(infinite_grid_z_axis_colorVarId, isDrawAxisLines ? infiniteGridZAxisColor : E3DCOLOR(0, 0, 0, 0));
+  ShaderGlobal::set_real(infinite_grid_major_line_widthVarId, infiniteGridMajorLineWidth);
   ShaderGlobal::set_real(infinite_grid_minor_line_widthVarId, infiniteGridMinorLineWidth);
   ShaderGlobal::set_real(infinite_grid_major_subdivisionsVarId, drawMajorLines ? infiniteGridMajorSubdivisions : 1);
   ShaderGlobal::set_float4x4(infinite_grid_view_projVarId, viewProj);
@@ -219,6 +226,7 @@ void GridObject::save(DataBlock &blk)
   gridBlk.setBool("rotate_snap_on", isRotateSnap);
   gridBlk.setBool("scale_snap_on", isScaleSnap);
   gridBlk.setBool("draw_major_lines", isDrawMajorLines);
+  gridBlk.setBool("draw_axis_lines", isDrawAxisLines);
 
   DataBlock *infiniteGridBlk = gridBlk.addBlock("infinite_grid");
   infiniteGridBlk->clearData();
@@ -250,6 +258,7 @@ void GridObject::load(const DataBlock &blk)
   isRotateSnap = gridBlk.getBool("rotate_snap_on", true);
   isScaleSnap = gridBlk.getBool("scale_snap_on", true);
   isDrawMajorLines = gridBlk.getBool("draw_major_lines", true);
+  isDrawAxisLines = gridBlk.getBool("draw_axis_lines", true);
 
   const DataBlock *infiniteGridBlk = gridBlk.getBlockByName("infinite_grid");
   if (infiniteGridBlk)
@@ -300,6 +309,7 @@ enum
   ID_SCALE_SNAP_CHK,
 
   ID_DRAW_MAJOR_LINES,
+  ID_DRAW_AXIS_LINES,
   ID_GRID_HEIGHT,
 
   ID_USE_INFINITE_GRID,
@@ -328,10 +338,7 @@ void GridEditDialog::showGridEditDialog(int viewport_index)
   index = viewport_index;
 
   updateShowGridDialogControl();
-
-  autoSize(autoCenter);
-  autoCenter = false;
-
+  autoSize(!hasEverBeenShown());
   show();
 }
 
@@ -345,6 +352,7 @@ void GridEditDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   mGrid.setAngleStep(panel->getFloat(ID_ROTATE_SNAP_EDIT));
   mGrid.setScaleStep(panel->getFloat(ID_SCALE_SNAP_EDIT));
   mGrid.setDrawMajorLines(panel->getBool(ID_DRAW_MAJOR_LINES));
+  mGrid.setDrawAxisLines(panel->getBool(ID_DRAW_AXIS_LINES));
   mGrid.setGridHeight(panel->getFloat(ID_GRID_HEIGHT));
   mGrid.setMoveSnap(panel->getBool(ID_MOVE_SNAP_CHK));
   mGrid.setRotateSnap(panel->getBool(ID_ROTATE_SNAP_CHK));
@@ -375,6 +383,7 @@ void GridEditDialog::fillPanel()
   panel->createEditFloat(ID_SCALE_SNAP_EDIT, "", mGrid.getScaleStep(), 3, true, false);
 
   panel->createCheckBox(ID_DRAW_MAJOR_LINES, "Draw major lines", mGrid.getDrawMajorLines());
+  panel->createCheckBox(ID_DRAW_AXIS_LINES, "Draw axis lines", mGrid.getDrawAxisLines());
   panel->createEditFloat(ID_GRID_HEIGHT, "Grid height", mGrid.getGridHeight());
 
   panel->createSeparator();

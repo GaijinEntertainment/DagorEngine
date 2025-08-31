@@ -804,6 +804,7 @@ public:
 //
 class AttachGeomNodeCtrl : public AnimPostBlendCtrl
 {
+public:
   struct PerAnimStateData
   {
     Tab<dag::Index16> nodeIds;
@@ -818,7 +819,6 @@ class AttachGeomNodeCtrl : public AnimPostBlendCtrl
   Tab<VarId> destVarId;
   int perAnimStateDataVarId = -1;
 
-public:
   struct AttachDesc
   {
     TMatrix wtm; //< destination (where we should attach node)
@@ -1009,7 +1009,9 @@ class AnimPostBlendMatVarFromNode : public AnimPostBlendCtrl
 {
   struct LocalData
   {
-    attachment_uid_t lastRefDestUid, lastRefSrcUid;
+    // Do not use theese pointers. They are needed as uids only to check child graph and skeleton changes.
+    AnimationGraph *lastDestGraph;
+    GeomNodeTree *lastSourceNodeTree;
     int destVarId;
     dag::Index16 srcNodeId;
   };
@@ -1079,6 +1081,7 @@ public:
 //
 class AnimPostBlendParamFromNode : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     attachment_uid_t lastRefUid;
@@ -1093,7 +1096,6 @@ class AnimPostBlendParamFromNode : public AnimPostBlendCtrl
   SimpleString nodeName;
   bool invertVal = false;
 
-public:
   AnimPostBlendParamFromNode(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
@@ -1136,7 +1138,7 @@ public:
   virtual void reset(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
 
-  const char *class_name() const override { return "AnimPostBlendParamFromNode"; }
+  const char *class_name() const override { return "AnimPostBlendCompoundRotateShift"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendCompoundRotateShiftCID || AnimPostBlendCtrl::isSubOf(id); }
 
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -1199,36 +1201,34 @@ public:
 //
 class AnimPostBlendEyeCtrl : public AnimPostBlendCtrl
 {
+  struct LocalData
+  {
+    dag::Index16 eyeDirectionNodeId;
+    dag::Index16 eyelidStartTopNodeId;
+    dag::Index16 eyelidStartBottomNodeId;
+    dag::Index16 eyelidHorizontalReactionNodeId;
+    dag::Index16 eyelidVerticalTopReactionNodeId;
+    dag::Index16 eyelidVerticalBottomReactionNodeId;
+    dag::Index16 eyelidBlinkSourceNodeId;
+    dag::Index16 eyelidBlinkTopNodeId;
+    dag::Index16 eyelidBlinkBottomNodeId;
+  };
+
+  int varId = -1;
+
   float horizontalReactionFactor = 1;
   float blinkingReactionFactor = 1;
   Point2 verticalReactionFactor;
 
   SimpleString eyeDirectionNodeName;
-  dag::Index16 eyeDirectionNodeId;
-
   SimpleString eyelidStartTopNodeName;
-  dag::Index16 eyelidStartTopNodeId;
-
   SimpleString eyelidStartBottomNodeName;
-  dag::Index16 eyelidStartBottomNodeId;
-
   SimpleString eyelidHorizontalReactionNodeName;
-  dag::Index16 eyelidHorizontalReactionNodeId;
-
   SimpleString eyelidVerticalTopReactionNodeName;
-  dag::Index16 eyelidVerticalTopReactionNodeId;
-
   SimpleString eyelidVerticalBottomReactionNodeName;
-  dag::Index16 eyelidVerticalBottomReactionNodeId;
-
   SimpleString eyelidBlinkSourceNodeName;
-  dag::Index16 eyelidBlinkSourceNodeId;
-
   SimpleString eyelidBlinkTopNodeName;
-  dag::Index16 eyelidBlinkTopNodeId;
-
   SimpleString eyelidBlinkBottomNodeName;
-  dag::Index16 eyelidBlinkBottomNodeId;
 
 public:
   AnimPostBlendEyeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
@@ -1298,7 +1298,7 @@ public:
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/){};
+  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
 
   const char *class_name() const override { return "FootLockerIKCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == FootLockerIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }

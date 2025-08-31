@@ -29,4 +29,6 @@ const char *get_sample_loading_state(const FMOD::Studio::EventDescription &event
 
 using DbgSampleDataRef = eastl::pair<FMODGUID, int /*refCount*/>;
 const dag::Span<DbgSampleDataRef> dbg_get_sample_data_refs();
+
+EventHandle debug_get_event_handle_from_instance(const FMOD::Studio::EventInstance *event_instance);
 } // namespace sndsys

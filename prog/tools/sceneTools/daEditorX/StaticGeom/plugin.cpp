@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "plugIn.h"
+#include "plugin.h"
 
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_cm.h>
@@ -10,8 +10,7 @@
 #include <de3_entityFilter.h>
 
 #include <EditorCore/ec_IEditorCore.h>
-
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/dagFileRW/dagUtil.h>
@@ -25,7 +24,6 @@
 #include <coolConsole/coolConsole.h>
 
 #include <shaders/dag_shaders.h>
-// #include <texConverter/TextureConverterDlg.h>
 #include <debug/dag_debug.h>
 
 #include <propPanel/control/menu.h>
@@ -85,6 +83,14 @@ void StaticGeometryPlugin::setVisible(bool vis)
 
 
 //==============================================================================
+void StaticGeometryPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+  wndManager.addViewportAccelerator(CM_IMPORT_WITHOUT_TEX, ImGuiMod_Ctrl | ImGuiKey_O);
+}
+
+
+//==============================================================================
 bool StaticGeometryPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   // menu
@@ -119,8 +125,11 @@ bool StaticGeometryPlugin::begin(int toolbar_id, unsigned menu_id)
 //==============================================================================
 void StaticGeometryPlugin::clearObjects()
 {
+  collision.clear();
   dagGeom->geomObjectClear(*geom);
   loaded = false;
+  loadingFailed = false;
+  lastImportFilename.clear();
 }
 
 
@@ -285,43 +294,20 @@ bool StaticGeometryPlugin::onPluginMenuClick(unsigned id)
 //==============================================================================
 void StaticGeometryPlugin::resetGeometry()
 {
-  clearObjects();
+  dagGeom->geomObjectClear(*geom);
 
   ::dd_erase(getPluginFilePath(DAG_FILENAME));
 
-  alefind_t ff;
-  bool ok;
-
-  for (ok = ::dd_find_first(getPluginFilePath("*.dtx"), DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(getPluginFilePath("*.dtx"), DA_FILE))
     ::dd_erase(getPluginFilePath(ff.name));
 
-  ::dd_find_close(&ff);
-
-  for (ok = ::dd_find_first(getPluginFilePath("*.dds"), DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(getPluginFilePath("*.dds"), DA_FILE))
     ::dd_erase(getPluginFilePath(ff.name));
-
-  ::dd_find_close(&ff);
 
   DAGORED2->repaint();
   doResetGeometry = false;
   loaded = false;
 }
-
-
-void StaticGeometryPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  // Ctrl
-  if (modif & wingw::M_CTRL)
-  {
-    switch (vk)
-    {
-      case ('O'): onPluginMenuClick(CM_IMPORT_WITHOUT_TEX); break;
-    }
-  }
-}
-
-
-void StaticGeometryPlugin::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
 
 
 bool StaticGeometryPlugin::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)

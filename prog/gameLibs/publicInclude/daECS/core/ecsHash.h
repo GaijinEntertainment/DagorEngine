@@ -5,7 +5,6 @@
 #pragma once
 
 #include <util/dag_hash.h>
-#include <EASTL/functional.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 

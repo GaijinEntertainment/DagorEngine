@@ -1,4 +1,4 @@
-# Shader Family: rendinst_layered
+# Shader Family: `rendinst_layered`
 
 ## Overview
 
@@ -14,18 +14,18 @@ As of writing, the `rendinst_layered` family includes four shaders:
 
 Let's examine the parameters for each shader.
 
-## rendinst_layered
+## `rendinst_layered`
 
 ```{seealso}
 For more information, see [rendinst_layered](rendinst_layered.md) shader.
 ```
 
-## dynamic_layered
+## `dynamic_layered`
 
 This shader functions similarly to `rendinst_layered`, but it is optimized for
 dynamic objects (destrs).
 
-## rendinst_layered_atest
+## `rendinst_layered_atest`
 
 This version supports alpha test for one or both detail textures.
 
@@ -37,7 +37,7 @@ This version supports alpha test for one or both detail textures.
 - `detail2_atest_weight`: Alpha test level for the second detail texture
   (default: 127)
 
-## rendinst_layered_lightmap
+## `rendinst_layered_lightmap`
 
 This is the standard `rendinst_layered` shader with added support for emissive
 maps.
@@ -47,7 +47,7 @@ For more information, see
 [rendinst_layered_lightmap](rendinst_layered_lightmap.md) shader.
 ```
 
-## rendinst_layered_hmap_blend
+## `rendinst_layered_hmap_blend`
 
 This version introduces a heightmap blend feature that allows seamless
 transitions between the model and the terrain. It also supports projecting a

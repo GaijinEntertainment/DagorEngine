@@ -388,7 +388,6 @@ static const char *rootPath = NULL;
 static void scan_files(const char *root_path, const char *src_folder, dag::ConstSpan<SimpleString> wclist,
   dag::ConstSpan<RegExp *> reExclude, bool scan_files, bool scan_subfolders, FastNameMapEx &files)
 {
-  alefind_t ff;
   String tmpPath;
 
   // scan for files
@@ -396,26 +395,22 @@ static void scan_files(const char *root_path, const char *src_folder, dag::Const
     for (int i = 0; i < wclist.size(); i++)
     {
       tmpPath.printf(260, "%s/%s/%s", root_path, src_folder, wclist[i].str());
-      if (::dd_find_first(tmpPath, 0, &ff))
+      for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
       {
-        do
-        {
-          bool excl = false;
-          for (int j = 0; j < reExclude.size(); j++)
-            if (reExclude[j]->test(ff.name))
-            {
-              excl = true;
-              break;
-            }
-
-          if (!excl)
+        bool excl = false;
+        for (int j = 0; j < reExclude.size(); j++)
+          if (reExclude[j]->test(ff.name))
           {
-            tmpPath.printf(260, "%s/%s/%s", root_path, src_folder, ff.name);
-            dd_simplify_fname_c(tmpPath);
-            files.addNameId(tmpPath);
+            excl = true;
+            break;
           }
-        } while (dd_find_next(&ff));
-        dd_find_close(&ff);
+
+        if (!excl)
+        {
+          tmpPath.printf(260, "%s/%s/%s", root_path, src_folder, ff.name);
+          dd_simplify_fname_c(tmpPath);
+          files.addNameId(tmpPath);
+        }
       }
     }
 
@@ -423,19 +418,16 @@ static void scan_files(const char *root_path, const char *src_folder, dag::Const
   if (scan_subfolders)
   {
     tmpPath.printf(260, "%s/%s/*", root_path, src_folder);
-    if (::dd_find_first(tmpPath, DA_SUBDIR, &ff))
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
     {
-      do
-        if (ff.attr & DA_SUBDIR)
-        {
-          if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
-            continue;
+      if (ff.attr & DA_SUBDIR)
+      {
+        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
+          continue;
 
-          ::scan_files(root_path, String(260, "%s/%s", src_folder, ff.name).str(), wclist, reExclude, scan_files, scan_subfolders,
-            files);
-        }
-      while (dd_find_next(&ff));
-      dd_find_close(&ff);
+        ::scan_files(root_path, String(260, "%s/%s", src_folder, ff.name).str(), wclist, reExclude, scan_files, scan_subfolders,
+          files);
+      }
     }
   }
 }
@@ -848,6 +840,8 @@ static void doProcess(const DataBlock &blk, const CsvLangPack &lang, CsvRec &rec
   //(in which case we should read settings from blk)
   // OR maybe, we'll need to process several columns at once
   const char *subType = blk.getStr("subtype", "jap_line_break");
+  bool useU200B = blk.getBool("useU200B", false);
+  wchar_t sepChar = useU200B ? L'\u200B' : L'\t';
   if (!strcmp(subType, "jap_line_break"))
   {
     const char *col = blk.getStr("lang", "Japanese");
@@ -858,7 +852,7 @@ static void doProcess(const DataBlock &blk, const CsvLangPack &lang, CsvRec &rec
         for (int i = 0; i < (*vals).size(); i++)
         {
           if (kc.keyHolds(rec.keys.getName(i)))
-            (*vals)[i] = process_japanese_string((*vals)[i]);
+            (*vals)[i] = process_japanese_string((*vals)[i], sepChar);
           else
             debug("skip <%s>", rec.keys.getName(i));
         }
@@ -874,7 +868,7 @@ static void doProcess(const DataBlock &blk, const CsvLangPack &lang, CsvRec &rec
         for (int i = 0; i < (*vals).size(); i++)
         {
           if (kc.keyHolds(rec.keys.getName(i)))
-            (*vals)[i] = process_chinese_string((*vals)[i]);
+            (*vals)[i] = process_chinese_string((*vals)[i], sepChar);
           else
             debug("skip <%s>", rec.keys.getName(i));
         }

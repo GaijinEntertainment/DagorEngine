@@ -1,0 +1,23 @@
+hmap_displacement_invalidation_toggle{
+  _singleton:b=yes
+  _tags:t="render"
+  hmap_displacement_invalidation__enabled:b=false
+  _tracked:t="hmap_displacement_invalidation__enabled"
+}
+
+hmap_displacement_invalidators_manager{
+  _singleton:b=yes
+  _tags:t="render"
+
+  hmap_displacement_invalidators__count_over_limit:b=false
+  "hmap_displacement_invalidators__buffer:UniqueBufHolder"{}
+  "hmap_displacement_invalidators__data:HmapDisplacementInvalidators"{}
+  _tracked:t="hmap_displacement_invalidators__data"
+}
+
+invalidate_hmap_displacement{
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _tracked:t="transform"
+  hmap_displacement_invalidator__inner_radius:r=0.4
+  hmap_displacement_invalidator__outer_radius:r=0.7
+}

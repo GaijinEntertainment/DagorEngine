@@ -70,7 +70,7 @@ public:
     static char texName[20];
     const bool avoid_tex_update = d3d::get_driver_code().is(d3d::metal);
 
-    tex_flags = TEXCF_DYNAMIC | TEXFMT_L8 | TEXCF_SYSMEM;
+    tex_flags = TEXCF_DYNAMIC | TEXFMT_R8 | TEXCF_SYSMEM;
     if (avoid_tex_update)
     {
       tex_flags &= ~TEXCF_SYSMEM;
@@ -102,10 +102,6 @@ public:
       }
       if (avoid_tex_update)
       {
-        b.texY->disableSampler();
-        b.texU->disableSampler();
-        b.texV->disableSampler();
-
         snprintf(texName, sizeof(texName), "y%04d_ogv", ++counter);
         b.texIdY = register_managed_tex(texName, b.texY);
 
@@ -158,9 +154,6 @@ public:
       texName[0] = 'v';
       b.texIdV = register_managed_tex(texName, b.texV);
 
-      b.texY->disableSampler();
-      b.texU->disableSampler();
-      b.texV->disableSampler();
       memsetTexture(b.texY);
       memsetTexture(b.texU);
       memsetTexture(b.texV);

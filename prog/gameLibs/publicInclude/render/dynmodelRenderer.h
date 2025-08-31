@@ -8,9 +8,11 @@
 #include <3d/dag_textureIDHolder.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
-#include <EASTL/fixed_vector.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_staticTab.h>
+#include <generic/dag_tab.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 #include <math/dag_declAlign.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
@@ -19,6 +21,8 @@
 #include <shaders/dag_overrideStateId.h>
 #include <3d/dag_texStreamingContext.h>
 #include <drv/3d/dag_resId.h>
+#include <shaders/dag_shaderMesh.h>
+
 
 #include "dynmodel_consts.hlsli"
 
@@ -52,7 +56,7 @@ struct InitialNodes
 };
 
 
-enum class ContextId
+enum class ContextId : int
 {
   INVALID = -1,
   MAIN = 0,
@@ -64,11 +68,12 @@ enum class ContextId
 enum RenderFlags
 {
   RENDER_OPAQUE = 0x00000001,
-  RENDER_TRANS = 0x00000002,
-  RENDER_DISTORTION = 0x00000004,
-  APPLY_OVERRIDE_STATE_ID_TO_OPAQUE_ONLY = 0x00000008,
-  MERGE_OVERRIDE_STATE = 0x00000010,
-  OVERRIDE_RENDER_SKINNED_CHECK = 0x00000020,
+  RENDER_DECAL = 0x00000002,
+  RENDER_TRANS = 0x00000004,
+  RENDER_DISTORTION = 0x00000008,
+  APPLY_OVERRIDE_STATE_ID_TO_OPAQUE_ONLY = 0x00000010,
+  MERGE_OVERRIDE_STATE = 0x00000020,
+  OVERRIDE_RENDER_SKINNED_CHECK = 0x00000040,
 };
 
 struct Interval
@@ -80,20 +85,33 @@ struct Interval
 };
 
 typedef StaticTab<Interval, 8> Intervals;
-struct DECLSPEC_ALIGN(16) PerInstanceRenderData
+struct BasePerInstanceRenderData
 {
-  uint32_t flags = RENDER_OPAQUE | RENDER_TRANS | RENDER_DISTORTION; // For compatibility with deprecated renderer.
+  uint32_t flags = RENDER_OPAQUE | RENDER_DECAL | RENDER_TRANS | RENDER_DISTORTION; // For compatibility with deprecated renderer.
   Intervals intervals;
   shaders::OverrideStateId overrideStateId;
-  eastl::fixed_vector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, true> params;
   D3DRESID constDataBuf;
-} ATTRIBUTE_ALIGN(16);
+};
+struct PerInstanceRenderData : public BasePerInstanceRenderData
+{
+  dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, true, framemem_allocator> params;
+  PerInstanceRenderData() = default;
+  PerInstanceRenderData(const struct AddedPerInstanceRenderData &o);
+};
+struct AddedPerInstanceRenderData : public BasePerInstanceRenderData
+{
+  dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, false> inplaceParams;
+  dag::ConstSpan<Point4> params;
+  AddedPerInstanceRenderData() = default;
+  AddedPerInstanceRenderData(const PerInstanceRenderData &o, dag::Vector<Point4> &extraParams);
+};
 
 struct InstanceContextData
 {
   const DynamicRenderableSceneInstance *instance = NULL;
   ContextId contextId = ContextId(-1);
-  int baseOffsetRenderData = -1;
+  int instanceOffsetRenderData = -1;
+  int nodeOffsetRenderData = -1;
 };
 
 struct Statistics
@@ -125,7 +143,13 @@ void set_check_shader_names(bool check);
 
 void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, const InitialNodes *optional_initial_nodes = NULL,
   const dynrend::PerInstanceRenderData *optional_render_data = NULL, dag::Span<int> *node_list = NULL,
-  const TMatrix4 *customProj = NULL);
+  const TMatrix4 *customProj = NULL, bool relative_to_camera = false);
+
+void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj);
+void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, int &instanceToChunkOffset,
+  const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0),
+  dynrend::InstanceContextData *instanceContextData = NULL);
+void prepare_render_finalize(ContextId context_id);
 
 // offset_to_origin is used as a hint to the expected offset of the current view position
 // relative to the current origin in view space. The same offset is used for motion vectors calculations as well
@@ -134,7 +158,7 @@ void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &
   const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0),
   dynrend::InstanceContextData *instanceContextData = NULL);
 
-void render(ContextId context_id, int shader_mesh_stage);
+void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage);
 void clear(ContextId context_id);
 
 void clear_all_contexts();
@@ -174,24 +198,22 @@ struct MaterialFilterScope
 };
 
 ContextId create_context(const char *name);
+ContextId get_or_create_context(const char *name);
 void delete_context(ContextId context_id);
-
-enum class RenderMode
-{
-  Opaque,
-  Translucent,
-  Distortion
-};
 
 void update_reprojection_data(ContextId contextId);
 
-bool set_instance_data_buffer(unsigned stage, ContextId contextId, int baseOffsetRenderData);
+bool set_instance_data_buffer(unsigned stage, ContextId contextId, int node_offset_render_data, int instance_offset_render_data);
 
 const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerInstanceRenderData);
 
 void verify_is_empty(ContextId context_id);
-void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,
-  const InitialNodes *optional_initial_nodes = NULL, const dynrend::PerInstanceRenderData *optional_render_data = NULL);
+void render_one_instance(const DynamicRenderableSceneInstance *instance, ShaderMesh::Stage shader_mesh_stage,
+  TexStreamingContext texCtx, const InitialNodes *optional_initial_nodes = NULL,
+  const dynrend::PerInstanceRenderData *optional_render_data = NULL, bool relative_to_camera = false);
+void render_one_instance(const DynamicRenderableSceneInstance *instance, ShaderMesh::Stage shader_mesh_stage, const TMatrix4 &vtm,
+  const TMatrix4 &ptm, TexStreamingContext texCtx, const InitialNodes *optional_initial_nodes = NULL,
+  const dynrend::PerInstanceRenderData *optional_render_data = NULL, bool relative_to_camera = false);
 
 void opaque_flush(ContextId context_id, TexStreamingContext texCtx, bool include_atest = false);
 
@@ -199,13 +221,10 @@ void set_shaders_forced_render_order(const eastl::vector<eastl::string> &shader_
 
 bool can_render(const DynamicRenderableSceneInstance *instance);
 
-bool render_in_tools(const DynamicRenderableSceneInstance *instance, RenderMode mode,
-  const dynrend::PerInstanceRenderData *optional_render_data = nullptr);
-
 Statistics &get_statistics();
 void reset_statistics();
 
 using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &,
-  const dynrend::PerInstanceRenderData &, const Tab<bool> &, int, float, int, int, void *);
+  const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, int, void *);
 void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data);
 } // namespace dynrend

@@ -21,6 +21,7 @@ namespace das {
     vec4f get_global_variable ( Context & context, SimNode_CallBase * call, vec4f * args );
     vec4f get_global_variable_by_index ( Context & context, SimNode_CallBase * node, vec4f * args );
 
+    void instrument_context ( Context & ctx, bool isInstrumenting, const TBlock<bool,LineInfo> & blk, Context * context, LineInfoArg * line );
     void instrument_context_allocations ( Context & ctx, bool isInstrumenting );
     void instrument_context_node ( Context & ctx, bool isInstrumenting, const TBlock<bool,LineInfo> & blk );
     void instrument_function ( Context & ctx, Func fn, bool isInstrumenting, uint64_t userData, Context * context, LineInfoArg * arg );
@@ -38,4 +39,7 @@ namespace das {
     void break_on_free ( Context & ctx, void * ptr, uint32_t size );
 
     void track_insane_pointer ( void * ptr, Context * ctx );
+
+    void free_temp_string ( Context & context, LineInfoArg * lineInfo );
+    uint64_t temp_string_size ( Context & context );
 }

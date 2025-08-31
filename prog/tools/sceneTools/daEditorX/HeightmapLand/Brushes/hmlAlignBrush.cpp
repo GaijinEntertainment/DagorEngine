@@ -4,6 +4,7 @@
 #include "hmlAlignBrush.h"
 #include "../hmlPlugin.h"
 #include "../hmlCm.h"
+#include <math/dag_check_nan.h>
 #include <ioSys/dag_dataBlock.h>
 
 
@@ -99,7 +100,7 @@ void HmapAlignLandBrush::brushPaintApplyStart(const IBBox2 &where)
       calcAverage += heightMap.getBrushImageData(x, y, HmapLandPlugin::self->getEditedChannel()) * w;
     }
   average = calcAverage / totalW;
-  if (average > 1000000 || average < -1000000 || _isnan(average) || !_finite(average))
+  if (average > 1000000 || average < -1000000 || check_nan(average) || !check_finite(average))
   {
     started = false;
   }
@@ -138,7 +139,7 @@ bool HmapAlignLandBrush::brushPaintApply(int x, int y, float inc, bool rb)
     }
     return false;
   }
-  if (average > 1000000 || average < -1000000 || _isnan(average) || !_finite(average))
+  if (average > 1000000 || average < -1000000 || check_nan(average) || !check_finite(average))
     return false;
   heightMap.setBrushImageData(x, y,
     inc * average + heightMap.getBrushImageData(x, y, HmapLandPlugin::self->getEditedChannel()) * (1.0f - inc),

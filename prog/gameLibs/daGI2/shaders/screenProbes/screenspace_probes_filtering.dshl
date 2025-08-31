@@ -7,7 +7,6 @@ include "project_gi_motion_vecs.dshl"
 
 include "sp_spatial_filter_probes.dshl"
 include "screen_gi_encoding.dshl"
-
 buffer screenspace_tile_classificator;
 
 texture prev_screenspace_radiance;
@@ -19,11 +18,11 @@ macro SAMPLE_PREV_RADIANCE_SP(code)
   }
   hlsl(code) {
     #include <pixelPacking/PixelPacking_R11G11B10.hlsl>
-    float3 read_prev_texture_radiance(uint probe_index, uint2 tci, uint2 radiance_coord)
+    float4 read_prev_texture_radiance_distance(uint probe_index, uint2 tci, uint2 radiance_coord)
     {
-      return sp_decode_texture_radiance(texture2DAt(prev_screenspace_radiance, tci + radiance_coord).xyz);
+      return texture2DAt(prev_screenspace_radiance, tci + radiance_coord);
     }
-    bool sample_bilinear_prev_radiance(float3 prevCamPos, float3 worldNormal, float linearW, float2 history_uv, float history_w, uint2 radianceCoord, inout uint historyMovingTag, inout float3 final_radiance)
+    bool sample_bilinear_prev_radiance(float3 prevCamPos, float3 worldNormal, float linearW, float2 history_uv, float history_w, uint2 radianceCoord, inout uint historyMovingTag, inout float4 final_radiance)
     {
       uint2 probe_coords[4]; uint4 encodedProbes;
       float4 cornerW;
@@ -39,13 +38,13 @@ macro SAMPLE_PREV_RADIANCE_SP(code)
         {
           uint prevRadianceRes = prev_screenspace_probe_res.w;
           uint2 samplePosCoord = probe_coords[i]*prevRadianceRes + radianceCoord;
-          float3 sampledRadiance = read_prev_texture_radiance(probe_coords[i].x + probe_coords[i].y*prev_screenspace_probe_res.x, probe_coords[i]*prevRadianceRes, radianceCoord);
+          float4 sampledRadianceDistance = read_prev_texture_radiance_distance(probe_coords[i].x + probe_coords[i].y*prev_screenspace_probe_res.x, probe_coords[i]*prevRadianceRes, radianceCoord);
           //float3 sampledRadiance = prev_screenspace_radiance[samplePosCoord].xyz;
-          final_radiance += sampledRadiance*cW;
+          final_radiance += sampledRadianceDistance*cW;
         }
       }
       float prevExposure = 1;//fixme
-      final_radiance *= prevExposure;
+      final_radiance.xyz *= prevExposure;
       return true;
     }
   }
@@ -69,15 +68,16 @@ macro COMMON_RADIANCE_FILTER(code)
       return float3(f16tof32((f32tof16(rgb) + round) & 0x7FE0)); //trunc with rounding as 11bit
     }
 
-    RWTexture2D<float3> radiance_sp: register(u0);
-    void write_texture_encoded_radiance(float3 rad, float exposure, uint probe_index, uint2 tci, uint2 radiance_coord)
+    RWTexture2D<float4> radiance_sp: register(u0);
+    void write_texture_encoded_radiance_distance(float4 rad, float exposure, uint probe_index, uint2 crd)
     {
       //use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
       ##if dagi_sp_has_exposure_assume == can_be_r11g11b10
-        rad = Round_R11G11B10_FLOAT(rad, rad*exposure < 1 ? 16 : 15);
+        rad.xyz = Round_R11G11B10_FLOAT(rad.xyz, rad.xyz*exposure < 1 ? 16 : 15);
       ##endif
-      texture2DAt(radiance_sp, tci + radiance_coord) = rad;
+      texture2DAt(radiance_sp, crd) = rad;
     }
+
 
     #if SP_RADIANCE_SIZE_IS_WARP
     groupshared uint sharedEncodedProbe;
@@ -92,9 +92,9 @@ endmacro
 
 macro CURRENT_RADIANCE_READ(code)
   hlsl(code) {
-    float3 read_texture_radiance(uint probe_index, uint2 tci, uint2 radiance_coord)
+    float4 read_texture_radiance(uint probe_index, uint2 tci, uint2 radiance_coord)
     {
-      return sp_decode_texture_radiance(screenprobes_current_radiance[tci + radiance_coord].xyz);
+      return texture2DAt(screenprobes_current_radiance, tci + radiance_coord);
     }
   }
   (code) {
@@ -102,8 +102,45 @@ macro CURRENT_RADIANCE_READ(code)
   }
 endmacro
 
+macro CURRENT_RADIANCE_SAMPLE(code)
+  (code) {
+    dagi_sp_oct_to_trace_radiance_atlas_clamp@f4 = dagi_sp_oct_to_trace_radiance_atlas_clamp;
+    sp_trace_radiance_tc_decode@f2 = (1./dagi_screenspace_probe_trace_res.x, 0.5/dagi_screenspace_probe_trace_res.x, 2./dagi_screenspace_probe_trace_res.x, 1./dagi_screenspace_probe_trace_res.x - 1);
+  }
+  hlsl(code) {
+    #include <monteCarlo.hlsl>
+    float4 sample_hemisphere_radiance_distance(uint2 atlasProbeCoord, uint2 octCoord, float3 probeNormal, uint encodedBackColor, inout float w)
+    {
+      float2 octRadianceUV = octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w;
+      #if SP_USE_HEMISPHERE_TRACE
+      if (encodedBackColor)
+      {
+        float3 rayDir = screenspace_probe_dir_decode(octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w);
+        float3x3 tm = tangent_to_world_matrix(probeNormal);
+        float3 localDir = mul(tm, rayDir); // inverse == transpose, so just use other matrix mul
+        if (localDir.z <= 0)
+        {
+          w *= 0.125; // since the data is unknown, significantly reduce weight
+          float distToPlane = 0; // fixme: this should be solved using plane solution
+          return float4(decodeProbeColor(encodedBackColor), distToPlane);
+        }
+        octRadianceUV = equalAreaSemiOctahedralDecode(localDir);
+      }
+      #endif
+      octRadianceUV = octRadianceUV*dagi_sp_oct_to_radiance_atlas.xy + dagi_sp_oct_to_radiance_atlas.xy; // atlas has same resolution in probes
+      octRadianceUV = clamp(octRadianceUV, dagi_sp_oct_to_trace_radiance_atlas_clamp.xy, dagi_sp_oct_to_trace_radiance_atlas_clamp.zw);
+      float2 uv = atlasProbeCoord*screenspace_probe_atlas_size.zw + octRadianceUV;
+      float4 radianceDist = tex2Dlod(screenprobes_current_radiance, float4(uv, 0,0));
+      return radianceDist;
+    }
+  }
+  SAMPLE_JUST_RADIANCE_SP_CODE(code)
+endmacro
+
 texture gi_prev_downsampled_close_depth_tex;
 float gi_hero_cockpit_distance = 0;
+
+texture prev_screenspace_radiance_distance;
 
 shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace_radiance_cs
 {
@@ -128,7 +165,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         return true;
       }
     }
-    CURRENT_RADIANCE_READ(cs)
+    CURRENT_RADIANCE_SAMPLE(cs)
   }
 
   if (shader == temporal_only_filter_screenspace_radiance_cs)
@@ -160,6 +197,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
     gi_hero_cockpit_distance@f1 = gi_hero_cockpit_distance;
   }
   hlsl(cs) {
+    RWTexture2D<float> radiance_distance_sp: register(u1);
     [numthreads(SP_FILTER_WARP_X, SP_FILTER_WARP_Y, 1)]
     void filter_radiance_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
@@ -195,19 +233,18 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         screen_tile_coord = uint2(screenProbeIndex%uint(screenspace_probe_res.x), screenProbeIndex/uint(screenspace_probe_res.x));
       }
 
-      uint encodedProbeNormal = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
+      uint2 encodedProbeNormal = sp_loadEncodedProbeNormalAndColorCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
       //probe.coord_ofs = decodeCoordOfs(encodedProbeNormal);
-      float3 probeNormal = decodeProbeNormal(encodedProbeNormal);
+      float3 probeNormal = decodeProbeNormal(encodedProbeNormal.x);
       //float2 screenProbeCoord = min(screen_tile_coord*screenspace_probe_res.z + probe.coord_ofs + 0.5f, screenspace_probe_screen_limit.zw);
       float3 probeCamPos = probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
       float3 probeWorldPos = sp_world_view_pos + probeCamPos;
       //float3 probeWorldPos = sp_world_view_pos + probe.normalizedW*sp_getViewVecOptimizedNormalized(screenCoordToScreenUV(screenProbeCoord));
 
       //float2 octTC = octCoord*sp_radiance_tc_decode.x + sp_radiance_tc_decode.y;
-      float3 rayDir = screenspace_probe_dir_decode(octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w);
       float probeLinearW = probe.normalizedW*sp_zn_zfar.y;
 
-      float3 prevRadiance = 0;
+      float4 prevRadianceDistance = 0;
       bool validHistory = false;
       uint historyMovingTag = 0;
       #if TEMPORAL_PROBES_FRAMES
@@ -224,7 +261,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         bool shouldReprojectHistory = sp_is_moving_tag(probe.allTag) && probeLinearW < 50; // threshold is chosen arbitrarily
         if (shouldReprojectHistory) // this is moving/dynamic probe. to fight noiseness, we try to reproject it differnetly
         {
-          uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal);
+          uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal.x);
           uint2 probeScreenCoord = min(screen_tile_coord*screenspace_probe_res.z + coord_ofs, screenspace_probe_screen_limit.zw);
           float2 uv = screenICoordToScreenUV(probeScreenCoord);
           float2 motionVector = load_motion_gbuf(probeScreenCoord, uv);
@@ -244,7 +281,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
             if (abs(bestPrevLinearDepth - probeLinearW) < 0.5*probeLinearW || all(prevRawDepth == 0)) // otherwise it is completely different. Some other dynamic object happened to be infront of it!
             {
               float3 prevProbeCamPos = historyW*sp_getPrevViewVecOptimized(historyUV);
-              validHistory = sample_bilinear_prev_radiance(prevProbeCamPos, probeNormal, probeLinearW, historyUV, historyW, octCoord, historyMovingTag, prevRadiance);
+              validHistory = sample_bilinear_prev_radiance(prevProbeCamPos, probeNormal, probeLinearW, historyUV, historyW, octCoord, historyMovingTag, prevRadianceDistance);
             }
           }
         }
@@ -261,7 +298,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
             float2 historyUV = screenSpace*float2(0.5, -0.5) + float2(0.5, 0.5);
             float3 prevProbeCamPos = probeLinearW*sp_getPrevViewVecOptimized(historyUV);
 
-            validHistory = sample_bilinear_prev_radiance(prevProbeCamPos, probeNormal, probeLinearW, historyUV, historyW, octCoord, historyMovingTag, prevRadiance);
+            validHistory = sample_bilinear_prev_radiance(prevProbeCamPos, probeNormal, probeLinearW, historyUV, historyW, octCoord, historyMovingTag, prevRadianceDistance);
           }
         }
 #endif
@@ -269,7 +306,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         {
           float3 oldUv_w;
           validHistory = !newBornProbe && reproject_probe_uv_campos(probeCamPos, oldUv_w) &&
-                         sample_bilinear_prev_radiance(probeCamPos + sp_prev_camera_pos_movement, probeNormal, probeLinearW, oldUv_w.xy, oldUv_w.z, octCoord, historyMovingTag, prevRadiance);
+                         sample_bilinear_prev_radiance(probeCamPos + sp_prev_camera_pos_movement, probeNormal, probeLinearW, oldUv_w.xy, oldUv_w.z, octCoord, historyMovingTag, prevRadianceDistance);
         }
       }
       #endif
@@ -278,14 +315,18 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
 
 
       ##if (shader == temporal_only_filter_screenspace_radiance_cs)
-        float3 encodedRadiance = validHistory ? sp_encode_texture_radiance(prevRadiance/currentExposure) : 0;
+
+        float4 encodedRadianceDistance = validHistory ? float4(prevRadianceDistance.xyz/currentExposure, prevRadianceDistance.w) : 0;
         if (!validHistory && all(octCoord == 0))
         {
           add_screenspace_probes_list(atlasProbeIndex, false);
         }
       ##else
-        float3 rad_distance = read_texture_radiance(atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
-        float3 encodedRadiance = sp_encode_texture_radiance(rad_distance.xyz);
+        uint revAge = sp_decodeTagRevAge(probe.allTag);
+        float ageW = revAge ? 1./(SP_TAG_MAX_AGE + 1 - revAge) : 0.025;
+        float w = sp_is_moving_tag(probe.allTag|historyMovingTag) ? 0.125 : ageW;//moving probes to use less of history
+        float3 encodedHistory = prevRadianceDistance.xyz;
+        float4 encodedRadianceDistance = sample_hemisphere_radiance_distance(atlasProbeCoord, octCoord, probeNormal, encodedProbeNormal.y, w);
         #if TEMPORAL_PROBES_FRAMES > 1
         //if (onlyHistoryProbe)
         //  encodedRadiance = float3(1,!isScreenProbe,0);
@@ -294,11 +335,16 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
           //float3 newHistory = lerp(prevRadiance, rad_distance.xyz, sp_is_moving_tag(probe.tag) ? 0.2 : 0.03);//moving probes to use less of history
           //newHistory = sp_encode_history_texture_radiance(newHistory);
           //use probe age to faster converge. first weight is 1, then 0.5, then 0.3, then we go to moving average (0.03)
-          uint revAge = sp_decodeTagRevAge(probe.allTag);
-          float ageW = revAge ? 1./(SP_TAG_MAX_AGE + 1 - revAge) : 0.025;
-          float w = sp_is_moving_tag(probe.allTag|historyMovingTag) ? 0.125 : ageW;//moving probes to use less of history
-          float3 encodedHistory = sp_encode_texture_radiance(prevRadiance);
-          encodedRadiance = lerp(encodedHistory, encodedRadiance, w);
+
+          //#define SP_TEMPORAL_FAVOR_BRIGHT 1 - favor bright in temporal filtering
+          #if SP_TEMPORAL_FAVOR_BRIGHT
+          encodedRadianceDistance.xyz = sqrt(lerp(pow2(encodedHistory), pow2(encodedRadianceDistance.xyz), w)); // favor bright
+          #elif SP_TEMPORAL_FAVOR_DARK
+          encodedRadianceDistance.xyz = pow2(lerp(sqrt(encodedHistory), sqrt(encodedRadianceDistance.xyz), w)); // favor dark
+          #else
+          encodedRadianceDistance.xyz = lerp(encodedHistory, encodedRadianceDistance.xyz, w);
+          #endif
+          encodedRadianceDistance.w = lerp(prevRadianceDistance.w, encodedRadianceDistance.w, w);
           //float3 newEncodedHistory = lerp(encodedHistory, encodedRadiance, w);//moving probes to use less of history
           //simple verison
           //encodedRadiance = R11G11B10_FLOAT_UINT3(newEncodedHistory) == R11G11B10_FLOAT_UINT3(encodedHistory) ?
@@ -309,11 +355,12 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
           //encodedRadiance = (targetValue == historyTargetValue && newTargetValue != historyTargetValue) ? f16tof32(historyTargetValue + (historyTargetValue < newTargetValue ? nextR11G11B10_u3 : -nextR11G11B10_u3)) : newHistory;
         }
         #endif
-        encodedRadiance = sp_encode_texture_radiance(sp_decode_texture_radiance(encodedRadiance)/currentExposure);//fixme: function
+        encodedRadianceDistance.xyz = encodedRadianceDistance.xyz/currentExposure;//fixme: function
       ##endif
 
-      encodedRadiance = h3nanofilter(encodedRadiance);
-      write_texture_encoded_radiance(encodedRadiance, currentExposure, atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
+      encodedRadianceDistance.xyz = h3nanofilter(encodedRadianceDistance.xyz);
+      uint2 writeCoord = atlasProbeCoord*sp_getRadianceRes() + octCoord;
+      write_texture_encoded_radiance_distance(encodedRadianceDistance, currentExposure, atlasProbeIndex, writeCoord);
     }
   }
   compile("target_cs", "filter_radiance_cs");
@@ -321,6 +368,9 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
 
 
 int4 sp_placement_iteration;
+hlsl {
+  //#define SP_SPATIAL_FAVOR_DARK 1
+}
 shader filter_screenspace_radiance_cs
 {
   //SP_JITTER_POS(cs)
@@ -391,7 +441,7 @@ shader filter_screenspace_radiance_cs
       bool validHistory = false;
       uint historyMovingTag = 0;
 
-      float3 rad_distance = read_texture_radiance(atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
+      float4 rad_distance = read_texture_radiance(atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
 
       float sourceExposure = 1;//fixme
       float currentExposure = 1;//fixme
@@ -409,35 +459,38 @@ shader filter_screenspace_radiance_cs
         float4 scenePlaneScaled = float4(rayDir, dot(rayDir, probeCamPos)) / probeLinearW;
         //scenePlaneScaled *= depth_exp_precision_scale(probe.normalizedW);
         // spatial filter
+        #if SP_SPATIAL_FAVOR_DARK
+        rad_distance.xyz = sqrt(rad_distance.xyz);  // favor dark
+        #endif
         float cWeight = sp_is_moving_or_new(probe.allTag) ? 0.25 : 1;
-        rad_distance *= cWeight;
+        rad_distance.xyz *= cWeight;
         float w1 = 1, w2 = 1, w3 = 1;
         float invNormalizedW = rcp(probe.normalizedW);
         int2 tcoordI = screen_tile_coord;
         int ofs = sp_is_relatively_new(probe.allTag) ? sp_placement_iteration.z : 1;
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs, 0), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs, 0), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs), octCoord, rad_distance.xyz, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs), octCoord, rad_distance.xyz, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs, 0), octCoord, rad_distance.xyz, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs, 0), octCoord, rad_distance.xyz, cWeight, w2, s);
 
         if (sp_is_moving_or_new(probe.allTag))//moving or relatively new probes to be smoothed more
         {
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,-ofs), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,-ofs), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,+ofs), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,+ofs), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,-ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,-ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,+ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,+ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
           int ofs2 = ofs + ofs;
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs2, 0), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs2, 0), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs2), octCoord, rad_distance.xyz, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs2), octCoord, rad_distance.xyz, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs2, 0), octCoord, rad_distance.xyz, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs2, 0), octCoord, rad_distance.xyz, cWeight, w3, s);
         }
         rad_distance.xyz /= cWeight;
+        #if SP_SPATIAL_FAVOR_DARK
+        rad_distance.xyz = rad_distance.xyz*rad_distance.xyz;  // favor dark restore
+        #endif
       }
-      rad_distance.xyz *= sourceExposure;
-      float3 encodedRadiance = sp_encode_texture_radiance(rad_distance.xyz);
-      encodedRadiance = sp_encode_texture_radiance(sp_decode_texture_radiance(encodedRadiance)/currentExposure);//fixme: function
-      write_texture_encoded_radiance(encodedRadiance, currentExposure, atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
+      write_texture_encoded_radiance_distance(float4(rad_distance.xyz*sourceExposure/currentExposure, rad_distance.w), currentExposure, atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes() + octCoord);
     }
   }
   compile("target_cs", "filter_radiance_cs");

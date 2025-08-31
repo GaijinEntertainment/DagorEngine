@@ -284,7 +284,7 @@ GraphLayout DefaultGraphLayouter::layout(const AdjacencyLists &graph, eastl::spa
   // but it already looks good with 12 so I reduced it for performance.
   // If visualized graphs look bad, increase this number.
   // (see header comments for the paper name)
-  optimizeLayout(12);
+  optimizeLayout(5);
   return GraphLayout{eastl::move(updatedGraph), eastl::move(nodeTable), eastl::move(edgeMapping)};
 }
 

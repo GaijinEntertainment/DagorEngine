@@ -94,7 +94,7 @@ const char *drv3d_vulkan::formatActiveExecutionStage(ActiveExecutionStage stage)
     msg = "compute";
   else if (stage == ActiveExecutionStage::CUSTOM)
     msg = "custom";
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   else if (stage == ActiveExecutionStage::RAYTRACE)
     msg = "raytrace";
 #endif

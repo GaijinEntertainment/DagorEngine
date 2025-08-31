@@ -35,6 +35,7 @@ shader object_motion_blur_tile_max
   {
     velocityMul@f2 = get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy * 0.5 * object_motion_blur_velocity_mul * object_motion_blur_frame_rate_mul;
     velocityRes@f4 = (get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy);
+    tile_max_tex_size@f2 = get_dimensions(object_motion_blur_tile_max_tex, 0).xy;
     object_motion_blur_max_vel_px@f1 = object_motion_blur_max_vel_px;
     object_motion_blur_pow@f2 = object_motion_blur_pow.xy;
     motion_vec_reproject_tm@f44 = motion_vec_reproject_tm;
@@ -119,7 +120,7 @@ shader object_motion_blur_tile_max
       float2 tc = ((float2)samplePos + 0.5) * velocityRes.zw;
       float sampleRawDepth = readGbufferDepth(tc);
 
-      half2 vel = fetch_motion_vector(tc, sampleRawDepth).xy;
+      half2 vel = fetch_motion_vector_unjittered(tc, sampleRawDepth).xy;
       if(vel.x > 10.0)   // invalid motion vector (x=y=65k means invalid, but we want linear filtering. values are in uv space)
         vel = half2(0,0);
 
@@ -135,7 +136,8 @@ shader object_motion_blur_tile_max
       vel.x = processVelocityLength(vel.x);
       vel.x *= getVignette(tc, vignette_strength);
 
-      storeFlattenedVelocity(samplePos, vel, sampleRawDepth);
+      if (all(samplePos < velocityRes.xy))
+        storeFlattenedVelocity(samplePos, vel, sampleRawDepth);
 
       maxPolarVelocityForTile[groupIndex] = vel;
       GroupMemoryBarrierWithGroupSync();
@@ -167,7 +169,7 @@ shader object_motion_blur_tile_max
       reduceStep(groupIndex, 2);
       reduceStep(groupIndex, 1);
 
-      if(groupIndex == 0)
+      if(groupIndex == 0 && all(groupId < tile_max_tex_size.xy))
       {
         vel = maxPolarVelocityForTile[groupIndex].xy;
         texture2DAt(tile_max_tex, groupId) = polarToCartesian(vel);
@@ -208,9 +210,9 @@ shader object_motion_blur_neighbor_max
     [numthreads(3, 3, 1)]
     void object_motion_blur_neighbor_max(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
     {
-      int2 offset = groupThreadId - uint2(1, 1);
+      int2 offset = groupThreadId - int2(1, 1);
       int2 samplePos = groupId + offset;
-      samplePos = clamp(samplePos, 0, (int2)(tile_max_tex_size - float2(0.9, 0.9)));
+      samplePos = clamp(samplePos, 0, (int2)tile_max_tex_size - int2(1, 1));
 
       half2 tileVel = texelFetch(tile_max_tex, samplePos, 0);
       maxVelocityForTile[groupIndex] = float3(tileVel, length(tileVel));
@@ -220,7 +222,7 @@ shader object_motion_blur_neighbor_max
       reduceStep(groupIndex, 2);
       reduceStep(groupIndex, 1);
 
-      if(groupIndex == 0)
+      if(groupIndex == 0 && all(groupId < tile_max_tex_size.xy))
       {
         half3 vel1 = maxVelocityForTile[0];
         half3 vel2 = maxVelocityForTile[8];
@@ -447,6 +449,9 @@ shader object_motion_blur
         GroupMemoryBarrierWithGroupSync();
         actualSampleCount = sharedSampleCount;
       }
+
+      if (any(dtid >= velocityRes.xy))
+        return;
 
       BRANCH
       if(maxNeighborVelLength < 0.5)

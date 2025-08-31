@@ -20,7 +20,7 @@
 #include <drv/3d/dag_driver.h>
 #include <math/dag_hlsl_floatx.h>
 #include <daECS/core/coreEvents.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 
@@ -213,7 +213,7 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 void init_manager_es_event_handler(const ecs::Event &,
   ProjectorsManager &projectors_manager,
-  dabfg::NodeHandle &projectors_node,
+  dafg::NodeHandle &projectors_node,
   Point3 &projectors_manager__atmosphereMoveDir,
   float projectors_manager__atmosphereDensity = 1.0f,
   float projectors_manager__noiseScale = 1.0f,
@@ -233,10 +233,12 @@ void init_manager_es_event_handler(const ecs::Event &,
     add_projector(eid, projectors_manager, projector__id, projector__color, projector__angle, projector__length,
       projector__sourceWidth, projector__xAngleAmplitude, projector__zAngleAmplitude, transform);
   });
-  auto nodeNs = dabfg::root() / "transparent" / "far";
-  projectors_node = nodeNs.registerNode("projectors", DABFG_PP_NODE_SRC, [&projectors_manager](dabfg::Registry registry) {
+  auto nodeNs = dafg::root() / "transparent" / "far";
+  projectors_node = nodeNs.registerNode("projectors", DAFG_PP_NODE_SRC, [&projectors_manager](dafg::Registry registry) {
     registry.requestRenderPass().color({"color_target"}).depthRoAndBindToShaderVars("depth", {"depth_gbuf"});
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_PROJECTORS);
+
+    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     use_current_camera(registry);
 
     registry.requestState().setFrameBlock("global_frame");

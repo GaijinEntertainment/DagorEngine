@@ -16,9 +16,9 @@ def create_camera_by_name(cam_name : string;
     if itm != null
       init |> set("transform", *itm)
     init |> set("camera__target", target)
-    if (cflags & uint(CreateCameraFlags CCF_SET_TARGET_TEAM)) != 0u
+    if (cflags & uint(CreateCameraFlags.CCF_SET_TARGET_TEAM)) != 0u
       init |> set("team", target |> get_int("team") ?? TEAM_UNASSIGNED)
-    if (cflags & uint(CreateCameraFlags CCF_SET_ENTITY)) != 0u
+    if (cflags & uint(CreateCameraFlags.CCF_SET_ENTITY)) != 0u
       init |> set("entity", target)
   assert(camEid != INVALID_ENTITY_ID)
   return camEid
@@ -27,7 +27,7 @@ def get_cam_itm()
   return get_cur_cam_entity() |> get_TMatrix("transform") ?? IDENT_TM
 
 def bind_camera_to_entity(cam : EntityId; target : EntityId)
-  sendEvent(cam, [[CmdSetCameraTarget target=target]])
+  sendEvent(cam, CmdSetCameraTarget(target = target))
   query(target) <| $ [es] (team aka target_team : int = TEAM_UNASSIGNED)
     query(cam) <| $ [es] (var team aka cam_team : int&)
       cam_team = target_team
@@ -80,7 +80,7 @@ def possess_entity_camera(actor_eid : EntityId;
         activeCamEid = create_camera_by_name(camName,
                                              actor_eid,
                                              safe_addr(cameraTm),
-                                             uint(CreateCameraFlags CCF_SET_TARGET_TEAM))
+                                             uint(CreateCameraFlags.CCF_SET_TARGET_TEAM))
         bindedCamera = activeCamEid
         activeCamName := camName
 
@@ -88,7 +88,7 @@ def possess_entity_camera(actor_eid : EntityId;
 
         isTpsView = get_bool(activeCamEid, "isTpsView") ?? false
 
-        sendEvent(activeCamEid, [[CmdSetCameraTarget target=actor_eid]])
+        sendEvent(activeCamEid, CmdSetCameraTarget(target = actor_eid))
 
         if !is_server()
-          send_net_event(player_eid, [[RequestCamSwitch isTpsView=isTpsView]])
+          send_net_event(player_eid, RequestCamSwitch(isTpsView = isTpsView))

@@ -1,4 +1,5 @@
 include "skinning_inc.dshl"
+include "animchar_additional_data.dshl"
 
 int matrices_stride = 6;
 buffer instance_data_buffer;
@@ -23,54 +24,73 @@ macro INIT_PER_INSTANCE_DATA(code)
   {
     (code) {immediate_dword_count = 2;}//todo: probably move to block
     hlsl(code) {
-      void get_per_instance_data(out float4 bone1, int at)
+      // bone data starts from INST_OFFSET_GETTER, additional per-instance data is before it, in reverse order
+      #define GET_PER_INSTANCE_DATA(index) \
+        bufferAt(instance_data_buffer, (INST_OFFSET_GETTER - int(index)))
+
+      float4 get_optional_per_instance_data(int index, bool condition, float4 default_result)
       {
-        uint offset_id = INST_OFFSET_GETTER;
-        bone1 = bufferAt(instance_data_buffer, offset_id-at);
-      }
-      uint get_per_instance_hashval()
-      {
-        float4 hashval;
-        get_per_instance_data(hashval, 1);
-        return asuint(hashval.x);
+        // the compiler can safely use flatten here, the buffer is never empty
+        return condition ? bufferAt(instance_data_buffer, condition ? (INST_OFFSET_GETTER - int(index)) : 0) : default_result;
       }
     }
   }
   else
   {
     hlsl(code) {
-      void get_per_instance_data(out float4 bone1, int at)
+      #define GET_PER_INSTANCE_DATA(index) float4(0,0,0,0)  // unused by tools
+
+      float4 get_optional_per_instance_data(uint2 offset_count, uint index, float4 default_result)
       {
-        //will return 0 for a while since it not used in tools
-        bone1 = float4(0,0,0,0);
+        return default_result;
+      }
+    }
+  }
+
+  USE_ANIMCHAR_ADDITIONAL_DATA(code)
+
+  if (in_editor_assume == no)
+  {
+    hlsl(code) {
+      #include "animchar_additional_data_types.hlsli"
+
+      uint get_per_instance_hashval()
+      {
+        uint2 offsetCount = get_offset_count_additional_data(AAD_RAW_INITIAL_TM__HASHVAL);
+        return asuint(get_optional_additional_data(offsetCount, 0, float4(0,0,0,0)).x);
       }
 
-      #ifdef OFFSET_TO_CHUNK
-        uint get_per_instance_hashval()
+      #define GET_PER_INSTANCE_HASHVAL \
+        asuint(get_per_instance_hashval().x)
+    }
+  }
+  else
+  {
+    hlsl(code) {
+      #ifdef OFFSET_TO_INSTANCE_DATA
+
+        uint get_per_instance_hashval_in_editor()
         {
           uint rigid_index = 0;
-          uint offsetToChunk = max((int)OFFSET_TO_CHUNK(rigid_index), 0);
-          float4 opacity__offset__extra = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 8);
-          float2 opacity__offset = opacity__offset__extra.xy;
-          uint instanceChunkOffset = uint(max(offsetToChunk + opacity__offset.y, 0));
-          float4 pos_ofs__cnt = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 1);
-          float2 dynrend_params_offset_count = float2(instanceChunkOffset + 2.5, pos_ofs__cnt.w);
-          uint param_no = 0;
-          float4 paramValue = loadBuffer(INSTANCE_DATA_BUFFER, max(dynrend_params_offset_count.x + param_no, 0));
+          uint offsetToInstanceChunk = max(OFFSET_TO_INSTANCE_DATA, 0);
+          float dynrend_params_offset = offsetToInstanceChunk + 2.5;
+          uint param_no = 4; // in tools we use a high param offset to avoid conflicts with other params
+          float4 paramValue = loadBuffer(INSTANCE_DATA_BUFFER, max(dynrend_params_offset + param_no, 0));
           return asuint(paramValue.x);
         }
+
+        #define GET_PER_INSTANCE_HASHVAL \
+          get_per_instance_hashval_in_editor()
+
       #else
-        uint get_per_instance_hashval()
-        {
-          return 0;
-        }
+        #define GET_PER_INSTANCE_HASHVAL (0U)
       #endif
     }
   }
 endmacro
 
-macro USE_BONE_VERTEX_UNPACKING()
-  hlsl(vs)
+macro USE_BONE_VERTEX_UNPACKING(code)
+  hlsl(code)
   {
     #ifndef UNPACK_BONE_VERTEX_DATA_DEFINED
     #define UNPACK_BONE_VERTEX_DATA_DEFINED
@@ -88,8 +108,8 @@ macro USE_BONE_VERTEX_UNPACKING()
   }
 endmacro
 
-macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t, bone_mtx_stride, bone_mtx_row_getter, additional_offset)
-  hlsl(vs)
+macro USE_BONE_MATRIX_BLENDING_GEN(code, blend_bone_mtx_name_t, fetch_bone_mtx_name_t, bone_mtx_stride, bone_mtx_row_getter, additional_offset)
+  hlsl(code)
   {
     bone_t blend_bone_mtx_name_t(uint offset, uint4 bi, float4 bw)
     {
@@ -140,7 +160,8 @@ macro NO_SKINNING_VS()
 if (in_editor_assume == yes)
 {
   hlsl(vs) {
-    #define OFFSET_TO_CHUNK(rigid_index) ((get_immediate_dword_0() >> 8 & 0xFFFFFF) + uint(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
+    #define OFFSET_TO_NODE_DATA(rigid_index) ((get_immediate_dword_0() >> 8 & 0xFFFFFF) + uint(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
+    #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
     #define INSTANCE_DATA_BUFFER instance_data_buffer
   }
   WORLD_LOCAL_VS()
@@ -164,7 +185,6 @@ hlsl(vs) {
 
     output_pos = vertex_pos.x * globtm_0 + vertex_pos.y * globtm_1 + vertex_pos.z * globtm_2 + globtm_3;
     eye_to_point = output_pos.x * proj_to_world_tm_0.xyz + output_pos.y * proj_to_world_tm_1.xyz + output_pos.z * proj_to_world_tm_2.xyz + output_pos.w * proj_to_world_tm_3.xyz;
-    eye_to_point -= world_view_pos;
 
     float4 projNormal = vertex_normal.x * globtm_0 + vertex_normal.y * globtm_1 + vertex_normal.z * globtm_2;
     world_normal = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
@@ -202,21 +222,22 @@ hlsl(vs) {
 }
 endmacro
 
-macro HAS_SKINNING_VS()
+macro HAS_SKINNING_BASE(code)
 
 if (in_editor_assume == yes)
 {
-  hlsl(vs)
+  hlsl(code)
   {
-    #define OFFSET_TO_CHUNK(rigid_index) (get_immediate_dword_0() >> 8 & 0xFFFFFF)
+    #define OFFSET_TO_NODE_DATA(rigid_index) (get_immediate_dword_0() >> 8 & 0xFFFFFF)
+    #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
     #define INSTANCE_DATA_BUFFER instance_data_buffer
   }
-  WORLD_LOCAL_VS()
+  INIT_WORLD_LOCAL_BASE(code)
+  USE_WORLD_LOCAL_BASE(code)
 }
 
-hlsl(vs)
+hlsl(code)
 {
-#include <animchar_additional_data_types.hlsli>
 
 ##if in_editor_assume == yes
   #define SKINNING_MATRIX_STRIDE 6
@@ -229,11 +250,11 @@ hlsl(vs)
 ##endif
 }
 
-INIT_PER_INSTANCE_DATA(vs)
-USE_BONE_VERTEX_UNPACKING()
-USE_BONE_MATRIX_BLENDING_GEN(blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER, ADDITIONAL_BONE_MTX_OFFSET)
+INIT_PER_INSTANCE_DATA(code)
+USE_BONE_VERTEX_UNPACKING(code)
+USE_BONE_MATRIX_BLENDING_GEN(code, blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER, ADDITIONAL_BONE_MTX_OFFSET)
 
-hlsl(vs)
+hlsl(code)
 {
   float3 mul_bone(float3 p3, bone_t m) { return float3(dot(m.r0, float4(p3,1)), dot(m.r1, float4(p3,1)), dot(m.r2, float4(p3,1))); }
   float3 mul_bone3(float3 p3, bone_t m) { return float3(dot(m.r0.xyz, p3), dot(m.r1.xyz, p3), dot(m.r2.xyz, p3)); }
@@ -365,6 +386,10 @@ hlsl(vs)
 }
 endmacro
 
+macro HAS_SKINNING_VS()
+  HAS_SKINNING_BASE(vs)
+endmacro
+
 macro OPTIONAL_SKINNING_SHADER()
 if (num_bones == no_bones)
 {
@@ -477,8 +502,8 @@ macro USE_BINDPOSE_VS()
     {
       #define BINDPOSE_BONE_ROW_GETTER(bi) bind_pose_tr_buffer[bi]
     }
-    USE_BONE_VERTEX_UNPACKING()
-    USE_BONE_MATRIX_BLENDING_GEN(blend_bindpose_matrix_base, fetch_bindpose_matrix_base, 3, BINDPOSE_BONE_ROW_GETTER, 0)
+    USE_BONE_VERTEX_UNPACKING(vs)
+    USE_BONE_MATRIX_BLENDING_GEN(vs, blend_bindpose_matrix_base, fetch_bindpose_matrix_base, 3, BINDPOSE_BONE_ROW_GETTER, 0)
     hlsl(vs)
     {
       bone_t blend_bindpose_matrix(uint4 bi, float4 bw)
@@ -513,3 +538,28 @@ macro USE_BINDPOSE_VS()
   }
 endmacro
 
+macro USE_INITIAL_TM_HASHVAL(code)
+  hlsl(code)
+  {
+    void get_initial_tm(out float4 initial_tm_0, out float4 initial_tm_1, out float4 initial_tm_2)
+    {
+      uint2 offsetCount = 0;
+      ##if in_editor_assume == no
+        offsetCount = get_offset_count_additional_data(AAD_RAW_INITIAL_TM__HASHVAL);
+      ##endif
+      BRANCH
+      if (offsetCount.y > 0)
+      {
+        initial_tm_0 = get_additional_data(offsetCount, 3);
+        initial_tm_1 = get_additional_data(offsetCount, 2);
+        initial_tm_2 = get_additional_data(offsetCount, 1);
+      }
+      else
+      {
+        initial_tm_0 = float4(1, 0, 0, 0);
+        initial_tm_1 = float4(0, 1, 0, 0);
+        initial_tm_2 = float4(0, 0, 1, 0);
+      }
+    }
+  }
+endmacro

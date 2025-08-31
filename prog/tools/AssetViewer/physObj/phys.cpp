@@ -278,6 +278,8 @@ int getDefaultPhys()
   const char *collision = ::get_app().getWorkspace().getCollisionName();
   if ((stricmp(collision, "bullet") == 0) || (stricmp(collision, "DagorBullet") == 0))
     return PHYS_BULLET;
+  else if ((stricmp(collision, "jolt") == 0))
+    return PHYS_JOLT;
   else
   {
     CoolConsole &log = ::get_app().getConsole();
@@ -406,6 +408,8 @@ void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body
 }
 
 void render() { CALL_PHYS_FUNC(render, (), break); }
+
+void renderDecals() { CALL_PHYS_FUNC(render_decals, (), break); }
 
 static bool traceCollision(PhysicsResource *simObjRes, int o_idx, const Point3 &pt, Point3 dir, Point3 &cp, int &obj_idx,
   int &sub_body_idx, real &dist)

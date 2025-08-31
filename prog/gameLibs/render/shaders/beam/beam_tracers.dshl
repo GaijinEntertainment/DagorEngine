@@ -1,0 +1,579 @@
+include "shader_global.dshl"
+include "use_volfog.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "static_shadow.dshl"
+include "fom_shadows.dshl"
+include "use_gi.dshl"
+include "sky_shader_global.dshl"
+include "camera_in_camera.dshl"
+
+float beam_tracer_cockpit_radius = 0;
+float beam_trace_current_time = 0;
+float beam_fade_dist = 25;
+float beam_min_intensity_cos = 0.0;
+float beam_max_intensity_cos = 1.0;
+float beam_min_intensity_mul = 1.0;
+float beam_max_intensity_mul = 1.0;
+float beam_fog_intensity_mul = 1.0;
+texture beam_tracer_tail_tex;
+texture beam_tracer_tex;
+
+int beam_tracers_tail_tracers_const_no = 12;
+int beam_tracers_tail_tracerVerts_const_no = 13;
+
+shader beam_tracers_tail
+{
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(vs)
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
+
+  supports global_frame;
+  supports global_const_block;
+  //cull_mode = none;
+  z_write = false;
+  blend_src =1; blend_dst = sa;
+
+  (vs) {
+    globtm@f44 = globtm;
+    beam_trace_current_time@f1 = (beam_trace_current_time);
+    local_view_z@f3 = local_view_z;
+    local_view_y@f3 = local_view_y;
+    tracers@buf : register(beam_tracers_tail_tracers_const_no) hlsl {
+      #include <beamTracers.hlsli>
+      StructuredBuffer<GPUBeamTracerTailRender> tracers@buf;
+    };
+    tracerVerts@buf : register(beam_tracers_tail_tracerVerts_const_no) hlsl {
+      StructuredBuffer<GPUBeamTracerVertices> tracerVerts@buf;
+    };
+  }
+  INIT_VOLUMETRIC_GI(vs)
+  USE_VOLUMETRIC_GI(vs)
+  INIT_SKYLIGHT_PARAMS(vs)
+  USE_SKYLIGHT_PARAMS(vs)
+  INIT_SIMPLE_AMBIENT(vs)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color:TEXCOORD0;
+      float4 pointToEye:TEXCOORD3;
+      //float3 normal:TEXCOORD1;
+      float4 splineDir:TEXCOORD6;
+      float3 tc:TEXCOORD2;
+      float3 fogMul:TEXCOORD4;
+      float3 fogAdd:TEXCOORD5;
+    };
+  }
+
+  INIT_STATIC_SHADOW_BASE(vs)
+  USE_STATIC_SHADOW_VS()
+  INIT_FOM_SHADOWS(vs)
+  USE_FOM_SHADOWS(vs)
+
+  hlsl(vs) {
+    float get_shadow(float3 worldPos)
+    {
+      return getStaticShadow(worldPos)*getFOMShadow(worldPos);
+    }
+
+    #include <phase_functions.hlsl>
+  }
+
+  INIT_BRUNETON_FOG(vs)
+  USE_BRUNETON_FOG_VS()
+
+  INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT_TRANSPARENT
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT(vs)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(vs)
+
+  hlsl(vs) {
+    void make_basis(float3 ndir, out float3 left, inout float3 up)
+    {
+      //ndir = float3(0.0484197, -0.0726302, -0.996183);
+      left = normalize(cross(up, ndir));
+      up = cross(ndir, left);
+      left = cross(up, ndir);
+    }
+    float rand(float co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+    #include <noise/Value1D.hlsl>
+    void animate(float time, float radiusStart, out float radius, out float opacityMul, inout float4 pos_dist, float3 ndir, float3 left, float3 up, uint id, float tracerRand)
+    {
+      float sqrtTime = sqrt(time);
+      float distPhase = pow(pos_dist.w, 0.92)*(0.25 + 0.75*tracerRand)+(tracerRand*213);//to break regularity in distanse phase we use pow (0.95)
+      pos_dist.xyz += get_tracers_wind(time);// + turbRadius2*(left*sin(angle)+up*cos(angle));
+
+      float noiseFreq = 0.5;
+      float noiseSpace = distPhase;//pos_dist.w*noiseFreq+11.1*tracerRand;
+      float2 perlin2 = (float2(noise_value1D(noiseSpace), noise_value1D(noiseSpace+0.5f))*2-1);
+      float maxTurbulenceRadius = get_tracers_max_turbulence_radius(radiusStart);
+      float turbRadius2 = pow2(0.25+0.75*tracerRand)*maxTurbulenceRadius*sqrtTime;
+      perlin2 *= turbRadius2;
+      pos_dist.xyz += (left*perlin2.x+up*perlin2.y);
+      turbRadius2 = dot(abs(perlin2), 0.5);
+
+      radius = radiusStart + (sqrtTime*get_tracers_max_wind_radius(radiusStart))+turbRadius2;
+
+      opacityMul = (radiusStart/radius);//physically based it should be pow2(radiusStart/radius), but we also use time to disappear
+    }
+
+    GPUBeamTracerVertices get_spline_vert(uint tracerId, uint tracerVertsOfs, float t, out float3 dir, out float4 maxpos, out float segLen)
+    {
+      uint vertCnt = structuredBufferAt(tracers, tracerId).firstVert_totalVerts;
+      uint firstVert = vertCnt>>16;
+      vertCnt &= 0xFFFF;
+      uint vertOfs = firstVert%TRACER_SEGMENTS_COUNT;
+      uint maxVerts = min(vertCnt-firstVert-1, TRACER_SEGMENTS_COUNT-1);//should not have min
+      float tSS = maxVerts*t;
+      float splineVertId = floor(tSS);
+      //return structuredBufferAt(tracerVerts, tracerVertsOfs+(splineVertId+vertOfs)%TRACER_SEGMENTS_COUNT);
+      float vertFrac = tSS-splineVertId;
+      GPUBeamTracerVertices v0 = structuredBufferAt(tracerVerts, tracerVertsOfs+ (splineVertId+vertOfs)%TRACER_SEGMENTS_COUNT),
+                            v1 = structuredBufferAt(tracerVerts, tracerVertsOfs+ (min(splineVertId+1, maxVerts)+vertOfs)%TRACER_SEGMENTS_COUNT);
+      GPUBeamTracerVertices v;
+      v.pos_dist = lerp(v0.pos_dist, v1.pos_dist, vertFrac);
+      dir = normalize(v1.pos_dist.xyz-v0.pos_dist.xyz);
+      v.time = lerp(v0.time, v1.time, vertFrac);
+      //====
+
+      float tSS2 = maxVerts*(t+1.f/(TRACER_RIBBON_SEGMENTS_COUNT-1.f));
+      float splineVertId2 = floor(tSS2);
+      //return structuredBufferAt(tracerVerts, tracerVertsOfs+(splineVertId+vertOfs)%TRACER_SEGMENTS_COUNT);
+      float vertFrac2 = tSS2-splineVertId2;
+      GPUBeamTracerVertices v0_2 = structuredBufferAt(tracerVerts, tracerVertsOfs+ (splineVertId2+vertOfs)%TRACER_SEGMENTS_COUNT),
+                            v1_2 = structuredBufferAt(tracerVerts, tracerVertsOfs+ (min(splineVertId2+1, maxVerts)+vertOfs)%TRACER_SEGMENTS_COUNT);
+      GPUBeamTracerVertices v_2;
+      v_2.pos_dist = lerp(v0_2.pos_dist, v1_2.pos_dist, vertFrac2);
+      dir = normalize(v_2.pos_dist.xyz-v.pos_dist.xyz);
+      segLen = length(v_2.pos_dist.xyz-v.pos_dist.xyz);
+
+      maxpos = structuredBufferAt(tracerVerts, tracerVertsOfs+ (vertCnt + TRACER_SEGMENTS_COUNT-1)%TRACER_SEGMENTS_COUNT).pos_dist;
+      return v;
+    }
+
+    VsOutput beam_tracers_vs(uint iId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      uint baseTracerId = structuredBufferAt(tracers, iId).id/2;
+      bool reverseDir = structuredBufferAt(tracers, iId).id&1;
+      uint tracerId = baseTracerId;//baseTracerId/2;
+      VsOutput output;
+
+      uint vertId = vertexId/2;
+      int cornerY = 1-int(vertexId%2);
+
+      uint vertInStripId = vertId;
+      float tracerT = vertId/(TRACER_RIBBON_SEGMENTS_COUNT-1.f);
+      if (reverseDir)
+        tracerT = 1-tracerT;
+      float3 splineDir;
+      float4 tracerHeadPos;
+      float segLen;
+      float3 realSplineDir;
+      GPUBeamTracerVertices current = get_spline_vert(iId, tracerId*TRACER_SEGMENTS_COUNT, tracerT, splineDir, tracerHeadPos, segLen);
+      realSplineDir = splineDir;
+
+      //float3 splineDir = normalize(current.pos_dist.xyz-next.pos_dist.xyz);
+      float tracerTime = beam_trace_current_time-structuredBufferAt(tracers, iId).startTime;
+      float tracerRand = rand(structuredBufferAt(tracers, iId).startTime+tracerId).x;
+      float4 p0 = current.pos_dist;
+
+      float radius0=structuredBufferAt(tracers, iId).radiusStart, opacityMul0=1;
+      //float3 left, up = float3(vertical,vertical ? 0 : 1,0);
+      float angle = sqrt(p0.w)*(tracerRand+0.01) + tracerRand*131;
+      float3 left, up = float3(cos(angle), sin(angle),0);
+      make_basis(splineDir, left, up);
+      /*if (vertical)
+      {
+        float3 t = left;
+        left = -up;
+        up = t;
+      }*/
+      animate((tracerTime-current.time), structuredBufferAt(tracers, iId).radiusStart, radius0, opacityMul0, p0, splineDir, left, up, tracerId*1313+p0.w*0.5, tracerRand);
+      float3 upDir2;
+      float4 p0_2;
+      {
+        float3 splineDir2;
+        float segLen2;
+        float tracerT2 = saturate(tracerT + (1-reverseDir*2)/(TRACER_RIBBON_SEGMENTS_COUNT-1.f));
+        //float tracerT2 = tracerT + (1)/(TRACER_RIBBON_SEGMENTS_COUNT-1.f);
+        GPUBeamTracerVertices next = get_spline_vert(iId, tracerId*TRACER_SEGMENTS_COUNT, tracerT2, splineDir2, tracerHeadPos, segLen2);
+        p0_2 = next.pos_dist;
+        float angle2 = sqrt(p0_2.w)*(tracerRand+0.01) + tracerRand*131;
+        float3 left2, up2 = float3(cos(angle2), sin(angle2),0);
+        make_basis(splineDir2, left2, up2);
+        float radius0=structuredBufferAt(tracers, iId).radiusStart, opacityMul2=1;
+        animate((tracerTime-next.time), structuredBufferAt(tracers, iId).radiusStart, radius0, opacityMul2, p0_2, splineDir2, left2, up2, tracerId*1313+p0_2.w*0.5, tracerRand);
+        splineDir = normalize(p0_2.xyz - p0.xyz);
+        float3 cameraDir2 = normalize(p0_2.xyz-world_view_pos.xyz);
+        upDir2 = normalize(cross( splineDir, cameraDir2 ));
+      }
+
+      float trailWidth = radius0;
+      float3 eye = world_view_pos.xyz;
+      float3 cameraDir = normalize(p0.xyz-eye);
+      float3 upDir = normalize(cross( splineDir, cameraDir ));
+      float3 leftDir = normalize(cross( splineDir, upDir ));
+      //upDir = up;
+      float3 worldPos = p0.xyz + upDir*((cornerY*2-1)*trailWidth);// + splineDir*cornerX*segLen;
+      //output.normal = cross(upDir, splineDir);
+      float3 pointToEye = world_view_pos.xyz - worldPos;
+      output.pointToEye.xyz = pointToEye;
+      output.splineDir.xyz = realSplineDir;
+      //output.splineDir.xyz = splineDir;
+      output.splineDir.w = length(worldPos - current.pos_dist.xyz)+trailWidth;
+      //output.splineDir.w = sqrt(1-pow2(output.splineDir.w/length(output.pointToEye.xyz)));
+
+      output.pos = mulPointTm(worldPos, globtm);
+      output.pointToEye.w = output.pos.w;
+      output.tc.xy = float2(p0.w*2, cornerY) + tracerRand * float2(3.1, 7.1);
+      output.tc.z = cornerY*2-1;
+      //output.tc.w = min(-dot(output.normal, output.pointToEye.xyz), -dot(normalize(cross(upDir2, splineDir)), output.pointToEye.xyz));
+      //output.tc.w = cornerX*2-1;
+      float time_opacity = 1-saturate((tracerTime-current.time)/structuredBufferAt(tracers, iId).ttl);
+      time_opacity *= saturate(p0.w) * saturate(tracerHeadPos.w-p0.w);
+      output.color = float4(structuredBufferAt(tracers, iId).smoke_color_density.xyz, time_opacity*structuredBufferAt(tracers, iId).smoke_color_density.w*opacityMul0);
+
+      //output.color.a *= noise_value1D(p0.w*17+tracerRand*31.13);
+
+      float mieG0 = 0.55, mieG1 = -0.4;
+      float sunPhase = phaseSchlickTwoLobe(-dot(from_sun_direction, cameraDir), mieG0, mieG1);
+      float shadow = get_shadow(worldPos.xyz);
+      float ambPhase = 1./4; //1/pi is ommited
+      //half3 lighting = (shadow*sunPhase) * sun_color_0 + amb_color*ambPhase;
+      //half3 ambient = amb_color*ambPhase;
+      half3 ambient = get_undirectional_volumetric_ambient(world_view_pos.xyz, output.pos.xy/max(1e-6, output.pos.w)*float2(0.5, -0.5) + 0.5, max(0, output.pos.w), worldPos, normalize(pointToEye), length(pointToEye));
+      ambient *= skylight_gi_weight_atten;
+      half3 lighting = (shadow*sunPhase) * sun_color_0 + ambient;
+      output.color.rgb *= lighting;
+
+      half3 fogMul = 1, fogAdd = 0;
+      BRANCH
+      if (output.pos.w > 0)
+      {
+        float2 screenCrd = saturate(output.pos.xy/output.pos.w*float2(0.5,-0.5) + 0.5);
+        get_volfog_with_scattering(screenCrd, screenCrd, output.pointToEye.xyz, output.pos.w, fogMul, fogAdd);
+      }
+
+      output.fogAdd = fogAdd;
+      output.fogMul = fogMul;
+
+      return output;
+    }
+  }
+
+
+  USE_AND_INIT_VIEW_VEC_PS()
+  (ps) {
+    screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
+    beam_tracer_tail_tex@smp2d = beam_tracer_tail_tex;
+    local_view_z@f3 = local_view_z;
+    cockpit_radius@f1 = (beam_tracer_cockpit_radius);
+  }
+  if (mobile_render == off) {
+    (ps) {
+      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    }
+  }
+
+  INIT_ZNZFAR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    float4 beam_tracers_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      //may use it for softness depth?
+      float2 screenCrd = pos.xy*screen_pos_to_texcoord;
+      //float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, screenCrd.x), lerp(view_vecLB, view_vecRB, screenCrd.x), screenCrd.y);
+      //float viewDirLen = length(viewVect);
+      //float3 viewDir = viewVect/viewDirLen;
+    ##if mobile_render != off
+      float depth = 0;
+    ##else
+      float depth = tex2Dlod(downsampled_far_depth_tex, float4(screenCrd.xy,0,0)).x;
+    ##endif
+      float dstDepth = linearize_z(depth, zn_zfar.zw);
+      //float destDepthRange = dstDepth/viewDirLen;
+      //--use it for softness depth?
+      //float3 norm = normalize(input.normal);
+      //norm = normalize(cross(ddx(input.pointToEye), ddy(input.pointToEye)));
+      float3 viewDir = -normalize(input.pointToEye.xyz);
+      float cosThreshold = sqrt(1-pow2(input.splineDir.w)/lengthSq(input.pointToEye.xyz));
+      float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+      float theOpacity = 1-saturate((abs(dot(viewDir, input.splineDir.xyz)) - cosThreshold)/(1-cosThreshold));
+      theOpacity *= saturate(input.pointToEye.a);
+
+      input.color.a *= theOpacity;
+
+      half texDensity = tex2D(beam_tracer_tail_tex, input.tc.xy).x;
+
+      float4 inputColor = input.color;
+      //inputColor.a *= opacity;
+      inputColor.a *= texDensity;
+      inputColor.a *= 1-pow2(abs(input.tc.z));
+      float3 litColor = inputColor.rgb;//*lighting;
+      clip(inputColor.a-0.001);
+
+      half3 fogAdd = input.fogAdd, fogMul = input.fogMul;
+      half4 result;
+      result.rgb = litColor.rgb*fogMul + fogAdd;
+      //result.rgb = litColor.rgb;
+      inputColor.a *= saturate((dstDepth-input.pointToEye.w)*(1/0.05));
+      inputColor.a *= smoothstep(cockpit_radius, cockpit_radius*1.2, length(input.pointToEye.xyz));
+      result.rgb *= inputColor.a;
+      result.a = 1-inputColor.a;
+      //scatteredLight += transmittance * Sint; // accumulate and also take into account the transmittance from previous steps
+      return float4(pack_hdr(result.rgb), result.a);
+    }
+  }
+  compile("target_vs", "beam_tracers_vs");
+  compile("target_ps", "beam_tracers_ps");
+}
+
+int beam_tracers_head_culledTracers_const_no = 8;
+
+shader beam_tracers_head
+{
+  supports global_frame;
+  //cull_mode = none;
+  z_write = false;
+  blend_src =1; blend_dst = sa;
+
+  (vs) {
+    globtm@f44 = globtm;
+    beam_trace_current_time@f1 = (beam_trace_current_time);
+    local_view_z@f3 = local_view_z;
+    local_view_y@f3 = local_view_y;
+    culledTracers@buf : register(beam_tracers_head_culledTracers_const_no) hlsl {
+      #include <beamTracers.hlsli>
+      StructuredBuffer<GPUBeamTracerHeadRender> culledTracers@buf;
+    };
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color:TEXCOORD0;
+      float4 p0_fadeDist:TEXCOORD1;
+      float4 dir_scrollSpeed:TEXCOORD2;
+      float4 cylRadius_length_fadeTime:TEXCOORD3;
+      float4 pointToEye:TEXCOORD4;
+//      float3 fogMul:TEXCOORD4;
+//      float3 fogAdd:TEXCOORD5;
+    };
+  }
+  hlsl(vs) {
+    VsOutput beam_tracers_vs(uint iId : SV_InstanceID, uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      //generate box from vertexId
+      const uint vertElemIdEncoded = 7|(6U<<3)|(3U<<6)|(2U<<9)|(0U<<12)|(6U<<15)|(4U<<18);
+      uint subVertId = (vertexId%7);
+      int mask = subVertId == vertexId ? 0 : 1;
+      int vertId = ((vertElemIdEncoded>>(subVertId*3))&7) - int(subVertId&mask);
+      //int vertElemId[7] = {7,6,3,2,0,6,4,  7,5,3,1,0,5,4};
+      //vertId = vertElemId[vertexId];
+      float3 vert = float3(vertId&1 ? 1 : -1, vertId&2 ? 1 : -1, vertId&4 ? 0 : 1);//generate
+      //==generate box from vertexId
+
+      float3 p0 = structuredBufferAt(culledTracers, iId).p0, p1 = structuredBufferAt(culledTracers, iId).p1;
+      float3 dir = (p1.xyz-p0.xyz);
+      float dirL = length(dir);
+      float3 ndir = normalize(dir);
+      float3 left = ndir.y > 0.99 ? float3(0, -ndir.z, ndir.y) : //cross(float3(1,0,0), ndir)
+                                    float3(ndir.z, 0, -ndir.x); //cross(float3(0,1,0), ndir)
+      left = normalize(left);
+      float3 up = cross(ndir, left);
+      float realRadius = lerp(structuredBufferAt(culledTracers, iId).radius0, structuredBufferAt(culledTracers, iId).radius1, vert.z);
+      float3 viewVec = p0-world_view_pos.xyz;
+      float viewVecLen = length(viewVec);
+      float3 viewDir = viewVec/viewVecLen;
+
+      float radius = realRadius+viewVec.x*(0.001/viewVecLen);//fixme move to cull
+      // FIXME: Stumbled upon this while fixing shader warnings. Original line for the above:
+      // float radius = realRadius+viewVec*(0.001/viewVecLen);//fixme move to cull
+      // It throws a warning because viewVec is float3, it implicitly uses the x component.
+      // I modified it to work equivalently, but I assume this behaviour is not intended
+
+      //radius *= lerp(0.1,1,vert.z);
+      //lerp(vert.z, 1, pow2(abs(dot(viewDir, ndir))))
+      vert.xy *= radius;
+      float3 worldPos = p0.xyz + (vert.z*(dirL + 2*radius)-radius)*ndir+ up*vert.y + left*vert.x;
+      output.pos = mulPointTm(worldPos, globtm);
+      output.color = structuredBufferAt(culledTracers, iId).color;
+      //output.color = float4(0.5,0.4,0.3, output.color.a);
+      output.pointToEye.xyz = world_view_pos.xyz-worldPos;
+      output.pointToEye.w = output.pos.w;
+      output.p0_fadeDist.xyz = p0;
+      output.p0_fadeDist.w = structuredBufferAt(culledTracers, iId).beamFadeDist;
+      output.dir_scrollSpeed.xyz = ndir;
+      output.dir_scrollSpeed.w = structuredBufferAt(culledTracers, iId).beamScrollSpeed;
+      output.cylRadius_length_fadeTime = float4(realRadius, dirL, vert.z, structuredBufferAt(culledTracers, iId).fadeTimeRatio);
+
+      return output;
+    }
+  }
+
+  INIT_BRUNETON_FOG(ps)
+  USE_BRUNETON_FOG()
+
+  USE_AND_INIT_VIEW_VEC_PS()
+  (ps) {
+    screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
+    cockpit_radius@f1 = (beam_tracer_cockpit_radius);
+    beam_tracer_tex@smp2d = beam_tracer_tex;
+    beam_trace_current_time@f1 = (beam_trace_current_time);
+    beam_fade_dist@f1 = (beam_fade_dist);
+    beam_min_intensity_cos@f1 = beam_min_intensity_cos;
+    beam_max_intensity_cos_minus_min_intensity_cos@f1 = beam_max_intensity_cos - beam_min_intensity_cos;
+    beam_min_intensity_mul@f1 = beam_min_intensity_mul;
+    beam_max_intensity_mul@f1 = beam_max_intensity_mul;
+    beam_fog_intensity_mul@f1 = beam_fog_intensity_mul;
+  }
+  if (mobile_render == off) {
+    (ps) {
+      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    }
+  }
+  INIT_ZNZFAR() // needed for USE_VOLUMETRIC_LIGHT_TRANSPARENT
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  ENABLE_ASSERT(ps)
+  hlsl(ps) {
+    bool intersect_beam(float3 view_dir, float view_dir_dot_cyl_dir, float dest_depth_range,
+                        float3 cyl_p0, float3 cyl_dir, float cyl_length, float cyl_radius,
+                        out float t1, out float t2)
+    {
+      float viewPosDotCylDir = dot(world_view_pos.xyz, cyl_dir);
+      float d0 = dot(cyl_dir, cyl_p0);
+      float d1 = d0+cyl_length;
+
+      float plane0 = (d0 - viewPosDotCylDir)/view_dir_dot_cyl_dir;
+      float plane1 = (d1 - viewPosDotCylDir)/view_dir_dot_cyl_dir;
+
+      float3 viewDirProjected = view_dir - view_dir_dot_cyl_dir*cyl_dir;
+
+      float3 deltaP = (world_view_pos.xyz-cyl_p0);
+      float3 DEyeMinusCylP_deyeProjected = deltaP - dot(deltaP, cyl_dir)*cyl_dir;
+
+      float a = dot(viewDirProjected, viewDirProjected);
+      float b = dot(viewDirProjected, DEyeMinusCylP_deyeProjected);
+      float c = dot(DEyeMinusCylP_deyeProjected, DEyeMinusCylP_deyeProjected) - cyl_radius*cyl_radius;
+      float dscrO = (b*b - a*c);
+      float dscr = sqrt(dscrO);
+      t1 = (-b-dscr)/(a), t2 = (-b + dscr)/(a);
+      float minPlane = min(plane0, plane1), maxPlane = max(plane0, plane1);
+      maxPlane = min(dest_depth_range, maxPlane);
+
+      return (dscrO>=0) && max(t1, t2)>=max(0, minPlane) && min(t1, t2)<=maxPlane;
+    }
+
+    float2 get_beam_uv(float3 world_pos, float3 cyl_p0, float3 cyl_dir, float cyl_radius, float scroll_speed)
+    {
+      float3 uvTestDir = normalize(cross(world_pos - world_view_pos.xyz, cyl_dir));
+      float u = dot(uvTestDir, (world_pos - cyl_p0) / cyl_radius);
+      u = saturate(0.5 * u + 0.5);
+      float texLen = 10.0;
+      float v = dot(cyl_dir, (world_pos - cyl_p0) / (100.0 * cyl_radius));
+      v -= scroll_speed * beam_trace_current_time;
+
+      return float2(u,v);
+    }
+
+    float calc_distance_fade(float end_dist, float fade_dist, float fade_time_ratio, float point_to_eye_dist)
+    {
+      float fadeRatio = 1.0;
+      fadeRatio = saturate(end_dist / fade_dist);
+      fadeRatio *= fade_time_ratio;
+
+      return exp(-point_to_eye_dist/beam_fade_dist);
+    }
+
+    void calc_fake_media_terms(float2 tc, float3 point_to_eye, float point_to_eye_dist, float depth,
+                               out half density, out half transmittance)
+    {
+      half3 fogMul, dummyFogAdd;
+      get_volfog_with_scattering(tc, tc, point_to_eye, depth, fogMul, dummyFogAdd);
+
+      density = luminance(1.0h - fogMul) * beam_fog_intensity_mul / (point_to_eye_dist+0.0001h);
+      transmittance = luminance(fogMul);
+    }
+
+    float calc_view_angular_intensity_mul(float fog_density, float view_dir_dot_cyl_dir)
+    {
+      float A = abs(view_dir_dot_cyl_dir);
+      float t = saturate((A - beam_min_intensity_cos) / beam_max_intensity_cos_minus_min_intensity_cos);
+      return lerp(
+        clamp(fog_density, beam_min_intensity_mul, beam_max_intensity_mul),
+        beam_max_intensity_mul,
+        t
+      );
+    }
+
+    float4 beam_tracers_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float2 screenCrd = pos.xy*screen_pos_to_texcoord;
+      float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, screenCrd.x), lerp(view_vecLB, view_vecRB, screenCrd.x), screenCrd.y);
+      float viewDirLen = length(viewVect);
+      float3 viewDir = viewVect/viewDirLen;
+    ##if mobile_render != off
+      float depth = 0;
+    ##else
+      float depth = tex2Dlod(downsampled_far_depth_tex, float4(screenCrd.xy,0,0)).x;
+    ##endif
+      float dstDepth = linearize_z(depth, zn_zfar.zw);
+      float destDepthRange = dstDepth*viewDirLen;
+
+      float3 cylDir = input.dir_scrollSpeed.xyz;
+      float scrollSpeed = input.dir_scrollSpeed.w;
+      float3 cylP = input.p0_fadeDist.xyz;
+      float fadeDist = input.p0_fadeDist.w;
+      float cylRadius = input.cylRadius_length_fadeTime.x;
+      float cylLength = input.cylRadius_length_fadeTime.y;
+      float cylPos = input.cylRadius_length_fadeTime.z;
+      float fadeTimeRatio = input.cylRadius_length_fadeTime.w;
+      float endDist = min(cylPos * cylLength, cylLength - cylPos * cylLength);
+
+      float viewDirDotCylDir = dot(viewDir, cylDir);
+
+      float t1,t2;
+      if (!intersect_beam(viewDir, viewDirDotCylDir, destDepthRange, cylP, cylDir, cylLength, cylRadius, t1,t2))
+        discard;
+
+      float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+      float2 uv = get_beam_uv(worldPos, cylP, cylDir, cylRadius, scrollSpeed);
+      float4 litColor = float4(input.color.rgb, 1.0) * tex2Dlod(beam_tracer_tex, float4(uv,0,0));
+
+      float pointToEyeDist = length(input.pointToEye.xyz);
+      float distanceFade = calc_distance_fade(endDist, fadeDist, fadeTimeRatio, pointToEyeDist);
+
+      float screenDepth = (t1+t2)*0.5*viewDirLen;
+      half fogDensity, fogTransmittance;
+      calc_fake_media_terms(screenCrd, input.pointToEye.xyz, pointToEyeDist,
+                            screenDepth, fogDensity, fogTransmittance);
+
+      float viewAngularFade = calc_view_angular_intensity_mul(fogDensity, viewDirDotCylDir);
+
+      float4 result = litColor;
+      result *= viewAngularFade;
+      result *= distanceFade;
+      result *= fogTransmittance;
+      result.a = clamp(1 - result.a, 0, 1);
+
+      result.xyz *= smoothstep(cockpit_radius, cockpit_radius*1.2, length(input.pointToEye.xyz));
+
+      return float4(pack_hdr(result.rgb), result.a);
+    }
+  }
+  compile("target_vs", "beam_tracers_vs");
+  compile("target_ps", "beam_tracers_ps");
+}

@@ -25,7 +25,7 @@ public:
   };
 
 
-  NodesPlugin() : geomNodeTree(NULL), presentationType(FIG_TYPE_SPHERE)
+  NodesPlugin() : geomNodeTree(NULL), presentationType(FIG_TYPE_SPHERE), nodeTreePanel(NULL)
   {
     drawLinks = true;
     drawRootLinks = true;
@@ -37,39 +37,39 @@ public:
     nodeFilterMasksBlk = *appBlk.getBlockByNameEx("nodeFilterMasks");
   }
 
-  ~NodesPlugin() { end(); }
+  ~NodesPlugin() override { end(); }
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "nodesPreview"; }
+  const char *getInternalName() const override { return "nodesPreview"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects();
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override;
 
-  virtual bool supportAssetType(const DagorAsset &asset) const;
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 
   // ControlEventHandler
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  void handleViewportPaint(IGenViewportWnd *wnd)
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void handleViewportPaint(IGenViewportWnd *wnd) override
   {
     drawObjects(wnd);
     drawInfo(wnd);
@@ -90,6 +90,8 @@ private:
   PresentationType presentationType;
   DataBlock nodeFilterMasksBlk;
   Tab<bool> nodesIsEnabledArray;
+
+  PropPanel::ContainerPropertyControl *nodeTreePanel;
 
   void drawObjects(IGenViewportWnd *wnd);
 

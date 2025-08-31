@@ -155,7 +155,11 @@ void test_thread(bool useAot) {
 
 #include <thread>
 
+namespace das { vector<void *> force_aot_stub(); }
+
 int main( int argc, char * argv[] ) {
+    // force libDaScriptAot linking
+    force_aot_stub();
     TextPrinter tout;
     if ( argc>2 ) {
         tout << "daScriptTestThreads [pathToDasRoot]\n";

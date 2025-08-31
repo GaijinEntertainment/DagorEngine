@@ -305,11 +305,12 @@ struct JobMgrCtx // Note: zero inited
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
     // To consider: start paused and change prio/affinity and then resume
-    tId = 0;     // Zero high bits
+    tId = 0; // Zero high bits
+    const unsigned initf = STACK_SIZE_PARAM_IS_A_RESERVATION;
 #if _TARGET_XBOX // Microsoft extensions for threading are obsolete and have been removed.
-    handle = CreateThread(NULL, stackSz, job_mgr_thread, this, 0, (DWORD *)&tId);
+    handle = CreateThread(NULL, stackSz, job_mgr_thread, this, initf, (DWORD *)&tId);
 #else
-    handle = (HANDLE)_beginthreadex(NULL, stackSz, job_mgr_thread, this, STACK_SIZE_PARAM_IS_A_RESERVATION, (unsigned *)&tId);
+    handle = (HANDLE)_beginthreadex(NULL, stackSz, job_mgr_thread, this, initf, (unsigned *)&tId);
 #endif
     if (DAGOR_UNLIKELY(!handle))
     {
@@ -384,7 +385,7 @@ struct JobMgrCtx // Note: zero inited
     detach();
     interlocked_release_store(state, NOT_USED);
   }
-  void addJob(IJob *j, bool prepend, bool need_release)
+  bool addJob(IJob *j, bool prepend, bool need_release)
   {
     lock();
 
@@ -418,10 +419,13 @@ struct JobMgrCtx // Note: zero inited
 #else
       strerror_r(threadStarted, errMsgBuf, sizeof(errMsgBuf));
 #endif
-      logerr("Failed to start thread for jobMgr <%s> stackSize/flexa=%d/%d KB with error %d: %s", threadName, stackSz >> 10,
+      G_ASSERT_LOG(0, "Failed to start thread for jobMgr <%s> stackSize/flexa=%d/%d KB with error %d: %s", threadName, stackSz >> 10,
         GET_FLEXA_KB(), threadStarted, errMsg);
+      return false;
     }
 #endif
+
+    return true;
   }
   IJob *nextJob()
   {
@@ -496,6 +500,15 @@ static struct CpuJobsData //-V730
   bool isInited() const { return ctxCount != 0; }
   void reset() { memset(this, 0, offsetof(CpuJobsData, globCritSec)); }
 } cpujobs_data;
+
+da_profiler::desc_id_t IJob::addJobNameProfDesc(const char *jn, bool copystr) const
+{
+  using namespace da_profiler;
+  auto jd = !copystr ? add_description(0, 0, 0, jn) : add_copy_description(0, 0, 0, jn);
+  interlocked_release_store(jobNameProfDesc, jd);
+  return jd;
+}
+
 } // namespace cpujobs
 
 extern void update_float_exceptions();
@@ -519,6 +532,8 @@ static void *__cdecl job_mgr_thread(void *p)
     setAffinity = (1ull << cpujobs::get_core_count()) - 1;
 #endif
   DaThread::applyThisThreadAffinity(setAffinity);
+
+  TIME_PROFILE_THREAD(ctx.getName());
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
   update_float_exceptions();
@@ -547,7 +562,12 @@ static void *__cdecl job_mgr_thread(void *p)
     IJob *job = ctx.job.getFirst();
     while (job)
     {
-      job->doJob();
+      {
+#if TIME_PROFILER_ENABLED
+        DA_PROFILE_EVENT_DESC(job->getJobNameProfDesc());
+#endif
+        job->doJob();
+      }
       LOGMSG1("cpuobjs: job %p on %d done\n", job, &ctx - &cpujobs_data.ctx[0]);
       job = ctx.nextJob();
 
@@ -887,11 +907,15 @@ bool cpujobs::add_job(int core_or_vmgr_id, cpujobs::IJob *job, bool prepend, boo
     cpujobs_data.lock();
   }
 
-  ctx.addJob(job, prepend, need_release);
+  bool added = ctx.addJob(job, prepend, need_release);
   cpujobs_data.unlock();
-  ctx.setEvent();
-  LOGMSG1("cpuobjs: add job %p to %d\n", job, core_or_vmgr_id);
-  return true;
+
+  if (DAGOR_LIKELY(added))
+  {
+    ctx.setEvent();
+    LOGMSG1("cpuobjs: add job %p to %d\n", job, core_or_vmgr_id);
+  }
+  return added;
 }
 
 void cpujobs::reset_job_queue(int core_or_vmgr_id, bool auto_release_jobs)

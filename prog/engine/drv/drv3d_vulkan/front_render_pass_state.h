@@ -31,6 +31,7 @@ public:
 
   bool handleObjectRemoval(const RenderPassResource *object);
   bool isReferenced(const RenderPassResource *object) const;
+  bool replaceImage(const Image *src, Image *dst);
 
   FrontRenderPassState &getValue() { return *this; }
   const FrontRenderPassState &getValueRO() const { return *this; }

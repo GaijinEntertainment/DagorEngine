@@ -6,34 +6,34 @@ function elem() {
     hplace = ALIGN_CENTER
     vplace = ALIGN_TOP
     halign = ALIGN_CENTER
-    pos = [0, 100]
-    size = [sh(22),300]
+    pos = static [0, 100]
+    size = static [sh(22),300]
     children =
       {
         flow = FLOW_HORIZONTAL
         valign= ALIGN_CENTER
         gap = sh(1)
-        size = [flex(), SIZE_TO_CONTENT] //todo - min-height should be SIZE_TO_CONTENT, height - flex
+        size = FLEX_H //todo - min-height should be SIZE_TO_CONTENT, height - flex
         children = [
           {
             rendObj = ROBJ_TEXT
             color = Color(128,128,128,60)
             text = "PERKS AVAILABLE:"
-            transform = {pivot = [0.5,0.5]}
-            animations = [
+            transform = static {pivot = [0.5,0.5]}
+            animations = static [
               { prop=AnimProp.translate, from=[-sh(20),0], to=[0,0], duration=0.35, play=true, easing=OutQuart}
               { prop=AnimProp.opacity, from=0, to=1, duration=0.75, play=true, easing=OutCubic}
             ]
 
           }
-          {size=[flex(0.01),0]}
+          static {size=[flex(0.01),0]}
           {
             rendObj = ROBJ_TEXT
             color = Color(255,255,255,60)
             text = 66
-            transform = {pivot = [0.5,0.5]}
+            transform = static {pivot = [0.5,0.5]}
             font = 2
-            animations = [{ prop=AnimProp.scale, from=[2.7,2.7], to=[1,1], duration=0.75, play=true, easing=OutCubic }]
+            animations = static [{ prop=AnimProp.scale, from=[2.7,2.7], to=[1,1], duration=0.75, play=true, easing=OutCubic }]
           }
         ]
       }

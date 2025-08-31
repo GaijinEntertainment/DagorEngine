@@ -11,7 +11,14 @@ void GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &d3d_env
   config.applyDefaults();
   config.applySettings(settings);
 
-  gpuCapture.setup(config, d3d_env);
+  gpu_capture::Issues gpuCaptureIssues{};
+
+  gpuCapture.setup(config, d3d_env, gpuCaptureIssues);
+  if (gpuCaptureIssues.brokenExistingHeaps)
+  {
+    logwarn("DX12: Detected issue with GPU capture tools and existing heaps feature, process is tainted and feature can not be used");
+    config.enableDagorGPUTrace = false;
+  }
   gpuPostmortem.setup(config, d3d_env);
 
   if (!config.anyValidation())
@@ -64,6 +71,11 @@ void GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &d3d_env
 
             debug1->SetEnableGPUBasedValidation(TRUE);
           }
+        }
+        else if (config.enableGPUValidation)
+        {
+          logdbg("DX12: Failed to enable GPU based validation, ID3D12Debug1 query failed.");
+          config.enableGPUValidation = false;
         }
         ComPtr<ID3D12Debug2> debug2;
         if (SUCCEEDED(debug0.As(&debug2)))

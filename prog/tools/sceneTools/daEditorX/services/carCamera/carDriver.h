@@ -14,30 +14,25 @@ class TestDriver : public ICarDriver, public ICarController, public IJoyCallback
 {
 public:
   TestDriver();
-  virtual ~TestDriver();
+  ~TestDriver();
 
   void resetDriver(IPhysCar *_car);
   void disable();
-  virtual void update(IPhysCar *_car, real dt);
+  void update(IPhysCar *_car, real dt) override;
 
   // ICarDriver
-  virtual bool isSubOf(unsigned int class_id) { return false; }
-  virtual ICarController *getController() { return this; }
-  virtual void onDamage(IPhysCar *by_who, real damage) {}
+  ICarController *getController() override { return this; }
 
   // ICarController
-  virtual real getSteeringAngle(); // { return steer; }
-  virtual real getGasFactor();
-  virtual real getBrakeFactor();
-  virtual float getHandbrakeState() { return handbrakeValue; }
-  virtual void disable(bool set) {}
-  virtual bool isAutoReverseEnabled() { return true; }
-  virtual bool getManualReverse() { return false; }
+  real getSteeringAngle() override; // { return steer; }
+  real getGasFactor() override;
+  real getBrakeFactor() override;
+  float getHandbrakeState() override { return handbrakeValue; }
 
   // IJoyCallback
-  virtual void updateJoyState();
+  void updateJoyState() override;
 
-  virtual bool getAccelState() { return accelEnabled; }
+  bool getAccelState() { return accelEnabled; }
 
 private:
   void updateDrivingControls(float dt);

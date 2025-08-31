@@ -30,9 +30,9 @@ public:
   SelWindow(void *phandle, const EcRect &rect, IObjectsList *obj, const char *obj_list_owner_name = NULL);
 
   /// Destructor.
-  ~SelWindow();
+  ~SelWindow() override;
 
-  virtual int showDialog() override;
+  int showDialog() override;
 
   /// Get list of selected objects.
   /// @param[out] names - objects list
@@ -52,7 +52,7 @@ private:
   void fillNames();
   // void resizeControls();
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 };

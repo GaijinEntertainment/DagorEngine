@@ -7,17 +7,30 @@
 
 #include <util/dag_string.h>
 #include "const3d.h"
+#include "makeShBinDump.h"
 #include <shaders/dag_shaders.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_cpuJobs.h>
-#include "shHardwareOpt.h"
+#include "shCompilationInfo.h"
 #include "shaderVariantSrc.h"
-#include "loadShaders.h"
 #include "linkShaders.h"
 #include <osApiWrappers/dag_cpuJobs.h>
 
+// @TODO: split this file (and the cpp)
+
+enum class CompilerAction
+{
+  NOTHING,
+  COMPILE_ONLY,
+  LINK_ONLY,
+  COMPILE_AND_LINK
+};
+
 namespace shc
 {
+
+class CompilationContext;
+
 // init compiler
 void startup();
 
@@ -31,33 +44,27 @@ void resetCompiler();
 void reset_source_file();
 
 // check shader file cache & return true, if cache needs recompilation
-CompilerAction should_recompile(const ShVariantName &variant_name);
-bool should_recompile_sh(const ShVariantName &variant_name, const String &sourceFileName);
+CompilerAction should_recompile(const ShCompilationInfo &comp);
+bool should_recompile_sh(const ShCompilationInfo &comp, const String &sourceFileName);
 
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInterface> &stcode_interface, bool no_save,
-  bool should_rebuild, CompilerAction compiler_action);
+void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &comp);
 
 // build shader binary dump from compiled shaders (*.cached files)
 bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags pack_flags,
-  StcodeInterface *stcode_interface);
+  const shc::CompilationContext &comp);
 
 bool try_enter_shutdown();
 bool try_lock_shutdown();
 void unlock_shutdown();
 
-String get_obj_file_name_from_source(const String &source_file_name, const ShVariantName &variant_name);
+String get_obj_file_name_from_source(const String &source_file_name, const ShCompilationInfo &comp);
 
-void setAssumedVarsBlock(DataBlock *block);
 void setRequiredShadersBlock(DataBlock *block);
 void setRequiredShadersDef(bool on);
 void clearFlobVarRefList();
 void addExplicitGlobVarRef(const char *var_name);
 
-DataBlock *getAssumedVarsBlock();
-bool getAssumedValue(const char *varname, const char *shader, bool is_global, float &out_val);
-void registerAssumedVar(const char *name, bool known);
-void reportUnusedAssumes();
 bool isShaderRequired(const char *shader_name);
 bool isGlobVarRequired(const char *var_name);
 
@@ -80,8 +87,9 @@ struct Job : cpujobs::IJob
 {
 public:
   Job();
-  void doJob() final override;
-  void releaseJob() final override;
+  const char *getJobName(bool &) const override final { return "ShaderCompilerJob"; }
+  void doJob() final;
+  void releaseJob() final;
 
 protected:
   virtual void doJobBody() = 0;
@@ -97,6 +105,7 @@ enum class JobMgrChoiceStrategy
 void init_jobs(unsigned num_workers);
 void deinit_jobs();
 unsigned worker_count();
+unsigned max_allowed_process_count();
 bool is_multithreaded();
 bool is_in_worker();
 void await_all_jobs(void (*on_released_cb)() = nullptr);

@@ -29,10 +29,9 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
 #include <osApiWrappers/dag_stackHlp.h>
-#include <statsd/statsd.h>
 #include <EASTL/bitset.h>
 #include <EASTL/fixed_vector.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <mutex>
 
 const size_t ANDROID_ROTATED_LOGS = 3;
@@ -106,8 +105,8 @@ static int get_unicode_char(struct android_app *app, int eventType, int keyCode,
   attachArgs.name = "NativeThread";
   attachArgs.group = NULL;
 
-  jint result = javaVM->AttachCurrentThread(&jniEnv, &attachArgs);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(javaVM, &jniEnv, &attachArgs);
+  if (result != JNI_OK)
     return 0;
 
   jclass class_key_event = jniEnv->FindClass("android/view/KeyEvent");
@@ -168,7 +167,7 @@ struct AndroidProcessResult
 static std::mutex g_android_done_command_mutex;
 static std::condition_variable g_android_done_command_condition;
 
-static std::atomic<int32_t> g_android_pending_command(-1);
+static dag::AtomicInteger<int32_t> g_android_pending_command(-1);
 
 // Normally we don't have so many input events.
 // It could only happen if case our DagorMainThread is very laggy
@@ -433,7 +432,7 @@ static void push_android_command_and_wait(int32_t cmd)
 
   int waitTimeMs = get_time_msec();
 
-  g_android_pending_command.store(cmd, std::memory_order_release);
+  g_android_pending_command.store(cmd, dag::memory_order_release);
 
   {
     // After that time Android may generate ANR (Application Not Responsive)
@@ -441,7 +440,7 @@ static void push_android_command_and_wait(int32_t cmd)
 
     std::unique_lock<std::mutex> lock(g_android_done_command_mutex);
     if (!g_android_done_command_condition.wait_for(lock, ANR_TIMEOUT_SEC,
-          [] { return g_android_pending_command.load(std::memory_order_acquire) < 0; }))
+          [] { return g_android_pending_command.load(dag::memory_order_acquire) < 0; }))
     {
       logerr("android: ANR: Handling of %s is taking more than %d sec. Context: %s", cmdName, ANR_TIMEOUT_SEC.count(),
         dagor_android_app_get_anr_execution_context ? dagor_android_app_get_anr_execution_context() : "<unknown>");
@@ -449,7 +448,7 @@ static void push_android_command_and_wait(int32_t cmd)
       if (dagor_anr_handler)
         dagor_anr_handler(cmd);
 
-      g_android_done_command_condition.wait(lock, [] { return g_android_pending_command.load(std::memory_order_acquire) < 0; });
+      g_android_done_command_condition.wait(lock, [] { return g_android_pending_command.load(dag::memory_order_acquire) < 0; });
     }
   }
 
@@ -516,7 +515,7 @@ static int32_t dagor_android_handle_input_thread(struct android_app *app, AInput
 // We can't just ignore the commands - the render might work and crash
 // in case we ignore window related commands.
 // So, the only way - just exit on receving such commands.
-std::atomic<bool> dagor_android_in_fatal_state = false;
+dag::AtomicInteger<bool> dagor_android_in_fatal_state = false;
 
 
 bool android_should_ignore_cmd(int8_t cmd) { return dagor_should_ignore_android_cmd ? dagor_should_ignore_android_cmd(cmd) : false; }
@@ -524,7 +523,7 @@ bool android_should_ignore_cmd(int8_t cmd) { return dagor_should_ignore_android_
 
 static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
 {
-  if (dagor_android_in_fatal_state)
+  if (dagor_android_in_fatal_state.load())
   {
     switch (cmd)
     {
@@ -692,7 +691,7 @@ SimpleString get_library_name(JavaVM *jvm, jobject activity)
   }                                   \
   G_ASSERT(cond);
   JNIEnv *jni;
-  jvm->AttachCurrentThread(&jni, NULL);
+  android::attach_current_thread(jvm, &jni, NULL);
 
   jclass ourActivity = jni->GetObjectClass(activity);
   JNI_ASSERT(jni, ourActivity);
@@ -734,7 +733,7 @@ SimpleString get_logs_folder(JavaVM *jvm, jobject activity)
   }                                   \
   G_ASSERT(cond);
   JNIEnv *jni;
-  jvm->AttachCurrentThread(&jni, NULL);
+  android::attach_current_thread(jvm, &jni, NULL);
 
   jclass ourActivity = jni->GetObjectClass(activity);
   JNI_ASSERT(jni, ourActivity);
@@ -787,7 +786,7 @@ SimpleString get_intent_arguments(JavaVM *jvm, jobject activity)
   G_ASSERT(cond);
 
   JNIEnv *jni;
-  jvm->AttachCurrentThread(&jni, NULL);
+  android::attach_current_thread(jvm, &jni, NULL);
 
   jclass ourActivity = jni->GetObjectClass(activity);
   JNI_ASSERT(jni, ourActivity);
@@ -965,7 +964,7 @@ void android_main(struct android_app *state)
 
 #define JNI_ASSERT(jni, cond) G_ASSERT((cond) && !jni->ExceptionCheck())
   JNIEnv *jni;
-  state->activity->vm->AttachCurrentThread(&jni, NULL);
+  android::attach_current_thread(state->activity->vm, &jni, NULL);
 
   jclass activityClass = jni->FindClass("android/app/NativeActivity");
   JNI_ASSERT(jni, activityClass);
@@ -1087,12 +1086,12 @@ void dagor_process_sys_messages(bool /*input_only*/)
   if (!app)
     return;
 
-  const int32_t pendingCommand = g_android_pending_command.load(std::memory_order_acquire);
+  const int32_t pendingCommand = g_android_pending_command.load(dag::memory_order_acquire);
   if (pendingCommand >= 0)
   {
     dagor_android_handle_cmd(app, pendingCommand);
 
-    g_android_pending_command.store(-1, std::memory_order_release);
+    g_android_pending_command.store(-1, dag::memory_order_release);
     g_android_done_command_condition.notify_all();
   }
 
@@ -1162,3 +1161,5 @@ void android_set_keep_screen_on(bool on)
   }
   android::activity_setWindowFlags(state->activity, on ? AWINDOW_FLAG_KEEP_SCREEN_ON : 0, on ? 0 : AWINDOW_FLAG_KEEP_SCREEN_ON);
 }
+
+void android_set_main_thread_name() { g_dagor_main_thread.setCurrentThreadName(g_dagor_main_thread.getCurrentThreadName()); }

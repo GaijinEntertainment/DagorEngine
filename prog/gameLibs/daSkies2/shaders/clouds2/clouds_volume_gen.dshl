@@ -38,8 +38,8 @@ macro WRITE_BUILD_VOLUME(code)
         {
           lastDist += dx;
           float3 p = clouds_start_trace + clouds_hole_offset + viewVect*lastDist;
-          float heightFraction;
-          float cloudDensity = sampleCloudDensity(p, 1, 0, heightFraction, false);
+          float heightFraction = alt_fraction_in_clouds(p);
+          float cloudDensity = sampleCloudDensity(p, 1, 0, heightFraction);
           ##if nuke_in_atmosphere == on
             cloudDensity = sampleNukeCloudsInversion(p - clouds_hole_offset, cloudDensity, heightFraction);
           ##endif

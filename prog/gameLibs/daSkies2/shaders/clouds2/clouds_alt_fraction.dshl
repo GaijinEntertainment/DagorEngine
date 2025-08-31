@@ -1,11 +1,18 @@
-include "clouds_hole_pos_tex.dshl"
+include "clouds_hole_pos.dshl"
 
+float clouds_min_apply_dist = 40;
 float4 clouds_origin_offset;
 float clouds_start_altitude2;
 float clouds_thickness2;
 float strata_clouds_altitude = 10;
 float strata_clouds_effect = 1;
 float global_clouds_sigma = -0.12;
+
+macro INIT_CLOUD_APPLY_DIST(code)
+  (code) {
+    clouds_min_apply_dist@f1 = max(clouds_min_apply_dist, clouds_start_altitude2 * 1000 - world_view_pos.y);
+  }
+endmacro
 
 macro TOTAL_CLOUDS_MIN_MAX()
   local float strata_clouds_altitude_eff = strata_clouds_altitude*strata_clouds_effect + clouds_start_altitude2*(1-strata_clouds_effect);
@@ -29,7 +36,7 @@ macro SIMPLIFIED_CLOUDS_ALT_FRACTION(code)
 endmacro
 
 macro CLOUDS_ALT_FRACTION(code, clouds_view_pos)
-  USE_CLOUDS_HOLE_POS_TEX(code)
+  USE_CLOUDS_HOLE_POS(code)
   SIMPLIFIED_CLOUDS_ALT_FRACTION(code)
   (code) {
     earth_center_thickness@f4 = (clouds_view_pos.x, -skies_planet_radius*1000, clouds_view_pos.z, 0.001/clouds_thickness2);

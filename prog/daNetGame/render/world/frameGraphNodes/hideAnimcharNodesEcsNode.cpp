@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <daECS/core/entityManager.h>
 
 #include <render/world/cameraParams.h>
@@ -12,12 +12,14 @@
 ECS_REGISTER_EVENT(HideNodesEvent, Point3 /*at*/)
 
 
-dabfg::NodeHandle makeHideAnimcharNodesEcsNode()
+dafg::NodeHandle makeHideAnimcharNodesEcsNode()
 {
-  return dabfg::register_node("hide_animchar_nodes_ecs_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("hide_animchar_nodes_ecs_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const auto cameraParamsHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
-    registry.create("hidden_animchar_nodes_token", dabfg::History::No).blob<OrderingToken>();
+    registry.read("prepare_hero_cockpit_token").blob<OrderingToken>().optional();
+
+    registry.create("hidden_animchar_nodes_token", dafg::History::No).blob<OrderingToken>();
 
     return [cameraParamsHndl]() {
       if (g_entity_mgr)

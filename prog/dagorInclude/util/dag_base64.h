@@ -20,11 +20,17 @@ public:
   ~Base64() { release(); }
 
   void encode(const uint8_t *from, int size);
+  // encodes to Base64 URL-safe format
+  // replaces '+' with '-', '/' with '_', and removes trailing '='
+  void encode_urlsafe(const uint8_t *from, int size);
   int decodeLength() const;      // minimum size in bytes of destination buffer for decoding
   int decode(uint8_t *to) const; // does not append a \0 - needs a decodeLength() bytes buffer
 
   // void encode( const String& src );
   void decode(String &dest) const;
+  // decodes base64url format, which is used in URLs
+  // replaces '-' with '+' and '_' with '/' in the input string
+  void decode_urlsafe(String &dest) const;
 
   void operator=(const char *s);
 
@@ -65,7 +71,7 @@ static inline const char *data_to_str_b64(S &dest, const void *src_data, size_t 
   Base64 b64;
   b64.encode((uint8_t *)src_data, (int)src_data_len);
   dest = b64.c_str();
-  return dest.str();
+  return dest.c_str();
 }
 static inline const char *data_to_str_b64_buf(char *dest, size_t dest_len, const void *src_data, size_t src_data_len)
 {

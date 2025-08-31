@@ -34,7 +34,7 @@ protected:
     {
       // Offset where we allocate next chunk from
       uint32_t allocationOffset = 0;
-      // Total allocated, bufferMemory.size() - allocationSize yields free memory
+      // Total allocated, bufferMemory.size - allocationSize yields free memory
       uint32_t allocationSize = 0;
       // Allocation size since last snapshot
       uint32_t currentAllocation = 0;
@@ -52,7 +52,7 @@ protected:
         auto allocationBegin = align_value(allocationOffset, alignment);
         auto allocationEnd = allocationBegin + size;
 
-        auto freeMemory = bufferMemory.size() - allocationSize;
+        auto freeMemory = bufferMemory.size - allocationSize;
         auto freeBegin = allocationOffset;
         auto freeEnd = freeBegin + freeMemory;
 
@@ -63,13 +63,13 @@ protected:
         }
 
         uint32_t newAllocationSize = allocationEnd - allocationOffset;
-        if (allocationEnd > bufferMemory.size())
+        if (allocationEnd > bufferMemory.size)
         {
-          const uint32_t extra = bufferMemory.size() - freeBegin;
+          const uint32_t extra = bufferMemory.size - freeBegin;
           // we have to wrap
           allocationBegin = 0;
           allocationEnd = size;
-          freeEnd -= bufferMemory.size();
+          freeEnd -= bufferMemory.size;
 
           // check free space again after wrap
           if (allocationEnd > freeEnd)
@@ -81,10 +81,7 @@ protected:
         }
 
         result.buffer = buffer.Get();
-#if !_TARGET_XBOX
-        result.gpuPointer = getGPUPointer() + allocationBegin;
-#endif
-        result.pointer = getCPUPointer() + allocationBegin;
+        result.memoryLocation = static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(bufferMemory) + allocationBegin;
         result.range = ValueRange<uint64_t>{allocationBegin, allocationEnd};
 
         allocationOffset = allocationEnd;
@@ -149,7 +146,7 @@ protected:
           [](auto &segment) { return !segment.canBeRemoved(); });
         for (auto at = pivot, ed = end(deletedRingSegments); at != ed; ++at)
         {
-          T::onSegmentRemove(heap, at->bufferMemory.size());
+          T::onSegmentRemove(heap, at->getBufferMemorySize());
           at->reset(heap);
         }
         deletedRingSegments.erase(pivot, end(deletedRingSegments));
@@ -162,7 +159,7 @@ protected:
           [=](auto &segment) { return segment.canBeRemoved(); });
         if (end(ringSegments) != toBeRemoved)
         {
-          T::onSegmentRemove(heap, toBeRemoved->bufferMemory.size());
+          T::onSegmentRemove(heap, toBeRemoved->getBufferMemorySize());
           toBeRemoved->reset(heap);
           ringSegments.erase(toBeRemoved);
         }
@@ -212,7 +209,7 @@ protected:
       }
       auto &ringSegment = ringSegments.emplace_back(eastl::move(newSegment));
 
-      T::onSegmentAdd(heap, ringSegment.bufferMemory, ringSegment.buffer.Get());
+      T::onSegmentAdd(heap, ringSegment.getBufferMemory(), ringSegment.getResourcePtr());
 
       return true;
     }
@@ -263,21 +260,21 @@ protected:
     {
       return eastl::accumulate(begin(ringSegments), end(ringSegments), 0,
         [](size_t value, auto &segment) //
-        { return value + segment.bufferMemory.size(); });
+        { return value + segment.getBufferMemorySize(); });
     }
 
     bool onMoveSegment(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
       AllocationFlags allocation_flags)
     {
       auto ref =
-        eastl::find_if(begin(ringSegments), end(ringSegments), [buffer](auto &segment) { return buffer == segment.buffer.Get(); });
+        eastl::find_if(begin(ringSegments), end(ringSegments), [buffer](auto &segment) { return buffer == segment.getResourcePtr(); });
       // Only realistic chance is that the segment is already on deletion list
       if (ref == end(ringSegments))
         return true;
       auto temp = eastl::move(*ref);
       ringSegments.erase(ref);
       // If it fails there is no space for a new segment in any heap we can use
-      if (!addSegment(heap, adapter, device, temp.bufferMemory.size(), allocation_flags))
+      if (!addSegment(heap, adapter, device, temp.getBufferMemorySize(), allocation_flags))
       {
         // add the segment we want to remove back to the pool of available segments
         ringSegments.push_back(eastl::move(temp));
@@ -478,35 +475,35 @@ protected:
     {
       HostDeviceSharedMemoryRegion result;
       size_t offset = (currentBuffer.fillSize + alignment - 1) & ~(alignment - 1);
-      if (!currentBuffer || (offset + size > currentBuffer.bufferMemory.size()))
+      if (!currentBuffer || (offset + size > currentBuffer.getBufferMemorySize()))
       {
         if (currentBuffer)
         {
           if (currentBuffer.allocations)
           {
             buffers.push_back(eastl::move(currentBuffer));
-            currentBuffer.bufferMemory = {};
+            currentBuffer.setBufferMemory({});
           }
           else
           {
-            T::onSegmentRemove(heap, currentBuffer.bufferMemory.size());
+            T::onSegmentRemove(heap, currentBuffer.getBufferMemorySize());
             currentBuffer.reset(heap);
           }
         }
 
-        if (standbyBuffer && standbyBuffer.bufferMemory.size() >= size)
+        if (standbyBuffer && standbyBuffer.getBufferMemorySize() >= size)
         {
           currentBuffer = eastl::move(standbyBuffer);
-          standbyBuffer.bufferMemory = {};
+          standbyBuffer.setBufferMemory({});
         }
         else
         {
           if (standbyBuffer)
           {
-            T::onSegmentRemove(heap, standbyBuffer.bufferMemory.size());
+            T::onSegmentRemove(heap, standbyBuffer.getBufferMemorySize());
             standbyBuffer.reset(heap);
           }
-          currentBuffer.bufferMemory = {};
+          currentBuffer.setBufferMemory({});
 
           D3D12_RESOURCE_DESC desc;
           desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -544,22 +541,19 @@ protected:
             return {result, errorCode};
           }
 
-          T::onSegmentAdd(heap, currentBuffer.buffer.Get(), currentBuffer.bufferMemory);
+          T::onSegmentAdd(heap, currentBuffer.getResourcePtr(), currentBuffer.getBufferMemory());
         }
         currentBuffer.fillSize = 0;
         currentBuffer.allocations = 0;
         offset = 0;
       }
-      result.buffer = currentBuffer.buffer.Get();
-      result.pointer = currentBuffer.getCPUPointer() + offset;
-#if !_TARGET_XBOX
-      result.gpuPointer = currentBuffer.getGPUPointer() + offset;
-#endif
+      result.buffer = currentBuffer.getResourcePtr();
+      result.memoryLocation = static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(currentBuffer.getBufferMemory()) + offset;
       auto oldFill = currentBuffer.fillSize;
       currentBuffer.fillSize = offset + size;
       currentBuffer.allocations++;
       currentBufferUse += currentBuffer.fillSize - oldFill;
-      G_ASSERT(result.pointer);
+      G_ASSERT(result.cpuPointer());
       G_ASSERT(result.buffer);
       result.range = make_value_range<uint64_t>(offset, size);
       return {result, S_OK};
@@ -569,7 +563,7 @@ protected:
     {
       if (standbyBuffer)
       {
-        T::onSegmentRemove(heap, standbyBuffer.bufferMemory.size());
+        T::onSegmentRemove(heap, standbyBuffer.getBufferMemorySize());
       }
       standbyBuffer.reset(heap);
     }
@@ -580,15 +574,15 @@ protected:
       {
         return true;
       }
-      if (other.bufferMemory.size() < nextBufferSize)
+      if (other.getBufferMemorySize() < nextBufferSize)
       {
         return false;
       }
-      if (other.bufferMemory.size() > nextBufferSize * 2)
+      if (other.getBufferMemorySize() > nextBufferSize * 2)
       {
         return false;
       }
-      return standbyBuffer.bufferMemory.size() < other.bufferMemory.size();
+      return standbyBuffer.getBufferMemorySize() < other.getBufferMemorySize();
     }
 
     template <typename Handler>
@@ -596,7 +590,7 @@ protected:
     {
       auto iter = eastl::find_if(begin(buffer_set), end(buffer_set),
         [ref](const auto &buf) //
-        { return ref == buf.buffer.Get(); });
+        { return ref == buf.getResourcePtr(); });
       if (iter == end(buffer_set))
       {
         return false;
@@ -605,7 +599,7 @@ protected:
       {
         if (!temp_swap_handler(*iter))
         {
-          T::onSegmentRemove(heap, iter->bufferMemory.size());
+          T::onSegmentRemove(heap, iter->getBufferMemorySize());
           iter->reset(heap);
         }
         *iter = eastl::move(buffer_set.back());
@@ -616,7 +610,7 @@ protected:
 
     void free(HeapType *heap, ID3D12Resource *ref)
     {
-      if (ref == currentBuffer.buffer.Get())
+      if (ref == currentBuffer.getResourcePtr())
       {
         if (!--currentBuffer.allocations)
         {
@@ -632,7 +626,7 @@ protected:
             }
             if (standbyBuffer)
             {
-              T::onSegmentRemove(heap, standbyBuffer.bufferMemory.size());
+              T::onSegmentRemove(heap, standbyBuffer.getBufferMemorySize());
             }
             standbyBuffer.reset(heap);
             standbyBuffer = eastl::move(buffer);
@@ -677,12 +671,12 @@ protected:
         {
           if (standbyBuffer)
           {
-            T::onSegmentRemove(heap, standbyBuffer.bufferMemory.size());
+            T::onSegmentRemove(heap, standbyBuffer.getBufferMemorySize());
             standbyBuffer.reset(heap);
           }
           else if (currentBuffer)
           {
-            T::onSegmentRemove(heap, currentBuffer.bufferMemory.size());
+            T::onSegmentRemove(heap, currentBuffer.getBufferMemorySize());
             currentBuffer.reset(heap);
           }
           timesSinceUse = 0;
@@ -692,8 +686,8 @@ protected:
 
     size_t currentMemorySize() const
     {
-      return eastl::accumulate(begin(buffers), end(buffers), currentBuffer.bufferMemory.size() + standbyBuffer.bufferMemory.size(),
-        [](size_t value, auto &buffer) { return value + buffer.bufferMemory.size(); });
+      return eastl::accumulate(begin(buffers), end(buffers), currentBuffer.getBufferMemorySize() + standbyBuffer.getBufferMemorySize(),
+        [](size_t value, auto &buffer) { return value + buffer.getBufferMemorySize(); });
     }
 
     void shutdown(HeapType *heap)
@@ -707,7 +701,7 @@ protected:
       {
         logdbg("DX12: TemporaryMemoryState::shutdown: A deleted buffer was still alive during "
                "shutdown, %p with %u refs",
-          buf.buffer.Get(), buf.allocations);
+          buf.getResourcePtr(), buf.allocations);
         buf.reset(heap);
       }
       deletedBuffers.clear();
@@ -722,7 +716,7 @@ protected:
     bool tryMoveStandbyBuffer(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
       AllocationFlags allocation_flags)
     {
-      if (standbyBuffer.buffer.Get() != buffer)
+      if (standbyBuffer.getResourcePtr() != buffer)
       {
         return false;
       }
@@ -730,7 +724,7 @@ protected:
       D3D12_RESOURCE_DESC desc;
       desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
       desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-      desc.Width = standbyBuffer.bufferMemory.size();
+      desc.Width = standbyBuffer.getBufferMemorySize();
       desc.Height = 1;
       desc.DepthOrArraySize = 1;
       desc.MipLevels = 1;
@@ -762,11 +756,11 @@ protected:
         return false;
       }
 
-      T::onSegmentRemove(heap, standbyBuffer.bufferMemory.size());
+      T::onSegmentRemove(heap, standbyBuffer.getBufferMemorySize());
       standbyBuffer.reset(heap);
 
       standbyBuffer = newStandbyBuffer;
-      T::onSegmentAdd(heap, standbyBuffer.buffer.Get(), standbyBuffer.bufferMemory);
+      T::onSegmentAdd(heap, standbyBuffer.getResourcePtr(), standbyBuffer.getBufferMemory());
       return true;
     }
 
@@ -775,7 +769,7 @@ protected:
       D3D12_RESOURCE_DESC desc;
       desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
       desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-      desc.Width = buffer.bufferMemory.size();
+      desc.Width = buffer.getBufferMemorySize();
       desc.Height = 1;
       desc.DepthOrArraySize = 1;
       desc.MipLevels = 1;
@@ -814,26 +808,26 @@ protected:
       }
       else
       {
-        T::onSegmentRemove(heap, buffer.bufferMemory.size());
+        T::onSegmentRemove(heap, buffer.getBufferMemorySize());
         buffer.reset(heap);
       }
 
       buffer = eastl::move(newBuffer);
 
-      T::onSegmentAdd(heap, buffer.buffer.Get(), buffer.bufferMemory);
+      T::onSegmentAdd(heap, buffer.getResourcePtr(), buffer.getBufferMemory());
       return true;
     }
 
     bool tryMoveBuffer(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
       AllocationFlags allocation_flags)
     {
-      if (currentBuffer.buffer.Get() == buffer)
+      if (currentBuffer.getResourcePtr() == buffer)
       {
         return tryMoveBuffer(heap, adapter, device, currentBuffer, allocation_flags);
       }
       auto ref = eastl::find_if(begin(buffers), end(buffers),
         [buffer](auto &buf) //
-        { return buffer == buf.buffer.Get(); });
+        { return buffer == buf.getResourcePtr(); });
       if (ref == end(buffers))
       {
         return false;
@@ -848,7 +842,7 @@ protected:
       bool anySeen = false;
       if (currentBuffer.allocations > 0)
       {
-        logdbg("DX12: Buffer %p has still %u allocations...", currentBuffer.buffer.Get(), currentBuffer.allocations);
+        logdbg("DX12: Buffer %p has still %u allocations...", currentBuffer.getResourcePtr(), currentBuffer.allocations);
         anySeen = true;
       }
       // Scan all pending buffers and see if any of them has still some allocations pending.
@@ -856,7 +850,7 @@ protected:
       {
         if (buffer.allocations > 0)
         {
-          logdbg("DX12: Buffer %p has still %u allocations...", buffer.buffer.Get(), buffer.allocations);
+          logdbg("DX12: Buffer %p has still %u allocations...", buffer.getResourcePtr(), buffer.allocations);
           anySeen = true;
         }
       }
@@ -1111,10 +1105,7 @@ protected:
           }
 
           result.buffer = buffer.Get();
-#if _TARGET_XBOX
-          result.gpuPointer = getGPUPointer() + range.front();
-#endif
-          result.pointer = getCPUPointer() + range.front();
+          result.memoryLocation = static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(bufferMemory) + range.front();
           result.range = range;
           result.source = source_type;
         }
@@ -1123,7 +1114,7 @@ protected:
       bool free(ValueRange<uint64_t> range)
       {
         free_list_insert_and_coalesce(freeRanges, range);
-        return freeRanges.size() == 1 && freeRanges.front().size() == bufferMemory.size();
+        return freeRanges.size() == 1 && freeRanges.front().size() == bufferMemory.size;
       }
     };
 
@@ -1133,13 +1124,13 @@ protected:
     {
       auto heapRef = eastl::find_if(begin(buffers), end(buffers),
         [res](const auto &heap) //
-        { return res == heap.buffer.Get(); });
+        { return res == heap.getResourcePtr(); });
       G_ASSERT(heapRef != end(buffers));
       if (heapRef != end(buffers))
       {
         if (heapRef->free(range))
         {
-          T::onSegmentRemove(heap, heapRef->bufferMemory.size());
+          T::onSegmentRemove(heap, heapRef->getBufferMemorySize());
           heapRef->reset(heap);
 
           buffers.erase(heapRef);
@@ -1196,7 +1187,7 @@ protected:
         return result;
       }
 
-      T::onSegmentAdd(heap, newHeap.bufferMemory, newHeap.buffer.Get());
+      T::onSegmentAdd(heap, newHeap.getBufferMemory(), newHeap.getResourcePtr());
 
       newHeap.freeRanges.push_back(make_value_range(0ull, desc.Width));
       result = newHeap.allocate(size, alignment);
@@ -1218,7 +1209,7 @@ protected:
     {
       return eastl::accumulate(begin(buffers), end(buffers), 0,
         [](size_t value, auto &buffer) //
-        { return value + buffer.bufferMemory.size(); });
+        { return value + buffer.getBufferMemorySize(); });
     }
   };
 };

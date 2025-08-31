@@ -24,6 +24,7 @@
 #include <render/world/frameGraphNodes/frameGraphNodes.h>
 #include <render/world/frameGraphNodesMobile/nodes.h>
 #include "render/fx/fx.h"
+#include <render/grass/grassRender.h>
 #include <render/debugMesh.h>
 #include <render/deferredRenderer.h>
 #include <ecs/render/renderPasses.h>
@@ -42,17 +43,15 @@
 #include <render/noiseTex.h>
 #include <render/clipmapDecals.h>
 #include <render/world/gbufferConsts.h>
-#include <render/world/occlusionLandMeshManager.h>
 #include <render/world/postfxRender.h>
 #include <render/weather/fluidWind.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/resourceSlot/registerAccess.h>
 
 
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 
-#include "lmesh_modes.h"
 #include <landMesh/lmeshManager.h>
 #include <landMesh/clipMap.h>
 
@@ -88,12 +87,8 @@ EXTERN_CONSOLE_FLOAT_VAL_MINMAX(subdivCellSize);
 
 EXTERN_CONSOLE_BOOL_VAL(async_animchars_main);
 
-extern int globalFrameBlockId;
 
-void start_async_animchar_main_render(const Frustum &fr, uint32_t hints, TexStreamingContext texCtx);
-
-
-void WorldRenderer::renderGroundForward()
+void WorldRenderer::renderGroundForward(const LandMeshCullingData &lmesh_culling_data)
 {
   G_ASSERT(isForwardRender());
 
@@ -106,14 +101,14 @@ void WorldRenderer::renderGroundForward()
 
   ShaderGlobal::set_int(autodetect_land_selfillum_enabledVarId,
     autodetect_land_selfillum_colorVarId >= 0 ? ShaderGlobal::get_color4(autodetect_land_selfillum_colorVarId).a > 0.0f : 0);
-  set_lmesh_rendering_mode(LMeshRenderingMode::RENDERING_LANDMESH);
+  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
 
-  waitGroundVisibility();
+  mainCameraVisibilityMgr.waitGroundVisibility();
   lmeshRenderer->setUseHmapTankSubDiv(displacementSubDiv);
-  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, cullingDataMain, ::grs_cur_view.pos);
+  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, lmesh_culling_data, ::grs_cur_view.pos);
 }
 
-void WorldRenderer::renderStaticOpaqueForward(const TMatrix &itm)
+void WorldRenderer::renderStaticOpaqueForward(const LandMeshCullingData &lmesh_culling_data, const TMatrix &itm)
 {
   TIME_D3D_PROFILE(static_opaque_forward)
 
@@ -136,13 +131,17 @@ void WorldRenderer::renderStaticOpaqueForward(const TMatrix &itm)
 
   {
     ScopedUAVFeedback UAVFeedback(clipmap);
-    renderGroundForward();
+    renderGroundForward(lmesh_culling_data);
     renderStaticSceneOpaque(RENDER_MAIN, viewPos, itm, currentFrameCamera.jitterFrustum);
   }
 }
 
-void WorldRenderer::renderStaticDecalsForward(
-  ManagedTexView depth, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point3 &camera_world_pos)
+void WorldRenderer::renderStaticDecalsForward(ManagedTexView depth,
+  const CameraParams &current_camera,
+  const TexStreamingContext tex_ctx,
+  const RiGenVisibility *ri_main_visibility,
+  const TMatrix &prev_view_tm,
+  const TMatrix4 &prev_proj_current_jitter)
 {
   TIME_D3D_PROFILE(decals_on_static_forward)
 
@@ -152,14 +151,16 @@ void WorldRenderer::renderStaticDecalsForward(
     d3d::set_depth(depth.getTex2D(), DepthAccess::SampledRO);
     d3d::resource_barrier({depth.getTex2D(), RB_RO_CONSTANT_DEPTH_STENCIL_TARGET | RB_STAGE_PIXEL, 0, 0});
 
-    g_entity_mgr->broadcastEventImmediate(OnRenderDecals(view_tm, proj_tm, camera_world_pos));
+    g_entity_mgr->broadcastEventImmediate(
+      OnRenderDecals(current_camera.viewTm, current_camera.viewItm, current_camera.cameraWorldPos, tex_ctx, ri_main_visibility));
 
     d3d::set_depth(depth.getTex2D(), DepthAccess::RW);
   }
 
   auto uiScenes = uirender::get_all_scenes();
   for (darg::IGuiScene *scn : uiScenes)
-    darg_panel_renderer::render_panels_in_world(*scn, currentFrameCamera.viewItm.getcol(3), darg_panel_renderer::RenderPass::GBuffer);
+    darg_panel_renderer::render_panels_in_world(*scn, darg_panel_renderer::RenderPass::GBuffer, current_camera.cameraWorldPos,
+      current_camera.viewTm, &prev_view_tm, &prev_proj_current_jitter);
 }
 
 void WorldRenderer::renderDynamicOpaqueForward(const TMatrix &itm)
@@ -169,8 +170,7 @@ void WorldRenderer::renderDynamicOpaqueForward(const TMatrix &itm)
   const Point3 viewPos = itm.getcol(3);
   renderDynamicOpaque(RENDER_MAIN, itm, currentFrameCamera.viewTm, currentFrameCamera.jitterProjTm, viewPos);
 
-  extern void render_grass();
-  render_grass();
+  render_grass(GrassView::Main);
 }
 
 void WorldRenderer::ctorForward()
@@ -193,8 +193,6 @@ void WorldRenderer::ctorForward()
   G_ASSERT(d3d::get_driver_desc().shaderModel >= 5.0_sm);
   riOcclusionData = rendinst::createOcclusionData();
 
-  getShaderBlockIds();
-
   prepass.set(false);
 
   enviProbe = NULL;
@@ -209,11 +207,7 @@ void WorldRenderer::ctorForward()
     ddsx::tex_pack2_perform_delayed_data_loading(); // or it will crash here
 
   underWater.init("underwater_fog");
-  const GuiControlDescWebUi landDesc[] = {
-    DECLARE_BOOL_BUTTON(land_panel, generate_shore, false),
-  };
-  de3_webui_build(landDesc);
-
+  shoreRenderer.buildUI();
   {
     d3d::GpuAutoLock gpuLock;
     initResetable();
@@ -234,8 +228,6 @@ void WorldRenderer::ctorForward()
 
   clipmap_decals_mgr::init();
 
-  occlusionLandMeshManager = eastl::make_unique<OcclusionLandMeshManager>();
-
   initOverrideStates();
   init_and_get_hash_128_noise();
   Point3 min_r, max_r;
@@ -247,13 +239,6 @@ void WorldRenderer::ctorForward()
   resetPerformanceMetrics();
   resetDynamicQuality();
 
-  if (current_occlusion)
-  {
-    uint32_t occlWidth, occlHeight;
-    current_occlusion->getMaskedResolution(occlWidth, occlHeight);
-    occlusionRasterizer = eastl::make_unique<ParallelOcclusionRasterizer>(occlWidth, occlHeight);
-  }
-
   if (hasFeature(FeatureRenderFlags::MOBILE_DEFERRED))
     mobileRp = MobileDeferredResources(get_frame_render_target_format(), get_gbuffer_depth_format(),
       hasFeature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS));
@@ -262,21 +247,21 @@ void WorldRenderer::ctorForward()
   dynmodel_renderer::init_dynmodel_rendering(ShadowsManager::CSM_MAX_CASCADES);
 }
 
-using NodeHandleFactory = dabfg::NodeHandle (*)();
+using NodeHandleFactory = dafg::NodeHandle (*)();
 template <NodeHandleFactory... CreateNodes>
-inline void emplace_back_to(eastl::vector<dabfg::NodeHandle> &nodes)
+inline void emplace_back_to(eastl::vector<dafg::NodeHandle> &nodes)
 {
   (nodes.emplace_back(CreateNodes()), ...);
 }
 
-static dabfg::NodeHandle mk_after_world_render_node()
+static dafg::NodeHandle mk_after_world_render_node()
 {
-  return dabfg::register_node("after_world_render_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("after_world_render_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("finalize_frame_mobile");
 #if DAGOR_DBGLEVEL > 0
     registry.orderMeAfter("debug_render_mobile");
 #endif
-    registry.executionHas(dabfg::SideEffects::External);
+    registry.executionHas(dafg::SideEffects::External);
     return [] {};
   });
 }
@@ -405,9 +390,9 @@ void WorldRenderer::setResolutionForward()
     SetResolutionEvent(SetResolutionEvent::Type::SETTINGS_CHANGED, displayResolution, renderingResolution, postFxResolution));
 
   auto vrsDims = getDimsForVrsTexture(w, h);
-  dabfg::set_resolution("main_view", IPoint2{w, h});
-  dabfg::set_resolution("display", displayResolution);
-  dabfg::set_resolution("texel_per_vrs_tile", vrsDims ? vrsDims.value() : IPoint2());
+  dafg::set_resolution("main_view", IPoint2{w, h});
+  dafg::set_resolution("display", displayResolution);
+  dafg::set_resolution("texel_per_vrs_tile", vrsDims ? vrsDims.value() : IPoint2());
 }
 
 void WorldRenderer::initMobileTerrainSettings() const

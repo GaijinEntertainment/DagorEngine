@@ -2,7 +2,6 @@ options no_aot
 
 require ecs
 require ecs.fs
-require app
 require ECSGlobalTags
 
 

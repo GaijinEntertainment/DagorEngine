@@ -2,7 +2,7 @@
 AN ERROR HAS OCCURRED [the index '0' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w233_inc.nut line [17]
+*FUNCTION [__main__()] testData/static_analyzer/w233_inc.nut:17
 
 LOCALS
 [ismasked] CLOSURE=FN:ismasked

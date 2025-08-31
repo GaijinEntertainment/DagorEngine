@@ -86,7 +86,7 @@ namespace acl
 	//////////////////////////////////////////////////////////////////////////
 	namespace acl_impl
 	{
-#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
+#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI) || defined(__SCE__)
 		using std::strtoull;
 
 		template <class Type>

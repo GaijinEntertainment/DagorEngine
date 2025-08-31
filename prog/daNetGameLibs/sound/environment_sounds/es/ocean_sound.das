@@ -101,7 +101,6 @@ def update(pt : float2;
 
 [es(tag=sound, on_event=ParallelUpdateFrameDelayed, after=sound_begin_update_es, before=sound_end_update_es)]
 def ocean_sound_update(evt : Event;
-                       sound_banks_state__isPresetLoaded : bool;
                        var ocean_sound__event : SoundEvent&;
                        ocean_sound__path : string;
                        ocean_sound__range : float;
@@ -127,7 +126,7 @@ def ocean_sound_update(evt : Event;
                        var ocean_sound__closestPtOnSpline : float2&;
                        var ocean_sound__isInside : bool&)
 
-  if !sound_banks_state__isPresetLoaded
+  if !sound_banks_is_master_preset_loaded()
     return
 
   let listener3d = get_listener_pos()
@@ -168,18 +167,16 @@ def ocean_sound_update(evt : Event;
       set_var(ocean_sound__event, ocean_sound__shoreVar, shoreParam)
 
 
-
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def ocean_sound_toggle(evt : Event;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def ocean_sound_appear(evt : Event;
                        var ocean_sound__event : SoundEvent&;
                        var ocean_sound_update__idx : int&;
                        var ocean_sound__range : float&;
-                       ocean_sound__path : string;
-                       sound_banks_state__isPresetLoaded : bool)
+                       ocean_sound__path : string)
   release_immediate(ocean_sound__event)
   ocean_sound__event.enabled = false
   ocean_sound_update__idx = -1
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     ocean_sound__range = get_max_distance(ocean_sound__path)
 
 
@@ -190,20 +187,20 @@ def init_points(var ocean_sound__points : Point3List&)
     ocean_sound__points[idx - 1].z = distance(ocean_sound__points[idx - 1], ocean_sound__points[idx])
 
 
-[es(tag=sound, on_appear, REQUIRE_NOT=game_object_ocean_sound_generator__gameObjects)]
-def ocean_sound_appear(evt : Event;
-                       var ocean_sound__points : Point3List&;
-                       var ocean_sound_update__idx : int&)
-  init_points(ocean_sound__points)
+[es(tag=sound, on_appear, REQUIRE_NOT=game_object_ocean_sound_generator__gameObjects, after=ocean_sound_appear)]
+def points_ocean_sound_appear(evt : Event;
+                              var ocean_sound__points : Point3List&;
+                              var ocean_sound_update__idx : int&)
   ocean_sound_update__idx = -1
+  init_points(ocean_sound__points)
 
 
-[es(tag=sound, on_appear, on_event=EventGameObjectsCreated)]
-def game_object_ocean_sound_generator(evt : Event;
-                                      game_object_ocean_sound_generator__gameObjects : StringList;
-                                      var ocean_sound__event : SoundEvent&;
-                                      var ocean_sound__points : Point3List&;
-                                      var ocean_sound_update__idx : int&)
+[es(tag=sound, on_appear, on_event=EventGameObjectsCreated, after=ocean_sound_appear)]
+def game_object_ocean_sound_appear(evt : Event;
+                                   game_object_ocean_sound_generator__gameObjects : StringList;
+                                   var ocean_sound__event : SoundEvent&;
+                                   var ocean_sound__points : Point3List&;
+                                   var ocean_sound_update__idx : int&)
 
   release_immediate(ocean_sound__event)
   ocean_sound__event.enabled = false

@@ -1,8 +1,7 @@
+from "math" import max
+
 const bytes_per_allocation = 16
 const bytes_per_object = 16
-
-let {max} = require("math")
-
 
 function calculate_allocated_memory(obj) {
   local sum = 0
@@ -49,6 +48,6 @@ function calculate_allocated_memory(obj) {
   return sum
 }
 
-return {
+return freeze({
   calculate_allocated_memory
-}
+})

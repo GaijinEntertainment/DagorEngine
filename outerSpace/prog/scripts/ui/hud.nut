@@ -3,15 +3,15 @@ from "math" import min
 from "string" import format
 
 let DngBhv = require("dng.behaviors")
-let {mkActionText, getControlsByGroupTag} = require("input_hints.nut")
-let {dtext, textBtn } = require("widgets/simpleComponents.nut")
-let {mkChatUi} = require("chat.nut")
+let {mkActionText, getControlsByGroupTag} = require("%scripts/ui/input_hints.nut")
+let {dtext, textBtn } = require("%scripts/ui/widgets/simpleComponents.nut")
+let {mkChatUi} = require("%scripts/ui/chat.nut")
 let {get_sync_time} = require("net")
 let ecs = require("%dngscripts/ecs.nut")
-let { exit_game, sessionResult, levelLoaded, isDisableMenu } = require("app_state.nut")
+let { exit_game, sessionResult, levelLoaded, isDisableMenu } = require("%scripts/ui/app_state.nut")
 let { sound_play } = require("%dngscripts/sound_system.nut")
 let { EventSessionFinishedOnTimeout=2,EventSessionFinishedOnWin = 3} = require_optional("dasevents")
-let { showGameMenu, gameMenu } = require("game_menu.nut")
+let { showGameMenu, gameMenu } = require("%scripts/ui/game_menu.nut")
 
 let spaceShipControls = getControlsByGroupTag("Spaceship")
 
@@ -38,7 +38,7 @@ let hints = {children = controlsHints valign = ALIGN_BOTTOM size = flex(), halig
 
 let fpsBar = @(){
   behavior = Behaviors.FpsBar
-  size = [sw(20), SIZE_TO_CONTENT]
+  size = static [sw(20), SIZE_TO_CONTENT]
   vplace = ALIGN_BOTTOM
   rendObj = ROBJ_TEXT
 }
@@ -346,7 +346,7 @@ function markerDist(eid) {
 }
 
 let viewport = freeze({
-  size = [sw(98), sh(98)]
+  size = static [sw(98), sh(98)]
   data = {
     isViewport = true
   }
@@ -360,7 +360,7 @@ function markers() {
       children.append(marker(eid), markerDist(eid))
   }
   return {
-    size = [sw(100), sh(100)]
+    size = static [sw(100), sh(100)]
     behavior = DngBhv.Projection
     sortChildren = true
     halign = ALIGN_CENTER
@@ -386,7 +386,7 @@ function mkDebriefingFromPlayerInfo(info) {
 }
 
 function mkDebriefing(show_btn=false) {
-  let gap = freeze({size = [0, hdpx(20)]})
+  let gap = freeze({size = static [0, hdpx(20)]})
   return function() {
     let res = sessionResult.get()
     let winner = res?.winner.name
@@ -413,7 +413,7 @@ function mkDebriefing(show_btn=false) {
       watch = sessionResult
       size = flex()
       gap = hdpx(10)
-      padding = [sh(10), hdpx(40), sh(10), hdpx(40)]
+      padding = static [sh(10), hdpx(40), sh(10), hdpx(40)]
       rendObj = res && show_btn? ROBJ_SOLID : null
       color = Color(0,0,0,120)
       hplace = ALIGN_CENTER

@@ -26,7 +26,7 @@ static int grp_compare(const GrpRec *a, const GrpRec *b) { return stricmp(a->nam
 
 static int entry_compare(const EntryRec *a, const EntryRec *b) { return stricmp(a->name, b->name); }
 
-static TEXTUREID folder_textureId = BAD_TEXTUREID;
+static PropPanel::IconId folder_textureId = PropPanel::IconId::Invalid;
 
 AllAssetsTree::AllAssetsTree(PropPanel::ITreeViewEventHandler *event_handler) :
   TreeBaseWindow(event_handler, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "", /*icons_show = */ true)
@@ -111,7 +111,7 @@ PropPanel::TLeafHandle AllAssetsTree::addEntry(const DagorAsset *asset, PropPane
 {
   G_ASSERT((((uintptr_t)asset) & 3) == 0); // must be at least 4-byte aligned
 
-  const TEXTUREID icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
+  const PropPanel::IconId icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
   PropPanel::TLeafHandle ret = addItem(asset->getName(), icon, parent, (void *)asset);
   if (selected && !firstSel)
     firstSel = ret;
@@ -119,29 +119,20 @@ PropPanel::TLeafHandle AllAssetsTree::addEntry(const DagorAsset *asset, PropPane
   return ret;
 }
 
-void AllAssetsTree::saveTreeData(DataBlock &blk) { scanOpenTree(getRoot(), &blk); }
-
-void AllAssetsTree::loadSelectedItem() { setSelectedItem(firstSel); }
-
-void AllAssetsTree::scanOpenTree(PropPanel::TLeafHandle parent, DataBlock *blk)
+void AllAssetsTree::saveTreeData(DataBlock &blk)
 {
-  const int childCount = getChildrenCount(parent);
-  if (childCount == 0 || !isOpen(parent))
-    return;
+  updateUnfilteredExpansionStateFromFilteredTree();
+  saveTreeExpansionState(getUnfilteredRootNode(), &blk);
+}
 
-  DataBlock *subBlk = blk->addBlock(getItemName(parent));
-
-  for (int curChildIndex = 0; curChildIndex < childCount; ++curChildIndex)
-  {
-    PropPanel::TLeafHandle child = getChild(parent, curChildIndex);
-    scanOpenTree(child, subBlk);
-
-    if (isSelected(child) && !get_dagor_asset_folder(getItemData(child)))
+void AllAssetsTree::saveTreeExpansionState(const PropPanel::TTreeNode &parent, DataBlock *blk)
+{
+  for (const PropPanel::TTreeNode *child : parent.nodes)
+    if (!child->nodes.empty() && child->isExpand)
     {
-      DagorAsset *asset = (DagorAsset *)getItemData(child);
-      subBlk->addBool(asset->getNameTypified(), true);
+      DataBlock *subBlk = blk->addBlock(child->name);
+      saveTreeExpansionState(*child, subBlk);
     }
-  }
 }
 
 bool AllAssetsTree::handleNodeFilter(const PropPanel::TTreeNode &node)

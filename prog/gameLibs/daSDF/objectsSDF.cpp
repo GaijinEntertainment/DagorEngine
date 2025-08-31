@@ -958,13 +958,8 @@ struct ObjectsAtlasLru
     atlas_bd = abd;
     int atlas_w = atlas_bw * SDF_BLOCK_SIZE, atlas_h = atlas_bh * SDF_BLOCK_SIZE, atlas_d = atlas_bd * SDF_BLOCK_SIZE; // in texels
     object_sdf_mip_atlas.close();
-    object_sdf_mip_atlas = dag::create_voltex(atlas_w, atlas_h, atlas_d, TEXCF_UNORDERED | TEXFMT_L8, 1,
+    object_sdf_mip_atlas = dag::create_voltex(atlas_w, atlas_h, atlas_d, TEXCF_UNORDERED | TEXFMT_R8, 1,
       "object_sdf_mip_atlas"); // TEXCF_UPDATE_DESTINATION
-    // object_sdf_mip_atlasCopy.close();
-    // object_sdf_mip_atlasCopy = dag::create_voltex(atlas_w, atlas_h, atlas_d,
-    //                                           TEXFMT_L8|TEXCF_SYSMEM|TEXCF_DYNAMIC, 1,
-    //                                           "object_sdf_mip_atlas_copy");//TEXCF_UPDATE_DESTINATION
-    // resptr_detail::ResPtrFactory<VolTexture>(object_sdf_mip_atlas->makeTmpTexResCopy(atlas_w, atlas_h, atlas_d,1, true));
     ShaderGlobal::set_color4(sdf_inv_atlas_size_in_blocksVarId, 1. / atlas_bw, 1. / atlas_bh, 1. / atlas_bd, 0);
     ShaderGlobal::set_color4(sdf_internal_block_size_tcVarId, float(SDF_INTERNAL_BLOCK_SIZE) / atlas_w,
       float(SDF_INTERNAL_BLOCK_SIZE) / atlas_h, float(SDF_INTERNAL_BLOCK_SIZE) / atlas_d, 0);

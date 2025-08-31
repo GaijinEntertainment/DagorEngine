@@ -29,7 +29,7 @@ void (*hook_on_add_vdata)(ShaderMatVdata *vd, int add_vdata_sz) = nullptr;
 ShaderMatVdata::ModelLoadStats ShaderMatVdata::modelLoadStats[3];
 
 #define MAX_STACK_SIZE         512
-#define VDATA_RELOAD_SUPPORTED _TARGET_PC_WIN
+#define VDATA_RELOAD_SUPPORTED _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_ANDROID
 
 struct ShaderMatVdata::MatVdataHdr
 {
@@ -242,7 +242,8 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
   {
     const_cast<ShaderMaterialProperties &>(hdr->mat[i]).patchNonSharedData(hdr, tex);
     mat[i] = ScriptedShaderMaterial::create(hdr->mat[i]);
-    mat[i]->addRef();
+    if (mat[i])
+      mat[i]->addRef();
   }
 
   if (matvdata::hook_on_add_vdata)
@@ -299,7 +300,7 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     memfree(hdr, tmpmem);
 
 #if VDATA_RELOAD_SUPPORTED
-  if ((flags & VDATA_D3D_RESET_READY) && (d3d::get_driver_code().is(d3d::dx11) || d3d::get_driver_code().is(d3d::dx12)))
+  if ((flags & VDATA_D3D_RESET_READY) && (d3d::get_driver_code().is(d3d::dx11 || d3d::dx12 || d3d::vulkan)))
   {
     static struct ShaderVdataReloadStub : public Sbuffer::IReloadData
     {

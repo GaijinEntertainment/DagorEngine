@@ -1,0 +1,492 @@
+float4 wetness_params = float4(0.0, 0.0, 0.65, 0.0);
+// x = 0..1 - wetness power
+// y = 0..1 - water level
+// z = 0..1 - wetness max level
+// w = any  - wetness cutoff radius (to avoid it in cockpit)
+
+float4 wetness_blend_params = float4(0.2, 0.95, 0.25, 0.0);
+// x = any  - default water height
+// y = 0..1 - slope threshold
+// z = 0..1 - slope weight
+
+// Fresnel
+float4 wetness_f0 = float4(0.025, 0.017, 0.01, 1);
+float4 wetness_f90 = float4(0.02, 0.02, 0.02, 1);
+
+float wetness_porosity = 0.6;
+
+float disable_wetness_shore = 0;
+
+hlsl {
+  float ClampRange(float input, float minimum, float maximum)
+  {
+    return saturate((input - minimum) * rcp(max(maximum - minimum, 0.001)));
+  }
+}
+
+macro INIT_WETNESS_POWER(stage)
+  (stage) { wetness_params @f4 = (wetness_params.x, water_level, wetness_params.z, wetness_params.w); }
+endmacro
+
+macro USE_WETNESS_POWER_BASE(stage)
+  hlsl(stage) {
+    float get_wetness_power()
+    {
+      return wetness_params.x;
+    }
+  }
+endmacro
+
+macro USE_WETNESS_POWER(stage)
+  INIT_WETNESS_POWER(stage)
+  USE_WETNESS_POWER_BASE(stage)
+endmacro
+
+macro INIT_WETNESS_BASE(stage)
+  INIT_WETNESS_POWER(stage)
+  (stage) {
+    wf0_pseed@f4 = (wetness_f0.x, wetness_f0.y, wetness_f0.z, 0);
+  }
+endmacro
+
+macro INIT_WETNESS_STAGE(stage)
+  INIT_WETNESS_BASE(stage)
+  (stage) {
+    wetness_blend_porosity_params@f4 = (wetness_blend_params.x,
+      wetness_blend_params.y, wetness_blend_params.z, wetness_porosity);
+    wf90__disable_wetness_shore@f4 = (wetness_f90.x, wetness_f90.y, wetness_f90.z, disable_wetness_shore);
+  }
+endmacro
+
+macro INIT_WETNESS()
+  INIT_WETNESS_STAGE(ps)
+endmacro
+
+macro USE_WETNESS_STAGE(stage)
+  USE_WETNESS_POWER_BASE(stage)
+
+  hlsl(stage) {
+    float get_base_wetness_max_level()
+    {
+      return wetness_params.z;
+    }
+
+    float get_wetness_water_level()
+    {
+      return wetness_params.y;
+    }
+
+    float get_wet_material(float wetness, float water_border)
+    {
+      return wetness * (1.0 + min(water_border, 0.0));
+    }
+
+    float get_base_wetness(float3 world_pos, float3 vertical_normal, out float water_border)
+    {
+      float slopeWeight = wetness_blend_porosity_params.x;
+      float slopeThreshold = wetness_blend_porosity_params.y;
+      float waterBorderHeight = wetness_blend_porosity_params.z;
+      // base wetness
+      float wetness = get_wetness_power();
+      // slope fade
+      wetness *= 1.0 - slopeWeight * ClampRange(vertical_normal.y, slopeThreshold, 1.0);
+
+      // water levels
+      water_border = wf90__disable_wetness_shore.w == 0 ?
+        ClampRange(world_pos.y - get_wetness_water_level(), -waterBorderHeight, waterBorderHeight) * 2.0 - 1.0 : 1.0;
+      // apply shore wetness
+      wetness = lerp(1.0, wetness, max(water_border, 0.0));
+
+      return wetness * get_base_wetness_max_level();
+    }
+
+    void apply_wetness(float wetness, float water_border, float3 vertical_normal, float3 view, inout half3 albedo, inout half ao, inout half shadow, inout half translucency, inout half smoothness, inout float3 normal, inout half reflectance)
+    {
+      float wetColor = wetness;
+      float wetMaterial = get_wet_material(wetness, water_border);
+      float porosity = wetness_blend_porosity_params.w;
+      float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
+      normal = lerp(normal, vertical_normal, wetnessAO);
+      float3 fAlbedo = float3(albedo);
+      float3 albedoSqr = fAlbedo * fAlbedo;
+      fAlbedo = lerp(fAlbedo, albedoSqr, ClampRange(wetColor, 0.0, 0.35) * porosity);
+      fAlbedo.rgb = lerp(fAlbedo, lerp(wf90__disable_wetness_shore.rgb, wf0_pseed.rgb, pow2(abs(dot(view, normal)))), wetnessAO);
+      albedo = half3(fAlbedo);
+      ao = half(lerp(ao, 1.0, wetnessAO));
+      shadow = half(lerp(shadow, 1.0, wetnessAO));
+      translucency *= half(1 - wetnessAO);
+      smoothness = half(lerp(smoothness, 0.9, ClampRange(wetMaterial, 0.2, 1.0)));
+      reflectance = half(lerp(reflectance, 1.0, wetMaterial));
+    }
+  }
+endmacro
+
+macro USE_WETNESS_BASE()
+  USE_WETNESS_STAGE(ps)
+endmacro
+
+macro USE_WETNESS()
+  INIT_WETNESS()
+  USE_WETNESS_BASE()
+endmacro
+
+texture water_ripples_normal;
+float4 water_ripples_origin = (0, 0, 0, 0);
+float water_ripples_size = 80.0;
+float water_ripples_pixel_size = 0.0009765625;
+float water_ripples_displace_max = 0.25;
+float water_ripples_on = 0;
+
+macro USE_WATER_RIPPLES_DISPL(code, tex_or_sampler)
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (code) {
+      water_ripples_on@f1 = (water_ripples_on);
+      water_ripples_normal tex_or_sampler = water_ripples_normal;
+      water_ripples_origin_size_dmax@f4 = (water_ripples_origin.x, water_ripples_origin.z, water_ripples_size, water_ripples_displace_max);
+    }
+  }
+
+  hlsl(code) {
+    float get_water_ripples_displace(float3 world_pos)
+    {
+    ##if compatibility_mode == compatibility_mode_off
+      if (water_ripples_on == 0)
+        return 0.0;
+      float2 wUV = (world_pos.xz - water_ripples_origin_size_dmax.xy) / water_ripples_origin_size_dmax.z + 0.5;
+      return clamp(tex2Dlod(water_ripples_normal, float4(wUV, 0.0, 0.0)).b*2 - 1, -water_ripples_origin_size_dmax.w, water_ripples_origin_size_dmax.w);
+    ##else
+      return 0.0;
+    ##endif
+    }
+  }
+endmacro
+
+macro USE_WATER_RIPPLES(tex_or_sampler)
+  USE_WATER_RIPPLES_DISPL(ps, tex_or_sampler)
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (ps) {
+      water_ripples_origin_size_psize@f4 = (water_ripples_origin.x, water_ripples_origin.z, water_ripples_size, water_ripples_pixel_size);
+    }
+  }
+
+  hlsl(ps) {
+    #define WATER_RIPPLES_FADE_BORDER 5.0
+
+    float3 get_water_ripples_normal(float3 world_pos)
+    {
+    ##if compatibility_mode == compatibility_mode_off
+      if (water_ripples_on == 0)
+        return half3(0.h, 1.h, 0.h);
+      float2 wUV = (world_pos.xz - water_ripples_origin_size_psize.xy) / water_ripples_origin_size_psize.z + 0.5;
+      float2 borderFade = saturate((abs(wUV - float2(0.5, 0.5)) - float2(0.5, 0.5)) * water_ripples_origin_size_psize.z / WATER_RIPPLES_FADE_BORDER + 1.0);
+      float3 rippleNormalPacked = (half3)tex2Dlod(water_ripples_normal, float4(wUV, 0.0, 0.0)).rgb;
+      ##if shader == heightmap
+        // Dirty hack for puddles: we have waves with 0.25 m precision, which looks weird on puddles
+        // but we can use cos(wave_amplitude) to invert normal, so we represent our wave as series of waves
+        // ofc on very large puddles it can look weird, because new pseudo-waves are not physical, but on small ones it looks good
+        #define RIPPLE_PUDDLE_SCALE_HACK  400.0f
+        rippleNormalPacked.rgb = rippleNormalPacked.rgb*2 - 1;
+        rippleNormalPacked.rg *= 2.0f * cos(rippleNormalPacked.b * RIPPLE_PUDDLE_SCALE_HACK);
+        rippleNormalPacked.rg = 0.5f + rippleNormalPacked.rg * 0.5f;
+      ##endif
+      rippleNormalPacked.rg = lerp(rippleNormalPacked.rg, float2(0.5, 0.5), max(borderFade.x, borderFade.y));
+      return restore_normal((half2)rippleNormalPacked.rg).xzy;
+    ##else
+      return half3(0.h, 1.h, 0.h);
+    ##endif
+    }
+
+    half3 get_water_ripples_gradient(float3 world_pos)
+    {
+      return (half3)get_water_ripples_normal(world_pos);
+    }
+  }
+endmacro
+
+texture droplets_tex;
+float droplets_speed = 1.0;
+
+float droplets_scale = 0;
+interval droplets_scale : droplets_scale_off < 0.01, droplets_scale_on;
+
+float4 rain_ripple_params = (0.5, 0.4, 0.7, 0.8);
+//x - water ripples power
+//y - circle ripples tile
+//z,w - start/end smoothness for ripples
+
+float4 rain_ripple_params2 = (1.5, 1.0, 1.5, 4.0);
+//x - tile scale
+//y - tile vertical scale
+//z - max normal strength
+//w - ripples power
+
+float rain_gbuf_fade = 1.0;
+
+int heightmap_puddles = 0;
+interval heightmap_puddles: heightmap_puddles_off < 1, heightmap_puddles_on;
+
+macro USE_CUBE_RAIN_DROPLETS_BASE(use_grad)
+
+if (compatibility_mode == compatibility_mode_off)
+{
+  USE_NORMAL_DETAIL()
+  (ps) {
+    droplets_tex@smp3d = droplets_tex;
+    droplets_time@f1 = (time_phase(droplets_speed, 0));
+    droplets_scale@f1 = (droplets_scale);
+  }
+
+  hlsl(ps) {
+
+    // "warning X4121: gradient-based operations must be moved out of flow control to prevent divergence. Performance may improve
+    // by using a non-gradient operation."
+    // This is caused by tex3Dgrad() ending up in flow control i.e. being inside of an if or else block. This is safe if we ensure
+    // that we calculate its parameters outside of flow control.
+    // Source: https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx9-graphics-reference-asm-ps-instructions-flow-control#interaction-of-per-pixel-flow-control-with-screen-gradients
+    #pragma warning(disable:4121)
+
+#if use_grad
+    #define CUBE_RAIN_DROPLETS_GRAD_SIG_OUT , out float3 tc_dx, out float3 tc_dy
+    #define CUBE_RAIN_DROPLETS_GRAD_SIG , float3 tc_dx, float3 tc_dy
+    #define CUBE_RAIN_DROPLETS_GRAD_ARG , tc_dx, tc_dy
+#else
+    #define CUBE_RAIN_DROPLETS_GRAD_SIG_OUT
+    #define CUBE_RAIN_DROPLETS_GRAD_SIG
+    #define CUBE_RAIN_DROPLETS_GRAD_ARG
+#endif
+
+    #define MAX_RAIN_FALL_ANGLE 0.11
+    #define MAX_RAIN_FALL_ANGLE_RIPPLES 0.95
+
+    half4 sample_rain_normals(float3 tc CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+#if use_grad
+      return tex3Dgrad(droplets_tex, tc, tc_dx, tc_dy);
+#else
+      return tex3D(droplets_tex, tc);
+#endif
+    }
+
+    void get_rain_normals(float3 tc, out half3 droplets, out half3 ripples CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      half4 normals = sample_rain_normals(tc + float3(0, 0, droplets_time) CUBE_RAIN_DROPLETS_GRAD_ARG);
+      droplets = restore_normal(normals.rg);
+      ripples = restore_normal(normals.ba);
+    }
+
+    float3 get_droplets_tc(float3 droplets_pos)
+    {
+      const half droplets_tile_scale = 10;
+      return droplets_pos * float3(droplets_tile_scale, droplets_tile_scale, 1.0) + float3(0, 0, droplets_time);
+    }
+
+    half4 get_rain_droplets(
+      float3 droplets_tc,
+      half3 normal_ts,
+      half3 point_to_eye,
+      half3 world_normal,
+      half3 world_du,
+      half3 world_dv
+      CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      half3 dropletsNormalTS = lerp(normal_ts, restore_normal(sample_rain_normals(droplets_tc CUBE_RAIN_DROPLETS_GRAD_ARG).rg), droplets_scale);
+      half3 dropletsNormalWS = dropletsNormalTS.z * world_normal + dropletsNormalTS.x * world_du + dropletsNormalTS.y * world_dv;
+
+      half3 dropletsReflectionWS = reflect(point_to_eye, dropletsNormalWS);
+      half dropletsRN = abs(dot(dropletsReflectionWS, dropletsNormalWS));
+      const half droplets_reflection_min = 0.1;
+      const half droplets_reflection_max = 0.3;
+      half dropletsFresnel = lerp(droplets_reflection_min, droplets_reflection_max, pow(saturate(1 - dropletsRN), 5));
+
+      return half4(dropletsNormalWS, dropletsFresnel * droplets_scale);
+    }
+  }
+}
+
+endmacro
+
+macro USE_CUBE_RAIN_DROPLETS(use_grad)
+
+USE_CUBE_RAIN_DROPLETS_BASE(use_grad)
+
+if (compatibility_mode == compatibility_mode_off)
+{
+  (ps) {
+    rain_ripple_params@f4 = rain_ripple_params;
+    rain_ripple_params2@f4 = rain_ripple_params2;
+  }
+
+  hlsl(ps) {
+
+    bool check_rain_ripples_condition()
+    {
+      return droplets_scale > 0;
+    }
+
+    void get_rain_ripples_tc(float3 world_pos, float3 vertical_norm, float smoothness, out float4 ripples_tc CUBE_RAIN_DROPLETS_GRAD_SIG_OUT)
+    {
+      float ripplesFade = (vertical_norm.y > MAX_RAIN_FALL_ANGLE_RIPPLES) * ClampRange(smoothness, rain_ripple_params.z, rain_ripple_params.w);
+
+      ripples_tc.xy = world_pos.xz * lerp(rain_ripple_params2.xx, rain_ripple_params.yy, ripplesFade);
+      ripples_tc.z = 0;
+      ripples_tc.w = ripplesFade;
+#if use_grad
+      tc_dx = ddx(float3(ripples_tc.xy, world_pos.y * rain_ripple_params2.y));
+      tc_dy = ddy(float3(ripples_tc.xy, world_pos.y * rain_ripple_params2.y));
+#endif
+    }
+
+    void get_rain_ripples_impl(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm CUBE_RAIN_DROPLETS_GRAD_SIG , out float dropletsFade, out float finalStrength)
+    {
+      half3 dropletsNorm, ripplesNorm;
+      get_rain_normals(float3(ripples_tc.xy, world_pos.y * rain_ripple_params2.y), dropletsNorm, ripplesNorm CUBE_RAIN_DROPLETS_GRAD_ARG);
+      dropletsFade = ClampRange(vertical_norm.y, -MAX_RAIN_FALL_ANGLE, 0);
+      finalStrength = droplets_scale * strength;
+
+      result_norm = lerp(half3(0, 0, 1), dropletsNorm, dropletsFade);
+      result_norm = lerp(result_norm, ripplesNorm, ripples_tc.w);
+      result_norm = normalize(float3(result_norm.xy * rain_ripple_params2.z * finalStrength, result_norm.z)).xzy;
+    }
+
+    void get_rain_ripples(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      float dropletsFade, finalStrength;
+      get_rain_ripples_impl(ripples_tc, world_pos, vertical_norm, smoothness, strength, result_norm CUBE_RAIN_DROPLETS_GRAD_ARG , dropletsFade, finalStrength);
+    }
+
+    void get_rain_ripples(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm, out float ripples_power CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      float dropletsFade, finalStrength;
+      get_rain_ripples_impl(ripples_tc, world_pos, vertical_norm, smoothness, strength, result_norm CUBE_RAIN_DROPLETS_GRAD_ARG , dropletsFade, finalStrength);
+      ripples_power = dropletsFade * finalStrength * saturate((1.0 - result_norm.y) * rain_ripple_params2.w);
+    }
+
+    void apply_rain_ripples(float3 world_pos, float3 vertical_norm, float smoothness, float strength, inout float3 world_normal)
+    {
+      BRANCH
+      if (check_rain_ripples_condition())
+      {
+        float3 ripplesNorm;
+#if use_grad
+        float4 tc;
+        float3 tcDx, tcDy;
+        get_rain_ripples_tc(world_pos, vertical_norm, smoothness, tc, tcDx, tcDy);
+        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm, tcDx, tcDy);
+#else
+        float4 tc;
+        get_rain_ripples_tc(world_pos, vertical_norm, smoothness, tc);
+        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm);
+#endif
+        world_normal = RNM_ndetail_normalized(world_normal.xzy, ripplesNorm.xzy).xzy;
+      }
+    }
+
+    void apply_rain_ripples_water(float3 world_pos, float dist, inout float3 world_normal)
+    {
+      apply_rain_ripples(world_pos * 0.5, float3(0.0, 1.0, 0.0), 1.0, rain_ripple_params.x * saturate(12 - dist / (rain_ripple_params2.x * 48.0)), world_normal);
+    }
+  }
+}
+else
+{
+  hlsl(ps) {
+    #define apply_rain_ripples(world_pos, vertical_norm, smoothness, strength, world_normal)
+    #define apply_rain_ripples_water(world_pos, dist, world_normal)
+  }
+}
+
+endmacro
+
+texture glass_splatter_tex;
+
+macro USE_RAIN_GLASS_SPLATTER()
+  (ps) {
+    glass_splatter_tex@smp2d = glass_splatter_tex;
+  }
+
+  hlsl(ps)
+  {
+    half4 get_rain_glass_splatter(float3 droplets_pos)
+    {
+      const half droplets_tile_scale = 10;
+      half4 splatter = tex2D(glass_splatter_tex, droplets_pos.xy * droplets_tile_scale);
+      return half4(splatter.rgb, splatter.a);
+    }
+  }
+endmacro
+
+macro INIT_WRITE_GBUFFER_WETNESS_BASE(stage)
+  (stage) { hpuddles_gfade@f2 = (heightmap_puddles, rain_gbuf_fade, 0, 0); }
+endmacro
+
+macro INIT_WRITE_GBUFFER_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS_BASE(ps)
+endmacro
+
+macro WRITE_GBUFFER_WETNESS()
+  hlsl(ps) {
+    void apply_gbuf_wetness(float wetness, float water_border, float3 vertical_normal, float3 view, inout UnpackedGbuffer g_buf)
+    {
+      apply_wetness(wetness, water_border, vertical_normal, view, g_buf.albedo.rgb, g_buf.ao, g_buf.shadow, g_buf.translucency, g_buf.smoothness, g_buf.normal, g_buf.reflectance);
+    }
+
+    void apply_base_wetness(float3 world_pos, float3 vertical_normal, float3 view, inout UnpackedGbuffer g_buf)
+    {
+      float waterBorder;
+      float wetness = get_base_wetness(world_pos, vertical_normal, waterBorder);
+      BRANCH
+      if (wetness > 0.0 && hpuddles_gfade.x > 0.0)
+        apply_gbuf_wetness(wetness, waterBorder, vertical_normal, view, g_buf);
+    }
+  }
+endmacro
+
+macro USE_GBUF_WETNESS()
+  USE_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS()
+  WRITE_GBUFFER_WETNESS()
+endmacro
+
+macro USE_ENV_WETNESS()
+  USE_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS()
+  WRITE_GBUFFER_WETNESS()
+  USE_CUBE_RAIN_DROPLETS(1)
+
+  hlsl(ps) {
+    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, float cloud_shadow, inout UnpackedGbuffer g_buf)
+    {
+      float waterBorder;
+      float wetness = get_base_wetness(world_pos, vertical_normal, waterBorder);
+      wetness *= 1.0 - smoothstep(0, 0.1, world_pos_to_clouds_alt.x * world_pos.y + world_pos_to_clouds_alt.y); // Fade out by altitude in clouds
+      float wetnessFade = smoothstep(-1.0, 0.0, length(world_pos - world_view_pos.xyz) - wetness_params.w); // Fade out in cockpit
+      wetness = lerp(0.0, wetness, wetnessFade);
+      if (wetness > 0)
+      {
+        BRANCH
+        if ((hpuddles_gfade.x == 0.0 || !g_buf.isLandscape) && g_buf.material != SHADING_FOLIAGE)
+          apply_gbuf_wetness(wetness, waterBorder, vertical_normal, view, g_buf);
+
+        BRANCH
+        if (check_rain_ripples_condition() && g_buf.normal.y > 0)
+        {
+          float4 ripplesTc;
+          float3 ripplesTcDx, ripplesTcDy;
+          get_rain_ripples_tc(world_pos, vertical_normal, g_buf.smoothness, ripplesTc, ripplesTcDx, ripplesTcDy);
+          float ripplesPower;
+          float3 ripplesNorm;
+          // ignore gbuf fade for terrain material
+          get_rain_ripples(ripplesTc, world_pos, vertical_normal, g_buf.smoothness, wetnessFade * (g_buf.isLandscape ? 1.0 : hpuddles_gfade.y), ripplesNorm, ripplesPower, ripplesTcDx, ripplesTcDy);
+          g_buf.normal = RNM_ndetail_normalized(g_buf.normal.xzy, ripplesNorm.xzy).xzy;
+          g_buf.smoothness = lerp(g_buf.smoothness, 1.0, ripplesPower);
+          g_buf.ao = lerp(g_buf.ao, 1.0, ripplesPower);
+          g_buf.shadow = lerp(g_buf.shadow, 1.0, ripplesPower);
+          g_buf.translucency *= (1 - ripplesPower);
+        }
+      }
+    }
+  }
+endmacro

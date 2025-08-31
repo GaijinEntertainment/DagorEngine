@@ -22,8 +22,10 @@
 #include <util/dag_string.h>
 #include <generic/dag_carray.h>
 #include <EASTL/string_view.h>
+#include <EASTL/optional.h>
 #include <stdio.h>
-#include "gpuVendor.h"
+#include "gpuVendorAmd.h"
+#include "gpuVendorNvidia.h"
 
 static const carray<const char *, 7> nvidia_dll_names = {
   "nvapi.dll", "nvapi64.dll", "nvd3dum.dll", "nvd3dumx.dll", "nvwgf2um.dll", "nvwgf2umx.dll", "nv4_disp.dll"};
@@ -34,22 +36,22 @@ static const carray<const char *, 4> ati_dll_names = {"aticfx32.dll", "aticfx64.
 static const carray<const char *, 8> intel_dll_names = {"igd10iumd32.dll", "igd10iumd64.dll", "igd10umd32.dll", "igd10umd64.dll",
   "igdumd32.dll", "igdumd64.dll", "igdumdim32.dll", "igdumdim64.dll"};
 
-static const carray<dag::ConstSpan<const char *>, D3D_VENDOR_COUNT> vendor_dll_names{
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_NONE
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_MESA
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_IMGTEC
-  ati_dll_names,                  // D3D_VENDOR_ATI
-  nvidia_dll_names,               // D3D_VENDOR_NVIDIA
-  intel_dll_names,                // D3D_VENDOR_INTEL
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_APPLE
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_SHIM_DRIVER
-  dag::ConstSpan<const char *>(), // D3D_VENDOR_ARM
-  dag::ConstSpan<const char *>()  // D3D_VENDOR_QUALCOMM
+static const carray<dag::ConstSpan<const char *>, GPU_VENDOR_COUNT> vendor_dll_names{
+  dag::ConstSpan<const char *>(), // GpuVendor::NONE
+  dag::ConstSpan<const char *>(), // GpuVendor::MESA
+  dag::ConstSpan<const char *>(), // GpuVendor::IMGTEC
+  ati_dll_names,                  // GpuVendor::ATI
+  nvidia_dll_names,               // GpuVendor::NVIDIA
+  intel_dll_names,                // GpuVendor::INTEL
+  dag::ConstSpan<const char *>(), // GpuVendor::APPLE
+  dag::ConstSpan<const char *>(), // GpuVendor::SHIM_DRIVER
+  dag::ConstSpan<const char *>(), // GpuVendor::ARM
+  dag::ConstSpan<const char *>()  // GpuVendor::QUALCOMM
 };
 
 using namespace gpu;
 
-static int cached_gpu_vendor = -1;
+static eastl::optional<GpuVendor> cached_gpu_vendor;
 static uint32_t cached_gpu_device_id = -1;
 static char cached_gpu_desc[2048] = "";
 static uint32_t cached_gpu_drv_ver[4] = {0, 0, 0, 0};
@@ -259,7 +261,7 @@ static int get_dx11_feature_level_supported()
   return featureLevelSupported;
 }
 
-static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t &out_video_memory_mb,
+static GpuVendor get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t &out_video_memory_mb,
   uint32_t &out_free_video_memory_mb, int &feature_level_supported, uint32_t drv_ver[4], DagorDateTime &drv_date, uint32_t &device_id)
 {
 #ifdef _MSC_VER
@@ -269,7 +271,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
 
   debug("get_active_gpu_vendor...");
 
-  int vendor = D3D_VENDOR_NONE;
+  GpuVendor vendor = GpuVendor::UNKNOWN;
   out_active_gpu_description = "";
   out_video_memory_mb = 2048; // Fallback value to avoid quality adjustment on descrete GPU with unknown memory.
   out_free_video_memory_mb = 0;
@@ -332,6 +334,22 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
 
               adapter3->Release();
             }
+            for (uint32_t outputIndex = 0;; outputIndex++)
+            {
+              IDXGIOutput *output;
+              if (FAILED(adapter->EnumOutputs(outputIndex, &output)))
+              {
+                if (outputIndex == 0)
+                  debug("No outputs found for adapter <%s>", deviceName);
+                break;
+              }
+
+              DXGI_OUTPUT_DESC outDesc;
+              output->GetDesc(&outDesc);
+              char name[256];
+              wcstombs(name, outDesc.DeviceName, 256);
+              debug("output:%d: running on <%s>", outputIndex, name);
+            }
             adapter->Release();
           }
           pDXGIDevice->Release();
@@ -343,7 +361,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
             && NvAPI_D3D11_SetDepthBoundsTest(device, 1, 0.f, 1.f) == NVAPI_OK // Succeeds only if NV GPU is active.
             && NvAPI_D3D11_SetDepthBoundsTest(device, 0, 0.f, 1.f) == NVAPI_OK)
         {
-          vendor = D3D_VENDOR_NVIDIA;
+          vendor = GpuVendor::NVIDIA;
         }
         else
 #endif
@@ -362,7 +380,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
               HRESULT hr = AmdDxExtCreate(device, &amdExtension); // Succeeds only if ATI GPU is active.
               if (SUCCEEDED(hr) && amdExtension)
               {
-                vendor = D3D_VENDOR_ATI;
+                vendor = GpuVendor::AMD;
                 amdExtension->Release();
               }
             }
@@ -372,7 +390,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
         if (!get_driver_info_from_luid(luid, drv_ver, drv_date))
         {
           // Do it while the device is created and the dlls are loaded.
-          get_driver_info_from_dlls(vendor_dll_names[vendor], drv_ver, drv_date);
+          get_driver_info_from_dlls(vendor_dll_names[eastl::to_underlying(vendor)], drv_ver, drv_date);
         }
 
         context->Release();
@@ -391,7 +409,7 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
   else
     debug("Can't load d3d11.dll");
 
-  if (vendor == D3D_VENDOR_NVIDIA)
+  if (vendor == GpuVendor::NVIDIA)
   {
     uint32_t nvDedicatedKb, nvSharedKb, nvDedicatedFreeKb;
     get_nv_gpu_memory(nvDedicatedKb, nvSharedKb, nvDedicatedFreeKb);
@@ -431,14 +449,13 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
 }
 
 #elif _TARGET_PC_MACOSX
-extern void mac_get_vdevice_info(int &vram, int &vendor, String &gpu_desc, bool &web_driver);
+extern void mac_get_vdevice_info(int &vram, GpuVendor &vendor, String &gpu_desc, bool &web_driver);
 #endif
 
-
-static int guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDateTime *out_drv_date, uint32_t *device_id,
+static GpuVendor guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDateTime *out_drv_date, uint32_t *device_id,
   uint32_t *out_gpu_video_memory_mb, int *out_feature_level_supported)
 {
-  if (cached_gpu_vendor == -1)
+  if (!cached_gpu_vendor.has_value())
   {
     memset(cached_gpu_desc, 0, sizeof(cached_gpu_desc));
     memset(cached_gpu_drv_ver, 0, sizeof(cached_gpu_drv_ver));
@@ -458,7 +475,7 @@ static int guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDa
 
 
 #elif _TARGET_XBOX
-    cached_gpu_vendor = D3D_VENDOR_ATI;
+    cached_gpu_vendor = GpuVendor::AMD;
     TargetPlatform tp = get_platform_id();
     if (tp == TP_XBOXONE)
       strcpy(cached_gpu_desc, "XBOX1");
@@ -471,22 +488,28 @@ static int guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDa
       uint32_t *drvVer = NULL;
       const uint32_t unknownDrvVer[4] = {0, 0, 0, 0};
       const char *ctxInfo = NULL;
-      cached_gpu_vendor = d3d::driver_command(Drv3dCommand::GET_VENDOR, &devName, &drvVer, &ctxInfo);
+      int vendorIdx = d3d::driver_command(Drv3dCommand::GET_VENDOR, &devName, &drvVer, &ctxInfo);
+      if (vendorIdx >= 0 && vendorIdx < GPU_VENDOR_COUNT)
+      {
+        cached_gpu_vendor = static_cast<GpuVendor>(vendorIdx);
+      }
       SNPRINTF(cached_gpu_desc, sizeof(cached_gpu_desc), "%s [%s]", devName ? devName : "Unknown", ctxInfo ? ctxInfo : "None");
       memcpy(cached_gpu_drv_ver, drvVer ? drvVer : unknownDrvVer, sizeof(cached_gpu_drv_ver));
     }
     else
     {
-      cached_gpu_vendor = -1;
+      cached_gpu_vendor.reset();
     }
 #elif _TARGET_PC_MACOSX
     int vram = 0;
-    bool webDriver;
+    GpuVendor vendor = GpuVendor::UNKNOWN;
     String gpuDesc;
-    mac_get_vdevice_info(vram, cached_gpu_vendor, gpuDesc, webDriver);
+    bool webDriver;
+    mac_get_vdevice_info(vram, vendor, gpuDesc, webDriver);
+    cached_gpu_vendor = vendor;
     SNPRINTF(cached_gpu_desc, sizeof(cached_gpu_desc), "%s", gpuDesc.str());
 #else
-    cached_gpu_vendor = D3D_VENDOR_NONE;
+    cached_gpu_vendor = GpuVendor::UNKNOWN;
 #endif
   }
 
@@ -502,20 +525,21 @@ static int guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDa
     *out_feature_level_supported = cached_feature_level_supported;
   if (device_id)
     *device_id = cached_gpu_device_id;
-  return cached_gpu_vendor != -1 ? cached_gpu_vendor : D3D_VENDOR_NONE;
+  return cached_gpu_vendor.has_value() ? *cached_gpu_vendor : GpuVendor::UNKNOWN;
 }
 
-int d3d::guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDateTime *out_drv_date, uint32_t *device_id)
+GpuVendor d3d::guess_gpu_vendor(String *out_gpu_desc, uint32_t *out_drv_ver, DagorDateTime *out_drv_date, uint32_t *device_id)
 {
   return guess_gpu_vendor(out_gpu_desc, out_drv_ver, out_drv_date, device_id, nullptr, nullptr);
 }
 
-DagorDateTime d3d::get_gpu_driver_date(int vendor)
+DagorDateTime d3d::get_gpu_driver_date(GpuVendor vendor)
 {
   DagorDateTime drv_date{};
 #if _TARGET_PC_WIN
   uint32_t dummy[4];
-  get_driver_info_from_dlls(vendor_dll_names[vendor], dummy, drv_date); // Do it while the device is created and the dlls are loaded.
+  get_driver_info_from_dlls(vendor_dll_names[eastl::to_underlying(vendor)], dummy, drv_date); // Do it while the device is created and
+                                                                                              // the dlls are loaded.
 #endif
   return drv_date;
 }
@@ -524,7 +548,7 @@ DagorDateTime d3d::get_gpu_driver_date(int vendor)
 
 static void get_dedicated_gpu_memory_total_kb_dxgi(unsigned &out_dedicated, unsigned &out_dedicated_free)
 {
-  if (cached_gpu_vendor == -1)
+  if (!cached_gpu_vendor.has_value())
     guess_gpu_vendor(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 
   out_dedicated = cached_gpu_video_memory_mb << 10;

@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "swapchain.h"
 #include <osApiWrappers/dag_files.h>
 #include <EASTL/sort.h>
 #include <EASTL/functional.h>

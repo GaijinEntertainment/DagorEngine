@@ -5,8 +5,6 @@
 #include <render/lruCollision.h>
 #include <daGI2/lruCollisionVoxelization.h>
 #include <scene/dag_tiledScene.h>
-#include <execution>
-#include <algorithm>
 
 // todo: add tiledScene or something
 struct LRUCollision
@@ -103,6 +101,11 @@ struct LRUCollision
     });
     stlsort::sort(handles.begin(), handles.end(),
       [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
+  }
+  template <class InstCb>
+  void boxCull(bbox3f_cref box, const InstCb &cb) const
+  {
+    scene.boxCull<false, false>(box, 0, 0, [&](scene::node_index ni, mat44f_cref node) { cb(ni, node); });
   }
   enum class ObjectClass
   {

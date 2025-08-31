@@ -39,9 +39,10 @@ void capsules_ao_es(const UpdateStageInfoBeforeRender &stg, CapsulesAOHolder &ca
   set_capsules_ao<GetNodeTreeWtmCB>(
     stg.camPos, stg.mainCullingFrustum, capsules_ao,
     [&](const GetCapsuleCB<GetNodeTreeWtmCB> &cb) {
-      get_capsules_ecs_query(
-        [&](ECS_SHARED(CapsuleApproximation) capsule_approximation, const AnimV20::AnimcharBaseComponent &animchar,
-          const TMatrix &transform) { cb(capsule_approximation.capsuleDatas, GetNodeTreeWtmCB(animchar.getNodeTree()), transform); });
+      get_capsules_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag disable_capsule_ao) ECS_SHARED(CapsuleApproximation) capsule_approximation,
+                               const AnimV20::AnimcharBaseComponent &animchar, const TMatrix &transform) {
+        cb(capsule_approximation.capsuleDatas, GetNodeTreeWtmCB(animchar.getNodeTree()), transform);
+      });
     },
     capsules_ao__max_units_per_cell);
 }

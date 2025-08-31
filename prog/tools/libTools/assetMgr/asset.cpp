@@ -34,7 +34,8 @@ String DagorAsset::getNameTypified() const { return String(0, "%s:%s", getName()
 
 const DataBlock &DagorAsset::getProfileTargetProps(unsigned target, const char *profile) const
 {
-  const char *tstr = mkbindump::get_target_str(target);
+  uint64_t tc_storage = 0;
+  const char *tstr = mkbindump::get_target_str(target, tc_storage);
   const DataBlock *b = (profile && *profile) ? props.getBlockByName(String(40, "%s~%s", tstr, profile)) : NULL;
   if (b)
     return *b;

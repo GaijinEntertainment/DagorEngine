@@ -44,13 +44,14 @@ void hub_init_block_settings(PropPanel::ContainerPropertyControl *panel, const D
 
   const DataBlock *defaultBlock = settings->getBlockByNameEx("child");
 
+  bool isEditable = !names.empty();
   panel->createList(PID_CTRLS_NODES_LIST, "Childs", names, 0);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");
   panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_HUB_NODE_NAME, "name", defaultBlock->getStr("name", ""));
-  panel->createCheckBox(PID_CTRLS_HUB_NODE_OPTIONAL, "optional", defaultBlock->getBool("optional", DEFAULT_OPTIONAL));
-  panel->createCheckBox(PID_CTRLS_HUB_NODE_ENABLED, "enabled", defaultBlock->getBool("enabled", DEFAULT_ENABLED));
-  panel->createEditFloat(PID_CTRLS_HUB_NODE_WEIGHT, "weight", defaultBlock->getReal("weight", DEFAULT_WEIGHT));
+  panel->createEditBox(PID_CTRLS_HUB_NODE_NAME, "name", defaultBlock->getStr("name", ""), isEditable);
+  panel->createCheckBox(PID_CTRLS_HUB_NODE_OPTIONAL, "optional", defaultBlock->getBool("optional", DEFAULT_OPTIONAL), isEditable);
+  panel->createCheckBox(PID_CTRLS_HUB_NODE_ENABLED, "enabled", defaultBlock->getBool("enabled", DEFAULT_ENABLED), isEditable);
+  panel->createEditFloat(PID_CTRLS_HUB_NODE_WEIGHT, "weight", defaultBlock->getReal("weight", DEFAULT_WEIGHT), /*prec*/ 2, isEditable);
 }
 
 void AnimTreePlugin::hubSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data)
@@ -68,20 +69,19 @@ void AnimTreePlugin::hubSaveBlockSettings(PropPanel::ContainerPropertyControl *p
       selectedBlock = child;
   }
   const SimpleString fieldName = panel->getText(PID_CTRLS_HUB_NODE_NAME);
+  const bool optional = panel->getBool(PID_CTRLS_HUB_NODE_OPTIONAL);
+  const bool enabled = panel->getBool(PID_CTRLS_HUB_NODE_ENABLED);
+  const float weitght = panel->getFloat(PID_CTRLS_HUB_NODE_WEIGHT);
   if (!selectedBlock)
-  {
     selectedBlock = settings->addNewBlock("child");
-    add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName);
-  }
-  else if (listName != fieldName)
-    data.childs[selectedIdx] = find_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName);
+  if (listName != fieldName || data.childs[selectedIdx] == AnimCtrlData::NOT_FOUND_CHILD)
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName);
+
+  check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName, optional);
 
   for (int i = selectedBlock->paramCount() - 1; i >= 0; --i)
     selectedBlock->removeParam(i);
 
-  const bool optional = panel->getBool(PID_CTRLS_HUB_NODE_OPTIONAL);
-  const bool enabled = panel->getBool(PID_CTRLS_HUB_NODE_ENABLED);
-  const float weitght = panel->getFloat(PID_CTRLS_HUB_NODE_WEIGHT);
   selectedBlock->setStr("name", fieldName.c_str());
   if (optional != DEFAULT_OPTIONAL)
     selectedBlock->setBool("optional", optional);
@@ -108,6 +108,9 @@ void hub_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *pa
   panel->setBool(PID_CTRLS_HUB_NODE_OPTIONAL, selectedBlock->getBool("optional", DEFAULT_OPTIONAL));
   panel->setBool(PID_CTRLS_HUB_NODE_ENABLED, selectedBlock->getBool("enabled", DEFAULT_ENABLED));
   panel->setFloat(PID_CTRLS_HUB_NODE_WEIGHT, selectedBlock->getReal("weight", DEFAULT_WEIGHT));
+  bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  for (int i = PID_CTRLS_HUB_NODE_NAME; i <= PID_CTRLS_HUB_NODE_WEIGHT; ++i)
+    panel->setEnabledById(i, isEditable);
 }
 
 void hub_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -124,9 +127,31 @@ void AnimTreePlugin::hubFindChilds(PropPanel::ContainerPropertyControl *panel, A
   for (int i = 0; i < settings.blockCount(); ++i)
     if (settings.getBlock(i)->getNameId() == childNid)
     {
-      const char *childName = settings.getBlock(i)->getStr("name");
-      add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+      const DataBlock *childBlock = settings.getBlock(i);
+      const char *childName = childBlock->getStr("name", nullptr);
+      if (childName)
+      {
+        add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+        check_ctrl_child_idx(data.childs[i], settings.getStr("name"), childName, childBlock->getBool("optional", false));
+      }
     }
 }
 
 const char *hub_get_child_name_by_idx(const DataBlock &settings, int idx) { return settings.getBlock(idx)->getStr("name", nullptr); }
+
+bool hub_get_child_is_optional_by_idx(const DataBlock &settings, int idx)
+{
+  return settings.getBlock(idx)->getBool("optional", false);
+}
+
+void hub_update_child_name(DataBlock &settings, const char *name, const String &old_name)
+{
+  for (int i = 0; i < settings.blockCount(); ++i)
+  {
+    DataBlock *child = settings.getBlock(i);
+    const char *childName = child->getStr("name", nullptr);
+    String writeName;
+    if (childName && get_updated_child_name(name, old_name, childName, writeName))
+      child->setStr("name", writeName.c_str());
+  }
+}

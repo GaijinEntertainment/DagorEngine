@@ -31,6 +31,6 @@ local AllSrcFolder_C =
 
 AutoscanBuildLists $(AllSrcFolder_C) : *.c       : Sources ;
 
-Copt = -DZSTD_LEGACY_SUPPORT -DXXH_CPU_LITTLE_ENDIAN=1 ;
+Copt = -DZSTD_LEGACY_SUPPORT -DXXH_CPU_LITTLE_ENDIAN ;
 
 include $(Root)/prog/_jBuild/build.jam ;

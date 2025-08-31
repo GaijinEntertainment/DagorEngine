@@ -3,6 +3,7 @@
 #include "blk_shared.h"
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -12,7 +13,8 @@
 #include "blk_iterate.h"
 #include <util/le2be.h>
 #include <ioSys/dag_roDataBlock.h>
-#include "blk_comments_def.h"
+#include <ioSys/dag_dataBlockCommentsDef.h>
+#include <generic/dag_algorithm.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <memory/dag_framemem.h>
 #include <stdio.h> // sprintf
@@ -185,6 +187,7 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
         case TYPE_POINT4: snprintf(buf, sizeof(buf), "%g, %g, %g, %g", cd[0], cd[1], cd[2], cd[3]); break;
         case TYPE_IPOINT2: snprintf(buf, sizeof(buf), "%d, %d", cdi[0], cdi[1]); break;
         case TYPE_IPOINT3: snprintf(buf, sizeof(buf), "%d, %d, %d", cdi[0], cdi[1], cdi[2]); break;
+        case TYPE_IPOINT4: snprintf(buf, sizeof(buf), "%d, %d, %d, %d", cdi[0], cdi[1], cdi[2], cdi[3]); break;
         case TYPE_E3DCOLOR:
         {
           E3DCOLOR c = getE3dcolor(i);
@@ -197,7 +200,9 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
             cd[3 * 3 + 1], cd[3 * 3 + 2]);
           break;
         case TYPE_INT64: snprintf(buf, sizeof(buf), "%lld", (long long int)*cdi64); break;
-        default: G_ASSERT(0);
+        default:
+          G_ASSERTF(0, "%u[%s]:%u=%u (%s)", p.nameId, keyName, p.type, p.v,
+            cb.getTargetName() != nullptr ? cb.getTargetName() : "<null>");
       }
       writeString(cb, buf);
     }
@@ -671,8 +676,9 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro)
   readCompressedUnsignedGeneric(roDataBlocks, cr);
   readCompressedUnsignedGeneric(paramsCnt, cr);
   readCompressedUnsignedGeneric(complexDataSize, cr);
-  uint32_t blocksStartsAt = complexDataSize + paramsCnt * sizeof(DataBlock::Param);
-  size_t sharedSize = roDataBlocks * sizeof(DataBlock) + blocksStartsAt + sizeof(DataBlockShared);
+  const uint32_t complexDataSizeAligned = dag::align_up<DataBlock::Param>(complexDataSize);
+  const uint32_t blocksStartsAt = dag::align_up<DataBlock>(complexDataSizeAligned + paramsCnt * sizeof(DataBlock::Param));
+  const size_t sharedSize = roDataBlocks * sizeof(DataBlock) + blocksStartsAt + sizeof(DataBlockShared);
   shared = new (memalloc(sharedSize, tmpmem), _NEW_INPLACE) DataBlockShared;
   nameIdAndFlags |= IS_TOPMOST;
   shared->roDataBlocks = roDataBlocks;
@@ -684,8 +690,8 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro)
   eastl::swap(shared->rw, rw);
 
   cr.read(shared->get(0), complexDataSize);
-  cr.read(shared->get(complexDataSize), paramsCnt * sizeof(DataBlock::Param));
-  uint32_t cOfs = complexDataSize;
+  cr.read(shared->get(complexDataSizeAligned), paramsCnt * sizeof(DataBlock::Param));
+  uint32_t cOfs = complexDataSizeAligned;
   DataBlock *blData = shared->getROBlockUnsafe(0);
   for (uint32_t i = 0, e = shared->roDataBlocks; i < e; ++i, ++blData)
   {
@@ -799,6 +805,7 @@ void DataBlock::setParamsFrom(const RoDataBlock &blk)
       case TYPE_POINT4: addPoint4(name, blk.getPoint4(i)); break;
       case TYPE_IPOINT2: addIPoint2(name, blk.getIPoint2(i)); break;
       case TYPE_IPOINT3: addIPoint3(name, blk.getIPoint3(i)); break;
+      case TYPE_IPOINT4: addIPoint4(name, blk.getIPoint4(i)); break;
       case TYPE_BOOL: addBool(name, blk.getBool(i)); break;
       case TYPE_E3DCOLOR: addE3dcolor(name, blk.getE3dcolor(i)); break;
       case TYPE_MATRIX: addTm(name, blk.getTm(i)); break;

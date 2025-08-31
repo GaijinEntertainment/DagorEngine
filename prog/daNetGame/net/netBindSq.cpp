@@ -28,7 +28,6 @@ void bind_danetgame_net(SqModules *module_mgr)
     .Func("get_user_id", net::get_user_id)
     .Func("add_entity_in_net_scope", add_entity_in_net_scope)
     .Func("get_sync_time", get_sync_time)
-    .Func("get_dasevent_net_version", bind_dascript::get_dasevent_net_version)
     /**/;
   tbl.SetValue("NET_PROTO_VERSION", NET_PROTO_VERSION); // todo: split by game?
 

@@ -39,12 +39,14 @@ void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *pane
   if (weights)
     for (int i = 0; i < weights->paramCount(); ++i)
       names.emplace_back(weights->getParamName(i));
+
+  bool isEditable = !names.empty();
   panel->createList(PID_CTRLS_NODES_LIST, "Nodes", names, 0);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");
   panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_RANDOM_SWITCH_NODE_NAME, "name", defaultName);
-  panel->createEditFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT, "weight", defaultWeight);
-  panel->createEditInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, "maxrepeat", defaultMaxRepeat);
+  panel->createEditBox(PID_CTRLS_RANDOM_SWITCH_NODE_NAME, "name", defaultName, isEditable);
+  panel->createEditFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT, "weight", defaultWeight, /*prec*/ 2, isEditable);
+  panel->createEditInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, "maxrepeat", defaultMaxRepeat, isEditable);
 }
 
 void AnimTreePlugin::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data)
@@ -61,7 +63,8 @@ void AnimTreePlugin::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyC
   if (weights && listName != fieldName)
   {
     weights->changeParamName(selectedIdx, fieldName.c_str());
-    data.childs[selectedIdx] = find_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName.c_str());
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName.c_str());
+    check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
   }
   if (maxrepeats && listName != fieldName)
   {
@@ -77,7 +80,8 @@ void AnimTreePlugin::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyC
   if (!weights)
   {
     weights = settings->addBlock("weight");
-    add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName.c_str());
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName.c_str());
+    check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
   }
 
   weights->setReal(fieldName.c_str(), weightValue);
@@ -105,6 +109,9 @@ void random_switch_set_selected_node_list_settings(PropPanel::ContainerPropertyC
   panel->setText(PID_CTRLS_RANDOM_SWITCH_NODE_NAME, name.c_str());
   panel->setFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT, weights->getReal(name.c_str(), 0.f));
   panel->setInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, maxrepeats->getInt(name.c_str(), 1));
+  bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  for (int i = PID_CTRLS_RANDOM_SWITCH_NODE_NAME; i <= PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT; ++i)
+    panel->setEnabledById(i, isEditable);
 }
 
 void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -117,6 +124,11 @@ void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *pa
     weights->removeParam(removeName.c_str());
   if (maxrepeats)
     maxrepeats->removeParam(removeName.c_str());
+
+  if (weights && weights->isEmpty())
+    settings->removeBlock("weight");
+  if (maxrepeats && maxrepeats->isEmpty())
+    settings->removeBlock("maxrepeat");
 }
 
 void AnimTreePlugin::randomSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
@@ -124,7 +136,10 @@ void AnimTreePlugin::randomSwitchFindChilds(PropPanel::ContainerPropertyControl 
   const DataBlock *nodes = settings.getBlockByNameEx("weight");
   for (int i = 0; i < nodes->paramCount(); ++i)
     if (nodes->getParamType(i) == DataBlock::TYPE_REAL)
-      add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, nodes->getParamName(i));
+    {
+      int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, nodes->getParamName(i));
+      check_ctrl_child_idx(idx, settings.getStr("name"), nodes->getParamName(i));
+    }
 }
 
 const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int idx)
@@ -142,4 +157,26 @@ String random_switch_get_child_prefix_name(const DataBlock &settings, int idx)
   const float value = safediv(weights->getReal(idx), sum) * 100.f;
 
   return String(0, "[%d%%] ", value);
+}
+
+void random_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name)
+{
+  DataBlock *weights = settings.getBlockByName("weight");
+  DataBlock *maxrepeats = settings.getBlockByName("maxrepeat");
+  String writeName;
+  if (weights)
+    for (int i = 0; i < weights->paramCount(); ++i)
+      if (get_updated_child_name(name, old_name, weights->getParamName(i), writeName))
+      {
+        weights->changeParamName(i, writeName.c_str());
+        break;
+      }
+
+  if (maxrepeats)
+    for (int i = 0; i < maxrepeats->paramCount(); ++i)
+      if (get_updated_child_name(name, old_name, maxrepeats->getParamName(i), writeName))
+      {
+        maxrepeats->changeParamName(i, writeName.c_str());
+        break;
+      }
 }

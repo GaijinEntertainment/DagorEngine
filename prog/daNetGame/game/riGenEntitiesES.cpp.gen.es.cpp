@@ -3,9 +3,11 @@ static constexpr ecs::component_t ri_extra__handle_get_type();
 static ecs::LTComponentList ri_extra__handle_component(ECS_HASH("ri_extra__handle"), ri_extra__handle_get_type(), "prog/daNetGame/game/riGenEntitiesES.cpp.inl", "", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/game/riGenEntitiesES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "riGenEntitiesES.cpp.inl"
 ECS_DEF_PULL_VAR(riGenEntities);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ri_extra_gen_es_event_handler_comps[] =
 {
@@ -116,7 +118,7 @@ template<typename Callable>
 inline ecs::QueryCbResult find_overall_game_zone_ecs_query(Callable function)
 {
   return perform_query(g_entity_mgr, find_overall_game_zone_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -127,7 +129,7 @@ inline ecs::QueryCbResult find_overall_game_zone_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::component_t ri_extra__handle_get_type(){return ecs::ComponentTypeInfo<uint64_t>::type; }

@@ -126,5 +126,6 @@
     ,"see-other"
   ],
   "__disabled_checks":[
+    "not-a-const"
   ]
 }

@@ -44,6 +44,10 @@ UseProgLibs +=
   3rdPartyLibs/vulkan/spirv-tools
 ;
 
+if $(Platform) = windows {
+  AddLibs += Ole32.lib ;
+}
+
 if $(DontUseVulkanGlslang) = no {
   Sources +=
     compiler.cpp
@@ -59,8 +63,7 @@ if $(DontUseVulkanGlslang) = no {
   Target = $(Target:S=~n.lib) ;
 }
 
-CPPopt = -D_CROSS_TARGET_SPIRV=1
-;
+CPPopt = -D_CROSS_TARGET_SPIRV ;
 if $(Platform) = macOS {
   CPPopt += -Wno-switch -Wno-ambiguous-reversed-operator -Wno-deprecated-declarations
 ;

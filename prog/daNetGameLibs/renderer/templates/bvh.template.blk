@@ -1,14 +1,26 @@
 bvh{
   _tags:t="render"
+  "resolved_rt_settings:ResolvedRTSettings"{}
   "bvh__heightProvider:BvhHeightProvider"{}
   bvh__initialized:b=no
-  "bvh__update_node:dabfg::NodeHandle"{}
-  "denoiser_prepare_node:dabfg::NodeHandle"{}
-  "rtsm_node:dabfg::NodeHandle"{}
-  "rtr_node:dabfg::NodeHandle"{}
-  "rtao_node:dabfg::NodeHandle"{}
-  "water_rt_early_before_envi_node:dabfg::NodeHandle"{}
-  "water_rt_early_after_envi_node:dabfg::NodeHandle"{}
-  "water_rt_late_node:dabfg::NodeHandle"{}
+  "bvh__update_node:dafg::NodeHandle"{}
+  "denoiser_prepare_node:dafg::NodeHandle"{}
+  "rtsm_node:dafg::NodeHandle"{}
+  "rtsm_dynamic_node:dafg::NodeHandle"{}
+  "rtr_node:dafg::NodeHandle"{}
+  "rttr_node:dafg::NodeHandle"{}
+  "rtao_node:dafg::NodeHandle"{}
+  "ptgi_node:dafg::NodeHandle"{}
+  "water_rt_early_before_envi_node:dafg::NodeHandle"{}
+  "water_rt_early_after_envi_node:dafg::NodeHandle"{}
+  "bvh_debug_dynmodels_node:dafg::NodeHandle"{}
+  bvh_debug_dynmodels_console_command:i=0
+  "water_rt_late_node:dafg::NodeHandle"{}
   "bvh__rendinst_visibility:RiGenVisibilityECS"{}
+  "bvh__rendinst_oof_visibility:RiGenVisibilityECS"{}
+  "rt_persistent_textures:RTPersistentTexturesECS"{}
+  needs_water_heightmap:b=no
+  bvh__frame_counter:i=0
+  bvh__prev_pos:p3=0,0,0
+  bvh__accumulated_speed:r=0
 }

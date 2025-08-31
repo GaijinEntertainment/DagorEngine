@@ -31,7 +31,9 @@
             (yytext[yyleng - 1] == '\n' || yytext[yyleng - 1] == '\r') ? yylineno - 1 : yylineno; \
         yylloc_param->first_column = yyextra->das_yycolumn; \
         yylloc_param->last_column = yyextra->das_yycolumn + yyleng; \
-        /* YYCOLUMN (yyextra->das_yycolumn += yyleng, "YY_USER_ACTION"); */
+        YYCOLUMN (yyextra->das_yycolumn += yyleng, "YY_USER_ACTION");
+
+// #define FLEX_DEBUG
 
 #ifdef FLEX_DEBUG
     void YYCOLUMN ( int lno, const char * comment ) {
@@ -63,6 +65,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 
 %x normal
 %x strb
+%x strfmt
 %x c_comment
 %x cpp_comment
 %x include
@@ -172,7 +175,11 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     return END_STRING;
 }
 <strb>\{                {
-    DAS_ASSERT(yyextra->das_nested_sb==0);
+    if ( yyextra->das_nested_sb ) {
+        das2_yyfatalerror(yylloc_param,yyscanner,"nested string constants are not allowed", CompilationError::nested_string_constant);
+        BEGIN(normal);
+        return END_STRING;
+    }
     yyextra->das_nested_sb ++;
     BEGIN(normal);
     return BEGIN_STRING_EXPR;
@@ -200,6 +207,28 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     return STRING_CHARACTER;
 }
 <strb>.                 {
+    yylval_param->ch = *yytext;
+    return STRING_CHARACTER;
+}
+<strfmt><<EOF>>             {
+    das2_yyfatalerror(yylloc_param,yyscanner,"string format exceeds file", CompilationError::string_constant_exceeds_file);
+    BEGIN(normal);
+    return END_STRING;
+}
+<strfmt>\n                {
+    yylval_param->ch = *yytext;
+    YY2NEWLINE(yyscanner);
+    return STRING_CHARACTER;
+}
+<strfmt>\t                {
+    yylval_param->ch = *yytext;
+    return STRING_CHARACTER;
+}
+<strfmt>\}                {
+    BEGIN(normal);
+    unput('}');
+}
+<strfmt>.                 {
     yylval_param->ch = *yytext;
     return STRING_CHARACTER;
 }
@@ -283,6 +312,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>"reinterpret"                                   return DAS_REINTERPRET;
 <normal>"override"                                      return DAS_OVERRIDE;
 <normal>"sealed"                                        return DAS_SEALED;
+<normal>"template"                                      return DAS_TEMPLATE;
 <normal>"abstract"                                      return DAS_ABSTRACT;
 <normal>"expect"                                        return DAS_EXPECT;
 <normal>"table"                                         return DAS_TABLE;
@@ -508,7 +538,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     } else if ( res.ec != std::errc() ) {
         return LEXER_ERROR;
     }
-    return FLOAT;
+    return DAS_FLOAT;
 }
 <normal>[0-9][0-9]*\.[0-9]+?([eE][+\-]?[0-9]+)?(f|F)?   {
     auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
@@ -517,7 +547,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     } else if ( res.ec != std::errc() ) {
         return LEXER_ERROR;
     }
-    return FLOAT;
+    return DAS_FLOAT;
 
 }
 <normal>[0-9]+(f|F) {
@@ -527,7 +557,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     } else if ( res.ec != std::errc() ) {
         return LEXER_ERROR;
     }
-    return FLOAT;
+    return DAS_FLOAT;
 }
 <normal>[0-9]+[eE][+\-]?[0-9]+(f|F)? {
     auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
@@ -536,7 +566,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     } else if ( res.ec != std::errc() ) {
         return LEXER_ERROR;
     }
-    return FLOAT;
+    return DAS_FLOAT;
 }
 <normal>([0-9]*)?\.[0-9]+([eE][+\-]?[0-9]+)?(lf|d) {
     auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->d);
@@ -731,6 +761,11 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>.                                   return *yytext;
 
 %%
+
+void das2_strfmt ( yyscan_t yyscanner ) {
+    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+    BEGIN(strfmt);
+}
 
 void das2_accept_sequence ( yyscan_t yyscanner, const char * seq, size_t seqLen, int lineNo, FileInfo * info ) {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;

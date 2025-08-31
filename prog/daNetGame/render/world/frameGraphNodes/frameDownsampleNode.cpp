@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/mipRenderer.h>
 #include <render/world/frameGraphHelpers.h>
 #include <util/dag_convar.h>
@@ -9,18 +9,18 @@
 
 extern ConVarT<int, true> water_quality;
 
-dabfg::NodeHandle makeFrameDownsampleNode()
+dafg::NodeHandle makeFrameDownsampleNode()
 {
-  return dabfg::register_node("downsample_frame_with_sky", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("downsample_frame_with_sky", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     uint32_t rtFmt = get_frame_render_target_format();
     const auto resolution = registry.getResolution<2>("main_view", water_quality.get() == 2 ? 1.f : 0.5f);
     auto downsampledFrameHndl = registry
-                                  .createTexture2d("prev_frame_tex", dabfg::History::ClearZeroOnFirstFrame,
+                                  .createTexture2d("prev_frame_tex", dafg::History::ClearZeroOnFirstFrame,
                                     {rtFmt | TEXCF_RTARGET | TEXCF_GENERATEMIPS, resolution, 4})
-                                  .atStage(dabfg::Stage::PS)
-                                  .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                  .atStage(dafg::Stage::PS)
+                                  .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                   .handle();
-    auto frameHndl = registry.read("opaque_with_envi").texture().atStage(dabfg::Stage::UNKNOWN).useAs(dabfg::Usage::UNKNOWN).handle();
+    auto frameHndl = registry.read("opaque_with_envi").texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).handle();
 
     int mip_blur_filter_nan_validationVarId = get_shader_glob_var_id("mip_blur_filter_nan_validation", true);
     return [frameHndl, downsampledFrameHndl, resolution, mip_blur_filter_nan_validationVarId,
@@ -33,25 +33,25 @@ dabfg::NodeHandle makeFrameDownsampleNode()
   });
 }
 
-dabfg::NodeHandle makeFrameDownsampleSamplerNode()
+dafg::NodeHandle makeFrameDownsampleSamplerNode()
 {
-  return dabfg::register_node("downsample_frame_sampler_init", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.create("prev_frame_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler({}));
+  return dafg::register_node("downsample_frame_sampler_init", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.create("prev_frame_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler({}));
   });
 }
 
-dabfg::NodeHandle makeNoFxFrameNode()
+dafg::NodeHandle makeNoFxFrameNode()
 {
-  return dabfg::register_node("downsample_frame_for_water_early", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("downsample_frame_for_water_early", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("prepare_water_node");
 
-    auto frameHndl = registry.read("opaque_resolved").texture().atStage(dabfg::Stage::UNKNOWN).useAs(dabfg::Usage::UNKNOWN).handle();
+    auto frameHndl = registry.read("opaque_resolved").texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).handle();
     const auto resolution = registry.getResolution<2>("main_view", water_quality.get() == 2 ? 1.f : 0.5f);
     auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
-    auto downsampledFrameHndl = registry.create("prev_frame_tex_for_water_early", dabfg::History::No)
+    auto downsampledFrameHndl = registry.create("prev_frame_tex_for_water_early", dafg::History::No)
                                   .texture({TEXFMT_R11G11B10F | TEXCF_RTARGET | TEXCF_GENERATEMIPS, resolution, 4})
-                                  .atStage(dabfg::Stage::POST_RASTER)
-                                  .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                  .atStage(dafg::Stage::POST_RASTER)
+                                  .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                   .handle();
 
     return [frameHndl, downsampledFrameHndl, waterModeHndl, resolution, mipRenderer = MipRenderer("bloom_filter_mipchain")] {

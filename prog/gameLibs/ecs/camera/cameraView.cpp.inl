@@ -28,8 +28,9 @@ CameraSetup get_active_camera_setup(ecs::EntityManager &manager)
   process_active_camera_ecs_query(manager,
     [&active_camera_eid, &active_camera_found, &camSetup](ECS_REQUIRE(eastl::true_type camera__active)
                                                             ECS_REQUIRE(ecs::Tag camera_view) const ecs::EntityManager &manager,
-      ecs::EntityId eid, const TMatrix &transform, const DPoint3 *camera__accuratePos = nullptr, float fov = 90.0f, float znear = 0.1f,
-      float zfar = 5000.f, bool camera__fovHorPlus = true, bool camera__fovHybrid = false) {
+      ecs::EntityId eid, const TMatrix &transform, const DPoint3 *camera__accuratePos = nullptr, float fov = 90.0f,
+      float fovSettings = 90.0f, float znear = 0.1f, float zfar = 5000.f, bool camera__fovHorPlus = true,
+      bool camera__fovHybrid = false) {
       G_UNUSED(manager);
 #if DAGOR_DBGLEVEL > 0
       if (active_camera_found)
@@ -44,6 +45,7 @@ CameraSetup get_active_camera_setup(ecs::EntityManager &manager)
         camSetup.accuratePos = *camera__accuratePos;
       else
         camSetup.accuratePos = transform.getcol(3);
+      camSetup.fovSettings = fovSettings;
       camSetup.fov = fov;
       camSetup.znear = znear;
       camSetup.zfar = zfar;
@@ -149,13 +151,14 @@ HorVerFov calc_hor_ver_fov(const float fov_degree, const FovMode mode, const int
   // find our hor/vert fov
   // note that fov is inverse (as it's tangent) and thus we
   // inverse division too
-  float verFov = fovInTan * 16.f / 9.f;
+  float verFov = fovInTan * CAMERA_FOV_REFERENCE_ASPECT_RATIO;
   float horFov = fovInTan;
   if (mode == EFM_HOR_PLUS)
     horFov = verFov * view_h / view_w;
   else if (mode == EFM_HYBRID)
   {
-    if (float(view_w) / float(view_h) < 16.f / 9.f) // if it's less wide than 16:9 then we do ver+
+    // if it's less wide than 16:9 then we do ver+
+    if (float(view_w) / float(view_h) < CAMERA_FOV_REFERENCE_ASPECT_RATIO)
       verFov = fovInTan * view_w / view_h;
     horFov = verFov * view_h / view_w;
   }
@@ -185,6 +188,16 @@ Driver3dPerspective calc_camera_perspective(const float fov_degree, const FovMod
   persp.wk = horFov;
   persp.hk = verFov;
   return persp;
+}
+
+TMatrix4D calc_camera_view(const TMatrix4 &view_itm, const DPoint3 &view_pos)
+{
+  TMatrix4D viewTm = orthonormalized_inverse(TMatrix4D(view_itm));
+  // add one bit of precision
+  DPoint3 row3 = -(viewTm.rotate43(view_pos));
+  viewTm.setrow(3, row3.x, row3.y, row3.z, 1);
+
+  return viewTm;
 }
 
 void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Driver3dPerspective &persp, int &view_w, int &view_h)

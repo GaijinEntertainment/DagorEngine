@@ -6,14 +6,19 @@ namespace das {
 
     struct Time {
         time_t time;
+        Time() = default;
+        Time(int64_t t) : time(time_t(t)) {}
+        explicit operator int64_t () const {
+            return int64_t(time);
+        }
     };
 
     template <>
-    struct cast <Time> {
+    struct cast<Time> {
         static __forceinline Time to ( vec4f x )               { union { Time t; vec4f vec; } T; T.vec = x; return T.t; }
         static __forceinline vec4f from ( Time x )             { union { Time t; vec4f vec; } T; T.t = x; return T.vec; }
     };
-    template <> struct WrapType<Time> { enum { value = false }; typedef time_t type; typedef time_t rettype; };
+    template <> struct WrapType<Time> { enum { value = true }; typedef int64_t type; typedef int64_t rettype; };
 
     __forceinline bool time_equal ( Time a, Time b ) { return a.time==b.time; }
     __forceinline bool time_nequal ( Time a, Time b ) { return a.time!=b.time; }

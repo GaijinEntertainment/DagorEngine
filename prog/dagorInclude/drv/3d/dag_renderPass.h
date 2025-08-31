@@ -30,6 +30,8 @@ struct RenderPassBind
   RenderPassTargetAction action;
   /// \brief optional user barrier for generic(emulated) implementation
   ResourceBarrier dependencyBarrier;
+
+  friend bool operator==(const RenderPassBind &first, const RenderPassBind &second) = default;
 };
 
 /// \brief Early description of render target
@@ -42,6 +44,8 @@ struct RenderPassTargetDesc
   unsigned texcf;
   /// \brief Must be set if template resource is empty and target will use memory aliased inside render pass
   bool aliased;
+
+  friend bool operator==(const RenderPassTargetDesc &first, const RenderPassTargetDesc &second) = default;
 };
 
 /// \brief Description of target that is used inside render pass

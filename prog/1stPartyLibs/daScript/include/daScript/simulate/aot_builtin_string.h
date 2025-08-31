@@ -1,6 +1,10 @@
 #pragma once
 
 #include "daScript/ast/ast_typefactory.h"
+#include "daScript/misc/arraytype.h"
+#include "daScript/simulate/aot.h"
+#include "daScript/simulate/simulate.h"
+#include <inttypes.h>
 
 namespace das {
 
@@ -10,7 +14,7 @@ namespace das {
     ,   out_of_range = int(std::errc::result_out_of_range)   // fast_float.h
     };
 
-    void delete_string ( char * & str, Context * context, LineInfoArg * at );
+    bool delete_string ( char * & str, Context * context, LineInfoArg * at );
 
     char * builtin_build_string ( const TBlock<void,StringBuilderWriter> & block, Context * context, LineInfoArg * lineinfo );
     uint64_t builtin_build_hash ( const TBlock<void,StringBuilderWriter> & block, Context * context, LineInfoArg * at );
@@ -70,6 +74,7 @@ namespace das {
     uint32_t fast_to_uint ( const char *str, bool hex );
     int64_t fast_to_int64 ( const char *str, bool hex );
     uint64_t fast_to_uint64 ( const char *str, bool hex );
+    const char * das_to_cpp_float ( float val, Context * context, LineInfoArg * at );
     void builtin_append_char_to_string(string & str, int32_t Ch);
     bool builtin_string_ends_with(const string &str, char * substr, Context * context);
     int32_t builtin_ext_string_length(const string & str);
@@ -131,27 +136,45 @@ namespace das {
     char * builtin_build_string_T ( TT && block, Context * context, LineInfoArg * at ) {
         StringBuilderWriter writer;
         block(writer);
-        auto length = writer.tellp();
+        uint64_t length = writer.tellp();
+        if ( length > INT32_MAX ) {
+            context->throw_error_at(at, "string is too long (%" PRIu64 " characters)", length);
+            return nullptr;
+        }
         if ( length ) {
-            return context->allocateString(writer.c_str(), length, at);
+            return context->allocateString(writer.c_str(), int32_t(length), at);
         } else {
             return nullptr;
         }
     }
 
+    // All builtin modules are able to take Block as input, so we should do the same here.
+    inline char * builtin_build_string_T ( const Block &block, Context * context, LineInfoArg * at ) {
+        auto blk_wrap = [&](StringBuilderWriter &writer) { return das_invoke<void>::invoke<StringBuilderWriter &>(context, at, block, writer); };
+        return builtin_build_string_T(blk_wrap, context, at);
+    }
+
     template <typename TT>
-    uint64_t builtin_build_hash_T ( TT && block, Context * context, LineInfoArg * at ) {
+    uint64_t builtin_build_hash_T ( TT && block, Context * /*context*/, LineInfoArg * /*at*/ ) {
         StringBuilderWriter writer;
         block(writer);
         return hash_block64((const uint8_t *)writer.c_str(),writer.tellp());
     }
 
+    inline uint64_t builtin_build_hash_T ( const Block &block, Context * context, LineInfoArg * at ) {
+        auto blk_wrap = [&](StringBuilderWriter &writer) { return das_invoke<void>::invoke<StringBuilderWriter &>(context, at, block, writer); };
+        return builtin_build_hash_T(blk_wrap, context, at);
+    }
+
     __forceinline int32_t get_character_uat ( const char * str, int32_t index ) { return ((uint8_t *)str)[index]; }
 
     __forceinline bool is_alpha ( int32_t ch ) { return (ch>='a' && ch<='z') || (ch>='A' && ch<='Z'); }
+    __forceinline bool is_tab_or_space ( int32_t ch ) { return  ch==' ' || ch=='\t'; }
     __forceinline bool is_white_space ( int32_t ch ) { return  ch==' ' || ch=='\n' || ch=='\r' || ch=='\t'; }
     __forceinline bool is_number ( int32_t ch ) { return (ch>='0' && ch<='9'); }
     __forceinline bool is_new_line ( int32_t ch ) { return ch=='\n' || ch=='\r'; }
+    __forceinline bool is_hex(int32_t ch) { return isxdigit(ch); }
+    __forceinline bool is_alnum(int32_t ch) { return isalnum(ch); }
 
     int8_t convert_from_string_int8 ( const char * str, ConversionResult & result, int32_t & offset, bool hex );
     uint8_t convert_from_string_uint8 ( const char * str, ConversionResult & result, int32_t & offset, bool hex );

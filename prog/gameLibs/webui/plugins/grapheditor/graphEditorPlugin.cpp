@@ -249,38 +249,33 @@ bool GraphEditor::collectGraphs(const char *search_dir, const char *mask, const 
   String pathMask(search_dir);
   pathMask += "/";
   pathMask += mask;
-  alefind_t fs;
-  if (::dd_find_first(pathMask, 0, &fs))
+  for (const alefind_t &fs : dd_find_iterator(pathMask, DA_FILE))
   {
-    do
+    String filePath(128, "%s/%s", search_dir, fs.name);
+    dd_get_fname_without_path_and_ext(fname, sizeof(fname), fs.name);
+
+    if (find_value_idx(out_filenames, String(fname)) >= 0)
+      continue;
+
+    String s = readFileToString(filePath);
+    String description = getSubstring(s, "/*DESCRIPTION_TEXT_BEGIN*/", "/*DESCRIPTION_TEXT_END*/");
+    if ((description.length() > 0 && strstr(s.str(), pluginId.str()) != NULL) || (s.length() < 4 && allowEmptyFiles))
     {
-      String filePath(128, "%s/%s", search_dir, fs.name);
-      dd_get_fname_without_path_and_ext(fname, sizeof(fname), fs.name);
+      out_filenames.push_back(String(fname));
 
-      if (find_value_idx(out_filenames, String(fname)) >= 0)
-        continue;
-
-      String s = readFileToString(filePath);
-      String description = getSubstring(s, "/*DESCRIPTION_TEXT_BEGIN*/", "/*DESCRIPTION_TEXT_END*/");
-      if ((description.length() > 0 && strstr(s.str(), pluginId.str()) != NULL) || (s.length() < 4 && allowEmptyFiles))
+      if (description.length() > 0)
       {
-        out_filenames.push_back(String(fname));
+        description.replaceAll("[[description-category]]", set_category);
+        description.replaceAll("[[description-name]]", fname);
 
-        if (description.length() > 0)
-        {
-          description.replaceAll("[[description-category]]", set_category);
-          description.replaceAll("[[description-name]]", fname);
+        if (!first)
+          out_descriptions += ",";
+        out_descriptions += description;
 
-          if (!first)
-            out_descriptions += ",";
-          out_descriptions += description;
-
-          first = false;
-        }
+        first = false;
       }
-      // watchdog_kick();
-    } while (::dd_find_next(&fs));
-    dd_find_close(&fs);
+    }
+    // watchdog_kick();
   }
 
   if (!rootGraphFileName.empty() && dd_file_exists(rootGraphFileName) && add_root)
@@ -411,13 +406,13 @@ void GraphEditor::processRequest(RequestInfo *params)
   }
   else if (!strcmp(params->params[0], "nodeUtils.js"))
   {
-    String fname = findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/nodeUtils.js");
+    String fname = findFileInParentDir("prog/gameLibs/webui/plugins/grapheditor/editorScripts/nodeUtils.js");
     String content = readFileToString(fname);
     html_response_raw(params->conn, content);
   }
   else if (!strcmp(params->params[0], "graphEditor.js"))
   {
-    String fname = findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/graphEditor.js");
+    String fname = findFileInParentDir("prog/gameLibs/webui/plugins/grapheditor/editorScripts/graphEditor.js");
     String content = readFileToString(fname);
     html_response_raw(params->conn, content);
   }

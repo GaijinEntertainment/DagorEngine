@@ -1,0 +1,351 @@
+fn(a = 111)
+fn([a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(a: bool = true)
+fn([a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(x, a = 111)
+fn(x, [a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 2
+
+fn(x, a: bool = true)
+fn(x, [a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 2
+
+fn(x: bool, a = 111)
+fn(x: bool, [a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 2
+
+fn(x: bool, a: bool = true)
+fn(x: bool, [a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 2
+
+fn(x: bool, a = 111)
+fn(x: bool, [a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 2
+
+fn(tab: table = {})
+fn([tab: table = {}])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(tab: table = {x = 5, y = 6})
+fn([tab: table = {x = 5, y = 6}])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(arr: array = [])
+fn([arr: array = []])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(arr: array = [234, null, value])
+fn([arr: array = [234, null, value]])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(expr: int = (0))
+fn([expr: int = (0)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(expr: int = (20 + 50 * 10))
+fn([expr: int = (20 + 50 * 10)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: int = Color32(123, 45, 45, 23))
+fn([c: int = Color32(123, 45, 45, 23)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: string = "{")
+fn([c: string = "{"])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: int = '{')
+fn([c: int = '{'])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: string = "]")
+fn([c: string = "]"])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: string = "\"")
+fn([c: string = "\""])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: int = '\'')
+fn([c: int = '\''])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: int = '"')
+fn([c: int = '"'])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c: string = "")
+fn([c: string = ""])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn(c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66))
+fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([a = 111])
+fn([a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([a: bool = true])
+fn([a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([x, a = 111])
+fn([x, a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([x, a: bool = true])
+fn([x, a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([x: bool, a = 111])
+fn([x: bool, a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([x: bool, a: bool = true])
+fn([x: bool, a: bool = true])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([x: bool, a = 111])
+fn([x: bool, a = 111])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([tab: table = {}])
+fn([tab: table = {}])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([tab: table = {x = 5, y = 6}])
+fn([tab: table = {x = 5, y = 6}])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([arr: array = []])
+fn([arr: array = []])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([arr: array = [234, null, value]])
+fn([arr: array = [234, null, value]])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([expr: int = (0)])
+fn([expr: int = (0)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([expr: int = (20 + 50 * 10)])
+fn([expr: int = (20 + 50 * 10)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([c: int = Color32(123, 45, 45, 23)])
+fn([c: int = Color32(123, 45, 45, 23)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
+fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 2
+
+fn([c: string = "{"])
+fn([c: string = "{"])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+
+fn([c: int = '{'])
+fn([c: int = '{'])
+  functionName: fn
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 0
+  argCount: 1
+

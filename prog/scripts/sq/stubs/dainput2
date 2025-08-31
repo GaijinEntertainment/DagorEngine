@@ -59,6 +59,8 @@ return {
   send_action_event = @(_a) null
   enable_joystick_gyroscope = @(_e) null
   get_overall_button_clicks_count = @(_) 0
+  set_digital_event_progress_monitor = @(_) null
+  enable_debug_traces = @(_1,_2) null
   SingleButtonId = class {}
   TYPEGRP__MASK = 0x3 << 14
   TYPEGRP_DIGITAL = 0 << 14

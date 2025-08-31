@@ -1,0 +1,38 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/codecs/rnnoise ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/codecs/rnnoise.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/src
+;
+
+Copt += -DHAVE_CONFIG_H -DFLOAT_APPROX ;
+
+if $(Platform) in linux {
+  Copt += -Wno-unused-result ;
+}
+
+Sources =
+  src/celt_lpc.c
+  src/denoise.c
+  src/kiss_fft.c
+  src/nnet.c
+  src/nnet_default.c
+  src/pitch.c
+  src/rnn.c
+  src/rnnoise_data_little.c
+  src/rnnoise_tables.c
+  src/parse_lpcnet_weights.c
+  # src/x86/x86cpu.c
+  # src/x86/x86_dnn_map.c
+  # src/x86/nnet_avx2.c
+  # src/x86/nnet_sse4_1.c
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

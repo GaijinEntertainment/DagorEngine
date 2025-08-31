@@ -1,11 +1,17 @@
 include "deferred_shadow_common.dshl"
+include "camera_in_camera.dshl"
 
 buffer tile_coordinates always_referenced;
 
 int tiled_invocation = 0;
 
+int envi_cover_use_in_resolve = 1;
+interval envi_cover_use_in_resolve : no < 1, yes;
+
 shader deferred_shadow_compute
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
   if (compatibility_mode == compatibility_mode_on)
   {
     dont_render;
@@ -13,6 +19,7 @@ shader deferred_shadow_compute
 
   supports global_const_block;
 
+  ENABLE_ASSERT(cs)
   COMMON_RESOLVE_EXTENDED(cs)
 
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
@@ -26,6 +33,14 @@ shader deferred_shadow_compute
   USE_EMISSION_DECODE_COLOR_MAP(cs)
 
   USE_DEFERRED_SHADOW_PER_SAMPLE(cs)
+
+  if (envi_cover_use_in_resolve == yes)
+  {
+    INIT_BLURRED_DEPTH_ABOVE(cs)
+    USE_BLURRED_DEPTH_ABOVE(cs)
+    INIT_ENVI_COVER(cs, true, false, 0, true)
+    USE_ENVI_COVER(cs, false)
+  }
 
   (cs) {
     world_view_pos@f4 = world_view_pos;
@@ -70,9 +85,21 @@ shader deferred_shadow_compute
 
       float2 screenCoordCenter = pix_coords + float2(0.5,0.5);
       float2 curViewTc = saturate(screenCoordCenter * rendering_res.zw);
+
+      DISCARD_IF_INVALID_VIEW_AREA_CS(curViewTc);
+
       float3 viewVect = getViewVecOptimized(curViewTc);
 
-      float4 result = deferred_shadow_per_sample(screenCoordCenter, viewVect, curViewTc, w, loadProcessedGbuffer(pix_coords), rawDepth);
+      float3 pointToEye = -viewVect * w;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEye, 1);
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(pix_coords));
+
+      ##if envi_cover_use_in_resolve == yes
+        apply_envi_cover(worldPos.xyz, skylight_progress, fillEnviSnowParams(), gbuffer);
+      ##endif
+
+
+      float4 result = deferred_shadow_per_sample(screenCoordCenter, viewVect, curViewTc, pointToEye, worldPos, w, processGbuffer(gbuffer), rawDepth);
       g_output[pix_coords] = result.xyz;
     }
   }

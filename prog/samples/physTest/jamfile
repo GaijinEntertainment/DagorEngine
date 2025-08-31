@@ -1,12 +1,4 @@
-# Engine core libraries
 Root    ?= ../../.. ;
 Location = prog/samples/physTest ;
-TargetType  = util ;
-Target      = allTests ;
 
-Dependencies =
-  $(Root)/prog/samples/physTest/jamfile-test-bullet
-;
-
-
-include $(Root)/prog/_jBuild/build.jam ;
+include $(Root)/$(Location)/jamfile-test-bullet ;

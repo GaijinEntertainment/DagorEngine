@@ -15,33 +15,6 @@ Global Symbols
 ++++++++++++++
 
 
-.. sq:function:: dofile(path, [raiseerror])
-
-    compiles a squirrel script or loads a precompiled one and executes it.
-    returns the value returned by the script or null if no value is returned.
-    if the optional parameter 'raiseerror' is true, the compiler error handler is invoked
-    in case of a syntax error. If raiseerror is omitted or set to false, the compiler
-    error handler is not invoked.
-    When squirrel is compiled in Unicode mode the function can handle different character encodings,
-    UTF8 with and without prefix and UCS-2 prefixed(both big endian an little endian).
-    If the source stream is not prefixed UTF8 encoding is used as default.
-
-.. sq:function:: loadfile(path, [raiseerror])
-
-    compiles a squirrel script or loads a precompiled one an returns it as as function.
-    if the optional parameter 'raiseerror' is true, the compiler error handler is invoked
-    in case of a syntax error. If raiseerror is omitted or set to false, the compiler
-    error handler is not invoked.
-    When squirrel is compiled in Unicode mode the function can handle different character encodings,
-    UTF8 with and without prefix and UCS-2 prefixed(both big endian an little endian).
-    If the source stream is not prefixed UTF8 encoding is used as default.
-
-.. sq:function:: writeclosuretofile(destpath, closure)
-
-    serializes a closure to a bytecode file (destpath). The serialized file can be loaded
-    using loadfile() and dofile().
-
-
 .. sq:data:: stderr
 
     File object bound on the os *standard error* stream

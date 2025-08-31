@@ -16,7 +16,5 @@ public:
   void seekto(int) {}
   void seektoend(int) {}
   virtual const char *getTargetName() { return "(hash)"; }
-  virtual void flush()
-  { /*noop*/
-  }
+  virtual void flush() { /*noop*/ }
 };

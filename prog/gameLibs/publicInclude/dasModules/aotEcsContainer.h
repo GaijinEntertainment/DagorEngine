@@ -435,10 +435,7 @@ inline void swapLists(T &a, T &b)
   {                                                                                                                                   \
     return (typename DasTypeAlias<type>::alias *)o[s].getNullable<type>();                                                            \
   }                                                                                                                                   \
-  inline void pushArray##type(ecs::Array &a, typename DasTypeParamAlias<type>::cparam_alias to)                                       \
-  {                                                                                                                                   \
-    a.push_back(*(const type *)&to);                                                                                                  \
-  }                                                                                                                                   \
+  inline void pushArray##type(ecs::Array &a, typename DasTypeParamAlias<type>::cparam_alias to) { a.push_back(*(const type *)&to); }  \
   inline void pushAtArray##type(ecs::Array &a, int idx, typename DasTypeParamAlias<type>::cparam_alias to)                            \
   {                                                                                                                                   \
     a.insert(a.begin() + idx, *(const type *)&to);                                                                                    \
@@ -508,24 +505,20 @@ struct das_iterator<const ecs::Array> : das_array_iterator<const ecs::Array, con
   template <>                                                               \
   struct das_iterator<list_type> : das_array_iterator<list_type, item_type> \
   {                                                                         \
-    __forceinline das_iterator(list_type &ar) : das_array_iterator(ar)      \
-    {}                                                                      \
+    __forceinline das_iterator(list_type &ar) : das_array_iterator(ar) {}   \
   };
 
-#define DECL_DAS_INDEX(list_type, item_type)                                                  \
-  template <>                                                                                 \
-  struct das_index<list_type>                                                                 \
-  {                                                                                           \
-    static __forceinline item_type &at(list_type &value, uint32_t index, Context *context)    \
-    {                                                                                         \
-      if (index >= value.size())                                                              \
-        context->throw_error_ex(#list_type " index %d out of range %d", index, value.size()); \
-      return value[index];                                                                    \
-    }                                                                                         \
-    static __forceinline item_type &at(list_type &value, int32_t idx, Context *context)       \
-    {                                                                                         \
-      return at(value, uint32_t(idx), context);                                               \
-    }                                                                                         \
+#define DECL_DAS_INDEX(list_type, item_type)                                                                                          \
+  template <>                                                                                                                         \
+  struct das_index<list_type>                                                                                                         \
+  {                                                                                                                                   \
+    static __forceinline item_type &at(list_type &value, uint32_t index, Context *context)                                            \
+    {                                                                                                                                 \
+      if (index >= value.size())                                                                                                      \
+        context->throw_error_ex(#list_type " index %d out of range %d", index, value.size());                                         \
+      return value[index];                                                                                                            \
+    }                                                                                                                                 \
+    static __forceinline item_type &at(list_type &value, int32_t idx, Context *context) { return at(value, uint32_t(idx), context); } \
   };
 
 #define DECL_DAS_ITERATOR_AND_INDEX(list_type, item_type) \

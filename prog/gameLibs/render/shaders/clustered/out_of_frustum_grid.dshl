@@ -97,7 +97,8 @@ macro USE_OOF_LIGHTS_GRID(code)
           float4 lightPosRadius = sl.lightPosRadius;
           float4 lightColor = sl.lightColorAngleScale;
           float4 lightDirection = sl.lightDirectionAngleOffset;
-          float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+          float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+          float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
           #include "clustered/oneSpotLight.hlsl"
           ambientLight += lightBRDF;
         }
@@ -124,7 +125,8 @@ macro USE_OOF_LIGHTS_GRID(code)
             float4 lightPosRadius = sl.lightPosRadius;
             float4 lightColor = sl.lightColorAngleScale;
             float4 lightDirection = sl.lightDirectionAngleOffset;
-            float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+            float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
             #include "clustered/oneSpotLight.hlsl"
             ambientLight += lightBRDF;
           }

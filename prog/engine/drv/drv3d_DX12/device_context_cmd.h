@@ -27,27 +27,52 @@
 
 namespace drv3d_dx12
 {
+
+struct CmdBase
+{
+  inline static constexpr bool is_primary = true;
+  inline static constexpr bool use_device = true;
+};
+
+template <class T>
+concept CmdConcept = eastl::is_base_of_v<CmdBase, T>;
+
+struct CommandRequirement
+{
+  const bool isPrimary : 1;
+  const bool useDevice : 1;
+
+  template <class T>
+  using CmdType = eastl::decay_t<eastl::remove_pointer_t<T>>;
+
+  template <CmdConcept T>
+  CommandRequirement(const T &) : isPrimary{CmdType<T>::is_primary}, useDevice{CmdType<T>::use_device}
+  {}
+  template <CmdConcept T, typename P0, typename P1>
+  CommandRequirement(const ExtendedVariant2<T, P0, P1> &) : isPrimary{T::is_primary}, useDevice{T::use_device}
+  {}
+  template <CmdConcept T, typename P0>
+  CommandRequirement(const ExtendedVariant<T, P0> &) : isPrimary{T::is_primary}, useDevice{T::use_device}
+  {}
+};
+
 #define DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary) \
   eastl::conditional_t<isPrimary, debug::call_stack::CommandData, debug::call_stack::null::CommandData>
 
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary) \
-  static constexpr bool is_primary()               \
-  {                                                \
-    return isPrimary;                              \
-  }
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary) inline static constexpr bool is_primary = isPrimary;
 
-#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)               \
-  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary) \
-  {                                                               \
+#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)                        \
+  struct Cmd##name : CmdBase, DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary) \
+  {                                                                        \
     DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(isPrimary, name, param0Type, param0Name) \
-  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)                 \
+  struct Cmd##name : CmdBase, DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)        \
   {                                                                               \
     DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(isPrimary, name, param0Type, param0Name, param1Type, param1Name) \
-  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)                                         \
+  struct Cmd##name : CmdBase, DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)                                \
   {                                                                                                       \
     DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
@@ -57,35 +82,18 @@ namespace drv3d_dx12
 
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)             type name;
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size) type name[size];
+#define DX12_CONTEXT_COMMAND_USE_DEVICE(value)             inline static constexpr bool use_device = value;
 #include "device_context_cmd.inc.h"
-#undef DX12_BEGIN_CONTEXT_COMMAND
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_END_CONTEXT_COMMAND
-#undef DX12_CONTEXT_COMMAND_PARAM
-#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 
-#if _TARGET_XBOX
-#include "device_context_xbox.h"
-#endif
 
-using AnyCommandPack = TypePack<
 #define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)                               Cmd##name,
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(isPrimary, name, param0Type, param0Name) ExtendedVariant<Cmd##name, param0Type>,
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(isPrimary, name, param0Type, param0Name, param1Type, param1Name) \
   ExtendedVariant2<Cmd##name, param0Type, param1Type>,
-#define DX12_END_CONTEXT_COMMAND
-#define DX12_CONTEXT_COMMAND_PARAM(type, name)
-#define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
+
+using AnyCommandPack = TypePack<
 #include "device_context_cmd.inc.h"
-#undef DX12_BEGIN_CONTEXT_COMMAND
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_END_CONTEXT_COMMAND
-#undef DX12_CONTEXT_COMMAND_PARAM
-#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
   void>;
 
-using AnyCommandStore = VariantRingBuffer<AnyCommandPack>;
+using AnyCommandStore = ConcurrentVariantRingBuffer<AnyCommandPack>;
 }

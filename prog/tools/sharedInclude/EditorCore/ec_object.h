@@ -15,19 +15,10 @@
 ///     @b false in other case\n
 /// virtual DClassID @b getClassId () - Returns class ID
 /// @ingroup EditorCore
-#define EO_IMPLEMENT_RTTI_EX(id, BASECLS)        \
-  static DClassID getStaticClassId()             \
-  {                                              \
-    return id;                                   \
-  }                                              \
-  virtual bool isSubOf(DClassID cid)             \
-  {                                              \
-    return cid == (id) || BASECLS::isSubOf(cid); \
-  }                                              \
-  virtual DClassID getClassId()                  \
-  {                                              \
-    return id;                                   \
-  }
+#define EO_IMPLEMENT_RTTI_EX(id, BASECLS)                                              \
+  static DClassID getStaticClassId() { return id; }                                    \
+  bool isSubOf(DClassID cid) override { return cid == (id) || BASECLS::isSubOf(cid); } \
+  DClassID getClassId() override { return id; }
 
 
 /// Base class for Editor objects.
@@ -44,12 +35,12 @@ public:
   /// Constructor 2.
   inline EditableObject(const EditableObject &from) : name(from.name), matrix(from.matrix) {}
   /// Destructor.
-  virtual ~EditableObject() {}
+  ~EditableObject() override {}
 
   /// @name RTTI implementation.
   //@{
   static DClassID getStaticClassId() { return 0; }
-  virtual bool isSubOf(DClassID cid) { return cid == getStaticClassId(); }
+  bool isSubOf(DClassID cid) override { return cid == getStaticClassId(); }
   virtual DClassID getClassId() { return getStaticClassId(); }
   //@}
 

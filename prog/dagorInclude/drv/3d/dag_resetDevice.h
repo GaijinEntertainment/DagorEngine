@@ -25,11 +25,15 @@ extern IDrv3DDeviceLostCB *ext_drv3d_device_lost_handler;
 void set_3d_device_reset_callback(IDrv3DResetCB *handler);
 void set_3d_device_lost_callback(IDrv3DDeviceLostCB *handler);
 
+//! returns true if window was resized and therefore d3d reset is needed
+bool check_and_handle_window_resize();
+#if _TARGET_PC | _TARGET_ANDROID
 //! returns true if drawing is allowed (device is not lost)
-#if _TARGET_PC_WIN | _TARGET_ANDROID
 bool check_and_restore_3d_device();
+bool is_restoring_3d_device();
 #else
 inline bool check_and_restore_3d_device() { return true; }
+inline bool is_restoring_3d_device() { return false; }
 #endif
 
 void before_reset_3d_device(bool full_reset);
@@ -37,16 +41,13 @@ void after_reset_3d_device(bool full_reset);
 void change_driver_reset_request(bool &out_apply_after_reset_device, bool mode_reset = true);
 void zero_reset_3d_device_counter();
 
-void set_window_size_has_been_changed_programmatically(bool value);
-bool is_window_size_has_been_changed_programmatically();
-void on_window_resized_change_reset_request();
-
 extern bool dagor_d3d_force_driver_reset;
 extern bool dagor_d3d_force_driver_mode_reset;
 extern bool dagor_d3d_notify_fullscreen_state_restored;
 
 bool is_window_resizing_by_mouse();
-void set_driver_reset_pending_on_exit_sizing();
+void set_window_resizing_by_mouse(bool value);
+void notify_window_resized(int w, int h);
 
 unsigned int get_d3d_reset_counter();      // returns current reset generation, never 0
 unsigned int get_d3d_full_reset_counter(); // returns current 'full' reset generation, never 0

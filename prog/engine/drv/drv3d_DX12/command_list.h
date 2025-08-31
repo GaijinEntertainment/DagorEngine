@@ -9,6 +9,7 @@
 #include <debug/dag_log.h>
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
 #include <drv_log_defs.h>
+#include <drv_assert_defs.h>
 #include <EASTL/optional.h>
 #include <EASTL/string.h>
 #include <EASTL/tuple.h>
@@ -188,8 +189,9 @@ public:
     {
       auto desc = transition.pResource->GetDesc();
       auto subResRange = getSubResRange(desc);
-      DX12_VALIDATE_CONDITION(transition.Subresource < subResRange, "subresource index %u of transition barrier is out of range %u",
-        transition.Subresource, subResRange);
+      DX12_VALIDATE_CONDITION(
+        transition.Subresource < subResRange || transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+        "subresource index %u of transition barrier is out of range %u", transition.Subresource, subResRange);
 
       DX12_VALIDATE_CONDITION(transition.StateBefore != transition.StateAfter,
         "transition barriers StateBefore and StateAfter are identical %08X", transition.StateBefore);
@@ -1982,6 +1984,13 @@ public:
     this->list->IASetIndexBuffer(view);
     CommandListLogger::iaSetIndexBuffer(view);
   }
+
+  void soSetTargets(UINT start_slot, UINT num_views, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *views)
+  {
+    this->list->SOSetTargets(start_slot, num_views, views);
+    CommandListLogger::soSetTargets(start_slot, num_views, views);
+  }
+
   void discardResource(ID3D12Resource *resource, const D3D12_DISCARD_REGION *region)
   {
     this->list->DiscardResource(resource, region);
@@ -2317,6 +2326,12 @@ public:
   }
 
   void iaSetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *view) { BaseType::iaSetIndexBuffer(view); }
+
+  void soSetTargets(UINT start_slot, UINT num_views, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *views)
+  {
+    BaseType::soSetTargets(start_slot, num_views, views);
+  }
+
   // It validates the following properties of the inputs:
   // - If resource is not null
   // - If resource has any of the following flags D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET

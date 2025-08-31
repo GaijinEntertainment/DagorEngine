@@ -1,6 +1,5 @@
 include "viewVecVS.dshl"
 include "land_block_inc.dshl"
-include "deform_hmap_common.dshl"
 include "heightmap_ofs.dshl"
 include "heightmap_common.dshl"
 
@@ -69,9 +68,7 @@ macro PROJECTIVE_DECALS_MATRICES(decal_matrices_var, count, code)
   }
 endmacro
 
-macro POJECTIVE_DECALS_VS_COMMON()
-  INIT_DEFORM_HMAP(vs)
-  USE_DEFORM_HMAP(vs)
+macro PROJECTIVE_DECALS_VS_COMMON()
   INIT_HEIGHTMAP_OFS(vs)
   USE_HEIGHTMAP_OFS(vs)
   hlsl(vs) {
@@ -144,7 +141,7 @@ macro POJECTIVE_DECALS_VS_COMMON()
   }
 endmacro
 
-macro POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
+macro PROJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
   if (mobile_render == deferred) {
     USE_SUBPASS_LOADS()
     INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_DECALS_REG_DEPTH, SP_DECALS_IA_DEPTH)
@@ -177,7 +174,7 @@ macro POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
 
     float3 get_decal_world_pos(float4 screen)
     {
-      return world_view_pos + get_decal_eye_to_point(screen);
+      return world_view_pos.xyz + get_decal_eye_to_point(screen);
     }
 
     float3 get_decal_tex_coord(float4 screen, float3 patch_center, float3 norm, float3 tangent)
@@ -187,7 +184,7 @@ macro POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
   }
 endmacro
 
-macro POJECTIVE_DECALS_PS_COMMON()
+macro PROJECTIVE_DECALS_PS_COMMON()
   INIT_ZNZFAR()
-  POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
+  PROJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
 endmacro

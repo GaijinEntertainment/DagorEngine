@@ -1,16 +1,30 @@
-R"(/* shader: %s, stcode header */ // <- shader file name
+R"(%s
+/* shader: %s, stcode header */ // <- shader file name
 #include <shaders/stcode/scalarTypes.h>
+#include <shaders/stcode/stblkcodeContext.h>
 #include <shaders/stcode/functions.stcode.h>
 #include <shaders/stcode/callbacks.stcode.h>
 #include "%s.stcode.gen.h" // <- shader file name
 
 #define PPCAT_PREP(_a, _b) _a ## _b
 #define PPCAT(_a, _b) PPCAT_PREP(_a, _b)
-#define LOC(_name) static_cast<size_t>(Location:: _name)
-#define VAR(_name, _type) (*(_type *)(vars_base + static_cast<size_t>(PPCAT(OffsetStvar, CUR_STVAR_ID):: _name##_ofs)))
+#define LOCDYN_GRAPH(_name) (reg_table[dyn_table_offset + (int)Location:: _name + 4])
+#define LOCDYN_COMP(_name) (reg_table[dyn_table_offset + (int)Location:: _name + 2])
+#define LOCSTAT(_name) (static_cast<size_t>(Location:: _name))
+#define VARLOC(_name, _type) (_type *)(vars_base + static_cast<size_t>(PPCAT(OffsetStvar, CUR_STVAR_ID):: _name##_ofs))
+#define VAR(_name, _type) (*VARLOC(_name, _type))
+
+#define DYNOFS_CS (reg_table[dyn_table_offset])
+#define DYNRNG_CS (reg_table[dyn_table_offset + 1])
+#define DYNOFS_PS DYNOFS_CS
+#define DYNRNG_PS DYNRNG_CS
+#define DYNOFS_VS (reg_table[dyn_table_offset + 2])
+#define DYNRNG_VS (reg_table[dyn_table_offset + 3])
 
 namespace stcode::cpp
 {
+
+extern const int16_t *const reg_table;
 
 // Enum classes for static var offsets
 %s

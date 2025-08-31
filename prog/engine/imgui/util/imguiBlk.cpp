@@ -7,6 +7,7 @@
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_TMatrix.h>
 #include <ioSys/dag_dataBlock.h>
@@ -140,6 +141,18 @@ static void param(const DataBlock *blk, DataBlock *changes, int i, String &strbu
       }
       else
         strbuf.aprintf(0, ":ip3 = %d, %d, %d", ip3.x, ip3.y, ip3.z);
+      break;
+    }
+    case DataBlock::TYPE_IPOINT4:
+    {
+      IPoint4 ip4 = blk->getIPoint4(i);
+      if (editMode)
+      {
+        if (ImGui::InputInt4(strbuf, &ip4.x, ImGuiInputTextFlags_EnterReturnsTrue))
+          changes->setIPoint4(strbuf, ip4);
+      }
+      else
+        strbuf.aprintf(0, ":ip4 = %d, %d, %d, %d", ip4.x, ip4.y, ip4.z, ip4.w);
       break;
     }
     case DataBlock::TYPE_BOOL:

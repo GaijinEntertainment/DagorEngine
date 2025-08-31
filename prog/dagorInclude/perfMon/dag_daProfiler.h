@@ -98,6 +98,7 @@ typedef void (*ProfilerDumpFunctionPtr)(void *ctx, uintptr_t cNodeId, uintptr_t 
 #define DA_PROFILE_GPU_EVENT(...)
 #define DA_PROFILE_NAMED_GPU_EVENT(Name)
 #define DA_PROFILE_TAG(TAG_NAME, TAG_STRING, ...)
+#define DA_PROFILE_TAG_DESC(TAG_DESC, TAG_STRING, ...)
 #define DA_PROFILE_TAG_NAMED(TAG_NAME, TAG_STRING, ...)
 #define DA_PROFILE_TAG_LINE(TAG_NAME, TAG_COLOR, TAG_STRING, ...)
 #define DA_PROFILE_TICK()
@@ -161,6 +162,8 @@ DA_STUB bool stop_network_dump_server() { return false; }
 
 DA_STUB bool start_file_dump_server(const char *) { return false; }
 DA_STUB bool stop_file_dump_server(const char *) { return false; }
+DA_STUB bool start_log_dump_server(const char *) { return false; }
+DA_STUB bool stop_log_dump_server(const char *) { return false; }
 DA_STUB void shutdown() {}
 DA_STUB void tick_frame() {}
 DA_STUB void create_leaf_event_raw(desc_id_t, uint64_t, uint64_t) {}
@@ -331,6 +334,8 @@ DA_API bool stop_network_dump_server();          // we have only one network cli
 
 DA_API bool start_file_dump_server(const char *path); // profiler dumps will be saved in this path
 DA_API bool stop_file_dump_server(const char *path);  // remove one file server
+DA_API bool start_log_dump_server(const char *name);  // specified GPU event will be reported to log
+DA_API bool stop_log_dump_server(const char *name);   // remove one log server
 DA_API uint64_t get_current_cpu_ticks();
 #if NATIVE_PROFILE_TICKS
 inline uint64_t inline_profiler_ticks() { return profile_ref_ticks(); };
@@ -511,6 +516,10 @@ struct ScopedThread
     ::da_profiler::add_short_string_tag_args(descId, TAG_STRING, ##__VA_ARGS__);                                      \
   }
 
+#define DA_PROFILE_TAG_DESC(TAG_DESC, TAG_STRING, ...)        \
+  if (::da_profiler::get_active_mode() & ::da_profiler::TAGS) \
+    ::da_profiler::add_short_string_tag_args(TAG_DESC, TAG_STRING, ##__VA_ARGS__);
+
 #define DA_PROFILE_TAG_LINE(TAG_NAME, TAG_COLOR, TAG_STRING, ...)                                                                \
   if (::da_profiler::get_active_mode() & ::da_profiler::TAGS)                                                                    \
   {                                                                                                                              \
@@ -561,10 +570,9 @@ struct ScopedThread
 #define DA_PROFILE_EVENT_DESC(desc)     ::da_profiler::ScopedEvent DAG_CONCAT(autogen_profile_event_, __LINE__)(desc)
 #define DA_PROFILE_GPU_EVENT_DESC(desc) ::da_profiler::ScopedGPUEvent DAG_CONCAT(autogen_profile_event_, __LINE__)(desc)
 
-#define DA_PROFILE_UNIQUE_EVENT_DESC(desc)                                                         \
-  static ::da_profiler::UniqueEventData DAG_CONCAT(unique_autogen_profile_description_, __LINE__)( \
-    ::da_profiler::add_description(desc));                                                         \
-  ::da_profiler::ScopedUniqueEvent DAG_CONCAT(autogen_profile_unique_event_, __LINE__)(            \
+#define DA_PROFILE_UNIQUE_EVENT_DESC(desc)                                                               \
+  static ::da_profiler::UniqueEventData DAG_CONCAT(unique_autogen_profile_description_, __LINE__)(desc); \
+  ::da_profiler::ScopedUniqueEvent DAG_CONCAT(autogen_profile_unique_event_, __LINE__)(                  \
     DAG_CONCAT(unique_autogen_profile_description_, __LINE__));
 
 #define DA_PROFILE_UNIQUE_EVENT(...)                                                                         \

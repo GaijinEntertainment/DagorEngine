@@ -5,7 +5,11 @@ BuildingTools = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
-UseD3DMultiList = DX9 DX11 stub ;
+
+switch $(Platform) {
+  case windows : UseD3DMultiList = DX9 DX11 stub ;
+  case linux :   UseD3DMultiList = vulkan stub ;
+}
 
 TargetType  = exe ;
 Target = tools/sceneTools/daEditorX/daEditor3x.exe ;
@@ -23,14 +27,13 @@ AddIncludes =
 ;
 
 Sources =
-  dagored.cpp
+  dagorEd.cpp
   srvEngine.cpp
 
-  de_aboutdlg.cpp
   de_apphandler.cpp
   de_appwnd.cpp
   de_appwndConCmd.cpp
-  de_clipping.cpp
+  de_collision.cpp
   de_engine.cpp
   de_exportlevel.cpp
   de_ExportToDagDlg.cpp
@@ -42,15 +45,22 @@ Sources =
   de_ProjectSettings.cpp
   de_screenshotMetaInfoLoader.cpp
   de_viewportWindow.cpp
-  SplashScreen.cpp
   de_batch.cpp
   de_environment.cpp
   de_ecsPull.cpp
   car_camera_elem.cpp
 
   pluginService/de_IDagorPhysImpl.cpp
-  _res/de.rc
 ;
+
+if $(Platform) = windows {
+  Sources +=
+    de_aboutdlg.cpp
+    splashScreen.cpp
+
+    _res/de.rc
+  ;
+}
 
 UseProgLibs =
   engine/memory/rtlOverride
@@ -59,14 +69,12 @@ UseProgLibs =
   engine/lib3d
   engine/shaders
   engine/guiBase
+  engine/osApiWrappers/messageBox # Add this early to prevent using the stub version.
   engine/workCycle
 
   engine/drv/drv3d_pc_multi
-  engine/drv/hid_dinput
   engine/drv/hid_mouse
   engine/drv/hid_keyboard
-  engine/drv/hid_joystick
-  engine/drv/hid_gamepad_xinput
 
   engine/anim
   engine/animChar
@@ -82,7 +90,6 @@ UseProgLibs =
   engine/streaming
 
   tools/libTools/propPanel
-  tools/libTools/sepGui
 
   tools/libTools/util
   tools/libTools/renderViewports
@@ -90,7 +97,7 @@ UseProgLibs =
   tools/libTools/shaderResBuilder
   tools/libTools/EditorCore
   tools/libTools/EditorCore/IEditorCore
-  tools/libTools/ObjCreator3D
+  tools/libTools/ObjCreator3d
   tools/libTools/grsCurView
 
   engine/phys/physCommon
@@ -115,10 +122,11 @@ UseProgLibs =
 
   tools/libTools/winGuiWrapper
 
+  tools/sceneTools/daEditorX/ecsEditor
   tools/sceneTools/daEditorX/Environment
-  tools/sceneTools/daEditorX/Clipping
-  tools/sceneTools/daEditorX/Clipping/bullet_write
-  tools/sceneTools/daEditorX/scnExport
+  tools/sceneTools/daEditorX/Collision
+  tools/sceneTools/daEditorX/Collision/bullet_write
+  tools/sceneTools/daEditorX/ScnExport
   tools/sceneTools/daEditorX/ssView
   tools/sceneTools/daEditorX/binSceneView
 
@@ -139,7 +147,6 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/lightSrv
   tools/sceneTools/daEditorX/services/fileTracker
   tools/sceneTools/daEditorX/services/invalidEntityMgr
-  tools/sceneTools/daEditorX/services/dxpFactory
   tools/sceneTools/daEditorX/services/carCamera
   tools/sceneTools/daEditorX/services/animCharMgr
   tools/sceneTools/daEditorX/services/dynModelMgr
@@ -162,15 +169,21 @@ UseProgLibs =
   3rdPartyLibs/hash
 
   commonFx/commonFxGame
+  gameLibs/consoleWindow
+  gameLibs/resourcePool
   gameLibs/render
   gameLibs/rendInst
+  gameLibs/rendInst/riFx/stub
   gameLibs/render/cables
   gameLibs/render/dof
   gameLibs/render/wind
   gameLibs/render/nodeBasedShader
   gameLibs/render/fx
   gameLibs/nodeBasedShaderManager/stub
+  gameLibs/ecs/hierarchyTransform
   gameLibs/ecs/rendInst/stub
+  gameLibs/daECS/scene
+  gameLibs/daECS
   gameLibs/daFx
   gameLibs/eventLog
 
@@ -181,6 +194,30 @@ UseProgLibs =
   gameLibs/imguiInput
   gameLibs/physMap
 ;
+
+if $(Platform) = windows {
+  UseProgLibs +=
+    engine/drv/hid_dinput
+    engine/drv/hid_gamepad_xinput
+    engine/drv/hid_joystick
+  ;
+}
+else if $(Platform) = linux {
+  UseProgLibs +=
+    engine/drv/hid_joystick_linux
+  ;
+}
+else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+gamePulls =
+  daECS/core/componentType.h # first line is used for include!
+  game_pulls                 # second line is name of var
+;
+
+gamePulls_action = make_module_pull_cpp ;
+Sources += gamePulls.jamvar ;
 
 ImportProgLibs = tools/libTools/daKernel ;
 
@@ -195,7 +232,7 @@ if $(KernelLinkage) != dynamic {
     engine/ioSys
     engine/baseUtil
     $(UseProgLibs)
-    tools/libTools/objectEditor
+    tools/libTools/ObjectEditor
     tools/libTools/util
 
     tools/sceneTools/daEditorX/HeightmapLand
@@ -204,20 +241,43 @@ if $(KernelLinkage) != dynamic {
     tools/sceneTools/daEditorX/StaticGeom
     tools/sceneTools/daEditorX/csg
   ;
+
+  if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
+    ProjectUseQuirrel = sq3r+ ;
+    ProjectAllowsOodle = yes ;
+    UseRootLibs =
+      skyquake/prog/tools/daEditorX/missionEd2    # FIXME_BROKEN_DEP
+      skyquake/prog/tools/daEditorX/locationScene # FIXME_BROKEN_DEP
+    ;
+    opt on dagorEd.cpp = -DHAS_PLUGINS_WT ;
+  }
+
   ImportProgLibs = ;
   opt on dagored_main.cpp = -I $(Root)/prog/tools/libTools/daKernel ;
 }
 
+if $(Platform) = windows {
+  AddLibs +=
+    advapi32.lib
+    htmlhelp.lib
+    psapi.lib
+  ;
+}
 
-AddLibs +=
-  advapi32.lib
-  htmlhelp.lib
-  psapi.lib
+if $(Platform) = windows && ! $(DagoredRel) {
+  LINKopt = -opt:noref ;
+} else if $(Platform) = linux {
+  LINKopt += -L$(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch) ; # to be able to find daKernel-dev.so
+}
+
+SourceES = ;
+AllSrcFolder_ES =
+  ecsEditor
 ;
 
-if ! $(DagoredRel) {
-  LINKopt = -opt:noref ;
-}
+AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+SourceES = ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;

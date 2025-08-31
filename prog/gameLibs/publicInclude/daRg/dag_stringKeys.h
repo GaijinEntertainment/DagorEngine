@@ -180,6 +180,7 @@ namespace darg
   KEY(onWheelScroll)             \
   KEY(onStart)                   \
   KEY(onTouchHold)               \
+  KEY(onTouchBegin)              \
   KEY(touchHoldTime)             \
   KEY(onWrongInput)              \
   KEY(opacity)                   \
@@ -204,6 +205,7 @@ namespace darg
   KEY(rotate)                    \
   KEY(rtAlwaysUpdate)            \
   KEY(rtRecalcLayout)            \
+  KEY(onlyWhenParentInScreen)    \
   KEY(rumble)                    \
   KEY(safeAreaMargin)            \
   KEY(saturation)                \
@@ -275,7 +277,9 @@ namespace darg
   KEY(gestureDragDistanceMax)    \
   KEY(gesturePinchDistanceMin)   \
   KEY(gestureRotateDistanceMin)  \
-  KEY(touchMarginPriority)
+  KEY(touchMarginPriority)       \
+  KEY(kineticScrollOnTouchEnd)   \
+  KEY(dragStartDelay)
 
 class StringKeys
 {

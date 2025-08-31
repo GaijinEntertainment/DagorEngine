@@ -4,8 +4,7 @@
 
 #include <EditorCore/ec_geneditordata.h>
 #include <EditorCore/ec_cm.h>
-
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <ioSys/dag_dataBlock.h>
 
@@ -44,7 +43,7 @@ void GeneralEditorData::addViewport(void *parent, IGenEventHandler *eh, IWndMana
 
 ViewportWindow *GeneralEditorData::createViewport(void *parent, int x, int y, int w, int h, IGenEventHandler *eh, IWndManager *manager)
 {
-  ViewportWindow *v = new ViewportWindow(parent, x, y, w, h);
+  ViewportWindow *v = new ViewportWindow();
   addViewport(parent, eh, manager, v);
   return v;
 }

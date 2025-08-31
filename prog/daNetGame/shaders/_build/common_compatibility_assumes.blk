@@ -11,6 +11,7 @@
 "@override:specular_tex":i=0
 "@override:fx_apply_volfog_per_pixel":i=0
 "@override:micro_details_quality":i=0
+"@override:use_glass_dual_source_blending":i=0
 
 shore_waves_on:i=0
 shore_distance_field_tex:i=0
@@ -23,3 +24,4 @@ froxel_fog_use_self_shadowing:i = 0
 lens_zoom_factor:r=1.0
 water_rt_enabled:i=0
 clouds_panorama_mip:i=1
+glass_rt_reflection:i=0

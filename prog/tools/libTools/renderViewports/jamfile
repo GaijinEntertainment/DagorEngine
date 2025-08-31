@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = tools/libTools/renderViewports.lib ;
 
 Sources =
-  RenderViewport.cpp
+  renderViewport.cpp
   cachedViewports.cpp
 ;
 

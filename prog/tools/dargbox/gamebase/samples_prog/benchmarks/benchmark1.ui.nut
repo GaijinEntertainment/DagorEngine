@@ -1,12 +1,12 @@
-from "%darg/ui_imports.nut" import *
+import "dagor.profiler" as profiler
 import "math" as math
 import "string" as string
 import "%sqstd/rand.nut" as Rand
+from "dagor.system" import exit, get_arg_value_by_name
+from "datetime" import clock
+from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import setTimeout
 from "%sqstd/underscore.nut" import arrayByRows
-let profiler = require("dagor.profiler")
-let {exit, get_arg_value_by_name} = require("dagor.system")
-let {clock} = require("datetime")
 let cursors = require("samples_prog/_cursors.nut")
 
 let rand = Rand()
@@ -35,7 +35,7 @@ function simpleComponent(i, watch){
   if (borders) {
     children.append(function bordersComp() {
                  return {
-                   borderWidth = [1,1,1,1]
+                   borderWidth = 1
                    rendObj=ROBJ_FRAME size=flex()
                  }
                }, text)
@@ -49,8 +49,8 @@ function simpleComponent(i, watch){
       pos
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
-      padding = [hdpx(4), hdpx(5)]
-      margin = [hdpx(5), hdpx(3)]
+      padding = static [hdpx(4), hdpx(5)]
+      margin = static [hdpx(5), hdpx(3)]
       color = watch.get() ? color : Color(0,0,0)
       behavior = Behaviors.Button
       onClick

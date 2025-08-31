@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "dynamic_hairES.cpp.inl"
 ECS_DEF_PULL_VAR(dynamic_hair);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc detect_hair_es_comps[] =
 {
@@ -62,13 +64,13 @@ static ecs::EntitySystemDesc remove_hair_on_destroy_es_es_desc
 static constexpr ecs::ComponentDesc init_dynamic_hair_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("dynamic_hair__render_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("dynamic_hair__render_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void init_dynamic_hair_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_dynamic_hair_es_event_handler(evt
-        , ECS_RW_COMP(init_dynamic_hair_es_event_handler_comps, "dynamic_hair__render_node", dabfg::NodeHandle)
+        , ECS_RW_COMP(init_dynamic_hair_es_event_handler_comps, "dynamic_hair__render_node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -82,6 +84,32 @@ static ecs::EntitySystemDesc init_dynamic_hair_es_event_handler_es_desc
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc dynamic_hair_on_feature_change_es_event_handler_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dynamic_hair__render_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+};
+static void dynamic_hair_on_feature_change_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<ChangeRenderFeatures>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dynamic_hair_on_feature_change_es_event_handler(static_cast<const ChangeRenderFeatures&>(evt)
+        , ECS_RW_COMP(dynamic_hair_on_feature_change_es_event_handler_comps, "dynamic_hair__render_node", dafg::NodeHandle)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc dynamic_hair_on_feature_change_es_event_handler_es_desc
+(
+  "dynamic_hair_on_feature_change_es",
+  "prog/daNetGameLibs/dynamic_hair/render/dynamic_hairES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, dynamic_hair_on_feature_change_es_event_handler_all_events),
+  make_span(dynamic_hair_on_feature_change_es_event_handler_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ChangeRenderFeatures>::build(),
   0
 ,"render");
 static constexpr ecs::ComponentDesc add_entity_with_hair_ecs_query_comps[] =
@@ -189,7 +217,7 @@ static constexpr ecs::ComponentDesc gather_hair_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()}
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()}
 };
 static ecs::CompileTimeQueryDesc gather_hair_ecs_query_desc
 (
@@ -208,7 +236,7 @@ inline void gather_hair_ecs_query(ecs::EntityId eid, Callable function)
         {
           function(
               ECS_RO_COMP(gather_hair_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
-            , ECS_RO_COMP(gather_hair_ecs_query_comps, "animchar_visbits", uint8_t)
+            , ECS_RO_COMP(gather_hair_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             );
 
         }

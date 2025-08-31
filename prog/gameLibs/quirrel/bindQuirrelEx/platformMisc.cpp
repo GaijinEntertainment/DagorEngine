@@ -94,8 +94,8 @@ static const char *sq_get_console_model_revision(int consoleModelType)
 
 static bool is_gdk_used()
 {
-#if _TARGET_GDK
-  return true;
+#if _TARGET_C4
+
 #else
   return false;
 #endif
@@ -109,6 +109,8 @@ static Sqrat::Table make_platform_exports(HSQUIRRELVM vm)
     .SquirrelFunc("get_locale_lang", &sq_marshal_locale_attr<get_locale_lang>, 1, ".")
     .SquirrelFunc("get_locale_country", &sq_marshal_locale_attr<get_locale_country>, 1, ".")
     .Func("get_platform_string_id", get_platform_string_id)
+    .Func("get_host_platform", get_host_platform_string)
+    .Func("get_host_arch", get_host_arch_string)
     .Func("get_console_model", sq_get_console_model)
     .Func("get_console_model_revision", sq_get_console_model_revision)
     .Func("get_default_lang", get_default_lang)

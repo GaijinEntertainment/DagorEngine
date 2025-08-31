@@ -10,15 +10,16 @@
 #include <math/dag_mathBase.h>
 #include <util/dag_globDef.h>
 #include <ioSys/dag_dataBlock.h>
-#include <winGuiWrapper/wgw_input.h>
 #include <util/dag_string.h>
 #include <libTools/util/strUtil.h>
 
 #include <drv/hid/dag_hiJoystick.h>
 
-#include <windows.h>
 #include <de3_interface.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_input.h>
+#include <EditorCore/ec_wndGlobal.h>
+
+#include <imgui/imgui.h>
 
 //--------------------------------------------
 
@@ -129,21 +130,21 @@ void TestDriver::update(IPhysCar *_car, real dt)
 
 void TestDriver::getKbdInput()
 {
-  left = wingw::is_key_pressed(wingw::V_NUMPAD4) || wingw::is_key_pressed(wingw::V_LEFT) || wingw::is_key_pressed('A');
+  left = ec_is_key_down(ImGuiKey_Keypad4) || ec_is_key_down(ImGuiKey_LeftArrow) || ec_is_key_down(ImGuiKey_A);
 
-  right = wingw::is_key_pressed(wingw::V_NUMPAD6) || wingw::is_key_pressed(wingw::V_RIGHT) || wingw::is_key_pressed('D');
+  right = ec_is_key_down(ImGuiKey_Keypad6) || ec_is_key_down(ImGuiKey_RightArrow) || ec_is_key_down(ImGuiKey_D);
 
-  up = wingw::is_key_pressed(wingw::V_NUMPAD8) || wingw::is_key_pressed(wingw::V_UP) || wingw::is_key_pressed('W');
+  up = ec_is_key_down(ImGuiKey_Keypad8) || ec_is_key_down(ImGuiKey_UpArrow) || ec_is_key_down(ImGuiKey_W);
 
-  down = wingw::is_key_pressed(wingw::V_NUMPAD5) || wingw::is_key_pressed(wingw::V_DOWN) || wingw::is_key_pressed('S');
+  down = ec_is_key_down(ImGuiKey_Keypad5) || ec_is_key_down(ImGuiKey_DownArrow) || ec_is_key_down(ImGuiKey_S);
 
-  handbrk = wingw::is_key_pressed(wingw::V_LCONTROL);
+  handbrk = ec_is_key_down(ImGuiKey_LeftCtrl);
 
-  rear = wingw::is_key_pressed('R');
+  rear = ec_is_key_down(ImGuiKey_R);
 
-  accel = wingw::is_key_pressed(wingw::V_SHIFT);
+  accel = ec_is_shift_key_down();
 
-  if (wingw::is_key_pressed(wingw::V_BACK))
+  if (ec_is_key_down(ImGuiKey_Backspace))
   {
     if (!flagBackPressed && car)
     {

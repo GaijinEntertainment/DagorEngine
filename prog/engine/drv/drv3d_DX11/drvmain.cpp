@@ -20,8 +20,7 @@
 #include "texture.h"
 #include "predicates.h"
 #include "../drv3d_commonCode/drv_utils.h"
-#include <3d/dag_nvLowLatency.h>
-#include <3d/dag_lowLatency.h>
+#include <3d/gpuLatency.h>
 #include <drv/3d/dag_info.h>
 
 extern void set_aftermath_marker(const char *, bool allocate_copy);
@@ -53,6 +52,7 @@ using namespace drv3d_dx11;
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <ioSys/dag_dataBlock.h>
+#include <memory/dag_memStat.h>
 #include <util/dag_globDef.h>
 
 #include <ioSys/dag_memIo.h>
@@ -63,6 +63,8 @@ using namespace drv3d_dx11;
 
 #include <3d/dag_lowLatency.h>
 
+#include <EASTL/finally.h>
+
 #if HAS_NVAPI
 #include <nvapi.h>
 #endif
@@ -72,6 +74,11 @@ using namespace drv3d_dx11;
 #include <resUpdateBufferGeneric.h>
 #include <resourceActivationGeneric.h>
 
+#if _TARGET_PC_WIN
+#include <3d/gpuLatency.h>
+GpuLatency *create_gpu_latency_nvidia();
+GpuLatency *create_gpu_latency_amd();
+#endif
 
 enum LocalTm
 {
@@ -177,6 +184,17 @@ void recreate_all_queries()
   all_queries.unlock();
 }
 
+static int timestampDisjointQuery = 0;
+static bool timestampDisjointQueryPending = false;
+static uint64_t timestampFrequency = 0;
+
+void reset_timestamp_frequency()
+{
+  timestampDisjointQuery = 0;
+  timestampDisjointQueryPending = false;
+  timestampFrequency = 0;
+}
+
 void reset_all_queries()
 {
   all_queries.lock();
@@ -201,6 +219,8 @@ void print_memory_stat()
       debug("GPU memory available reservation: %d MB", int(info.AvailableForReservation >> 20));
     }
   }
+
+  debug("CPU sysmem allocated: %d MB", int(dagor_memory_stat::get_memory_allocated(true) >> 20));
 }
 
 void dump_memory_if_needed(HRESULT hr)
@@ -306,7 +326,7 @@ static Tab<String> get_resolutions_from_output(IDXGIOutput *dxgiOutput)
             displayModes[modeNo].Width > recommended_resolution->first || displayModes[modeNo].Height > recommended_resolution->second)
             continue;
 
-          // remove modes with differect aspect ratio than recommended
+          // remove modes with different aspect ratio than recommended
           if (!resolutions_have_same_ratio(*recommended_resolution, {displayModes[modeNo].Width, displayModes[modeNo].Height}))
             continue;
         }
@@ -451,86 +471,41 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
     case Drv3dCommand::TIMESTAMPFREQ:
     {
-      ///    returns 1 if everything is ok, otherwise returns 0
-      ///    if par3 is nullptr
-      ///      // sync implementation with active waiting
-      ///      par1 will be frequency int64_t
-      ///      disjoints are ignored
-      ///    else
-      ///      // async implementation with swapchain
-      ///      par3 is pQuery[2] array
-      ///      if par3 is array with zeroes
-      ///        init queries
-      ///      else
-      ///        read query
-      ///        par1 will be frequency int64_t
-      ///        par2 will be disjoint bool
-      ///        end query, start new
-
-      if (par3 == nullptr)
+      // we do not call this per marker or care about disjoint status
+      // so if frequency changes inside frame, we really don't care about it
+      // meaning that profiling work only if frequency is stable enough
+      // thus we can update it sparsely without issues
+      if (timestampDisjointQuery <= 0)
+        timestampDisjointQuery = create_query(D3D11_QUERY_TIMESTAMP_DISJOINT);
+      if (!timestampDisjointQueryPending)
       {
-        int result = 0;
-        ID3D11Query *pQuery = create_raw_query(D3D11_QUERY_TIMESTAMP_DISJOINT);
-        if (pQuery)
-        {
-          ContextAutoLock contextLock;
-          dx_context->Begin(pQuery);
-          dx_context->End(pQuery);
-          for (int count = 0; count < 120; ++count)
-          {
-            D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
-            if (dx_context->GetData(pQuery, &data, sizeof(data), 0) == S_OK)
-            {
-              *(uint64_t *)par1 = data.Frequency;
-              result = 1;
-              break;
-            }
-            else
-              Sleep(1);
-          }
-        }
-        if (pQuery)
-          pQuery->Release();
-        return result;
+        ContextAutoLock contextLock;
+        dx_context->Begin(all_queries[timestampDisjointQuery].query);
+        dx_context->End(all_queries[timestampDisjointQuery].query);
+        timestampDisjointQueryPending = true;
+      }
+
+      D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
+      ContextAutoLock contextLock;
+      if (timestampFrequency == 0)
+      {
+        while (dx_context->GetData(all_queries[timestampDisjointQuery].query, &data, sizeof(data), 0) != S_OK)
+          ; // VOID
+        timestampFrequency = data.Frequency;
+        timestampDisjointQueryPending = false;
       }
       else
       {
-        int(*par33)[2] = (int(*)[2])par3;
-        int(&pQueries)[2] = *par33;
-        if (pQueries[0] <= 0 || pQueries[1] <= 0)
+        if (
+          dx_context->GetData(all_queries[timestampDisjointQuery].query, &data, sizeof(data), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK)
         {
-          pQueries[0] = create_query(D3D11_QUERY_TIMESTAMP_DISJOINT);
-          pQueries[1] = create_query(D3D11_QUERY_TIMESTAMP_DISJOINT);
-          if (pQueries[0] && pQueries[1])
-          {
-            ContextAutoLock contextLock;
-            dx_context->Begin(all_queries[pQueries[0]].query);
-            dx_context->End(all_queries[pQueries[0]].query);
-            dx_context->Begin(all_queries[pQueries[1]].query);
-            dx_context->End(all_queries[pQueries[1]].query);
-          }
+          timestampFrequency = data.Frequency;
+          timestampDisjointQueryPending = false;
         }
-        else if (all_queries[pQueries[0]].query && all_queries[pQueries[1]].query)
-        {
-          ContextAutoLock contextLock;
-          D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
-          if (dx_context->GetData(all_queries[pQueries[0]].query, &data, sizeof(data), 0) == S_OK)
-          {
-            *(uint64_t *)par1 = data.Frequency;
-            *(bool *)par2 = data.Disjoint;
-            dx_context->Begin(all_queries[pQueries[0]].query);
-            dx_context->End(all_queries[pQueries[1]].query);
-
-            // swap
-            int t = pQueries[1];
-            pQueries[1] = pQueries[0];
-            pQueries[0] = t;
-
-            return 1;
-          }
-        }
-        return 0;
       }
+
+      *(uint64_t *)par1 = timestampFrequency;
+      return 1;
     }
     case Drv3dCommand::TIMESTAMPISSUE:
     {
@@ -555,7 +530,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       if (pQuery >= 0 && all_queries[pQuery].query)
       {
         ContextAutoLock contextLock;
-        return dx_context->GetData(all_queries[pQuery].query, par2, sizeof(uint64_t), 0) == S_OK ? 1 : 0;
+        return dx_context->GetData(all_queries[pQuery].query, par2, sizeof(uint64_t), D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK ? 1 : 0;
       }
       return 0;
     }
@@ -712,6 +687,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
 
     case Drv3dCommand::D3D_FLUSH:
+    case Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS: // TODO: Implement GPU_BARRIER_WAIT_ALL_COMMANDS separately
     {
       TIME_D3D_PROFILE(Drv3dCommand::D3D_FLUSH);
       auto query = create_event_query();
@@ -862,36 +838,32 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       int viewIndex = par2 ? *(int *)par2 : 0;
       AutoAcquireGpu gpuLock;
       ContextAutoLock contextLock;
-      streamlineAdapter->evaluateDlss(streamlineAdapter->getFrameId(), viewIndex,
-        nv::convertDlssParams(*dlssParams,
-          [](BaseTexture *i) { return i ? static_cast<void *>(static_cast<BaseTex *>(i)->tex.texRes) : nullptr; }),
+      nv::DLSS *dlss = static_cast<nv::DLSS *>(streamlineAdapter->getDlssFeature(viewIndex));
+      dlss->evaluate(nv::convertDlssParams(*dlssParams,
+                       [](BaseTexture *i) { return i ? static_cast<void *>(static_cast<BaseTex *>(i)->tex.texRes) : nullptr; }),
         dx_context);
       return 1;
     }
 
-    case Drv3dCommand::EXECUTE_DLSS_G:
+    case Drv3dCommand::GET_STREAMLINE:
     {
-      const nv::DlssGParams<BaseTexture> *dlssGParams = static_cast<nv::DlssGParams<BaseTexture> *>(par1);
-      int viewIndex = par2 ? *(int *)par2 : 0;
-      ContextAutoLock contextLock;
-      streamlineAdapter->evaluateDlssG(viewIndex,
-        nv::convertDlssGParams(*dlssGParams,
-          [](BaseTexture *i) { return i ? static_cast<void *>(static_cast<BaseTex *>(i)->tex.texRes) : nullptr; }),
-        dx_context);
+      *static_cast<nv::Streamline **>(par1) = streamlineAdapter ? &streamlineAdapter.value() : nullptr;
       return 1;
     }
 
-    case Drv3dCommand::GET_DLSS:
+#if _TARGET_PC_WIN
+    case Drv3dCommand::CREATE_GPU_LATENCY:
     {
-      *static_cast<void **>(par1) = streamlineAdapter ? static_cast<nv::DLSS *>(&streamlineAdapter.value()) : nullptr;
-      return 1;
-    }
+      switch (*(GpuVendor *)par1)
+      {
+        case GpuVendor::NVIDIA: *(GpuLatency **)par2 = create_gpu_latency_nvidia(); break;
+        case GpuVendor::AMD: *(GpuLatency **)par2 = create_gpu_latency_amd(); break;
+        default: *(GpuLatency **)par2 = nullptr; return 0;
+      }
 
-    case Drv3dCommand::GET_REFLEX:
-    {
-      *static_cast<void **>(par1) = streamlineAdapter ? static_cast<nv::Reflex *>(&streamlineAdapter.value()) : nullptr;
       return 1;
     }
+#endif
 
     case Drv3dCommand::GET_MONITORS:
     {
@@ -1000,7 +972,7 @@ FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/) { return BAD_FSH
 
 bool d3d::setscissor(int x, int y, int w, int h)
 {
-  G_ASSERTF(w > 0 && h > 0, "%s(%d, %d, %d, %d)", __FUNCTION__, x, y, w, h);
+  D3D_CONTRACT_ASSERTF(w > 0 && h > 0, "%s(%d, %d, %d, %d)", __FUNCTION__, x, y, w, h);
   g_render_state.nextRasterizerState.scissor_x = x;
   g_render_state.nextRasterizerState.scissor_y = y;
   g_render_state.nextRasterizerState.scissor_w = w;
@@ -1018,12 +990,14 @@ static const int MAX_STATISTICS_HISTORY = 30;
 
 namespace drv3d_dx11
 {
-extern bool _no_vsync;
+extern bool vsync;
 extern IDXGIOutput *target_output;
 extern void clear_pools_garbage();
+extern Tab<d3d::EventQuery *> pending_frame_queries;
+extern int current_pending_frame_query;
 } // namespace drv3d_dx11
 
-bool d3d::update_screen(bool app_active)
+bool d3d::update_screen(uint32_t frame_id, bool app_active)
 {
   for (FrameEvents *callback : frontEndFrameCallbacks)
     callback->endFrameEvent();
@@ -1031,12 +1005,26 @@ bool d3d::update_screen(bool app_active)
 
   CHECK_MAIN_THREAD();
 
-  SCOPED_LATENCY_MARKER(lowlatency::get_current_render_frame(), PRESENT_START, PRESENT_END);
+  auto *lowLatencyModule = GpuLatency::getInstance();
+  if (lowLatencyModule)
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::PRESENT_START);
+  eastl::finally deferredPresentEnd([&] {
+    if (lowLatencyModule)
+      lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::PRESENT_END);
+  });
 
   if (flush_on_present)
   {
     ContextAutoLock contextLock;
     dx_context->Flush();
+  }
+
+  if (max_pending_frames >= 0 && pending_frame_queries.size())
+  {
+    d3d::issue_event_query(pending_frame_queries[current_pending_frame_query]);
+    current_pending_frame_query = (current_pending_frame_query + 1) % (max_pending_frames + 1);
+    TIME_PROFILE(dx11_pending_frame_gpu_wait);
+    spin_wait([] { return !d3d::get_event_query_status(pending_frame_queries[current_pending_frame_query], true); });
   }
 
   for (FrameEvents *callback : backEndFrameCallbacks)
@@ -1049,7 +1037,6 @@ bool d3d::update_screen(bool app_active)
   HRESULT presentHr = 0;
 
   {
-    REGISTER_SCOPED_SLOP(lowlatency::get_current_render_frame(), present_dx11);
     if (present_dest_idx >= 0)
     {
       drv3d_dx11::SwapChainAndHwnd &r = swap_chain_pairs[present_dest_idx];
@@ -1067,7 +1054,8 @@ bool d3d::update_screen(bool app_active)
         dagor_d3d_force_driver_reset = true;
         return true;
       }
-      presentHr = swap_chain->Present(_no_vsync ? 0 : 1, _no_vsync && use_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
+      const bool useVsync = get_vsync_enabled();
+      presentHr = swap_chain->Present(useVsync ? 1 : 0, !useVsync && use_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
 
       if (SUCCEEDED(presentHr) && !app_active && is_swapchain_window_occluded())
         presentHr = DXGI_STATUS_OCCLUDED;
@@ -1154,7 +1142,40 @@ bool d3d::update_screen(bool app_active)
 
 void d3d::wait_for_async_present(bool) {}
 
-void d3d::gpu_latency_wait() {}
+void d3d::begin_frame(uint32_t frame_id, bool allow_wait)
+{
+  auto lowLatencyModule = GpuLatency::getInstance();
+  if (lowLatencyModule)
+  {
+    lowLatencyModule->startFrame(frame_id);
+    if (allow_wait && lowLatencyModule->isEnabled())
+      lowLatencyModule->sleep(frame_id);
+  }
+}
+
+void d3d::mark_simulation_start(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::SIMULATION_START);
+}
+
+void d3d::mark_simulation_end(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::SIMULATION_END);
+}
+
+void d3d::mark_render_start(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::RENDERSUBMIT_START);
+}
+
+void d3d::mark_render_end(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::RENDERSUBMIT_END);
+}
 
 bool d3d::is_window_occluded() { return occluded_window; }
 
@@ -1242,11 +1263,12 @@ static ID3D11Texture2D *backBufferStaging = NULL;
 static uint32_t mappedSubresource = 0;
 
 
-bool d3d::pcwin32::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
+bool d3d::pcwin::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
 
 void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 {
-  G_ASSERT(!backBufferStaging);
+  D3D_CONTRACT_ASSERTF(!backBufferStaging,
+    "'fast_capture_screen' is called 2 times in a row without companion 'end_fast_capture_screen'");
 
   D3D11_TEXTURE2D_DESC stagingDesc;
   ID3D11Texture2D *backBuffer = NULL;
@@ -1380,7 +1402,7 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 void d3d::end_fast_capture_screen()
 {
   ContextAutoLock contextLock;
-  G_ASSERT(backBufferStaging);
+  D3D_CONTRACT_ASSERTF(backBufferStaging, "'end_fast_capture_screen' should be called in pair with 'fast_capture_screen'");
 
   dx_context->Unmap(backBufferStaging, mappedSubresource);
   backBufferStaging->Release();
@@ -1564,20 +1586,17 @@ void d3d::end_conditional_render(int id)
 }
 
 bool d3d::get_vrr_supported() { return use_tearing; }
-bool d3d::get_vsync_enabled() { return !_no_vsync; }
+bool d3d::get_vsync_enabled() { return vsync; }
 bool d3d::enable_vsync(bool enable)
 {
-  _no_vsync = !enable;
+  vsync = enable;
   return true;
 }
 
-void d3d::pcwin32::set_present_wnd(void *hwnd)
+static int get_or_create_window_swapchain(void *hwnd)
 {
   if (!dx11_DXGIFactory || !hwnd)
-  {
-    present_dest_idx = -1;
-    return;
-  }
+    return -1;
 
   RECT rect;
   GetClientRect((HWND)hwnd, &rect);
@@ -1595,8 +1614,7 @@ void d3d::pcwin32::set_present_wnd(void *hwnd)
         break;
       }
 
-      present_dest_idx = i;
-      return;
+      return i;
     }
 
   drv3d_dx11::SwapChainAndHwnd &r = swap_chain_pairs.push_back();
@@ -1624,6 +1642,32 @@ void d3d::pcwin32::set_present_wnd(void *hwnd)
   r.buf = create_backbuffer_tex(0, r.sw);
   r.w = scd.BufferDesc.Width;
   r.h = scd.BufferDesc.Height;
+
+  return swap_chain_pairs.size() - 1;
+}
+
+void d3d::pcwin::set_present_wnd(void *hwnd) { present_dest_idx = get_or_create_window_swapchain(hwnd); }
+
+bool d3d::pcwin::can_render_to_window() { return true; }
+
+BaseTexture *d3d::pcwin::get_swapchain_for_window(void *hwnd)
+{
+  int id = get_or_create_window_swapchain(hwnd);
+  return id >= 0 ? swap_chain_pairs[id].buf : nullptr;
+}
+
+void d3d::pcwin::present_to_window(void *hwnd)
+{
+  d3d::set_render_target();
+
+  int id = get_or_create_window_swapchain(hwnd);
+  if (id < 0)
+    return;
+
+  {
+    ContextAutoLock contextLock;
+    swap_chain_pairs[id].sw->Present(0, 0);
+  }
 }
 
 void d3d::get_video_modes_list(Tab<String> &list)

@@ -2,6 +2,7 @@
 
 #include "circuit.h"
 #include "main.h"
+#include "vromfs.h"
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
 #include <startup/dag_globalSettings.h>
@@ -15,23 +16,23 @@
 #include <publicConfigs/publicConfigs.h>
 #include "settings.h"
 #include "net/telemetry.h"
+#include "gameProjConfig.h"
+#include <util/dag_string.h>
+#include <ioSys/dag_dataBlockUtils.h>
 
 #if _TARGET_C1 | _TARGET_C2
 
-#elif _TARGET_XBOX
-#include <gdk/main.h>
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 #endif
 
-extern "C"
-{
-  extern const unsigned char game_public_key_DER[292];
-}
 namespace circuit
 {
 
-#define NETWORK_BLK_NAME "network.blk"
+#define NETWORK_BLK_NAME         "network.blk"
+#define NETWORK_BLK_OFFLINE_PATH "config/network.blk"
 
 static DataBlock circuit_conf;
 static eastl::fixed_string<char, 16> circuit_name;
@@ -75,8 +76,8 @@ bool is_submission_env()
 {
 #if _TARGET_C1 | _TARGET_C2
 
-#elif _TARGET_XBOX
-  return !gdk::is_retail_environment();
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 #elif _TARGET_ANDROID | _TARGET_IOS
@@ -105,7 +106,7 @@ const char *init_name_early()
 
   if (!dgs_get_settings() || dgs_get_settings()->isEmpty())
   {
-    eastl::string configBlkFilename(eastl::string::CtorSprintf{}, "%s%s", get_game_name(), ".config.blk");
+    eastl::string configBlkFilename(eastl::string::CtorSprintf{}, "%s.blk", gameproj::config_name_prefix());
     DataBlock local_config_blk;
     if (dd_file_exist(configBlkFilename.c_str()))
       if (dblk::load(local_config_blk, configBlkFilename.c_str(), dblk::ReadFlag::ROBUST))
@@ -146,7 +147,7 @@ static void network_blk_cb(dag::ConstSpan<char> data, void *arg)
   unsigned buf_sz[] = {unsigned(data.size()) - SHA256_SIG_SZ, 0};
 
   if (data.size() < SHA256_SIG_SZ || !verify_digital_signature_with_key(buf, buf_sz, buf_sz[0] + (unsigned char *)buf[0],
-                                       SHA256_SIG_SZ, game_public_key_DER, sizeof(game_public_key_DER)))
+                                       SHA256_SIG_SZ, gameproj::public_key_DER(), gameproj::public_key_DER_len()))
   {
     logerr("network.blk signature verification failed (%d bytes)", data.size());
     return;
@@ -172,19 +173,48 @@ static bool download_network_blk(eastl::unique_ptr<DataBlock> &dst, const char *
   return pubcfg::get(blkPath, network_blk_cb, &dst);
 }
 
-void init()
+static void load_operator_overrides(DataBlock *circuit_blk)
 {
-  eastl::unique_ptr<DataBlock> networkBlk;
-  download_network_blk(networkBlk, get_game_name());
+  DataBlock partnerConfig(framemem_ptr());
+  if (!dblk::load(partnerConfig, "yupartner.blk", dblk::ReadFlag::ROBUST))
+    return;
 
-  if (!networkBlk)
+  const char *operatorStr = partnerConfig.getStr("partner", nullptr);
+  if (!operatorStr || strcmp(operatorStr, "gaijin") == 0)
+    return;
+
+  DataBlock overrideConfig(framemem_ptr());
+  String override_config_path(0, "%s/override_circuit.blk", operatorStr);
+  if (!dblk::load(overrideConfig, override_config_path, dblk::ReadFlag::ROBUST))
   {
-    // failed to get online network.blk. load it from vroms
-    networkBlk.reset(new DataBlock(NETWORK_BLK_NAME));
+    logerr("Operator config not found ( %s )", override_config_path.c_str());
+    return;
   }
 
+  debug("Using operator: %s", operatorStr);
 
+  DataBlock overrideBlk(framemem_ptr());
+  if (const DataBlock *overrideCommon = overrideConfig.getBlockByName("_common"))
+    overrideBlk.setFrom(overrideCommon);
+  if (const DataBlock *overrideCircuit = overrideConfig.getBlockByName(circuit_blk->getBlockName()))
+    merge_data_block(overrideBlk, *overrideCircuit);
+
+  merge_data_block(*circuit_blk, overrideBlk);
+}
+
+void init()
+{
   const DataBlock &settings = *dgs_get_settings();
+
+  eastl::unique_ptr<DataBlock> networkBlk;
+  if (settings.getBlockByName("debug")->getBool("forceLocalNetworkBlk", false))
+    debug_print_datablock("forced local network.blk", &settings);
+  else
+    download_network_blk(networkBlk, gameproj::game_codename());
+
+  if (!networkBlk) // When failed to get online network.blk -> load it from vrom
+    networkBlk.reset(new DataBlock(NETWORK_BLK_OFFLINE_PATH));
+
   const char *curCircuit = nullptr;
 
   if (is_submission_env())
@@ -224,6 +254,7 @@ void init()
   }
   else
     debug("Don't use network circuit (not set in *.settings.blk, *.config.blk or commandline)");
+  load_operator_overrides(&circuit_conf);
 }
 
 const DataBlock *get_conf() { return &circuit_conf; }

@@ -2,6 +2,7 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <EditorCore/ec_interface.h>
+#include <de3_dynRenderService.h>
 
 static PhysWorld *pw = NULL;
 static bool inited = false;
@@ -65,7 +66,7 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
   if (pw)
     return;
 
-  pw = new PhysWorld(0.9f, 0.7f, 0.4f, 1.0f);
+  pw = new PhysWorld();
 
   return;
 
@@ -90,6 +91,13 @@ static __forceinline void phys_init()
 {
   if (inited)
     return;
+#ifdef PHYSICS_SKIP_INIT_TERM
+  if (PHYSICS_SKIP_INIT_TERM)
+  {
+    inited = true;
+    return;
+  }
+#endif
 
   ::init_physics_engine();
   inited = true;
@@ -99,6 +107,13 @@ static __forceinline void phys_close()
 {
   if (!inited)
     return;
+#ifdef PHYSICS_SKIP_INIT_TERM
+  if (PHYSICS_SKIP_INIT_TERM)
+  {
+    inited = false;
+    return;
+  }
+#endif
 
   phys_clear_phys_world();
 
@@ -111,15 +126,12 @@ static __forceinline void phys_before_render()
   if (simObj)
     simObj->beforeRender(::grs_cur_view.pos);
 }
-static __forceinline void phys_render_trans()
+static __forceinline void phys_render(IDynRenderService::Stage stage)
 {
-  if (simObj)
-    simObj->renderTrans();
-}
-static __forceinline void phys_render()
-{
-  if (simObj)
-    simObj->render();
+  auto *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  if (simObj && rs)
+    for (int i = 0, ie = simObj->getModelCount(); i < ie; ++i)
+      rs->renderOneDynModelInstance(simObj->getModel(i), stage);
 }
 
 static __forceinline void add_impulse(int body_ind, const Point3 &pos, const Point3 &delta, real spring_factor, real damper_factor,

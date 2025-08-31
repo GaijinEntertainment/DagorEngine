@@ -10,6 +10,9 @@
 namespace bvh::ri
 {
 
+void init_ex();
+void teardown_ex();
+
 static eastl::unordered_set<ContextId> relem_changed_contexts;
 static CallbackToken relem_changed_token;
 
@@ -35,18 +38,21 @@ static void impostor_callback(const RenderableInstanceLodsResource *resource)
     }
 }
 
-static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsResource *resource, bool deleted, bool load_impostors)
+static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsResource *resource, bool deleted, int upper_lod,
+  bool load_impostors)
 {
   TIME_PROFILE(bvh::on_ri_relem_changed);
 
   if (resource->getBvhId() == 0)
-    resource->setBvhId(++bvh_id_gen);
+    resource->setBvhId(bvh_id_gen.add_fetch(1));
 
   bool hasBakedImpostor = resource->isBakedImpostor();
+  int lastLod = hasBakedImpostor ? resource->lods.size() - 2 : resource->lods.size() - 1;
 
   for (auto [lodIx, lod] : enumerate(make_span_const(resource->lods)))
   {
-    int lastLod = hasBakedImpostor ? resource->lods.size() - 2 : resource->lods.size() - 1;
+    if (deleted && lodIx >= upper_lod)
+      break;
     if (context_id->has(Features::RIBaked) && lodIx < lastLod)
       continue;
 
@@ -71,8 +77,8 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
 
     if (deleted)
     {
-      for (auto [elemIx, elem] : enumerate(elems))
-        remove_mesh(context_id, make_relem_mesh_id(resource->getBvhId(), lodIx, elemIx));
+      for (int elemIx = 0; elemIx < elems.size(); elemIx++)
+        remove_object(context_id, make_relem_mesh_id(resource->getBvhId(), lodIx, elemIx));
     }
     else
     {
@@ -82,17 +88,20 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
   }
 }
 
-static void on_relem_changed_all(const RenderableInstanceLodsResource *resource, bool deleted, bool load_impostors)
+static void on_relem_changed_all(const RenderableInstanceLodsResource *resource, bool deleted, int upper_lod, bool load_impostors)
 {
   for (auto &contextId : relem_changed_contexts)
-    on_relem_changed(contextId, resource, deleted, load_impostors);
+    on_relem_changed(contextId, resource, deleted, upper_lod, load_impostors);
 }
 
 void init()
 {
   relem_changed_token = unitedvdata::riUnitedVdata.on_mesh_relems_updated.subscribe(
-    [](const RenderableInstanceLodsResource *resource, bool deleted) { on_relem_changed_all(resource, deleted, false); });
+    [](const RenderableInstanceLodsResource *resource, bool deleted, int upper_lod) {
+      on_relem_changed_all(resource, deleted, upper_lod, false);
+    });
   RenderableInstanceLodsResource::setImpostorTextureCallback(impostor_callback);
+  init_ex();
 }
 
 void teardown_ri_gen();
@@ -103,6 +112,7 @@ void teardown()
   RenderableInstanceLodsResource::setImpostorTextureCallback(nullptr);
 
   teardown_ri_gen();
+  teardown_ex();
 }
 
 void init(ContextId context_id)
@@ -110,31 +120,37 @@ void init(ContextId context_id)
   if (context_id->has(Features::RIFull | Features::RIBaked))
   {
     relem_changed_contexts.insert(context_id);
-    unitedvdata::riUnitedVdata.enumRElems(
-      [](const RenderableInstanceLodsResource *resource) { on_relem_changed_all(resource, false, true); });
+    unitedvdata::riUnitedVdata.availableRElemsAccessor([](dag::Span<RenderableInstanceLodsResource *> resources) {
+      for (RenderableInstanceLodsResource *resource : resources)
+        on_relem_changed_all(resource, false, 0, true);
+    });
   }
 }
 
-void wait_ri_extra_instances_update(ContextId context_id);
+void wait_ri_extra_instances_update(ContextId context_id, bool do_work);
 void wait_ri_gen_instances_update(ContextId context_id);
 void wait_cut_down_trees();
 
+void on_scene_loaded_ri_ex(ContextId context_id);
 void on_unload_scene_ri_ex(ContextId context_id);
+
+void on_scene_loaded(ContextId context_id) { on_scene_loaded_ri_ex(context_id); }
 
 void on_unload_scene(ContextId context_id)
 {
   if (!context_id->has(Features::RIFull | Features::RIBaked))
     return;
-  wait_ri_extra_instances_update(context_id);
+  wait_ri_extra_instances_update(context_id, false);
   wait_ri_gen_instances_update(context_id);
   wait_cut_down_trees();
-  for (auto &trees : context_id->uniqueTreeBuffers)
-    for (auto &tree : trees.second.elems)
-    {
-      if (tree.second.buffer)
-        context_id->releaseBuffer(tree.second.buffer.get());
-      context_id->freeMetaRegion(tree.second.metaAllocId);
-    }
+  for (auto &lod : context_id->uniqueTreeBuffers)
+    for (auto &trees : lod)
+      for (auto &tree : trees.second.elems)
+      {
+        if (tree.second.buffer)
+          context_id->releaseBuffer(tree.second.buffer.get());
+        context_id->freeMetaRegion(tree.second.metaAllocId);
+      }
   for (auto &trees : context_id->uniqueRiExtraTreeBuffers)
     for (auto &tree : trees.second)
     {
@@ -149,7 +165,8 @@ void on_unload_scene(ContextId context_id)
         context_id->releaseBuffer(tree.second.buffer.get());
       context_id->freeMetaRegion(tree.second.metaAllocId);
     }
-  context_id->uniqueTreeBuffers.clear();
+  for (auto &lod : context_id->uniqueTreeBuffers)
+    lod.clear();
   context_id->freeUniqueTreeBLASes.clear();
   context_id->uniqueRiExtraTreeBuffers.clear();
   context_id->uniqueRiExtraFlagBuffers.clear();

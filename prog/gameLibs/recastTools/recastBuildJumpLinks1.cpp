@@ -306,6 +306,8 @@ bool isLineNear(const Edge &ed1, const Edge &ed2, const JumpLinksParams &params)
   Point3 m2 = lerp(ed2.sp, ed2.sq, 0.5);
   Point3 mmdir = m1 - m2;
   float mmlen = length(mmdir);
+  if (params.edgeMergeDistV1 < mmlen)
+    return false;
   mmdir *= safeinv(mmlen);
 
   float hl1 = length(ed1.sp - ed1.sq) * 0.5;
@@ -315,7 +317,7 @@ bool isLineNear(const Edge &ed1, const Edge &ed2, const JumpLinksParams &params)
   {
     float angle1 = abs(dir1 * mmdir);
     float angle2 = abs(dir2 * mmdir);
-    float summ = lerp(angle1, angle2, 0.5);
+    float summ = lerp(angle1, angle2, 0.5f);
 
     if (summ < params.linkDegDist)
       return false;
@@ -326,8 +328,8 @@ bool isLineNear(const Edge &ed1, const Edge &ed2, const JumpLinksParams &params)
 
 bool isLineCrossed(Edge &ed1, Edge &ed2)
 {
-  Point3 m1 = lerp(ed1.sp, ed1.sq, 0.5);
-  Point3 m2 = lerp(ed2.sp, ed2.sq, 0.5);
+  Point3 m1 = lerp(ed1.sp, ed1.sq, 0.5f);
+  Point3 m2 = lerp(ed2.sp, ed2.sq, 0.5f);
   Point3 mmdir = m1 - m2;
   float mmlen = length(mmdir);
   mmdir *= safeinv(mmlen);
@@ -519,7 +521,7 @@ bool check_jump_max_height(const rcHeightfield *solid, const Point3 &sp, const P
 
   for (int i = 0; i < nsamples; i++)
   {
-    const float u = (float)i / (float)(nsamples - 1);
+    const float u = nsamples == 1 ? 0.f : (float)i / (float)(nsamples - 1);
     const Point3 pt = lerp(sp, sq, u);
     const int ix = (int)floorf((pt.x - solid->bmin[0]) / solid->cs);
     const int iz = (int)floorf((pt.z - solid->bmin[2]) / solid->cs);
@@ -626,11 +628,11 @@ struct EdgeSampler
       Point3 agentSpt = spt - agentOffset;
       Point3 agentEpt = ept + agentOffset;
 
-      float height = 0.0f;
+      float height = -FLT_MAX;
       bool isSpaceFree = check_jump_max_height(m_solid, agentSpt, agentEpt, agentHeight, agentMinSpace, height);
       float maxHeight = min(start.points[i].height, end.points[i].height) + jumpHeight;
 
-      if (isSpaceFree && height < maxHeight)
+      if (isSpaceFree && height < maxHeight && height != -FLT_MAX)
       {
         link.points[i].height = height;
         link.points[i].AddBit(HEIGHT_CHECKED);

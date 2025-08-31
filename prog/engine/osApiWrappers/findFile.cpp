@@ -214,8 +214,7 @@ extern "C" int dd_find_next(alefind_t *fs)
   if (is_path_abs(fs->fmask))
     return 0;
 
-  static alefind_t f;
-  f = *fs;
+  alefind_t f = *fs;
 
   for (int i = fs->grp + 1; i < DF_MAX_BASE_PATH_NUM; i++)
     if (df_base_path[i])

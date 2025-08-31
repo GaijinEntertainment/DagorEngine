@@ -4,9 +4,9 @@
 //
 #pragma once
 
+#include "cascadeShadowsDecl.h"
 #include <EASTL/fixed_function.h>
 #include <3d/dag_resPtr.h>
-#include <generic/dag_tabFwd.h>
 
 
 class DataBlock;
@@ -22,7 +22,7 @@ class String;
 class CascadeShadowsPrivate;
 class BaseTexture;
 
-typedef eastl::fixed_function<sizeof(void *) * 4, void(int num_cascades_to_render, bool clear_per_view)> csm_render_cascades_cb_t;
+typedef eastl::fixed_function<sizeof(void *) * 5, void(int num_cascades_to_render, bool clear_per_view)> csm_render_cascades_cb_t;
 
 class ICascadeShadowsClient
 {
@@ -31,7 +31,7 @@ public:
   // If .w > 0.0, then it is treated as a sphere around which to render the cascade.
   // If .w <= 0.0 for cascade i, then it must be <= 0 for all the subsequent cascades.
   virtual Point4 getCascadeShadowAnchor(int cascade_no) = 0;
-  virtual void prepareRenderShadowCascades(){};
+  virtual void prepareRenderShadowCascades() {}
   virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf) = 0;
 
   virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &cascade_frustum, float &out_min_sparse_dist,
@@ -42,8 +42,8 @@ public:
 class CascadeShadows
 {
 public:
-  static constexpr int MAX_CASCADES = 6;
-  static constexpr int SSSS_CASCADES = 3;
+  static constexpr int MAX_CASCADES = CSM_MAX_CASCADES;
+  static constexpr int SSSS_CASCADES = CSM_SSSS_CASCADES;
 
   struct Settings
   {
@@ -65,6 +65,8 @@ public:
       Internal,
       External
     } resourceAccessStrategy = ResourceAccessStrategy::Internal;
+
+    bool operator==(const Settings &rhs) const = default;
   };
 
   struct ModeSettings
@@ -82,6 +84,8 @@ public:
                         // artificially create high quality cascade for 'cockpit'
     float overrideZNearForCascadeDistribution;
     bool useFixedShadowCascade;
+
+    bool operator==(const ModeSettings &rhs) const = default;
   };
 
 

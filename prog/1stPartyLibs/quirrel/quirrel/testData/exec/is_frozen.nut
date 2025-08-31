@@ -3,9 +3,8 @@
 let a1 = [10, 20, 30]
 let a2 = freeze([10, 20, 30])
 
-
 println($"Array R: {a1.is_frozen()}")
-println($"Arrat F: {a2.is_frozen()}")
+println($"Array F: {a2.is_frozen()}")
 
 
 let t1 = { a = 10, b = 20, c = 30 }
@@ -27,3 +26,13 @@ let fi = freeze(C())
 
 println($"Instance R: {ri.is_frozen()}")
 println($"Instance F: {fi.is_frozen()}")
+
+
+let ai = freeze([{}, {}])
+foreach(i, v in ai) println($"Array foreach {i}: {v.is_frozen()}")
+ai.each(@(v, i) println($"Array each {i}: {v.is_frozen()}"))
+
+
+let ti = freeze({[{a=1}]={}, [{a=2}]={}})
+foreach(k, v in ti) println($"Table foreach: {k.is_frozen()} {v.is_frozen()}")
+ti.each(@(v, k) println($"Table each: {k.is_frozen()} {v.is_frozen()}"))

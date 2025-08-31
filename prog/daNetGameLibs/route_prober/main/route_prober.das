@@ -106,7 +106,7 @@ def try_launch_route_prober(add_rtt : int) : void
       init |> set("route_id", route_id)
 
 def get_diff_bucket_str(rtt_diff : int) : string
-  let buckets = [[int -9000; -500; -200; -100; -75; -50; -40; -30; -20; -15; -10; -5; 0; 5; 10; 15; 20; 30; 40; 50; 75; 100; 200; 500; 9000]]
+  let buckets = fixed_array<int>(-9000, -500, -200, -100, -75, -50, -40, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 40, 50, 75, 100, 200, 500, 9000)
   var lb = lower_bound(buckets, rtt_diff) // lb in [0..length(buckets)]
   if lb == length(buckets)
     lb -= 1
@@ -239,7 +239,7 @@ def route_prober_timers(info : UpdateStageInfoAct;
   next_evaluation -= info.dt
   if next_evaluation <= 0.f
     next_evaluation = evaluation_period_seconds
-    broadcastEvent([[ChangeServerRoute currentIsUnresponsive=false]])
+    broadcastEvent(ChangeServerRoute(currentIsUnresponsive = false))
 
 [es(no_order, REQUIRE=routeStats)]
 def receive_echo_response(response : NetEchoReponse; route_id : uint; var echo_history : UInt32List&; var last_echoes_mask : int&)
@@ -248,7 +248,7 @@ def receive_echo_response(response : NetEchoReponse; route_id : uint; var echo_h
 
   echo_history |> push(response.rttOrTimeout)
 
-  let success = (response.result == int(EchoResponseResult SUCCESS))
+  let success = (response.result == int(EchoResponseResult.SUCCESS))
   last_echoes_mask = ((last_echoes_mask << 1) | (success ? 1 : 0)) & ~(1 << ECHO_HISTORY_MAX_LENGTH)
 
   if length(echo_history) > ECHO_HISTORY_MAX_LENGTH
@@ -289,9 +289,14 @@ def evaluate_server_route(evt : ChangeServerRoute)
       print("RP: not enough echo packets {minEchoHistory} / {ECHO_HISTORY_MAX_LENGTH}; trying again in {next_evaluation}s")
       return true
 
+    let count = int(get_server_route_count())
+    var rttList : array<uint>
+    rttList |> resize(count)
+
     query() <| $ [es(REQUIRE=routeStats)] (route_id : uint;
                                            rtt_estimation : uint;
                                            var rtt_diff_sum : int&)
+      rttList[route_id] = rtt_estimation
       if route_id == currentRoute
         return
       let rttDiff : int = get_percent_diff(currentRttEstimation, rtt_estimation)
@@ -308,9 +313,13 @@ def evaluate_server_route(evt : ChangeServerRoute)
         bestRoute = route_id
         bestRttEstimation = rtt_estimation
 
+    var rttString : string
+    for i in range(count)
+      rttString += (i > 0 ? ", " : "") + string(rttList[i])
+
     print("RP: Current server route #{int(currentRoute)} available={!evt.currentIsUnresponsive} "
         + "rtt estimation={int(currentRttEstimation)} best route #{int(bestRoute)} "
-        + "rtt estimation={int(bestRttEstimation)} max diff sum={maxDiffSum}")
+        + "rtt estimation={int(bestRttEstimation)} max diff sum={maxDiffSum} rtt=[{rttString}]")
 
     if bestRoute != currentRoute
       report_midgame_switch(bestRoute)

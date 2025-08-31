@@ -97,101 +97,69 @@ struct GuiControlDescWebUi
   }
 };
 
-#define DECLARE_INT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                      \
-  {                                                                                                                         \
-    &((P).V), #P "." #V, "int_editbox%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0),     \
-      Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Int, {0}, NULL \
-  }
+#define DECLARE_INT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                 \
+  {&((P).V), #P "." #V, "int_editbox%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0), \
+    Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Int, {0}, NULL}
 
-#define DECLARE_INT_SLIDER(P, V, MIN_V, MAX_V, DEF_V)                                                                       \
-  {                                                                                                                         \
-    &((P).V), #P "." #V, "int_slider%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0),      \
-      Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Int, {0}, NULL \
-  }
+#define DECLARE_INT_SLIDER(P, V, MIN_V, MAX_V, DEF_V)                                                                 \
+  {&((P).V), #P "." #V, "int_slider%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0), \
+    Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Int, {0}, NULL}
 
-#define DECLARE_FLOAT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                      \
-  {                                                                                                                           \
-    &((P).V), #P "." #V, "float_editbox%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, 0, float(DEF_V), Point2(0, 0),   \
-      Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Float, {0}, NULL \
-  }
+#define DECLARE_FLOAT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                   \
+  {&((P).V), #P "." #V, "float_editbox%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%:", false, 0, float(DEF_V), Point2(0, 0), \
+    Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Float, {0}, NULL}
 
-#define DECLARE_POINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                                   \
-  {                                                                                                                      \
-    &((P).V), #P "." #V, "point2_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(DEF_V_X, DEF_V_Y), Point3(0, 0, 0), \
-      IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Point2, {0}, NULL            \
-  }
+#define DECLARE_POINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                                  \
+  {&((P).V), #P "." #V, "point2_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(DEF_V_X, DEF_V_Y), Point3(0, 0, 0), \
+    IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Point2, {0}, NULL}
 
-#define DECLARE_IPOINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                                    \
-  {                                                                                                                        \
-    &((P).V), #P "." #V, "ipoint2_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0),              \
-      IPoint2(DEF_V_X, DEF_V_Y), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IPoint2, {0}, NULL \
-  }
+#define DECLARE_IPOINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                      \
+  {&((P).V), #P "." #V, "ipoint2_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), \
+    IPoint2(DEF_V_X, DEF_V_Y), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IPoint2, {0}, NULL}
 
-#define DECLARE_POINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                                \
-  {                                                                                                                            \
-    &((P).V), #P "." #V, "point3_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(DEF_V_X, DEF_V_Y, DEF_V_Z), \
-      IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Point3, {0}, NULL                  \
-  }
+#define DECLARE_POINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                               \
+  {&((P).V), #P "." #V, "point3_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(DEF_V_X, DEF_V_Y, DEF_V_Z), \
+    IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Point3, {0}, NULL}
 
-#define DECLARE_IPOINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                             \
-  {                                                                                                                          \
-    &((P).V), #P "." #V, "ipoint3_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(DEF_V_X, DEF_V_Y, DEF_V_Z), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IPoint3, {0}, NULL            \
-  }
+#define DECLARE_IPOINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                            \
+  {&((P).V), #P "." #V, "ipoint3_editbox%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(DEF_V_X, DEF_V_Y, DEF_V_Z), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IPoint3, {0}, NULL}
 
-#define DECLARE_FLOAT_SLIDER(P, V, MIN_V, MAX_V, DEF_V, STEP)                                                                        \
-  {                                                                                                                                  \
-    &((P).V), #P "." #V, "float_slider%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%" #STEP "%:", false, 0, float(DEF_V), Point2(0, 0), \
-      Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Float, {0}, NULL        \
-  }
+#define DECLARE_FLOAT_SLIDER(P, V, MIN_V, MAX_V, DEF_V, STEP)                                                                       \
+  {&((P).V), #P "." #V, "float_slider%" #P "%" #V "%" #MIN_V "%" #MAX_V "%<def>%" #STEP "%:", false, 0, float(DEF_V), Point2(0, 0), \
+    Point3(0, 0, 0), IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Float, {0}, NULL}
 
-#define DECLARE_BOOL_CHECKBOX(P, V, DEF_V)                                                                                       \
-  {                                                                                                                              \
-    &((P).V), #P "." #V, "bool_checkbox%" #P "%" #V "%<def>%:", bool(DEF_V), 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Bool, {0}, NULL                                     \
-  }
+#define DECLARE_BOOL_CHECKBOX(P, V, DEF_V)                                                                                      \
+  {&((P).V), #P "." #V, "bool_checkbox%" #P "%" #V "%<def>%:", bool(DEF_V), 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_Bool, {0}, NULL}
 
-#define DECLARE_BOOL_BUTTON(P, V, DEF_V)                                                                                       \
-  {                                                                                                                            \
-    &((P).V), #P "." #V, "bool_button%" #P "%" #V "%<def>%:", bool(DEF_V), 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_BoolSingle, {0}, NULL                             \
-  }
+#define DECLARE_BOOL_BUTTON(P, V, DEF_V)                                                                                      \
+  {&((P).V), #P "." #V, "bool_button%" #P "%" #V "%<def>%:", bool(DEF_V), 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_BoolSingle, {0}, NULL}
 
-#define DECLARE_INT_COMBOBOX(P, V, DEF_V, ...)                                                                                       \
-  {                                                                                                                                  \
-    &((P).V), #P "." #V, "int_combobox%" #P "%" #V "%<def>%" #__VA_ARGS__ "%:", false, int(DEF_V), 0, Point2(0, 0), Point3(0, 0, 0), \
-      IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IntEnum, {__VA_ARGS__}, NULL             \
-  }
+#define DECLARE_INT_COMBOBOX(P, V, DEF_V, ...)                                                                                      \
+  {&((P).V), #P "." #V, "int_combobox%" #P "%" #V "%<def>%" #__VA_ARGS__ "%:", false, int(DEF_V), 0, Point2(0, 0), Point3(0, 0, 0), \
+    IPoint2(0, 0), IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_IntEnum, {__VA_ARGS__}, NULL}
 
-#define DECLARE_E3DCOLOR(P, V, DEF_V)                                                                                          \
-  {                                                                                                                            \
-    &((P).V), #P "." #V, "e3dcolor%" #P "%" #V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_E3dcolor, {0}, NULL                               \
-  }
+#define DECLARE_E3DCOLOR(P, V, DEF_V)                                                                                         \
+  {&((P).V), #P "." #V, "e3dcolor%" #P "%" #V "%<def>%:", false, int(DEF_V), 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(""), 0, true, GuiControlDescWebUi::GCDT_E3dcolor, {0}, NULL}
 
-#define DECLARE_LINEAR_CURVE(P, V, DEF_V)                                                                                    \
-  {                                                                                                                          \
-    &((P).V), #P "." #V, "linear_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0),    \
-      IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::PIECEWISE_LINEAR, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL \
-  }
+#define DECLARE_LINEAR_CURVE(P, V, DEF_V)                                                                                \
+  {&((P).V), #P "." #V, "linear_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::PIECEWISE_LINEAR, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL}
 
-#define DECLARE_MONOTONIC_CURVE(P, V, DEF_V)                                                                                    \
-  {                                                                                                                             \
-    &((P).V), #P "." #V, "monotonic_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0),    \
-      IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::PIECEWISE_MONOTONIC, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL \
-  }
+#define DECLARE_MONOTONIC_CURVE(P, V, DEF_V)                                                                                \
+  {&((P).V), #P "." #V, "monotonic_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::PIECEWISE_MONOTONIC, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL}
 
-#define DECLARE_POLYNOM_CURVE(P, V, DEF_V)                                                                                 \
-  {                                                                                                                        \
-    &((P).V), #P "." #V, "polynom_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::POLYNOM, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL        \
-  }
+#define DECLARE_POLYNOM_CURVE(P, V, DEF_V)                                                                                \
+  {&((P).V), #P "." #V, "polynom_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::POLYNOM, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL}
 
-#define DECLARE_STEPS_CURVE(P, V, DEF_V)                                                                                 \
-  {                                                                                                                      \
-    &((P).V), #P "." #V, "steps_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
-      IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::STEPS, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL        \
-  }
+#define DECLARE_STEPS_CURVE(P, V, DEF_V)                                                                                \
+  {&((P).V), #P "." #V, "steps_curve%" #P "%" #V "%<def>%:", false, 0, 0, Point2(0, 0), Point3(0, 0, 0), IPoint2(0, 0), \
+    IPoint3(0, 0, 0), SimpleString(DEF_V), EditorCurve::STEPS, true, GuiControlDescWebUi::GCDT_Curve, {0}, NULL}
 
 #define GUI_ENABLE_OBJ(P, V)     de3_webui_enable_obj(#P "." #V, true)
 #define GUI_DISABLE_OBJ(P, V)    de3_webui_enable_obj(#P "." #V, false)

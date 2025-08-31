@@ -44,7 +44,7 @@ namespace debugapi {
     typedef Func DapiFunc;
 }
 
-#include "debugapi_gen.inc"
+#include "daScript/builtin/debugapi_gen.inc"
 
     struct DebugAgentAdapter : DebugAgent, DapiDebugAgent_Adapter {
         DebugAgentAdapter ( char * pClass, const StructInfo * info, Context * ctx )
@@ -192,14 +192,14 @@ namespace debugapi {
                 invoke_onFree(context,fnOnFree,classPtr,*ctx,data,at);
             }
         }
-        virtual void onAllocateString ( Context * ctx, void * data, uint64_t size, const LineInfo & at ) override {
+        virtual void onAllocateString ( Context * ctx, void * data, uint64_t size, bool tempString, const LineInfo & at ) override {
             if ( auto fnOnAllocateString = get_onAllocateString(classPtr) ) {
-                invoke_onAllocateString(context,fnOnAllocateString,classPtr,*ctx,data,size,at);
+                invoke_onAllocateString(context,fnOnAllocateString,classPtr,*ctx,data,size,tempString,at);
             }
         }
-        virtual void onFreeString ( Context * ctx, void * data, const LineInfo & at ) override {
+        virtual void onFreeString ( Context * ctx, void * data, bool tempString, const LineInfo & at ) override {
             if ( auto fnOnFreeString = get_onFreeString(classPtr) ) {
-                invoke_onFreeString(context,fnOnFreeString,classPtr,*ctx,data,at);
+                invoke_onFreeString(context,fnOnFreeString,classPtr,*ctx,data,tempString,at);
             }
         }
     public:
@@ -277,14 +277,14 @@ namespace debugapi {
                 invoke_afterTuple(context,fn_afterTuple,classPtr,ps,*ti);
             }
         }
-        virtual void beforeTupleEntry ( char * ps, TypeInfo * ti, char * pv, TypeInfo * vi, bool last ) override {
+        virtual void beforeTupleEntry ( char * ps, TypeInfo * ti, char * pv, int idx, bool last ) override {
             if ( auto fn_beforeTupleEntry = get_beforeTupleEntry(classPtr) ) {
-                invoke_beforeTupleEntry(context,fn_beforeTupleEntry,classPtr,ps,*ti,pv,*vi,last);
+                invoke_beforeTupleEntry(context,fn_beforeTupleEntry,classPtr,ps,*ti,pv,idx,last);
             }
         }
-        virtual void afterTupleEntry ( char * ps, TypeInfo * ti, char * pv, TypeInfo * vi, bool last ) override {
+        virtual void afterTupleEntry ( char * ps, TypeInfo * ti, char * pv, int idx, bool last ) override {
             if ( auto fn_afterTupleEntry = get_afterTupleEntry(classPtr) ) {
-                invoke_afterTupleEntry(context,fn_afterTupleEntry,classPtr,ps,*ti,pv,*vi,last);
+                invoke_afterTupleEntry(context,fn_afterTupleEntry,classPtr,ps,*ti,pv,idx,last);
             }
         }
         virtual bool canVisitVariant ( char * ps, TypeInfo * ti ) override {
@@ -437,6 +437,11 @@ namespace debugapi {
         virtual void afterHandle ( char * pa, TypeInfo * ti ) override {
            if ( auto fn_afterHandle = get_afterHandle(classPtr) ) {
                 invoke_afterHandle(context,fn_afterHandle,classPtr,pa,*ti);
+            }
+        }
+        virtual void afterHandleCancel ( char * pa, TypeInfo * ti ) override {
+           if ( auto fn_afterHandleCancel = get_afterHandleCancel(classPtr) ) {
+                invoke_afterHandleCancel(context,fn_afterHandleCancel,classPtr,pa,*ti);
             }
         }
         virtual bool canVisitLambda ( TypeInfo * ti ) override {
@@ -912,7 +917,7 @@ namespace debugapi {
             auto simFn = invCtx->findFunction(fn);
             if ( !simFn ) {
                 exAt = call->debugInfo;
-                exText = string("pinvoke can't find ") + fn + " function";
+                exText = string("pinvoke can't find '") + fn + "' function";
                 return;
             }
             if ( simFn->debugInfo->count!=uint32_t(call->nArguments-2) ) {
@@ -1201,6 +1206,14 @@ namespace debugapi {
         ctx.heap->breakOnFree(ptr,size);
     }
 
+    void free_temp_string ( Context & context, LineInfoArg * at ) {
+        context.freeTempString(nullptr, at);
+    }
+
+    uint64_t temp_string_size ( Context & context ) {
+        return context.stringDisposeQue ? (strlen(context.stringDisposeQue) + 1 + 3) & ~3 : 0;
+    }
+
 #if DAS_TRACK_INSANE_POINTER
     void das_track_insane_pointer ( void * ptr );
 #endif
@@ -1318,7 +1331,7 @@ namespace debugapi {
                 SideEffects::modifyExternal, "dapiStackWalk")
                     ->args({"walker","context","line"});
             addExtern<DAS_BIND_FUN(dapiStackDepth)>(*this, lib,  "stack_depth",
-                SideEffects::modifyExternal, "dapiStacDepth")
+                SideEffects::modifyExternal, "dapiStackDepth")
                     ->arg("context");
             // global variable
             addInterop<get_global_variable,void *,vec4f,const char *>(*this,lib,"get_context_global_variable",
@@ -1460,6 +1473,14 @@ namespace debugapi {
             addExtern<DAS_BIND_FUN(heap_stats)>(*this, lib, "get_heap_stats",
                 SideEffects::modifyArgumentAndAccessExternal, "heap_stats")
                     ->args({"context","bytes"})->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(free_temp_string)>(*this, lib, "free_temp_string",
+                SideEffects::modifyExternal, "free_temp_string")
+                    ->args({"context","at"})
+                    ->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(temp_string_size)>(*this, lib, "temp_string_size",
+                SideEffects::accessExternal, "temp_string_size")
+                    ->arg("context")
+                    ->unsafeOperation = true;
             // heap debugger
             addExtern<DAS_BIND_FUN(break_on_free)>(*this, lib, "break_on_free",
                 SideEffects::modifyArgumentAndAccessExternal, "break_on_free")

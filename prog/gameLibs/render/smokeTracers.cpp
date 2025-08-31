@@ -81,6 +81,8 @@ void SmokeTracerManager::initGPU(const DataBlock &settings)
 
   const char *texName = settings.getStr("tail_texture", "tracer_tail_density");
   tailTex = dag::get_tex_gameres(texName, "smoke_tracer_tail_tex");
+  ShaderGlobal::set_sampler(::get_shader_variable_id("smoke_tracer_tail_tex_samplerstate", true),
+    get_texture_separate_sampler(tailTex.getTexId()));
 
   updateCommands_cs.reset(new_compute_shader("update_tracer_commands_cs"));
   createCommands_cs.reset(new_compute_shader("create_tracer_commands_cs"));
@@ -150,15 +152,15 @@ int SmokeTracerManager::updateTracerPos(unsigned id, const Point3 &pos)
 }
 
 int SmokeTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir, float radius, const Color4 &smoke_color,
-  const Color4 &head_color, float time_to_live, const Color3 &start_head_color, float start_time)
+  const Color3 &head_color, float luminosity, float burn_time, float time_to_live, const Color3 &start_head_color, float start_time)
 {
   if (!freeTracers.size())
   {
     debug("no free smoke tracers");
     return -1;
   }
-  if (head_color.a < 0)
-    logerr("negative tracer head color alpha, head burnTime = %f", head_color.a);
+  if (burn_time < 0)
+    logerr("negative tracer head color alpha, head burnTime = %f", burn_time);
   if (time_to_live < 0)
     logerr("negative tracer smoke ttl, smoke vaporTime = %f", time_to_live);
   int id = freeTracers.back();
@@ -170,9 +172,9 @@ int SmokeTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir
   tracers[id].framesWithoutUpdate = 0;
 #endif
   aliveTracers.set(id);
-  createCommands.push_back(
-    TracerCreateCommand(id, start_pos, ndir * radius, time_to_live, reinterpret_cast<const float4 &>(smoke_color),
-      reinterpret_cast<const float4 &>(head_color), reinterpret_cast<const float3 &>(start_head_color), safeinv(start_time)));
+  createCommands.push_back(TracerCreateCommand(id, start_pos, ndir * radius, time_to_live,
+    reinterpret_cast<const float4 &>(smoke_color), reinterpret_cast<const float3 &>(head_color) * luminosity, burn_time,
+    reinterpret_cast<const float3 &>(start_head_color) * luminosity, safeinv(start_time)));
 
   usedTracers[currentUsed].push_back(id);
   return id;

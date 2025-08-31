@@ -4,18 +4,18 @@
 
 #include <EditorCore/ec_IEditorCore.h>
 
+#include <math/dag_bits.h>
 #include <supp/dag_math.h>
 #include <libTools/util/fileMask.h>
 
 #include <float.h>
-#include <intrin.h>
 
 using editorcore_extapi::dagTools;
 
 static inline unsigned get_power(int num)
 {
   unsigned long power = 0;
-  _BitScanReverse(&power, num);
+  __bit_scan_reverse(power, num);
   return power;
 }
 

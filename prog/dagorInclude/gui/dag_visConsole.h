@@ -25,9 +25,9 @@ struct ConsoleProgressIndicator
 class IVisualConsoleDriver
 {
 public:
-  IVisualConsoleDriver(){};
+  IVisualConsoleDriver() {}
 
-  virtual ~IVisualConsoleDriver(){};
+  virtual ~IVisualConsoleDriver() {}
 
   virtual void init(const char *script_filename) = 0;
   virtual void shutdown() = 0;

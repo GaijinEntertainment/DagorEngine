@@ -12,7 +12,7 @@
 #include <carve/interpolator.hpp>
 #include <carve/csg_triangulator.hpp>
 #include <math/dag_bounds3.h>
-#include <libtools/csgFaceRemover/csgFaceRemover.h>
+#include <libTools/csgFaceRemover/csgFaceRemover.h>
 #include <debug/dag_debug.h>
 
 #define REMOVE_OPEN_WITH_TRACE 1
@@ -353,7 +353,7 @@ public:
     // return meshset_from_meshes_ofmeshsets(meshes);
   }
 
-  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed, BBox3 &box)
+  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed, BBox3 &box) override
   {
     carve_poly_t *poly = texturedMesh(mesh, wtm, node_id, box);
     bool isClosed = poly->isClosed();
@@ -392,7 +392,7 @@ public:
 
     return ((CSGNode *)poly)->open_poly != NULL;
   }
-  void delete_poly(void *poly)
+  void delete_poly(void *poly) override
   {
     if (poly)
       delete ((CSGNode *)poly);
@@ -403,7 +403,7 @@ public:
       tm.m[2][2], tm.m[3][2], 0, 0, 0, 1);
     return m;
   }
-  void *makeUnion(void *a_, void *b_)
+  void *makeUnion(void *a_, void *b_) override
   {
     if (!a_ || !b_)
       return NULL;
@@ -471,7 +471,7 @@ public:
       }
     return setFaces;
   }
-  int removeUnusedFaces(Mesh &mesh, void *in_, int node_id)
+  int removeUnusedFaces(Mesh &mesh, void *in_, int node_id) override
   {
     if (!in_)
       return 0;

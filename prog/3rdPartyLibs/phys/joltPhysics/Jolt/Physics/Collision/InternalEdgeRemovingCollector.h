@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Jolt/Core/QuickSort.h>
+#include <Jolt/Core/STLLocalAllocator.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
 
 //#define JPH_INTERNAL_EDGE_REMOVING_COLLECTOR_DEBUG
@@ -17,16 +18,20 @@ JPH_NAMESPACE_BEGIN
 
 /// Removes internal edges from collision results. Can be used to filter out 'ghost collisions'.
 /// Based on: Contact generation for meshes - Pierre Terdiman (https://www.codercorner.com/MeshContacts.pdf)
+///
+/// Note that this class requires that CollideSettingsBase::mActiveEdgeMode == EActiveEdgeMode::CollideWithAll
+/// and CollideSettingsBase::mCollectFacesMode == ECollectFacesMode::CollectFaces.
 class InternalEdgeRemovingCollector : public CollideShapeCollector
 {
-	static constexpr uint cMaxDelayedResults = 16;
-	static constexpr uint cMaxVoidedFeatures = 128;
+	static constexpr uint cMaxLocalDelayedResults = 32;
+	static constexpr uint cMaxLocalVoidedFeatures = 128;
 
 	/// Check if a vertex is voided
-	inline bool				IsVoided(Vec3 inV) const
+	inline bool				IsVoided(const SubShapeID &inSubShapeID, Vec3 inV) const
 	{
-		for (const Float3 &vf : mVoidedFeatures)
-			if (inV.IsClose(Vec3::sLoadFloat3Unsafe(vf), 1.0e-8f))
+		for (const Voided &vf : mVoidedFeatures)
+			if (vf.mSubShapeID == inSubShapeID
+				&& inV.IsClose(Vec3::sLoadFloat3Unsafe(vf.mFeature), 1.0e-8f))
 				return true;
 		return false;
 	}
@@ -35,13 +40,12 @@ class InternalEdgeRemovingCollector : public CollideShapeCollector
 	inline void				VoidFeatures(const CollideShapeResult &inResult)
 	{
 		for (const Vec3 &v : inResult.mShape2Face)
-			if (!IsVoided(v))
+			if (!IsVoided(inResult.mSubShapeID1, v))
 			{
-				if (mVoidedFeatures.size() == cMaxVoidedFeatures)
-					break;
-				Float3 f;
-				v.StoreFloat3(&f);
-				mVoidedFeatures.push_back(f);
+				Voided vf;
+				v.StoreFloat3(&vf.mFeature);
+				vf.mSubShapeID = inResult.mSubShapeID1;
+				mVoidedFeatures.push_back(vf);
 			}
 	}
 
@@ -75,6 +79,9 @@ public:
 	explicit				InternalEdgeRemovingCollector(CollideShapeCollector &inChainedCollector) :
 		mChainedCollector(inChainedCollector)
 	{
+		// Initialize arrays to full capacity to avoid needless reallocation calls
+		mVoidedFeatures.reserve(cMaxLocalVoidedFeatures);
+		mDelayedResults.reserve(cMaxLocalDelayedResults);
 	}
 
 	// See: CollideShapeCollector::Reset
@@ -116,8 +123,6 @@ public:
 			return ChainAndVoid(inResult);
 
 		// Delayed processing
-		if (mDelayedResults.size() == cMaxDelayedResults)
-			return ChainAndVoid(inResult);
 		mDelayedResults.push_back(inResult);
 	}
 
@@ -125,10 +130,11 @@ public:
 	void					Flush()
 	{
 		// Sort on biggest penetration depth first
-		uint sorted_indices[cMaxDelayedResults];
+		Array<uint, STLLocalAllocator<uint, cMaxLocalDelayedResults>> sorted_indices;
+		sorted_indices.resize(mDelayedResults.size());
 		for (uint i = 0; i < uint(mDelayedResults.size()); ++i)
 			sorted_indices[i] = i;
-		QuickSort(sorted_indices, sorted_indices + mDelayedResults.size(), [this](uint inLHS, uint inRHS) { return mDelayedResults[inLHS].mPenetrationDepth > mDelayedResults[inRHS].mPenetrationDepth; });
+		QuickSort(sorted_indices.begin(), sorted_indices.end(), [this](uint inLHS, uint inRHS) { return mDelayedResults[inLHS].mPenetrationDepth > mDelayedResults[inRHS].mPenetrationDepth; });
 
 		// Loop over all results
 		for (uint i = 0; i < uint(mDelayedResults.size()); ++i)
@@ -193,16 +199,16 @@ public:
 			}
 
 			// Check if this vertex/edge is voided
-			bool voided = IsVoided(r.mShape2Face[best_v1_idx])
-				&& (best_v1_idx == best_v2_idx || IsVoided(r.mShape2Face[best_v2_idx]));
+			bool voided = IsVoided(r.mSubShapeID1, r.mShape2Face[best_v1_idx])
+				&& (best_v1_idx == best_v2_idx || IsVoided(r.mSubShapeID1, r.mShape2Face[best_v2_idx]));
 
 		#ifdef JPH_INTERNAL_EDGE_REMOVING_COLLECTOR_DEBUG
 			Color color = voided? Color::sRed : Color::sYellow;
 			DebugRenderer::sInstance->DrawText3D(RVec3(r.mContactPointOn2), StringFormat("%d: %g", i, r.mPenetrationDepth), color, 0.1f);
 			DebugRenderer::sInstance->DrawWirePolygon(RMat44::sIdentity(), r.mShape2Face, color);
 			DebugRenderer::sInstance->DrawArrow(RVec3(r.mContactPointOn2), RVec3(r.mContactPointOn2) + r.mPenetrationAxis.NormalizedOr(Vec3::sZero()), color, 0.1f);
-			DebugRenderer::sInstance->DrawMarker(RVec3(r.mShape2Face[best_v1_idx]), IsVoided(r.mShape2Face[best_v1_idx])? Color::sRed : Color::sYellow, 0.1f);
-			DebugRenderer::sInstance->DrawMarker(RVec3(r.mShape2Face[best_v2_idx]), IsVoided(r.mShape2Face[best_v2_idx])? Color::sRed : Color::sYellow, 0.1f);
+			DebugRenderer::sInstance->DrawMarker(RVec3(r.mShape2Face[best_v1_idx]), IsVoided(r.mSubShapeID1, r.mShape2Face[best_v1_idx])? Color::sRed : Color::sYellow, 0.1f);
+			DebugRenderer::sInstance->DrawMarker(RVec3(r.mShape2Face[best_v2_idx]), IsVoided(r.mSubShapeID1, r.mShape2Face[best_v2_idx])? Color::sRed : Color::sYellow, 0.1f);
 		#endif // JPH_INTERNAL_EDGE_REMOVING_COLLECTOR_DEBUG
 
 			// No voided features, accept the contact
@@ -218,9 +224,17 @@ public:
 		mDelayedResults.clear();
 	}
 
+	// See: CollideShapeCollector::OnBodyEnd
+	virtual void			OnBodyEnd() override
+	{
+		Flush();
+		mChainedCollector.OnBodyEnd();
+	}
+
 	/// Version of CollisionDispatch::sCollideShapeVsShape that removes internal edges
 	static void				sCollideShapeVsShape(const Shape *inShape1, const Shape *inShape2, Vec3Arg inScale1, Vec3Arg inScale2, Mat44Arg inCenterOfMassTransform1, Mat44Arg inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1, const SubShapeIDCreator &inSubShapeIDCreator2, const CollideShapeSettings &inCollideShapeSettings, CollideShapeCollector &ioCollector, const ShapeFilter &inShapeFilter = { })
 	{
+		JPH_ASSERT(inCollideShapeSettings.mActiveEdgeMode == EActiveEdgeMode::CollideWithAll); // Won't work without colliding with all edges
 		JPH_ASSERT(inCollideShapeSettings.mCollectFacesMode == ECollectFacesMode::CollectFaces); // Won't work without collecting faces
 
 		InternalEdgeRemovingCollector wrapper(ioCollector);
@@ -229,9 +243,18 @@ public:
 	}
 
 private:
+	// This algorithm tests a convex shape (shape 1) against a set of polygons (shape 2).
+	// This assumption doesn't hold if the shape we're testing is a compound shape, so we must also
+	// store the sub shape ID and ignore voided features that belong to another sub shape ID.
+	struct Voided
+	{
+		Float3				mFeature;				// Feature that is voided (of shape 2). Read with Vec3::sLoadFloat3Unsafe so must not be the last member.
+		SubShapeID			mSubShapeID;			// Sub shape ID of the shape that is colliding against the feature (of shape 1).
+	};
+
 	CollideShapeCollector &	mChainedCollector;
-	StaticArray<Float3, cMaxVoidedFeatures> mVoidedFeatures; // Read with Vec3::sLoadFloat3Unsafe so must not be the last member
-	StaticArray<CollideShapeResult, cMaxDelayedResults> mDelayedResults;
+	Array<Voided, STLLocalAllocator<Voided, cMaxLocalVoidedFeatures>> mVoidedFeatures;
+	Array<CollideShapeResult, STLLocalAllocator<CollideShapeResult, cMaxLocalDelayedResults>> mDelayedResults;
 };
 
 JPH_NAMESPACE_END

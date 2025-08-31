@@ -124,8 +124,7 @@ bool GIWalls::calc()
   if (!planeList.size())
   {
     TIME_D3D_PROFILE(walls_clear_cs);
-    uint v[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(currentWallsGridSB.getBuf(), v);
+    d3d::zero_rwbufi(currentWallsGridSB.getBuf());
     d3d::resource_barrier({currentWallsGridSB.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
     return true;
   }

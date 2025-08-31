@@ -5,12 +5,13 @@
 #include <3d/dag_resPtr.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/componentType.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_map.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/integer/dag_IPoint2.h>
+#include <render/renderEvent.h>
 
 struct FoamFxParams;
 class FoamFx;
@@ -53,6 +54,7 @@ public:
   {
     uint32_t rtWidth = 0;
     uint32_t rtHeight = 0;
+    IPoint2 maxRenderingResolution = {0, 0};
     bool unitWakeOn = true;
     bool foamFxOn = false;
     int waterQuality = 0;
@@ -62,8 +64,9 @@ public:
 private:
   TEXTUREID loadTexture(const char *name);
 
-  void createWaterProjectedFx(int targetWidth, int targetHeight);
+  void createWaterProjectedFx();
   void clearWaterProjectedFx();
+  void setProjFxResolution();
   void createFoamFx(int target_width, int target_height, int water_quality);
   void clearFoamFx();
   float getWaterProjectedFxLodBias() const;
@@ -108,8 +111,8 @@ public:
   };
 };
 
-dabfg::NodeHandle makeWaterEffectsPrepareNode();
-dabfg::NodeHandle makeWaterEffectsNode(WaterEffects &water_effects);
+dafg::NodeHandle makeWaterEffectsPrepareNode();
+dafg::NodeHandle makeWaterEffectsNode(WaterEffects &water_effects);
 FFTWater *get_water();
 
 ECS_DECLARE_BOXED_TYPE(WaterEffects);

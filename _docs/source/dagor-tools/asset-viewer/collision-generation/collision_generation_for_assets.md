@@ -1,3 +1,5 @@
+# Collision Generation for Assets in Asset Viewer
+
 ## Overview
 
 The [Asset Viewer](../asset-viewer/asset_viewer.md) now supports the ability
@@ -68,10 +70,22 @@ nodes. Holding `Ctrl` allows for multiple node selection.
 
 **Selected Preset**
 
-:::{grid} 2
-<img src="_images/collision_generation_for_assets_04.jpg" alt="k-dop node generation parameters" align="right" width="20em">
-<img src="_images/collision_generation_for_assets_05.jpg" alt="k-dop node generation parameters" align="left" width="20em">
-:::
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
+
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
+
+      .. image:: _images/collision_generation_for_assets_04.jpg
+         :height: 10em
+         :class: image-gap
+
+      .. image:: _images/collision_generation_for_assets_05.jpg
+         :height: 10em
+```
 
 Select a preset for the chosen nodes. The following presets are available for
 `k-dop` generation:

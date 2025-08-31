@@ -145,9 +145,8 @@ void LandMeshCullingState::cullDataWithBbox(LandMeshCullingData &dest_data, cons
 }
 
 
-void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frustum &frustum, const Occlusion *occlusion,
-  LandMeshCullingData &data, const IBBox2 *regions_array, int regions_count, const Point3 &hmap_origin, float hmap_camera_height,
-  float hmap_water_level, int hmapTankDetail, int hmap_lod0_subdiv, float hmap_lod0_scale)
+void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCullingData &data, const IBBox2 *regions_array,
+  int regions_count, const HeightmapFrustumCullingInfo &fi)
 {
   TIME_PROFILE(lmesh_frustum_cull);
 
@@ -174,18 +173,18 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frust
   {
     vec4f cellSizeV = v_splats(cellSize);
     vec4f invalid, invalid2;
-    vec4f farplanepos = three_plane_intersection(frustum.camPlanes[frustum.FARPLANE], frustum.camPlanes[frustum.TOP],
-      frustum.camPlanes[frustum.LEFT], invalid);
+    vec4f farplanepos = three_plane_intersection(fi.frustum.camPlanes[Frustum::FARPLANE], fi.frustum.camPlanes[Frustum::TOP],
+      fi.frustum.camPlanes[Frustum::LEFT], invalid);
     G_ASSERT(v_test_vec_x_eqi_0(invalid));
 
-    vec4f far_dist = v_abs(v_plane_dist(frustum.camPlanes[frustum.NEARPLANE], farplanepos));
-    vec4f camerapos = three_plane_intersection(frustum.camPlanes[frustum.RIGHT], frustum.camPlanes[frustum.TOP],
-      frustum.camPlanes[frustum.LEFT], invalid);
+    vec4f far_dist = v_abs(v_plane_dist(fi.frustum.camPlanes[Frustum::NEARPLANE], farplanepos));
+    vec4f camerapos = three_plane_intersection(fi.frustum.camPlanes[Frustum::RIGHT], fi.frustum.camPlanes[Frustum::TOP],
+      fi.frustum.camPlanes[Frustum::LEFT], invalid);
 
     far_dist = v_sel(v_length3(v_sub(camerapos, farplanepos)), far_dist, invalid);
 
-    vec4f farplanepos2 = three_plane_intersection(frustum.camPlanes[frustum.FARPLANE], frustum.camPlanes[frustum.TOP],
-      frustum.camPlanes[frustum.RIGHT], invalid2);
+    vec4f farplanepos2 = three_plane_intersection(fi.frustum.camPlanes[Frustum::FARPLANE], fi.frustum.camPlanes[Frustum::TOP],
+      fi.frustum.camPlanes[Frustum::RIGHT], invalid2);
     G_ASSERT(v_test_vec_x_eqi_0(invalid2));
     // implicit assumption, that rendering raius is maximum of two: distance from znear plane to zfar/left/top,
     //   and 0.5*length(zfar/left/top, zfar/right/top) (since we are more likely to half wide resoultion).
@@ -257,20 +256,19 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frust
     {
       for (int y = cellBox.lim[0].y; y <= cellBox.lim[1].y; y++)
         for (int x = cellBox.lim[0].x; x <= cellBox.lim[1].x; x++)
-          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
     }
   }
   else
   {
     // front-to-back sorting and cullingMng
-    if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && hmapTankDetail >= 0)
+    if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && fi.min_tank_lod >= 0)
     {
-      provider.getHmapHandler()->frustumCulling(data.heightmapData, hmap_origin, hmap_camera_height, hmap_water_level, frustum,
-        hmapTankDetail, occlusion, hmap_lod0_subdiv, hmap_lod0_scale);
+      provider.getHmapHandler()->frustumCulling(data.heightmapData, fi);
     }
     startCell.x = max(cellBox.lim[0].x, min(cellBox.lim[1].x, startCell.x));
     startCell.y = max(cellBox.lim[0].y, min(cellBox.lim[1].y, startCell.y));
-    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
 
     for (int radius = 1; radius <= maxRadius; ++radius)
     {
@@ -279,19 +277,19 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, const Frust
 
       if (minY >= cellBox.lim[0].y && minY <= cellBox.lim[1].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
 
       if (maxY <= cellBox.lim[1].y && maxY >= cellBox.lim[0].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
 
       if (minX >= cellBox.lim[0].x && minX <= cellBox.lim[1].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
 
       if (maxX <= cellBox.lim[1].x && maxX >= cellBox.lim[0].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, frustum, occlusion, data);
+          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
     }
   }
 }

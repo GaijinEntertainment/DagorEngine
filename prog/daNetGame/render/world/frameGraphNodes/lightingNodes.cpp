@@ -1,16 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
 #include <ecs/render/renderPasses.h>
+#include <frustumCulling/frustumPlanes.h>
+#include <rendInst/gpuObjects.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/visibility.h>
+#include <render/daFrameGraph/daFG.h>
+#include <render/viewVecs.h>
 #include <render/volumetricLights/volumetricLights.h>
+
+#include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
 #include <util/dag_convar.h>
-#include <perfMon/dag_statDrv.h>
-#include <rendInst/gpuObjects.h>
-#include <rendInst/visibility.h>
-#include <rendInst/rendInstGenRender.h>
-#include <frustumCulling/frustumPlanes.h>
+
+#include <render/world/cameraInCamera.h>
 #include <render/world/frameGraphHelpers.h>
+#include <render/world/overridden_params.h>
 
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
@@ -22,16 +27,21 @@ extern ConVarT<bool, false> dynamic_lights;
 
 CONSOLE_INT_VAL("render", volfog_force_invalidate, 0, 0, 2); // 0 - off, 1 - invalidate once, 2 - force
 
-dabfg::NodeHandle makePrepareLightsNode()
+// defines bbox around camera that limit dynamic objects passed into dynamic light shadow updates
+static constexpr float DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE = 5;
+CONSOLE_FLOAT_VAL("render", lights_shadow_dyn_objects_update_range, DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE);
+
+dafg::NodeHandle makePrepareLightsNode()
 {
-  return dabfg::register_node("prepare_lights_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("prepare_lights_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("downsample_depth_node");
     int dynamic_lights_countVarId = get_shader_variable_id("dynamic_lights_count");
-    auto hasAnyDynamicLightsHndl = registry.createBlob<bool>("has_any_dynamic_lights", dabfg::History::No).handle();
+    auto hasAnyDynamicLightsHndl = registry.createBlob<bool>("has_any_dynamic_lights", dafg::History::No).handle();
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
-    return [hasAnyDynamicLightsHndl, dynamic_lights_countVarId]() {
+    return [hasAnyDynamicLightsHndl, dynamic_lights_countVarId, cameraHndl]() {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-      wr.waitLights();
+      cameraHndl.ref().jobsMgr->waitLights();
 
       const int spotsCount = wr.lights.getVisibleClusteredSpotsCount();
       const int omniCount = wr.lights.getVisibleClusteredOmniCount();
@@ -47,16 +57,18 @@ dabfg::NodeHandle makePrepareLightsNode()
 }
 
 // TODO: separate this into more fine-grained nodes.
-eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
+eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *level_blk)
 {
-  auto prepareNode = dabfg::register_node("scene_shadow_prepare_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  lights_shadow_dyn_objects_update_range =
+    lvl_override::getReal(level_blk, "lightsShadowDynObjectsUpdateRange", DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE);
+  auto prepareNode = dafg::register_node("scene_shadow_prepare_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("prepare_lights_node");
     registry.requestState().setFrameBlock("global_frame");
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto volumesHndl =
-      registry.createBlob<dynamic_shadow_render::VolumesVector>("scene_shadow_volumes_to_render", dabfg::History::No).handle();
-    auto updatesHndl = registry.createBlob<dynamic_shadow_render::FrameUpdates>("scene_shadow_updates", dabfg::History::No).handle();
+      registry.createBlob<dynamic_shadow_render::VolumesVector>("scene_shadow_volumes_to_render", dafg::History::No).handle();
+    auto updatesHndl = registry.createBlob<dynamic_shadow_render::FrameUpdates>("scene_shadow_updates", dafg::History::No).handle();
 
     return [cameraHndl, volumesHndl, updatesHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -76,7 +88,8 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
       auto &updates = updatesHndl.ref();
 
       vec4f vpos = v_ldu_p3(camera.viewItm[3]);
-      bbox3f dynBox = {v_sub(vpos, v_splats(5)), v_add(vpos, v_splats(5))};
+      vec4f dynRange = v_splats(lights_shadow_dyn_objects_update_range);
+      bbox3f dynBox = {v_sub(vpos, dynRange), v_add(vpos, dynRange)};
 
       mat44f globTm;
       v_mat44_make_from_44cu(globTm, &camera.jitterGlobtm._11);
@@ -86,10 +99,10 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
     };
   });
 
-  auto renderNode = dabfg::register_node("scene_shadow_render_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  auto renderNode = dafg::register_node("scene_shadow_render_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeBefore("combine_shadows_node");
     registry.requestState().setFrameBlock("global_frame");
-    registry.executionHas(dabfg::SideEffects::External);
+    registry.executionHas(dafg::SideEffects::External);
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto volumesHndl = registry.readBlob<dynamic_shadow_render::VolumesVector>("scene_shadow_volumes_to_render").handle();
@@ -104,8 +117,8 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
 
       wr->lights.frameRenderShadows(
         volumesToRender,
-        [wr, rendinstDepthSceneBlockId](mat44f_cref globTm, const TMatrix &viewItm, int updateIndex, int viewIndex,
-          DynamicShadowRenderGPUObjects render_gpu_objects) {
+        [wr, rendinstDepthSceneBlockId](mat44f_cref globTm, mat44f_cref /*projTm*/, const TMatrix &viewItm, int updateIndex,
+          int viewIndex, DynamicShadowRenderGPUObjects render_gpu_objects) {
           Point3 cameraPos = viewItm.getcol(3);
           {
             // Added culling here because renderRendinst no longer uses the rendinst::renderRIGen
@@ -144,47 +157,48 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
   };
 }
 
-dabfg::NodeHandle makePrepareTiledLightsNode()
+dafg::NodeHandle makePrepareTiledLightsNode()
 {
-  return dabfg::register_node("prepare_tiled_lights_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("prepare_tiled_lights_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("prepare_lights_node");
     registry.orderMeBefore("combine_shadows_node");
-    registry.readTexture("close_depth").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("downsampled_close_depth_tex").optional();
+    registry.readTexture("close_depth").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("downsampled_close_depth_tex").optional();
     registry.read("close_depth_sampler")
       .blob<d3d::SamplerHandle>()
       .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
       .optional();
-    registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("downsampled_far_depth_tex");
+    registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("downsampled_far_depth_tex");
     registry.read("far_downsampled_depth_sampler")
       .blob<d3d::SamplerHandle>()
       .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
     registry.requestState().setFrameBlock("global_frame");
     auto hasAnyDynamicLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    auto cameraHndl = use_camera_in_camera(registry);
 
-    return [hasAnyDynamicLightsHndl]() {
+    return [hasAnyDynamicLightsHndl, cameraHndl](const dafg::multiplexing::Index multiplex_index) {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       if (wr.lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
         wr.lights.setBuffersToShader();
-      wr.lights.prepareTiledLights();
+
+      camera_in_camera::ApplyPostfxState camcam{multiplex_index, cameraHndl.ref()};
+      const bool needToClearLights = multiplex_index.subCamera == 0;
+
+      wr.lights.prepareTiledLights(needToClearLights);
     };
   });
 }
 
 
-eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
+eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
 {
-  auto bindShaderVarBase = [](auto &&res_request, const char *shader_var_name) {
-    return eastl::move(res_request).texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar(shader_var_name);
-  };
-  auto bindShaderVar = [&bindShaderVarBase](dabfg::Registry registry, const char *res_name, const char *shader_var_name) {
-    return bindShaderVarBase(registry.read(res_name), shader_var_name);
+  auto bindShaderVar = [](dafg::Registry registry, const char *res_name, const char *shader_var_name) {
+    return eastl::move(registry.read(res_name)).texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar(shader_var_name);
   };
 
   auto volfog_ff_occlusion_node =
-    dabfg::register_node("volfog_ff_occlusion_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
-      registry.createBlob<OrderingToken>("volfog_ff_occlusion_token", dabfg::History::No);
+    dafg::register_node("volfog_ff_occlusion_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
+      registry.createBlob<OrderingToken>("volfog_ff_occlusion_token", dafg::History::No);
 
       bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
       registry.read("far_downsampled_depth_sampler")
@@ -196,6 +210,7 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
       return [cameraHndl] {
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
         const auto &camera = cameraHndl.ref();
+        set_viewvecs_to_shader(camera.viewTm, camera.jitterProjTm);
 
         float volFogRange =
           cvt(wr.cameraHeight, wr.volumeLightLowHeight, wr.volumeLightHighHeight, wr.volumeLightLowRange, wr.volumeLightHighRange);
@@ -214,13 +229,17 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
       };
     });
 
-  auto volfog_ff_fill_media_node = dabfg::register_node("volfog_ff_fill_media_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.createBlob<OrderingToken>("volfog_ff_media_token", dabfg::History::No);
+  auto volfog_ff_fill_media_node = dafg::register_node("volfog_ff_fill_media_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.createBlob<OrderingToken>("volfog_ff_media_token", dafg::History::No);
 
     registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
 
     registry.requestState().setFrameBlock("global_frame");
-    return [] {
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+
+    return [cameraHndl] {
+      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       wr.volumeLight->performFroxelFogFillMedia();
@@ -228,30 +247,62 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
     };
   });
 
-  auto volfog_shadow_node = dabfg::register_node("volfog_shadow_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  auto volfog_shadow_node = dafg::register_node("volfog_shadow_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeBefore("combine_shadows_node");
 
-    registry.createBlob<OrderingToken>("volfog_shadow_token", dabfg::History::No);
+    registry.createBlob<OrderingToken>("volfog_shadow_token", dafg::History::No);
 
     registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
 
     registry.requestState().setFrameBlock("global_frame");
-    return [] {
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+
+    return [cameraHndl] {
+      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       wr.volumeLight->performVolfogShadow();
     };
   });
 
+  auto volfog_df_per_camera_resources_node =
+    dafg::register_node("volfog_df_per_camera_resources_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      // todo: import DF textures to FG here and do resource deps
+      registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
+      registry.createBlob<OrderingToken>("volfog_df_raymarch_token", dafg::History::No);
+      registry.createBlob<OrderingToken>("volfog_df_mipgen_token", dafg::History::No);
+      registry.createBlob<OrderingToken>("volfog_df_result_token", dafg::History::No);
+      registry.createBlob<OrderingToken>("volfog_df_fx_mip_token", dafg::History::No);
+
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        registry.create("volfog_hist_far_downsampled_depth_sampler_1", dafg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      }
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        registry.create("volfog_hist_far_downsampled_depth_sampler_2", dafg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      }
+
+      return []() {};
+    });
+
   auto volfog_df_raymarch_node =
-    dabfg::register_node("volfog_df_raymarch_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
-      registry.createBlob<OrderingToken>("volfog_df_raymarch_token", dabfg::History::No);
+    dafg::register_node("volfog_df_raymarch_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
+      registry.modifyBlob<OrderingToken>("volfog_df_raymarch_token");
+      registry.modifyBlob<OrderingToken>("volfog_df_mipgen_token");
 
       registry.readBlob<OrderingToken>("volfog_ff_occlusion_token"); // for performStartFrame only, but it's better not to create a
                                                                      // separate node for that
 
       registry.readTexture("checkerboard_depth")
-        .atStage(dabfg::Stage::PS_OR_CS)
+        .atStage(dafg::Stage::PS_OR_CS)
         .bindToShaderVar("downsampled_checkerboard_depth_tex")
         .optional();
       registry.read("checkerboard_depth_sampler")
@@ -259,7 +310,7 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
         .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
         .optional();
 
-      registry.readTexture("close_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
+      registry.readTexture("close_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
       registry.read("close_depth_sampler")
         .blob<d3d::SamplerHandle>()
         .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
@@ -267,18 +318,14 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
 
       registry.historyFor("far_downsampled_depth")
         .texture()
-        .atStage(dabfg::Stage::PS_OR_CS)
+        .atStage(dafg::Stage::PS_OR_CS)
         .bindToShaderVar("prev_downsampled_far_depth_tex")
         .optional();
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        smpInfo.filter_mode = d3d::FilterMode::Point;
-        registry.create("volfog_hist_far_downsampled_depth_sampler_1", dabfg::History::No)
-          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
-          .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
-          .bindToShaderVar("effects_depth_tex_samplerstate");
-      }
+
+      registry.read("volfog_hist_far_downsampled_depth_sampler_1")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
+        .bindToShaderVar("effects_depth_tex_samplerstate");
 
       bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
       registry.read("far_downsampled_depth_sampler")
@@ -286,18 +333,39 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
         .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
 
       registry.requestState().setFrameBlock("global_frame");
+
+      registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+      auto cameraHndl = read_camera_in_camera(registry).handle();
+      auto prevCameraHndl = read_history_camera_in_camera(registry).handle();
+
+      return [cameraHndl, prevCameraHndl](dafg::multiplexing::Index multiplexing_index) {
+        camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref(), prevCameraHndl.ref()};
+
+        const bool isMainView = camera_in_camera::is_main_view(multiplexing_index);
+        if (isMainView)
+          set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
+
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+        wr.volumeLight->performDistantFogRaymarch(isMainView);
+      };
+    });
+
+  auto volfog_df_occlusion_weights_mip_gen_node =
+    dafg::register_node("volfog_df_occlusion_weights_mip_gen_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.modifyBlob<OrderingToken>("volfog_df_raymarch_token");
+      registry.readBlob<OrderingToken>("volfog_df_mipgen_token");
+
       return [] {
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-
-        wr.volumeLight->performDistantFogRaymarch();
+        wr.volumeLight->generateDistantFogOcclusionWeightsMips();
       };
     });
 
   auto volfog_ff_result_node =
-    dabfg::register_node("volfog_ff_result_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
+    dafg::register_node("volfog_ff_result_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
       registry.orderMeAfter("prepare_lights_node");
 
-      registry.createBlob<OrderingToken>("volfog_ff_result_token", dabfg::History::No);
+      registry.createBlob<OrderingToken>("volfog_ff_result_token", dafg::History::No);
 
       registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
       registry.readBlob<OrderingToken>("volfog_ff_media_token");
@@ -320,7 +388,11 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
 
       auto hasDynLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
       registry.requestState().setFrameBlock("global_frame");
-      return [hasDynLightsHndl] {
+
+      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+
+      return [cameraHndl, hasDynLightsHndl] {
+        set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
         if (wr.lights.hasClusteredLights() && hasDynLightsHndl.ref())
@@ -334,13 +406,14 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
     });
 
   auto volfog_df_result_node =
-    dabfg::register_node("volfog_df_result_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
-      registry.createBlob<OrderingToken>("volfog_df_result_token", dabfg::History::No);
+    dafg::register_node("volfog_df_result_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
+      registry.modifyBlob<OrderingToken>("volfog_df_result_token");
+      registry.modifyBlob<OrderingToken>("volfog_df_fx_mip_token");
 
       registry.readBlob<OrderingToken>("volfog_df_raymarch_token");
 
       registry.readTexture("checkerboard_depth")
-        .atStage(dabfg::Stage::PS_OR_CS)
+        .atStage(dafg::Stage::PS_OR_CS)
         .bindToShaderVar("downsampled_checkerboard_depth_tex")
         .optional();
       registry.read("checkerboard_depth_sampler")
@@ -348,7 +421,7 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
         .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
         .optional();
 
-      registry.readTexture("close_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
+      registry.readTexture("close_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
       registry.read("close_depth_sampler")
         .blob<d3d::SamplerHandle>()
         .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
@@ -356,18 +429,14 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
 
       registry.historyFor("far_downsampled_depth")
         .texture()
-        .atStage(dabfg::Stage::PS_OR_CS)
+        .atStage(dafg::Stage::PS_OR_CS)
         .bindToShaderVar("prev_downsampled_far_depth_tex")
         .optional();
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        smpInfo.filter_mode = d3d::FilterMode::Point;
-        registry.create("volfog_hist_far_downsampled_depth_sampler_2", dabfg::History::No)
-          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
-          .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
-          .bindToShaderVar("effects_depth_tex_samplerstate");
-      }
+
+      registry.read("volfog_hist_far_downsampled_depth_sampler_2")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
+        .bindToShaderVar("effects_depth_tex_samplerstate");
 
       bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
       registry.read("far_downsampled_depth_sampler")
@@ -375,19 +444,41 @@ eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
         .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
 
       registry.requestState().setFrameBlock("global_frame");
-      return [] {
+      registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+      auto cameraHndl = read_camera_in_camera(registry).handle();
+      auto prevCameraHndl = read_history_camera_in_camera(registry).handle();
+
+      return [prevCameraHndl, cameraHndl](const dafg::multiplexing::Index multiplex_index) {
+        camera_in_camera::ApplyPostfxState camcam{multiplex_index, cameraHndl.ref(), prevCameraHndl.ref()};
+
+        if (camera_in_camera::is_main_view(multiplex_index))
+          set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
+
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
         wr.volumeLight->performDistantFogReconstruct();
       };
     });
 
+  auto volfog_df_fx_mipgen_node = dafg::register_node("volfog_df_fx_mipgen_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.modifyBlob<OrderingToken>("volfog_df_result_token");
+    registry.readBlob<OrderingToken>("volfog_df_fx_mip_token");
+
+    return []() {
+      auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+      wr.volumeLight->performDistantFogReconstructFxMipGen();
+    };
+  });
+
   return {
     eastl::move(volfog_ff_occlusion_node),
     eastl::move(volfog_ff_fill_media_node),
     eastl::move(volfog_shadow_node),
+    eastl::move(volfog_df_per_camera_resources_node),
     eastl::move(volfog_df_raymarch_node),
+    eastl::move(volfog_df_occlusion_weights_mip_gen_node),
     eastl::move(volfog_ff_result_node),
     eastl::move(volfog_df_result_node),
+    eastl::move(volfog_df_fx_mipgen_node),
   };
 }

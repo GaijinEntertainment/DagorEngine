@@ -20,36 +20,36 @@ class SphereLightObject : public RenderableEditableObject
 public:
   SphereLightObject();
 
-  virtual void update(float) {}
-  virtual void beforeRender() {}
-  virtual void render();
-  virtual void renderTrans();
+  void update(float) override {}
+  void beforeRender() override {}
+  void render() override;
+  void renderTrans() override;
 
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
-  virtual void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk);
+  void load(const DataBlock &blk);
 
-  virtual bool mayRename() { return true; }
-  virtual bool mayDelete() { return true; }
-  virtual void setWtm(const TMatrix &wtm);
+  bool mayRename() override { return true; }
+  bool mayDelete() override { return true; }
+  void setWtm(const TMatrix &wtm) override;
 
-  virtual void onRemove(ObjectEditor *);
-  virtual void onAdd(ObjectEditor *objEditor);
+  void onRemove(ObjectEditor *) override;
+  void onAdd(ObjectEditor *objEditor) override;
 
-  virtual bool setPos(const Point3 &p);
+  bool setPos(const Point3 &p) override;
 
-  virtual void putMoveUndo();
+  void putMoveUndo() override;
 
-  virtual void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) {}
+  void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) override {}
 
   EO_IMPLEMENT_RTTI(CID_SphereLightObject)
 
@@ -94,7 +94,7 @@ protected:
   Props props;
   GeomObject *ltGeom;
 
-  ~SphereLightObject();
+  ~SphereLightObject() override;
 
   class UndoPropsChange : public UndoRedoObject
   {
@@ -104,17 +104,17 @@ protected:
   public:
     UndoPropsChange(SphereLightObject *o) : obj(o) { oldProps = redoProps = obj->props; }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoProps = obj->props;
       obj->setProps(oldProps);
     }
 
-    virtual void redo() { obj->setProps(redoProps); }
+    void redo() override { obj->setProps(redoProps); }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoLightPropsChange"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoLightPropsChange"; }
   };
 };

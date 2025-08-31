@@ -1,7 +1,10 @@
-// clang-format off  // generated text, do not modify!
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// clang-format off  // generated text, do not modify!
 #include "readType.h"
 
+#include <math/dag_Point3.h>
 #include <math/dag_curveParams.h>
 #include <fx/dag_paramScript.h>
 
@@ -25,13 +28,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
 
     enabled = readType<int>(ptr, len);
-    curve.load(ptr, len);
+    if (!curve.load(ptr, len))
+      return false;
+    return true;
   }
 };
 
@@ -44,13 +49,14 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     start = readType<real>(ptr, len);
     end = readType<real>(ptr, len);
+    return true;
   }
 };
 
@@ -63,13 +69,14 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     leftTop = readType<Point2>(ptr, len);
     rightBottom = readType<Point2>(ptr, len);
+    return true;
   }
 };
 
@@ -82,13 +89,14 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     center = readType<Point3>(ptr, len);
     size = readType<Point3>(ptr, len);
+    return true;
   }
 };
 
@@ -101,13 +109,14 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     center = readType<Point3>(ptr, len);
     radius = readType<real>(ptr, len);
+    return true;
   }
 };
 
@@ -127,10 +136,10 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     center = readType<Point3>(ptr, len);
     scale = readType<Point3>(ptr, len);
@@ -141,6 +150,7 @@ public:
     inclinationMin = readType<real>(ptr, len);
     inclinationMax = readType<real>(ptr, len);
     inclinationNoise = readType<real>(ptr, len);
+    return true;
   }
 };
 
@@ -174,16 +184,20 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 12);
+    CHECK_FX_VERSION_OPT(ptr, len, 12);
 
-    pos.load(ptr, len, load_cb);
-    width__mm.load(ptr, len, load_cb);
-    life.load(ptr, len, load_cb);
+    if (!pos.load(ptr, len, load_cb))
+      return false;
+    if (!width__mm.load(ptr, len, load_cb))
+      return false;
+    if (!life.load(ptr, len, load_cb))
+      return false;
     seed = readType<int>(ptr, len);
-    velocity.load(ptr, len, load_cb);
+    if (!velocity.load(ptr, len, load_cb))
+      return false;
     restitution = readType<real>(ptr, len);
     friction = readType<real>(ptr, len);
     color0 = readType<E3DCOLOR>(ptr, len);
@@ -193,15 +207,19 @@ public:
     colorEnd = readType<E3DCOLOR>(ptr, len);
     velocityBias = readType<real>(ptr, len);
     dragCoefficient = readType<real>(ptr, len);
-    turbulenceForce.load(ptr, len, load_cb);
-    turbulenceFreq.load(ptr, len, load_cb);
+    if (!turbulenceForce.load(ptr, len, load_cb))
+      return false;
+    if (!turbulenceFreq.load(ptr, len, load_cb))
+      return false;
     liftForce = readType<Point3>(ptr, len);
     liftTime = readType<real>(ptr, len);
     spawnNoise = readType<real>(ptr, len);
-    spawnNoisePos.load(ptr, len, load_cb);
+    if (!spawnNoisePos.load(ptr, len, load_cb))
+      return false;
     hdrScale1 = readType<real>(ptr, len);
     windForce = readType<real>(ptr, len);
     gravity_zone = readType<int>(ptr, len);
+    return true;
   }
 };
 
@@ -217,16 +235,17 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 4);
+    CHECK_FX_VERSION_OPT(ptr, len, 4);
 
     blending = readType<int>(ptr, len);
     motionScale = readType<real>(ptr, len);
     motionScaleMax = readType<real>(ptr, len);
     hdrScale = readType<real>(ptr, len);
     arrowShape = readType<real>(ptr, len);
+    return true;
   }
 };
 
@@ -244,10 +263,10 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
 
     spawn_range_limit = readType<real>(ptr, len);
     max_instances = readType<int>(ptr, len);
@@ -256,6 +275,7 @@ public:
     one_point_number = readType<real>(ptr, len);
     one_point_radius = readType<real>(ptr, len);
     transform_type = readType<int>(ptr, len);
+    return true;
   }
 };
 
@@ -264,17 +284,21 @@ class DafxSparksOptionalModifiers
 public:
   SparkFxValueCurveOpt widthOverLife;
   bool allowScreenProjDiscard;
+  int collision;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION_OPT(ptr, len, 3);
 
-    widthOverLife.load(ptr, len, load_cb);
+    if (!widthOverLife.load(ptr, len, load_cb))
+      return false;
     allowScreenProjDiscard = readType<int>(ptr, len);
+    collision = readType<int>(ptr, len);
+    return true;
   }
 };
 
@@ -288,14 +312,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     low_quality = readType<int>(ptr, len);
     medium_quality = readType<int>(ptr, len);
     high_quality = readType<int>(ptr, len);
+    return true;
   }
 };
 
@@ -307,11 +332,12 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
 
     type = readType<int>(ptr, len);
+    return true;
   }
 };

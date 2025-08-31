@@ -52,14 +52,15 @@ void CompositeEditorViewport::registerMenuAccelerators()
 {
   IWndManager &wndManager = *EDITORCORE->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, wingw::V_DELETE);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, 'Q');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, 'W');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, 'E');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE, 'R');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, 'S');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, 'A');
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, '5', false, false, true);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, ImGuiKey_Delete);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, ImGuiKey_Q);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, ImGuiKey_W);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, ImGuiKey_E);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE, ImGuiKey_R);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, ImGuiKey_S);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, ImGuiKey_A);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM, ImGuiKey_Escape);
 }
 
 void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity)
@@ -101,6 +102,10 @@ void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGen
   {
     get_app().getCompositeEditor().toggleSnapMode(CM_VIEW_GRID_SCALE_SNAP);
   }
+  else if (id == CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM)
+  {
+    EDITORCORE->endGizmo(/*apply = */ false);
+  }
 }
 
 void CompositeEditorViewport::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity)
@@ -119,12 +124,15 @@ void CompositeEditorViewport::renderObjects(IGenViewportWnd &wnd, IObjEntity *en
   if (!selectedSubEntity)
     return;
 
-  renderElementsCache.clear();
-  fillRenderElements(*selectedSubEntity, renderElementsCache);
-  if (renderElementsCache.empty())
-    return;
-
-  outlineRenderer.render(wnd, renderElementsCache);
+  if (selectedSubEntity != cachedSelectedSubEntity)
+  {
+    cachedSelectedSubEntity = selectedSubEntity;
+    riElementsCache.clear();
+    dynmodelElementsCache.clear();
+    fillRenderElements(*selectedSubEntity, riElementsCache, dynmodelElementsCache);
+  }
+  if (!riElementsCache.empty() || !dynmodelElementsCache.empty())
+    outlineRenderer.render(wnd, riElementsCache, dynmodelElementsCache);
 }
 
 void CompositeEditorViewport::renderTransObjects(IObjEntity *entity)
@@ -141,6 +149,13 @@ void CompositeEditorViewport::renderTransObjects(IObjEntity *entity)
   set_cached_debug_lines_wtm(tm);
   draw_cached_debug_box(bbox, E3DCOLOR(255, 0, 0));
   end_draw_cached_debug_lines();
+}
+
+void CompositeEditorViewport::invalidateCache()
+{
+  cachedSelectedSubEntity = nullptr;
+  riElementsCache.clear();
+  dynmodelElementsCache.clear();
 }
 
 void CompositeEditorViewport::getRendInstQuantizedTm(IObjEntity &entity, TMatrix &tm)
@@ -247,7 +262,8 @@ int CompositeEditorViewport::getEntityRendInstExtraResourceIndex(IObjEntity &ent
   return rendinst::addRIGenExtraResIdx(asset->getName(), -1, -1, {});
 }
 
-void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, dag::Vector<OutlineRenderer::RenderElement> &renderElements)
+void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, OutlineRenderer::RIElementsCache &renderElements,
+  dag::Vector<DynamicRenderableSceneInstance *> &dynmodelElements)
 {
   ICompositObj *compositObj = entity.queryInterface<ICompositObj>();
   if (compositObj)
@@ -259,26 +275,25 @@ void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, dag::Vector
       if (!subEntity)
         continue;
 
-      fillRenderElements(*subEntity, renderElements);
+      fillRenderElements(*subEntity, renderElements, dynmodelElements);
     }
   }
 
-  const int rendInstExtraResourceIndex = getEntityRendInstExtraResourceIndex(entity);
-  DynamicRenderableSceneInstance *sceneInstance = nullptr;
-  if (rendInstExtraResourceIndex < 0)
+  if (auto *rendInstEntity = entity.queryInterface<IRendInstEntity>())
   {
-    IEntityGetDynSceneLodsRes *dynSceneRes = entity.queryInterface<IEntityGetDynSceneLodsRes>();
-    if (dynSceneRes)
-      sceneInstance = dynSceneRes->getSceneInstance();
-    if (!sceneInstance)
-      return;
+    const int ri_idx = rendInstEntity->getRIIndex();
+    if (DAGOR_LIKELY(ri_idx >= 0))
+    {
+      TMatrix tm;
+      getRendInstQuantizedTm(entity, tm);
+      renderElements.emplace(ri_idx, tm);
+    }
   }
-
-  OutlineRenderer::RenderElement renderElement;
-  renderElement.rendInstExtraResourceIndex = rendInstExtraResourceIndex;
-  renderElement.sceneInstance = sceneInstance;
-  getRendInstQuantizedTm(entity, renderElement.transform);
-  renderElements.emplace_back(renderElement);
+  else if (auto *dynSceneRes = entity.queryInterface<IEntityGetDynSceneLodsRes>())
+  {
+    if (auto *sceneInstance = dynSceneRes->getSceneInstance(); sceneInstance)
+      dynmodelElements.emplace_back(sceneInstance);
+  }
 }
 
 void CompositeEditorViewport::fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &pixelPerfectSelectionService,

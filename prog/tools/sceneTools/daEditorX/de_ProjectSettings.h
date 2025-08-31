@@ -28,10 +28,10 @@ public:
   ProjectSettingsDlg(void *phandle, bool &use_dir_light);
 
 private:
-  virtual bool onOk();
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual long onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  bool onOk() override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  long onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   PropPanel::ContainerPropertyControl *mTabPage;
 

@@ -246,6 +246,9 @@ static void vfatal(const char *fmt, const void *args, int anum)
   fflush(stdout);
   fflush(stderr);
 
+  if (quitCritSecInited)
+    leave_critical_section(quitCritSec);
+
 #if defined(__clang__) || defined(__GNUC__)
   __builtin_trap();
 #elif _TARGET_XBOX
@@ -264,7 +267,18 @@ static void vfatal(const char *fmt, const void *args, int anum)
 #endif // !_TARGET_PC
 }
 
-void quit_game(int c, bool restart, const char **args)
+
+static void flush_all_std_and_debug()
+{
+  logmessage(LOGLEVEL_DEBUG, "flush_all_std_and_debug\n");
+  flush_debug_file();
+  fflush(stdout);
+  fflush(stdin);
+  fflush(stderr);
+  close_debug_files();
+}
+
+static void shutdown_close_all(int c)
 {
 #if !ALLOW_IN_THREADS_FATALS_DURING_QUIT
   enter_quit_critsec();
@@ -278,6 +292,21 @@ void quit_game(int c, bool restart, const char **args)
   if (c != -1)
     close_all();
 
+  logmessage(LOGLEVEL_DEBUG, "shutdown with code %d\n", c);
+}
+
+
+void shutdown_game_instance(int c)
+{
+  shutdown_close_all(c);
+  flush_all_std_and_debug();
+}
+
+void quit_game(int c, bool restart, const char **args)
+{
+  shutdown_close_all(c);
+
+  logmessage(LOGLEVEL_DEBUG, "Exit with code %d\n", c);
   if (restart)
   {
 #if _TARGET_PC_WIN
@@ -323,13 +352,8 @@ void quit_game(int c, bool restart, const char **args)
 #endif
   }
 
-  logmessage(LOGLEVEL_DEBUG, "Exit with code %d\n", c);
-  flush_debug_file();
+  flush_all_std_and_debug();
 
-  fflush(stdout);
-  fflush(stdin);
-  fflush(stderr);
-  close_debug_files();
 
 #if _TARGET_APPLE | _TARGET_ANDROID
 #if _TARGET_ANDROID

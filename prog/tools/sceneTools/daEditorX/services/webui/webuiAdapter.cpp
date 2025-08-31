@@ -6,18 +6,12 @@
 #include <webui/websocket/webSocketStream.h>
 #include <startup/dag_globalSettings.h>
 
-#include <EASTL/unique_ptr.h>
-
 class WebUIAdapter : public IEditorService
 {
 public:
   WebUIAdapter()
   {
     constexpr int webSocketPort = 9113;
-    if (!IDaEditor3Engine::get().registerService(this))
-    {
-      logerr("Failed to register ECS Manager service.");
-    }
     const_cast<DataBlock *>(dgs_get_settings())->addBlock("debug")->setBool("enableWebSocketStream", true);
     const_cast<DataBlock *>(dgs_get_settings())->addBlock("debug")->setInt("WebSocketPort", webSocketPort);
 
@@ -36,31 +30,29 @@ public:
     websocket::start(webSocketPort);
   }
 
-  void update() { webui::update(); }
-
-  ~WebUIAdapter()
+  ~WebUIAdapter() override
   {
     webui::shutdown();
     websocket::stop();
   }
 
-  virtual const char *getServiceName() const override { return serviceName; };
-  virtual const char *getServiceFriendlyName() const override { return friendlyServiceName; };
+  const char *getServiceName() const override { return serviceName; };
+  const char *getServiceFriendlyName() const override { return friendlyServiceName; };
 
-  virtual void setServiceVisible(bool vis) override { isVisible = true; };
-  virtual bool getServiceVisible() const override { return isVisible; };
+  void setServiceVisible(bool vis) override { isVisible = true; };
+  bool getServiceVisible() const override { return isVisible; };
 
-  virtual void actService(float dt) override
+  void actService(float dt) override
   {
     webui::update();
     websocket::update();
   }
 
-  virtual void beforeRenderService() override{};
-  virtual void renderService() override{};
-  virtual void renderTransService() override{};
+  void beforeRenderService() override {}
+  void renderService() override {}
+  void renderTransService() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid) override { return nullptr; }
+  void *queryInterfacePtr(unsigned huid) override { return nullptr; }
 
 private:
   static constexpr const char *serviceName = "webui";
@@ -69,6 +61,4 @@ private:
   bool isVisible = false;
 };
 
-eastl::unique_ptr<WebUIAdapter> webuiAdapter;
-
-void init_webui_service() { webuiAdapter = eastl::make_unique<WebUIAdapter>(); }
+void init_webui_service() { IDaEditor3Engine::get().registerService(new (inimem) WebUIAdapter); }

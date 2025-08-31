@@ -115,13 +115,3 @@ void lowlatency::render_debug_low_latency()
     }
   }
 }
-
-// I needed to move this definition here, because
-// the console vars are not visible otherwise in War Thunder
-lowlatency::ScopedLatencyMarker::ScopedLatencyMarker(uint32_t frame_id, LatencyMarkerType start_marker, LatencyMarkerType end_marker) :
-  frameId(frame_id), endMarker(end_marker)
-{
-  TIME_PROFILE(ScopedLatencyMarker);
-
-  set_marker(frameId, start_marker);
-}

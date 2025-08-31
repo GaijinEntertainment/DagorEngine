@@ -1,0 +1,80 @@
+import { scene:t="gamedata/scenes/_session_limits.blk"; }
+
+entity{
+  _template:t="static_cam"
+  camera__active:b=yes
+  transform:m=[[0, 0, -1] [0, 1, 0] [1, 0, 0] [0, 0, 0]]
+}
+
+entity{
+  _template:t="level"
+  level__blk:t="content/outer_space/levels/os_earth_orbit.blk"
+  level__timeRange:p2=2, 2.1
+
+  "level__weatherChoice:object"{
+    "gamedata/weather/weather_almost_clear.blk":r=1
+  }
+
+  "level__timeVec:array"{
+    level__timeVec:r=17
+  }
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 20.1, -79.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 20.1, -89.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 10.1, -79.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 10.1, -89.1536]]
+}
+
+entity{
+  _template:t="phys_gravity_controller"
+  phys_props__gravity:r=0
+  phys_props__initialGravity:r=0
+  sky_coord_frame__altitude_offset:r=800000
+}
+
+entity{
+  _template:t="humans_grid"
+}
+
+entity{
+  _template:t="vehicles_grid"
+}
+
+entity{
+  _template:t="beacon_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-243, 20, -79]]
+}
+
+entity{
+  _template:t="mini_orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-193, 0, -70]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-75, 35, -90]]
+}
+
+entity{
+  _template:t="small_orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [60, 36, -60]]
+}
+
+entity{
+  _template:t=race_music
+}

@@ -5,15 +5,23 @@
 namespace rtsm
 {
 
-void initialize(int, int, RenderMode, bool) {}
+namespace TextureNames
+{
+const char *rtsm_dynamic_lights = "rtsm_dynamic_lights";
+}
+
+void initialize(RenderMode, bool) {}
 void teardown() {}
 
-void render(bvh::ContextId, const Point3 &, const TMatrix4 &, bool, bool, Texture *, d3d::SamplerHandle) {}
+void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &) {}
+void get_required_transient_texture_descriptors(denoiser::TexInfoMap &) {}
 
-void render_dynamic_light_shadows(bvh::ContextId, const Point3 &, bool) {}
+void render(bvh::ContextId, const Point3 &, const Point3 &, const TMatrix4 &, const denoiser::TexMap &, float, bool, bool, Texture *,
+  d3d::SamplerHandle, Texture *, d3d::SamplerHandle, int)
+{}
+
+void render_dynamic_light_shadows(bvh::ContextId, const Point3 &, TextureIDPair, float, bool, bool) {}
 
 void turn_off() {}
-
-TextureIDPair get_output_texture() { return TextureIDPair(); }
 
 } // namespace rtsm

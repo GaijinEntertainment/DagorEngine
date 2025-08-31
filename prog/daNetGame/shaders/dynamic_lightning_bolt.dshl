@@ -6,7 +6,7 @@ shader dynamic_lightning_bolt
 {
   ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
-  if (dyn_model_render_pass == render_to_depth)
+  if (dyn_model_render_pass != render_pass_normal)
   {
     dont_render;
   }

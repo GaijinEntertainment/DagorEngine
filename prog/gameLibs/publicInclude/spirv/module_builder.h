@@ -161,6 +161,8 @@ public:
     }
   }
 
+  void reserveMemoryForNodes(size_t count) { allNodes.reserve(allNodes.size() + count); }
+
   Id allocateId();
   void freeId(Id ident);
   void addModuleProcess(const char *name, Id len);

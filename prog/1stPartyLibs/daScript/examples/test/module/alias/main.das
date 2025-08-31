@@ -1,3 +1,4 @@
+options gen2
 // options log_require = true
 // options log = true
 
@@ -6,7 +7,8 @@ require sub/event as sub_event
 require sub/event as sub_event  // testing duplicate here
 
 [export]
-def test
+def test {
     verify(event::fn_event())
     verify(!sub_event::fn_event())
     return true
+}

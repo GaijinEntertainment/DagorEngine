@@ -98,15 +98,20 @@ static void free_cam_update_params_es_event_handler(const ecs::Event &, FreeCam 
 }
 
 template <typename Callable>
-void get_free_cam_speeds_ecs_query(Callable c);
+void get_free_cam_speeds_ecs_query(ecs::EntityManager &mgr, Callable c);
 
-Point3 get_free_cam_speeds()
+Point3 get_free_cam_speeds(ecs::EntityManager &mgr)
 {
   float defaultSpeed = 5, currentSpeed = 5, turboScale = 20;
-  get_free_cam_speeds_ecs_query([&](FreeCam &free_cam, float free_cam__move_speed = 5.f, float free_cam__turbo_scale = 20.f) {
+  get_free_cam_speeds_ecs_query(mgr, [&](FreeCam &free_cam, float free_cam__move_speed = 5.f, float free_cam__turbo_scale = 20.f) {
     defaultSpeed = free_cam__move_speed;
     currentSpeed = free_cam.flyMode->moveSpd;
     turboScale = free_cam__turbo_scale;
   });
   return Point3(defaultSpeed, currentSpeed, turboScale);
+}
+
+Point3 get_free_cam_speeds()
+{
+  return get_free_cam_speeds(*g_entity_mgr); // still singleton
 }

@@ -7,6 +7,8 @@ TargetType  = exe ;
 Target      = tools/util/shaderInfo.exe ;
 include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
+CPPopt += -DSET_DEFAULT_MAX_SHVARS=8192 ;
+
 AddIncludes =
   $(Root)/prog/engine/shaders
   $(Root)/prog/engine/sharedInclude

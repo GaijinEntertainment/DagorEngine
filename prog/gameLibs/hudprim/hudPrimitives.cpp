@@ -60,7 +60,7 @@ static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), mask
   testDepthVarId("gui_test_depth", true), blueToAlphaVarId("blue_to_alpha_mul", true);
 
 static int renderModeVarId = -1;
-static int guiAcesObjectBlockId = -1;
+static ShaderBlockIdHolder guiAcesObjectBlockId{"gui_aces_object"};
 
 static const CompiledShaderChannelId hud_channels[] = {
   {SCTYPE_FLOAT4, SCUSAGE_POS, 0, 0},
@@ -79,8 +79,6 @@ void HudShader::link()
   G_STATIC_ASSERT(sizeof(*this) <= sizeof(ExtState));
 
   renderModeVarId = VariableMap::getVariableId("render_mode");
-
-  guiAcesObjectBlockId = ShaderGlobal::getBlockId("gui_aces_object");
 }
 
 void HudShader::cleanup()
@@ -457,9 +455,9 @@ void HudPrimitives::afterReset() {}
 void HudPrimitives::updateProjectedQuadVB(HudVertex *data, const E3DCOLOR &color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
   const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3, const E3DCOLOR *vertex_colors)
 {
-#define SET_GUI_VTX(data, idx, p, tc, cc)                                                               \
-  data[idx].pos = Point4(p.x - (viewX)*viewWidthRcp2, (p.y + (viewY)*viewHeightRcp2) * 1.0f, p.z, p.w); \
-  data[idx].tuv = tc;                                                                                   \
+#define SET_GUI_VTX(data, idx, p, tc, cc)                                                                   \
+  data[idx].pos = Point4(p.x - (viewX) * viewWidthRcp2, (p.y + (viewY) * viewHeightRcp2) * 1.0f, p.z, p.w); \
+  data[idx].tuv = tc;                                                                                       \
   data[idx].color = cc;
 
   SET_GUI_VTX(data, 0, p0, tc0, vertex_colors ? vertex_colors[0] : color);
@@ -873,8 +871,7 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
     Point2 posOffset = Point2(x, y);
 
     StdGuiRender::set_font(font_no);
-    buffer->isReady =
-      StdGuiRender::draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel, 1.f, text_u, textLen);
+    buffer->isReady = StdGuiRender::draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, 0, 1.f, text_u, textLen);
   }
 
   if (!buffer->isReady || buffer->tex_qcnt.size() < 2)
@@ -885,11 +882,11 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
   for (const uint16_t *tq = &buffer->tex_qcnt[1], *tq_end = buffer->tex_qcnt.data() + buffer->tex_qcnt.size(); tq < tq_end;
        tq += 2, cur_smp++)
   {
-    int full_qnum = tq[1];
+    int full_qnum = tq[1] & 0x3FFF;
     if (!full_qnum)
       continue;
 
-    TEXTUREID texture_id = D3DRESID::fromIndex(tq[0]);
+    TEXTUREID texture_id = D3DRESID::fromIndex(uint32_t(tq[0]) | (uint32_t(tq[1] & ~0x3FFF) << 2));
     d3d::SamplerHandle smp = *cur_smp;
     if (texture_id != state().currentTexture)
     {
@@ -1018,8 +1015,7 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     G_ASSERT(guiContext->curRenderFont.font);
 
     float locScale = (scale <= 0) ? 1 : scale;
-    buffer->isReady =
-      guiContext->draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel, locScale, text_u, len);
+    buffer->isReady = guiContext->draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, 0, locScale, text_u, len);
   }
 
   if (align == 0 || align == 1 || valign == 0 || valign == 1)
@@ -1043,7 +1039,7 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     guiContext->set_color(color);
     guiContext->goto_xy(x - viewX, y - viewY);
     guiContext->setRotViewTm(pivot.origin.x - viewX, pivot.origin.y - viewY, pivot.angleRadians, 0);
-    guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel | DSBFLAG_allQuads | DSBFLAG_curColor);
+    guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_curColor);
   }
 
   guiContext->setBuffer(1);

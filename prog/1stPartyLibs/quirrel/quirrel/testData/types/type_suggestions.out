@@ -1,0 +1,16 @@
+fn(x: Float)
+ERROR: Invalid type name 'Float', did you mean 'float'?
+at testData\types\type_suggestions.nut.txt:1:12
+
+fn(x: float|None)
+ERROR: Invalid type name 'None', did you mean 'null'?
+at testData\types\type_suggestions.nut.txt:2:17
+
+closure.fn()
+ERROR: Invalid type name 'closure', did you mean 'function'?
+at testData\types\type_suggestions.nut.txt:3:7
+
+string.fn():integer
+ERROR: Invalid type name 'integer', did you mean 'int'?
+at testData\types\type_suggestions.nut.txt:4:20
+

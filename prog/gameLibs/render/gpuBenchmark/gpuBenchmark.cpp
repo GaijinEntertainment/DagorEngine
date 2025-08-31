@@ -148,8 +148,10 @@ GpuBenchmark::GpuBenchmark()
           randomBufferData[x * 4 + c] = clamp(gauss_rnd() * 0.5f + 0.5f, 0.0f, 1.0f) * 255;
     randomTex->unlockimg();
   }
-  randomTex->texaddr(TEXADDR_WRAP);
-  randomTex->texfilter(TEXFILTER_LINEAR);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Linear;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+  ShaderGlobal::set_sampler(get_shader_variable_id("gpu_benchmark_tex_samplerstate"), d3d::request_sampler(smpInfo));
 
   gpu_benchmark_hmapVarId = get_shader_variable_id("gpu_benchmark_hmap");
 }

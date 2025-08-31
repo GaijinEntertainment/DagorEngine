@@ -31,14 +31,17 @@ NodeBasedShaderManager::~NodeBasedShaderManager()
 void NodeBasedShaderManager::updateBlkDataConstBuffer(const DataBlock &shader_blk)
 {
   currentIntParametersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_int")));
+  currentInt4ParametersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_int4")));
   currentFloatParametersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_float")));
   currentFloat4ParametersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_float4")));
+  currentFloat4x4ParametersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_float4x4")));
 }
 
 void NodeBasedShaderManager::updateBlkDataTextures(const DataBlock &shader_blk)
 {
   currentTextures2dBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D")));
   currentTextures3dBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture3D")));
+  currentTextures2dArrayBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2DArray")));
   currentTextures2dShdArrayBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D_shdArray")));
   currentTextures2dNoSamplerBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D_nosampler")));
   currentTextures3dNoSamplerBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture3D_nosampler")));
@@ -47,18 +50,13 @@ void NodeBasedShaderManager::updateBlkDataTextures(const DataBlock &shader_blk)
 void NodeBasedShaderManager::updateBlkDataBuffers(const DataBlock &shader_blk)
 {
   currentBuffersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_Buffer")));
-}
-
-void NodeBasedShaderManager::updateBlkDataMetadata(const DataBlock &shader_blk)
-{
-  metadataBlk = eastl::make_unique<DataBlock>(*shader_blk.getBlockByNameEx("metadata"));
+  currentCBuffersBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_CBuffer")));
 }
 
 bool NodeBasedShaderManager::update(const DataBlock &shader_blk, String &out_errors, PLATFORM platform_id)
 {
   if (compileShaderProgram(shader_blk, out_errors, platform_id))
   {
-    updateBlkDataMetadata(shader_blk);
     updateBlkDataResources(shader_blk);
   }
   return lastCompileIsSuccess;
@@ -201,15 +199,7 @@ void NodeBasedShaderManager::setArrayValue(const char *name, const Tab<Point4> &
   arrayValues.emplace_back(String(name), &values);
 }
 
-const DataBlock &NodeBasedShaderManager::getMetadata() const
-{
-  if (metadataBlk)
-    return *metadataBlk;
-  else
-    return emptyBlk;
-}
-
-void NodeBasedShaderManager::setConstantBuffer()
+void NodeBasedShaderManager::setBaseConstantBuffer()
 {
   ShaderGlobal::set_real(global_time_phaseVarId, get_shader_global_time_phase(0, 0));
 
@@ -217,7 +207,8 @@ void NodeBasedShaderManager::setConstantBuffer()
   const uint32_t REGISTERS_ALIGNMENT = 4;
   parametersBuffer.reserve(
     (currentIntVariables.size() + currentFloatVariables.size() + REGISTERS_ALIGNMENT - 1) / REGISTERS_ALIGNMENT * REGISTERS_ALIGNMENT +
-    currentFloat4Variables.size() * REGISTERS_ALIGNMENT);
+    currentInt4Variables.size() * REGISTERS_ALIGNMENT + currentFloat4Variables.size() * REGISTERS_ALIGNMENT +
+    currentFloat4x4Variables.size() * 4 * REGISTERS_ALIGNMENT);
   for (auto &shaderVar : currentIntVariables)
   {
     const int varType = shaderVar.varType;
@@ -244,7 +235,20 @@ void NodeBasedShaderManager::setConstantBuffer()
     parametersBuffer.push_back(valueToAdd);
   }
   parametersBuffer.resize((parametersBuffer.size() + REGISTERS_ALIGNMENT - 1) / REGISTERS_ALIGNMENT * REGISTERS_ALIGNMENT, 0.f);
-
+  for (auto &shaderVar : currentInt4Variables)
+  {
+    IPoint4 valueToAdd;
+    if (shaderVar.varType == SHVT_INT4)
+    {
+      valueToAdd = ShaderGlobal::get_int4(shaderVar.varId);
+    }
+    else
+    {
+      valueToAdd = shaderVar.val;
+    }
+    for (uint32_t i = 0; i < 4; ++i)
+      parametersBuffer.push_back(bitwise_cast<float, int>(valueToAdd[i]));
+  }
   for (auto &shaderVar : currentFloat4Variables)
   {
     Point4 valueToAdd;
@@ -258,31 +262,53 @@ void NodeBasedShaderManager::setConstantBuffer()
     for (uint32_t i = 0; i < 4; ++i)
       parametersBuffer.push_back(valueToAdd[i]);
   }
+
+  for (auto &shaderVar : currentFloat4x4Variables)
+  {
+    Matrix44 valueToAdd;
+    // TODO: Ideally this should not be checked every frame and need caching later
+    if (shaderVar.varType == SHVT_FLOAT4X4)
+    {
+      valueToAdd = ShaderGlobal::get_float4x4(shaderVar.varId);
+    }
+    else
+      LOGERR_ONCE("Error expected variable %s to be of type %d, but got %d", shaderVar.paramName, SHVT_FLOAT4X4, shaderVar.varType);
+
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
+        parametersBuffer.push_back(valueToAdd[i][j]);
+  }
   G_ASSERT(parametersBuffer.size() % 4 == 0);
 
   if (parametersBuffer.size()) // call d3d::release_cb0_data(STAGE_CS) after draw
     d3d::set_cb0_data(STAGE_CS, reinterpret_cast<float *>(parametersBuffer.data()), parametersBuffer.size() / REGISTERS_ALIGNMENT);
 }
 
-void NodeBasedShaderManager::setTextures(dag::Vector<NodeBasedTexture> &node_based_textures, int &offset) const
+void NodeBasedShaderManager::setTextures(int &offset) const
 {
-  for (int i = 0, ie = node_based_textures.size(); i < ie; ++i, ++offset)
+  for (int i = 0, ie = nodeBasedTextures.size(); i < ie; ++i, ++offset)
   {
-    const NodeBasedTexture &nbTex = node_based_textures[i];
+    const NodeBasedTexture &nbTex = nodeBasedTextures[i];
     if (nbTex.dynamicTextureVarId >= 0)
     {
       TEXTUREID id = ShaderGlobal::get_tex_fast(nbTex.dynamicTextureVarId);
+      if (!id)
+      {
+        LOGWARN_ONCE("Node based shader tried to bind %d shadervar, but the texture is null.",
+          VariableMap::getVariableName(nbTex.dynamicTextureVarId));
+        continue; // TODO This can hide bugs! Add an optional flag to NBS textures.
+      }
       G_FAST_ASSERT(get_managed_texture_refcount(id) > 0);
       mark_managed_tex_lfu(id);
       if (nbTex.dynamicSamplerVarId != -1)
         d3d::set_sampler(STAGE_CS, offset, ShaderGlobal::get_sampler(nbTex.dynamicSamplerVarId));
-      d3d::set_tex(STAGE_CS, offset, D3dResManagerData::getBaseTex(id), false);
+      d3d::set_tex(STAGE_CS, offset, D3dResManagerData::getBaseTex(id));
     }
     else
     {
       if (nbTex.sampler != d3d::INVALID_SAMPLER_HANDLE)
         d3d::set_sampler(STAGE_CS, offset, nbTex.sampler);
-      d3d::set_tex(STAGE_CS, offset, nbTex.usedTextureResId, false);
+      d3d::set_tex(STAGE_CS, offset, nbTex.usedTextureResId);
     }
   }
 }
@@ -307,6 +333,27 @@ void NodeBasedShaderManager::setBuffers(int &offset) const
   }
 }
 
+void NodeBasedShaderManager::setSubConstantBuffers() const
+{
+  int offset = 1; // 0 is for default constant buffer
+  for (int i = 0, ie = nodeBasedCBuffers.size(); i < ie; ++i, ++offset)
+  {
+    const NodeBasedBuffer &nbCBuf = nodeBasedCBuffers[i];
+    if (nbCBuf.dynamicBufferVarId >= 0)
+    {
+      D3DRESID id = ShaderGlobal::get_buf_fast(nbCBuf.dynamicBufferVarId);
+      Sbuffer *buffer = (Sbuffer *)acquire_managed_res(id);
+      d3d::set_const_buffer(STAGE_CS, offset, buffer);
+      G_FAST_ASSERT(get_managed_texture_refcount(id) > 1);
+      release_managed_res(id);
+    }
+    else
+    {
+      d3d::set_const_buffer(STAGE_CS, offset, nbCBuf.usedBufferResId);
+    }
+  }
+}
+
 void NodeBasedShaderManager::setConstants()
 {
   if (isDirty)
@@ -315,10 +362,11 @@ void NodeBasedShaderManager::setConstants()
   }
   if (cachedVariableGeneration != VariableMap::generation())
     precacheVariables();
-  setConstantBuffer();
+  setBaseConstantBuffer();
   int offset = 0;
-  setTextures(nodeBasedTextures, offset);
+  setTextures(offset);
   setBuffers(offset);
+  setSubConstantBuffers();
 }
 
 void NodeBasedShaderManager::enableOptionalGraph(const String &graph_name, bool enable)
@@ -349,7 +397,8 @@ void NodeBasedShaderManager::precacheVariables()
     else
     {
       currentFloatVariables.emplace_back(CachedFloat{paramName, 0.f});
-      logerr("paramName = %s has type %d not int/real", paramName, varType);
+      if (shaderVarId >= 0 && varType >= 0)
+        logerr("paramName = %s has type %d not int/real", paramName, varType);
     }
   }
   currentIntVariables.clear();
@@ -363,7 +412,23 @@ void NodeBasedShaderManager::precacheVariables()
     else
     {
       currentIntVariables.emplace_back(CachedInt{paramName, 0});
-      logerr("paramName = %s has type %d not int", paramName, varType);
+      if (shaderVarId >= 0 && varType >= 0)
+        logerr("paramName = %s has type %d not int", paramName, varType);
+    }
+  }
+  currentInt4Variables.clear();
+  for (int i = 0; i < currentInt4ParametersBlk->paramCount(); ++i)
+  {
+    const char *paramName = currentInt4ParametersBlk->getStr(i);
+    const int shaderVarId = ::get_shader_variable_id(paramName, true);
+    const int varType = ShaderGlobal::get_var_type(shaderVarId);
+    if (varType == SHVT_INT4)
+      currentInt4Variables.emplace_back(CachedInt4{paramName, varType, shaderVarId});
+    else
+    {
+      currentInt4Variables.emplace_back(CachedInt4{paramName, IPoint4(0, 0, 0, 0)});
+      if (shaderVarId >= 0 && varType >= 0)
+        logerr("paramName = %s has type %d not int4", paramName, varType);
     }
   }
   currentFloat4Variables.clear();
@@ -399,17 +464,30 @@ void NodeBasedShaderManager::precacheVariables()
         currentFloat4Variables.emplace_back(CachedFloat4{paramName, Point4(0, 0, 0, 0)});
     }
   }
+  currentFloat4x4Variables.clear();
+  for (int i = 0; i < currentFloat4x4ParametersBlk->paramCount(); i++)
+  {
+    // WARNING: arrayValue seems to be not implemented (anymore?, there is no setArrayValue anywhere), and float4x4 does not support
+    // it.
+
+    const char *paramName = currentFloat4x4ParametersBlk->getStr(i);
+    const int shaderVarId = ::get_shader_variable_id(paramName, true);
+    const int varType = ShaderGlobal::get_var_type(shaderVarId);
+    if (varType == SHVT_FLOAT4X4)
+      currentFloat4x4Variables.emplace_back(CachedFloat4x4{paramName, varType, shaderVarId});
+    else
+      currentFloat4x4Variables.emplace_back(CachedFloat4x4{paramName, Matrix44::ZERO});
+  }
   cachedVariableGeneration = VariableMap::generation();
 }
 
 
-void NodeBasedShaderManager::fillTextureCache(dag::Vector<NodeBasedTexture> &node_based_textures, const DataBlock &src_block,
-  int offset, bool &has_loaded, bool has_sampler)
+void NodeBasedShaderManager::fillTextureCache(const DataBlock &src_block, int offset, bool &has_loaded, bool has_sampler)
 {
   for (int i = 0, ei = src_block.paramCount(); i < ei; ++i)
   {
     const char *texName = src_block.getStr(i);
-    NodeBasedTexture &nbTex = node_based_textures[i + offset];
+    NodeBasedTexture &nbTex = nodeBasedTextures[i + offset];
     TEXTUREID resId = get_managed_texture_id(texName);
     bool isDynamic = resId == BAD_TEXTUREID;
     nbTex.dynamicSamplerVarId = -1;
@@ -436,12 +514,15 @@ void NodeBasedShaderManager::fillTextureCache(dag::Vector<NodeBasedTexture> &nod
     }
   }
 }
-void NodeBasedShaderManager::fillBufferCache(const DataBlock &src_block, int offset, bool &has_loaded)
+
+
+void NodeBasedShaderManager::fillBufferCache(const DataBlock &src_block, dag::Vector<NodeBasedBuffer> &bufferCache, int offset,
+  bool &has_loaded)
 {
   for (int i = 0, ei = src_block.paramCount(); i < ei; ++i)
   {
     const char *bufferName = src_block.getStr(i);
-    NodeBasedBuffer &nbBuf = nodeBasedBuffers[i + offset];
+    NodeBasedBuffer &nbBuf = bufferCache[i + offset];
     D3DRESID resId = get_managed_res_id(bufferName);
     bool isDynamic = resId == BAD_D3DRESID;
     nbBuf.dynamicBufferVarId = isDynamic ? ::get_shader_variable_id(bufferName, true) : -1;
@@ -465,27 +546,47 @@ bool NodeBasedShaderManager::invalidateCachedResources()
     release_managed_res(id);
   resIdsToRelease.resize(0);
 
-  nodeBasedTextures.resize(currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount() +
-                           currentTextures2dShdArrayBlk->paramCount() + currentTextures2dNoSamplerBlk->paramCount() +
-                           currentTextures3dNoSamplerBlk->paramCount());
+  {
+    int texCnt = 0;
+    texCnt += currentTextures2dBlk->paramCount();
+    texCnt += currentTextures3dBlk->paramCount();
+    texCnt += currentTextures2dArrayBlk->paramCount();
+    texCnt += currentTextures2dShdArrayBlk->paramCount();
+    texCnt += currentTextures2dNoSamplerBlk->paramCount();
+    texCnt += currentTextures3dNoSamplerBlk->paramCount();
+    nodeBasedTextures.resize(texCnt);
+  }
+
   nodeBasedBuffers.resize(currentBuffersBlk->paramCount());
+  nodeBasedCBuffers.resize(currentCBuffersBlk->paramCount());
 
-  resIdsToRelease.reserve(nodeBasedTextures.size() + nodeBasedBuffers.size());
+  resIdsToRelease.reserve(nodeBasedTextures.size() + nodeBasedBuffers.size() + nodeBasedCBuffers.size());
 
-  fillTextureCache(nodeBasedTextures, *currentTextures2dBlk, 0, hasLoaded, true);
-  fillTextureCache(nodeBasedTextures, *currentTextures3dBlk, currentTextures2dBlk->paramCount(), hasLoaded, true);
-  fillTextureCache(nodeBasedTextures, *currentTextures2dShdArrayBlk,
-    currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount(), hasLoaded, true);
-  fillTextureCache(nodeBasedTextures, *currentTextures2dNoSamplerBlk,
-    currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount() + currentTextures2dShdArrayBlk->paramCount(), hasLoaded,
-    false);
-  fillTextureCache(nodeBasedTextures, *currentTextures3dNoSamplerBlk,
-    currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount() + currentTextures2dShdArrayBlk->paramCount() +
-      currentTextures2dNoSamplerBlk->paramCount(),
-    hasLoaded, false);
-  fillBufferCache(*currentBuffersBlk, 0, hasLoaded);
+  int offset = 0;
+  auto fillTexCache([&](const DataBlock &src_block, bool has_sampler) {
+    fillTextureCache(src_block, offset, hasLoaded, has_sampler);
+    offset += src_block.paramCount();
+  });
+
+  fillTexCache(*currentTextures2dBlk, true);
+  fillTexCache(*currentTextures3dBlk, true);
+  fillTexCache(*currentTextures2dArrayBlk, true);
+  fillTexCache(*currentTextures2dShdArrayBlk, true);
+  fillTexCache(*currentTextures2dNoSamplerBlk, false);
+  fillTexCache(*currentTextures3dNoSamplerBlk, false);
+
+  fillBufferCache(*currentBuffersBlk, nodeBasedBuffers, 0, hasLoaded);
+  fillBufferCache(*currentCBuffersBlk, nodeBasedCBuffers, 0, hasLoaded);
 
   return hasLoaded;
+}
+
+void NodeBasedShaderManager::resetSubCbuffers()
+{
+  for (int i = 1; i <= nodeBasedCBuffers.size(); i++)
+  {
+    d3d::set_const_buffer(STAGE_CS, i, nullptr);
+  }
 }
 
 void NodeBasedShaderManager::clearAllCachedResources()

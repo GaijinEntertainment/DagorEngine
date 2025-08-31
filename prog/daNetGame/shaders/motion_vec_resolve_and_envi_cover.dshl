@@ -1,0 +1,216 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "taa_inc.dshl"
+include "reprojected_motion_vectors.dshl"
+include "skyLightParams.dshl"
+include "envi_cover_inc.dshl"
+include "depth_above.dshl"
+include "camera_in_camera.dshl"
+
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
+
+shader motion_vectors_resolve
+{
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+
+  USE_AND_INIT_VIEW_VEC(vs)
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, uv, viewVec)
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_ZNZFAR()
+  USE_MOTION_VEC_ENCODE(ps)
+  INIT_REPROJECTED_MOTION_VECTORS(ps)
+  USE_REPROJECTED_MOTION_VECTORS(ps)
+  INIT_READ_AUTOGEN_MOTION_VECTOR(ps)
+  USE_READ_AUTOGEN_MOTION_VECTOR(ps)
+
+  (ps) {
+    // prev frame viewproj matrix with current frame jitter, so motion vectors themselves are not jittered!
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
+  }
+
+  hlsl(ps) {
+    float4 motion_vectors_resolve_ps(VsOutput i) : SV_Target0
+    {
+      if (!autoGenMotionVectorGbuffer(i.uv))
+        discard;
+      float rawDepth = readGbufferDepth(i.uv);
+      if (rawDepth >= 1)
+        discard;
+
+      float depth = linearize_z(rawDepth, zn_zfar.zw);
+      float3 cameraToPoint = i.viewVec * depth;
+      float3 motionInUvSpace = get_reprojected_motion_vector1(float3(i.uv, depth), cameraToPoint, jitteredCamPosToUnjitteredHistoryClip);
+
+      invalidate_mvec_to_invalid_view_area(i.uv, motionInUvSpace.xy);
+
+      return float4(motionInUvSpace, 0);  // static objects are assumed to be not reactive
+    }
+  }
+
+  compile("target_ps", "motion_vectors_resolve_ps");
+}
+
+texture noise_128_tex_hash;
+
+shader envi_cover_cs, motion_vec_resolve_and_envi_cover_cs
+{
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+  ENABLE_ASSERT(cs)
+
+  INIT_ZNZFAR_STAGE(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+
+  INIT_SKYLIGHT_PARAMS(cs)
+  USE_SKYLIGHT_PARAMS(cs)
+
+  INIT_RENDERING_RESOLUTION(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+
+  INIT_BLURRED_DEPTH_ABOVE(cs)
+  USE_BLURRED_DEPTH_ABOVE(cs)
+
+  INIT_RW_GBUFFERS(false)
+  USE_PARTIAL_PACK_UNPACK_GBUFF(cs)
+
+  INIT_ENVI_COVER(cs, true, false, 0, true)
+  USE_ENVI_COVER(cs, true)
+
+  if (shader == motion_vec_resolve_and_envi_cover_cs)
+  {
+    USE_MOTION_VEC_ENCODE(cs)
+    INIT_REPROJECTED_MOTION_VECTORS(cs)
+    USE_REPROJECTED_MOTION_VECTORS(cs)
+    INIT_READ_AUTOGEN_MOTION_VECTOR(cs)
+    USE_READ_AUTOGEN_MOTION_VECTOR(cs)
+
+    (cs) {
+      jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
+    }
+  }
+
+  (cs) {
+    world_view_pos@f4 = world_view_pos;
+    from_sun_direction@f3 = from_sun_direction;
+  }
+
+  hlsl(cs) {
+
+    struct EnviChangeValues
+    {
+      half3 albedo;
+      half smoothness;
+      half reflectance;
+      half translucency;
+      uint material;
+      //Save for encoding
+      uint dynamicFlags;
+      uint shadow;
+      half ao;
+    };
+
+    bool preLoadShouldExit(uint2 tc, out PackedGbuffer gbuf, out EnviChangeValues enviChangeValues, out float3 normal)
+    {
+      gbuf = (PackedGbuffer)0;
+      enviChangeValues = (EnviChangeValues)0;
+
+      gbuf.smoothness_reflectance_metallTranslucency_shadow = readGbuffReflectance(tc);
+      unpackGbufTranslucencyChannelW(gbuf.smoothness_reflectance_metallTranslucency_shadow.w, enviChangeValues.dynamicFlags, enviChangeValues.shadow);
+
+      BRANCH
+      if(isLandscape(enviChangeValues.dynamicFlags))
+        return true;
+
+      gbuf.normal_material = readGbuffNormalMat(tc);
+      unpackGbufNormalMaterial(gbuf.normal_material, normal, enviChangeValues.material);
+
+      if(isEmissiveShader(enviChangeValues.material) || (isDynamic(enviChangeValues.dynamicFlags) && !isFoliageShader(enviChangeValues.material)))
+        return true;
+
+      return false;
+    }
+
+    void unpackEnviChangeValues(uint2 tc, inout EnviChangeValues enviChangeValues, PackedGbuffer gbuf)
+    {
+      unpackGbufAlbedoAO(readGbuffAlbedoAO(tc), enviChangeValues.albedo, enviChangeValues.ao);
+
+      //Special unpacking needed, due to material assumptions and optimizations
+      half translucencyorMetalness = gbuf.smoothness_reflectance_metallTranslucency_shadow.z;
+      enviChangeValues.translucency = isSubSurfaceShader(enviChangeValues.material) ? translucencyorMetalness : 0;
+      enviChangeValues.smoothness = gbuf.smoothness_reflectance_metallTranslucency_shadow.x;
+      enviChangeValues.reflectance = gbuf.smoothness_reflectance_metallTranslucency_shadow.y;
+    }
+
+    void writeEnviChangeValues(EnviChangeValues enviChangeValues, float3 normal, uint2 tc)
+    {
+      writeGbuffAlbedoAO(tc, packGbufAlbedoAo(enviChangeValues.albedo, enviChangeValues.ao, float3(0,0,0), false)); // We know that it won't be emissive
+      writeGbuffNormalMat(tc, packGbufNormalMaterial(normal, enviChangeValues.material));
+
+      uint sssProfileOrShadow = enviChangeValues.material == SHADING_FOLIAGE ? enviChangeValues.shadow : SSS_PROFILE_NEUTRAL_TRANSLUCENT;
+      half4 gbuf3 = packGbufSmoothnessReflectancMetallTranslucencyShadow(enviChangeValues.smoothness, enviChangeValues.reflectance, enviChangeValues.translucency,
+                            enviChangeValues.dynamicFlags, sssProfileOrShadow);
+
+      writeGbuffReflectance(tc, gbuf3);
+    }
+
+    [numthreads(8, 8, 1)]
+    void main_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      float2 screenCoordCenter = dtId + 0.5;
+      float2 tc = screenCoordCenter * rendering_res.zw;
+
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
+
+      float rawDepth = loadGbufferDepth(dtId);
+      float2 viewVecTc = saturate(tc);
+      float3 viewVec = getViewVecOptimized(viewVecTc);
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 pointToEye = -viewVec * w;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEye, 1);
+
+
+      PackedGbuffer packedGbuf;
+      EnviChangeValues enviChangeV;
+      float3 normal;
+
+      bool shouldEarlyExit = preLoadShouldExit(dtId, packedGbuf, enviChangeV, normal);
+
+      ##if shader == motion_vec_resolve_and_envi_cover_cs
+        if (rawDepth < 1 && isAutoMotionVecs(enviChangeV.dynamicFlags))
+        {
+          float3 motionInUvSpace = get_reprojected_motion_vector1(float3(viewVecTc, w), -pointToEye, jitteredCamPosToUnjitteredHistoryClip);
+          invalidate_mvec_to_invalid_view_area(viewVecTc, motionInUvSpace.xy);
+          writeGbuffMotionVecs(dtId, float4(motionInUvSpace, 0));
+        }
+      ##endif
+
+      BRANCH
+      if (shouldEarlyExit)
+        return;
+
+      float enviInfluence = 0;
+      EnviSnowParams enviParams = fillEnviSnowParams();
+      BRANCH
+      if(calculate_envi_cover_influence(worldPos.xyz, normal, enviParams, enviInfluence))
+        return;
+
+      unpackEnviChangeValues(dtId, enviChangeV, packedGbuf);
+
+      lerp_envi_cover(worldPos.xyz, normal, skylight_progress, enviInfluence, enviParams, enviChangeV.albedo, enviChangeV.reflectance,
+                      enviChangeV.smoothness, enviChangeV.translucency, enviChangeV.material);
+      writeEnviChangeValues(enviChangeV, normal, dtId);
+    }
+
+  }
+  compile("target_cs", "main_cs");
+}

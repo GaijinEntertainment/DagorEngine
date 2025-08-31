@@ -7,5 +7,4 @@ void pull_input_das()
 {
   NEED_MODULE(DagorInputModule)
   NEED_MODULE(TouchInputModule)
-  NEED_MODULE(DngInputControlsModule)
 }

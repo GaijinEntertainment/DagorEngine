@@ -30,7 +30,7 @@ class DialogWindow : public ControlEventHandler
 public:
   DialogWindow(void *phandle, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel = false);
   DialogWindow(void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel = false);
-  ~DialogWindow();
+  ~DialogWindow() override;
 
   virtual ContainerPropertyControl *getPanel();
 
@@ -72,6 +72,15 @@ public:
   virtual void dockTo(unsigned dock_node_id);
 
   virtual void autoSize(bool auto_center = true);
+
+  // Check if the dialog has ever been shown. "Ever" also includes previous sessions.
+  // For example in that case setting the window position and size can be skipped and the dialog will be displayed at
+  // its previous position with its previous size.
+  // Dialogs are identified by their caption (that can contain IDs using ImGui's ## or ###).
+  // Resetting the window layout also resets the ever been shown state.
+  //
+  // Returns true if it has been opened previously.
+  virtual bool hasEverBeenShown() const;
 
   virtual int getScrollPos() const;
   virtual void setScrollPos(int pos);

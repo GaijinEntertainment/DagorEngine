@@ -8,14 +8,14 @@ let { isPlatformRelevant, platformId } = require("%dngscripts/platform.nut")
 let {startswith} = require("string")
 let controlsList = {
   win32 = [
-    "content/outer_space/config/outer_space.default"
+    "config/outer_space.default"
   ]
 }
 
 if (controlsList?[platformId] == null)
    controlsList[platformId] <- [dainput.get_default_preset_prefix()]
 let generation = Watched(0)
-let nextGeneration = @() generation(generation.value + 1)
+let nextGeneration = @() generation.set(generation.get() + 1)
 let haveChanges = mkWatched(persist, "haveChanges", false)
 
 function mkPresetNameFromPresetPath(path){
@@ -62,7 +62,7 @@ function lowerCaseSubstringInList(substring, list){
 }
 
 function gatherPresets(){
-  local availablePresets = gatherByBpath("content/outer_space/config")
+  local availablePresets = gatherByBpath("config")
   availablePresets = controlsList?[platformId]?.filter(@(v) lowerCaseSubstringInList(v, availablePresets)) ?? []
   return availablePresets.map(@(v) Preset(v))
 }

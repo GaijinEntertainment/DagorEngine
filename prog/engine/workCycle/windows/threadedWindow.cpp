@@ -120,10 +120,6 @@ void WindowThread::execute()
       break;
     }
 
-    // Special message created by ReflexStats for latency measurement
-    if (lowlatency::feed_latency_input(msg.message))
-      continue;
-
     time = msg.time;
 
     TranslateMessage(&msg);

@@ -33,7 +33,7 @@ class ToroidalHeightmap
 public:
   ~ToroidalHeightmap() { close(); }
   void close();
-  void init(int heightmap_size = 2048, float near_lod_size = 32.0f, float far_lod_size = 96.0f, uint32_t format = TEXFMT_L8,
+  void init(int heightmap_size = 2048, float near_lod_size = 32.0f, float far_lod_size = 96.0f, uint32_t format = TEXFMT_R8,
     int treshold = 128, E3DCOLOR clear_value = 0);
 
   void setHeightmapTex();
@@ -60,6 +60,8 @@ public:
     float max_move = 0.5f);
   void invalidateBox(const BBox2 box, bool flush_regions = false);
   void invalidate();
+
+  BBox2 getBBox() const;
 
 protected:
   void updateTile(ToroidalHeightmapRenderer &renderer, const ToroidalQuadRegion &reg, float texel_size);

@@ -17,20 +17,20 @@ static SplineClassAssetMgr scaMgr;
 class GenericAssetService : public IAssetService
 {
 public:
-  virtual landclass::AssetData *getLandClassData(const char *asset_name) { return lcaMgr.getAsset(asset_name); }
-  virtual landclass::AssetData *addRefLandClassData(landclass::AssetData *data) { return data ? lcaMgr.addRefAsset(data) : NULL; }
-  virtual void releaseLandClassData(landclass::AssetData *data) { lcaMgr.releaseAsset(data); }
-  virtual const char *getLandClassDataName(landclass::AssetData *data) { return lcaMgr.getAssetName(data); }
+  landclass::AssetData *getLandClassData(const char *asset_name) override { return lcaMgr.getAsset(asset_name); }
+  landclass::AssetData *addRefLandClassData(landclass::AssetData *data) override { return data ? lcaMgr.addRefAsset(data) : NULL; }
+  void releaseLandClassData(landclass::AssetData *data) override { lcaMgr.releaseAsset(data); }
+  const char *getLandClassDataName(landclass::AssetData *data) override { return lcaMgr.getAssetName(data); }
 
-  virtual splineclass::AssetData *getSplineClassData(const char *asset_name) { return scaMgr.getAsset(asset_name); }
-  virtual splineclass::AssetData *addRefSplineClassData(splineclass::AssetData *data)
+  splineclass::AssetData *getSplineClassData(const char *asset_name) override { return scaMgr.getAsset(asset_name); }
+  splineclass::AssetData *addRefSplineClassData(splineclass::AssetData *data) override
   {
     return data ? scaMgr.addRefAsset(data) : NULL;
   }
-  virtual void releaseSplineClassData(splineclass::AssetData *data) { scaMgr.releaseAsset(data); }
-  virtual const char *getSplineClassDataName(splineclass::AssetData *data) { return scaMgr.getAssetName(data); }
+  void releaseSplineClassData(splineclass::AssetData *data) override { scaMgr.releaseAsset(data); }
+  const char *getSplineClassDataName(splineclass::AssetData *data) override { return scaMgr.getAssetName(data); }
 
-  virtual bool isLoftCreatable(const splineclass::LoftGeomGenData *genGeom, int loft_idx)
+  bool isLoftCreatable(const splineclass::LoftGeomGenData *genGeom, int loft_idx) override
   {
     if (!genGeom || loft_idx < 0 || loft_idx >= genGeom->loft.size())
       return false;
@@ -39,10 +39,10 @@ public:
       return false;
     return true;
   }
-  virtual bool createLoftMesh(Mesh &mesh, const splineclass::LoftGeomGenData *genGeom, int loft_idx, BezierSpline3d &path,
-    int start_seg, int end_seg, bool place_on_collision, float scale_tc_along, int select_mat,
-    dag::ConstSpan<splineclass::Attr> splineScales, Tab<splineclass::SegData> *out_loftSeg, const char *asset_name,
-    float zero_opac_fore_end, float zero_opac_back_end, float path_start_margin, float path_end_margin)
+  bool createLoftMesh(Mesh &mesh, const splineclass::LoftGeomGenData *genGeom, int loft_idx, BezierSpline3d &path, int start_seg,
+    int end_seg, bool place_on_collision, float scale_tc_along, int select_mat, dag::ConstSpan<splineclass::Attr> splineScales,
+    Tab<splineclass::SegData> *out_loftSeg, const char *asset_name, float zero_opac_fore_end, float zero_opac_back_end,
+    float path_start_margin, float path_end_margin) override
   {
     if (!genGeom || loft_idx < 0 || loft_idx >= genGeom->loft.size())
       return false;
@@ -78,7 +78,7 @@ public:
     return true;
   }
 
-  virtual MaterialData *getMaterialData(const char *asset_name)
+  MaterialData *getMaterialData(const char *asset_name) override
   {
     const char *physmat_suffix = strrchr(asset_name, '@');
     DagorAsset *a = DAEDITOR3.getAssetByName(physmat_suffix ? String::mk_sub_str(asset_name, physmat_suffix).c_str() : asset_name,
@@ -140,14 +140,14 @@ public:
     return md;
   }
 
-  virtual void subscribeUpdateNotify(IAssetUpdateNotify *notify, bool lndcls, bool splcls)
+  void subscribeUpdateNotify(IAssetUpdateNotify *notify, bool lndcls, bool splcls) override
   {
     if (lndcls)
       lcaMgr.addNotifyClient(notify);
     if (splcls)
       scaMgr.addNotifyClient(notify);
   }
-  virtual void unsubscribeUpdateNotify(IAssetUpdateNotify *notify, bool lndcls, bool splcls)
+  void unsubscribeUpdateNotify(IAssetUpdateNotify *notify, bool lndcls, bool splcls) override
   {
     if (lndcls)
       lcaMgr.delNotifyClient(notify);

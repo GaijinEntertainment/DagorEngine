@@ -195,7 +195,7 @@ if $(Platform) = macOS {
 }
 
 if $(Platform) in windows {
-  CPPopt += -DOS_WIN=1 -DWIN32 -D_WIN32 -D_WINDOWS -DUNICODE ;
+  CPPopt += -DOS_WIN -DWIN32 -D_WIN32 -D_WINDOWS -DUNICODE ;
   AddLibs += $(Cef3Libs)/libcef.lib ;
 }
 CPPopt += -DWRAPPING_CEF_SHARED -DNOMINMAX -DNDEBUG -D_HAS_EXCEPTIONS=0 ;

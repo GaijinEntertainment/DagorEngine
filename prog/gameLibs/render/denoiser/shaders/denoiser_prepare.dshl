@@ -49,6 +49,7 @@ shader denoiser_prepare
     #define DISABLE_TOONSHADING 1
   }
 
+  ENABLE_ASSERT(cs)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
@@ -57,12 +58,16 @@ shader denoiser_prepare
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
+  INIT_READ_IS_HERO_COCKPIT(cs)
+  USE_READ_IS_HERO_COCKPIT(cs)
 
   hlsl(cs) {
     #define INF 1e6
 
     #include <Include/NRDEncoding.hlsli>
     #include <Include/NRD.hlsli>
+
+    #include "common_consts.hlsli"
 
     [numthreads(8, 8, 1)]
     void main(uint2 dtid : SV_DispatchThreadID)
@@ -77,6 +82,7 @@ shader denoiser_prepare
       float rawDepth = loadGbufferDepth(dtid);
 
       float roughness = 1;
+      float materialID = 0;
       BRANCH
       if (rawDepth > 0)
       {
@@ -84,7 +90,10 @@ shader denoiser_prepare
         ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
 
         viewZ           = linearize_z(rawDepth, zn_zfar.zw);
-        normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(normalize(gbuffer.normal), gbuffer.linearRoughness, 0);
+        ##if gbuffer_has_hero_cockpit
+          materialID      = gbuffer.isHeroCockpit ? CAMERA_ATTACHED_REFLECTION_MATERIAL_ID : 0;
+        ##endif
+        normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(normalize(gbuffer.normal), gbuffer.linearRoughness, materialID);
         roughness = gbuffer.linearRoughness;
         if (gbuffer.isGlass)
           historyConfidence = gbuffer.linearRoughness + glass_tweak;
@@ -97,7 +106,7 @@ shader denoiser_prepare
         {
           float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
           texture2DAt(halfZTexture, dtid.xy / 2) = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
-          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(texture2DAt(halfNormalsTexture, dtid.xy / 2).xyz * 2 - 1), roughness, 0);
+          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(texture2DAt(halfNormalsTexture, dtid.xy / 2).xyz * 2 - 1), roughness, materialID);
         }
       ##endif
 

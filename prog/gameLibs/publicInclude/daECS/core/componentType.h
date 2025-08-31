@@ -7,6 +7,7 @@
 #include <util/dag_compilerDefs.h>
 #include <memory/dag_fixedBlockAllocator.h>
 #include <debug/dag_assert.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_stdint.h>
 #include <EASTL/vector.h>
@@ -47,7 +48,7 @@
 
 #define ECS_PULL_VAR(x)      ecs_pull_##x
 #define ECS_DECL_PULL_VAR(x) extern const size_t ecs_pull_##x
-#define ECS_DEF_PULL_VAR(x)  extern const size_t ecs_pull_##x = ((size_t)&ecs_pull_##x)
+#define ECS_DEF_PULL_VAR(x)  extern const size_t ecs_pull_##x = (size_t)(&ecs_pull_##x)
 
 namespace ecs
 {
@@ -99,13 +100,13 @@ typedef ResourceRequestCb resource_request_cb_t;
     static constexpr bool is_boxed = boxed;                                                                               \
     static constexpr bool is_non_trivial_move = non_trivial_move;                                                         \
     static constexpr bool is_create_on_templ_inst = IsCreatedOnTemplInstantiate<class_type>::create_on_templ_instantiate; \
-    static constexpr size_t size = sizeof(eastl::type_select<is_boxed, class_type *, class_type>::type);                  \
+    static constexpr size_t size = sizeof(eastl::conditional<is_boxed, class_type *, class_type>::type);                  \
     static constexpr size_t ref_alignment =                                                                               \
-      ecs_data_alignment(sizeof(eastl::type_select<is_defined<class_type>, class_type, char>::type));                     \
+      ecs_data_alignment(sizeof(eastl::conditional<is_defined<class_type>, class_type, char>::type));                     \
     static constexpr size_t ptr_alignment = boxed ? sizeof(void *) : ref_alignment;                                       \
     static constexpr bool can_be_tracked =                                                                                \
       is_defined<class_type>                                                                                              \
-        ? (is_pod_class || TypeReplicatable<eastl::type_select<is_defined<class_type>, class_type, char>::type>::value)   \
+        ? (is_pod_class || TypeReplicatable<eastl::conditional<is_defined<class_type>, class_type, char>::type>::value)   \
         : true;                                                                                                           \
   };                                                                                                                      \
   template <>                                                                                                             \
@@ -180,7 +181,7 @@ struct Tag
 #define ECS_ASSUME_ALIGNED_REF(Type, ptr) (ASSUME_ALIGNED((ptr), ecs::ComponentTypeInfo<Type>::ref_alignment))
 
 #define ECS_MAYBE_VALUE(T)   (eastl::is_scalar<T>::value || eastl::is_same<T, ecs::EntityId>::value)
-#define ECS_MAYBE_VALUE_T(T) typename eastl::type_select<ECS_MAYBE_VALUE(T), T, const T &>::type
+#define ECS_MAYBE_VALUE_T(T) typename eastl::conditional<ECS_MAYBE_VALUE(T), T, const T &>::type
 
 template <typename T>
 struct PtrComponentType
@@ -188,8 +189,8 @@ struct PtrComponentType
   static constexpr bool is_boxed = ComponentTypeInfo<T>::is_boxed;
   typedef T &__restrict ref_type;
   typedef const T &__restrict cref_type;
-  typedef typename eastl::type_select<is_boxed, T *__restrict *__restrict, T *__restrict>::type ptr_type;
-  typedef typename eastl::type_select<is_boxed, const T *__restrict const *__restrict, const T *__restrict>::type cptr_type;
+  typedef typename eastl::conditional<is_boxed, T *__restrict *__restrict, T *__restrict>::type ptr_type;
+  typedef typename eastl::conditional<is_boxed, const T *__restrict const *__restrict, const T *__restrict>::type cptr_type;
 
   template <class U = ref_type>
   static typename eastl::disable_if<is_boxed, U>::type ref(ptr_type p)
@@ -530,6 +531,7 @@ protected:
   friend class EntityManager;
   void initialize();
   void clear();
+  ComponentTypeManager *createTypeManagerImpl(type_index_t);
   G_STATIC_ASSERT(sizeof(ComponentType) == 4);
   eastl::tuple_vector<ComponentSerializer *, component_type_t, ComponentType,
     ComponentTypeManager *, // ctm
@@ -538,6 +540,7 @@ protected:
     create_ctm_t, destroy_ctm_t>
     types;
   HashedKeyMap<component_type_t, type_index_t> typesIndex; // hash to index.
+  OSSpinlock ctmCreationMutex;
 };
 
 inline ComponentTypeManager *ComponentTypes::getTypeManager(type_index_t t) const
@@ -547,12 +550,18 @@ inline ComponentTypeManager *ComponentTypes::getTypeManager(type_index_t t) cons
 
 inline ComponentTypeManager *ComponentTypes::createTypeManager(type_index_t t)
 {
-  if (t < types.size() && types.get<ComponentTypeManager *>()[t])
-    return types.get<ComponentTypeManager *>()[t];
-  if (t >= types.size() || !types.get<create_ctm_t>()[t])
+  if (t >= types.size())
     return nullptr;
-  types.get<ComponentTypeManager *>()[t] = (*types.get<create_ctm_t>()[t])(types.get<void *>()[t]);
-  return types.get<ComponentTypeManager *>()[t];
+  // We should use acquire load to get CTM for it to be completely thread-safe, otherwise we can't guarantee we read fully
+  // constructed state of CTM, if it was constructed in other thread. However race here is already a very rare case, and
+  // acquire load has noticeable performance penalty, so we decided to use relaxed load instead.
+  // To consider: pre-create all CTMs for types, declared in loaded templates. This will eliminate the issue
+  // entirely, but can introduce other problems.
+  if (ComponentTypeManager *ctm = interlocked_relaxed_load_ptr(types.get<ComponentTypeManager *>()[t]))
+    return ctm;
+  if (!types.get<create_ctm_t>()[t])
+    return nullptr;
+  return createTypeManagerImpl(t);
 }
 
 inline ComponentSerializer *ComponentTypes::getTypeIO(type_index_t t) const

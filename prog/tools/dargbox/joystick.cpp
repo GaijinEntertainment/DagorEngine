@@ -21,10 +21,10 @@ HumanInput::IGenJoystickClassDrv *xinput_cls_drv = NULL;
 class JoyRestartProc : public SRestartProc
 {
 public:
-  const char *procname() { return "dargbox_joystick"; }
+  const char *procname() override { return "dargbox_joystick"; }
   JoyRestartProc() : SRestartProc(RESTART_INPUT) {}
 
-  void startup()
+  void startup() override
   {
     global_cls_drv_joy = HumanInput::createJoystickClassDriver(true, ::dgs_get_settings()->getBool("joystickRemap360", false));
 
@@ -40,7 +40,7 @@ public:
       global_cls_drv_joy->enable(true);
   }
 
-  void shutdown()
+  void shutdown() override
   {
     if (global_cls_drv_joy)
       global_cls_drv_joy->setSecondaryClassDrv(NULL);

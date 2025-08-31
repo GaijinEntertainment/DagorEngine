@@ -1,18 +1,22 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <dasModules/dasScriptsLoader.h>
+
+#include <ioSys/dag_dataBlock.h>
 #include <util/dag_threadPool.h>
+#include <memory/dag_framemem.h>
 #include "../../gameLibs/ecs/scripts/das/das_ecs.h"
 #include <zstd.h>
+#include <hash/crc32c.h>
 
 namespace bind_dascript
 {
-constexpr uint32_t stackSize = 16 * 1024;
-
-das::StackAllocator &get_shared_stack()
+FramememStackAllocator::FramememStackAllocator(uint32_t size) : das::StackAllocator(size, size ? framemem_ptr()->alloc(size) : nullptr)
+{}
+FramememStackAllocator::~FramememStackAllocator()
 {
-  static thread_local das::StackAllocator sharedStack(stackSize);
-  return sharedStack;
+  if (stack)
+    framemem_ptr()->free(eastl::exchange(stack, nullptr));
 }
 
 bool debugSerialization = false;
@@ -25,393 +29,6 @@ das::unique_ptr<das::SerializationStorage> initSerializerStorage;
 das::unique_ptr<das::SerializationStorage> initDeserializerStorage;
 das::unique_ptr<das::AstSerializer> initSerializer;
 das::unique_ptr<das::AstSerializer> initDeserializer;
-
-template <typename TLoadedScript, typename TContext>
-void DasScripts<TLoadedScript, TContext>::fillSharedModules(TLoadedScript &script, const das::string &fname,
-  das::smart_ptr<DagFileAccess> access, das::ModuleGroup &lib_group)
-{
-  if (!access->storeOpenedFiles)
-    return;
-  DagFileAccess *globalFileAccess = !sandboxMode ? moduleFileAccess.get() : nullptr;
-  das::vector<das::ModuleInfo> req;
-  das::vector<das::RequireRecord> missing, circular;
-  das::vector<das::RequireRecord> notAllowed;
-  das::vector<das::FileInfo *> chain;
-  das::das_set<das::string> dependencies;
-  if (das::getPrerequisits(fname, access, req, missing, circular, notAllowed, chain, dependencies, lib_group, nullptr, 1, false))
-  {
-    for (das::ModuleInfo &moduleInfo : req)
-    {
-      if (script.filesOpened.find(moduleInfo.fileName) == script.filesOpened.end())
-      {
-        if (globalFileAccess)
-        {
-          auto globalFile = globalFileAccess->filesOpened.find(moduleInfo.fileName);
-          if (globalFile != globalFileAccess->filesOpened.end())
-          {
-            script.filesOpened.emplace(moduleInfo.fileName, globalFile->second);
-            continue;
-          }
-        }
-        DagorStat buf;
-        df_stat(moduleInfo.fileName.c_str(), &buf);
-        script.filesOpened.emplace(moduleInfo.fileName, buf.mtime);
-      }
-    }
-  }
-}
-
-void populateDummyLibGroup(das::ProgramPtr program, das::ModuleGroup *dummyLibGroup)
-{
-  program->thisModuleGroup = dummyLibGroup;
-  program->library.foreach(
-    [&](das::Module *m) {
-      dummyLibGroup->addModule(m);
-      return true;
-    },
-    "*");
-  dummyLibGroup->getModules().pop_back();
-}
-
-template <typename TLoadedScript, typename TContext>
-bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFileAccess> access,
-  AotMode aot_mode, ResolveECS resolve_ecs, LogAotErrors log_aot_errors, EnableDebugger enable_debugger)
-{
-  static const char *alwaysSkipSuffixes[] = {"_common.das", "_macro.das"};
-  static const char *debugFiles[] = {"_console.das", "_debug.das"};
-  static const char *eventFiles[] = {"_events.das"};
-  if (ends_with_suffix(fname, eastl::begin(alwaysSkipSuffixes), eastl::end(alwaysSkipSuffixes)))
-  {
-    debug("daScript: skip module/macro file '%s'", fname.c_str());
-    return true;
-  }
-  const bool debugScript = ends_with_suffix(fname, eastl::begin(debugFiles), eastl::end(debugFiles));
-  if (!(das::is_in_aot() || das::is_in_completion()))
-  {
-    if (!loadDebugCode && debugScript)
-    {
-      debug("daScript: skip debug file '%s'", fname.c_str());
-      return true;
-    }
-    if (!loadEvents && ends_with_suffix(fname, eastl::begin(eventFiles), eastl::end(eventFiles)))
-    {
-      debug("daScript: skip event file '%s'", fname.c_str());
-      return true;
-    }
-  }
-
-  const uint64_t loadStartTime = profile_ref_ticks();
-  DebugPrinter tout;
-  auto dummyLibGroup = eastl::make_unique<das::ModuleGroup>();
-  processModuleGroupUserData(fname, *dummyLibGroup);
-  debug("daScript: load script <%s>", fname.c_str());
-  das::CodeOfPolicies policies;
-  policies.aot = aot_mode == AotMode::AOT;
-  const bool noLinter = (bool)::dgs_get_argv("das-no-linter");
-  policies.no_unused_function_arguments = !noLinter;
-  policies.no_unused_block_arguments = !noLinter;
-  policies.fail_on_lack_of_aot_export = true;
-  policies.no_global_variables = true;
-  policies.fail_on_no_aot = false;
-  policies.debugger = enable_debugger == EnableDebugger::YES;
-  policies.no_unsafe = sandboxMode;
-  policies.no_aliasing = true;
-  policies.strict_unsafe_delete = true;
-  policies.stack = 4096;
-
-  das::ProgramPtr program;
-
-  if (enableSerialization && serializationReading)
-  {
-    program = das::make_smart<das::Program>();
-    if (initDeserializer)
-      initDeserializer->thisModuleGroup = dummyLibGroup.get();
-    if (initDeserializer && initDeserializer->serializeScript(program))
-    {
-      access->getFileInfo(fname); // add script file to openedFiles to support hot reload
-                                  // (other openedFiles are added later in getPrerequisites function,
-                                  //    but main file is not a prerequisite for itself)
-      populateDummyLibGroup(program, dummyLibGroup.get());
-    }
-    else
-    {
-      dummyLibGroup->reset();                                                        // clean partially serialized modules
-      program = das::compileDaScript(fname, access, tout, *dummyLibGroup, policies); // try to recompile to get better error messages
-      bind_dascript::enableSerialization = false;
-    }
-  }
-
-  if (!program)
-  {
-    program = das::compileDaScript(fname, access, tout, *dummyLibGroup, policies);
-  }
-
-  if (program)
-  {
-    if (program->failed())
-    {
-      logerr("failed to compile <%s>\n", fname.c_str());
-      for (auto &err : program->errors)
-      {
-        G_UNUSED(err);
-        logerr(das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr).c_str());
-        compileErrorsCount++;
-      }
-      das::lock_guard<das::recursive_mutex> guard(mutex);
-      auto it = scripts.find(fname);
-      if (it == scripts.end())
-      {
-        TLoadedScript script;
-        script.filesOpened = eastl::move(access->filesOpened);
-        fillSharedModules(script, fname, access, *dummyLibGroup);
-        scripts[fname] = eastl::move(script);
-      }
-      else
-      {
-        it->second.filesOpened = eastl::move(access->filesOpened);
-        fillSharedModules(it->second, fname, access, *dummyLibGroup);
-      }
-      storeSharedQueries(*dummyLibGroup);
-      return false;
-    }
-    {
-      das::lock_guard<das::recursive_mutex> guard(mutex);
-      if (!postProcessModuleGroupUserData(fname, *dummyLibGroup))
-      {
-        logerr("daScript: failed to post process<%s>, internal error, use %d\n", fname.c_str(), program->use_count());
-        return false;
-      }
-    }
-
-    // Do not write out anything when loading is in progress (in serveral threads)
-    if (enableSerialization && !serializationReading && !suppressSerialization && initSerializer)
-      program->serialize(*initSerializer);
-
-    das::shared_ptr<TContext> ctx = das::make_shared<TContext>(program->unsafe ? program->getContextStackSize() : 0);
-#if DAS_HAS_DIRECTORY_WATCH
-    ctx->name = fname;
-#endif
-    bool simulateRes = false;
-    if (!program->unsafe)
-    {
-      // das::SharedStackGuard guard(*ctx, get_shared_stack());
-      // simulateRes = program->simulate(*ctx, tout, &get_shared_stack());
-      simulateRes = program->simulate(*ctx, tout);
-    }
-    else if (sandboxMode)
-    {
-      logerr("daScript: unsafe context <%s>", fname.c_str());
-    }
-    else
-    {
-      logwarn("daScript: unsafe context <%s>", fname.c_str());
-      simulateRes = program->simulate(*ctx, tout);
-    }
-    if (!simulateRes)
-    {
-      if (ctx->getException())
-        logerr("daScript: failed to compile, exception <%s>\n", ctx->getException());
-      else
-      {
-        logerr("daScript: failed to compile<%s>, internal error\n", fname.c_str());
-        for (auto &err : program->errors)
-        {
-          G_UNUSED(err);
-          logerr(das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr).c_str());
-        }
-      }
-      return false;
-    }
-    // this should only be here when AOT is enabled
-    if (aot_mode == AotMode::AOT && !program->aotErrors.empty())
-    {
-      linkAotErrorsCount += uint32_t(program->aotErrors.size());
-      logwarn("daScript: failed to link cpp aot <%s>\n", fname.c_str());
-      if (log_aot_errors == LogAotErrors::YES)
-        for (auto &err : program->aotErrors)
-        {
-          logwarn(das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr).c_str());
-        }
-    }
-    const AotMode aotModeOverride = program->options.getBoolOption("no_aot", false) ? AotMode::NO_AOT : AotMode::AOT;
-    if (debugScript)
-    {
-      if (aotModeOverride != AotMode::NO_AOT)
-        logerr("%s debug file was loaded with enabled aot. Please disable aot using `options no_aot`"
-               " or remove this error if you really need this",
-          fname.c_str());
-    }
-    else
-    {
-      if (program->options.getBoolOption("gc", false))
-        logerr("`%s`: options gc - is allowed only for debug/console scripts.", fname.c_str());
-      if (program->options.getBoolOption("rtti", false))
-        logerr("`%s`: options rtti - is allowed only for debug/console/macro scripts.", fname.c_str());
-    }
-
-    AotModeIsRequired aotModeIsRequired = !debugScript ? AotModeIsRequired::YES : AotModeIsRequired::NO;
-    TLoadedScript script(eastl::move(program), eastl::move(ctx), access, aotModeOverride, aotModeIsRequired, enable_debugger);
-    script.filesOpened = eastl::move(access->filesOpened);
-    fillSharedModules(script, fname, access, *dummyLibGroup);
-
-#if DAS_HAS_DIRECTORY_WATCH
-    for (auto &f : script.filesOpened)
-    {
-      const char *realName = df_get_real_name(f.first.c_str());
-      if (!realName)
-        continue;
-      const char *fnameExt = dd_get_fname(realName);
-      char buf[512];
-      if (!fnameExt || fnameExt <= realName || fnameExt - realName >= sizeof(buf))
-        continue;
-      memcpy(buf, realName, fnameExt - realName - 1);
-      buf[fnameExt - realName - 1] = 0;
-      dd_simplify_fname_c(buf);
-      das::lock_guard<das::recursive_mutex> guard(mutex);
-      if (dirsOpened.find_as((const char *)buf) != dirsOpened.end())
-        continue;
-      bool hasUpperPath = false;
-      const int bufLen = strlen(buf);
-      for (auto &d : dirsOpened)
-      {
-        if (d.first.length() >= bufLen)
-          continue;
-        if (strncmp(d.first.c_str(), buf, d.first.length()) == 0)
-        {
-          hasUpperPath = true;
-          break;
-        }
-      }
-      if (hasUpperPath)
-        continue;
-      WatchedFolderMonitorData *handle = add_folder_monitor(buf, 100);
-      if (handle)
-      {
-        dirsOpened.emplace(buf, eastl::unique_ptr<WatchedFolderMonitorData, DirWatchHandleDeleter>(handle));
-        debug("watch dir = %s", buf);
-      }
-    }
-#endif
-
-    if (script.program->thisModule->isModule)
-    {
-      if (!ends_with(fname, "events.das")) // we still load/unload events files to perform annotations macro
-        logerr("daScript: '%s' is module. If it's file with events, rename it to <fileName>_events.das. Otherwise rename it to "
-               "<fileName>_common.das or <fileName>_macro.das (macro in case it contains macroses)",
-          fname.c_str());
-      const int num = getPendingSystemsNum(*script.program->thisModuleGroup);
-      if (num == 0)
-      {
-        if (!das::is_in_aot())
-        {
-          G_ASSERT(script.systems.empty() && script.queries.empty());
-          debug("das: unload module `%s`", fname.c_str());
-          script.ctx.reset();
-          script.program.reset();
-          return true;
-        }
-      }
-      else
-      {
-        logwarn("das: unable to unload potentially unused module %s", fname.c_str());
-      }
-    }
-
-    if (!script.ctx->persistent)
-    {
-      script.program->library.foreach(
-        [&fname](das::Module *mod) {
-          mod->globals.foreach([&fname](auto globVar) {
-            if (globVar && globVar->used && !globVar->type->isNoHeapType())
-            {
-              const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
-              if (ignoreMark == nullptr || !ignoreMark->bValue)
-                logerr("global variable '%s' in script <%s> requires heap memory, but heap memory is regularly cleared."
-                       "Only value types/fixed arrays are supported in this case",
-                  globVar->name, fname.c_str());
-            }
-          });
-          return true;
-        },
-        "*");
-    }
-
-
-    das::lock_guard<das::recursive_mutex> guard(mutex);
-
-    if (!script.ctx->persistent)
-    {
-      auto memIt = scriptsMemory.find(fname);
-      if (memIt != scriptsMemory.end())
-        scriptsMemory.erase(memIt);
-    }
-    else
-    {
-      // persistent
-      scriptsMemory[fname] =
-        ScriptMemory{(uint64_t)script.ctx->heap->getInitialSize(), (uint64_t)script.ctx->stringHeap->getInitialSize(), 0};
-    }
-
-    if (storeTemporaryScripts)
-      temporaryScripts.push_back(fname);
-
-    auto it = scripts.find(fname);
-    if (it != scripts.end())
-    {
-      debug("daScript: unload %s", fname.c_str());
-      it->second.unload();
-    }
-
-    if (!enableSerialization)
-      dummyLibGroup->reset(); // cleanup submodules to reduce memory usage
-
-    script.moduleGroup = eastl::move(dummyLibGroup);
-
-    if (resolve_ecs == ResolveECS::YES)
-      postLoadScript(script, fname, profile_ref_ticks());
-
-    // Note: In case of serialization we cannot reset now, as the data will be needed later
-    // The clean up is moved to "after the load" stage if we are reading, or after the write if we are writing.
-    if (!enableSerialization && !script.program->options.getBoolOption("rtti", false) && !das::is_in_aot())
-      script.program.reset(); // we don't need program to be loaded. Saves memory
-
-    scripts[fname] = eastl::move(script);
-  }
-  else
-  {
-    logerr("internal compile error <%s>\n", fname.c_str());
-    return false;
-  }
-  debug("daScript: file %s loaded in %d ms", fname.c_str(), profile_time_usec(loadStartTime) / 1000);
-  return true;
-}
-
-template bool DasScripts<LoadedScript, EsContext>::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFileAccess> access,
-  AotMode aot_mode, ResolveECS resolve_ecs, LogAotErrors log_aot_errors, EnableDebugger enable_debugger);
-
-
-template <typename TLoadedScript, typename TContext>
-bool DasScripts<TLoadedScript, TContext>::postLoadScript(TLoadedScript &script, const das::string &fname, uint64_t load_start_time)
-{
-  if (!script.moduleGroup)
-    return true;
-
-  bool res = true;
-  if (!processLoadedScript(script, fname, load_start_time, *script.moduleGroup, script.hasAot ? AotMode::AOT : AotMode::NO_AOT,
-        script.requireAot ? AotModeIsRequired::YES : AotModeIsRequired::NO))
-  {
-    logerr("daScript: failed to process<%s>, internal error\n", fname.c_str());
-    res = false;
-  }
-
-  if (!keepModuleGroupUserData(fname, *script.moduleGroup) && !enableSerialization)
-    script.moduleGroup.reset();
-
-  return res;
-}
-
-template bool DasScripts<LoadedScript, EsContext>::postLoadScript(LoadedScript &script, const das::string &fname,
-  uint64_t load_start_time);
 
 
 size_t FileSerializationStorage::writingSize() const { return df_tell(file); }
@@ -429,62 +46,109 @@ void FileSerializationStorage::write(const void *data, size_t size)
     logerr("can't write to serialization storage '%@'", fileName.c_str());
 }
 
-FileSerializationStorage::~FileSerializationStorage()
-{
-  df_close(file);
-  file = nullptr;
-}
+FileSerializationStorage::~FileSerializationStorage() { df_close(file); }
 
 // ----------------------------
 
 struct FileSerializationRead final : FileSerializationStorage
 {
-  const int buffInSize = ZSTD_DStreamInSize();
+  int buffInSize = ZSTD_DStreamInSize();
   int readPos = 0, fileLen = 0;
-  const char *fileMapping = nullptr;
-  ZSTD_DCtx *cctx = ZSTD_createDCtx();
-  char tempReadBuffer[ZSTD_BLOCKSIZE_MAX]; // Last member
-
+  const unsigned char *fileMapping = nullptr;
+  ZSTD_DCtx *dctx = ZSTD_createDCtx();
+  das::vector<char> readBuffer;
   FileSerializationRead(file_ptr_t file_, const das::string &name);
   virtual size_t writingSize() const override { return 0; }
   virtual bool readOverflow(void *data, size_t size) override;
   virtual void write(const void *data, size_t size) override;
   virtual ~FileSerializationRead() override;
+
+  // Big buffer, must be last member of this struct
+  char tempReadBuffer[ZSTD_BLOCKSIZE_MAX];
 };
 
 
 FileSerializationRead::FileSerializationRead(file_ptr_t file_, const das::string &name) : //-V730
   FileSerializationStorage(file_, name)
 {
-  fileMapping = (const char *)df_mmap(file, &fileLen);
+  fileMapping = (const unsigned char *)df_mmap(file, &fileLen);
+  if (fileMapping)
+  {
+    if (fileLen <= sizeof(int))
+      ;
+    else if (*(const int *)fileMapping == ZSTD_MAGICNUMBER)
+      return; // Bw-compat with cksum-less data
+    else
+    {
+      uint32_t cksum = crc32c_append(0, fileMapping + sizeof(int), fileLen - sizeof(int));
+      if (cksum == *(const uint32_t *)fileMapping)
+      {
+        readPos = sizeof(cksum);
+        return;
+      }
+      else
+        logerr("das: serialize: FileSerializationRead: %s cksum mismatch: %08x != %08x", name.c_str(), cksum,
+          *(const uint32_t *)fileMapping);
+    }
+  }
+  else // Low memory condition?
+  {
+    logwarn("das: serialize: failed to mmap file %s of len %d, fallback to partial read", name.c_str(), fileLen);
+    uint32_t cksum = 0;
+    if (df_read(file, &cksum, sizeof(cksum)) == sizeof(cksum))
+    {
+      if (cksum == ZSTD_MAGICNUMBER)
+        df_seek_to(file, 0); // Bw-compat with hash-less data
+      readBuffer.resize_noinit(buffInSize);
+      return;
+    }
+  }
+  // Error condition here
+  buffInSize = 0;
 }
 
 FileSerializationRead::~FileSerializationRead()
 {
   df_unmap(fileMapping, fileLen);
-  ZSTD_freeDCtx(cctx);
+  ZSTD_freeDCtx(dctx);
 }
 
 bool FileSerializationRead::readOverflow(void *data, size_t size)
 {
+  if (!buffInSize) // Mismatched hash?
+    return false;
+
   char *dataPtr = (char *)data;
 
   while (size)
   {
     if (buffer.empty())
     {
-      int toRead = min(fileLen - readPos, buffInSize);
-      if (toRead <= 0)
-        return false;
-      ZSTD_inBuffer input = {fileMapping + readPos, (size_t)toRead, 0};
-      readPos += toRead; //-V1026 ignore signed overflow possibility
+      ZSTD_inBuffer input;
+      if (DAGOR_LIKELY(fileMapping))
+      {
+        int toRead = min(fileLen - readPos, buffInSize);
+        if (toRead <= 0)
+          return false;
+        input = {fileMapping + readPos, (size_t)toRead, 0};
+        readPos += toRead; //-V1026 ignore signed overflow possibility
+      }
+      else
+      {
+        int readBufferSize = df_read(file, readBuffer.data(), readBuffer.size());
+        if (readBufferSize <= 0)
+          return false;
+        input = {readBuffer.data(), (size_t)readBufferSize, 0};
+      }
       buffer.clear();
       while (input.pos < input.size) // To consider: decompress directly to `buffer` instead of `tempReadBuffer`
       {
         ZSTD_outBuffer output = {tempReadBuffer, sizeof(tempReadBuffer), 0};
-        const size_t ret = ZSTD_decompressStream(cctx, &output, &input);
-        if (ZSTD_isError(ret)) // decompression error, maybe previous format file
+        const size_t ret = ZSTD_decompressStream(dctx, &output, &input);
+        if (DAGOR_UNLIKELY(ZSTD_isError(ret))) // decompression error, maybe previous format file
         {
+          logwarn("zstd read %s err=%#x(%s) at %d", fileName.c_str(), (int)ret, ZSTD_getErrorName(ret),
+            int(((const uint8_t *)input.src + input.pos) - fileMapping));
           return false;
         }
         auto bSize = buffer.size();
@@ -518,20 +182,22 @@ void FileSerializationRead::write(const void *, size_t) { logerr("can't write to
 
 struct FileSerializationWrite final : FileSerializationStorage
 {
-  das::vector<char> writeBuffer;
+  das::vector<uint8_t> writeBuffer;
   size_t totalSize = 0;
   ZSTD_CCtx *cctx = nullptr;
+  uint32_t cksum = 0;
 
-  FileSerializationWrite(file_ptr_t file_, const das::string &name);
+  FileSerializationWrite(file_ptr_t file_, const das::string &name) : FileSerializationStorage(file_, name) {} // -V730
+  virtual ~FileSerializationWrite() override;
   virtual size_t writingSize() const override;
   virtual bool readOverflow(void *data, size_t size) override;
   virtual void write(const void *data, size_t size) override;
   void flush(ZSTD_EndDirective end_mode);
-  virtual ~FileSerializationWrite() override;
+
+  void init();
 };
 
-
-FileSerializationWrite::FileSerializationWrite(file_ptr_t file_, const das::string &name) : FileSerializationStorage(file_, name)
+void FileSerializationWrite::init()
 {
   cctx = ZSTD_createCCtx();
   ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, 1);
@@ -541,6 +207,8 @@ FileSerializationWrite::FileSerializationWrite(file_ptr_t file_, const das::stri
   size_t const buffOutSize = ZSTD_CStreamOutSize();
   buffer.resize(buffInSize);
   writeBuffer.resize_noinit(buffOutSize);
+
+  df_write(file, &cksum, sizeof(cksum));
 }
 
 size_t FileSerializationWrite::writingSize() const { return totalSize; }
@@ -553,6 +221,8 @@ bool FileSerializationWrite::readOverflow(void *, size_t)
 
 void FileSerializationWrite::write(const void *data, size_t size)
 {
+  if (DAGOR_UNLIKELY(!cctx))
+    init();
   char *dataPtr = (char *)data;
   while (size)
   {
@@ -577,6 +247,7 @@ void FileSerializationWrite::flush(ZSTD_EndDirective end_mode)
     size_t const remaining = ZSTD_compressStream2(cctx, &output, &input, end_mode);
     G_ASSERT(!ZSTD_isError(remaining));
     df_write(file, writeBuffer.data(), (int)output.pos);
+    cksum = crc32c_append(cksum, writeBuffer.data(), output.pos);
     bufferPos = 0;
     finished = end_mode == ZSTD_e_end ? (remaining == 0) : (input.pos == input.size);
   } while (!finished);
@@ -584,9 +255,15 @@ void FileSerializationWrite::flush(ZSTD_EndDirective end_mode)
 
 FileSerializationWrite::~FileSerializationWrite()
 {
+  if (!cctx)
+    return;
+
   flush(ZSTD_e_end);
+
+  df_seek_to(file, 0);
+  df_write(file, &cksum, sizeof(cksum));
+
   ZSTD_freeCCtx(cctx);
-  cctx = nullptr;
 }
 
 das::SerializationStorage *create_file_read_serialization_storage(file_ptr_t file, const das::string &name)

@@ -2,7 +2,6 @@ require ecs
 require DagorMath
 require Dacoll
 require DagorShaders
-require app
 require DngWeapon
 require DngHuman
 require Gun
@@ -10,12 +9,8 @@ require math.base
 require DngCamera
 require player
 require danetlibs.renderer.includes.render_events
+require danetlibs.renderer.includes.pufd_events
 
-//to be moved to daNetGameLibs
-[cpp_event(broadcast)]
-struct ParallelUpdateFrameDelayed
-  curTime : float
-  dt : float
 
 [cpp_event(unicast)]
 struct QueryHeroWtmAndBoxForRender

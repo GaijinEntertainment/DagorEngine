@@ -75,7 +75,7 @@ __forceinline void EntityManager::preprocessTrackedChange(EntityId eid, archetyp
     //  That is part of template, but we can first check if component is POTENTIALLY replicated first.
     //  Not all tracked components are replicated, less than 2/3
     if (canBeReplicated.test(cidx, false) && templates.isReplicatedComponent(entDescs[idx].template_id, cidx))
-      replicationCb(eid, cidx);
+      replicationCb(*this, eid, cidx);
   }
 
   auto esListIt = esOnChangeEvents.find(dataComponents.getComponentTpById(cidx)); // todo: use direct addressing, by cidx, remove

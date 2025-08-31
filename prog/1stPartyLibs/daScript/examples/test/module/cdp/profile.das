@@ -1,4 +1,6 @@
+options gen2
 require common.metalink
 
-def fn_profile
+def fn_profile {
     return true
+}

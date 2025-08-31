@@ -78,7 +78,7 @@ bool is_os_supported()
   VER_SET_CONDITION(req, VER_MAJORVERSION, VER_GREATER_EQUAL);
   VER_SET_CONDITION(req, VER_MINORVERSION, VER_GREATER_EQUAL);
   return VerifyVersionInfo(&osvi, VER_MAJORVERSION|VER_MINORVERSION, req);
-#elif _TARGET_PC_MAC
+#elif _TARGET_PC_MACOSX
   return true;
 #else
   return false;

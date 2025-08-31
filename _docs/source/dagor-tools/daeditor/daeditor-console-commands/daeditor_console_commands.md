@@ -1,3 +1,4 @@
+# daEditor Console Commands
 
 ```{note}
 To view a list of all registered commands, use the `list` command in the

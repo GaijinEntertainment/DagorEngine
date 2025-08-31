@@ -17,16 +17,16 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, h), controlCaption(caption), leftAlignText(left_align_text)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void setTextValue(const char value[]) override { controlCaption = value; }
+  void setTextValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

@@ -10,7 +10,7 @@ retinal_damage_renderer{
   retinal_damage__scale_increase_rate:r=0.15
   retinal_damage__remaining_time:r=0
 
-  "retinal_damage__node_handle:dabfg::NodeHandle"{}
+  "retinal_damage__node_handle:dafg::NodeHandle"{}
   "retinal_damage__tex:UniqueTexHolder" {}
 }
 

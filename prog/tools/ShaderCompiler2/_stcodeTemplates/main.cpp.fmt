@@ -1,4 +1,5 @@
-R"(/* stcode dll unified code */
+R"(%s
+/* stcode dll unified code */
 #include <shaders/stcode/defines.stcode.h>
 
 #include "glob_shadervars.stcode.gen.cpp"
@@ -12,24 +13,36 @@ R"(/* stcode dll unified code */
 namespace stcode::cpp
 {
 CallbackTable internalCbTable = {};
+
+// Register table declaration
+%s
 }
 
-typedef void (*RoutinePtr)(const void *, bool);
+typedef void (*DynRoutinePtr)(const void *, uint32_t);
+typedef void (*StRoutinePtr)(void *);
 
 using namespace stcode::cpp;
 
-static const RoutinePtr routines[] = {
-// Pointers to all routines defined above
+static const DynRoutinePtr dyn_routines[] = {
+// Pointers to dynamic all routines defined above
+%s
+};
+static const StRoutinePtr st_routines[] = {
+// Pointers to all static routines defined above
 %s
 };
 
-static constexpr uint64_t HASH_VALUE = %lluULL; // For matching on load
+static constexpr uint8_t HASH_VALUE[32] = {%s}; // For matching on load
 
-CPPSTCODE_DLL_EXPORT const RoutinePtr *init_dll_and_get_routines(void *cb_table, uint64_t stcode_hash)
+// For cross-checking
+CPPSTCODE_DLL_EXPORT uint32_t get_version() { return %uU; }
+CPPSTCODE_DLL_EXPORT const uint8_t *get_hash() { return HASH_VALUE; }
+
+CPPSTCODE_DLL_EXPORT bool init_dll_and_get_routines(
+  void *cb_table,
+  void **out_dyn_routines_ptr, uint32_t *out_dyn_routines_count,
+  void **out_st_routines_ptr, uint32_t *out_st_routines_count)
 {
-  if (HASH_VALUE != stcode_hash)
-    return nullptr;
-
   // Set the callbacks for internal use @TODO: validate
   CallbackTable &src = *reinterpret_cast<CallbackTable *>(cb_table);
   internalCbTable = src;
@@ -37,8 +50,13 @@ CPPSTCODE_DLL_EXPORT const RoutinePtr *init_dll_and_get_routines(void *cb_table,
   // Fetch the shadervar pointers from the bindump through the callback
   init_shadervar_ptrs();
 
-  // Return pointer to routines array, the callee fetches the size from the bindump
-  return routines;
+  // Fill out parameters with span definitions
+  *out_dyn_routines_ptr = (void *)dyn_routines;
+  *out_dyn_routines_count = sizeof(dyn_routines) / sizeof(dyn_routines[0]);
+  *out_st_routines_ptr = (void *)st_routines;
+  *out_st_routines_count = sizeof(st_routines) / sizeof(st_routines[0]);
+
+  return true;
 }
 
 )"

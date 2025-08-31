@@ -377,6 +377,77 @@ more to read:
   https://medium.com/hackernoon/from-callback-to-future-functor-monad-6c86d9c16cb5
   https://dev.to/avaq/fluture-a-functional-alternative-to-promises-21b
 
+// Task Monad Implementation
+Task Monad (Quirrel)
+====================
+
+The ``Task`` class represents an asynchronous computation, allowing you to compose, transform, and run async operations in a functional way.
+
+Overview
+--------
+
+- **Task(fn)**: Creates a new asynchronous computation.
+  The function ``fn`` takes two callbacks: ``errFn`` (for errors) and ``okFn`` (for success).
+- **.map(fn)**: Transforms the result of the computation.
+- **.flatMap(fn)**: Chains computations that return Tasks.
+- **.exec(errFn, okFn)**: Runs the Task.
+- **of(x)**: Wraps a value in a Task.
+- **.isTask()**: Returns ``true`` (for type checking).
+- **.get()**: Flattens a nested Task.
+
+// Example 1: Create a Task that waits and returns "hello"
+function waitAndSayHello() {
+    return Task(@(err, ok) {
+        setTimeout(@() ok("hello"), 1000)
+    })
+}
+
+// Example 2: Wrap a value in a Task
+let helloTask = Task.of("hello")
+
+// Example 3: Run a Task
+helloTask.exec(
+    @(err) println($"Error: {err}"),
+    @(result) println($"Result: {result}")
+)
+
+// Example 4: Transform result with map
+let upperTask = helloTask.map(@(x) x.upper())
+upperTask.exec(
+    @(err) println($"Error: {err}"),
+    @(result) println($"Result: {result}")
+)
+
+// Example 5: Chain async Tasks with flatMap
+function nextTaskAfterHello(str) {
+    return Task(@(err, ok) {
+        setTimeout(@() ok(str.concat(" world!")), 1000)
+    })
+}
+waitAndSayHello()
+    .flatMap(nextTaskAfterHello)
+    .exec(
+        @(err) println($"Error: {err}"),
+        @(result) println($"Result: {result}")
+    )
+
+// Example 6: Handle errors
+let errorTask = Task(@(err, ok) err("Something went wrong"))
+errorTask.exec(
+    @(err) println($"Error: {err}"),
+    @(result) println($"Result: {result}")
+)
+
+// Example 7: Compose and chain
+let t = Task.of(5)
+    .map(@(x) x * 2)
+    .flatMap(@(x) Task.of(x + 3))
+    .map(@(x) "".concat("Result is: ", x))
+
+t.exec(
+    @(err) println($"Error: {err}"),
+    @(result) println(result)
+)
 */
 local Task
 Task = class (Monad) {

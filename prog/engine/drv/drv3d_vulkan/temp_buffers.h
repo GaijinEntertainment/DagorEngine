@@ -3,7 +3,6 @@
 
 // temp buffers for various frame-once data transfers
 
-#include <EASTL/vector.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_assert.h>
@@ -59,7 +58,7 @@ class TempBufferManager
 
   WinCritSec writeLock;
   std::atomic<int> buffersInUse;
-  eastl::vector<TempBufferInfo> buffers;
+  dag::Vector<TempBufferInfo> buffers;
   VkDeviceSize currentAllocSize = 0;
   VkDeviceSize maxAllocSize = 0;
   VkDeviceSize lastAllocSize = 0;
@@ -98,10 +97,7 @@ public:
 
     int pendingBuffers = buffersInUse;
     if (pendingBuffers > 0)
-    {
-      debug("vulkan: %u temp buffers holded over frame end, skipping cleanup!", pendingBuffers);
       return;
-    }
 
     for (auto &&buffer : buffers)
       clb(buffer.buffer);

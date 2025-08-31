@@ -5,6 +5,7 @@ include "wetness.dshl"
 include "outline_xray_inc.dshl"
 include "taa_inc.dshl"
 include "paint_details_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 hlsl {
   #define VERTEX_TANGENT 0
@@ -254,6 +255,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
   DYNAMIC_SIMPLE_VS_INPUT()
   OPTIONAL_SKINNING_SHADER()
 
+  USE_INITIAL_TM_HASHVAL(vs)
+
 endmacro
 
 macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
@@ -263,6 +266,7 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
     USE_MOTION_VECTORS()
     USE_MOTION_VEC_ENCODE(ps)
   }
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl(vs) {
 
@@ -289,19 +293,19 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       float3 worldDv;
       float3 worldNormal;
       ##if dyn_model_render_pass == render_pass_normal
-      float3 localNormal = BGR_SWIZZLE(input.normal.rgb)*2-1;
+      float3 localNormal = unpack_unit_vector(input.normal.rgb);
       ##else
       float3 localNormal = 1;
       ##endif
 
       #if VERTEX_TANGENT
-      float3 localDu = BGR_SWIZZLE(input.packedDu)*2-1;
-      float3 localDv = BGR_SWIZZLE(input.packedDv)*2-1;
+      float3 localDu = unpack_unit_vector(input.packedDu);
+      float3 localDv = unpack_unit_vector(input.packedDv);
       #else
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       #endif
       #if HAS_VS_PREV_FUNCTION
-      vs_prev_function(input);
+      vs_prev_function(input, localNormal);
       #endif
       #if HAS_BURNING
       output.burnedEffect = getBurnedEffect();
@@ -321,19 +325,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       #if NEED_TC
       SET_DIFFUSETC(output.diffuseTexcoord.xy, diffuseTexcoord);
       #if RANDOMIZE_TC
-        float4 initialTm0;
-        float4 initialTm1;
-        float4 initialTm2;
-        float4 hashval;
-        ##if in_editor_assume == yes
-          initialTm0 = float4(1, 0, 0, 0);
-          initialTm1 = float4(0, 1, 0, 0);
-          initialTm2 = float4(0, 0, 1, 0);
-        ##else
-          get_per_instance_data(initialTm2, 2);
-          get_per_instance_data(initialTm1, 3);
-          get_per_instance_data(initialTm0, 4);
-        ##endif
+        float4 initialTm0, initialTm1, initialTm2;
+        get_initial_tm(initialTm0, initialTm1, initialTm2);
         float3 localPos = float3(initialTm0.x, initialTm1.y, initialTm2.z);
         output.diffuseTexcoord.xy = uv_apply_random(output.diffuseTexcoord.xy, localPos);
       #endif

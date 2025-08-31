@@ -1,23 +1,23 @@
 show_shadows {
   _singleton:b=yes
   _tags:t="render,dev"
-  "showShadowsNode:dabfg::NodeHandle"{_tags:t="render"}
+  "showShadowsNode:dafg::NodeHandle"{_tags:t="render"}
 }
 
 show_gbuffer {
   _singleton:b=yes
   _tags:t="render,dev"
-  "showGbufferNode:dabfg::NodeHandle"{_tags:t="render"}
+  "showGbufferNode:dafg::NodeHandle"{_tags:t="render"}
 }
 
 debug_indoor_probes_on_screen{
   _singleton:b=yes
   _tags:t="render,dev"
-  "debugIndoorProbesOnScreenNode:dabfg::NodeHandle"{_tags:t="render"}
+  "debugIndoorProbesOnScreenNode:dafg::NodeHandle"{_tags:t="render"}
 }
 
 debug_indoor_probe_boxes{
   _singleton:b=yes
   _tags:t="render,dev"
-  "debugIndoorProbeBoxesNode:dabfg::NodeHandle"{_tags:t="render"}
+  "debugIndoorProbeBoxesNode:dafg::NodeHandle"{_tags:t="render"}
 }

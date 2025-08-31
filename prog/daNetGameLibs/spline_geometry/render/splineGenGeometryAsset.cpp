@@ -12,12 +12,16 @@
 #include <render/debugMesh.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_buffers.h>
+#include <ecs/core/entityManager.h>
+#include <daECS/core/componentType.h>
+#include <daECS/core/coreEvents.h>
 
 SplineGenGeometryAsset::SplineGenGeometryAsset(const eastl::string &asset_name, uint32_t batch_size) :
   assetName(asset_name), batchSize(batch_size)
 {
   objHandle = GAMERES_HANDLE_FROM_STRING(assetName.c_str());
-  res = (DynamicRenderableSceneLodsResource *)get_one_game_resource_ex(objHandle, DynModelGameResClassId);
+  // Expected to be preloaded by SplineGenGeometryAssetPreload
+  res = (DynamicRenderableSceneLodsResource *)get_game_resource(objHandle);
   release_game_resource(objHandle); // remove the reference added by get_one_game_resource_ex, res will keep one too
 
   const char *attacherShader = "spline_gen_obj_attacher";
@@ -100,7 +104,7 @@ void SplineGenGeometryAsset::attachObjects(int instance_count, int attachment_ma
   TIME_D3D_PROFILE(spline_gen_geometry_attach_objects);
   invalidatePrevData = false;
 
-  ShaderGlobal::set_int(spline_gen_attachment_batch_sizeVarId, batchSize);
+  ShaderGlobal::set_int(var::spline_gen_attachment_batch_size, batchSize);
   static int spline_gen_attachment_data_uav_no = ShaderGlobal::get_slot_by_name("spline_gen_attachment_data_uav_no");
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_attachment_data_uav_no, VALUE), dataBuffer[currentDataIndex].getBuf());
 
@@ -116,9 +120,9 @@ void SplineGenGeometryAsset::renderObjects(Sbuffer *params_buffer, uint32_t lod)
 
     TIME_D3D_PROFILE(spline_gen_geometry_render_attached_objects);
 
-    ShaderGlobal::set_int(spline_gen_attachment_batch_sizeVarId, batchSize);
-    ShaderGlobal::set_buffer(spline_gen_attachment_dataVarId, dataBuffer[currentDataIndex]);
-    ShaderGlobal::set_buffer(spline_gen_prev_attachment_dataVarId, dataBuffer[(currentDataIndex + 1) % 2]);
+    ShaderGlobal::set_int(var::spline_gen_attachment_batch_size, batchSize);
+    ShaderGlobal::set_buffer(var::spline_gen_attachment_data, dataBuffer[currentDataIndex]);
+    ShaderGlobal::set_buffer(var::spline_gen_prev_attachment_data, dataBuffer[(currentDataIndex + 1) % 2]);
 
     int renderCount = 0;
     dag::Span<DynamicRenderableSceneLodsResource::Lod> availableLods = res->getUsedLods();
@@ -209,3 +213,19 @@ DrawIndexedIndirectArgs SplineGenGeometryAsset::extractRElemParams(const ShaderM
   paramsData.baseVertexLocation = elem.baseVertex;
   return paramsData;
 }
+
+struct SplineGenGeometryAssetPreload
+{
+  static void requestResources(const char *, const ecs::resource_request_cb_t &res_cb)
+  {
+    const char *resName = res_cb.get<ecs::string>(ECS_HASH("spline_gen_template__asset_name")).c_str();
+    if (strlen(resName) != 0)
+      res_cb(resName, DynModelGameResClassId);
+  }
+};
+
+ECS_DECLARE_RELOCATABLE_TYPE(SplineGenGeometryAssetPreload);
+ECS_REGISTER_RELOCATABLE_TYPE(SplineGenGeometryAssetPreload, nullptr);
+ECS_AUTO_REGISTER_COMPONENT(ecs::string, "spline_gen_template__asset_name", nullptr, 0);
+ECS_AUTO_REGISTER_COMPONENT_DEPS(
+  SplineGenGeometryAssetPreload, "SplineGenGeometryAssetPreload", nullptr, 0, "spline_gen_template__asset_name");

@@ -30,6 +30,7 @@ public:
     STG_RENDER_STATIC_OPAQUE,
     STG_RENDER_STATIC_DECALS,
     STG_RENDER_DYNAMIC_OPAQUE,
+    STG_RENDER_DYNAMIC_DECALS,
     STG_RENDER_STATIC_TRANS,
     STG_RENDER_DYNAMIC_TRANS,
     STG_RENDER_STATIC_DISTORTION,
@@ -55,7 +56,7 @@ public:
   virtual void renderGeometry(Stage stage) = 0;
   virtual void renderUI() {}
   virtual int setSubDiv(int) { return 0; }
-  virtual void prepare(const Point3 &center_pos, const BBox3 &box){};
+  virtual void prepare([[maybe_unused]] const Point3 &center_pos, [[maybe_unused]] const BBox3 &box) {}
 };
 
 
@@ -135,34 +136,6 @@ public:
   virtual IGenEventHandler *getWrappedHandler() = 0;
 
   //*******************************************************
-  ///@name Keyboard commands handlers.
-  //@{
-  /// Handles key press.
-  /// If getWrappedHandler() returns not NULL then corresponding method
-  /// (%getWrappedHandler()->%handleKeyPress()) will be called.
-  /// In other case the function does nothing.
-  /// @copydoc IGenEventHandler::handleKeyPress()
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    IGenEventHandler *h = getWrappedHandler();
-    if (h)
-      h->handleKeyPress(wnd, vk, modif);
-  }
-
-  /// Handles key release.
-  /// If getWrappedHandler() returns not NULL then corresponding method
-  /// (%getWrappedHandler()->%handleKeyRelease()) will be called.
-  /// In other case the function does nothing.
-  /// @copydoc IGenEventHandler::handleKeyRelease()
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-  {
-    IGenEventHandler *h = getWrappedHandler();
-    if (h)
-      h->handleKeyRelease(wnd, vk, modif);
-  }
-  //@}
-
-  //*******************************************************
   ///@name Mouse events handlers.
   //@{
   /// Handles mouse move.
@@ -170,7 +143,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseMove()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseMove()
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -183,7 +156,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseLBPress()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseLBPress()
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -196,7 +169,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseLBRelease()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseLBRelease()
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -209,7 +182,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseRBPress()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseRBPress()
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -222,7 +195,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseRBRelease()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseRBRelease()
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -235,7 +208,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseCBPress()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseCBPress()
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -248,7 +221,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseCBRelease()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseCBRelease()
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -261,7 +234,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseWheel()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseWheel()
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif)
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -274,7 +247,7 @@ public:
   /// (%getWrappedHandler()->%handleMouseDoubleClick()) will be called.
   /// In other case the function returns false.
   /// @copydoc IGenEventHandler::handleMouseDoubleClick()
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif)
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -291,7 +264,7 @@ public:
   /// (%getWrappedHandler()->%handleViewportPaint()) will be called.
   /// In other case the function does nothing.
   /// @copydoc IGenEventHandler::handleViewportPaint()
-  virtual void handleViewportPaint(IGenViewportWnd *wnd)
+  void handleViewportPaint(IGenViewportWnd *wnd) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)
@@ -303,7 +276,7 @@ public:
   /// (%getWrappedHandler()->%handleViewChange()) will be called.
   /// In other case the function does nothing.
   /// @copydoc IGenEventHandler::handleViewChange()
-  virtual void handleViewChange(IGenViewportWnd *wnd)
+  void handleViewChange(IGenViewportWnd *wnd) override
   {
     IGenEventHandler *h = getWrappedHandler();
     if (h)

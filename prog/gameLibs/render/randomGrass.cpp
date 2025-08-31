@@ -86,7 +86,16 @@ enum
   SHV_COUNT
 };
 
-static int grass_bumpVarId = -1;
+#define GLOBAL_VARS_LIST \
+  VAR(grass_bump)        \
+  VAR(grass_tex_reg_no)  \
+  VAR(grass_tex_alpha_reg_no)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_LIST
+#undef VAR
+
+static int grass_samplerstate_reg() { return grass_tex_alpha_reg_noVarId.get_int(); }
 
 BVHConnection *RandomGrass::bvhConnection = nullptr;
 
@@ -182,8 +191,6 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
 
   shaderVars[SHV_CELL_TO_SQUARE_WORLD_REG] = ShaderGlobal::get_int_fast(get_shader_variable_id("cell_to_square_world_const_no"));
   shaderVars[SHV_GRASS_LAYER_IMMEDIATE_NO] = ShaderGlobal::get_int_fast(get_shader_variable_id("grass_layer_no_immediate_const_no"));
-
-  grass_bumpVarId = ::get_shader_variable_id("grass_bump", true);
 
   grassRadiusMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("grassRadiusMul", 1.f);
   grassDensityMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("grassDensityMul", 1.f);
@@ -788,11 +795,18 @@ void RandomGrass::resetLayersVB()
       lod.diffuseTexId = texList[0];
 
       lod.alphaTex = acquire_managed_tex(lod.alphaTexId);
+      d3d::SamplerInfo samplerInfo = get_sampler_info(get_texture_meta_data(lod.alphaTexId));
       if (lod.alphaTex && forcedAnisotropy)
-        lod.alphaTex->setAnisotropy(forcedAnisotropy);
+      {
+        samplerInfo.anisotropic_max = forcedAnisotropy;
+        add_anisotropy_exception(lod.alphaTexId);
+      }
+      lod.grassTexSmp = d3d::request_sampler(samplerInfo);
       lod.diffuseTex = acquire_managed_tex(lod.diffuseTexId);
       if (lod.diffuseTex && forcedAnisotropy)
-        lod.diffuseTex->setAnisotropy(forcedAnisotropy);
+      {
+        add_anisotropy_exception(lod.diffuseTexId);
+      }
 
       fillLayerLod(layer, lodIdx, lodRndSeed);
     }
@@ -804,15 +818,15 @@ void RandomGrass::resetLayersVB()
 
   // create and fill constbuffers
   layerDataVS.close();
-  layerDataPS.close();
+  layerDataColor.close();
 
   if (maxLayerCount * maxLodCount <= 0)
     return;
 
   layerDataVS = dag::buffers::create_persistent_sr_structured(sizeof(GrassLayersVS), maxLayerCount * maxLodCount, "grass_layers_vs");
-  layerDataPS = dag::buffers::create_persistent_sr_structured(sizeof(GrassLayersPS), maxLayerCount, "grass_layers_ps");
+  layerDataColor = dag::buffers::create_persistent_sr_structured(sizeof(GrassLayersColor), maxLayerCount, "grass_layers_color");
 
-  if (auto layerData = lock_sbuffer<GrassLayersPS>(layerDataPS.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
+  if (auto layerData = lock_sbuffer<GrassLayersColor>(layerDataColor.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
   {
     for (uint32_t layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
     {
@@ -887,7 +901,7 @@ GameResource *RandomGrass::loadLayerResource(const char *resName)
 #if DAGOR_DBGLEVEL > 0
 void RandomGrass::updateGrassColorLayer(Tab<carray<float4, MAX_COLOR_MASKS>> colors)
 {
-  if (auto layerData = lock_sbuffer<GrassLayersPS>(layerDataPS.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
+  if (auto layerData = lock_sbuffer<GrassLayersColor>(layerDataColor.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
   {
     for (uint32_t layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
     {
@@ -1154,8 +1168,6 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
   static int grassGenerationStateVarId = ::get_shader_variable_id("grass_generation_state");
   ShaderGlobal::set_int(grassGenerationStateVarId, grassBufferGenerated ? 1 : 0);
 
-  d3d::set_buffer(STAGE_CS, 8, layerDataVS.getBuf());
-
   static int random_grass_use_bvhVarId = ::get_shader_variable_id("random_grass_use_bvh", true);
   static int random_grass_bvh_rangeVarId = ::get_shader_variable_id("random_grass_bvh_range", true);
   static int random_grass_bvh_max_countVarId = ::get_shader_variable_id("random_grass_bvh_max_count", true);
@@ -1222,8 +1234,6 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
   G_UNUSED(land_mask);
   ShaderGlobal::set_real(shaderVars[SHV_GRASS_RANGE], curMaxRadius);
 
-  setGrassLodLayerStates();
-
   ShaderGlobal::set_int(shaderVars[SHV_GRASS_LAYERS_COUNT], maxLayerCount);
 
 
@@ -1265,8 +1275,9 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
         if (!check_managed_texture_loaded(layers[i]->lods[lodIdx].alphaTexId) ||
             !check_managed_texture_loaded(layers[i]->lods[lodIdx].diffuseTexId))
           continue;
-        d3d::set_tex(STAGE_PS, 8, layers[i]->lods[lodIdx].diffuseTex);
-        d3d::set_tex(STAGE_PS, 9, layers[i]->lods[lodIdx].alphaTex);
+        d3d::set_tex(STAGE_PS, grass_tex_reg_noVarId.get_int(), layers[i]->lods[lodIdx].diffuseTex);
+        d3d::set_tex(STAGE_PS, grass_tex_alpha_reg_noVarId.get_int(), layers[i]->lods[lodIdx].alphaTex);
+        d3d::set_sampler(STAGE_PS, grass_samplerstate_reg(), layers[i]->lods[lodIdx].grassTexSmp);
 
         d3d::draw_indexed_indirect(PRIM_TRILIST, combinedLods[lodIdx].grassInstancesIndirect.getBuf(), 20 * i);
 #if _TARGET_C1
@@ -1280,10 +1291,4 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
 #endif
     }
   }
-}
-
-void RandomGrass::setGrassLodLayerStates()
-{
-  d3d::set_buffer(STAGE_VS, 9, layerDataVS.getBuf());
-  d3d::set_buffer(STAGE_PS, 10, layerDataPS.getBuf());
 }

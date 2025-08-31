@@ -1,6 +1,5 @@
-let {logerr} = require("dagor.debug")
-let regexp2 = require("regexp2")
-
+import "regexp2" as regexp2
+from "dagor.debug" import logerr
 let verTrim = regexp2(@"^\s+|\s+$")
 let dotCase = regexp2(@"^\d+\.\d+\.\d+\.\d+$")
 let dashCase = regexp2(@"^\d+_\d+_\d+_\d+$")

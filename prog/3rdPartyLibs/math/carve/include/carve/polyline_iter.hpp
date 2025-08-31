@@ -35,7 +35,7 @@ namespace carve {
 namespace line {
 
 struct polyline_vertex_iter
-    : public std::iterator<std::random_access_iterator_tag, Vertex*> {
+    : public StdIterator<std::random_access_iterator_tag, Vertex*> {
   Polyline* base;
   ssize_t idx;
 
@@ -105,7 +105,7 @@ static inline bool operator>=(const polyline_vertex_iter& a,
 }
 
 struct polyline_vertex_const_iter
-    : public std::iterator<std::random_access_iterator_tag, Vertex*> {
+    : public StdIterator<std::random_access_iterator_tag, Vertex*> {
   const Polyline* base;
   ssize_t idx;
 
@@ -188,7 +188,7 @@ inline polyline_vertex_iter Polyline::vend() {
 }
 
 struct polyline_edge_iter
-    : public std::iterator<std::random_access_iterator_tag, PolylineEdge*> {
+    : public StdIterator<std::random_access_iterator_tag, PolylineEdge*> {
   Polyline* base;
   ssize_t idx;
 
@@ -253,7 +253,7 @@ static inline bool operator>=(const polyline_edge_iter& a,
 }
 
 struct polyline_edge_const_iter
-    : public std::iterator<std::random_access_iterator_tag, PolylineEdge*> {
+    : public StdIterator<std::random_access_iterator_tag, PolylineEdge*> {
   const Polyline* base;
   ssize_t idx;
 

@@ -20,6 +20,7 @@ MAKE_TYPE_FACTORY(FeatureWeights, FeatureWeights);
 MAKE_TYPE_FACTORY(TagPreset, TagPreset);
 MAKE_TYPE_FACTORY(RootMotion, RootMotion);
 MAKE_TYPE_FACTORY(FootLockerIKCtrlLegData, AnimV20::FootLockerIKCtrl::LegData)
+MAKE_TYPE_FACTORY(FrameFeatures, FrameFeatures);
 
 DAS_BIND_VECTOR(AnimationClipVector, AnimationClipVector, AnimationClip, "AnimationClipVector");
 
@@ -75,6 +76,9 @@ inline void commit_feature_weights(FeatureWeights &weights)
   }
 }
 
+extern void motion_matching_update_anim_tree_foot_locker(AnimV20::AnimcharBaseComponent &animchar,
+  const MotionMatchingController &controller);
+
 namespace bind_dascript
 {
 inline void anim_state_holder_get_foot_locker_legs(AnimV20::IAnimStateHolder *anim_state,
@@ -113,6 +117,11 @@ inline void anim_state_holder_iterate_foot_locker_legs_const(const AnimV20::IAni
     arg = das::cast<const AnimV20::FootLockerIKCtrl::LegData &>::from(legsData[i]);
     context->invoke(block, &arg, nullptr, at);
   }
+}
+
+inline bool animation_database_need_lock_foot(const AnimationDataBase &database, int clip_idx, int frame_idx, int leg_idx)
+{
+  return database.clips[clip_idx].footLockerStates.needLock(leg_idx, frame_idx, database.footLockerNodes.size());
 }
 
 inline int get_post_blend_controller_idx(const AnimationDataBase &data_base, const char *pbc_name)

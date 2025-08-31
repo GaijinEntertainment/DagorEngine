@@ -1,15 +1,14 @@
 import re
 import json
 import pprint
-from log import log
+from log import logerror, logwarning
+from qdoc_docstring_parse import parse_docstring
 
 """
 todo:
   - ?backscope
 
   formatting:
-    multline
-      @code @note @spoiler @tip @alert @danger @warning  @preformated
     footnotes and citation
     single (probably can be easy)
       @seealso @icon @image @reference @icon @image
@@ -78,21 +77,22 @@ def mk_page_desc(name, brief=None):
 def mk_class_desc(name, brief=None, parent=None):
   return {"type":"class", "name":name, "brief":brief, "doc":[], "members":[], "extras":{}, "extends":None, "parent":parent, "members_set":{}}
 
-def mk_func_desc(name, brief=None, paramsnum=None, typemask = None, static=False, typ="function", parent=None):
+def mk_func_desc(name, brief=None, paramsnum=None, typemask = None, static=False, typ="function", parent=None, docstring=None, params=None, retdesc=None, is_pure=False, kwarged=False, vargved=False, members=None, extras=None):
   return {
     "type":typ,
     "static":static,
     "parent":parent,
     "name":name,
-    "brief":None,
-    "params":[],
-    "return":None,
-    "vargved":False,
-    "members":[], #only comments expected!
-    "extras":{},
+    "brief":brief,
+    "params":params or [],
+    "return":retdesc,
+    "vargved":vargved,
+    "members":members or [], #only comments expected!
+    "extras":extras or {},
     "paramsnum":paramsnum,
     "typemask":typemask,
-    "kwarged":False,
+    "kwarged":kwarged,
+    "is_pure":is_pure,
   }
 
 def mk_fieldmember_desc(name, typ="value", parent=None, brief = None, writeable=None):
@@ -181,22 +181,31 @@ class Context:
     def addScope(self, scope):
         if self.scope and self.scope.get("type") not in root_types and self.scope.get("type") in containers_types:
           scope["parent"] = self.scope["name"]
-        #scope["source"]:self.file_path
+        #scope["sources"]:[self.file_path]
         if scope.get("type") in root_types:
-          scope["source"] = self.file_path
+          if scope.get("sources") is None:
+            scope["sources"] = []
+          if self.file_path not in scope["sources"]:
+            scope["sources"].append(self.file_path)
         self.scope = scope
         self.scopes.append(scope)
 
     def setScope(self, scope):
         if scope.get("type") in root_types:
-          scope["source"] = self.file_path
+          if scope.get("sources") is None:
+            scope["sources"] = []
+          if self.file_path not in scope["sources"]:
+            scope["sources"].append(self.file_path)
         self.scope = scope
         self.scopes = [scope]
 
     def setScopes(self, scopes):
       scope = scopes[-1]
       if scope.get("type") in root_types:
-        scope["source"] = self.file_path
+        if scope.get("sources") is None:
+          scope["sources"] = []
+        if self.file_path not in scope["sources"]:
+          scope["sources"].append(self.file_path)
       self.scope = scopes[-1]
       self.scopes = scopes
 
@@ -211,6 +220,8 @@ class Context:
 def pctx(ctx):
   print([attr for attr in dir(ctx) if not attr.startswith('__')])
 
+USE_DOXYGEN_COMMENTS = False
+
 def parse(file_path, data, parsed_result = None, print_res=False):
   file_path = file_path.replace("\\","/")
   result = parsed_result or {}
@@ -218,18 +229,18 @@ def parse(file_path, data, parsed_result = None, print_res=False):
   ctx.up(file_path = file_path)
 
   def printErr(error):
-    log.error(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
+    logerror(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
 
   def printWarn(error):
-    log.warning(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
+    logwarning(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
 
   def printErrScope(error):
-    log.error(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
+    logerror(f'{ctx.file_path}:{ctx.linenum}: {error}. Line:\n {ctx.line}')
     if ctx.scope:
-      log.error("Scope: None")
+      logerror("Scope: None")
     else:
-      log.error("Scope:")
-      log.error(json.dumps(ctx.scope, indent=2))
+      logerror("Scope:")
+      logerror(json.dumps(ctx.scope, indent=2))
 
   def try_to_find_member(desc, doSearchInParents=True):
     if doSearchInParents and len(ctx.scopes) < 1:
@@ -286,7 +297,7 @@ def parse(file_path, data, parsed_result = None, print_res=False):
       return True
     return desc
 
-  native_value_definition_re = re.compile(r'''\.(ConstVar|Var|SetValue|Const|Prop)\s*\(\"([\w\d\_]+)\".*''')
+  native_value_definition_re = re.compile(r'''\.(ConstVar|Bind|Var|SetValue|Const|Prop)\s*\(\"([\w\d\_]+)\".*''')
   const_definition_re = re.compile(r'''\.(Const|ConstVar)\s*\(\"[\w\d\_]+\"\s*\,\s*(\S*)\)''')
   mconst_definition_re = re.compile(r'''(CONST)\s*\(\s*([\w\d\_]+)''')
   prop_full_definition_re = re.compile(r'''\.Prop\s*\(\"([\w\d\_]+)\".*\,.*\,.*''')
@@ -343,9 +354,10 @@ def parse(file_path, data, parsed_result = None, print_res=False):
 
   native_ctors_re = re.compile(r'''\.(SquirrelCtor|Ctor).*''')
   native_ctors_full_re = re.compile(r'''.*\.SquirrelCtor\(\s*(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"([\w\.\|]+)\"''')
-  native_func_re = re.compile(r'''\.(SquirrelFunc|Func|StaticFunc|GlobalFunc|SquirrelCtor|Ctor)\(\"([\w\d\_]+)\"(.*)''')
-  simple_func_re = re.compile(r"\.Func\(\"([\w\d\_]+)\"\,\s*([\w\d\_]+)\)")
-  native_func_full_re = re.compile(r'''\.(SquirrelFunc|StaticFunc|GlobalFunc)\(\"([\w\d\_]+)\"\s*\,(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"?([\w\.\|\s]+)\"?''')
+  native_func_re = re.compile(r'''\.\s*(SquirrelFunc|Func|StaticFunc|GlobalFunc|SquirrelCtor|Ctor)\s*\(\"([\w\d\_]+)\"(.*)''')
+  simple_func_re = re.compile(r"\.Func\s*\(\"([\w\d\_]+)\"\,\s*([\w\d\_]+)\)")
+  native_func_full_re = re.compile(r'''\.\s*(SquirrelFunc|StaticFunc|GlobalFunc)\s*\(\"([\w\d\_]+)\"\s*\,(.*)\s*\,\s*([\-\d]+)\s*\,\s*\"?([\w\.\|\s]+)\"?''')
+  native_func_fulldecl_re = re.compile(r'''\.(SquirrelFuncDeclString)\s*\(\s*([^,\"\s][^,\"]*)\s*,\s*\"((?:[^\"\\]|\\.)*)\"\s*(\,\s*\"(.*)\")?\)''')
   cpp_types_parsers = [
     lambda x: "s" if "char" in x else None,
     lambda x: "c" if "Function" in x else None,
@@ -371,7 +383,8 @@ def parse(file_path, data, parsed_result = None, print_res=False):
         parent = ctx.scope.get("parent")
     ctors = native_ctors_re.search(line)
     m = native_func_re.search(line)
-    if not m and not ctors:
+    docstringfunc = native_func_fulldecl_re.search(line)
+    if not m and not ctors and not docstringfunc:
       return None
     ctorsfull = native_ctors_full_re.search(line)
     mfull = native_func_full_re.search(line)
@@ -379,7 +392,24 @@ def parse(file_path, data, parsed_result = None, print_res=False):
     paramsnum = None
     typemask = None
     cpp_name = None
-    if mfull:
+    docstring = None
+    params = None
+    retdesc = None
+    is_pure = False
+    t="function"
+    members = None
+    if docstringfunc:
+      t, cpp_name, docstring, _,  docstring_comments = docstringfunc.groups()
+      parsed = parse_docstring(docstring, docstring_comments)
+      name = parsed["name"]
+      typemask = parsed["typemask"]
+      paramsnum = parsed["paramsnum"]
+      members = parsed["members"]
+      params = parsed["args"]
+      retdesc = {"rtype": parsed["rtype"], "description": None}
+      is_pure = parsed.get("is_pure", False)
+
+    elif mfull:
       t, name, cpp_name, paramsnum, typemask = mfull.groups()
       try:
         paramsnum = int(paramsnum)
@@ -402,7 +432,7 @@ def parse(file_path, data, parsed_result = None, print_res=False):
       if name.startswith("_") and name[1:] in ["get","set", "add","newslot","delslot","div","mul","sub","modulo","unm","tostring","nexti","call","cmp","typeof","cloned"]:
         typ = "operator"
 
-    desc = mk_func_desc(name, brief=None, paramsnum=paramsnum, typemask=typemask, static = t=="StaticFunc", typ = typ, parent=parent)
+    desc = mk_func_desc(name, brief=None, paramsnum=paramsnum, typemask=typemask, static = t=="StaticFunc", typ = typ, parent=parent, docstring=docstring, params=params, retdesc=retdesc, is_pure=is_pure, members=members)
     if s:= simple_func_re.search(line):
       _, cpp_func_name = s.groups()
       if cpp_func_name in cpp_functions:
@@ -610,12 +640,14 @@ def parse(file_path, data, parsed_result = None, print_res=False):
     "return": parse_return,
     "param" :parse_param,
   }
-  qdoc_single_re = re.compile("\s*\/\/\/\s?(.*)")
-  qdoc_m_start_re = re.compile("\s*\/\*\*(.*)")
-  qdoc_m_end_re = re.compile("\s*(.*)\*\/.*")
+  qdoc_single_re = re.compile(r".*///(?!/)\s?(.*)")
+  nonqdoc_single_re = re.compile(r"/s*////(.*)")
+  qdoc_m_start_re  = re.compile(r"\s*/\*\*(?!\**/)(.*)")
+  qdoc_m_start_re2 = re.compile(r"\s*\/\*\s?qdox(.*)")
+  qdoc_m_end_re = re.compile(r"\s*(.*)\*\/.*")
   tag_comment_re = re.compile(r"\s*\/\/\/\\s*@(\S+)\s*(.*)")
   tag_re = re.compile(r"\s*@(\S+)\s*(.*)")
-  starts_indent_re = re.compile(r"\s*(\/\/\/)?\s*(\S+)")
+  starts_indent_re = re.compile(r"\s*(///)?(?!/)\s*(\S+)")
   mlnTextBlock = None
   mlnIndent = None
 
@@ -623,8 +655,12 @@ def parse(file_path, data, parsed_result = None, print_res=False):
     ctx.up(line = line)
     ctx.up(linenum = linenum)
     parsed = False
+    nonqdox = nonqdoc_single_re.search(line)
+    if nonqdox:
+      continue
     m = qdoc_single_re.search(line)
-    ms = qdoc_m_start_re.search(line)
+    ms = qdoc_m_start_re.search(line) if USE_DOXYGEN_COMMENTS else None
+    ms2 = qdoc_m_start_re2.search(line)
     me = qdoc_m_end_re.search(line)
     if mlnTextBlock :
       if me:
@@ -666,7 +702,11 @@ def parse(file_path, data, parsed_result = None, print_res=False):
           line = restline
         else:
           print(restline)
-      elif ms:
+      elif ms2:
+        line, = ms2.groups()
+        if not line.endswith("*/"):
+          ctx.up(incomment=True)
+      elif USE_DOXYGEN_COMMENTS and ms:
         line, = ms.groups()
         if not line.endswith("*/"):
           ctx.up(incomment=True)
@@ -695,7 +735,7 @@ def parse(file_path, data, parsed_result = None, print_res=False):
           mlnTextBlock = desc
           mlnIndent = ctx.line.index(tag)-1+2
         else:
-          log.warning(f"incorrect scope for multiline tag:{tag}")
+          logwarning(f"incorrect scope for multiline tag:{tag}")
         continue
       else:
         for f in [parse_objects, parse_fields]:

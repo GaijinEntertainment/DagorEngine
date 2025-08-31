@@ -19,6 +19,10 @@ float panel_metalness   = 0;
 
 float4x4 panel_world;
 float4x4 panel_world_normal;
+float4x4 panel_prev_globtm;
+
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(stage)
+endmacro
 
 define_macro_if_not_defined GLOBAL_FRAME_CONTENT()
   (vs) {
@@ -35,6 +39,7 @@ define_macro_if_not_defined GLOBAL_FRAME_CONTENT()
   {
     INIT_SPECIAL_VISION(ps)
   }
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
 endmacro
 
 define_macro_if_not_defined INIT_HDR(code)
@@ -57,6 +62,25 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
   DARG_PANEL_SHADER_SETUP()
   GLOBAL_FRAME_CONTENT()
   INIT_HDR(ps)
+
+  if (shader == darg_panel_gbuffer)
+  {
+    define_macro_if_not_defined INIT_MOTION_VECTORS()
+    hlsl {
+    ##if compatibility_mode == compatibility_mode_off
+      #ifndef MOTION_VECTORS_ENABLED
+        #define MOTION_VECTORS_ENABLED
+      #endif
+    ##endif
+    }
+    endmacro
+
+    INIT_MOTION_VECTORS()
+    hlsl
+    {
+      #define EDGE_BLEND_WIDTH 2.f
+    }
+  }
 
   cull_mode = none;
 
@@ -88,6 +112,7 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     (vs) {
       panel_world@f44 = panel_world;
       panel_world_normal@f44 = panel_world_normal;
+      panel_prev_globtm@f44 = panel_prev_globtm;
     }
     (ps) {
       panel_smoothness@f1 = panel_smoothness;
@@ -106,6 +131,10 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
       ##if shader == darg_panel_gbuffer
         float3 worldNormal   : TEXCOORD2;
         float3 pointToEye    : TEXCOORD3;
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos                      : TEXCOORD4;
+          float4 out_pos_prev                 : TEXCOORD5;
+        #endif
       ##endif
     };
   }
@@ -133,6 +162,10 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         output.worldNormal   = mul((float3x3)panel_world_normal, input.normal);
         output.pointToEye    = world_view_pos - mul(pos4, panel_world).xyz;
         VR_MULTIVIEW_REPROJECT(output.pos);
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 out_pos_prev = mul(pos4, panel_prev_globtm);
+          VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, out_pos_prev);
+        #endif
       ##endif
       return output;
     }
@@ -205,17 +238,6 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
 
   if (shader == darg_panel_gbuffer)
   {
-    define_macro_if_not_defined INIT_MOTION_VECTORS()
-    hlsl {
-    ##if compatibility_mode == compatibility_mode_off
-      #ifndef MOTION_VECTORS_ENABLED
-        #define MOTION_VECTORS_ENABLED 1
-      #endif
-    ##endif
-    }
-    endmacro
-
-    INIT_MOTION_VECTORS()
 
     if (mobile_render != off)
     {
@@ -262,7 +284,12 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         }
 
         init_dynamic(result, true);
-        init_motion_vector(result, encode_motion_mask());
+
+        #ifdef MOTION_VECTORS_ENABLED
+          float2 edgeBias = EDGE_BLEND_WIDTH*(abs(ddx(input.texcoord)) + abs(ddy(input.texcoord)));
+          bool rejectTemporalHistory = all(input.texcoord > 0 + edgeBias && input.texcoord < 1 - edgeBias);
+          init_motion_vector(result, rejectTemporalHistory ? encode_motion_mask() : encode_motion_vector(input.out_pos, input.out_pos_prev));
+        #endif
 
         return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
       }

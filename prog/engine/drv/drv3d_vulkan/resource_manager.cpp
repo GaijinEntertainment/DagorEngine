@@ -39,7 +39,7 @@ ObjectPool<MemoryHeapResource> &ResourceManager::resPool()
 }
 
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 template <>
 ObjectPool<RaytraceAccelerationStructure> &ResourceManager::resPool()
 {
@@ -67,25 +67,31 @@ void check_leaks(ObjectPool<ResTypeName> &pool)
 template <typename ResTypeName>
 bool try_evict_from_pool(ExecutionContext &ctx, ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size, bool evict_used)
 {
+  // eviction may allocate resources inside pool, breaking iterator, so buffer up
+  dag::Vector<ResTypeName *> evictionCandidates;
+  pool.iterateAllocated([&evictionCandidates](ResTypeName *i) {
+    if (i->isEvictable())
+      evictionCandidates.push_back(i);
+  });
+
   uint32_t evictedCount = 0;
-  pool.iterateAllocatedBreakable([&ctx, &evictedCount, &desired_size, evict_used](ResTypeName *i) {
+  for (ResTypeName *i : evictionCandidates)
+  {
     ResourceAlgorithm<ResTypeName> alg(*i);
     VkDeviceSize evictionSize = alg.tryEvict(ctx, evict_used);
 
     if (!evictionSize)
-      return true;
+      continue;
 
     ++evictedCount;
     if (evictionSize >= desired_size)
     {
       desired_size = 0;
-      return false;
+      break;
     }
     else
       desired_size -= evictionSize;
-
-    return true;
-  });
+  }
   return evictedCount > 0;
 }
 
@@ -125,12 +131,36 @@ void ResourceManager::init(const PhysicalDeviceSet &dev_set)
     perMemoryTypeMethods[i].init(i, allowMixedPages ? dev_set.properties.limits.bufferImageGranularity : 0);
 }
 
+void ResourceManager::onDeviceReset()
+{
+  for (int i = 0; i < hotMemPoolCount; ++i)
+    processHotMem();
+
+  for (ResourceMemory &i : resAllocationsPool)
+  {
+    if (i.isValid())
+    {
+      D3D_ERROR("vulkan: res mem %u is still alive at device reset time, some resource is not destroyed!", i.index);
+      freeMemory(i.index);
+    }
+  }
+
+  for (uint32_t i = 0; i < perMemoryTypeMethods.size(); ++i)
+    perMemoryTypeMethods[i].onDeviceReset();
+}
+
+void ResourceManager::afterDeviceReset()
+{
+  for (uint32_t i = 0; i < perMemoryTypeMethods.size(); ++i)
+    perMemoryTypeMethods[i].afterDeviceReset();
+}
+
 void ResourceManager::shutdown()
 {
   check_leaks(resPool<Image>());
   check_leaks(resPool<Buffer>());
   check_leaks(resPool<RenderPassResource>());
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   check_leaks(resPool<RaytraceAccelerationStructure>());
 #endif
   check_leaks(resPool<MemoryHeapResource>());
@@ -449,7 +479,7 @@ bool ResourceManager::evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desi
     return true;
   if (try_evict_from_pool(ctx, resPool<Buffer>(), desired_size, evict_used))
     return true;
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   if (try_evict_from_pool(ctx, resPool<RaytraceAccelerationStructure>(), desired_size, evict_used))
     return true;
 #endif
@@ -461,7 +491,7 @@ void ResourceManager::processPendingEvictions()
 {
   evict_pending_from_pool(resPool<Image>());
   evict_pending_from_pool(resPool<Buffer>());
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   evict_pending_from_pool(resPool<RaytraceAccelerationStructure>());
 #endif
 }
@@ -489,7 +519,7 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
       VkDeviceSize size;
       ResourceMemoryId id;
     };
-    eastl::map<VulkanHandle, eastl::vector<UsedMemBlock>> usedFragments;
+    eastl::vector_map<VulkanHandle, dag::Vector<UsedMemBlock>> usedFragments;
     for (const ResourceMemory& i : resAllocationsPool)
     {
       if (!i.isValid())
@@ -497,7 +527,7 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
 
       if (usedFragments.find(i.handle) == usedFragments.end())
       {
-        eastl::vector<UsedMemBlock> newElement;
+        dag::Vector<UsedMemBlock> newElement;
         newElement.push_back({i.offset, i.size, i.index});
         usedFragments[i.handle] = newElement;
       } else
@@ -615,7 +645,7 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
     resPool<Image>().iterateAllocated(statPrintCb);
     resPool<Buffer>().iterateAllocated(statPrintCb);
     resPool<RenderPassResource>().iterateAllocated(statPrintCb);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     resPool<RaytraceAccelerationStructure>().iterateAllocated(statPrintCb);
 #endif
     resPool<SamplerResource>().iterateAllocated(statPrintCb);
@@ -632,6 +662,18 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
   }
 
   debug("vulkan: RMS| resource manager stats end   ====");
+}
+
+void ResourceManager::MethodsArray::onDeviceReset()
+{
+  for (AbstractAllocator *i : methods)
+    i->shutdown();
+}
+
+void ResourceManager::MethodsArray::afterDeviceReset()
+{
+  for (AbstractAllocator *i : methods)
+    i->init();
 }
 
 void ResourceManager::MethodsArray::init(uint32_t mem_type, VkDeviceSize mixing_granularity)

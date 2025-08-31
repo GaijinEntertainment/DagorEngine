@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
-  <Import Project="$(SolutionDir)prog\_jBuild\msbuild\projectConfigurations.props" />
+  <Import Project="..\..\..\prog\_jBuild\msbuild\projectConfigurations.props" />
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}</ProjectGuid>
-    <GameType>sample</GameType>
+    <ProjectGuid>{9a8e7914-b5f0-4e32-9f9c-e7d1b9f5040f}</ProjectGuid>
     <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
-    <GameDir>$(MSBuildProjectDirectory)\..\game\</GameDir>
+    <GameDir>$(ProjectDir)..\game\</GameDir>
+    <GameType>sample</GameType>
   </PropertyGroup>
-  <Import Project="$(MSBuildToolsDir)default.props" />
-  <PropertyGroup Label="Configuration" />
+  <Import Project="$(MSBuildToolsDir)defaults.props" />
+  <PropertyGroup Label="Configuration">
+    <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(CommonProgDir)samples\commonFramework</NMakeIncludeSearchPath>
+  </PropertyGroup>
   <Import Project="$(MSBuildToolsDir)config.props" />
   <PropertyGroup />
   <Import Project="$(MSBuildToolsDir)common.targets" />

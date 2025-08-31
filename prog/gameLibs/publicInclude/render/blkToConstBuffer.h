@@ -11,6 +11,7 @@
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <generic/dag_tab.h>
 
 inline int getDataBlockTypeSize(int type, int string_size = 0)
@@ -25,6 +26,7 @@ inline int getDataBlockTypeSize(int type, int string_size = 0)
     case DataBlock::TYPE_POINT2: return 2;
     case DataBlock::TYPE_IPOINT3:
     case DataBlock::TYPE_POINT3: return 3;
+    case DataBlock::TYPE_IPOINT4:
     case DataBlock::TYPE_POINT4:
     case DataBlock::TYPE_E3DCOLOR: return 4;
   }
@@ -75,6 +77,7 @@ inline void create_constant_buffer_from_offsets(dag::ConstSpan<NameOffset> offse
       case DataBlock::TYPE_IPOINT2: *(IPoint2 *)(&paramsConst[ofs]) = override.getIPoint2(name, params.getIPoint2(i)); break;
       case DataBlock::TYPE_POINT3: *(Point3 *)(&paramsConst[ofs]) = override.getPoint3(name, params.getPoint3(i)); break;
       case DataBlock::TYPE_IPOINT3: *(IPoint3 *)(&paramsConst[ofs]) = override.getIPoint3(name, params.getIPoint3(i)); break;
+      case DataBlock::TYPE_IPOINT4: *(IPoint4 *)(&paramsConst[ofs]) = override.getIPoint4(name, params.getIPoint4(i)); break;
       case DataBlock::TYPE_POINT4: *(Point4 *)(&paramsConst[ofs]) = override.getPoint4(name, params.getPoint4(i)); break;
       case DataBlock::TYPE_BOOL: *(int *)(&paramsConst[ofs]) = override.getBool(name, params.getBool(i)) ? 1 : 0; break;
       case DataBlock::TYPE_E3DCOLOR: *(Color4 *)(&paramsConst[ofs]) = Color4(override.getE3dcolor(name, params.getE3dcolor(i))); break;
@@ -103,6 +106,7 @@ inline void create_constant_buffer(const DataBlock &params, const DataBlock &ove
       case DataBlock::TYPE_IPOINT2: *(IPoint2 *)(&paramsConst[paramsSize]) = override.getIPoint2(name, params.getIPoint2(i)); break;
       case DataBlock::TYPE_POINT3: *(Point3 *)(&paramsConst[paramsSize]) = override.getPoint3(name, params.getPoint3(i)); break;
       case DataBlock::TYPE_IPOINT3: *(IPoint3 *)(&paramsConst[paramsSize]) = override.getIPoint3(name, params.getIPoint3(i)); break;
+      case DataBlock::TYPE_IPOINT4: *(IPoint4 *)(&paramsConst[paramsSize]) = override.getIPoint4(name, params.getIPoint4(i)); break;
       case DataBlock::TYPE_POINT4: *(Point4 *)(&paramsConst[paramsSize]) = override.getPoint4(name, params.getPoint4(i)); break;
       case DataBlock::TYPE_BOOL: *(int *)(&paramsConst[paramsSize]) = override.getBool(name, params.getBool(i)) ? 1 : 0; break;
       case DataBlock::TYPE_E3DCOLOR:
@@ -132,6 +136,7 @@ inline void create_constant_buffer(const DataBlock &params, Tab<Point4> &constBu
       case DataBlock::TYPE_IPOINT2: *(IPoint2 *)(&paramsConst[paramsSize]) = params.getIPoint2(i); break;
       case DataBlock::TYPE_POINT3: *(Point3 *)(&paramsConst[paramsSize]) = params.getPoint3(i); break;
       case DataBlock::TYPE_IPOINT3: *(IPoint3 *)(&paramsConst[paramsSize]) = params.getIPoint3(i); break;
+      case DataBlock::TYPE_IPOINT4: *(IPoint4 *)(&paramsConst[paramsSize]) = params.getIPoint4(i); break;
       case DataBlock::TYPE_POINT4: *(Point4 *)(&paramsConst[paramsSize]) = params.getPoint4(i); break;
       case DataBlock::TYPE_BOOL: *(int *)(&paramsConst[paramsSize]) = params.getBool(i) ? 1 : 0; break;
       case DataBlock::TYPE_E3DCOLOR: *(Color4 *)(&paramsConst[paramsSize]) = Color4(params.getE3dcolor(i)); break;

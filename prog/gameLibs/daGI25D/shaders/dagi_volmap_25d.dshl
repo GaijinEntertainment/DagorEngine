@@ -203,7 +203,17 @@ shader gi_compute_light_25d_cs_4_4, gi_compute_light_25d_cs_4_8, gi_compute_ligh
       float ambientAmount = 0;
       LOOP for (uint i = 0; i < loopCnt; ++i)
       {
+      ##if hardware.metal
+        // workaround metal code generation
+        // spirv-cross generates select instead of ternary operator which might result in OOB
+        float3 enviLightDir;
+        if (rHigh)
+          enviLightDir = POISSON_SAMPLES_HIGH[i].xyz;
+        else
+          enviLightDir = POISSON_SAMPLES_LOW[i].xyz;
+      ##else
         float3 enviLightDir = rHigh ? POISSON_SAMPLES_HIGH[i].xyz : POISSON_SAMPLES_LOW[i].xyz;
+      ##endif
         float3 normal;
         float3 emission;
         float3 wpos = worldPos, wdir=enviLightDir;

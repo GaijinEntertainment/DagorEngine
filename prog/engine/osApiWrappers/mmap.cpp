@@ -7,6 +7,12 @@
 
 #elif _TARGET_C1
 
+
+
+
+
+
+
 #else
 #define DAG_MMAP_THRESHOLD -1 // Always
 #endif
@@ -19,6 +25,9 @@
 #else
 #include <sys/mman.h>
 #include <unistd.h>
+#endif
+#ifndef IS_HEAP_MEM_PTR
+#define IS_HEAP_MEM_PTR(p) false
 #endif
 #else
 #include <stdlib.h> // malloc, free
@@ -64,8 +73,9 @@ const void *df_mmap(file_ptr_t fp, int *flen, int length, int offset)
   if ((offset + length) > *flen)
     length = *flen - offset;
 #if DAG_MMAP_THRESHOLD
-  uint64_t pa_offs = (base + offset) & ALLOC_MASK;
-  int pa_diff = (base + offset) - pa_offs;
+  int pos = base + offset;
+  uint64_t pa_offs = pos ? (pos & ALLOC_MASK) : 0;
+  int pa_diff = pos - pa_offs;
 #if _TARGET_C1
 
 #else
@@ -82,9 +92,8 @@ const void *df_mmap(file_ptr_t fp, int *flen, int length, int offset)
   if (DAG_MMAP_THRESHOLD < 0 || length < DAG_MMAP_THRESHOLD)
   {
     void *ret = mmap(NULL, (size_t)(length + pa_diff), PROT_READ, MAP_SHARED, fd, (off_t)pa_offs);
-    if (ret == MAP_FAILED)
-      ret = NULL;
-    return ret ? (char *)ret + pa_diff : NULL;
+    if (DAG_MMAP_THRESHOLD < 0 || ret != MAP_FAILED)
+      return (ret != MAP_FAILED) ? (char *)ret + pa_diff : NULL;
   }
 #endif
 #endif
@@ -101,24 +110,22 @@ const void *df_mmap(file_ptr_t fp, int *flen, int length, int offset)
   return mem;
 }
 
-void df_unmap(const void *start, int length)
+void df_unmap(const void *start, [[maybe_unused]] int length)
 {
-  (void)length;
   if (!start || RomFileReader::munmap(start))
     return;
 #if DAG_MMAP_THRESHOLD
-  void *pa_start = (void *)(((uintptr_t)(void *)start) & ALLOC_MASK);
+  void *pa_start = (void *)(((uintptr_t)start) & ALLOC_MASK);
 #if _TARGET_PC_WIN | _TARGET_XBOX
-  UnmapViewOfFile(pa_start);
-  return;
+  return UnmapViewOfFile(pa_start), (void)0;
 #else
-  if (DAG_MMAP_THRESHOLD < 0 || length < DAG_MMAP_THRESHOLD)
+  if (DAG_MMAP_THRESHOLD < 0 || !IS_HEAP_MEM_PTR(start))
     munmap(pa_start, ((char *)start + length) - (char *)pa_start);
   else
 #endif
 #endif
   {
-    free((void *)start); //-V779
+    free((void *)start); //-V779 Unreachable code was detected
   }
 }
 

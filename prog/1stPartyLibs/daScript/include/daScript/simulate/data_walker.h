@@ -50,8 +50,8 @@ namespace das {
         virtual void afterStructureField ( char * ps, StructInfo * si, char * pv, VarInfo * vi, bool last ) {}
         virtual void beforeTuple ( char * ps, TypeInfo * ti ) {}
         virtual void afterTuple ( char * ps, TypeInfo * ti ) {}
-        virtual void beforeTupleEntry ( char * ps, TypeInfo * ti, char * pv, TypeInfo * vi, bool last ) {}
-        virtual void afterTupleEntry ( char * ps, TypeInfo * ti, char * pv, TypeInfo * vi, bool last ) {}
+        virtual void beforeTupleEntry ( char * ps, TypeInfo * ti, char * pv, int idx, bool last ) {}
+        virtual void afterTupleEntry ( char * ps, TypeInfo * ti, char * pv, int idx, bool last ) {}
         virtual void beforeVariant ( char * ps, TypeInfo * ti ) {}
         virtual void afterVariant ( char * ps, TypeInfo * ti ) {}
         virtual void beforeArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) {}
@@ -74,6 +74,7 @@ namespace das {
         virtual void afterPtr ( char * pa, TypeInfo * ti ) {}
         virtual void beforeHandle ( char * pa, TypeInfo * ti ) {}
         virtual void afterHandle ( char * pa, TypeInfo * ti ) {}
+        virtual void afterHandleCancel ( char * pa, TypeInfo * ti ) {}
         virtual void beforeLambda ( Lambda *, TypeInfo * ti ) {}
         virtual void afterLambda ( Lambda *, TypeInfo * ti ) {}
         virtual void beforeIterator ( Sequence *, TypeInfo * ti ) {}
@@ -126,6 +127,56 @@ namespace das {
         virtual void walk_table ( Table * tab, TypeInfo * info );
     // invalid data
         virtual void invalidData () {}
+
+    // this is to avoid loops
+        virtual bool revisitStructure ( char * ps, StructInfo * si ) { return false; }
+        virtual bool revisitHandle ( char * ps, TypeInfo * ti ) { return false; }
+
+        using loop_point = pair<void *,uint64_t>;
+        bool canVisitStructure_ ( char * ps, StructInfo * info ) {
+            auto it = find_if(visited.begin(),visited.end(),[&]( const loop_point & t ){
+                return t.first==ps && t.second==info->hash;
+            });
+            if (it!=visited.end()) {
+                return revisitStructure(ps, info);
+            }
+            return canVisitStructure(ps, info);
+        }
+        bool canVisitHandle_ ( char * ps, TypeInfo * info ) {
+            auto it = find_if(visited_handles.begin(),visited_handles.end(),[&]( const loop_point & t ){
+                return t.first==ps && t.second==info->hash;
+            });
+            if (it!=visited_handles.end()) {
+                return revisitHandle(ps, info);
+            }
+            return canVisitHandle(ps, info);
+        }
+        void beforeStructure_ ( char * ps, StructInfo * info ) {
+            visited.emplace_back(make_pair(ps,info->hash));
+            beforeStructure(ps, info);
+        }
+        void afterStructure_ ( char * ps, StructInfo * info ) {
+            visited.pop_back();
+            afterStructure(ps, info);
+        }
+        void afterStructureCancel_ ( char * ps, StructInfo * info ) {
+            visited.pop_back();
+            afterStructureCancel(ps, info);
+        }
+        void beforeHandle_ ( char * ps, TypeInfo * ti ) {
+            visited_handles.emplace_back(make_pair(ps,ti->hash));
+            beforeHandle(ps, ti);
+        }
+        void afterHandle_ ( char * ps, TypeInfo * ti ) {
+            visited_handles.pop_back();
+            afterHandle(ps, ti);
+        }
+        void afterHandleCancel_ ( char * ps, TypeInfo * ti ) {
+            visited_handles.pop_back();
+            afterHandleCancel(ps, ti);
+        }
+        vector<loop_point> visited;
+        vector<loop_point> visited_handles;
     };
 
     typedef smart_ptr<DataWalker> DataWalkerPtr;

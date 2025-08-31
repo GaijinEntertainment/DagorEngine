@@ -23,6 +23,8 @@ class Point2;
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
 
+#define COLLECT_STATIC_SHADOWS_STATISTICS (DAGOR_DBGLEVEL > 0)
+
 struct ShadowDepthScroller;
 
 class ToroidalStaticShadowCascade
@@ -61,6 +63,8 @@ protected:
   // invalidateBox method splits added box, so if pixel is already in list do not invalidate twice
   void invalidateBox(const BBox3 &invalidBox);
   void invalidateBoxes(const BBox3 *invalidBox, uint32_t cnt);
+  // works similar to to invalidateBox method, use it to render region again later, when waiting for better lods for example
+  void invalidateRenderRegion(const ViewTransformData &region_view_data);
   void init(int cascade_id, int texSize, float distance, float maxHtRange);
   void setShadervarsToInvalid();
 
@@ -87,8 +91,11 @@ protected:
   bool isInside(const BBox3 &box) const;
   //! returns true, if box has no never rendered (empty) or invalid (invalidated) regions
   bool isCompletelyValid(const BBox3 &box) const;
-  //! returns true, if box has no never rendered (empty) regions
+  //! returns true, if box has no never rendered (empty) regions; regions processed in update, but not rendered yet, are ignored
   bool isValid(const BBox3 &box) const;
+  //! returns true, if whole cascade has no never rendered (empty) regions;
+  //! regions processed in update, but not rendered yet, are counting too
+  bool isValid() const { return notRenderedRegions.empty() && !isRenderingRegionFirstTime; }
   void updateSunBelowHorizon(const ManagedTex &tex);
   bool isSunBelowHorizon() const { return next.sunDir.y < 0.0f; }
   float constDepthBias = 0.f;
@@ -99,8 +106,12 @@ protected:
   ToroidalHelper helper;
   float distance = 0, configDistance = 0;
   float texelSize = 1;
+  float scrolledDepthMin = 0;
+  float scrolledDepthMax = 1;
   int static_shadow_matrixVarId[4] = {-1, -1, -1, -1};
   int static_shadow_cascade_scale_ofs_z_torVarId = -1;
+  int static_shadow_scrolled_depth_minVarId = -1;
+  int static_shadow_scrolled_depth_maxVarId = -1;
   int framesSinceLastUpdate = 100000;
 
   bool optimizeBigQuadsRender = true;
@@ -109,6 +120,7 @@ protected:
   FrameData backFrame;     // frame to read from while in transition
   UniqueTex transitionTex; // texture to write to while in transition
   bool inTransition = false;
+  bool isRenderingRegionFirstTime = false;
 
   inline const FrameData &getReadFrameData() const { return inTransition ? backFrame : current; }
   void calcScaleOfs(const FrameData &fr, float &xy_scale, Point2 &xy_ofs, float &z_scale, float &z_ofs) const;
@@ -118,6 +130,7 @@ protected:
   Point3 clipPointToWorld(const Point3 &pos) const;
   IBBox2 getClippedBoxRegion(const BBox3 &box) const;
   ToroidalQuadRegion getToroidalQuad(const IBBox2 &region) const;
+  IBBox2 getRegionFromToroidalRegion(const ToroidalQuadRegion &toroidal_region) const;
   TMatrix getLightDirOrthoTm() const;
   TMatrix4 getLightProjTm(const TMatrix &light_dir_ortho_tm, const BBox2 &region_world_box, Point2 zn_zf) const;
   TMatrix4 getCullProjTm(const BBox2 &region_world_box, Point2 zn_zf) const;
@@ -164,6 +177,17 @@ protected:
     };
     dag::RelocatableFixedVector<RegionToRender, 8> regionsToRender;
   } renderData{};
+
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+  struct StaticShadowsStatistics
+  {
+    uint32_t renderRegionFirstTimeFrames = 0;
+    uint32_t invalidateRegionFrames = 0;
+    uint32_t completelyValidFrames = 0;
+    uint32_t renderRegionFirstTimeCount = 0;
+    uint32_t invalidateRegionCount = 0;
+  } staticShadowsStatistics;
+#endif
 
   int getRegionToRenderCount() const;
   void clearRegionToRender();
@@ -239,8 +263,10 @@ public:
   // isSunBelowHorizon: To allow things behind the far plane to be in shadow, when the texture is empty.
   //   If it was cleared to 1, z>1 would be clamped to 1, thus SampleCmp always returns 1.
   static float GetShadowClearValue(bool isSunBelowHorizon) { return isSunBelowHorizon ? float(0xFFFE) / float(0xFFFF) : 1.0; }
+  static bool isRegionInsideCascade(mat44f_cref cascade_inv_viewproj, const ViewTransformData &region_data);
 
   static constexpr float ORTHOGONAL_THRESHOLD = 0.1; // auto switch to ortho shadows
+  void printCascadesStatistics() const;
 
 protected:
   bool isOrtho = false;

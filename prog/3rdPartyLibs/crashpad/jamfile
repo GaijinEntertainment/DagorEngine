@@ -26,7 +26,8 @@ Sources =
 ;
 
 if $(Platform) in windows {
-  CPPopt += -DUNICODE -DCRASHPAD_FLOCK_ALWAYS_SUPPORTED=1 /std:c++20 ;
+  CPPopt += -DUNICODE -DCRASHPAD_FLOCK_ALWAYS_SUPPORTED ;
+  if $(CPPStd) < 20 { CPPopt += /std:c++20 ; }
   AddIncludes +=
     $(Root)/prog/3rdPartyLibs/crashpad/compat/win
   ;

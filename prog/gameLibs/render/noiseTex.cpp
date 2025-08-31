@@ -37,7 +37,7 @@ enum
   NOISE_TEX_COUNT
 };
 static carray<SharedTexHolder, NOISE_TEX_COUNT> noiseTex;
-static carray<volatile int, NOISE_TEX_COUNT> noiseTexCounter;
+static carray<int, NOISE_TEX_COUNT> noiseTexCounter;
 static carray<os_spinlock_t, NOISE_TEX_COUNT> noiseTexLock;
 
 enum
@@ -304,7 +304,6 @@ static bool generate_perlin_noise_3d(SharedTexHolder &t, Point3 &min_r, Point3 &
     TexPtr perlinNoise3D = dag::create_voltex(noiseW, noiseW, noiseW, fmt, mips, "perlin_noise3d");
     if (!perlinNoise3D)
       return false;
-    perlinNoise3D->disableSampler();
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -500,8 +499,7 @@ const SharedTexHolder &init_and_get_argb8_64_noise()
   return init_and_get_noise(NOISE_TEX_ARGB, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_64_tex", true)))
       return false;
-    t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXCF_MAYBELOST, 1, "noise_64_tex");
-    t->disableSampler();
+    t = dag::create_tex(NULL, NOISE_W, NOISE_W, 0, 1, "noise_64_tex");
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_samplerstate"), d3d::request_sampler({}));
     return init_argb8_64_noise(t);
   });
@@ -512,8 +510,7 @@ const SharedTexHolder &init_and_get_l8_64_noise()
   return init_and_get_noise(NOISE_TEX_L8, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_64_tex_l8", true)))
       return false;
-    t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXCF_MAYBELOST | TEXFMT_L8, 1, "noise_64_tex_l8");
-    t->disableSampler();
+    t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXFMT_R8, 1, "noise_64_tex_l8");
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_l8_samplerstate"), d3d::request_sampler({}));
     return init_l8_64_noise(t);
   });
@@ -534,9 +531,8 @@ const SharedTexHolder &init_and_get_hash_128_noise()
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_128_tex_hash", true)))
       return false;
     const size_t mipLevels = 6;
-    t = dag::create_tex(NULL, HASH_NOISE_W, HASH_NOISE_W, TEXCF_MAYBELOST | TEXFMT_R8G8, mipLevels, "noise_128_tex_hash");
+    t = dag::create_tex(NULL, HASH_NOISE_W, HASH_NOISE_W, TEXFMT_R8G8, mipLevels, "noise_128_tex_hash");
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_128_tex_hash_samplerstate"), d3d::request_sampler({}));
-    t->disableSampler();
     return init_hash_noise(t);
   });
 }
@@ -546,8 +542,7 @@ const SharedTexHolder &init_and_get_blue_noise()
   return init_and_get_noise(NOISE_BLUE_RG8, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("blue_noise_tex", true)))
       return false;
-    t = dag::create_tex(NULL, BLUE_NOISE_W, BLUE_NOISE_W, TEXCF_MAYBELOST | TEXFMT_R8G8, 1, "blue_noise_tex");
-    t->disableSampler();
+    t = dag::create_tex(NULL, BLUE_NOISE_W, BLUE_NOISE_W, TEXFMT_R8G8, 1, "blue_noise_tex");
 
     return init_blue_noise(t);
   });
@@ -585,6 +580,7 @@ static void noisetex_after_reset(bool)
   init_hash_noise(noiseTex[NOISE_TEX_HASH]);
   init_argb8_64_noise(noiseTex[NOISE_TEX_ARGB]);
   init_l8_64_noise(noiseTex[NOISE_TEX_L8]);
+  init_blue_noise(noiseTex[NOISE_BLUE_RG8]);
 
   if (noiseTex[NOISE_PERLIN])
   {

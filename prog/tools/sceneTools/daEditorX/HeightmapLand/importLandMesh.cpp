@@ -360,10 +360,10 @@ class DelaunayHeightMap : public delaunay::Map
 
 public:
   DelaunayHeightMap(HeightMapStorage &map) : heightmap(map) {}
-  virtual int width() { return heightmap.getInitialMap().getMapSizeX(); }
-  virtual int height() { return heightmap.getInitialMap().getMapSizeY(); }
+  int width() override { return heightmap.getInitialMap().getMapSizeX(); }
+  int height() override { return heightmap.getInitialMap().getMapSizeY(); }
 
-  virtual float eval(int i, int j) { return heightmap.getFinalData(i, j); }
+  float eval(int i, int j) override { return heightmap.getFinalData(i, j); }
 };
 
 class DelaunayImportanceMask : public delaunay::ImportMask
@@ -377,7 +377,7 @@ public:
     G_ASSERT(mask->getBitsPerPixel() == 8);
   }
 
-  virtual float apply(int x, int y, float val)
+  float apply(int x, int y, float val) override
   {
     if (exclMask && x >= 0 && y >= 0 && x < exclMask->getW() && y < exclMask->getH() && exclMask->get(x, y))
       return -0.1f;
@@ -766,45 +766,68 @@ static void split(Mesh &from, Mesh &pos, float A, float B, float C, float D, flo
   pos.optimize_tverts();*/
 }
 
-class OptimizeJob : public cpujobs::IJob
+class OptimizeJob final : public cpujobs::IJob
 {
   landmesh::Cell &cell;
+  const landmesh::Cell &cell0;
 
 public:
-  OptimizeJob(landmesh::Cell &c) : cell(c) {}
-  static BBox3 calc_mesh_bbox(const Mesh &m)
+  OptimizeJob(landmesh::Cell &c, const landmesh::Cell &c0) : cell(c), cell0(c0) {}
+
+  template <typename M, typename F>
+  static void forEachMeshVert(M &m, F cb)
   {
-    BBox3 box;
-    for (int fi = 0; fi < m.getFace().size(); ++fi)
-    {
-      box += m.getVert()[m.getFace()[fi].v[0]];
-      box += m.getVert()[m.getFace()[fi].v[1]];
-      box += m.getVert()[m.getFace()[fi].v[2]];
-    }
-    return box;
+    // Note: not following topology (i.e. faces) since it's expected to be called after cleanup of loose vertices
+    auto verts = make_span(m.vert.data(), m.vert.size());
+    for (auto &v : verts)
+      cb(v);
   }
-  virtual void doJob()
+  template <typename F>
+  void forEachCellMesh(F cb)
   {
-    // fixme: check if land mesh can has unused vertex
-    cell.land_mesh->kill_unused_verts(0.0005f); // only saves few vertices
-    cell.land_mesh->kill_bad_faces();
-
-    cell.box = calc_mesh_bbox(*cell.land_mesh);
-
+    cb(*cell.land_mesh);
     if (cell.combined_mesh)
-    {
-      cell.combined_mesh->kill_unused_verts(0.0005f);
-      cell.combined_mesh->kill_bad_faces();
-      cell.box += calc_mesh_bbox(*cell.combined_mesh);
-    }
+      cb(*cell.combined_mesh);
     if (cell.patches_mesh)
-    {
-      cell.patches_mesh->kill_unused_verts(0.0005f);
-      cell.patches_mesh->kill_bad_faces();
-      cell.box += calc_mesh_bbox(*cell.patches_mesh);
-    }
+      cb(*cell.patches_mesh);
   }
-  virtual void releaseJob() { delete this; }
+  const char *getJobName(bool &) const override { return "OptimizeJob"; }
+  void doJob() override
+  {
+    bbox3f box;
+    v_bbox3_init_empty(box);
+    forEachCellMesh([&](Mesh &m) {
+      m.kill_unused_verts(5e-4f); // only saves few vertices
+      m.kill_bad_faces();
+      forEachMeshVert(m, [&](const Point3 &v) { v_bbox3_add_pt(box, v_ldu(&v.x)); });
+    });
+    v_stu_bbox3(cell.box, box);
+
+    // Cleanup after de-quantization
+    vec4f bsize = v_bbox3_size(box);
+    vec4f cmpofs = box.bmin;
+    // Note: ideally we should use (USHRT_MAX+1) intervals here but this is how it's done in `BaseLandRayTracer<>::packVerts()`
+    vec4f cmpscale = v_div(v_splats(USHRT_MAX), bsize);
+    vec4f cmpscales = v_perm_xbzw(cmpscale, v_and(cmpscale, v_cmp_gt(bsize, V_C_EPS_VAL)));
+    vec4f cmpunscale = v_div(bsize, v_splats(USHRT_MAX));
+    uint32_t numKilledFaces = 0;
+    forEachCellMesh([&](Mesh &m) {
+      forEachMeshVert(m, [&](Point3 &v) {
+        vec3f pv = v_ldu(&v.x);
+        vec3f qv = v_round(v_mul(v_sub(pv, cmpofs), cmpscales));
+        vec3f cv = v_min(v_max(qv, v_zero()), v_splats(USHRT_MAX));
+        v_stu_p3(&v.x, v_mul(cv, cmpunscale));
+      });
+      m.kill_unused_verts(5e-4f);
+      uint32_t prevNumFaces = m.face.size();
+      m.kill_bad_faces2(1e-20f, 3e-3f, 50000.f);
+      numKilledFaces += prevNumFaces - m.face.size();
+      forEachMeshVert(m, [&](Point3 &v) { v_stu_p3(&v.x, v_add(cmpofs, v_ldu(&v.x))); });
+    });
+    if (numKilledFaces)
+      debug("cell[%d] killed %d degen faces in land meshes", &cell - &cell0, numKilledFaces);
+  }
+  void releaseJob() override { delete this; }
 };
 
 class Point2Deref : public Point2
@@ -1617,21 +1640,20 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
   bool started[max_cores];
   int coresId[max_cores];
   int cores_count = 0;
-  for (int ci = 0; ci < min(max_cores, cpujobs::get_core_count()); ++ci)
-    if (!cpujobs::start_job_manager(ci, 32768))
-      started[ci] = false;
-    else
+  for (int ci = 0, cn = min(max_cores, cpujobs::get_core_count()); ci < cn; ++ci)
+    if (cpujobs::start_job_manager(ci))
     {
       started[ci] = true;
-      coresId[cores_count] = ci;
-      cores_count++;
+      coresId[cores_count++] = ci;
     }
+    else
+      started[ci] = false;
   int current_core = 0;
   if (generate_ok && cores_count)
   {
     for (int i = 0; i < cm.size(); ++i)
     {
-      cpujobs::add_job(coresId[current_core], new OptimizeJob(cm[i]));
+      cpujobs::add_job(coresId[current_core], new OptimizeJob(cm[i], cm[0]));
       current_core++;
       current_core %= cores_count;
     }
@@ -1659,7 +1681,7 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     con.setTotal(cm.size());
     for (int i = 0; i < cm.size(); ++i)
     {
-      OptimizeJob job(cm[i]);
+      OptimizeJob job(cm[i], cm[0]);
       job.doJob();
       con.setDone(i + 1);
     }
@@ -1943,7 +1965,8 @@ bool HmapLandPlugin::addUsedTextures(ITextureNumerator &tn)
     a_props = *cvtBlk;
     a_props.setBool("convert", true);
     a_props.setStr("name", ltmap_fn);
-    tmd.read(a_props, mkbindump::get_target_str(tn.getTargetCode()));
+    uint64_t tc_storage = 0;
+    tmd.read(a_props, mkbindump::get_target_str(tn.getTargetCode(), tc_storage));
     tmd.mqMip -= tmd.hqMip;
     tmd.lqMip -= tmd.hqMip;
     tmd.hqMip = 0;
@@ -2019,43 +2042,6 @@ static void exportRayTracersToGame(mkbindump::BinDumpSaveCB &cwr, LandRayTracer 
   else
     con.addMessage(ILogWriter::WARNING, "No landray tracer");
   cwr.endBlock();
-}
-
-extern int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1);
-
-extern void buildLightTexture(TexPixel32 *image, MapStorage<uint32_t> &lightmap, int tex_data_sizex, int tex_data_sizey, int stride,
-  int map_x, int map_y, bool use_normal_map);
-
-TEXTUREID HmapLandPlugin::getLightMap()
-{
-  if (!hasLightmapTex)
-    return BAD_TEXTUREID;
-
-  if (lmlightmapTexId != BAD_TEXTUREID) //==
-    return lmlightmapTexId;
-  if (!lmlightmapTex)
-  {
-    lmlightmapTex =
-      d3d::create_tex(NULL, lightMapScaled.getMapSizeX(), lightMapScaled.getMapSizeY(), TEXFMT_A8R8G8B8, 1, "lmesh_lightmap");
-
-    d3d_err(lmlightmapTex);
-    lmlightmapTex->texaddr(TEXADDR_CLAMP);
-    lmlightmapTexId = dagRender->registerManagedTex(String(32, "lightmap_hmap_%p", lmlightmapTex), lmlightmapTex);
-  }
-
-  SmallTab<TexPixel32, TmpmemAlloc> image;
-  clear_and_resize(image, lightMapScaled.getMapSizeX() * lightMapScaled.getMapSizeY());
-  buildLightTexture(&image[0], lightMapScaled, lightMapScaled.getMapSizeX(), lightMapScaled.getMapSizeY(),
-    lightMapScaled.getMapSizeX(), 0, 0, useNormalMap);
-
-  int stride;
-  uint8_t *p;
-  if (((Texture *)lmlightmapTex)->lockimg((void **)&p, stride, 0, TEXLOCK_WRITE))
-  {
-    memcpy(p, image.data(), lightMapScaled.getMapSizeX() * lightMapScaled.getMapSizeY() * 4);
-    ((Texture *)lmlightmapTex)->unlockimg();
-  }
-  return lmlightmapTexId;
 }
 
 int HmapLandPlugin::markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, TMatrix *wtm)
@@ -2373,7 +2359,7 @@ bool HmapLandPlugin::exportLandMesh(mkbindump::BinDumpSaveCB &cb, IWriterToLandm
     rayTracerOffset = headerOfs;
   else
   {
-    mkbindump::BinDumpSaveCB cwr_lt(2 << 10, cb.getTarget(), cb.WRITE_BE);
+    mkbindump::BinDumpSaveCB cwr_lt(2 << 10, cb);
     exportRayTracersToGame(cwr_lt, landRayTracer);
 
     cb.beginBlock();

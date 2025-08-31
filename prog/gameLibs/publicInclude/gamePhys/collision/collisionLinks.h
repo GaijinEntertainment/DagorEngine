@@ -44,4 +44,6 @@ void load_collision_links(CollisionLinks &links, const DataBlock &blk, float sca
 void generate_collisions(const TMatrix &tm, const Point2 &ori_param, const CollisionLinks &links, tmp_collisions_t &out_collisions);
 void lerp_collisions(tmp_collisions_t &a_collisions, const tmp_collisions_t &b_collisions, float factor);
 int get_link_name_id(const char *name);
+const char *get_link_name(const int id);
+
 }; // namespace dacoll

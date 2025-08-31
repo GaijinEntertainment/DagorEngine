@@ -3,6 +3,8 @@
 
 #include <libTools/util/hdpiUtil.h>
 
+#if _TARGET_PC_WIN // TODO: tools Linux porting: AboutDlg
+
 class AboutDlg
 {
 public:
@@ -35,3 +37,16 @@ private:
   const int TEXT_WIDTH = (CLIENT_WIDTH - TEXT_LEFT - HOR_INDENT);
   const int SCROLL_HEIGHT = (DIALOG_HEIGHT - SCROLL_TOP - BUTTON_HEIGHT * 3);
 };
+
+#else
+
+class AboutDlg
+{
+public:
+  AboutDlg(void *hwnd) {}
+  ~AboutDlg() {}
+
+  void show() {}
+};
+
+#endif

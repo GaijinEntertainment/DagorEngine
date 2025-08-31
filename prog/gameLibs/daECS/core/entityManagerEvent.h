@@ -60,7 +60,7 @@ __forceinline uint32_t EntityManager::processEventInternal(T &buffer, ProcessEve
   // we can't use reference to buffer after process
   process(eid, *event);
   if (DAGOR_UNLIKELY(event->getFlags() & EVFLG_DESTROY))
-    eventDb.destroy(*event);
+    eventDb.destroy(*this, *event);
 
   T::freeRead(finalizeRead, eventSize);
   return eventSize;

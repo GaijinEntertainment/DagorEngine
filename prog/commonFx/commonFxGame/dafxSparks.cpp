@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <fx/dag_fxInterface.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_TMatrix4.h>
@@ -13,8 +12,8 @@
 #include <dafxEmitter.h>
 #include <dafxSparks_decl.h>
 #include <dafxEmitter_decl.h>
-#include <dafxSparkModules/dafx_code_common_decl.hlsl>
-#include "dafxSparks_decl.hlsl"
+#include <dafxSparkModules/dafx_code_common_decl.hlsli>
+#include "dafxSparks_decl.hlsli"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
 
@@ -27,10 +26,6 @@ enum
 {
   HUID_ACES_RESET = 0xA781BF24u
 }; //
-enum
-{
-  HUID_ACES_IS_ACTIVE = 0xD6872FCEu
-}; //
 
 enum
 {
@@ -39,7 +34,15 @@ enum
   RGROUP_UNDERWATER = 2,
 };
 
+enum
+{
+  COLLISION_DEFAULT = 0,
+  COLLISION_DISABLED = 1,
+  COLLISION_RELAXED = 2,
+};
+
 static dafx::ContextId g_dafx_ctx;
+extern void dafx_report_broken_res(int game_res_id, const char *fx_type);
 
 struct DafxSparks : BaseParticleEffect
 {
@@ -51,6 +54,7 @@ struct DafxSparks : BaseParticleEffect
 
   int sortOrder = 0;
   int gameResId = 0;
+  bool resLoaded = false;
 
   ~DafxSparks()
   {
@@ -85,19 +89,29 @@ struct DafxSparks : BaseParticleEffect
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    CHECK_FX_VERSION(ptr, len, 5);
+    gameResId = load_cb->getSelfGameResId();
+    resLoaded = false;
+    if (loadParamsDataInternal(ptr, len, load_cb))
+      resLoaded = true;
+    else
+      dafx_report_broken_res(gameResId, "dafx_sparks");
+  }
+
+  bool loadParamsDataInternal(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  {
+    CHECK_FX_VERSION_OPT(ptr, len, 5);
 
     if (!g_dafx_ctx)
     {
       logwarn("fx: sparks: failed to load params data, context was not initialized");
-      return;
+      return false;
     }
 
     parentDesc = dafx::SystemDesc();
 
     DafxEmitterInfo emInfo;
     if (!emInfo.loadParamsData(g_dafx_ctx, ptr, len, load_cb))
-      return;
+      return false;
 
     DafxSparksSimParams simParams = {};
     DafxSparksRenParams renParams = {};
@@ -107,26 +121,39 @@ struct DafxSparks : BaseParticleEffect
     DafxRenderGroup parRenderGroup = {};
     if (len)
     {
-      simParams.load(ptr, len, load_cb);
-      renParams.load(ptr, len, load_cb);
-      parGlobals.load(ptr, len, load_cb);
-      parOptionalModifiers.load(ptr, len, load_cb);
-      parQuality.load(ptr, len, load_cb);
-      parRenderGroup.load(ptr, len, load_cb);
+#define V(b)                      \
+  if (!b.load(ptr, len, load_cb)) \
+    return false;
+
+      V(simParams);
+      V(renParams);
+      V(parGlobals);
+      V(parOptionalModifiers);
+      V(parQuality);
+      V(parRenderGroup);
+
+#undef V
     }
 
     sinfo.maxInstances = parGlobals.max_instances;
     sinfo.playerReserved = parGlobals.player_reserved;
-    sinfo.spawnRangeLimit = parGlobals.spawn_range_limit;
     sinfo.onePointNumber = parGlobals.one_point_number;
     sinfo.onePointRadius = parGlobals.one_point_radius;
     sinfo.transformType = static_cast<dafx_ex::TransformType>(parGlobals.transform_type);
+    sinfo.rflags = 0;
 
-    G_STATIC_ASSERT(
-      sizeof(ParentRenData) == sizeof(DafxSparksRenParams) + sizeof(ParentRenData::tm) + sizeof(ParentRenData::localSpaceFlag));
-    G_STATIC_ASSERT(sizeof(ParentSimData) == sizeof(DafxSparksSimParams) + sizeof(ParentSimData::emitterNtm) +
-                                               sizeof(ParentSimData::fxVelocity) + sizeof(ParentSimData::widthOverLifeCurve) +
-                                               sizeof(ParentSimData::gravityTm));
+    bool localSpace = sinfo.transformType == dafx_ex::TransformType::TRANSFORM_LOCAL_SPACE;
+    sinfo.rflags |= localSpace << DAFX_SPARK_DECL_LOCAL_SPACE;
+
+    bool collisionDisabled = parOptionalModifiers.collision == COLLISION_DISABLED;
+    sinfo.rflags |= collisionDisabled << DAFX_SPARK_DECL_COLLISION_DISABLED_FLAG;
+
+    bool collisionRelaxed = parOptionalModifiers.collision == COLLISION_RELAXED;
+    sinfo.rflags |= collisionRelaxed << DAFX_SPARK_DECL_COLLISION_RELAXED_FLAG;
+
+    G_STATIC_ASSERT(sizeof(ParentRenData) == sizeof(DafxSparksRenParams) + sizeof(ParentRenData::tm) + sizeof(ParentRenData::flags));
+    G_STATIC_ASSERT(sizeof(ParentSimData) == sizeof(DafxSparksSimParams) + sizeof(ParentSimData::fxVelocity) +
+                                               sizeof(ParentSimData::widthOverLifeCurve) + sizeof(ParentSimData::gravityTm));
 
     dafx::SystemDesc desc;
     desc.emissionData.type = dafx::EmissionType::SHADER;
@@ -139,7 +166,6 @@ struct DafxSparks : BaseParticleEffect
 
     desc.emitterData = emInfo.emitterData;
     desc.emitterData.minEmissionFactor = clamp(parGlobals.emission_min, 0.f, 1.f);
-    gameResId = load_cb->getSelfGameResId();
     desc.gameResId = gameResId;
     parentDesc.gameResId = gameResId;
 
@@ -186,6 +212,7 @@ struct DafxSparks : BaseParticleEffect
 
     parentDesc.emitterData.type = dafx::EmitterType::FIXED;
     parentDesc.emitterData.fixedData.count = 1;
+    parentDesc.emitterData.spawnRangeLimit = parGlobals.spawn_range_limit;
     parentDesc.emissionData.type = dafx::EmissionType::REF_DATA;
     parentDesc.simulationData.type = dafx::SimulationType::NONE;
 
@@ -193,9 +220,7 @@ struct DafxSparks : BaseParticleEffect
     parentDesc.emissionData.simulationRefData.resize(parentDesc.simulationElemSize);
 
     memcpy(parentDesc.emissionData.renderRefData.data(), &TMatrix4::IDENT, sizeof(TMatrix4));
-    memset(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4), 0, sizeof(uint));
-    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_EMITTER_NTM * 4, &TMatrix4::IDENT,
-      sizeof(TMatrix4));
+    memcpy(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4), &sinfo.rflags, sizeof(uint));
     memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY * 4, 0, sizeof(float3));
     memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM * 4, &Matrix3::IDENT,
       sizeof(Matrix3));
@@ -229,67 +254,73 @@ struct DafxSparks : BaseParticleEffect
       sinfo.valueOffsets[sinfo_valueType] = ofs;
       desc_bind(ofs, name, size);
     };
-
     int ofs = 0;
 
+#define DESC_BIND(type, name)                   desc_bind(ofs, name, sizeof(type))
+#define SINFO_DESC_BIND(type, name, value_type) sinfo_desc_bind(ofs, name, sizeof(type), value_type)
+
     // rparams
-    desc_bind(ofs, "tm", 64);
-    desc_bind(ofs, "local_space_flag", 4);
+    DESC_BIND(TMatrix4, "tm");
+    DESC_BIND(int, "flags");
     // rparams dynamic
-    desc_bind(ofs, "blending", 4);
-    desc_bind(ofs, "motionScale", 4);
-    desc_bind(ofs, "motionScaleMax", 4);
-    desc_bind(ofs, "hdrScale", 4);
-    desc_bind(ofs, "arrowShape", 4);
+    DESC_BIND(float, "blending");
+    DESC_BIND(float, "motionScale");
+    DESC_BIND(float, "motionScaleMax");
+    DESC_BIND(float, "hdrScale");
+    DESC_BIND(float, "arrowShape");
 
     ofs = DAFX_PARENT_REN_DATA_SIZE;
 
     // sparams
-    desc_bind(ofs, "emitter_ntm", 64);
-    desc_bind(ofs, "fx_velocity", 12);
-    desc_bind(ofs, "width_over_life_curve", sizeof(CurveData));
-    sinfo_desc_bind(ofs, "gravity_tm", sizeof(Matrix3), ValueType::VAL_GRAVITY_ZONE_TM);
+    DESC_BIND(Point3, "fx_velocity");
+    DESC_BIND(CurveData, "width_over_life_curve");
+    SINFO_DESC_BIND(Matrix3, "gravity_tm", ValueType::VAL_GRAVITY_ZONE_TM);
 
     // sparams dynamic
-    desc_bind(ofs, "pos.center", 12);
-    desc_bind(ofs, "pos.size", 12);
-    sinfo_desc_bind(ofs, "width.start", 4, ValueType::VAL_RADIUS_MIN);
-    sinfo_desc_bind(ofs, "width.end", 4, ValueType::VAL_RADIUS_MAX);
-    desc_bind(ofs, "life.start", 4);
-    desc_bind(ofs, "life.end", 4);
-    desc_bind(ofs, "seed", 4);
-    sinfo_desc_bind(ofs, "velocity.center", 12, ValueType::VAL_VELOCITY_ADD_VEC3);
-    sinfo_desc_bind(ofs, "velocity.scale", 12, ValueType::VAL_VELOCITY_START_VEC3);
-    desc_bind(ofs, "velocity.radiusMin", 4);
-    desc_bind(ofs, "velocity.radiusMax", 4);
-    desc_bind(ofs, "velocity.azimutMax", 4);
-    desc_bind(ofs, "velocity.azimutNoise", 4);
-    desc_bind(ofs, "velocity.inclinationMin", 4);
-    desc_bind(ofs, "velocity.inclinationMax", 4);
-    desc_bind(ofs, "velocity.inclinationNoise", 4);
-    desc_bind(ofs, "restitution", 4);
-    desc_bind(ofs, "friction", 4);
-    sinfo_desc_bind(ofs, "color0", 4, ValueType::VAL_COLOR_MIN);
-    sinfo_desc_bind(ofs, "color1", 4, ValueType::VAL_COLOR_MAX);
-    desc_bind(ofs, "color1Portion", 4);
-    desc_bind(ofs, "hdrBias", 4);
-    desc_bind(ofs, "colorEnd", 4);
-    desc_bind(ofs, "velocityBias", 4);
-    sinfo_desc_bind(ofs, "dragCoefficient", 4, ValueType::VAL_DRAG_COEFF);
-    desc_bind(ofs, "turbulenceForce.start", 4);
-    desc_bind(ofs, "turbulenceForce.end", 4);
-    desc_bind(ofs, "turbulenceFreq.start", 4);
-    desc_bind(ofs, "turbulenceFreq.end", 4);
-    desc_bind(ofs, "liftForce", 12);
-    desc_bind(ofs, "liftTime", 4);
-    desc_bind(ofs, "spawnNoise", 4);
-    desc_bind(ofs, "spawnNoisePos.center", 12);
-    desc_bind(ofs, "spawnNoisePos.size", 12);
-    desc_bind(ofs, "hdrScale1", 4);
-    sinfo_desc_bind(ofs, "windForce", 4, ValueType::VAL_VELOCITY_WIND_COEFF);
-    desc_bind(ofs, "gravity_zone", 4);
+    DESC_BIND(Point3, "pos.center");
+    DESC_BIND(Point3, "pos.size");
+    SINFO_DESC_BIND(float, "width.start", ValueType::VAL_RADIUS_MIN);
+    SINFO_DESC_BIND(float, "width.end", ValueType::VAL_RADIUS_MAX);
+    DESC_BIND(float, "life.start");
+    DESC_BIND(float, "life.end");
+    DESC_BIND(int, "seed");
+    SINFO_DESC_BIND(Point3, "velocity.center", ValueType::VAL_VELOCITY_ADD_VEC3);
+    SINFO_DESC_BIND(Point3, "velocity.scale", ValueType::VAL_VELOCITY_START_VEC3);
+    DESC_BIND(float, "velocity.radiusMin");
+    DESC_BIND(float, "velocity.radiusMax");
+    DESC_BIND(float, "velocity.azimutMax");
+    DESC_BIND(float, "velocity.azimutNoise");
+    DESC_BIND(float, "velocity.inclinationMin");
+    DESC_BIND(float, "velocity.inclinationMax");
+    DESC_BIND(float, "velocity.inclinationNoise");
+    DESC_BIND(float, "restitution");
+    DESC_BIND(float, "friction");
+    SINFO_DESC_BIND(E3DCOLOR, "color0", ValueType::VAL_COLOR_MIN);
+    SINFO_DESC_BIND(E3DCOLOR, "color1", ValueType::VAL_COLOR_MAX);
+    DESC_BIND(float, "color1Portion");
+    DESC_BIND(float, "hdrBias");
+    DESC_BIND(E3DCOLOR, "colorEnd");
+    DESC_BIND(float, "velocityBias");
+    SINFO_DESC_BIND(float, "dragCoefficient", ValueType::VAL_DRAG_COEFF);
+    DESC_BIND(float, "turbulenceForce.start");
+    DESC_BIND(float, "turbulenceForce.end");
+    DESC_BIND(float, "turbulenceFreq.start");
+    DESC_BIND(float, "turbulenceFreq.end");
+    DESC_BIND(float, "liftForce");
+    DESC_BIND(float, "liftTime");
+    DESC_BIND(float, "spawnNoise");
+    DESC_BIND(Point3, "spawnNoisePos.center");
+    DESC_BIND(Point3, "spawnNoisePos.size");
+    DESC_BIND(float, "hdrScale1");
+    SINFO_DESC_BIND(float, "windForce", ValueType::VAL_VELOCITY_WIND_COEFF);
+    DESC_BIND(float, "gravity_zone");
 
     parentDesc.subsystems.push_back(desc);
+
+#undef DESC_BIND
+#undef SINFO_DESC_BIND
+
+    return true;
   }
 
   void setParam(unsigned id, void *value) override
@@ -350,8 +381,12 @@ struct DafxSparks : BaseParticleEffect
       reset();
     else if (id == HUID_VELOCITY)
       setVelocity((Point3 *)value);
-    else if (id == _MAKE4C('PFXE') || id == _MAKE4C('PFXF'))
-      dafx::set_instance_status(g_dafx_ctx, iid, value ? *(bool *)value : false);
+    else if (id == _MAKE4C('PFXE'))
+    {
+      G_ASSERT(value);
+      BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
+      dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+    }
     else if (id == _MAKE4C('PFXO'))
       sortOrder = *(int *)value;
     else if (id == _MAKE4C('PFXP'))
@@ -381,7 +416,7 @@ struct DafxSparks : BaseParticleEffect
     }
     else if (id == _MAKE4C('PFXQ'))
     {
-      *(dafx::SystemDesc **)value = &parentDesc;
+      *(dafx::SystemDesc **)value = resLoaded ? &parentDesc : nullptr;
       return value;
     }
     else if (id == _MAKE4C('PFVR'))
@@ -399,7 +434,7 @@ struct DafxSparks : BaseParticleEffect
     }
     else if (id == _MAKE4C('FXLR'))
     {
-      *(float *)value = sinfo.spawnRangeLimit;
+      *(float *)value = parentDesc.emitterData.spawnRangeLimit;
     }
     else if (id == _MAKE4C('FXLX'))
     {
@@ -481,24 +516,13 @@ struct DafxSparks : BaseParticleEffect
       type = tr_type;
 
     TMatrix4 fxTm4 = value;
-    uint32_t localSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
-    if (localSpace)
-      fxTm4 = fxTm4.transpose();
+    bool localSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
 
-    dafx::set_instance_value(g_dafx_ctx, iid, "tm", &fxTm4, 64);
-    dafx::set_instance_value(g_dafx_ctx, iid, "local_space_flag", &localSpace, 4);
+    sinfo.rflags &= ~(1 << DAFX_SPARK_DECL_LOCAL_SPACE);
+    sinfo.rflags |= localSpace << DAFX_SPARK_DECL_LOCAL_SPACE;
 
-    if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
-    {
-      TMatrix emitterNormalTm;
-      emitterNormalTm.setcol(0, normalize(value.getcol(0)));
-      emitterNormalTm.setcol(1, normalize(value.getcol(1)));
-      emitterNormalTm.setcol(2, normalize(value.getcol(2)));
-      emitterNormalTm.setcol(3, Point3(0, 0, 0));
-
-      fxTm4 = emitterNormalTm;
-      dafx::set_instance_value(g_dafx_ctx, iid, "emitter_ntm", &fxTm4, 64);
-    }
+    dafx::set_instance_value(g_dafx_ctx, iid, "tm", &fxTm4, sizeof(fxTm4));
+    dafx::set_instance_value(g_dafx_ctx, iid, "flags", &sinfo.rflags, sizeof(sinfo.rflags));
   }
 
   void setTm(const TMatrix *value) override
@@ -518,7 +542,7 @@ struct DafxSparks : BaseParticleEffect
     if (!iid || !v)
       return;
 
-    dafx::set_instance_value(g_dafx_ctx, iid, "fx_velocity", v, 12);
+    dafx::set_instance_value(g_dafx_ctx, iid, "fx_velocity", v, sizeof(Point3));
   }
 
   void setSpawnRate(const real *v) override

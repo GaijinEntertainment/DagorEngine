@@ -6,6 +6,7 @@
 
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_renderPass.h>
+#include <shaders/dag_DynamicShaderHelper.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -27,6 +28,7 @@
 struct SkiesData;
 struct Clouds2;
 struct AuroraBorealis;
+class SphereRenderer;
 
 
 enum class CloudsResolution
@@ -36,6 +38,19 @@ enum class CloudsResolution
   ForceFullresClouds
 };
 
+enum class UpdateSky
+{
+  Off, // sky won't be changed, so we can use it for main data for cube
+  On,
+  OnWithoutCloudsVisibilityCheck, // cloud rendering doesn't require visibility check
+};
+
+enum class RenderPrepared
+{
+  Off,
+  LowresOnFarPlane,
+  LowresOnSphere,
+};
 
 class DaSkies
 {
@@ -273,12 +288,11 @@ public:
   // you need to call it before any other rendering calls, or updatePanorama right after.
   // won't affect wind and other cloudsOffset
   // hole_target_pos - that wont be in shadow, density - amount of shadow
-  void resetCloudsHole(const Point3 &hole_target_pos, const float &hole_density = 0);
+  void setCloudsHole(const Point3 &hole_target_pos, float hole_density);
   void resetCloudsHole();          // but basically removes clouds hole. call updatePanorama right after, if you have one
   void setUseCloudsHole(bool set); // finding hole can be disabled to avoid sky jumping around while changing params
   bool getUseCloudsHole() const;
-  Point2 getCloudsHolePosition() const;       // that's for debug only!
-  void setCloudsHolePosition(const Point2 &); // that's for debug only!
+  Point2 getCloudsHolePosition() const; // that's for debug only!
   void setExternalWeatherTexture(TEXTUREID tid);
 
   DPoint2 getCloudsOrigin() const { return DPoint2(cloudsOrigin.x, cloudsOrigin.z); }
@@ -287,8 +301,8 @@ public:
 // 20 meters is enough so we don't reprepare skies for tanks when camera rotates
 #define SKY_PREPARE_THRESHOLD 20.0f
 
-  void useFog(const Point3 &origin, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool update_sky = true,
-    float altitude_tolerance = SKY_PREPARE_THRESHOLD);
+  void useFog(const Point3 &origin, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    UpdateSky update_sky = UpdateSky::On, float altitude_tolerance = SKY_PREPARE_THRESHOLD);
 
   // either use renderEnvi or prepareSkyAndClouds + renderSky + renderClouds
   void renderEnvi(bool infinite, const DPoint3 &origin, const DPoint3 &viewdir, uint32_t render_sun_moon, // we can skip sun rendering
@@ -298,24 +312,25 @@ public:
 
     TEXTUREID targetDepth, // targetDepth
     SkiesData *data,       // if data is null than only sky will be rendered
-    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, bool update_sky = true,
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky = UpdateSky::On,
     bool fixed_offset = false, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
 
-  // if update_sky = false sky won't be changed, so we can use it for main data for cube
   // if fixed_offset is true, cloud offset will be 0
   void prepareSkyAndClouds(bool infinite, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon, // we can skip sun
                                                                                                                // rendering for, say
                                                                                                                // cubic
     const TextureIDPair &cloudsDepth, const TextureIDPair &prevCloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth
                                                                             // with mips, if required lower resolution
-    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool update_sky, bool fixed_offset,
-    float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
+    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, UpdateSky update_sky, bool fixed_offset,
+    float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr, const bool acquare_new_resource = true,
+    const bool set_camera_vars = true);
 
 
   // ResPtr variant
   void prepareSkyAndClouds(bool infinite, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon,
     const ManagedTex &cloudsDepth, const ManagedTex &prevCloudsDepth, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
-    bool update_sky, bool fixed_offset, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
+    UpdateSky update_sky, bool fixed_offset, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr,
+    const bool acquare_new_resource = true, const bool set_camera_vars = true);
 
   bool isCloudsVisible(SkiesData *data);
 
@@ -328,7 +343,8 @@ public:
     const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point4 &targetDepthTransform = Point4(1, 1, 0, 0));
 
   void renderSky(SkiesData *data, // should have prepared data
-    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, bool render_prepared_lowres = true,
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp,
+    RenderPrepared render_prepared = RenderPrepared::LowresOnFarPlane, const SphereRenderer *sphere_renderer = nullptr,
     AuroraBorealis *aurora = nullptr);
   void renderStars(const Driver3dPerspective &persp, const Point3 &origin, float stars_intensity_mul);
   float getCloudsStartAlt(); // effective, i.e. can change based on gpu readback
@@ -472,7 +488,8 @@ protected:
   void prepareRenderClouds(bool infinite, const Point3 &origin, const TextureIDPair &cloudsDepth,
     const TextureIDPair &prevCloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth with mips, if required lower
                                           // resolution
-    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool check_cloud_visibility,
+    const bool acquare_new_resource = true, const bool set_camera_vars = true);
   void renderCloudsToTarget(bool infinite, const Point3 &origin, const TextureIDPair &downsampledDepth, TEXTUREID targetDepth,
     const Point4 &targetDepthTransform, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 
@@ -494,7 +511,7 @@ protected:
   void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
   void downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth);
   void createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
-    const char *downsampled_depth_name, int w, int h, int addru, int addrv);
+    const char *downsampled_depth_name, int w, int h, d3d::AddressMode addru, d3d::AddressMode addrv);
   void createPanoramaDepthTex();
   void createDepthPanoramaPatchTex();
 
@@ -618,6 +635,7 @@ protected:
 
   PostFxRenderer strata;
   PostFxRenderer skiesApply;
+  DynamicShaderHelper skiesSphereApplyShader;
   SharedTexHolder strataClouds;
   MipRenderer mipRenderer;
   float averageCloudsDensity = 0.5; // todo:

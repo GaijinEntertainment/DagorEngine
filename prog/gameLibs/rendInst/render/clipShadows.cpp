@@ -45,6 +45,8 @@ int clipmapShadowScaleVarId = -1;
 static Point2 offsetSunDistMin(0, 0), offsetSunDistMax(0, 0);
 static PostFxRenderer blurRenderer;
 static int blurOffset01VarId = -1, blurOffset23VarId = -1, blurOffset45VarId = -1, blurOffset67VarId = -1, sourceTexVarId = -1;
+static int sourceSamplerTexVarId = -1;
+static d3d::SamplerHandle sourceSampler = d3d::SamplerHandle::Invalid;
 static bool areBuffersFilled = false;
 
 void release_clipmap_shadows();
@@ -152,10 +154,11 @@ void initClipmapShadows()
   blurOffset45VarId = get_shader_variable_id("blur_offset_4_5");
   blurOffset67VarId = get_shader_variable_id("blur_offset_6_7");
   sourceTexVarId = ::get_shader_glob_var_id("source_tex");
+  sourceSamplerTexVarId = ::get_shader_glob_var_id("source_tex_samplerstate", true);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(::get_shader_glob_var_id("source_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+    sourceSampler = d3d::request_sampler(smpInfo);
   }
 
   allocate_clipmap_shadows();
@@ -163,6 +166,7 @@ void initClipmapShadows()
 
 static UniqueTex blurTemp, rtTemp;
 static carray<BcCompressor *, 3> g_compressors; // 3 frame carousell
+static d3d::SamplerHandle sampler;
 static int g_current_compressor = 0;
 static int numMips = 1, rendinstClipmapShadowTexSize = 64;
 static Point3 sunForShadow(0, -1, 0);
@@ -193,6 +197,10 @@ void allocate_clipmap_shadows()
 
     g_compressors[i] = compr;
   }
+  d3d::SamplerInfo info;
+  info.address_mode_u = info.address_mode_v = info.address_mode_w = d3d::AddressMode::Border;
+  info.border_color = d3d::BorderColor::Color::TransparentBlack;
+  sampler = d3d::request_sampler(info);
 
   if (g_compressors[0])
   {
@@ -201,8 +209,8 @@ void allocate_clipmap_shadows()
   else
   {
     int usage = d3d::USAGE_RTARGET | d3d::USAGE_AUTOGENMIPS;
-    if ((d3d::get_texformat_usage(TEXFMT_L8, RES3D_TEX) & usage) == usage)
-      shadow_texFmt = TEXFMT_L8;
+    if ((d3d::get_texformat_usage(TEXFMT_R8, D3DResourceType::TEX) & usage) == usage)
+      shadow_texFmt = TEXFMT_R8;
     else
       shadow_texFmt = TEXFMT_DEFAULT;
 
@@ -210,8 +218,8 @@ void allocate_clipmap_shadows()
   }
 
 
-  if ((d3d::get_texformat_usage(TEXFMT_L8, RES3D_TEX) & d3d::USAGE_RTARGET))
-    shadow_rt_texFmt = TEXFMT_L8;
+  if ((d3d::get_texformat_usage(TEXFMT_R8, D3DResourceType::TEX) & d3d::USAGE_RTARGET))
+    shadow_rt_texFmt = TEXFMT_R8;
   else
     shadow_rt_texFmt = TEXFMT_DEFAULT;
 
@@ -221,12 +229,10 @@ void allocate_clipmap_shadows()
   blurTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_rt_texFmt | TEXCF_RTARGET, 1,
     "clipmapshadow_blurTempTex");
   d3d_err(blurTemp.getTex2D());
-  blurTemp.getTex2D()->disableSampler();
   rtTemp.close();
   rtTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_rt_texFmt | TEXCF_RTARGET, 1,
     "clipmapshadow_rtTempTex");
   d3d_err(rtTemp.getTex2D());
-  rtTemp.getTex2D()->disableSampler();
 
   blurRenderer.init("blur");
 }
@@ -269,7 +275,6 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
       pool.rendinstClipmapShadowTex =
         d3d::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_texFmt, numMips, name);
 
-      pool.rendinstClipmapShadowTex->disableSampler();
       pool.rendinstClipmapShadowTexId = register_managed_tex(name, pool.rendinstClipmapShadowTex);
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
@@ -403,6 +408,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
   ShaderGlobal::set_color4(blurOffset67VarId,
     Color4(5.f * blurRadius / texSize, 0.5f / texSize, 7.f * blurRadius / texSize, 0.5f / texSize));
   ShaderGlobal::set_texture_fast(sourceTexVarId, targetTexId);
+  ShaderGlobal::set_sampler(sourceSamplerTexVarId, sourceSampler);
   blurRenderer.render();
 
   d3d::set_render_target(g_compressors[0] ? targetTex : pool.rendinstClipmapShadowTex, 0);
@@ -423,7 +429,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
 
     for (int i = 0; i < numMips; ++i)
     {
-      compr->updateFromMip(targetTexId, i, i);
+      compr->updateFromMip(targetTexId, sampler, i, i);
       compr->copyToMip(pool.rendinstClipmapShadowTex, i, 0, 0, i);
     }
 
@@ -631,6 +637,8 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
         continue;
       RendInstGenData::CellRtData &crt = *crt_ptr;
       if (crt.cellStateFlags & flag)
+        continue;
+      if (!crt.isDataUploaded())
         continue;
 
       if (!v_bbox3_test_box_intersect(crt.bbox[0], regionBBox))

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <gameRes/dag_gameResSystem.h>
+#include <gameRes/dag_gameResHooks.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
@@ -27,10 +28,6 @@ void registerOptionalGameResPack(const char *filename);
 void registerOptionalDdsxTexPack(const char *filename);
 void dumpOptionalMappigs(const char *pkg_name);
 } // namespace gameresprivate
-namespace gamereshooks
-{
-extern void (*on_load_res_packs_from_list_complete)(const char *pack_list_blk_fname, bool load_grp, bool load_tex);
-}
 
 void load_res_packs_from_list(const char *pack_list_blk_fname, bool load_grp, bool load_tex, const char *res_base_dir)
 {
@@ -70,12 +67,14 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
   int nid = blk.getNameId("pack");
   b = blk.getBlockByNameEx("ddsxTexPacks");
   gameresprivate::curRelFnOfs = i_strlen(buf);
-  int num = 0;
+  int num_dxp = 0;
   for (int i = 0; load_tex && i < b->paramCount(); i++)
     if (b->getParamType(i) == DataBlock::TYPE_STRING && b->getParamNameId(i) == nid)
     {
       _snprintf(tempBuf, sizeof(tempBuf), "%s%s", buf, b->getStr(i));
       tempBuf[sizeof(tempBuf) - 1] = 0;
+      if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(tempBuf, true))
+        continue;
       bool tq_pack = i == 0 && strstr(b->getStr(i), "__tq_pack.dxp");
       if (opt_tex_per_file && !tq_pack && !dd_file_exists(tempBuf)) // texture packs may be optional except for TQ pack
       {
@@ -84,22 +83,25 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
         continue;
       }
       gameresprivate::scanDdsxTexPack(tempBuf);
-      num++;
+      num_dxp++;
     }
 
-  debug("loadDdsxTexPack(%s) of %d packs done for %.4f sec", res_base_dir, num, profile_time_usec(reft) / 1e6);
+  if (num_dxp)
+    debug("loadDdsxTexPack(%s) of %d packs done for %.4f sec", res_base_dir, num_dxp, profile_time_usec(reft) / 1e6);
   reft = profile_ref_ticks();
 
   b = blk.getBlockByNameEx("gameResPacks");
-  num = 0;
+  int num_grp = 0;
   for (int i = 0; load_grp && i < b->paramCount(); i++)
     if (b->getParamType(i) == DataBlock::TYPE_STRING && b->getParamNameId(i) == nid)
     {
       _snprintf(tempBuf, sizeof(tempBuf), "%s%s", buf, b->getStr(i));
       tempBuf[sizeof(tempBuf) - 1] = 0;
+      if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(tempBuf, false))
+        continue;
 
       gameresprivate::scanGameResPack(tempBuf);
-      num++;
+      num_grp++;
 
       if (opt_res_per_file && !dd_file_exists(tempBuf))
       {
@@ -109,11 +111,12 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
     }
   gameresprivate::curRelFnOfs = 0;
 #if !(_TARGET_PC && !_TARGET_STATIC_LIB)
-  if (num)
+  if (num_grp)
     repack_real_game_res_id_table();
 #endif
-  debug("scanGameResPack(%s) of %d packs done for %.4f sec", res_base_dir, num, profile_time_usec(reft) / 1e6);
-  if (load_tex)
+  if (num_grp)
+    debug("scanGameResPack(%s) of %d packs done for %.4f sec", res_base_dir, num_grp, profile_time_usec(reft) / 1e6);
+  if (load_tex && num_dxp)
     ddsx::dump_registered_tex_distribution();
   if (gamereshooks::on_load_res_packs_from_list_complete)
     gamereshooks::on_load_res_packs_from_list_complete(pack_list_blk_fname, load_grp, load_tex);

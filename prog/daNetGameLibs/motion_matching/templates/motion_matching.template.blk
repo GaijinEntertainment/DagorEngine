@@ -80,6 +80,11 @@ motion_matching_animation_database{
     node:t="Bip01 L Toe0"
     node:t="Bip01 R Toe0"
   }
+  main_database__skeletonRes:t=""
+  main_database__animGraphRes:t=""
+  main_database__validateNextClipPosThreshold:r=0.01
+  main_database__validateNextClipRotThreshold:r=0.01
+  main_database__validateNextClipSclThreshold:r=0.01
 }
 
 motion_matching_animation_database_extended{
@@ -205,11 +210,21 @@ motion_matching_imgui_state{
 
   mm_visualization_show_feature_nodes:b=false
   mm_visualization_show_trajectory:b=false
+  "mm_visualization__predictedTrajectoryPos:list<p3>"{}
+  "mm_visualization__predictedTrajectoryDir:list<p3>"{}
+  mm_visualization__animcharTm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  mm_visualization__rootTm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  mm_visualization__currentClipIdx:i=-1
+  mm_visualization__currentFrameIdx:i=-1
   mm_visualization__selectedClipIdx:i=-1
   mm_visualization__selectedFrameIdx:i=-1
+  mm_visualization__prevTransitionClipIdx:i=-1
+  mm_visualization__prevTransitionFrameIdx:i=-1
   mm_visualization_show_skeleton:b=false
   mm_visualization_show_skeleton_original:b=false
   mm_visualization_show_skeleton_node_labels:b=false
+  "mm_visualization__skeletonNodeWpos:list<p3>"{}
+  "mm_visualization__skeletonNodeFilter:list<i>"{}
   mm_visualization_show_foot_locker_positions:b=false
 
   "mm_clips_clipProgress:list<i>"{}

@@ -44,6 +44,15 @@ public:
       }
   }
 
+  template <class TPred>
+  void delAll(TPred &&pred)
+  {
+    WinAutoLock lock(pool_crit);
+    for (int i = ent.size() - 1; i >= 0; i--)
+      if (pred(ent[i]))
+        entUuIdx.push_back(i);
+  }
+
   inline void reserve(int cnt)
   {
     WinAutoLock lock(pool_crit);
@@ -119,43 +128,31 @@ protected:
 };
 
 
-#define DECLARE_TEX_CREATOR(T)                          \
-  static T *create()                                    \
-  {                                                     \
-    T *tex = texConstPool.add();                        \
-    if (tex)                                            \
-      return tex;                                       \
-                                                        \
-    if (!useTexDynPool)                                 \
-      DAG_FATAL("texture max count reached");           \
-                                                        \
-    return texDynPool.add();                            \
-  }                                                     \
-  static void dispose(T *p)                             \
-  {                                                     \
-    if (!texConstPool.del(p))                           \
-      texDynPool.del(p);                                \
-  }                                                     \
-                                                        \
-  static void initPool(int size)                        \
-  {                                                     \
-    texConstPool.init(size);                            \
-  }                                                     \
-  static void reserve(int cnt)                          \
-  {                                                     \
-    texDynPool.reserve(cnt - texConstPool.entMax());    \
-  }                                                     \
-  static int entCnt()                                   \
-  {                                                     \
-    return texConstPool.entCnt() + texDynPool.entCnt(); \
-  }                                                     \
-  static int entMax()                                   \
-  {                                                     \
-    return texConstPool.entMax() + texDynPool.entMax(); \
-  }                                                     \
-                                                        \
-protected:                                              \
-  static GenConstPool<T> texConstPool;                  \
+#define DECLARE_TEX_CREATOR(T)                                                      \
+  static T *create()                                                                \
+  {                                                                                 \
+    T *tex = texConstPool.add();                                                    \
+    if (tex)                                                                        \
+      return tex;                                                                   \
+                                                                                    \
+    if (!useTexDynPool)                                                             \
+      DAG_FATAL("texture max count reached");                                       \
+                                                                                    \
+    return texDynPool.add();                                                        \
+  }                                                                                 \
+  static void dispose(T *p)                                                         \
+  {                                                                                 \
+    if (!texConstPool.del(p))                                                       \
+      texDynPool.del(p);                                                            \
+  }                                                                                 \
+                                                                                    \
+  static void initPool(int size) { texConstPool.init(size); }                       \
+  static void reserve(int cnt) { texDynPool.reserve(cnt - texConstPool.entMax()); } \
+  static int entCnt() { return texConstPool.entCnt() + texDynPool.entCnt(); }       \
+  static int entMax() { return texConstPool.entMax() + texDynPool.entMax(); }       \
+                                                                                    \
+protected:                                                                          \
+  static GenConstPool<T> texConstPool;                                              \
   static GenDynPool<T> texDynPool
 
 
@@ -171,7 +168,7 @@ protected:                                              \
     p->size = sz;                                                      \
     p->flags = flags;                                                  \
     p->allocBuf(allocate);                                             \
-    p->setResName(name);                                               \
+    p->setName(name);                                                  \
     return p;                                                          \
   }                                                                    \
   static void dispose(T *p)                                            \
@@ -180,18 +177,9 @@ protected:                                              \
     dynPool.del(p);                                                    \
   }                                                                    \
                                                                        \
-  static void reserve(int cnt)                                         \
-  {                                                                    \
-    dynPool.reserve(cnt);                                              \
-  }                                                                    \
-  static int entCnt()                                                  \
-  {                                                                    \
-    return dynPool.entCnt();                                           \
-  }                                                                    \
-  static int entMax()                                                  \
-  {                                                                    \
-    return dynPool.entMax();                                           \
-  }                                                                    \
+  static void reserve(int cnt) { dynPool.reserve(cnt); }               \
+  static int entCnt() { return dynPool.entCnt(); }                     \
+  static int entMax() { return dynPool.entMax(); }                     \
                                                                        \
 protected:                                                             \
   static GenDynPool<T> dynPool

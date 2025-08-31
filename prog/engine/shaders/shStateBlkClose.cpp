@@ -42,31 +42,36 @@ void shaders_internal::close_stateblocks()
   ccInited = false;
 }
 
-
+// TODO: exchange might need to become interlocked in the future
 void shaders_internal::close_fshader()
 {
   auto &shOwner = shBinDumpOwner();
-  for (int i = 0; i < shOwner.fshId.size(); ++i)
-    if (shOwner.fshId[i] != BAD_FSHADER)
+  for (auto &idref : shOwner.fshId)
+    if (auto id = eastl::exchange(idref, BAD_FSHADER); id != BAD_FSHADER)
     {
       G_ASSERT(d3d::is_inited());
-      if (shOwner.fshId[i] & 0x10000000)
-        d3d::delete_program(shOwner.fshId[i] & 0x0FFFFFFF);
-      else
-        d3d::delete_pixel_shader(shOwner.fshId[i]);
-      shOwner.fshId[i] = BAD_FSHADER;
+      d3d::delete_pixel_shader(id);
     }
 }
 
+void shaders_internal::close_cshader()
+{
+  auto &shOwner = shBinDumpOwner();
+  for (auto &idref : shOwner.cshId)
+    if (auto id = eastl::exchange(idref, BAD_PROGRAM); id != BAD_PROGRAM)
+    {
+      G_ASSERT(d3d::is_inited());
+      d3d::delete_program(id);
+    }
+}
 
 void shaders_internal::close_vprog()
 {
   auto &shOwner = shBinDumpOwner();
-  for (int i = 0; i < shOwner.vprId.size(); ++i)
-    if (shOwner.vprId[i] != BAD_VPROG)
+  for (auto &idref : shOwner.vprId)
+    if (auto id = eastl::exchange(idref, BAD_VPROG); id != BAD_VPROG)
     {
       G_ASSERT(d3d::is_inited());
-      d3d::delete_vertex_shader(shOwner.vprId[i]);
-      shOwner.vprId[i] = BAD_VPROG;
+      d3d::delete_vertex_shader(id);
     }
 }

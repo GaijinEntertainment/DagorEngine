@@ -152,7 +152,6 @@ class ContactSolver
 
   Tab<Body> bodies;
   Tab<BodyState> bodyStates;
-  Tab<Constraint> constraints;
 
   BodyState groundState;
 
@@ -160,21 +159,22 @@ class ContactSolver
   eastl::bitset<MAX_LAYERS_NUM * MAX_LAYERS_NUM> layersMask;
 
   BodyState &getState(int index);
-  void addFrictionConstraint(Constraint::Type type, const ContactManifoldPoint &info, double lambda, double friction,
-    const DPoint3 &u);
-  void addContactConstraint(const ContactManifoldPoint &info, double beta, double bias);
+  void addFrictionConstraint(Tab<Constraint> &constraints, Constraint::Type type, const ContactManifoldPoint &info, double lambda,
+    double friction, const DPoint3 &u);
+  void addContactConstraint(Tab<Constraint> &constraints, const ContactManifoldPoint &info, double beta, double bias);
 
-  void checkStaticCollisions(int body_no, const ContactSolver::Body &body, const TMatrix &tm, dag::Span<CollisionObject> coll_objects);
+  void checkStaticCollisions(int body_no, const ContactSolver::Body &body, const TMatrix &tm,
+    dag::ConstSpan<CollisionObject> coll_objects);
 
   void integrateVelocity(double dt);
   void integratePositions(double dt);
 
   void addContact(int index_a, int index_b, gamephys::CollisionContactData &contact);
-  void initVelocityConstraints();
-  void initPositionConstraints();
+  void initVelocityConstraints(Tab<Constraint> &constraints);
+  void initPositionConstraints(Tab<Constraint> &constraints);
 
-  void solveVelocityConstraints(double dt);
-  bool solvePositionConstraints();
+  void solveVelocityConstraints(Tab<Constraint> &constraints, double dt);
+  bool solvePositionConstraints(Tab<Constraint> &constraints);
 
 public:
   enum Flags

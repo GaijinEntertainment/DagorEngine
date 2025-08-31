@@ -1,0 +1,755 @@
+import:t="%danetlibs/renderer/templates/render_settings.template.blk"
+import:t="%danetlibs/renderer/templates/grass_render.template.blk"
+import:t="%danetlibs/render_debug/templates/debug_visualization.template.blk"
+import:t="%danetlibs/frame_graph_renderer/templates/frame_graph_nodes.template.blk"
+import:t="%danetlibs/bloom/templates/bloom.template.blk"
+import:t="%danetlibs/blurred_ui/templates/blurred_ui.template.blk"
+import:t="game_logic.blk"
+import:t="checkpoints_fx.blk"
+
+replicating{
+  replication {_tags:t="net";}
+}
+daeditor_selected {
+  "daeditor__selected:tag"{}
+}
+
+blood_puddles_creator{
+  blood_puddles__pos:p3=0, 0, 0
+  blood_puddles__dir:p3=0, 0, 0
+  blood_puddles__active:b=yes
+}
+
+msg_sink{
+  msg_sink{}
+  _use:t=replicating;
+  _singleton:b=yes
+} // TODO: rename to net_msg_sink
+
+glob_input{
+  input{_tags:t="input";}
+  "glob_input:tag"{_tags:t="input";}
+  "glob_input__inputMode:i"{_tags:t="input";}
+}
+
+observed{
+  _group{
+    _hide:b=yes
+    "watchedByPlr:eid"{}
+    "bindedCamera:eid" {_tags:t="gameClient"; _track:b=yes; value:i=0;}
+    "activeCamIdx:i" { _tags:t="gameClient"; value:i=0; }
+    "activeCamIdxBeforeEnterVehicle:i" { _tags:t="gameClient"; value:i=0; }
+  }
+}
+observed_local{_use:t="observed";}
+observed_remote{}
+
+
+free_cam_input{
+  _group{
+    "free_cam_input__move:u16"{ value:i=-1; }
+    "free_cam_input__rotate:u16"{ value:i=-1; }
+    "free_cam_input__shiftY:u16"{ value:i=-1; }
+    "free_cam_input__zoomIn:u16"{ value:i=-1; }
+    "free_cam_input__zoomOut:u16"{ value:i=-1; }
+    "free_cam_input__turbo:u16"{ value:i=-1; }
+    "free_cam_input__speedUp:u16"{ value:i=-1; }
+    "free_cam_input__speedDown:u16"{ value:i=-1; }
+    "free_cam_input__speedReset:u16"{ value:i=-1; }
+    "free_cam_input__bank:u16"{ value:i=-1; }
+  }
+
+  free_cam__move:p2=0,0
+  free_cam__rotate:p2=0,0
+  free_cam__shiftY:r=0
+  free_cam__turbo:b=no
+  free_cam__angSpdScale:p2=0.01, 0.01
+  free_cam__move_speed:r=5
+  free_cam__moveSpeedDefault:r=5
+  free_cam__bank:r=0
+
+  _tracked:t="free_cam__angSpdScale"
+  _tracked:t="free_cam__move_speed"
+}
+
+base_free_cam{
+  _use:t="free_cam_input"
+  editableObj:b=no
+  camera__active:b=no
+  camera__input_enabled:b=yes
+  fov:r=90.0
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  base_transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _tracked:t="camera__active"
+  "camera_view:tag"{}
+  input{
+    _tags:t="input"
+  }
+  _group{
+    free_cam{}
+    free_cam__mouse:p2=0, 0
+    _tags:t="gameClient"
+  }
+}
+
+free_cam{
+  _use:t="base_free_cam"
+  free_cam__angSpdScale:p2=0.001,0.001
+}
+
+
+static_cam{
+  camera__active:b=no
+  "camera_view:tag"{}
+  fov:r=90
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _use:t=replicating;
+  "net__inInitialScope:tag"{}
+}
+
+shooter_cam {
+  "camera__active:b"{ _track:b=yes; }
+  camera__fovHorPlus:b=no
+  camera__fovHybrid:b=yes
+  camera__fovSettingsPath:t="camera_fov"
+  fov:r=90
+  fovSettings:r=90
+  fovLimits:p2=50, 100
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  camera__accuratePos{ _tags:t="gameClient"; }
+  zoom:r=0
+  team:i=0
+  isHeroCockpitCam:b=yes
+  "camera__prevTarget:eid"{}
+  "camera__target:eid"{ _track:b=yes; }
+  "camera_view:tag"{}
+  shooter_cam{ _tags:t="gameClient"; }
+  shooter_camera__stabTau:r=0
+
+  camera__offset:p3=0,0,0
+  camera__pivotPos:p3=0,0,0
+  camera__velTau:r=0
+  camera__velFactor:r=0
+  camera__tau:r=0
+  camera__vertOffset:r=0
+  camera__tauPos:r=0
+  camera__tmToAnimRatio:r=0
+  camera__animTau:r=0
+  camera__totalMagnification:r=1
+
+  shooter_cam__blk:t="gamedata/cameras/shootercam.blk"
+  shooter_cam__punch_x_range:p2=-0.0625, 0.0625
+  shooter_cam__punch_y_range:p2=-0.0625, 0.0625
+  shooter_cam__punch_fadeout_tau:r=0.07
+  shooter_cam__punch_strength:r=2
+  shooter_cam__offset:p3=0,0,0
+  shooter_cam__offset_multiplier:r=1.0
+  shooter_cam__alternative_settings:b=false
+  shooter_cam__look_dir:p3=1,0,0
+  shooter_cam__rayMat:t="cameraRay"
+  shooter_cam__tau_on_change:r=0.2
+  shooter_cam__lastPos:p3=0,0,0
+  shooter_cam__lastAnimTmOffset:p3=0,0,0
+  shooter_cam__lastStabVector:p3=0,1,0
+  shooter_cam__isScopeRiLodChangeEnabled:b=false
+  shooter_cam__isScopeLodChangeEnabled:b=false
+  shooter_cam__lastDt:r=0
+  shooter_cam__lastOffsDistMult:r=1
+  shooter_cam__rayMatId:i=-1
+  shooter_cam__wasAlternative:b=false
+  shooter_cam__punchTau:r=0
+  shooter_cam__punchFadeoutTau:r=0
+  shooter_cam__punchXRange:p2=0,0
+  shooter_cam__punchYRange:p2=0,0
+  shooter_cam__punchStrength:r=0
+  shooter_cam__velMain:p3=0,0,0
+  shooter_cam__velAnim:p3=0,0,0
+  shooter_cam__isLastPosValid:b = false
+  shooter_cam__tauOnChange:r=0
+  shooter_cam__lastDir:p3=1,0,0
+  shooter_cam__tauInc:r=0.2
+}
+shooter_tps_cam {
+  _use:t="shooter_cam"
+  shooter_cam__blk:t="gamedata/cameras/shootertpscam.blk"
+  shooter_cam__moveInSpd:r=6
+  shooter_cam__moveOutSpd:r=2
+  isTpsView:b=yes
+
+  shooter_cam__additionalOffset:p3=0,0,0
+  shooter_cam__wishAdditionalOffset:p3=0,0,0
+  shooter_cam__additionalOffsetTau:r=0.2
+
+  shooter_cam__magnificationMult:r=1
+  shooter_cam__wishMagnificationMult:r=1
+  shooter_cam__magnificationTau:r=0.5
+
+  shooter_cam__tauMult:r=1
+  shooter_cam__velTauMult:r=1
+  isHeroCockpitCam:b=no
+}
+
+level {
+  level{}
+  level__blk:t=""
+  "level__loaded:b" { _track:b=yes; _hide:b=yes; }
+  level__timeRange:p2=9,9
+  level__day:i=21
+  level__month:i=6
+  level__year:i=1941
+  "level__timeVec:array"{}
+  level__timeSeed:i=-1
+  level__timeOfDay:r=9
+  level__weatherSeed:i=-1
+  level__cloudsHoleEnabled:b=yes
+  level__weather:t="gamedata/weather/weather_almost_clear.blk"
+  "level__weatherChoice:object"{
+    "gamedata/weather/weather_almost_clear.blk":r=0.5
+  }
+  level__fpsLimit:i=-1 // -1: use fpsLimit from settings, 0: unlimited, >0 limited
+  _use:t=replicating;
+  _singleton:b=yes
+  nonCreatableObj:b=yes;
+}
+
+respawnBase {
+  "active:b" { value:b=yes; _track:b=yes; }
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  team:i=0
+  "respbase:tag"{_tags:t="server";}
+}
+
+teamRespawnBase{
+  _use:t="respawnBase"
+  team:i=-1
+}
+
+player {
+  player{}
+  _group{
+    _replicate:b=yes //template?
+    _track:b=yes
+    "possessed:eid"{ }
+    "specTarget:eid"{ }
+    team:i=-1
+    name:t=""
+    disconnected:b=false
+    player__score:r=0
+    player__checkpoints:i=0
+    player__last_checkpoint_time:r=0
+  }
+  disconnectedAtTime:r=-1
+  "is_local:b"{ _track:b=yes; }
+  platformUid:t=""
+  platform:t=""
+  connid:i=-1
+  clientNetFlags:i=0
+  connectedAtTime:r=-1
+  startedAtTime:r=-1
+  canBeLocal:b=yes
+  _use:t=replicating;
+  "net__notInInitialScope:tag"{}
+  receive_logerr:b=false
+
+  "activeCamName:t"{_tags:t="gameClient"; value:t=""}
+  "activeCamEid:eid"{_tags:t="gameClient";}
+
+  appId:i=0; "userid:u64"{ value:i64=-1; } //== to avoid component is not known in template <player>
+}
+
+quit_after_load{
+  quit_after_load_time:r=10
+  quitAtTime:r=-1
+}
+
+animchar{
+  animchar{}
+  animchar_render{ _tags:t="render"; }
+  animchar_node_wtm{ _tags:t="render"; }
+  _group {
+    _tags:t="render"
+    animchar_render__root_pos {}
+    animchar_render__dist_sq:r = 201
+    animchar_render__shadow_cast_dist:r = -1
+  }
+
+  animchar_bsph{ _tags:t="render"; }
+  animchar_bbox{ _tags:t="render"; }
+  animchar_shadow_cull_bbox{ _tags:t="render"; }
+  animchar_visbits{ _tags:t="render"; }
+  "animchar__updatable:b"{ value:b=yes; _hide:b=yes; }
+  animchar__accumDt:r=0
+  "animchar__visible:b"{_tags:t="render"; value:b=yes;}
+  "animchar__invisDtThreshold:r"{_tags:t="render"; value:r=0.4;}
+  "animchar__minDtThreshold:r"{_tags:t="render"; value:r=0.0;}
+  animchar__dtThresholdDefaultValue:r=0.099999994
+  "animchar__dtThreshold:r"{ value:r=0; _hide:b=yes; }
+}
+
+unit_common_input {
+  _group{
+    _hide:b=yes
+    "spaceship_input__aAccelXZ:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aAccelRyRz:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aAccelY:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aAccelRx:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aRotateView:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aLookAround:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aChangeStabHt:u16"{ value:i=0xFFFF; }
+    "spaceship_input__aFwdMoveStab:u16"{ value:i=0xFFFF; }
+  }
+}
+
+base_hero_components {
+  _use:t="unit_common_input"
+
+  "hero:tag"{}
+
+  _group{
+    _hide:b=yes
+    "spaceship_input:tag" {}
+
+    "input__enabled:b" {_tags:t="gameClient"; value:b=yes; _track:b=yes; }
+    "cockpitEntity:tag"{}
+  }
+}
+phys_obj_hero_components_local {
+  _use:t=base_hero_components
+}
+
+phys_gravity_controller{
+  _use:t="replicating"
+  phys_props__gravity:r=9.80665
+  phys_props__initialGravity:r=9.80665
+  "sky_coord_frame__altitude_offset:r"{ value:r=0.0; _track:b=yes; }
+  _tracked:t="phys_props__gravity"
+  _replicated:t="phys_props__gravity"
+}
+
+jetflame_agile_fx_template{
+  _use:t="replicating"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  effect{ _tags:t="render"; }
+
+  _group{
+    _tags:t="render"
+
+    effect__name:t="fires_exhaust_jet_early_tiny_cmps_fx"
+    effect__velocity:p3=0.0, 0.0, 0.0
+  }
+
+  _group{
+    _track:b=true
+
+    effect__scale:r=0.0
+    effect__spawnRate:r=0.0
+  }
+
+  _tracked:t="effect__velocity"
+}
+jetflame_main_fx_template{
+  _use:t="jetflame_agile_fx_template"
+  _group{
+    _tags:t="render"
+    effect__name:t="fires_exhaust_jet_early_med_cmps_fx"
+  }
+}
+
+csu_engines_fx_and_sound{
+  _group{
+    _tags:t="sound"
+    "csu_engine_mainA_sound__event:SoundEvent"{}
+    "csu_engine_mainD_sound__event:SoundEvent"{}
+    "csu_engine_agileU_sound__event:SoundEvent"{}
+    "csu_engine_agileD_sound__event:SoundEvent"{}
+    "csu_engine_agileL_sound__event:SoundEvent"{}
+    "csu_engine_agileR_sound__event:SoundEvent"{}
+  }
+  _group{
+    //_tags:t="sound | render | server"
+    _replicate:b=yes
+    csu_engine_mainA__thrust:r=0
+    csu_engine_mainD__thrust:r=0
+    csu_engine_agileU__thrust:p3=0,0,0
+    csu_engine_agileD__thrust:p3=0,0,0
+    csu_engine_agileL__thrust:p3=0,0,0
+    csu_engine_agileR__thrust:p3=0,0,0
+    force_shield_applied:r=0
+  }
+  _group{
+    _tags:t="render"
+    "jetflame_fx_emitter__nodeId:list<i>"{}
+    "jetflame_fx_emitter__main:list<b>"{}
+    "jetflame_fx_emitter__fxEid:list<eid>"{}
+    jetflame_fx__haveActiveEmitters:b=false
+
+    jetflame_agile_fx__fx:t="jetflame_agile_fx_template"
+    jetflame_main_fx__fx:t="jetflame_main_fx_template"
+    "jetflame_fx__emitterNodes:list<t>"{
+      emitterNode:t="engine_emtr_01"
+      emitterNode:t="engine_emtr_02"
+      emitterNode:t="engine_emtr_03"
+      emitterNode:t="engine_emtr_04"
+      emitterNode:t="*engine_emtr_05" // main thrust
+      emitterNode:t="*engine_emtr_06" // main thrust
+      emitterNode:t="engine_emtr_07"
+      emitterNode:t="engine_emtr_08"
+      emitterNode:t="engine_emtr_09"
+      emitterNode:t="engine_emtr_10"
+      emitterNode:t="engine_emtr_11"
+      emitterNode:t="engine_emtr_12"
+      emitterNode:t="engine_emtr_13"
+      emitterNode:t="engine_emtr_14"
+      emitterNode:t="engine_emtr_15"
+      emitterNode:t="engine_emtr_16"
+      emitterNode:t="engine_emtr_17"
+      emitterNode:t="engine_emtr_18"
+      emitterNode:t="engine_emtr_19"
+      emitterNode:t="engine_emtr_20"
+      emitterNode:t="engine_emtr_21"
+      emitterNode:t="engine_emtr_22"
+      emitterNode:t="engine_emtr_23"
+      emitterNode:t="engine_emtr_24"
+      emitterNode:t="engine_emtr_25"
+      emitterNode:t="engine_emtr_26"
+    }
+  }
+}
+
+combat_space_unit{
+  _use:t=replicating
+  _use:t=animchar
+  _use:t=csu_engines_fx_and_sound
+
+  "possessedByPlr:eid"{ _replicate:b=yes; }
+
+  camName:t="shooter_tps_cam"
+  "camNames:array"{
+    camNames:t="shooter_tps_cam"
+    camNames:t="shooter_cam"
+  }
+  _group{
+    _tags:t="render"
+    animchar_camera_target__node_name:t="main_caliber_turret_01"
+    animchar_camera_target__nodeIndex:i=-1
+  }
+  "camera__look_at:dp3"{ _tags:t="render" }
+
+  isTpsView:b=yes
+  "activeCamIdx:i" {_tags:t="gameClient"; value:i=0;}
+  "bindedCamera:eid" {_tags:t="gameClient"; value:i=0;}
+
+  updatable:b=yes
+  killLogName:t="SpaceSuit"
+
+  pairCollisionTag:t="collidableToPhysObj"
+  "collidableToVehicle:tag"{}
+  "collidableToPhysObj:tag"{}
+  "collidableToHuman:tag"{}
+
+  animchar__res:t="combat_space_unit_ausf_a_animchar"
+  collres{}
+  collres__res:t="combat_space_unit_ausf_a_collision"
+
+  phys_vars{}
+  phys_obj_net_phys{}
+  "phys_state_syncer:ECSCustomPhysStateSyncer"{}
+
+  base_net_phys_ptr{}
+  collision_physMatId:i=-1
+  net__physId:i=-1
+  phys_obj_net_phys__blk:t="gamedata/units/combat_space_unit.blk"
+
+  spaceship_nozzle_pos__mainA:p3=-2,0.9,0
+  spaceship_nozzle_pos__mainD:p3=+2,0.9,0
+  spaceship_nozzle_pos__agileU:p3=0,+2.9,0
+  spaceship_nozzle_pos__agileD:p3=0,-1.1,0
+  spaceship_nozzle_pos__agileL:p3=0,0.9,-2
+  spaceship_nozzle_pos__agileR:p3=0,0.9,+2
+  spaceship__rotateView_rad:p2=0,0
+  spaceship__rotateView_base_quat:p4=0,0,0,1
+  spaceship__use_stabilization:b=false
+  spaceship__min_target_ht:r=10
+  spaceship__min_target_dHt:r=0
+
+  spaceship__center_of_mass__bound_rad:p4=0,0.9,0, 1.5
+  force_shield:p4=3.0, 0.0, 1.0, 1000.0 // outer rad, min force (at outer rad), field width, max force (at inner rad = outer rad - width)
+
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+humans_grid{
+  editableObj:b=no
+  _use:t="replicating"
+  _singleton:b=yes
+  grid_holder__type:t="humans"
+  grid_holder__typeHash:i=0
+  grid_holder__cellSize:i=32
+
+  grid_holder{}
+}
+
+vehicles_grid{
+  editableObj:b=no
+  _use:t="replicating"
+  _singleton:b=yes
+  grid_holder__type:t="vehicles"
+  grid_holder__typeHash:i=0
+  grid_holder__cellSize:i=32
+
+  grid_holder{}
+}
+
+depth_of_field{
+  _singleton:b=true
+  "dof:DepthOfFieldPS"{_tags:t="render"}
+  "downsampled_dof_frame_fallback:UniqueTex"{_tags:t="render"}
+  "is_dof:tag"{}
+  _group{
+    _track:b=yes
+    dof__on:b=false
+
+    dof__is_filmic:b=false
+    dof__focusDistance:r=-1
+    dof__fStop:r=1
+    dof__sensorHeight_mm:r=24
+    //-1 == derive from sensor height and camera fov
+    dof__focalLength_mm:r=-1
+
+    dof__nearDofStart:r=0.01
+    dof__nearDofEnd:r=0.35
+    dof__nearDofAmountPercent:r=0
+
+    dof__farDofStart:r=100
+    dof__farDofEnd:r=1e+06
+    dof__farDofAmountPercent:r=0
+
+    dof__bokehShape_bladesCount:r=6
+    dof__bokehShape_kernelSize:r=8
+    dof__minCheckDistance:r=0.3
+  }
+}
+
+bloom{
+  _use:t="bloom_base"
+  bloom__threshold:r=0.8
+  bloom__radius:r=2
+  bloom__upSample:r=0.65
+  _tags:t="render"
+}
+
+ri_gpu_object{
+  _use:t="replicating"
+  _group{
+    _track:b=yes
+    ri_gpu_object__name:t="ammunition_box_n"
+    ri_gpu_object__grid_tiling:i=4
+    ri_gpu_object__grid_size:i=16
+    ri_gpu_object__cell_size:r=8
+    ri_gpu_object__seed:i=0
+    ri_gpu_object__up_vector:p3=0, 1, 0
+    ri_gpu_object__scale_range:p2=1, 1
+    ri_gpu_object__biom_indexes:p4=-1, -1, -1, -1
+    ri_gpu_object__is_using_normal:b=no
+    ri_gpu_object__incline_delta:r=0
+    ri_gpu_object__rotate_range:p2=0, 0
+    ri_gpu_object__map:t=""
+    ri_gpu_object__map_size:p2=512, 512
+    ri_gpu_object__map_offset:p2=0, 0
+    ri_gpu_object__color_from:c=127, 127, 127, 127
+    ri_gpu_object__color_to:c=127, 127, 127, 127
+    ri_gpu_object__slope_factor:p2=1, 0
+    ri_gpu_object__hardness:r=1
+    ri_gpu_object__sparse_weight:r=0
+    ri_gpu_object__decal:b=no
+    ri_gpu_object__transparent:b=no
+    ri_gpu_object__distorsion:b=no
+    ri_gpu_object__place_on_water:b=no
+    ri_gpu_object__render_into_shadows:b=no
+    ri_gpu_object__coast_range:p2=-1, -1
+    ri_gpu_object__face_coast:b=no
+    "ri_gpu_object__biome_params:array"{}
+    "ri_gpu_object__multiple_objects:array"{}
+  }
+
+  "ri_preload:GpuObjectRiResourcePreload"{
+    _tags:t="render"
+  }
+}
+
+shaderVars{
+  _tracked:t="shader_vars__vars"
+  _replicated:t="shader_vars__vars"
+  _use:t="replicating"
+  _singleton:b=yes
+
+  "shader_vars__vars:object"{}
+  "shader_vars__original_vars:object"{}
+}
+
+water{
+  _singleton:b=yes
+  _use:t="replicating"
+  _group{
+    _track:b=yes
+    water__strength:r=4
+    water__wind_dir:r=40
+    water__level:r=0
+    water__fft_resolution:i=7
+    water__max_tessellation:i=4
+    water__flowmap:b=yes
+    water__has_slopes:b=no
+    water__flowmap_tex:t=""
+    water__flowmap_area:p4=-512, -512, 512, 512
+    water__wind_strength:r=0.2
+    water__flowmap_range:r=100
+    water__flowmap_fading:r=3
+    water__flowmap_prebaked_speed:r=1
+    water__flowmap_prebaked_foam_scale:r=5
+    water__flowmap_prebaked_foam_power:r=0.5
+    water__flowmap_prebaked_foamfx:r=0
+    water__flowmap_min_distance:r=0.5
+    water__flowmap_max_distance:r=1
+    water__flowmap_simulated_speed:r=1
+    water__flowmap_simulated_foam_scale:r=0.3
+    water__flowmap_foam_power:r=5
+    water__flowmap_foam_scale:r=10
+    water__flowmap_foam_threshold:r=0.5
+    water__flowmap_foam_color_0:p4=1, 1, 1, 1
+    water__flowmap_foam_color_1:p4=1, 1, 1, 1
+    water__flowmap_foam_bumpmapping_scale:r=10.0
+    water__flowmap_foam_smoothness:r=0.0
+    water__flowmap_foam_tiling:r=1
+    water__flowmap_foam_softness:r=1.0
+    water__flowmap_speed_depth_scale:r=1
+    water__flowmap_foam_speed_scale:r=0.1
+    water__flowmap_speed_depth_max:r=0.3
+    water__flowmap_foam_depth_max:r=1
+    water__flowmap_slope:r=1
+    water__flowmap_detail:b=yes
+
+    foamfx__tile_uv_scale:r=0.05
+    foamfx__distortion_scale:r=0.75
+    foamfx__normal_scale:r=0.1
+    foamfx__pattern_gamma:r=2.2
+    foamfx__mask_gamma:r=2.2
+    foamfx__gradient_gamma:r=2.2
+    foamfx__underfoam_threshold:r=0.1
+    foamfx__overfoam_threshold:r=0.25
+    foamfx__underfoam_weight:r=0.2
+    foamfx__overfoam_weight:r=1
+    foamfx__underfoam_color:p3=1, 1, 1
+    foamfx__overfoam_color:p3=1, 1, 1
+    foamfx__reflectivity:r=0.1
+    foamfx__tile_tex:t="foam_generator_1_tile_tex_n"
+    foamfx__gradient_tex:t="foam_generator_gradient_tex_n"
+
+    shore__enabled:b=yes
+    shore__texture_size:i=1024
+    shore__hmap_size:r=1024
+    shore__rivers_width:r=200
+    shore__significant_wave_threshold:r=0.62
+    shore__wave_height_to_amplitude:r=0.25
+    shore__amplitude_to_length:r=30
+    shore__parallelism_to_wind:r=0.1
+    shore__width_k:r=3
+    shore__waves_dist:p4=600, 1000, 0, 50
+    shore__wave_gspeed:r=1
+    shore__rivers_wave_multiplier:r=0.3
+  }
+  waterTrail__cascadeArea:r=128
+  waterTrail__cascadeAreaMul:r=2.5
+  waterTrail__quadHeight:r=20
+  waterTrail__fadeInTime:r=0.1
+  waterTrail__fadeOutTime:r=60
+  waterTrail__widthThreshold:r=2
+  waterTrail__forwardExpand:r=20
+  waterTrail__activeVertexCount:i=16384
+  waterTrail__finalizedVertexCount:i=32768
+  waterTrail__maxPointsPerSegment:i=100
+  waterTrail__useObstacle:b=no
+  waterTrail__texName:t="water_foam_trail_mask"
+
+  water{}
+  is_underwater:b=false
+  water_level:r=0
+  "needsWaterDroplets:tag"{_tags:t="render"}
+}
+
+wind{
+  "ambient_wind:AmbientWind"{
+    _tags:t="render"
+  }
+
+  _group{
+    _track:b=yes
+    wind__flowMap:t=""
+    wind__left_top_right_bottom:p4=-2048, -2048, 2048, 2048
+    wind__dir:r=40 // degrees
+    wind__strength:r=2 // beaufort
+    wind__noiseStrength:r=2 // multiplier of wind.strength
+    wind__noiseSpeed:r=1 // beaufort
+    wind__noiseScale:r=70 // meters
+    wind__noisePerpendicular:r=0.5 // multiplier of wind.noiseStrength
+  }
+  dyn_wind__cumulus_alt_multiplier:r=2 // artificial altitude cloud speed multiplier
+  dyn_wind__strata_alt_multiplier:r=2 // artificial altitude cloud speed multiplier
+  _use:t="replicating"
+  _singleton:b=yes
+}
+
+menu{
+ in_menu:b=yes
+}
+
+
+base_music{
+  _tracked:t="cur_music"
+  _singleton:b=yes
+
+  _group{
+    _tags:t="sound"
+    cur_music:t=""
+    "music__event:SoundEvent"{}
+  }
+}
+
+menu_music {
+  _use:t="sound_banks_state"
+  _tracked:t="music"
+  _singleton:b=yes
+  music:t="music/menu"
+}
+
+race_music {
+  _use:t="sound_banks_state"
+  _tracked:t="music"
+  _singleton:b=yes
+  music:t="music/race"
+}
+
+sound_banks_state{
+  _use:t=replicating;
+  _group{
+    _tags:t="sound"
+    sound_banks_state__presetName:t="master"
+    sound_banks_state__isPresetLoaded:b=no
+  }
+  _tracked:t="sound_banks_state__isPresetLoaded"
+}
+
+capsules_ao{
+  capsules_ao__max_units_per_cell:i=4
+  _singleton:b=yes
+
+  capsules_ao{
+    _tags:t="render"
+  }
+}

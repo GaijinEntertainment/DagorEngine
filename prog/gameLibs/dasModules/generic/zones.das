@@ -1,5 +1,6 @@
 require ecs
 require zones
+options indenting = 2
 
 [generic]
 def is_inside_truncated_sphere_zone(pos : float3; zone_tm : float3x4; zone_radius : float; zone_truncate_below : float const?; scale : float = 1.0)

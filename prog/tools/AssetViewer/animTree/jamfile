@@ -15,14 +15,17 @@ Sources =
   animTree.cpp
   animTreeUtils.cpp
   animTreeAnimationPlayer.cpp
+  childsDialog.cpp
   animStates/animStatesTreeEventHandler.cpp
+  animStates/stateListSettingsEventHandler.cpp
   animStates/stateDesc.cpp
   animStates/chan.cpp
   animStates/stateAlias.cpp
   animStates/animStatesType.cpp
   animStates/state.cpp
+  animStates/rootProps.cpp
   controllers/ctrlTreeEventHandler.cpp
-  controllers/ctrlChildsDialog.cpp
+  controllers/ctrlListSettingsEventHandler.cpp
   controllers/ctrlType.cpp
   controllers/moveNode.cpp
   controllers/rotateNode.cpp
@@ -31,6 +34,8 @@ Sources =
   controllers/hub.cpp
   controllers/linearPoly.cpp
   controllers/rotateAroundNode.cpp
+  controllers/eyeCtrl.cpp
+  controllers/fifo3.cpp
   blendNodes/blendNodeType.cpp
   blendNodes/single.cpp
   blendNodes/continuous.cpp

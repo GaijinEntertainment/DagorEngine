@@ -9,6 +9,7 @@ Target      = engine/daProfiler.lib ;
 
 AddIncludes =
   $(Root)/prog/engine/perfMon/daProfiler
+  $(Root)/prog/engine/sharedInclude
 ;
 
 UseProgLibs = ;
@@ -37,6 +38,7 @@ Sources =
   daProfilerPlatform.cpp
   daProfilerPlatformGPU.cpp
   daProfilerFileDump.cpp
+  daProfilerLogDump.cpp
   daProfilerNetServer.cpp
   daProfilerUserSettings.cpp
   daProfilerUserSettingsDump.cpp

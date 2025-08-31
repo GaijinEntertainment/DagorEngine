@@ -11,6 +11,4 @@ Sources =
 
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
 
-CPPopt = -D__B_KERNEL_LIB ;
-
 include $(Root)/prog/_jBuild/build.jam ;

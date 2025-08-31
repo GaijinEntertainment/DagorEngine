@@ -154,6 +154,7 @@ Intervals
 
 - interval
 - assume
+- assume_if_not_assumed
 - optional
 
 --------

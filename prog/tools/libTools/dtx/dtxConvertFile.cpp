@@ -2,6 +2,7 @@
 
 #include <libTools/dtx/dtx.h>
 #include <libTools/util/de_TextureName.h>
+#include <cstdio>
 #include <nvtt/nvtt.h>
 #include <nvimage/image.h>
 #include <nvimage/directDrawSurface.h>
@@ -19,14 +20,14 @@
 
 struct ErrorHandler : public nvtt::ErrorHandler
 {
-  virtual void error(nvtt::Error e) { logerr("nvtt: '%s'", nvtt::errorString(e)); }
+  void error(nvtt::Error e) override { logerr("nvtt: '%s'", nvtt::errorString(e)); }
 };
 struct OutputHandler : public nvtt::OutputHandler
 {
   MemorySaveCB *cwr;
 
-  virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) {}
-  virtual bool writeData(const void *data, int size)
+  void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {}
+  bool writeData(const void *data, int size) override
   {
     cwr->write(data, size);
     return true;

@@ -60,6 +60,10 @@ void CombinedNodesProcessing::calcCombinedNode(const SelectedNodesSettings &sett
         }
       }
       break;
+
+    // to prevent the unhandled switch case error
+    case ExportCollisionNodeType::UNKNOWN_TYPE:
+    case ExportCollisionNodeType::NODE_TYPES_COUNT: break;
   }
 }
 

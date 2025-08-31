@@ -70,6 +70,7 @@ extern volatile int drv_res_updates_flush_count;
 extern FastStrMapT<int, -1> managed_tex_map_by_name; // helper container for fast resolve by name
 extern Tab<const char *> managed_tex_map_by_idx;     // helper container for fast resolve by index
 extern bool enable_cur_ql_mismatch_assert;
+extern int always_release_threshold_tex_size_kb;
 
 extern bool (*should_release_tex)(BaseTexture *b);
 extern void (*stop_bkg_tex_loading)(int sleep_quant); //< =NULL by default
@@ -89,15 +90,15 @@ extern int mem_quota_reserve_kb;
 extern int sys_mem_usage_thres_mb, sys_mem_add_free_mb;
 extern int dyn_qlev_decrease;
 
-inline unsigned get_tex_type(const ddsx::Header &h)
+inline D3DResourceType get_tex_type(const ddsx::Header &h)
 {
   if (h.flags & h.FLG_CUBTEX)
-    return RES3D_CUBETEX;
+    return D3DResourceType::CUBETEX;
   else if (h.flags & h.FLG_VOLTEX)
-    return RES3D_VOLTEX;
+    return D3DResourceType::VOLTEX;
   else if (h.flags & h.FLG_ARRTEX)
-    return RES3D_ARRTEX;
-  return RES3D_TEX;
+    return D3DResourceType::ARRTEX;
+  return D3DResourceType::TEX;
 }
 } // namespace tql
 
@@ -218,7 +219,9 @@ public:
     texDesc[idx].init();
     interlocked_release_store(texImportance[idx], 0);
     texSamplers[idx] = d3d::INVALID_SAMPLER_HANDLE;
+    texSamplerInfo[idx] = d3d::SamplerInfo{};
     interlocked_release_store(refCount[idx], 0);
+    interlocked_release_store(texStreamingGeneration[idx], 0);
   }
   // cleanup unregistered entry
   static void clearReleasedRec(int idx)
@@ -239,6 +242,8 @@ public:
     texDesc[idx].term();
     interlocked_release_store(texImportance[idx], 0);
     texSamplers[idx] = d3d::INVALID_SAMPLER_HANDLE;
+    texSamplerInfo[idx] = d3d::SamplerInfo{};
+    interlocked_release_store(texStreamingGeneration[idx], 0);
   }
 
   // entries count gettors
@@ -303,10 +308,12 @@ public:
   }
   static BaseTexture *baseTexture(int idx)
   {
-    D3dResource *r = getD3dRes(idx);
-    int t = r ? r->restype() : 0;
-    if (t == RES3D_TEX || t == RES3D_CUBETEX || t == RES3D_VOLTEX || t == RES3D_ARRTEX || t == RES3D_CUBEARRTEX)
-      return static_cast<BaseTexture *>(r);
+    if (auto *r = getD3dRes(idx))
+    {
+      using enum D3DResourceType;
+      if (auto t = r->getType(); t == TEX || t == CUBETEX || t == VOLTEX || t == ARRTEX || t == CUBEARRTEX)
+        return static_cast<BaseTexture *>(r);
+    }
     return nullptr;
   }
 
@@ -475,22 +482,15 @@ public:
 
   void completeTextureUpdate(BaseTexture *target, BaseTexture *replacement, int minlevel, int maxlevel)
   {
+    replacement->texmiplevel(minlevel, maxlevel);
     if (target != replacement)
       target->replaceTexResObject(replacement);
-    target->texmiplevel(minlevel, maxlevel);
   }
 
   // NOTE: replacement CAN be equal to target, which means "simply update min/max mip levels"
   void completeTextureUpdateAsync(unsigned target_idx, BaseTexture *target, BaseTexture *replacement, int minlevel, int maxlevel,
     dag::FixedMoveOnlyFunction<sizeof(void *), void(int) const> completion_cb)
   {
-    if (is_main_thread())
-    {
-      completeTextureUpdate(target, replacement, minlevel, maxlevel);
-      completion_cb(target_idx);
-      return;
-    }
-
     // replaceTexResObject & texmiplevel cannot safely be done concurrently with main thread
     // reading texture contents while rendering, so deferring to main thread is required.
     // Also forcibly keep texture alive while it is referenced by the callback, just in case.
@@ -518,37 +518,41 @@ public:
       cb(targetIdx);
       if (decRefCount(targetIdx) == 0)
         incReadyForDiscardTex(targetIdx);
+      incTexStreamingGeneration(targetIdx);
     }
   }
+
+  static uint16_t getTexStreamingGeneration(int idx) { return interlocked_relaxed_load(texStreamingGeneration[idx]); }
+  static void incTexStreamingGeneration(int idx) { interlocked_increment(texStreamingGeneration[idx]); }
 
   // current GPU mem usage counters management
   void incReadyForDiscardTex(int idx)
   {
-    int tex_sz_kb = getTexMemSize4K(idx) * 4;
-    if (!tex_sz_kb)
+    const int texSzKb = getTexMemSize4K(idx) * 4;
+    if (!texSzKb)
       return;
-    interlocked_add(readyForDiscardTexSzKB, tex_sz_kb);
-    interlocked_increment(readyForDiscardTexCount);
-    interlocked_add(totalAddMemNeededSzKB, -int(getTexAddMemSizeNeeded4K(idx)) * 4);
-    G_ASSERTF(interlocked_relaxed_load(readyForDiscardTexSzKB) >= 0 && interlocked_relaxed_load(readyForDiscardTexCount) >= 0 &&
-                interlocked_relaxed_load(totalAddMemNeededSzKB) >= 0,
+    [[maybe_unused]] const int fetchedReadyForDiscardTexSzKB = interlocked_add(readyForDiscardTexSzKB, texSzKb);
+    [[maybe_unused]] const int fetchedReadyForDiscardTexCount = interlocked_increment(readyForDiscardTexCount);
+    const int fetchedTexAddMemSizeNeeded4K = int(getTexAddMemSizeNeeded4K(idx)) * 4;
+    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, -fetchedTexAddMemSizeNeeded4K);
+    G_ASSERTF(fetchedReadyForDiscardTexSzKB >= 0 && fetchedReadyForDiscardTexCount >= 0 && fetchedTotalAddMemNeededSzKB >= 0,
       "readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d tex_sz_kb=%d add_sz_kb=%d %s",
-      readyForDiscardTexSzKB, readyForDiscardTexCount, totalAddMemNeededSzKB, tex_sz_kb, getTexAddMemSizeNeeded4K(idx) * 4,
-      getName(idx));
+      fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, texSzKb,
+      fetchedTexAddMemSizeNeeded4K, getName(idx));
   }
   void decReadyForDiscardTex(int idx)
   {
-    int tex_sz_kb = getTexMemSize4K(idx) * 4;
-    if (!tex_sz_kb)
+    const int texSzKb = getTexMemSize4K(idx) * 4;
+    if (!texSzKb)
       return;
-    interlocked_add(readyForDiscardTexSzKB, -tex_sz_kb);
-    interlocked_decrement(readyForDiscardTexCount);
-    interlocked_add(totalAddMemNeededSzKB, getTexAddMemSizeNeeded4K(idx) * 4);
-    G_ASSERTF(interlocked_relaxed_load(readyForDiscardTexSzKB) >= 0 && interlocked_relaxed_load(readyForDiscardTexCount) >= 0 &&
-                interlocked_relaxed_load(totalAddMemNeededSzKB) >= 0,
+    [[maybe_unused]] const int fetchedReadyForDiscardTexSzKB = interlocked_add(readyForDiscardTexSzKB, -texSzKb);
+    [[maybe_unused]] const int fetchedReadyForDiscardTexCount = interlocked_decrement(readyForDiscardTexCount);
+    const int fetchedTexAddMemSizeNeeded4K = int(getTexAddMemSizeNeeded4K(idx)) * 4;
+    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, fetchedTexAddMemSizeNeeded4K);
+    G_ASSERTF(fetchedReadyForDiscardTexSzKB >= 0 && fetchedReadyForDiscardTexCount >= 0 && fetchedTotalAddMemNeededSzKB >= 0,
       "readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d tex_sz_kb=%d add_sz_kb=%d %s",
-      readyForDiscardTexSzKB, readyForDiscardTexCount, totalAddMemNeededSzKB, tex_sz_kb, getTexAddMemSizeNeeded4K(idx) * 4,
-      getName(idx));
+      fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, texSzKb,
+      fetchedTexAddMemSizeNeeded4K, getName(idx));
   }
 
   int getTotalUsedTexCount() const { return interlocked_acquire_load(totalUsedTexCount); }
@@ -608,13 +612,18 @@ public:
         interlocked_increment(totalUsedTexCount);
       interlocked_add(totalUsedTexSzKB, new_sz_kb);
     }
-    interlocked_add(totalAddMemNeededSzKB, (full_needed_sz_kb - new_sz_kb) - int(getTexAddMemSizeNeeded4K(idx)) * 4);
+    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB =
+      interlocked_add(totalAddMemNeededSzKB, (full_needed_sz_kb - new_sz_kb) - int(getTexAddMemSizeNeeded4K(idx)) * 4);
     interlocked_release_store(texUsedSz[idx].memSize4K, new_sz_kb / 4);
     interlocked_release_store(texUsedSz[idx].addMemSizeNeeded4K, (full_needed_sz_kb - new_sz_kb) / 4);
-    G_ASSERTF(interlocked_relaxed_load(readyForDiscardTexSzKB) >= 0 && interlocked_relaxed_load(readyForDiscardTexCount) >= 0 &&
-                interlocked_relaxed_load(totalAddMemNeededSzKB) >= 0,
+
+#if DAGOR_DBGLEVEL > 0
+    const int fetchedReadyForDiscardTexSzKB = interlocked_relaxed_load(readyForDiscardTexSzKB);
+    const int fetchedReadyForDiscardTexCount = interlocked_relaxed_load(readyForDiscardTexCount);
+    G_ASSERTF(fetchedReadyForDiscardTexSzKB >= 0 && fetchedReadyForDiscardTexCount >= 0 && fetchedTotalAddMemNeededSzKB >= 0,
       "idx=%d readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d new_sz_kb=%d full_needed_sz_kb=%d", idx,
-      readyForDiscardTexSzKB, readyForDiscardTexCount, totalAddMemNeededSzKB, new_sz_kb, full_needed_sz_kb);
+      fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, new_sz_kb, full_needed_sz_kb);
+#endif
   }
 
   //! setup qLev for texture based on current global quality settings
@@ -711,6 +720,8 @@ public:
   static uint8_t *__restrict maxReqLevelPrev;
   static uint16_t *__restrict texImportance;
   static d3d::SamplerHandle *__restrict texSamplers;
+  static d3d::SamplerInfo *__restrict texSamplerInfo;
+  static uint16_t *__restrict texStreamingGeneration;
 
   friend void ::enable_res_mgr_mt(bool enable, int max_tex_entry_count);
 };
@@ -740,6 +751,8 @@ int get_pending_tex_prio(int prio);
 bool should_start_load_prio(int prio);
 bool is_gpu_mem_enough_to_load_hq_tex();
 bool is_sys_mem_enough_to_load_basedata();
+
+void do_per_frame_updates_while_waiting_on_main_thread();
 
 struct TRAL
 {

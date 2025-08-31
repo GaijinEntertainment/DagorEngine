@@ -17,8 +17,9 @@ PipelineBarrier::BarrierCache barrierCache;
 
 void ExecutionContext::syncConstDepthReadWithInternalStore()
 {
-  PipelineBarrier barrier(barrierCache, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-  barrier.addMemory({VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT});
+  PipelineBarrier barrier(barrierCache);
+  barrier.addMemory({VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT},
+    {VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT});
   barrier.addDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
   barrier.submit();
 }
@@ -32,7 +33,7 @@ void ExecutionContext::ensureStateForColorAttachments(VkRect2D area)
       continue;
     const RenderPassClass::FramebufferDescription::AttachmentInfo &colorAtt =
       getFramebufferState().frameBufferInfo.colorAttachments[i];
-    G_ASSERTF(colorAtt.img, "vulkan: no color attachment specified for render pass class with used attachment %u", i);
+    D3D_CONTRACT_ASSERTF(colorAtt.img, "vulkan: no color attachment specified for render pass class with used attachment %u", i);
     verifyResident(colorAtt.img);
     colorAtt.img->checkDead();
 
@@ -72,11 +73,11 @@ void ExecutionContext::ensureStateForDepthAttachment(VkRect2D area)
   if (fbs.renderPassClass.hasDepth())
   {
     RenderPassClass::FramebufferDescription::AttachmentInfo &dsai = fbs.frameBufferInfo.depthStencilAttachment;
-    G_ASSERTF(dsai.img, "vulkan: no depth attachment specified for render pass class with enabled depth");
+    D3D_CONTRACT_ASSERTF(dsai.img, "vulkan: no depth attachment specified for render pass class with enabled depth");
     verifyResident(dsai.img);
     dsai.img->checkDead();
 
-    G_ASSERTF(fbs.renderPassClass.depthSamples == dsai.img->getSampleCount(),
+    D3D_CONTRACT_ASSERTF(fbs.renderPassClass.depthSamples == dsai.img->getSampleCount(),
       "Renderpass attachments sample count doesn't match target image sample count  (%d vs %d)!", fbs.renderPassClass.depthSamples,
       dsai.img->getSampleCount());
 
@@ -105,8 +106,8 @@ void ExecutionContext::ensureStateForDepthAttachment(VkRect2D area)
 void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFramebufferHandle fb_handle, VkRect2D area)
 {
   // input verify
-  G_ASSERT(area.offset.x >= 0);
-  G_ASSERT(area.offset.y >= 0);
+  D3D_CONTRACT_ASSERT(area.offset.x >= 0);
+  D3D_CONTRACT_ASSERT(area.offset.y >= 0);
 
   // shortcuts
   FramebufferState &fbs = getFramebufferState();
@@ -161,8 +162,9 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
     chain_structs(rpbi, rpabi);
   }
 #endif
-  Backend::gpuJob.get().execTracker.addMarker(&passIdent, sizeof(RenderPassClass::Identifier));
-  rpbi.renderPass = pass_class->getPass(vkDev, fbs.clearMode);
+  uint64_t passIdentHash = passIdent.getHash();
+  Backend::gpuJob.get().execTracker.addMarker(&passIdentHash, sizeof(passIdentHash));
+  rpbi.renderPass = pass_class->getPass(fbs.clearMode);
   rpbi.framebuffer = fb_handle;
   rpbi.renderArea = area;
   rpbi.clearValueCount = clearValues.size();
@@ -201,7 +203,7 @@ void ExecutionContext::endPass(const char *why)
     finishReorderAndPerformSync();
   }
   else
-    G_ASSERTF(false, "vulkan: pass end without active pass");
+    D3D_CONTRACT_ASSERTF(false, "vulkan: pass end without active pass");
 
   Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
   Backend::State::exec.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(VulkanFramebufferHandle());
@@ -215,12 +217,12 @@ void ExecutionContext::nextNativeSubpass()
 #if DAGOR_DBGLEVEL > 0
   InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
-  G_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
+  D3D_CONTRACT_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
     "vulkan: trying to advance native rp subpass while no native RP is active, caller\n%s", getCurrentCmdCaller());
 #endif
 
   RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
-  G_ASSERTF(rpRes, "vulkan: native rp missing when trying to advance subpass, caller\n%s", getCurrentCmdCaller());
+  D3D_CONTRACT_ASSERTF(rpRes, "vulkan: native rp missing when trying to advance subpass, caller\n%s", getCurrentCmdCaller());
 
   // NOTE: it is really important to do the sync before advancing the
   // subpass (or ending the render pass), as sync operations
@@ -239,12 +241,12 @@ void ExecutionContext::beginNativePass()
 #if DAGOR_DBGLEVEL > 0
   InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
-  G_ASSERTF(inPassState == InPassStateFieldType::NONE, "vulkan: trying to begin native rp while no native RP is active, caller\n%s",
-    getCurrentCmdCaller());
+  D3D_CONTRACT_ASSERTF(inPassState == InPassStateFieldType::NONE,
+    "vulkan: trying to begin native rp while no native RP is active, caller\n%s", getCurrentCmdCaller());
 #endif
 
   RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
-  G_ASSERTF(rpRes, "vulkan: native rp missing when trying to start one, caller\n%s", getCurrentCmdCaller());
+  D3D_CONTRACT_ASSERTF(rpRes, "vulkan: native rp missing when trying to start one, caller\n%s", getCurrentCmdCaller());
 
   rpRes->beginPass(*this);
 
@@ -256,7 +258,7 @@ void ExecutionContext::endNativePass()
 #if DAGOR_DBGLEVEL > 0
   InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
-  G_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
+  D3D_CONTRACT_ASSERTF(inPassState == InPassStateFieldType::NATIVE_PASS,
     "vulkan: trying to end native rp while no native RP is active, caller\n%s", getCurrentCmdCaller());
 #endif
 

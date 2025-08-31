@@ -49,10 +49,13 @@ public:
     if ((ref_scr_wdt > base_scr_wdt || ref_scr_hgt > base_scr_hgt) && window_mode && !dgs_execute_quiet)
     {
       if (allowResolutionOverlarge == -1)
+      {
+        ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
         allowResolutionOverlarge = os_message_box(get_localized_text("video/resolution_overlarge"),
                                      get_localized_text("video/resolution_overlarge_hdr"), GUI_MB_YES_NO) == GUI_MB_BUTTON_1
                                      ? 0
                                      : 1;
+      }
     }
     else
       allowResolutionOverlarge = -1;

@@ -1,0 +1,24 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/lastInputMonitor ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/lastInputMonitor.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+UseProgLibs =
+  gameLibs/quirrel/sqEventBus
+  1stPartyLibs/jsoncpp
+;
+
+Sources =
+  lastInputMonitor.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

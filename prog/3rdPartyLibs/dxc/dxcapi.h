@@ -36,7 +36,7 @@
 #define __EMULATE_UUID 1
 #endif
 #include <dlfcn.h>
-#include "dxc/Support/WinAdapter.h"
+#include "dxc/WinAdapter.h"
 #endif
 
 struct IMalloc;

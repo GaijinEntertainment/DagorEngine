@@ -504,6 +504,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
 #endif /* FT_DEBUG_LEVEL_TRACE */
 
+  // Gaijin logerr because Android has longjmp issues
+  void (*freetype_logerr)(const char *) = 0;
 
   /*************************************************************************/
   /*                                                                       */
@@ -530,7 +532,11 @@ typedef ptrdiff_t  FT_PtrDist;
     }
 
     if ( ras.num_cells >= ras.max_cells )
+    {
+      if (freetype_logerr)
+        freetype_logerr("max_cells overflow");
       ft_longjmp( ras.jump_buffer, 1 );
+    }
 
     /* insert new cell */
     cell        = ras.cells + ras.num_cells++;

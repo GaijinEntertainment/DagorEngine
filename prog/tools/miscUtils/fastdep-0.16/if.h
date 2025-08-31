@@ -26,9 +26,9 @@ public:
   public:
     IfDef(const std::string &aName);
     IfDef(const IfDef &anOther);
-    virtual ~IfDef();
-    virtual Control *copy() const;
-    virtual bool isTrue(CompileState *aState) const;
+    ~IfDef() override;
+    Control *copy() const override;
+    bool isTrue(CompileState *aState) const override;
 
   private:
     std::string Macro;
@@ -39,9 +39,9 @@ public:
   public:
     IfNDef(const std::string &aName);
     IfNDef(const IfNDef &anOther);
-    virtual ~IfNDef();
-    virtual Control *copy() const;
-    virtual bool isTrue(CompileState *aState) const;
+    ~IfNDef() override;
+    Control *copy() const override;
+    bool isTrue(CompileState *aState) const override;
 
   private:
     std::string Macro;
@@ -53,8 +53,8 @@ public:
     IfTest(const std::string &anControl);
     IfTest(const IfTest &anOther);
 
-    virtual Control *copy() const;
-    virtual bool isTrue(CompileState *aState) const;
+    Control *copy() const override;
+    bool isTrue(CompileState *aState) const override;
 
   private:
     std::string theExpression;
@@ -63,12 +63,12 @@ public:
 public:
   If(FileStructure *aStructure);
   If(const If &anOther);
-  virtual ~If();
+  ~If() override;
 
   If &operator=(const If &anOther);
 
-  virtual Element *copy() const;
-  virtual void getDependencies(CompileState *aState);
+  Element *copy() const override;
+  void getDependencies(CompileState *aState) override;
 
   Sequence *addIf(Control *anExpr);
   Sequence *addElse();

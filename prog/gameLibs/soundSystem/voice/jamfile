@@ -12,17 +12,29 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/codecs/speexdsp-1.2.0/include
+  $(Root)/prog/3rdPartyLibs/codecs/rnnoise/include
   $(FmodIncPath)
 ;
 
 Sources =
+  jitterCompensation.cpp
   voiceCommunicator.cpp
+  voiceFeedback.cpp
+  voiceRecorder.cpp
+  voiceSourceControl.cpp
 ;
 
 UseProgLibs =
   gameLibs/soundSystem
+  gameLibs/timeSource
   3rdPartyLibs/codecs/speexdsp-1.2.0
 ;
+
+if $(Platform) in macOS linux windows scarlett ps5 {
+  CPPopt += -DUSE_RNNOISE_DENOISER=1 ;
+  UseProgLibs += 3rdPartyLibs/codecs/rnnoise ;
+}
+
 if $(FmodStudio) != src {
   Target = $(Target:S=-$(FmodStudio).lib) ;
   AddLibs += $(FmodStaticLibs) ;

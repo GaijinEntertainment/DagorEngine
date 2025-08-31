@@ -16,7 +16,7 @@
 #include "internal/banks.h"
 #include "internal/visualLabels.h"
 #include "internal/debug.h"
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 static WinCritSec g_labels_cs;
 #define SNDSYS_LABELS_BLOCK WinAutoLock labelsLock(g_labels_cs);
@@ -48,7 +48,7 @@ static eastl::vector<VisualLabelType> visual_label_types;
 static eastl::vector<VisualLabelDesc> visual_label_descs;
 
 // should call query_visual_labels() time to time to enable desc gathering
-static std::atomic_bool visual_labels_enabled(false);
+static dag::AtomicInteger<bool> visual_labels_enabled(false);
 static const float disable_visual_labels_query_interval = 5.f;
 static float visual_labels_timer = 0.f;
 
@@ -69,7 +69,7 @@ int get_visual_label_idx(const char *name)
 
 void append_visual_label(const FMOD::Studio::EventDescription &event_description, const EventAttributes &attributes)
 {
-  if (!visual_labels_enabled)
+  if (!visual_labels_enabled.load())
     return;
   const int idx = attributes.getVisualLabelIdx();
   if (idx >= 0)
@@ -83,14 +83,14 @@ void append_visual_label(const FMOD::Studio::EventDescription &event_description
 
 void update_visual_labels(float dt)
 {
-  if (visual_labels_enabled)
+  if (visual_labels_enabled.load())
   {
     SNDSYS_LABELS_BLOCK;
     visual_labels_timer -= dt;
     if (visual_labels_timer < 0.f)
     {
       visual_labels_timer = 0.f;
-      visual_labels_enabled = false;
+      visual_labels_enabled.store(false);
       invalidate_visual_labels();
     }
   }
@@ -105,7 +105,7 @@ void invalidate_visual_labels()
 VisualLabels query_visual_labels()
 {
   SNDSYS_LABELS_BLOCK;
-  visual_labels_enabled = true;
+  visual_labels_enabled.store(true);
   visual_labels_timer = disable_visual_labels_query_interval;
 
   VisualLabels labels;
@@ -118,7 +118,7 @@ VisualLabels query_visual_labels()
     if (it.desc->isValid())
     {
       int numInstances = 0;
-      const FMOD_RESULT res = it.desc->getInstanceList(instances.begin(), instances.count, &numInstances);
+      const FMOD_RESULT res = it.desc->getInstanceList(instances.begin(), instances.size(), &numInstances);
       SOUND_VERIFY(res);
       if (FMOD_OK == res && numInstances > 0)
       {

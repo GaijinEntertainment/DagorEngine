@@ -7,21 +7,21 @@
 
 #include "shsyn.h"
 #include "cppStcodeAssembly.h"
+#include "stcodeBytecode.h"
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_tab.h>
 #include <math/dag_color.h>
 #include <shaders/shExprTypes.h>
 #include <util/dag_globDef.h>
 
-class LocalVarTable;
+class LocalVar;
+class Parser;
 
 namespace ShaderParser
 {
 //************************************************************************
 //* forwards
 //************************************************************************
-class AssembleShaderEvalCB;
-
 typedef Tab<int> CodeTable;
 
 /*********************************
@@ -43,8 +43,8 @@ public:
   virtual shexpr::ValueType getValueType() const = 0;
 
   // assembly this expression
-  virtual bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) = 0;
+  virtual void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const;
+  virtual void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const;
 
   // check convertion
   virtual bool canConvert(shexpr::ValueType vt) const;
@@ -64,13 +64,13 @@ public:
   virtual bool isDynamic() const = 0;
 
   // evaluate this expression as real
-  virtual bool evaluate(real &out_value) = 0;
+  virtual bool evaluate(real &out_value, Parser &parser) = 0;
 
   // evaluate this expression as color4
-  virtual bool evaluate(Color4 &out_value) = 0;
+  virtual bool evaluate(Color4 &out_value, Parser &parser) = 0;
 
   // evaluate all avalible branches; return false if error occuried
-  virtual bool collapseNumbers() = 0;
+  virtual bool collapseNumbers(Parser &parser) = 0;
 
   // return terminal symbol, if present
   Symbol *getParserSymbol() const { return parserSym; }
@@ -83,7 +83,7 @@ public:
   virtual Symbol *hasDynamicAndMaterialTermsAt() const { return nullptr; }
 
   // add register
-  Register addReg(AssembleShaderEvalCB &owner);
+  Register allocateRegForResult(StcodeVMRegisterAllocator &reg_allocator) const;
 
   //************************************************************************
   //* helper functions
@@ -94,8 +94,10 @@ public:
   static const char *__getName(shexpr::ColorChannel cc);
 
   // assembly numeric constant
-  static void assemblyConstant(CodeTable &code, real v, int dest_reg, bool is_integer, StcodeExpression *cpp_expr = nullptr);
-  static void assemblyConstant(CodeTable &code, const Color4 &v, int dest_reg, StcodeExpression *cpp_expr = nullptr);
+  static void assembleBytecodeForConstant(CodeTable &code, real v, int dest_reg, bool is_integer);
+  static void assembleBytecodeForConstant(CodeTable &code, const Color4 &v, int dest_reg);
+  static void assembleCppForConstant(StcodeExpression &cpp_expr, real v, bool is_integer);
+  static void assembleCppForConstant(StcodeExpression &cpp_expr, const Color4 &v);
 
   // dump to debug
   void dump(int level = 0) const;
@@ -108,7 +110,7 @@ private:
   Expression *parent;
   shexpr::UnaryOperator unaryOp;
   Symbol *parserSym; // for errors
-};                   // class Expression
+}; // class Expression
 //
 
 /*********************************
@@ -123,6 +125,8 @@ public:
   ComplexExpression(Symbol *parser_sym, shexpr::ValueType vt, int channel = -1);
   ~ComplexExpression() override;
 
+  ComplexExpression(ComplexExpression &&other) = default;
+
   // return expression type
   inline shexpr::Type getType() const override { return shexpr::E_COMPLEX; }
 
@@ -136,11 +140,11 @@ public:
   void addOperand(Expression *child, shexpr::BinaryOperator t);
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // check convertion
-  virtual bool canConvert(shexpr::ValueType vt) const override;
+  bool canConvert(shexpr::ValueType vt) const override;
 
   // get/set operator
   void setBinOperator(shexpr::OperandType op, shexpr::BinaryOperator t);
@@ -150,12 +154,8 @@ public:
   shexpr::BinaryOperator getBinOperator(const Expression *e) const;
 
   // return operand
-  inline Expression *getOperand(shexpr::OperandType t)
-  {
-    if (t < 0)
-      return NULL;
-    return operands[t];
-  }
+  inline Expression *getOperand(shexpr::OperandType t) { return t < 0 ? nullptr : operands[t]; }
+  inline const Expression *getOperand(shexpr::OperandType t) const { return t < 0 ? nullptr : operands[t]; }
 
   // return true, if expression has only numeric constants and local variables
   bool isConst() const override;
@@ -164,10 +164,10 @@ public:
   bool isDynamic() const override;
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // set last binary operator (used in setOperand, if operand_type is USER)
   void setLastBinOp(shexpr::BinaryOperator bop) { lastBinOp = bop; }
@@ -178,13 +178,13 @@ public:
   Symbol *hasDynamicAndMaterialTermsAt() const override;
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override;
+  bool collapseNumbers(Parser &parser) override;
 
   int getCurrentChannel() const { return currentChannel; }
   void setChannels(int count) { channels = eastl::max(channels, count); }
   int getChannels() const override;
 
-  virtual bool validate() const;
+  virtual bool validate(Parser &parser) const;
 
 protected:
   // resize operands
@@ -232,7 +232,7 @@ public:
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override { return child->collapseNumbers(); }
+  bool collapseNumbers(Parser &parser) override { return child->collapseNumbers(parser); }
 
 protected:
   eastl::unique_ptr<Expression> child;
@@ -255,14 +255,14 @@ public:
   shexpr::ValueType getValueType() const override { return shexpr::VT_REAL; }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
@@ -302,14 +302,14 @@ public:
   shexpr::ValueType getValueType() const override { return shexpr::VT_COLOR4; }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override { return false; }
+  bool evaluate(real &out_value, Parser &parser) override { return false; }
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
@@ -336,7 +336,6 @@ class ConstRealValue : public Expression
 public:
   // ctor/dtor
   ConstRealValue(Terminal *s, real v = 0);
-  ~ConstRealValue() override;
 
   // return expression type
   inline shexpr::Type getType() const override { return shexpr::E_CONST_VALUE; }
@@ -345,14 +344,14 @@ public:
   inline shexpr::ValueType getValueType() const override { return shexpr::VT_REAL; }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // get associated value
   inline real getReal() const { return value; }
 
   // set associated value
-  void setValue(const real v, bool validate_nan);
+  void setValue(const real v, bool validate_nan, Parser &parser);
 
   // get converted value to specified type
   const Color4 &getConvertedColor() const;
@@ -365,16 +364,16 @@ public:
   bool isDynamic() const override { return false; }
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override { return true; }
+  bool collapseNumbers(Parser &parser) override { return true; }
 
 protected:
   // dump to debug
@@ -396,7 +395,6 @@ class ConstColor4Value : public Expression
 public:
   // ctor/dtor
   ConstColor4Value(Terminal *s, const Color4 &v = Color4(0, 0, 0, 0));
-  ~ConstColor4Value() override;
 
   // return expression type
   inline shexpr::Type getType() const override { return shexpr::E_CONST_COLOR4; }
@@ -405,8 +403,8 @@ public:
   inline shexpr::ValueType getValueType() const override { return shexpr::VT_COLOR4; }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // set associated value
   void setValue(const Color4 &v);
@@ -422,10 +420,10 @@ public:
   bool isDynamic() const override { return false; }
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
@@ -433,7 +431,7 @@ public:
   int getChannels() const override { return 4; }
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override { return true; }
+  bool collapseNumbers(Parser &parser) override { return true; }
 
 protected:
   // dump to debug
@@ -466,22 +464,22 @@ public:
   bool canConvert(shexpr::ValueType vt) const override { return getValueType() == vt; }
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override;
+  bool collapseNumbers(Parser &parser) override;
   int getChannels() const override { return 4; }
-  bool validate() const override { return true; }
+  bool validate(Parser &parser) const override { return true; }
 
 protected:
   // dump to debug
@@ -499,8 +497,7 @@ class LVarValueExpression : public Expression
 {
 public:
   // ctor/dtor
-  LVarValueExpression(Terminal *s, int var, LocalVarTable &vars);
-  ~LVarValueExpression() override;
+  LVarValueExpression(Terminal *s, const LocalVar &var);
 
   // return expression type
   inline shexpr::Type getType() const override { return shexpr::E_LVAR_VALUE; }
@@ -509,8 +506,8 @@ public:
   shexpr::ValueType getValueType() const override;
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // check convertion - if fail, report error & return false
   bool canConvert(shexpr::ValueType vt) const override;
@@ -522,16 +519,16 @@ public:
   bool isDynamic() const override;
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override { return true; }
+  bool collapseNumbers(Parser &parser) override { return true; }
 
   int getChannels() const override { return getValueType() == shexpr::VT_COLOR4 ? 4 : 1; }
 
@@ -542,8 +539,7 @@ protected:
   void dump_internal(int level, const char *tabs) const override;
 
 private:
-  int var;
-  LocalVarTable &vars;
+  const LocalVar &var;
 }; // class LVarValueExpression
 //
 
@@ -567,8 +563,8 @@ public:
   inline shexpr::ValueType getValueType() const override { return valueType; }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // return true, if expression has only numeric constants and constant local variables
   bool isConst() const override { return false; }
@@ -577,16 +573,16 @@ public:
   bool isDynamic() const override { return isDynamicFlag; }
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override { return true; }
+  bool collapseNumbers(Parser &parser) override { return true; }
 
   int getChannels() const override { return getValueType() == shexpr::VT_COLOR4 ? 4 : 1; }
 
@@ -625,20 +621,20 @@ public:
   bool canConvert(shexpr::ValueType vt) const override { return Expression::canConvert(vt); }
 
   // evaluate this expression as real
-  bool evaluate(real &out_value) override;
+  bool evaluate(real &out_value, Parser &parser) override;
 
   // evaluate this expression as color4
-  bool evaluate(Color4 &out_value) override;
+  bool evaluate(Color4 &out_value, Parser &parser) override;
 
   // return terminal symbol, if present
   Terminal *getTerminal() const override { return (Terminal *)getParserSymbol(); }
 
   // assembly this expression
-  bool assembly(AssembleShaderEvalCB &owner, CodeTable &code, StcodeExpression &cpp_expr, class Register &dest_reg,
-    bool is_integer) override;
+  void assembleBytecode(CodeTable &code, Register &dest_reg, StcodeVMRegisterAllocator &reg_allocator, bool is_integer) const override;
+  void assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const override;
 
   // evaluate all avalible branches; return false if error occuried
-  bool collapseNumbers() override;
+  bool collapseNumbers(Parser &parser) override;
 
   // return true, if expression has only numeric constants and local variables
   bool isConst() const override;
@@ -648,7 +644,7 @@ public:
 
   int getChannels() const override;
 
-  bool validate() const override { return true; }
+  bool validate(Parser &parser) const override { return true; }
 
 protected:
   // dump to debug

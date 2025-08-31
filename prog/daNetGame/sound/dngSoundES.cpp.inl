@@ -1,5 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#if _TARGET_PC_WIN
+#include <objbase.h>
+#endif
+
 #include <osApiWrappers/dag_critSec.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/vector.h>
@@ -29,23 +33,26 @@
 #include "sound/ecsEvents.h"
 #include "camera/sceneCam.h"
 #include "main/app.h"
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
+#include <main/gameLoad.h>
+#include "main/level.h"
 #include "sound/dngSound.h"
 
-#define SNDCTRL_IS_MAIN_THREAD G_ASSERT(is_main_thread())
+#define DNGSND_IS_MAIN_THREAD G_ASSERT(is_main_thread())
 
 static WinCritSec g_preset_cs;
 #define SNDSYS_PRESET_BLOCK WinAutoLock presetLock(g_preset_cs);
 
 ECS_REGISTER_EVENT(EventOnSoundPresetLoaded);
+ECS_REGISTER_EVENT(EventOnMasterSoundPresetLoaded);
 ECS_REGISTER_EVENT(EventSoundDrawDebug);
 
 namespace dngsound
 {
 namespace cvars
 {
-static CONSOLE_BOOL_VAL("snd", draw_debug, false);
+static CONSOLE_BOOL_VAL("snd", debug, false);
 static CONSOLE_BOOL_VAL("snd", mute, false);
 } // namespace cvars
 
@@ -58,21 +65,23 @@ using vca_name_t = eastl::fixed_string<char, 16>;
 static eastl::vector<vca_name_t> g_vca_names;
 static int g_muteable_vca_index = -1;
 
-static std::atomic_bool g_is_record_list_changed = ATOMIC_VAR_INIT(false);
-static std::atomic_bool g_is_output_list_changed = ATOMIC_VAR_INIT(false);
+static dag::AtomicInteger<bool> g_is_record_list_changed = false;
+static dag::AtomicInteger<bool> g_is_output_list_changed = false;
 
-static void async_record_list_changed_cb() { g_is_record_list_changed = true; }
-static void async_output_list_changed_cb() { g_is_output_list_changed = true; }
-static void async_device_lost_cb() { g_is_output_list_changed = true; }
+static void async_record_list_changed_cb() { g_is_record_list_changed.store(true); }
+static void async_output_list_changed_cb() { g_is_output_list_changed.store(true); }
+static void async_device_lost_cb() { g_is_output_list_changed.store(true); }
 
+static bool is_master_preset_loaded() { return g_master_preset_loaded; }
+static void set_master_preset_loaded(bool is_loaded) { g_master_preset_loaded = is_loaded; }
 static void preset_loaded_update_cb(sndsys::str_hash_t preset_name_hash, bool is_loaded)
 {
   if (preset_name_hash == g_master_preset_name_hash)
   {
     SNDSYS_PRESET_BLOCK;
-    g_master_preset_loaded = is_loaded;
+    set_master_preset_loaded(is_loaded);
 
-    if (g_master_preset_loaded)
+    if (is_loaded)
     {
       sndsys::lock_channel_group("", true); // currently used to change pitch, see comment above sndsys::lock_channel_group() {}
 
@@ -87,18 +96,43 @@ static void preset_loaded_update_cb(sndsys::str_hash_t preset_name_hash, bool is
     g_entity_mgr->broadcastEvent(eastl::move(evt));
   else
     g_entity_mgr->broadcastEventImmediate(eastl::move(evt));
+
+  if (preset_name_hash == g_master_preset_name_hash)
+  {
+    EventOnMasterSoundPresetLoaded evt(is_loaded);
+    if (is_loaded)
+      g_entity_mgr->broadcastEvent(eastl::move(evt));
+    else
+      g_entity_mgr->broadcastEventImmediate(eastl::move(evt));
+  }
 }
 
-static bool have_sound(const DataBlock &blk)
+static bool have_sound(const DataBlock &sndblk)
 {
 #if DAGOR_DBGLEVEL > 0
   if (dgs_get_argv("nosound"))
     return false;
 #endif
-  return blk.getBool("haveSound", true);
+  return sndblk.getBool("enabled", true);
 }
 
+static void debug_init_event_failed_cb(const char *event_path, const char *fmod_error_message, bool as_oneshot)
+{
+  if (!is_master_preset_loaded())
+  {
+    if (!as_oneshot)
+      sndsys::debug_trace_err_once("init event '%s' failed (and master preset not loaded): '%s'", event_path, fmod_error_message);
+  }
+  else if (as_oneshot)
+    sndsys::debug_trace_err_once("init event '%s' (as oneshot) failed: '%s'", event_path, fmod_error_message);
+  else
+    sndsys::debug_trace_err_once("init event '%s' failed: '%s'", event_path, fmod_error_message);
+}
+
+// hardcoded list of obsolete bank mods that cause terrifying, unstable issue inside the fmod resource system
+// open this hell portal only if this names are completely gone
 static constexpr sndsys::banks::ProhibitedBankDesc all_prohibited_bank_descs[] = {
+  // {name, size, hash, mod label}
   // put same file together to hash it only once
   {"cmn_fx_impact.assets", 23694400ll, 17706345508862987374ull, "mod v6"},
   {"cmn_fx_impact.assets", 24161728ll, 6362643752110213450ull, "soundpack 3.5"},
@@ -114,10 +148,30 @@ static constexpr sndsys::banks::ProhibitedBankDesc all_prohibited_bank_descs[] =
   {"ww2_weapon_mgun_mounted.assets", 14466112ll, 7692226828054102393ull, "mod v6"},
 };
 
+#if _TARGET_PC_WIN
+static bool g_com_initialized = false;
+static void com_initialize()
+{
+  const HRESULT hres = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+  if (SUCCEEDED(hres))
+    g_com_initialized = true;
+  else
+    logerr("[dngSound] Failed to initialize COM library. Error code = %0x", hres);
+}
+static void com_uninitialize()
+{
+  if (g_com_initialized)
+    CoUninitialize();
+  g_com_initialized = false;
+}
+#else
+static void com_initialize() {}
+static void com_uninitialize() {}
+#endif
 
 void init()
 {
-  SNDCTRL_IS_MAIN_THREAD;
+  DNGSND_IS_MAIN_THREAD;
   if (sndsys::is_inited())
     return;
 
@@ -133,28 +187,33 @@ void init()
     }
     else
     {
-      logerr("load sound settings '%s' failed", soundSettingsPath);
+      logerr("[dngSound] Load sound settings '%s' failed", soundSettingsPath);
     }
   }
-  const DataBlock &blk = *soundBlk;
-  g_master_preset_loaded = false;
+  const DataBlock &sndblk = *soundBlk;
+  set_master_preset_loaded(false);
 
-  const bool haveSound = have_sound(blk);
+  sndsys::set_debug_init_event_failed_cb(&debug_init_event_failed_cb);
+
+  const bool haveSound = have_sound(sndblk);
 
 #if DAGOR_DBGLEVEL > 0
-  if (haveSound && dgs_get_argv("snddbg"))
-    cvars::draw_debug.set(true);
+  if (haveSound)
+  {
+    if (dgs_get_argv("snddbg") || sndblk.getBool("debug", false))
+      cvars::debug.set(true);
+  }
 #endif
 
   if (haveSound)
   {
-    const DataBlock &vcaBlk = *blk.getBlockByNameEx("vca");
+    const DataBlock &vcaBlk = *sndblk.getBlockByNameEx("vca");
     g_vca_names.reserve(vcaBlk.blockCount());
     for (int i = 0; i < vcaBlk.blockCount(); ++i)
       g_vca_names.push_back(vcaBlk.getBlock(i)->getBlockName());
 
     g_muteable_vca_index = -1;
-    const char *muteableVca = blk.getStr("muteableVca", "MASTER");
+    const char *muteableVca = sndblk.getStr("muteableVca", "MASTER");
     if (muteableVca && *muteableVca)
     {
       const auto muteableVcaIt = eastl::find(g_vca_names.begin(), g_vca_names.end(), muteableVca);
@@ -162,13 +221,15 @@ void init()
       if (g_muteable_vca_index >= g_vca_names.size())
       {
         g_muteable_vca_index = -1;
-        logerr("no vca '%s' in block vca{}", muteableVca);
+        logerr("[dngSound] No vca '%s' in block vca{}", muteableVca);
       }
     }
 
-    if (sndsys::init(blk))
+    com_initialize();
+
+    if (sndsys::init(sndblk))
     {
-      sndsys::dsp::init(blk);
+      sndsys::dsp::init(sndblk);
 
       sndsys::banks::set_preset_loaded_cb(&preset_loaded_update_cb);
 
@@ -183,13 +244,13 @@ void init()
         }
       });
 
-      sndsys::banks::init(blk, make_span_const(all_prohibited_bank_descs));
+      sndsys::banks::init(sndblk, make_span_const(all_prohibited_bank_descs));
 
       const char *preset = sndsys::banks::get_master_preset();
       g_master_preset_name_hash = SND_HASH_SLOW(preset);
 
 #if DAGOR_DBGLEVEL > 0
-      if (blk.getBool("debugLoadMasterPreset", true))
+      if (sndblk.getBool("debugLoadMasterPreset", true))
         sndsys::banks::enable(preset);
 #else
       sndsys::banks::enable(preset);
@@ -211,13 +272,14 @@ void init()
 
 void close()
 {
-  SNDCTRL_IS_MAIN_THREAD;
-  g_master_preset_loaded = false;
+  DNGSND_IS_MAIN_THREAD;
+  set_master_preset_loaded(false);
   if (sndsys::is_inited())
   {
     sndsys::dsp::close();
     sndsys::shutdown();
   }
+  com_uninitialize();
 }
 
 static inline const DataBlock &get_vol_blk() { return *::dgs_get_settings()->getBlockByNameEx("sound")->getBlockByNameEx("volume"); }
@@ -233,11 +295,11 @@ static void update_master_volume_for_app_in_background(float dt)
 {
   if (g_muteable_vca_index == -1)
     return;
-  const bool isMute = (!::dgs_app_active || cvars::mute.get()) && !cvars::draw_debug.get();
+  const bool isMute = (!::dgs_app_active || cvars::mute.get()) && !cvars::debug.get();
   if (isMute && g_mute_vol > 0.f)
   {
     SNDSYS_PRESET_BLOCK;
-    if (g_master_preset_loaded)
+    if (is_master_preset_loaded())
     {
       g_mute_vol = max(0.f, g_mute_vol - dt * g_mute_speed);
       apply_volume(g_muteable_vca_index, get_vol_blk());
@@ -246,7 +308,7 @@ static void update_master_volume_for_app_in_background(float dt)
   else if (!isMute && g_mute_vol < 1.f)
   {
     SNDSYS_PRESET_BLOCK;
-    if (g_master_preset_loaded)
+    if (is_master_preset_loaded())
     {
       g_mute_vol = 1.f;
       apply_volume(g_muteable_vca_index, get_vol_blk());
@@ -257,7 +319,7 @@ static void update_master_volume_for_app_in_background(float dt)
 void apply_config_volumes()
 {
   SNDSYS_PRESET_BLOCK;
-  if (!g_master_preset_loaded)
+  if (!is_master_preset_loaded())
     return;
   const DataBlock &blkVol = get_vol_blk();
   for (int i = 0; i < g_vca_names.size(); ++i)
@@ -266,36 +328,41 @@ void apply_config_volumes()
 
 void debug_draw()
 {
-  SNDCTRL_IS_MAIN_THREAD;
-  if (cvars::draw_debug.get())
+  DNGSND_IS_MAIN_THREAD;
+  if (cvars::debug.get())
     sndsys::debug_draw();
 }
 
 void reset_listener()
 {
-  SNDCTRL_IS_MAIN_THREAD;
+  DNGSND_IS_MAIN_THREAD;
   sndsys::reset_3d_listener();
 }
 
 void flush_commands()
 {
-  SNDCTRL_IS_MAIN_THREAD;
+  DNGSND_IS_MAIN_THREAD;
   sndsys::flush_commands();
 }
+
+static uint32_t g_update_frame_idx = 0;
+// reduce update frequency to shorten FMOD command list
+static constexpr int g_update_listener_interval = 15; // pow(2, N) - 1
+static constexpr float g_update_listener_dist_threshold_sq = sqr(0.5f);
+static constexpr float g_update_listener_dot_threshold = 0.98f;
+static bool g_listener_valid = false;
+static Point3 g_listener_pos = {};
+static Point3 g_listener_side = {};
+static Point3 g_listener_up = {};
+static bool g_is_previous_user_listener_valid = false;
 
 void update(float dt)
 {
   TIME_PROFILE(dngsound_update);
 
-  SNDCTRL_IS_MAIN_THREAD;
+  DNGSND_IS_MAIN_THREAD;
 
   update_master_volume_for_app_in_background(dt);
-
-  const TMatrix listenerTm = get_cam_itm();
-  if (listenerTm != TMatrix::IDENT)
-    sndsys::update_listener(dt, listenerTm);
-  else
-    sndsys::reset_3d_listener();
 
   sndsys::set_time_speed(get_timespeed());
 
@@ -304,31 +371,39 @@ void update(float dt)
   // to prevent possible command buffer overflow or missing [ui] sound right after scene was loaded
   sndsys::lazy_update();
 
-  // should move this to UI using ecs Event
-  if (g_is_record_list_changed)
+  if (g_is_record_list_changed.load())
   {
-    g_is_record_list_changed = false;
+    g_is_record_list_changed.store(false);
     sound::sqapi::on_record_devices_list_changed();
   }
 
-  // should move this to UI using ecs Event
-  if (g_is_output_list_changed)
+  if (g_is_output_list_changed.load())
   {
-    g_is_output_list_changed = false;
+    g_is_output_list_changed.store(false);
     sound::sqapi::on_output_devices_list_changed();
   }
+
+  ++g_update_frame_idx;
 }
 
 } // namespace dngsound
 
 using namespace dngsound;
 
+ECS_TAG(sound, dev)
+ECS_REQUIRE(ecs::Tag msg_sink)
+ECS_ON_EVENT(EventLevelLoaded)
+static void dng_sound_set_cur_scene_name_es(const ecs::Event &)
+{
+  sndsys::debug_set_cur_scene_name(sceneload::get_current_game().sceneName.c_str());
+}
+
 ECS_TAG(sound, render, dev)
 ECS_REQUIRE(ecs::Tag msg_sink)
 ECS_NO_ORDER
-static void sound_draw_debug_es(const ecs::UpdateStageInfoRenderDebug &)
+static void dng_sound_debug_draw_es(const ecs::UpdateStageInfoRenderDebug &)
 {
-  if (cvars::draw_debug.get())
+  if (cvars::debug.get())
     g_entity_mgr->broadcastEventImmediate(EventSoundDrawDebug());
 }
 
@@ -338,10 +413,53 @@ static void sound_draw_debug_es(const ecs::UpdateStageInfoRenderDebug &)
 // game code(das)
 // sound_end_update_es(ParallelUpdateFrameDelayed)
 
+template <typename Callable>
+static void dng_sound_listener_ecs_query(Callable c);
+
 ECS_TAG(sound)
 ECS_REQUIRE(ecs::Tag msg_sink)
-ECS_AFTER(after_net_phys_sync) // may need some more proper points
-static void sound_begin_update_es(const ParallelUpdateFrameDelayed &evt) { sndsys::begin_update(evt.dt); }
+ECS_AFTER(after_net_phys_sync) // may need some better points
+static void sound_begin_update_es(const ParallelUpdateFrameDelayed &evt)
+{
+  TMatrix userListenerTm;
+  bool userListenerValid = false;
+
+  dng_sound_listener_ecs_query([&](ECS_REQUIRE(ecs::Tag dngSoundListener) bool dng_sound_listener_enabled, const TMatrix &transform) {
+    if (dng_sound_listener_enabled)
+    {
+      userListenerValid = true;
+      userListenerTm = transform;
+    }
+  });
+
+  const TMatrix listenerTm = userListenerValid ? userListenerTm : get_cam_itm();
+
+  const bool isListenerValid = listenerTm != TMatrix::IDENT;
+
+  if (g_listener_valid != isListenerValid || g_is_previous_user_listener_valid != userListenerValid ||
+      !(g_update_frame_idx & g_update_listener_interval) ||
+      lengthSq(g_listener_pos - listenerTm.getcol(3)) > g_update_listener_dist_threshold_sq ||
+      dot(g_listener_side, listenerTm.getcol(0)) < g_update_listener_dot_threshold ||
+      dot(g_listener_up, listenerTm.getcol(1)) < g_update_listener_dot_threshold)
+  {
+    g_listener_pos = listenerTm.getcol(3);
+    g_listener_side = listenerTm.getcol(0);
+    g_listener_up = listenerTm.getcol(1);
+    g_listener_valid = isListenerValid;
+
+    if (isListenerValid)
+    {
+      if (g_is_previous_user_listener_valid != userListenerValid)
+        sndsys::reset_3d_listener();
+      sndsys::update_listener(evt.dt, listenerTm);
+    }
+    else
+      sndsys::reset_3d_listener();
+    g_is_previous_user_listener_valid = userListenerValid;
+  }
+
+  sndsys::begin_update(evt.dt);
+}
 
 
 ECS_TAG(sound)

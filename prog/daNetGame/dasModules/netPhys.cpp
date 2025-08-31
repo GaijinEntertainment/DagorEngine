@@ -22,6 +22,12 @@ public:
     das::addExtern<DAS_BIND_FUN(test_obj_to_phys_collision)>(*this, lib, "test_obj_to_phys_collision",
       das::SideEffects::modifyExternal, "bind_dascript::test_obj_to_phys_collision");
 
+    das::addExtern<DAS_BIND_FUN(bind_dascript::lag_compensation_time)>(*this, lib, "lag_compensation_time",
+      das::SideEffects::accessExternal, "bind_dascript::lag_compensation_time");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::using_lag_compensation)>(*this, lib, "using_lag_compensation",
+      das::SideEffects::modifyExternal, "bind_dascript::using_lag_compensation");
+
     verifyAotReady();
   }
 

@@ -52,7 +52,7 @@ static int calculate_current_sector(float angle)
 GamepadCursor::GamepadCursor(GuiScene *gui_scene) : guiScene(gui_scene) {}
 
 
-Point2 GamepadCursor::moveMouse(HumanInput::IGenJoystick *joy, const Point2 &mousePos, float dt)
+Point2 GamepadCursor::moveMouse(Screen *screen, HumanInput::IGenJoystick *joy, const Point2 &mousePos, float dt)
 {
   using namespace HumanInput;
 
@@ -82,7 +82,7 @@ Point2 GamepadCursor::moveMouse(HumanInput::IGenJoystick *joy, const Point2 &mou
 
   float fieldEffectFactor = 0.0f;
   const float fieldRange = sh * 20 / 1080.0f;
-  for (InputEntry &ie : guiScene->inputStack.stack)
+  for (InputEntry &ie : screen->inputStack.stack)
   {
     BBox2 bbox = ie.elem->clippedScreenRect;
     bbox.inflate(sh * 10 / 1080.0f);
@@ -95,12 +95,12 @@ Point2 GamepadCursor::moveMouse(HumanInput::IGenJoystick *joy, const Point2 &mou
         float dx = 0, dy = 0;
         if (mousePos.x < bbox.left())
           dx = bbox.left() - mousePos.x;
-        else if (mousePos.x > bbox.right())
-          dx = mousePos.x - bbox.right();
+        else if (mousePos.x >= bbox.right())
+          dx = mousePos.x - bbox.right() + 1.0;
         if (mousePos.y < bbox.top())
           dy = bbox.top() - mousePos.y;
-        else if (mousePos.y > bbox.bottom())
-          dy = mousePos.y - bbox.bottom();
+        else if (mousePos.y >= bbox.bottom())
+          dy = mousePos.y - bbox.bottom() + 1.0;
         float k = ::cvt(max(dx, dy), 0.0f, fieldRange, 1.0f, 0.0f);
         fieldEffectFactor = ::max(fieldEffectFactor, k);
       }
@@ -134,11 +134,12 @@ Point2 GamepadCursor::moveMouse(HumanInput::IGenJoystick *joy, const Point2 &mou
   dyCup -= (int)dyCup;
   dyCup += dy - (int)dy;
 
-  return mousePos + Point2((int)dx, (int)dy);
+
+  return clamp(mousePos + Point2((int)dx, (int)dy), Point2(0, 0), Point2(sw - 1, sh - 1));
 }
 
 
-void GamepadCursor::scroll(HumanInput::IGenJoystick *joy, float dt)
+void GamepadCursor::scroll(Screen *, HumanInput::IGenJoystick *joy, float dt)
 {
   using namespace HumanInput;
 
@@ -158,7 +159,7 @@ void GamepadCursor::scroll(HumanInput::IGenJoystick *joy, float dt)
 }
 
 
-void GamepadCursor::update(float dt)
+void GamepadCursor::update(Screen *screen, float dt)
 {
   if (!::dgs_app_active)
     return;
@@ -169,11 +170,11 @@ void GamepadCursor::update(float dt)
   using namespace HumanInput;
   const SceneConfig &config = guiScene->config;
 
-  if ((guiScene->inputStack.summaryBhvFlags & Behavior::F_INTERNALLY_HANDLE_GAMEPAD_L_STICK) &&
+  if ((screen->inputStack.summaryBhvFlags & Behavior::F_INTERNALLY_HANDLE_GAMEPAD_L_STICK) &&
       (config.gamepadCursorAxisH == JOY_XINPUT_REAL_AXIS_L_THUMB_H || config.gamepadCursorAxisV == JOY_XINPUT_REAL_AXIS_L_THUMB_V))
     return;
 
-  if ((guiScene->inputStack.summaryBhvFlags & Behavior::F_INTERNALLY_HANDLE_GAMEPAD_R_STICK) &&
+  if ((screen->inputStack.summaryBhvFlags & Behavior::F_INTERNALLY_HANDLE_GAMEPAD_R_STICK) &&
       (config.gamepadCursorAxisH == JOY_XINPUT_REAL_AXIS_R_THUMB_H || config.gamepadCursorAxisV == JOY_XINPUT_REAL_AXIS_R_THUMB_V))
     return;
 
@@ -185,7 +186,7 @@ void GamepadCursor::update(float dt)
   Point2 mousePos = guiScene->getMousePos();
   Point2 prevMousePos = mousePos;
   for (int i = 0; i < nIter; ++i)
-    mousePos = moveMouse(joy, mousePos, dt / nIter);
+    mousePos = moveMouse(screen, joy, mousePos, dt / nIter);
   if (mousePos != prevMousePos)
   {
     isMovingMouse = true;
@@ -195,7 +196,7 @@ void GamepadCursor::update(float dt)
     isMovingMouse = false;
   }
 
-  scroll(joy, dt);
+  scroll(screen, joy, dt);
 }
 
 } // namespace darg

@@ -2,11 +2,10 @@
 
 #include "frameGraphNodes.h"
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
-dabfg::NodeHandle makeTargetRenameBeforeMotionBlurNode()
+dafg::NodeHandle makeTargetRenameBeforeMotionBlurNode()
 {
-  return dabfg::register_node("target_rename_before_motion_blur_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.renameTexture("target_for_transparency", "target_before_motion_blur", dabfg::History::No);
-  });
+  return dafg::register_node("target_rename_before_motion_blur_node", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.renameTexture("target_after_debug", "target_before_motion_blur", dafg::History::No); });
 }

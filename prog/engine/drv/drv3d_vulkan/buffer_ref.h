@@ -22,7 +22,6 @@ struct BufferRef
   // for frame mem buffers to uniquely identify them for proper state replace at discard
   uint32_t frameReference = 0;
   BufferRef() = default;
-  ~BufferRef() = default;
   BufferRef(const BufferRef &) = default;
   BufferRef &operator=(const BufferRef &) = default;
   // make this explicit to make it clear that we grab and hold on to the current

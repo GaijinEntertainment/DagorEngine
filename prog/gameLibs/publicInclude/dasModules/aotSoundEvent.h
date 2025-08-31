@@ -43,7 +43,7 @@ struct WrapType<sndsys::EventHandle>
 {
   enum
   {
-    value = false
+    value = true
   };
   typedef sndsys::sound_handle_t type;
   typedef sndsys::sound_handle_t rettype;
@@ -62,10 +62,16 @@ struct WrapType<SoundVarId>
 {
   enum
   {
-    value = false
+    value = true
   };
   typedef sndsys::var_id_t type;
   typedef sndsys::var_id_t rettype;
+};
+
+template <>
+struct WrapArgType<SoundVarId>
+{
+  typedef sndsys::var_id_t type;
 };
 
 template <>
@@ -151,17 +157,13 @@ inline sndsys::EventHandle invalid_sound_event_handle() { return {}; }
 
 inline sndsys::EventHandle play_with_name(const char *name) { return sndsys::play(name); }
 inline sndsys::EventHandle play_with_name_pos(const char *name, Point3 pos) { return sndsys::play(name, nullptr, pos); }
-inline sndsys::EventHandle play_with_name_path_pos_far(const char *name, const char *path, Point3 pos, bool allow_far_oneshots)
+inline sndsys::EventHandle play_with_name_path_pos_far(const char *name, const char *path, Point3 pos)
 {
-  return sndsys::play(name, path, pos, allow_far_oneshots);
+  return sndsys::play_far(name, path, pos);
 }
 inline sndsys::EventHandle play_with_name_path_pos(const char *name, const char *path, Point3 pos)
 {
   return sndsys::play(name, path, pos);
-}
-inline sndsys::EventHandle play_with_name_pos_vol(const char *name, Point3 pos, float volume)
-{
-  return sndsys::play(name, nullptr, pos, volume);
 }
 inline sndsys::EventHandle delayed_play_with_name_path_pos(const char *name, const char *path, Point3 pos, float delay)
 {
@@ -177,21 +179,14 @@ inline void play_sound_with_name_path_pos(SoundEvent &sound_event, const char *n
 {
   sound_event.reset(sndsys::play(name, path, pos));
 }
-inline void play_sound_with_name_pos_vol(SoundEvent &sound_event, const char *name, Point3 pos, float volume)
-{
-  sound_event.reset(sndsys::play(name, nullptr, pos, volume));
-}
-inline void play_sound_with_name_pos_delayed(SoundEvent &sound_event, const char *name, Point3 pos, float delay)
+inline void delayed_play_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos, float delay)
 {
   sound_event.reset(sndsys::delayed_play(name, nullptr, pos, delay));
 }
 
-inline void oneshot_with_name_pos(const char *name, Point3 pos) { sndsys::play_one_shot(name, pos); }
-inline void oneshot_with_name_pos_far(const char *name, Point3 pos, bool allow_far_oneshots)
-{
-  sndsys::play_one_shot(name, pos, allow_far_oneshots);
-}
-inline void oneshot_with_name(const char *name) { sndsys::play_one_shot(name); }
+inline void oneshot_with_name_pos(const char *name, Point3 pos) { sndsys::play_oneshot(name, pos); }
+inline void oneshot_with_name_pos_far(const char *name, Point3 pos) { sndsys::play_oneshot_far(name, pos); }
+inline void oneshot_with_name(const char *name) { sndsys::play_oneshot(name); }
 inline void delayed_oneshot_with_name_pos(const char *name, Point3 pos, float delay)
 {
   sndsys::delayed_oneshot(name, nullptr, pos, delay);
@@ -201,8 +196,8 @@ inline void delayed_oneshot_with_name(const char *name, float delay) { sndsys::d
 inline bool should_play(Point3 pos) { return sndsys::should_play(pos); }
 inline bool should_play_ex(Point3 pos, float dist_threshold) { return sndsys::should_play(pos, dist_threshold); }
 
-inline bool is_oneshot(sndsys::EventHandle handle) { return sndsys::is_one_shot(handle); }
-inline bool __is_oneshot(const SoundEvent &sound_event) { return sndsys::is_one_shot(sound_event.handle); }
+inline bool is_oneshot(sndsys::EventHandle handle) { return sndsys::is_oneshot(handle); }
+inline bool __is_oneshot(const SoundEvent &sound_event) { return sndsys::is_oneshot(sound_event.handle); }
 
 inline bool is_delayable(sndsys::EventHandle handle) { return sndsys::is_delayable(handle); }
 inline bool __is_delayable(const SoundEvent &sound_event) { return sndsys::is_delayable(sound_event.handle); }

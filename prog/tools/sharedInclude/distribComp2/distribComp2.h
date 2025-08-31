@@ -81,19 +81,13 @@ public:
   virtual const BBox3 *getShadowBox() const = 0;
   virtual const BBox3 *getLightBox() const = 0;
 
-#define DISTRIBCOMP_CC_DEF_GET_BOX()                                                                    \
-  virtual const BBox3 *getComputeBox() const                                                            \
-  {                                                                                                     \
-    return sceneGeom.settings.opt.whereCompute.isempty() ? NULL : &sceneGeom.settings.opt.whereCompute; \
-  }                                                                                                     \
-  virtual const BBox3 *getShadowBox() const                                                             \
-  {                                                                                                     \
-    return sceneGeom.pass.shadowBox.isempty() ? NULL : &sceneGeom.pass.shadowBox;                       \
-  }                                                                                                     \
-  virtual const BBox3 *getLightBox() const                                                              \
-  {                                                                                                     \
-    return sceneGeom.pass.lightBox.isempty() ? NULL : &sceneGeom.pass.lightBox;                         \
-  }
+#define DISTRIBCOMP_CC_DEF_GET_BOX()                                                                                           \
+  const BBox3 *getComputeBox() const override                                                                                  \
+  {                                                                                                                            \
+    return sceneGeom.settings.opt.whereCompute.isempty() ? NULL : &sceneGeom.settings.opt.whereCompute;                        \
+  }                                                                                                                            \
+  const BBox3 *getShadowBox() const override { return sceneGeom.pass.shadowBox.isempty() ? NULL : &sceneGeom.pass.shadowBox; } \
+  const BBox3 *getLightBox() const override { return sceneGeom.pass.lightBox.isempty() ? NULL : &sceneGeom.pass.lightBox; }
 };
 
 // Server interface

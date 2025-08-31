@@ -1,0 +1,20 @@
+Root    ?= ../../../../../.. ;
+local LibPath = 1stPartyLibs/daScript/modules/dasImgui/daslib ;
+Location = prog/$(LibPath) ;
+Target      = $(LibPath)_imgui.lib ; # target should be different from daScript/daslib.lib
+
+StrictCompile = yes ;
+TargetType  = lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+Sources +=
+  imgui_boost.das
+  imgui_node_editor_boost.das
+;
+
+ExplicitLicenseUsed += $(Root)/prog/1stPartyLibs/daScript/modules/dasImgui ;
+
+include $(Root)/prog/_jBuild/build.jam ;

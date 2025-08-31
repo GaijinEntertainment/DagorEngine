@@ -26,9 +26,9 @@ extern "C"
 
 
 #if _TARGET_IOS | _TARGET_TVOS
-  KRNLIMP void set_debug_console_ios_file_output();
+  KRNLIMP void set_debug_console_ios_file_output(bool val);
   KRNLIMP bool is_debug_console_ios_file_output();
-  KRNLIMP void enable_copy_debug_to_ios_console();
+  KRNLIMP void set_copy_debug_to_ios_console(bool val);
   KRNLIMP bool is_enabled_copy_debug_to_ios_console();
 #endif
 

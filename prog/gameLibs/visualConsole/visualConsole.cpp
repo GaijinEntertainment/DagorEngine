@@ -110,44 +110,7 @@ bool VisualConsoleDriver::renderTips()
         break;
 
       console::CommandStruct &cmd = mlist[i];
-      cmdText.printf(256, "%s  ", cmd.command.str());
-
-      if (!cmd.argsDescription.empty())
-      {
-        cmdText += cmd.argsDescription;
-      }
-      else if (!cmd.varValue.empty())
-      {
-        cmdText += "(=";
-        cmdText += cmd.varValue;
-        cmdText += ") ";
-      }
-      else
-      {
-        int args = 0;
-        for (int k = 1; k < cmd.minArgs; k++)
-        {
-          cmdText += "<x> ";
-          args++;
-        }
-
-        for (int k = cmd.minArgs; k < cmd.maxArgs; k++)
-        {
-          cmdText += "[x] ";
-          args++;
-          if (args > 12)
-          {
-            cmdText += "...";
-            break;
-          }
-        }
-      }
-
-      if (!cmd.description.empty())
-      {
-        cmdText += " -- ";
-        cmdText += cmd.description;
-      }
+      console::util::print_command_with_hints_to_string(cmd, cmdText);
 
       for (int offset = 1; offset != -1; offset--)
       {

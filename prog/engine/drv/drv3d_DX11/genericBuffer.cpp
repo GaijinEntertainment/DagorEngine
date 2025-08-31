@@ -57,7 +57,7 @@ GenericBuffer::~GenericBuffer()
   // if (sysMemBuf)
   //   memfree(sysMemBuf, tmpmem);
   removeFromStates();
-  // release calls 'ressize' virtual function indirectly. It is not recommended from desctructor
+  // release calls 'getSize' virtual function indirectly. It is not recommended from desctructor
   // but GenericBuffer is final class, so it should be fine
   static_assert(std::is_final<GenericBuffer>());
   release(); // -V1053
@@ -73,7 +73,7 @@ bool GenericBuffer::createBuf()
   D3D11_BUFFER_DESC bd = {};
   bd.ByteWidth = (UINT)bufSize;
   if ((bufFlags & SBCF_DYNAMIC) && bufSize >= (16 << 20))
-    logwarn("Potential performance issue. Dynamic buffer <%s> of size bigger than 16mb", getResName());
+    logwarn("Potential performance issue. Dynamic buffer <%s> of size bigger than 16mb", getName());
 
   bd.Usage = (bufFlags & SBCF_DYNAMIC) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
   bd.BindFlags = bindFlags;
@@ -87,21 +87,21 @@ bool GenericBuffer::createBuf()
     bd.StructureByteStride = structSize;
   if (format)
   {
-    G_ASSERT(dxgi_format_to_bpp(dxgi_format_from_flags(format)) == structSize * 8);
+    D3D_CONTRACT_ASSERT(dxgi_format_to_bpp(dxgi_format_from_flags(format)) == structSize * 8);
   }
-  G_ASSERTF(!(bufFlags & SBCF_BIND_CONSTANT) || bufSize <= 65536,
-    "Windows 7 and earlier can not create cb of size more than 64k. %s is %d", getResName(), bufSize);
+  D3D_CONTRACT_ASSERTF(!(bufFlags & SBCF_BIND_CONSTANT) || bufSize <= 65536,
+    "Windows 7 and earlier can not create cb of size more than 64k. %s is %d", getName(), bufSize);
 
-  G_ASSERTF(!(bd.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) || bd.Usage == D3D11_USAGE_DYNAMIC,
-    "CPU write access is only supported for dynamic buffers and staging buffers. %s has usage 0x%x", getResName(), bd.Usage);
+  D3D_CONTRACT_ASSERTF(!(bd.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) || bd.Usage == D3D11_USAGE_DYNAMIC,
+    "CPU write access is only supported for dynamic buffers and staging buffers. %s has usage 0x%x", getName(), bd.Usage);
 
-  G_ASSERTF(!(bd.CPUAccessFlags & D3D11_CPU_ACCESS_READ), "CPU read access is only supported for staging buffers. %s has usage 0x%x",
-    getResName(), bd.Usage);
+  D3D_CONTRACT_ASSERTF(!(bd.CPUAccessFlags & D3D11_CPU_ACCESS_READ),
+    "CPU read access is only supported for staging buffers. %s has usage 0x%x", getName(), bd.Usage);
 
   if (bufFlags & SBCF_ZEROMEM && !sysMemBuf)
-    return create_zeromem_buffer(bd, getResName(), buffer);
+    return create_zeromem_buffer(bd, getName(), buffer);
   else
-    return create_buffer(bd, getResName(), sysMemBuf, buffer);
+    return create_buffer(bd, getName(), sysMemBuf, buffer);
 }
 
 bool GenericBuffer::createSrv()
@@ -111,7 +111,7 @@ bool GenericBuffer::createSrv()
   ZeroMemory(&srv_desc, sizeof(srv_desc));
   if (bufFlags & SBCF_MISC_ALLOW_RAW)
   {
-    G_ASSERT(structSize == 4);
+    D3D_CONTRACT_ASSERT(structSize == 4);
     srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
     srv_desc.BufferEx.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
     srv_desc.ViewDimension = D3D_SRV_DIMENSION_BUFFEREX;
@@ -129,12 +129,12 @@ bool GenericBuffer::createSrv()
 #if DAGOR_DBGLEVEL > 0
       if (!is_good_buffer_structure_size(structSize))
       {
-        D3D_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and "
-                  "probably results in degraded performance. For some platforms it might requires "
-                  "the shader compiler to restructure the structure type to avoid layout violations "
-                  "and on other platforms it results in wasted memory as the memory manager has to "
-                  "insert extra padding to align the buffer properly.",
-          structSize, getResName());
+        D3D_CONTRACT_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and "
+                           "probably results in degraded performance. For some platforms it might requires "
+                           "the shader compiler to restructure the structure type to avoid layout violations "
+                           "and on other platforms it results in wasted memory as the memory manager has to "
+                           "insert extra padding to align the buffer properly.",
+          structSize, getName());
       }
 #endif
     }
@@ -171,7 +171,7 @@ ID3D11ShaderResourceView *GenericBuffer::getResView()
 
   if (!structSize)
   {
-    D3D_ERROR("getSrv on unstructured buffer");
+    D3D_CONTRACT_ERROR("getSrv on unstructured buffer");
     return NULL;
   }
 
@@ -181,7 +181,7 @@ ID3D11ShaderResourceView *GenericBuffer::getResView()
 
 bool GenericBuffer::createUav()
 {
-  G_ASSERT(bufFlags & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT(bufFlags & SBCF_BIND_UNORDERED);
   if (!(bufFlags & SBCF_BIND_UNORDERED))
   {
     return false;
@@ -207,12 +207,12 @@ bool GenericBuffer::createUav()
 #if DAGOR_DBGLEVEL > 0
       if (!is_good_buffer_structure_size(structSize))
       {
-        D3D_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and "
-                  "probably results in degraded performance. For some platforms it might requires "
-                  "the shader compiler to restructure the structure type to avoid layout violations "
-                  "and on other platforms it results in wasted memory as the memory manager has to "
-                  "insert extra padding to align the buffer properly.",
-          structSize, getResName());
+        D3D_CONTRACT_ERROR("The structure size of %u of buffer %s has a hardware unfriendly size and "
+                           "probably results in degraded performance. For some platforms it might requires "
+                           "the shader compiler to restructure the structure type to avoid layout violations "
+                           "and on other platforms it results in wasted memory as the memory manager has to "
+                           "insert extra padding to align the buffer properly.",
+          structSize, getName());
       }
 #endif
     }
@@ -238,7 +238,7 @@ bool GenericBuffer::createUav()
   return true;
 }
 
-void GenericBuffer::setBufName(const char *name) { setResName(name); }
+void GenericBuffer::setBufName(const char *name) { setName(name); }
 
 bool GenericBuffer::create(uint32_t bufsize, int buf_flags, UINT bind_flags, const char *statName_)
 {
@@ -264,13 +264,14 @@ bool GenericBuffer::create(uint32_t bufsize, int buf_flags, UINT bind_flags, con
 bool GenericBuffer::createStructured(uint32_t struct_size, uint32_t elements, uint32_t buf_flags, uint32_t buf_format,
   const char *statName_)
 {
-  G_ASSERT(struct_size == 4 || !(buf_flags & SBCF_MISC_ALLOW_RAW));
+  D3D_CONTRACT_ASSERT(struct_size == 4 || !(buf_flags & SBCF_MISC_ALLOW_RAW));
   if (bool(buf_flags & SBCF_MISC_STRUCTURED) && bool(buf_flags & SBCF_MISC_DRAWINDIRECT))
   {
-    D3D_ERROR("indirect buffer can't be structured one, check <%s>", statName_);
-    G_ASSERTF(0, "indirect buffer can't be structured one, <%s>", statName_);
+    D3D_CONTRACT_ERROR("indirect buffer can't be structured one, check <%s>", statName_);
+    D3D_CONTRACT_ASSERT_FAIL("indirect buffer can't be structured one, <%s>", statName_);
   }
-  G_ASSERTF(buf_format == 0 || ((buf_flags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW)) == 0),
+  D3D_CONTRACT_ASSERTF(
+    buf_format == 0 || ((buf_flags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW)) == 0),
     "can't create buffer with texture format which is Structured, Vertex, Index or Raw");
   this->bufFlags = buf_flags;
   this->bufSize = struct_size * elements;
@@ -408,17 +409,59 @@ bool GenericBuffer::copyTo(Sbuffer *dest)
   return true;
 }
 
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+void GenericBuffer::checkBlockingUpdate(size_t offset, size_t size, bool write)
+{
+  for (UpdateHistoryElement &i : updateHistory)
+  {
+    i.completed = d3d::get_event_query_status(i.completion, false);
+    if ((offset >= i.offset && offset < (i.offset + i.size)) || (i.offset >= offset && i.offset < (offset + size)))
+    {
+      if (!i.completed)
+      {
+        D3D_ERROR("dx11: buffer %p:%s %s called on range %u-%u when there is pending %s on range %u-%u", this, getName(),
+          write ? "WRITE" : "READ", offset, offset + size, i.write ? "WRITE" : "READ", i.offset, i.offset + i.size);
+      }
+    }
+  }
+}
+
+void GenericBuffer::trackUpdate(size_t offset, size_t size, bool write)
+{
+  bool pushed = false;
+  for (UpdateHistoryElement &i : updateHistory)
+  {
+    if (!i.completed)
+      continue;
+    d3d::issue_event_query(i.completion);
+    i.completed = false;
+    i.offset = offset;
+    i.size = size;
+    i.write = write;
+    pushed = true;
+    break;
+  }
+  if (!pushed)
+  {
+    updateHistory.push_back({false, write, d3d::create_event_query(), offset, size});
+    d3d::issue_event_query(updateHistory.back().completion);
+  }
+}
+
+#endif
+
 bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags)
 {
 #ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
   updated = true;
 #endif
-  G_ASSERTF_RETURN(size_bytes + ofs_bytes <= bufSize, false, "size_bytes=%d ofs_bytes=%d bufSize=%d", size_bytes, ofs_bytes, bufSize);
-  G_ASSERT_RETURN(size_bytes != 0, false);
+  D3D_CONTRACT_ASSERTF_RETURN(size_bytes + ofs_bytes <= bufSize, false, "size_bytes=%d ofs_bytes=%d bufSize=%d", size_bytes, ofs_bytes,
+    bufSize);
+  D3D_CONTRACT_ASSERT_RETURN(size_bytes != 0, false);
   if (device_is_lost != S_OK)
   {
     if (gpuAcquireRefCount && gpuThreadId == GetCurrentThreadId())
-      D3D_ERROR("buffer lock in updateData during reset %s", getResName());
+      D3D_ERROR("buffer lock in updateData during reset %s", getName());
     return false;
   }
   if (!buffer && (bufFlags & SBCF_DYNAMIC) == 0)
@@ -427,7 +470,7 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
   {
     if ((bufFlags & SBCF_DYNAMIC) == 0)
       return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags); // case of delayed create.
-    D3D_ERROR("buffer not created %s", getResName());
+    D3D_ERROR("buffer not created %s", getName());
     return false;
   }
   if ((bufFlags &
@@ -437,18 +480,25 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
   {
     return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
   }
-  ContextAutoLock contextLock;
-  D3D11_BOX box;
-  box.left = ofs_bytes;
-  box.right = ofs_bytes + size_bytes;
-  box.top = 0;
-  box.bottom = 1;
-  box.front = 0;
-  box.back = 1;
-  disable_conditional_render_unsafe();
-  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-    "DX11: GenericBuffer::updateData uses UpdateSubresource inside a generic render pass");
-  dx_context->UpdateSubresource(buffer, 0, &box, src, 0, 0);
+
+  checkBlockingUpdate(ofs_bytes, size_bytes, true);
+
+  {
+    ContextAutoLock contextLock;
+    D3D11_BOX box;
+    box.left = ofs_bytes;
+    box.right = ofs_bytes + size_bytes;
+    box.top = 0;
+    box.bottom = 1;
+    box.front = 0;
+    box.back = 1;
+    disable_conditional_render_unsafe();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: GenericBuffer::updateData uses UpdateSubresource inside a generic render pass");
+    dx_context->UpdateSubresource(buffer, 0, &box, src, 0, 0);
+  }
+
+  trackUpdate(ofs_bytes, size_bytes, true);
   return true;
 }
 int GenericBuffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags)
@@ -475,17 +525,19 @@ int GenericBuffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int
 //  size_bytes==0 means entire buffer
 void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
 {
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+  activeLockFlags = flags;
+#endif
 #ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
   updated = true;
 #endif
   // implication ~A || B
-  G_ASSERT(((flags & VBLOCK_DISCARD) == 0) || ((bufFlags & (SBCF_DYNAMIC | SBCF_BIND_CONSTANT)) != 0)); // only dynamic buffers can be
-                                                                                                        // locked with
-                                                                                                        // VBLOCK_NOOVERWRITE, and only
-                                                                                                        // dynamic or constant with
-                                                                                                        // discard
-  G_ASSERT(((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) == 0) || ((flags & VBLOCK_WRITEONLY) != 0)); // it is stupid to lock for
-                                                                                                         // write without writeonly
+  D3D_CONTRACT_ASSERTF(((flags & VBLOCK_DISCARD) == 0) || ((bufFlags & (SBCF_DYNAMIC | SBCF_BIND_CONSTANT)) != 0),
+    "Buffer %s is not dynamic or constant, so discard update is forbidden for the buffer", getName());
+  D3D_CONTRACT_ASSERTF(((flags & VBLOCK_NOOVERWRITE) == 0) || ((bufFlags & SBCF_DYNAMIC) != 0),
+    "Buffer %s is not dynamic, so nooverwrite update is forbidden for the buffer", getName());
+  D3D_CONTRACT_ASSERTF(((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) == 0) || ((flags & VBLOCK_WRITEONLY) != 0),
+    "Buffer %s can't be locked for writing (VBLOCK_DISCARD or VBLOCK_NOOVERWRITE) without VBLOCK_WRITEONLY flag.");
   if (bufSize == 0)
   {
     return NULL;
@@ -493,6 +545,7 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
 
   if (ofs_bytes + size_bytes > bufSize)
   {
+    D3D_CONTRACT_ASSERT_FAIL("Lock beyond the buffer end: %d + %d > %d", ofs_bytes, size_bytes, bufSize);
     G_ASSERT_LOG(0, "[E] Lock beyond the buffer end: %d + %d > %d", ofs_bytes, size_bytes, bufSize);
     return NULL;
   }
@@ -500,19 +553,19 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
   if (size_bytes == 0)
   {
     size_bytes = bufSize - ofs_bytes;
-    G_ASSERT(size_bytes != 0); // nothing to lock
+    D3D_CONTRACT_ASSERT(size_bytes != 0); // nothing to lock
   }
 
   if (device_is_lost != S_OK)
   {
     if (gpuAcquireRefCount && gpuThreadId == GetCurrentThreadId())
-      D3D_ERROR("buffer lock during reset %s", getResName());
+      D3D_ERROR("buffer lock during reset %s", getName());
     return NULL;
   }
 
   ID3D11Buffer *bufferToLock = buffer;
   D3D11_MAP mapType = D3D11_MAP_WRITE;
-  // G_ASSERT(uav || !structSize);
+  // D3D_CONTRACT_ASSERT(uav || !structSize);
   if (uav || (structSize && !(bufFlags & SBCF_DYNAMIC))) //==
   {
     if (
@@ -556,7 +609,7 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
       bufFlags |= SBCF_DYNAMIC;
       if (!systemCopy)
         systemCopy = new char[bufSize];
-      logwarn("Locked an immutable buffer: '%s' ", getResName());
+      logwarn("Locked an immutable buffer: '%s' ", getName());
     }
 
     if (buffer == NULL && ((bufFlags & SBCF_DYNAMIC) == 0)) // not allocated?
@@ -576,7 +629,7 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
       return (void *)((uint8_t *)sysMemBuf + ofs_bytes);
     }
 
-    G_ASSERT((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) != (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE));
+    D3D_CONTRACT_ASSERT((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) != (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE));
     if ((flags & VBLOCK_READONLY) || systemCopy)
     {
       lockMsr.pData = NULL;
@@ -628,6 +681,13 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
     // clang-format on
   }
 
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+  if ((activeLockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) == 0)
+  {
+    // we map whole buffer regardless
+    checkBlockingUpdate(0, bufSize, activeLockFlags & VBLOCK_READONLY ? false : true);
+  }
+#endif
 
   ContextAutoLock contextLock;
   HRESULT hr = dx_context->Map(bufferToLock, NULL, mapType, 0, &lockMsr);
@@ -636,7 +696,7 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
                     ? (!(flags & VBLOCK_READONLY) ? STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED : STAGING_BUFFER_LOCKED)
                     : BUFFER_LOCKED;
 #if DAGOR_DBGLEVEL > 0
-  DXFATAL(hr, "Map failed, <%s> mapType %d", getResName(), mapType);
+  DXFATAL(hr, "Map failed, <%s> mapType %d", getName(), mapType);
 #endif
   if (FAILED(hr))
     return nullptr;
@@ -648,6 +708,10 @@ int GenericBuffer::unlock()
 {
   LLLOG("vb-unlk (%d)", handle);
 
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+  bool needTrackUpdate = lockMsr.pData && (activeLockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) == 0 && !sysMemBuf;
+#endif
+
   if (sysMemBuf)
   {
     if (!buffer)
@@ -657,8 +721,8 @@ int GenericBuffer::unlock()
     }
     else
     {
-      G_ASSERTF(bufFlags & (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE), "Cannot lock buffer '%s', because it has no cpu write access!",
-        getResName());
+      D3D_CONTRACT_ASSERTF(bufFlags & (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE),
+        "Cannot lock buffer '%s', because it has no cpu write access!", getName());
 
       ContextAutoLock contextLock;
       HRESULT hr = dx_context->Map(buffer, NULL, D3D11_MAP_WRITE_DISCARD, 0, &lockMsr);
@@ -708,6 +772,11 @@ int GenericBuffer::unlock()
 
   lockMsr.pData = NULL;
 
+#ifdef VALIDATE_FOR_BLOCKING_UPDATES
+  if (needTrackUpdate)
+    trackUpdate(0, bufSize, activeLockFlags & VBLOCK_READONLY ? false : true);
+#endif
+
   return 1;
 }
 
@@ -733,14 +802,14 @@ void GenericBuffer::removeFromStates()
   {
     if (g_render_state.nextVertexInput.vertexStream[i].source == this)
     {
-      D3D_ERROR("Deleting buffer that is still in render '%s'", getResName());
+      D3D_CONTRACT_ERROR("Deleting buffer that is still in render '%s'", getName());
       d3d::setvsrc_ex(i, nullptr, 0, 0);
     }
   }
 
   if (g_render_state.nextVertexInput.indexBuffer == this)
   {
-    D3D_ERROR("Deleting buffer that is still in render '%s'", getResName());
+    D3D_CONTRACT_ERROR("Deleting buffer that is still in render '%s'", getName());
     d3d::setind(nullptr);
   }
   if (buffer && (bufFlags & SBCF_BIND_CONSTANT))
@@ -760,7 +829,7 @@ void GenericBuffer::removeFromStates()
     ResAutoLock resLock; // Thredsafe state.resources access.
     for (int stage = 0; stage < g_render_state.texFetchState.resources.size(); ++stage)
     {
-      TextureFetchState::Samplers &res = g_render_state.texFetchState.resources[stage];
+      TextureFetchState::Resources &res = g_render_state.texFetchState.resources[stage];
       for (int slot = 0; slot < res.resources.size(); ++slot)
         if (res.resources[slot].buffer == this)
           res.resources[slot].setBuffer(NULL);
@@ -786,7 +855,7 @@ bool GenericBuffer::createStagingBuffer(ID3D11Buffer *&out_buf)
   bd.ByteWidth = (UINT)bufSize;
   bd.Usage = D3D11_USAGE_STAGING;
   bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
-  return create_buffer(bd, getResName(), nullptr, out_buf);
+  return create_buffer(bd, getName(), nullptr, out_buf);
 }
 
 } // namespace drv3d_dx11

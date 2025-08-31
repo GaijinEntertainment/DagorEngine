@@ -14,13 +14,13 @@ class Sequence : public Element
 public:
   Sequence(FileStructure *aStructure);
   Sequence(const Sequence &anOther);
-  virtual ~Sequence();
+  ~Sequence() override;
 
   Sequence &operator=(const Sequence &anOther);
 
   void add(Element *anElement);
-  virtual Element *copy() const;
-  virtual void getDependencies(CompileState *aState);
+  Element *copy() const override;
+  void getDependencies(CompileState *aState) override;
 
 private:
   std::vector<Element *> Seq;

@@ -63,13 +63,13 @@ struct BVHConnection : public bvh::BVHConnection
       for (auto [lodIx, mapping] : enumerate(mappings))
       {
         auto meshId = make_relem_mesh_id(riRes->getBvhId(), lodIx, 0);
-        Mesh *mesh = get_mesh(*contexts.begin(), meshId);
+        Object *object = get_object(*contexts.begin(), meshId);
 
-        if (mesh && mesh->blas && mesh->metaAllocId >= 0)
+        if (object && object->blas && MeshMetaAllocator::is_valid(object->metaAllocId))
         {
-          mapping.blas.x = mesh->blas.getGPUAddress() & 0xFFFFFFFFLLU;
-          mapping.blas.y = mesh->blas.getGPUAddress() >> 32;
-          mapping.metaIndex = mesh->metaAllocId;
+          mapping.blas.x = object->blas.getGPUAddress() & 0xFFFFFFFFLLU;
+          mapping.blas.y = object->blas.getGPUAddress() >> 32;
+          mapping.metaIndex = MeshMetaAllocator::decode(object->metaAllocId);
         }
         else
         {
@@ -108,7 +108,6 @@ void teardown()
 {
   gpu_objects::GpuObjects::setBVHConnection(nullptr);
   bvhConnection.teardown();
-  bvhConnection.metainfoMappings.close();
 }
 
 void init(ContextId context_id)
@@ -149,7 +148,7 @@ void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance
   }
 }
 
-void get_memory_statistics(int &meta, int &queries)
+void get_memory_statistics(int64_t &meta, int64_t &queries)
 {
   meta = queries = 0;
   if (bvhConnection.instances)

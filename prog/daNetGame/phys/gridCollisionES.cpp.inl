@@ -40,14 +40,14 @@ bool grid_trace_main_entities(const Point3 &from, const Point3 &dir, float &t, P
           bool isHit = false;
           int outMatId, outNodeId;
           const GeomNodeTree &nodeTree = animchar.getNodeTree();
+          Point3 *pNorm = nullptr;
           if (ray_mat_id != PHYSMAT_INVALID)
           {
             if (gridObjectPhysMatId == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(gridObjectPhysMatId, ray_mat_id))
-              isHit =
-                collres.traceRay(transform, &nodeTree, from, dir, t, nullptr /*norm*/, outMatId, CollisionNodeFilter(), ray_mat_id);
+              isHit = collres.traceRay(transform, &nodeTree, from, dir, t, pNorm, outMatId, {}, ray_mat_id);
           }
           else
-            isHit = collres.traceRay(transform, &nodeTree, from, dir, t, nullptr /*norm*/, outMatId, outNodeId);
+            isHit = collres.traceRay(transform, &nodeTree, from, dir, t, pNorm, outMatId, outNodeId);
 
           if (isHit && net_phys__currentStateVelocity)
             out_vel = *net_phys__currentStateVelocity;

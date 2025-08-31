@@ -27,7 +27,7 @@ struct RenderEventUI
   persp : Driver3dPerspective
 
 [cpp_event(broadcast)]
-struct RenderEventAfterUI
+struct RenderXray
   viewTm : TMatrix
   viewItm : TMatrix
   globtm : mat44f
@@ -62,8 +62,10 @@ struct AfterDeviceReset
 [cpp_event(broadcast)]
 struct OnRenderDecals
   viewTm : float3x4
-  projTm : float4x4
+  viewItm : float3x4
   cameraWorldPos : float3
+  texCtx : TexStreamingContext
+  rendinstMainVisibility : void?
 
 [cpp_event(broadcast)]
 struct BeforeDraw

@@ -13,7 +13,6 @@ namespace drv3d_vulkan
 struct BackExecutionTimings
 {
   int64_t gpuWaitDuration = 0;
-  int64_t acquireBackBufferDuration = 0;
   int64_t workWaitDuration = 0;
   int64_t presentWaitDuration = 0;
   int64_t lastMemoryStatTime = 0;
@@ -25,6 +24,7 @@ struct FrontExecutionTimings
   uint32_t completedFrameIndex = 0;
   int64_t lastPresentTimeStamp = 0;
   int64_t frontendBackendWaitDuration = 0;
+  int64_t acquireBackBufferDuration = 0;
 
   const Drv3dTimings &get(uintptr_t offset) const { return history[(completedFrameIndex - offset) % FRAME_TIMING_HISTORY_LENGTH]; }
 

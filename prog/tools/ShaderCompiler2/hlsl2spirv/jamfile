@@ -38,7 +38,7 @@ if $(DontUseVulkanGlslang) = no {
 
 if $(Platform) in windows { AddLibs += D3dcompiler.lib ; }
 
-CPPopt = -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+CPPopt = -D_CROSS_TARGET_SPIRV -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
   # use only when it is really necessary and avoid committing it because it breaks dbg builds
   #-D_HAS_ITERATOR_DEBUGGING=1
 ;

@@ -1,6 +1,8 @@
 include common_compatibility_assumes.blk
-"@override:use_contact_shadows":i=0
+"@delete-all:use_contact_shadows":i=1
+use_contact_shadows:i=0
 "@override:projected_on_water_effects_tex":i=0
 "@override:bloom_tex":i=0
 shadows_quality:i=0
 "@override:detect_cockpit_by_distance":i=1
+glass_rt_reflection:i=0

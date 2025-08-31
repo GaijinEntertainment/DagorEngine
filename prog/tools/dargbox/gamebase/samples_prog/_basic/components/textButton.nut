@@ -17,7 +17,7 @@ let defButtonStyle = {
       borderWidth = hdpx(1)
       borderColor = Color(60,60,60)
       fillColor = Color(40,40,40)
-      padding = [hdpx(4), hdpx(7)]
+      padding = static [hdpx(4), hdpx(7)]
       margin = hdpx(2)
       borderRadius = hdpx(2)
     }
@@ -32,9 +32,9 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
   let textNormal = textStyle?.normal ?? defButtonStyle.text.normal
   let boxNormal = boxStyle?.normal ?? defButtonStyle.box.normal
   return function(){
-    let s = stateFlags.value
+    let s = stateFlags.get()
     local state = "normal"
-    if (disabled?.value)
+    if (disabled?.get())
       state = "disabled"
     else if (s & S_ACTIVE)
       state = "active"
@@ -48,7 +48,7 @@ function textButton(text, handler= @() null, params = {}, style = defButtonStyle
       children = {rendObj = ROBJ_TEXT text}.__update(textNormal, textS)
     }.__update(boxNormal, boxS, {
       watch = [stateFlags, disabled]
-      onElemState = @(sf) stateFlags(sf)
+      onElemState = @(sf) stateFlags.set(sf)
       behavior = Behaviors.Button
       hotkeys = params?.hotkeys
       onClick = handler

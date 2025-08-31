@@ -1,3 +1,16 @@
+hlsl
+{
+  ##if hardware.dx12
+  // NOTE: inline-asm is the warning category under which DXC emits
+  // half of it's warnings because of tech debt. One of these warnings
+  // is about mixing weird control flow with gradient ops, which is
+  // triggered false-positively by the WaveActiveAllTrue() calls below.
+  // Disabling only that particular warning is not possible so we have
+  // to disable all "backend" DXC warnings instead for the entire shader.
+  #pragma dxc diagnostic ignored "-Winline-asm"
+  ##endif
+}
+
 include "shader_global.dshl"
 include "invGlobTm.dshl"
 include "waveWorks.dshl"
@@ -23,6 +36,9 @@ float foam_underfoam_weight = 0.2;
 float foam_overfoam_weight = 1.0;
 float4 foam_underfoam_color = (1,1,1,1);
 float4 foam_overfoam_color = (1,1,1,1);
+
+int foam_occlusion_test = 1;
+interval foam_occlusion_test : no<1, yes;
 
 int foam_prepare_debug_step = 4;
 interval foam_prepare_debug_step: prepare_step_pattern<1, prepare_step_masked_pattern<2, prepare_step_threshold<3, prepare_step_thresholded_pattern<4, all_prepare_steps;
@@ -97,6 +113,8 @@ shader foam_prepare
       water_flowmap_strength_add.y/(water_flowmap_strength_add.y-water_flowmap_strength_add.x), water_flowmap_strength_add.z, water_flowmap_strength_add.w);
     water_flowmap_foam@f4 = (water_flowmap_foam);
     water_flowmap_multiplier@f1 = (water_flowmap_multiplier);
+
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
   }
 
   hlsl(ps) {
@@ -127,10 +145,39 @@ shader foam_prepare
       float4 underfoam: SV_Target1;
     };
 
+    PrepareOutput NullOutput()
+    {
+      PrepareOutput result;
+      result.overfoam = float4(0, 0, 0, 1);
+      result.underfoam = float4(0, 0, 0, 1);
+      return result;
+    }
+
+    bool WaveActiveAllTrueCompat(bool condition)
+    {
+      #if WAVE_INTRINSICS
+        return WaveActiveAllTrue(condition);
+      #else
+        return condition;
+      #endif
+    }
+
     PrepareOutput prepare_ps(VsOutput input)
     {
       // Depth projection
       float mask_depth = tex2D(foam_mask_depth, input.uv).r;
+
+      // Sky -- no water, no foam
+      if (WaveActiveAllTrueCompat(mask_depth <= 0.0f))
+        return NullOutput();
+
+      ##if (foam_occlusion_test == yes)
+        // Water is occluded by opaque geometry
+        float sceneDepth = downsampled_far_depth_tex.SampleLevel(downsampled_far_depth_tex_samplerstate, input.uv, 0).x;
+        if (WaveActiveAllTrueCompat(mask_depth <= sceneDepth))
+          return NullOutput();
+      ##endif
+
       float4 screen_position = float4(input.screen_pos.xy, mask_depth, 1);
       float4 world_position = mul(screen_position, globtm_inv);
       world_position /= world_position.w;

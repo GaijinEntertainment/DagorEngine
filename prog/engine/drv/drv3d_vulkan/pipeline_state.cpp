@@ -4,6 +4,9 @@
 #include "globals.h"
 #include "pipeline/manager.h"
 #include "memory_heap_resource.h"
+#if VULKAN_HAS_RAYTRACING
+#include "raytrace_as_resource.h"
+#endif
 
 namespace drv3d_vulkan
 {
@@ -179,6 +182,14 @@ bool PipelineState::isReferenced(MemoryHeapResource *object) const
   return object->hasPlacedResources();
 }
 
+#if VULKAN_HAS_RAYTRACING
+template <>
+bool PipelineState::isReferenced(RaytraceAccelerationStructure *object) const
+{
+  return isReferencedByResBinds(object);
+}
+#endif
+
 } // namespace drv3d_vulkan
 
 using namespace drv3d_vulkan;
@@ -195,6 +206,19 @@ void PipelineStateStorage::clearDirty()
   graphics.clearDirty();
 }
 
+void PipelineState::replaceImage(const Image *src, Image *dst)
+{
+  G_ASSERT(src);
+  G_ASSERT(dst);
+  if (get<FrontFramebufferState, FrontFramebufferState, FrontGraphicsState>().replaceImage(src, dst))
+    makeFieldDirty<FrontFramebufferState, FrontGraphicsState>();
+  if (get<FrontRenderPassState, FrontRenderPassState, FrontGraphicsState>().replaceImage(src, dst))
+    makeFieldDirty<FrontRenderPassState, FrontGraphicsState>();
+
+  for (uint32_t i = 0; i < STAGE_MAX_ACTIVE; ++i)
+    if (stageResources[i]->replaceResource(src, dst))
+      markResourceBindDirty((ShaderStage)i);
+}
 
 bool PipelineState::processBufferDiscard(const BufferRef &old_buffer, const BufferRef &new_ref, uint32_t buf_flags)
 {

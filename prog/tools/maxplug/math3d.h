@@ -924,10 +924,10 @@ class StaticMeshRayTracer
 public:
   virtual ~StaticMeshRayTracer() {}
   //! Tests ray hit to object and returns parameters of hit (if happen)
-  virtual bool traceray(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc) = 0;
+  virtual bool traceray(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc) = 0;
 
   //! trace backfaces
-  virtual bool traceray_back(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc) = 0;
+  virtual bool traceray_back(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc) = 0;
   //! Builds (or rebuilds) object for given mesh
   virtual void build(Mesh &m) = 0;
 };

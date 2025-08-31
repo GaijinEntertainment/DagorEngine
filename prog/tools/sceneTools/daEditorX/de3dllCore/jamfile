@@ -20,7 +20,7 @@ UseProgLibs =
   engine/math
   engine/drv/drv3d_use_d3di
   tools/libTools/util
-  tools/libTools/objectEditor
+  tools/libTools/ObjectEditor
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

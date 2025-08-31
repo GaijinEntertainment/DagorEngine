@@ -23,7 +23,8 @@ void modfx_frame_init( ModfxParentSimData_cref parent_sdata, BufferData_cref buf
 
   o_frame = lerp( (float)finit.start_frame_min, (float)finit.start_frame_max, dafx_frnd( rnd_seed ) );
   o_frame = round( o_frame );
-  o_flags = finit.flags & 0x0003;
+  o_flags = finit.flags & MODFX_FRAME_PERMANENT_FLAGS;
+
   o_disable_loop = finit.flags & MODFX_FRAME_FLAGS_DISABLE_LOOP;
 
   if ( finit.flags & MODFX_FRAME_FLAGS_RANDOM_FLIP_X )

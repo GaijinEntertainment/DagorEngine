@@ -7,7 +7,7 @@
 #include <oldEditor/de_workspace.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_util.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <de3_entityFilter.h>
 
 #include <libTools/staticGeom/geomObject.h>
@@ -21,7 +21,7 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 
 #define ID_PLUGIN_NAMES 300

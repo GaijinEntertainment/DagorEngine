@@ -39,17 +39,17 @@ def get_all_assets(type_name : string; b : block<(arg1 : array<string> const) : 
   query() <| $ [es] (asset__manager : DagorAssetMgr)
     let typeId = asset__manager |> getAssetTypeId(type_name)
     if typeId < 0
-      logerr("AssetManager: unsupported type {type_name}");
+      logerr("AssetManager: unsupported type {type_name}")
       return
     asset__manager |> getFilteredAssets(typeId) <| $(assetIds)
-      let assetNames <- [{for id in assetIds; asset__manager |> getAsset(id) |> getName()}]
+      let assetNames <- [for id in assetIds; asset__manager |> getAsset(id) |> getName()]
       invoke(b, assetNames)
 
 def get_filtered_assets(type_name, filter : string; b : block<(arg1 : array<string> const) : void>)
   query() <| $ [es] (asset__manager : DagorAssetMgr)
     let typeId = asset__manager |> getAssetTypeId(type_name)
     if typeId < 0
-      logerr("AssetManager: unsupported type {type_name}");
+      logerr("AssetManager: unsupported type {type_name}")
       return
     asset__manager |> getFilteredAssets(typeId) <| $(assetIds)
       var assetNames : array<string>

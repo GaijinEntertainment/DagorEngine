@@ -61,7 +61,7 @@ struct Terminal : Symbol
     symb_tp = SYMBOL_TERMINAL;
     text = NULL;
   }
-  virtual ~Terminal() {}
+  ~Terminal() override {}
 
   int number() { return num; };
 };

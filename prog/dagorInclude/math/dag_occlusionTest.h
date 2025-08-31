@@ -4,15 +4,12 @@
 //
 #pragma once
 
+#include <occlusion/occlusion_type.hlsli>
+
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_globDef.h>
 
-#define OCCLUSION_INVWBUFFER 1
-#define OCCLUSION_WBUFFER    2
-#define OCCLUSION_Z_BUFFER   3
-#define OCCLUSION_BUFFER \
-  OCCLUSION_INVWBUFFER // OCCLUSION_WBUFFER////OCCLUSION_WBUFFER////OCCLUSION_WBUFFER//OCCLUSION_INVWBUFFER//OCCLUSION_Z_BUFFER//
 #if OCCLUSION_BUFFER == OCCLUSION_Z_BUFFER
 static __forceinline vec4f occlusion_depth_vmax(vec4f a, vec4f b) { return v_min(a, b); }
 static __forceinline vec4f occlusion_depth_vmin(vec4f a, vec4f b) { return v_max(a, b); }
@@ -46,8 +43,10 @@ public:
   static constexpr int get_log2(int w) { return 1 + (w > 2 ? get_log2(w >> 1) : 0); }
   static constexpr int pitch_shift = get_log2(RESOLUTION_X);
 
-  static float *getZbuffer(int mip) { return zBuffer + mip_chain_offsets[mip]; }
-  static float *getZbuffer() { return zBuffer; }
+  float *getZbuffer(int mip) { return zBuffer + mip_chain_offsets[mip]; }
+  const float *getZbuffer(const int mip) const { return zBuffer + mip_chain_offsets[mip]; }
+  float *getZbuffer() { return zBuffer; }
+  const float *getZbuffer() const { return zBuffer; }
 
   OcclusionTest()
   {
@@ -57,7 +56,7 @@ public:
     for (int mip = 1; mip < mip_chain_count; mip++)
       mip_chain_offsets[mip] = mip_chain_offsets[mip - 1] + (sizeX >> (mip - 1)) * (sizeY >> (mip - 1));
   }
-  static void clear()
+  void clear()
   {
 #if OCCLUSION_BUFFER == OCCLUSION_WBUFFER
     vec4f *dst = (vec4f *)zBuffer;
@@ -68,7 +67,7 @@ public:
     memset(zBuffer, 0, mip_chain_size * sizeof(zBuffer[0]));
 #endif
   }
-  static void buildMips()
+  void buildMips()
   {
     for (int mip = 1; mip < mip_chain_count; mip++)
       downsample4x_simda_max(getZbuffer(mip), getZbuffer(mip - 1), sizeX >> mip, sizeY >> mip);
@@ -83,7 +82,7 @@ public:
   // return 0 if frustum culled
   // return 1 if visible
   // return 2 if occlusion culled
-  VECTORCALL static __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int max_test_mip)
+  VECTORCALL __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int max_test_mip)
   {
     vec4f minmax_w, clipScreenBox;
     // return v_screen_size_b(bmin, bmax, threshold, clipScreenBox, minmax_w, clip);
@@ -108,13 +107,13 @@ public:
     return CULL_OCCLUSION - testCulledMip(screenCrd[0], screenCrd[1], screenCrd[3], screenCrd[2], mip, minmax_w);
   }
 
-  static int testCulledFull(int xMin, int xMax, int yMin, int yMax, vec4f minw)
+  int testCulledFull(int xMin, int xMax, int yMin, int yMax, vec4f minw)
   {
     G_ASSERT(xMin >= 0 && yMin >= 0 && xMax < sizeX && yMax < sizeX);
     return testCulledZbuffer(xMin, xMax, yMin, yMax, minw, zBuffer, 0);
   }
 
-  static __forceinline int testCulledMip(int xMin, int xMax, int yMin, int yMax, int mip, vec4f minw)
+  __forceinline int testCulledMip(int xMin, int xMax, int yMin, int yMax, int mip, vec4f minw)
   {
     // G_ASSERT(xMin>=0 && yMin>=0 && xMax<sizeX && yMax<sizeX && mip < mip_chain_count-1);
     xMin >>= mip;
@@ -125,14 +124,14 @@ public:
     return testCulledZbuffer(xMin, xMax, yMin, yMax, minw, getZbuffer(mip), mip);
   }
 
-protected:
   static constexpr int mip_sum(int w, int h) { return w * h + ((w > 1 && h > 1) ? mip_sum(w >> 1, h >> 1) : 0); }
   static constexpr int mip_chain_size = mip_sum(RESOLUTION_X, RESOLUTION_Y);
   static constexpr unsigned bitShiftX = get_const_log2(RESOLUTION_X);
   static constexpr unsigned bitMaskX = (1 << bitShiftX) - 1;
   static constexpr unsigned bitMaskY = ~bitMaskX;
 
-  static void downsample4x_simda_max(float *__restrict destData, float *__restrict srcData, int destW, int destH)
+protected:
+  void downsample4x_simda_max(float *__restrict destData, float *__restrict srcData, int destW, int destH)
   {
     unsigned int srcPitch = destW * 2;
     G_ASSERT(destW > 1); // we can implement last mip, if needed, later
@@ -170,13 +169,13 @@ protected:
       }
     }
   }
-  alignas(32) static inline float zBuffer[mip_chain_size] = {};
-  static inline vec4f clipToScreenVec = {};
-  static inline vec4f screenMax = {};
-  static inline int mip_chain_offsets[mip_chain_count] = {};
+  alignas(32) float zBuffer[mip_chain_size] = {};
+  vec4f clipToScreenVec = {};
+  vec4f screenMax = {};
+  int mip_chain_offsets[mip_chain_count] = {};
 
   // return 0 if occluded
-  static __forceinline int testCulledZbuffer(int xMin, int xMax, int yMin, int yMax, vec4f minw, float *zbuffer, int mip)
+  __forceinline int testCulledZbuffer(int xMin, int xMax, int yMin, int yMax, vec4f minw, float *zbuffer, int mip)
   {
     const float *zbufferRow = zbuffer + (yMin << (pitch_shift - mip));
     const int pitch = (1 << (pitch_shift - mip));

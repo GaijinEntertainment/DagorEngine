@@ -246,7 +246,7 @@ static bool allocBufChunk(BufChunk &out_c, Tab<BufChunk> &free_chunks, int strid
   return true;
 }
 
-BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, const BufConfig &hints)
+BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, const BufConfig &hints, bool use_soft_limit)
 {
   if (DAGOR_UNLIKELY(!sbuf[IDX_IB] && pool.empty()))
   {
@@ -255,12 +255,23 @@ BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, cons
       return BufChunk();
   }
 
+  int ibAllocations = 0;
+  int vbAllocations = 0;
+  for (int i = 0; i < pool.size(); i++)
+    (i == IDX_IB ? ibAllocations : vbAllocations) += pool[i].getUsed();
+
   BufChunk c;
   if (s == IDX_IB)
   {
+    if (use_soft_limit && (ibAllocations >> 10) >= maxIBUseKb)
+      return c;
+
     allocBufChunk(c, freeChunks[IDX_IB], 2, req_avail_sz, 3 * 2);
     return c;
   }
+
+  if (use_soft_limit && (vbAllocations >> 10) >= maxVBUseKb)
+    return c;
 
   for (int i = IDX_VB_START; i < sbuf.size(); i++)
     if (allocBufChunk(c, freeChunks[i], s, req_avail_sz, 3 * s))
@@ -291,7 +302,7 @@ BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, cons
 }
 
 bool unitedvdata::BufPool::arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, BufChunkTab &out_c, Sbuffer *ib, bool can_fail,
-  const BufConfig &hints, int *vbShortage, int *ibShortage)
+  bool use_soft_limit, const BufConfig &hints, int *vbShortage, int *ibShortage)
 {
   StaticTab<unsigned, MAX_CHUNK_CNT> usedSize;
   StaticTab<char, MAX_CHUNK_CNT> usedStride;
@@ -342,7 +353,7 @@ bool unitedvdata::BufPool::arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd
 
   for (int i = 0; i < usedStride.size(); i++)
   {
-    BufChunk c = allocChunkForStride(usedStride[i], usedSize[i], hints);
+    BufChunk c = allocChunkForStride(usedStride[i], usedSize[i], hints, use_soft_limit);
     const bool emptyIBAllowed = usedStride[i] == IDX_IB && usedSize[i] == 0;
     if (can_fail && !c.sz && !emptyIBAllowed)
     {
@@ -591,7 +602,7 @@ const char *unitedvdata::BufPool::calcUsedSizeStr(dag::ConstSpan<unitedvdata::Bu
 }
 String unitedvdata::BufPool::getStatStr() const
 {
-  String s;
+  String s(framemem_ptr());
   int64_t ib_total = 0, vb_total = 0;
   for (int i = 0; i < pool.size(); i++)
   {
@@ -707,7 +718,7 @@ void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> 
   for (const RES *rx = r->getFirstOriginal(); rx; rx = rx->getNextClone())
     // we can utilize rx->getUsedLods() only when all smvd"s return areLodsSplit()=1; otherwise we must use rx->lods
     // when we add some smvd's vdata to pool we must process here ALL relems that reference that vdata
-    for (const typename RES::Lod &lod : rx->getUsedLods())
+    for (const typename RES::Lod &lod : rx->lods)
     {
       lod.getAllElems(relems);
 
@@ -738,7 +749,7 @@ void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> 
         }
     }
   RES::unlockClonesList();
-  on_mesh_relems_updated.fire(r, false);
+  on_mesh_relems_updated.fire(r, false, 0);
 }
 
 template <class RES>
@@ -787,7 +798,7 @@ void ShaderResUnitedVdata<RES>::rebuildUnitedVdata(dag::Span<RES *> res, bool in
   for (RES *r : res)
   {
     BufChunkTab c;
-    if (!buf.arrangeVdata(r->getSmvd(), c, prev_ib, false, local_hints))
+    if (!buf.arrangeVdata(r->getSmvd(), c, prev_ib, false, true, local_hints))
       continue;
 
     resList.push_back(r);
@@ -855,7 +866,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
 
     int vb_to_free = 0, ib_to_free = 0;
     while (ctx.reqLod < prev_lod)
-      if (buf.arrangeVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), c_new, buf.getIB(), true, local_hints, &vb_to_free,
+      if (buf.arrangeVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), c_new, buf.getIB(), true, true, local_hints, &vb_to_free,
             &ib_to_free) &&
           c_new.size())
         break;
@@ -917,8 +928,6 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
     return;
   }
 
-  d3d::GpuAutoLock render_lock;
-
 #if _TARGET_C1 || _TARGET_C2
 
 
@@ -931,9 +940,12 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
 
 
 
+
 #else
+  d3d::GpuAutoLock render_lock;
   std::lock_guard<std::mutex> scopedLock(appendMutex);
 #endif
+
   int idx = find_value_idx(resList, ctx.res);
   if (idx < 0)
   {
@@ -976,7 +988,7 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
   {
     char jobMgrName[64];
     snprintf(jobMgrName, sizeof(jobMgrName), "%sReloadVdata", RES::getStaticClassName());
-    reloadJobMgrId = cpujobs::create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, jobMgrName);
+    reloadJobMgrId = cpujobs::create_virtual_job_manager(192 << 10, WORKER_THREADS_AFFINITY_MASK, jobMgrName);
     register_job_manager_requiring_shaders_bindump(reloadJobMgrId);
   }
   if (res->getResLoadingFlag())
@@ -992,6 +1004,7 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
       unitedVdata = self;
       unitedVdata->initUpdateJob(*this, r);
     }
+    const char *getJobName(bool &) const override { return "UpdateModelVdataJob"; }
     void doJob() override final { unitedVdata->doUpdateJob(*this); }
     void releaseJob() override final
     {
@@ -1056,7 +1069,8 @@ void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
   updateLocalMaximum(dbg_level >= 0);
   buf.releaseBufChunk(out_c2, true);
   for (BufChunk &c0 : out_c2)
-    (c0.vbIdx == BufPool::IDX_IB ? ibSizeToFree : vbSizeToFree) -= c0.sz;
+    interlocked_add((c0.vbIdx == BufPool::IDX_IB ? ibSizeToFree : vbSizeToFree), -int(c0.sz));
+  on_mesh_relems_updated.fire(res, true, upper_lod);
 }
 template <class RES>
 void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
@@ -1070,6 +1084,14 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
   std::lock_guard<std::mutex> scopedLock(appendMutex);
   discardUnusedResToFreeReqMemNoLock(false);
 }
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::setAllocationLimits(int ibKb, int vbKb)
+{
+  buf.maxIBUseKb = ibKb;
+  buf.maxVBUseKb = vbKb;
+}
+
 template <class RES>
 void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
 {
@@ -1145,7 +1167,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
   for (RES *r : res)
   {
     BufChunkTab c;
-    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, local_hints, &vb_to_free, &ib_to_free))
+    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, false, local_hints, &vb_to_free, &ib_to_free))
       continue;
     if (!c.size())
     {
@@ -1196,7 +1218,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
     for (RES *r : res2)
     {
       BufChunkTab c;
-      if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, local_hints))
+      if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, false, local_hints))
         continue;
       if (!c.size())
       {
@@ -1283,7 +1305,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
           BufConfig tmp_hint;
           BufChunkTab c;
           tmp_buf.allowRebuild = true; //-V1048 // mark as pre-reserve only, without creating Sbuffers in arrangeVdata()
-          if (tmp_buf.arrangeVdata(r->getSmvd(), c, nullptr, false, tmp_hint))
+          if (tmp_buf.arrangeVdata(r->getSmvd(), c, nullptr, false, false, tmp_hint))
           {
             if (!buf.allowRebuild)
             {
@@ -1383,7 +1405,7 @@ bool ShaderResUnitedVdata<RES>::delRes(RES *res)
 
   updateLocalMaximum(dbg_level >= 0);
   buf.resetVdataBufPointers(resList[idx]->getSmvd());
-  on_mesh_relems_updated.fire(res, true);
+  on_mesh_relems_updated.fire(res, true, INT_MAX);
   erase_items(resList, idx, 1);
   buf.releaseBufChunk(resUsedChunks[idx], true);
   erase_items(resUsedChunks, idx, 1);
@@ -1593,10 +1615,11 @@ void ShaderResUnitedVdata<RES>::dumpMemBlocks(String *out_str_summary)
 }
 
 template <class RES>
-void ShaderResUnitedVdata<RES>::enumRElems(enumRElemFct enum_cb)
+void ShaderResUnitedVdata<RES>::availableRElemsAccessor(availableRElemsAccessorFct access_cb)
 {
-  for (RES *res : resList)
-    enum_cb(res);
+  static_assert(sizeof(Ptr<RES>) == sizeof(RES *));
+  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  access_cb(make_span((RES **)resList.data(), resList.size()));
 }
 
 template class ShaderResUnitedVdata<RenderableInstanceLodsResource>;

@@ -1,8 +1,8 @@
+local prev_PhysName = $(PhysName) ;
 PhysName = BULLET ;
 
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/vehiclePhys/vehiclePhys-$(PhysName)/.. ;
-UsingStaticCore = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/vehiclePhys/vehiclePhys-$(PhysName).lib ;
@@ -11,3 +11,4 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/gameLibs/vehiclePhys/jamfile-General ;
+PhysName = $(prev_PhysName) ;

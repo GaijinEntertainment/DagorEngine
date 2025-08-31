@@ -10,13 +10,13 @@ _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
 local _DEF_C_CMDLINE =
-  -X /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /DWIN64 /Dasm=__asm /DWIN32_LEAN_AND_MEAN=
-  /DNOMINMAX
-  -D_TARGET_SIMD_SSE=$(SSEVersion) -D_TARGET_64BIT=1 -D_ALLOW_KEYWORD_MACROS=
+  -X -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -DWIN64 -Dasm=__asm -DWIN32_LEAN_AND_MEAN=
+  -DNOMINMAX
+  -D_TARGET_SIMD_SSE=$(SSEVersion) -D_TARGET_64BIT -D_ALLOW_KEYWORD_MACROS=
   -Di_strlen=(int)strlen
   /c /nologo /Zc:forScope /Zp8 /J /bigobj /Zc:wchar_t
 ;
-if $(BuildDagorEngineIndependentCode) = yes { _DEF_C_CMDLINE = -X /c /nologo /Zp8 /J /Zc:wchar_t /DWIN64 ; }
+if $(BuildDagorEngineIndependentCode) = yes { _DEF_C_CMDLINE = -X /c /nologo /Zp8 /J /Zc:wchar_t -DWIN64 ; }
 if $(Analyze) = yes { _DEF_C_CMDLINE += -analyze -WX ; }
 
 _LINK         = $(_VC_DIR)/bin/x86_amd64/link.exe /machine:x64 ;
@@ -26,7 +26,7 @@ _C_COMPILER   = $(_VC_DIR)/bin/x86_amd64/cl.exe $(_DEF_C_CMDLINE) ;
 _ASM_COMPILER = $(_DEVTOOL)/nasm/nasmw.exe -f win64 --prefix _ ;
 _MASM_COMPILER = $(_VC_DIR)/bin/x86_amd64/ml64.exe -c -nologo ;
 
-_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /DWIN64 ;
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -DWIN64 ;
 
 _RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
 _MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;

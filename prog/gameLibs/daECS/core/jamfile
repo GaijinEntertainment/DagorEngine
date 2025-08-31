@@ -14,8 +14,8 @@ local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
 Sources = $(AllSources:D=) ;
 #Sources = entityManagerQuery.cpp  ;
 
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; }
 UseProgLibs +=
-  engine/baseUtil
   3rdPartyLibs/eastl
   3rdPartyLibs/regExp
 ;

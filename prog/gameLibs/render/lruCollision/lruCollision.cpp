@@ -147,14 +147,14 @@ LRURendinstCollision::RiDataInfo LRURendinstCollision::getRiData(uint32_t type)
 uint32_t LRURendinstCollision::getVbCapacity() const
 {
   if (auto buf = vbAllocator.getHeap().getBuf())
-    return buf->ressize();
+    return buf->getSize();
   return 0;
 }
 
 uint32_t LRURendinstCollision::getIbCapacity() const
 {
   if (auto buf = ibAllocator.getHeap().getBuf())
-    return buf->ressize();
+    return buf->getSize();
   return 0;
 }
 
@@ -586,7 +586,7 @@ void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t
       auto vbInfo = vbAllocator.get(lruEntry.vb), ibInfo = ibAllocator.get(lruEntry.ib);
       G_ASSERT(vbInfo.size && ibInfo.size);
 
-      dataPtr->indexCountPerInstance = ibInfo.size / sizeof(uint16_t);
+      dataPtr->indexCountPerInstance = (ibInfo.size / (3 * sizeof(uint16_t))) * 3;
       dataPtr->instanceCount = instCount;
       dataPtr->startIndexLocation = ibInfo.offset / sizeof(uint16_t);
       dataPtr->baseVertexLocation = vbInfo.offset / sizeof(CollisionVertex);
@@ -736,7 +736,7 @@ eastl::optional<LRURendinstCollision::MeshData> LRURendinstCollision::getModelDa
   ret.baseVertex = vbInfo.offset / sizeof(CollisionVertex);
   ret.startIndex = ibInfo.offset / sizeof(uint16_t);
   ret.vertexCount = vbInfo.size / sizeof(CollisionVertex);
-  ret.indexCount = ibInfo.size / sizeof(uint16_t);
+  ret.indexCount = ((ibInfo.size / sizeof(uint16_t)) / 3) * 3;
   ret.vertexStride = sizeof(CollisionVertex);
   ret.positionOffset = 0;
   ret.positionFormat = VSDT_HALF4;

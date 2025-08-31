@@ -88,6 +88,7 @@ class GenericSkiesService : public ISkiesService
   float time;
   float lastBrTime;
   DataBlock appliedWeather;
+  DataBlock levelBlkShaderVars;
 
   static const int PRIO_COUNT = 4;
   struct WeatherOverride
@@ -134,7 +135,7 @@ public:
     appliedWeather.setBool("customWeather", false);
   }
 
-  virtual void setup(const char *app_dir, const DataBlock &env_blk)
+  void setup(const char *app_dir, const DataBlock &env_blk) override
   {
     basePath = String(260, "%s/%s/", app_dir, env_blk.getStr("skiesFilePathPrefix", "."));
     weatherTypesFn = String(260, "%s%s", basePath.str(), env_blk.getStr("skiesWeatherTypes", "?"));
@@ -157,30 +158,23 @@ public:
     String mask(260, "%s/%s", basePath.str(), env_blk.getStr("skiesPresets", "*.blk"));
     char dir[260];
     dd_get_fname_location(dir, mask);
-    alefind_t ff;
 
+    weatherPresetFn.clear();
     debug("mask <%s> dir=%s", mask.str(), dir);
-    if (::dd_find_first(mask, 0, &ff))
+    for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
     {
-      do
-      {
-        if (ff.name[0] == '.')
-          continue;
-        String fn(260, "%s/%s", dir, ff.name);
-        dd_simplify_fname_c(fn);
-        dd_strlwr(fn);
-        weatherPresetFn.push_back() = fn;
-      } while (dd_find_next(&ff));
-      dd_find_close(&ff);
+      if (ff.name[0] == '.')
+        continue;
+      String fn(260, "%s/%s", dir, ff.name);
+      dd_simplify_fname_c(fn);
+      weatherPresetFn.push_back() = fn;
     }
     if (!weatherPresetFn.size() && dd_file_exist(mask))
       weatherPresetFn.push_back() = mask;
     for (int i = 0; i < weatherPresetFn.size(); i++)
-    {
       simplify_fname(weatherPresetFn[i]);
-      dd_strlwr(weatherPresetFn[i]);
-    }
 
+    weatherNames.clear();
     DataBlock wblk(weatherTypesFn);
     for (int i = 0; i < wblk.blockCount(); i++)
       weatherNames.addNameId(wblk.getBlock(i)->getBlockName());
@@ -189,7 +183,7 @@ public:
   }
   SkiesData *cube_pov_data, *main_pov_data, *refl_pov_data, *vr_pov_data;
 
-  virtual void init()
+  void init() override
   {
     if (daSkies)
       return;
@@ -230,7 +224,7 @@ public:
     sphharm_comp_values_varids[2] = get_shader_variable_id("SH3_color_9", true);
     // fixme:    setup earttexture with 0
   }
-  virtual void term()
+  void term() override
   {
     if (!daSkies)
       return;
@@ -244,7 +238,7 @@ public:
     ltService = NULL;
   }
 
-  virtual void fillPresets(Tab<String> &out_presets, Tab<String> &out_env, Tab<String> &out_weather)
+  void fillPresets(Tab<String> &out_presets, Tab<String> &out_env, Tab<String> &out_weather) override
   {
     out_presets.clear();
     out_env.clear();
@@ -260,7 +254,7 @@ public:
       out_weather.push_back() = weatherNames.getName(i);
   }
 
-  virtual void setWeather(const char *preset_fn, const char *env, const char *weather)
+  void setWeather(const char *preset_fn, const char *env, const char *weather) override
   {
     if (!daSkies)
       return;
@@ -313,8 +307,9 @@ public:
       srv->onLightingSettingsChanged();
   }
 
-  virtual void overrideWeather(int prio, const char *env, const char *weather, int global_seed, const DataBlock *custom_w,
-    const DataBlock *stars)
+  void overrideShaderVarsFromLevelBlk(const DataBlock *b) override { levelBlkShaderVars = b ? *b : DataBlock::emptyBlock; }
+  void overrideWeather(int prio, const char *env, const char *weather, int global_seed, const DataBlock *custom_w,
+    const DataBlock *stars) override
   {
     if (prio < 0 || prio >= PRIO_COUNT)
       return;
@@ -333,18 +328,18 @@ public:
     if (daSkies && !weatherPreset.empty())
       reloadWeather();
   }
-  virtual void setZnZfScale(float znzf_scale) { znzfScale = clamp(znzf_scale, 0.1f, 100.0f); }
+  void setZnZfScale(float znzf_scale) override { znzfScale = clamp(znzf_scale, 0.1f, 100.0f); }
 
-  virtual void getZRange(float &out_znear, float &out_zfar)
+  void getZRange(float &out_znear, float &out_zfar) override
   {
     out_znear = zRange[0] * znzfScale;
     out_zfar = zRange[1] * znzfScale;
   }
-  virtual const DataBlock *getWeatherTypeBlk() { return &loadedWeatherType; }
-  virtual const DataBlock &getAppliedWeatherDesc() { return appliedWeather; }
+  const DataBlock *getWeatherTypeBlk() override { return &loadedWeatherType; }
+  const DataBlock &getAppliedWeatherDesc() override { return appliedWeather; }
 
-  virtual void updateSkies(float dt) { time += dt; }
-  virtual void beforeRenderSky()
+  void updateSkies(float dt) override { time += dt; }
+  void beforeRenderSky() override
   {
     if (!daSkies)
       return;
@@ -372,8 +367,8 @@ public:
       }
     }
   }
-  virtual void beforeRenderSkyOrtho() {}
-  virtual void renderSky()
+  void beforeRenderSkyOrtho() override {}
+  void renderSky() override
   {
     if (!daSkies)
       return;
@@ -435,13 +430,14 @@ public:
     {
       daSkies->prepareSkyAndClouds(false, dpoint3(::grs_cur_view.pos), dpoint3(::grs_cur_view.itm.getcol(2)), 0xFF,
         EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), pov_data, viewTm, projTm, true, false);
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), pov_data, viewTm, projTm, UpdateSky::On,
+        false);
       daSkies->renderSky(pov_data, viewTm, projTm, persp);
     }
 
     d3d::setview(l, t, w, h, minZ, maxZ);
   }
-  virtual void renderClouds()
+  void renderClouds() override
   {
     if (targetDepthId == BAD_TEXTUREID)
       return;
@@ -466,11 +462,13 @@ public:
 
     d3d::setview(l, t, w, h, minZ, maxZ);
   }
-  virtual void afterD3DReset(bool /*full_reset*/)
+  bool areCloudTexturesReady() override { return daSkies ? daSkies->isCloudsReady() : false; }
+  void afterD3DReset(bool /*full_reset*/) override
   {
     if (daSkies)
     {
       daSkies->reset();
+      daSkies->skiesDataScatteringVolumeBarriers(main_pov_data);
       reloadWeather();
     }
   }
@@ -556,11 +554,11 @@ public:
     int dd = 6, mm = 6, yy = 1944;
     if (stars)
     {
-      longitude = stars->getReal("longitude", 0.0f); // Moscow time!
-      latitude = stars->getReal("latitude", 21.3f);  // honolulu latitude. previous simul default
+      longitude = stars->getReal("longitude", longitude);
+      latitude = stars->getReal("latitude", latitude);
       yy = stars->getInt("year", yy);
       mm = stars->getInt("month", mm);
-      dd = stars->getInt("day", 6);
+      dd = stars->getInt("day", dd);
     }
 
     if (currentEnvironment && atof(currentEnvironment) > 0)
@@ -649,6 +647,8 @@ public:
     }
 
     ShaderGlobal::set_texture(postFxLutTexVarId, postFxLutTexId);
+
+    ShaderGlobal::set_vars_from_blk(levelBlkShaderVars);
   }
   void getColors()
   {

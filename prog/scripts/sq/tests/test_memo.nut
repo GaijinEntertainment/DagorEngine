@@ -1,7 +1,7 @@
-let { get_time_msec } = require("dagor.time")
-let {memoize} = require("%sqstd/functools.nut")
-let {Point2} = require("dagor.math")
-let {Watched, Computed} = require("%sqstd/frp.nut")
+from "dagor.time" import get_time_msec
+from "%sqstd/functools.nut" import memoize
+from "dagor.math" import Point2
+let { Watched, Computed } = require("%sqstd/frp.nut")
 let { log } = require("%sqstd/log.nut")()
 
 const N = 5000
@@ -88,4 +88,4 @@ bench(@(_) Watched(),"watched: ", false)
 
 println("")
 let v = Watched()
-bench(@(_) Computed(@() v.value ),"Computed: ", [false])
+bench(@(_) Computed(@() v.get() ),"Computed: ", [false])

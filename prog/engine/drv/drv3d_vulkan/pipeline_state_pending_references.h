@@ -11,27 +11,33 @@
 #include "pipeline_state.h"
 #include "frame_info.h"
 #include "memory_heap_resource.h"
+#if VULKAN_HAS_RAYTRACING
+#include "raytrace_as_resource.h"
+#endif
 
 namespace drv3d_vulkan
 {
 
 class PipelineStatePendingReferenceList
 {
-  eastl::vector<Image *> images;
-  eastl::vector<Buffer *> buffers;
-  eastl::vector<ProgramID> progs;
-  eastl::vector<RenderPassResource *> renderPasses;
-  eastl::vector<SamplerResource *> samplers;
-  eastl::vector<MemoryHeapResource *> memHeaps;
+  dag::Vector<Image *> images;
+  dag::Vector<Buffer *> buffers;
+  dag::Vector<ProgramID> progs;
+  dag::Vector<RenderPassResource *> renderPasses;
+  dag::Vector<SamplerResource *> samplers;
+  dag::Vector<MemoryHeapResource *> memHeaps;
+#if VULKAN_HAS_RAYTRACING
+  dag::Vector<RaytraceAccelerationStructure *> accelerationStructures;
+#endif
 
   template <typename T>
   void cleanupNonUsed(const PipelineState &front_state, const PipelineState &back_state)
   {
-    eastl::vector<T> &ref = getArray<T>();
+    dag::Vector<T> &ref = getArray<T>();
     if (ref.empty())
       return;
 
-    eastl::vector<T> copy = ref;
+    dag::Vector<T> copy = ref;
     ref.clear();
     for (T i : copy)
       if (front_state.isReferenced(i) || back_state.isReferenced(i))
@@ -43,7 +49,7 @@ class PipelineStatePendingReferenceList
   template <typename T>
   void shutdownArray()
   {
-    eastl::vector<T> &ref = getArray<T>();
+    dag::Vector<T> &ref = getArray<T>();
     if (ref.empty())
       return;
 
@@ -57,7 +63,7 @@ class PipelineStatePendingReferenceList
 
 public:
   template <typename T>
-  eastl::vector<T> &getArray();
+  dag::Vector<T> &getArray();
 
   void shutdown()
   {
@@ -66,6 +72,9 @@ public:
     shutdownArray<ProgramID>();
     shutdownArray<RenderPassResource *>();
     shutdownArray<MemoryHeapResource *>();
+#if VULKAN_HAS_RAYTRACING
+    shutdownArray<RaytraceAccelerationStructure *>();
+#endif
   }
 
   void cleanupAllNonUsed(const PipelineState &front_state, const PipelineState &back_state)
@@ -75,6 +84,9 @@ public:
     cleanupNonUsed<ProgramID>(front_state, back_state);
     cleanupNonUsed<RenderPassResource *>(front_state, back_state);
     cleanupNonUsed<MemoryHeapResource *>(front_state, back_state);
+#if VULKAN_HAS_RAYTRACING
+    cleanupNonUsed<RaytraceAccelerationStructure *>(front_state, back_state);
+#endif
   }
 
   template <typename T>

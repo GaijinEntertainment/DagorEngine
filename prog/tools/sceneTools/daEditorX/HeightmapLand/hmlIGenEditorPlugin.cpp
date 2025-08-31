@@ -86,6 +86,7 @@
 #include <propPanel/control/container.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/panelWindow.h>
+#include <landMesh/lmeshRenderer.h>
 #include <heightmap/heightmapHandler.h>
 #include "renderLandNormals.h"
 
@@ -149,7 +150,6 @@ public:
 } defaultHM;
 
 
-static bool ignoreEvents = true;
 static int transformZVarId = -1;
 static int znZfarVarId = -1;
 static int landTileVerticalTexVarId = -1;
@@ -158,6 +158,7 @@ static int landTileVerticalDetTexVarId = -1;
 
 static bool skipExportLtmap = false;
 static bool missing_tile_reported = false;
+static bool recreate_plugin = false;
 
 static void setZTransformPersp(float zn, float zf)
 {
@@ -269,34 +270,36 @@ void HmapLandPlugin::unregistered()
   hmlService->destroyLandMeshRenderer(landMeshRenderer);
   hmlService->destroyLandMeshManager(landMeshManager);
 
-  heightMap.closeFile();
-  landClsMap.closeFile();
-  colorMap.closeFile();
-  lightMapScaled.closeFile();
-  waterHeightmapDet.closeFile();
-  waterHeightmapMain.closeFile();
+  heightMap.closeFile(true);
+  heightMapDet.closeFile(true);
+  landClsMap.closeFile(true);
+  colorMap.closeFile(true);
+  lightMapScaled.closeFile(true);
+  waterHeightmapDet.closeFile(true);
+  waterHeightmapMain.closeFile(true);
 
   if (detTexIdxMap)
-    detTexIdxMap->closeFile();
+    detTexIdxMap->closeFile(true);
   if (detTexWtMap)
-    detTexWtMap->closeFile();
+    detTexWtMap->closeFile(true);
 
   for (int i = 0; i < brushes.size(); ++i)
     del_it(brushes[i]);
 
+  releaseVertTexRef();
   clear_and_shrink(brushes);
   objEd.unloadRoadBuilderDll();
 
   self = NULL;
 }
 
-void HmapLandPlugin::loadSettings(const DataBlock &global_settings)
+void HmapLandPlugin::loadSettings(const DataBlock &global_settings, const DataBlock &per_app_settings)
 {
   objEd.loadPropPanelSettings(*global_settings.getBlockByNameEx("obj_prop"));
   objEd.loadOutlinerSettings(*global_settings.getBlockByNameEx("outliner"));
 }
 
-void HmapLandPlugin::saveSettings(DataBlock &global_settings)
+void HmapLandPlugin::saveSettings(DataBlock &global_settings, DataBlock &per_app_settings)
 {
   objEd.savePropPanelSettings(*global_settings.addNewBlock("obj_prop"));
   objEd.saveOutlinerSettings(*global_settings.addNewBlock("outliner"));
@@ -428,7 +431,7 @@ void *HmapLandPlugin::onWmCreateWindow(int type)
       if (propPanel->getPanelWindow())
         return nullptr;
 
-      PropPanel::PanelWindowPropertyControl *_panel_window = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
+      PropPanel::PanelWindowPropertyControl *_panel_window = IEditorCoreEngine::get()->createPropPanel(this, "Landscape properties");
       if (_panel_window)
       {
         propPanel->setPanelWindow(_panel_window);
@@ -512,7 +515,7 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
   {
   public:
     LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
-    virtual bool resolveIncludeFile(String &inout_fname)
+    bool resolveIncludeFile(String &inout_fname) override
     {
       String fn;
       for (int i = 0; i < prefix.size(); i++)
@@ -561,11 +564,15 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
       levelBlkFName = fpath;
       break;
     }
-    else
+    debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
+    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    if (dd_file_exists(fpath) && level_blk.load(fpath))
     {
-      debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
-      prefix_tried++;
+      loaded = true;
+      levelBlkFName = fpath;
+      break;
     }
+    prefix_tried++;
   }
 
   if (!loaded)
@@ -602,6 +609,35 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
   return loaded;
 }
 
+void HmapLandPlugin::initWaterSurface()
+{
+  if (!waterProjectedFxSrv)
+    waterProjectedFxSrv = DAGORED2->queryEditorInterface<IWaterProjFxService>();
+
+  if (!waterService)
+  {
+    waterService = DAGORED2->queryEditorInterface<IWaterService>();
+    if (waterService)
+      waterService->loadSettings(DataBlock());
+  }
+
+  if (waterService)
+  {
+    bool has_water = hasWaterSurf();
+
+    for (int i = 0; i < objEd.objectCount(); i++)
+      if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
+        if (o->isPoly() && o->polyGeom.altGeom)
+          has_water = true;
+
+    if (!has_water && !levelBlk.getBool("water", false))
+      if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_waterSurf"))
+        p->setVisible(false);
+
+    updateWaterSettings(levelBlk);
+  }
+}
+
 void HmapLandPlugin::updateWaterSettings(const DataBlock &level_blk)
 {
   if (!waterService)
@@ -633,6 +669,7 @@ void HmapLandPlugin::rebuildLandmeshDump()
   lmDump = NULL;
 
   mkbindump::BinDumpSaveCB cwr(32 << 20, _MAKE4C('PC'), false);
+  cwr.setFastBuildFlag(true);
   if (!exportLandMesh(cwr, NULL, NULL, true))
     DAEDITOR3.conError("exportLandMesh failed");
   else
@@ -707,10 +744,6 @@ void HmapLandPlugin::delayedResetRenderer()
     render.canyonHorTile = 1;
   if (!float_nonzero(render.canyonVertTile))
     render.canyonVertTile = 1;
-  if (render.holesLod < 0)
-    render.holesLod = 0;
-  if (render.holesLod > render.numLods)
-    render.holesLod = render.numLods;
 
   String fn;
   if (heightMap.isFileOpened())
@@ -739,6 +772,8 @@ void HmapLandPlugin::delayedResetRenderer()
 
   if (loadLevelSettingsBlk(levelBlk))
   {
+    if (ISkiesService *skiesSrv = DAGORED2->queryEditorInterface<ISkiesService>())
+      skiesSrv->overrideShaderVarsFromLevelBlk(levelBlk.getBlockByName("shader_vars"));
     dagGeom->shaderGlobalSetVarsFromBlk(*levelBlk.getBlockByNameEx("shader_vars"));
     loadGPUGrassFromBlk(levelBlk);
     loadGrassFromBlk(levelBlk);
@@ -855,32 +890,7 @@ void HmapLandPlugin::delayedResetRenderer()
       }
     }
 
-    if (!waterProjectedFxSrv)
-      waterProjectedFxSrv = DAGORED2->queryEditorInterface<IWaterProjFxService>();
-
-
-    if (!waterService)
-    {
-      waterService = DAGORED2->queryEditorInterface<IWaterService>();
-      if (waterService)
-        waterService->loadSettings(DataBlock());
-    }
-
-    if (waterService)
-    {
-      bool has_water = hasWaterSurf();
-
-      for (int i = 0; i < objEd.objectCount(); i++)
-        if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
-          if (o->isPoly() && o->polyGeom.altGeom)
-            has_water = true;
-
-      if (!has_water)
-        if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_waterSurf"))
-          p->setVisible(false);
-
-      updateWaterSettings(levelBlk);
-    }
+    initWaterSurface();
 
     hmlService->updatePropertiesFromLevelBlk(levelBlk);
 
@@ -889,6 +899,8 @@ void HmapLandPlugin::delayedResetRenderer()
     refillTexCache();
     updateVertTex();
   }
+  else if (levelBlk.getBool("water", false))
+    initWaterSurface();
 
   if (heightMap.isFileOpened())
   {
@@ -930,6 +942,8 @@ void HmapLandPlugin::delayedResetRenderer()
     dagRender->acquireManagedTex(lightmapTexId);
 
     dagGeom->shaderGlobalSetTexture(dagGeom->getShaderVariableId("lightmap_tex"), lightmapTexId);
+    dagGeom->shaderGlobalSetSampler(dagGeom->getShaderVariableId("lightmap_tex_samplerstate"),
+      dagGeom->getSeparateSampler(lightmapTexId));
 
     if (getNumCellsX() > 0)
     {
@@ -1750,7 +1764,7 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
     cwr.writeFloat32e(detDivisor ? detRect[0].y : 0);
     cwr.writeFloat32e(detDivisor ? gridCellSize / detDivisor : 0);
 
-    mkbindump::BinDumpSaveCB cwr_pm(2 << 10, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB cwr_pm(2 << 10, cwr);
 
     TreeBitmapNode physMapParent;
     physMapParent.create(physMap, IPoint2(physMap_w, physMap_h));
@@ -1899,7 +1913,7 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
       }
       else
       {
-        DAEDITOR3.conError("Unsuported texture '%s' used in decal for PhysMap, only tga's or tiff's supported",
+        DAEDITOR3.conError("Unsupported texture '%s' used in decal for PhysMap, only tga's or tiff's supported",
           textureNames.getName(i));
         if (fname)
           DAEDITOR3.conError("Texture was tried to be loaded from '%s'", fname);
@@ -2156,13 +2170,13 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
       Tab<mkbindump::BinDumpSaveCB *> cwr_chunk;
       cwr_chunk.resize(exp_chunk_cnt);
       for (unsigned i = 0; i < exp_chunk_cnt; i++)
-        cwr_chunk[i] = new mkbindump::BinDumpSaveCB(64 << 10, cwr.getTarget(), cwr.WRITE_BE);
+        cwr_chunk[i] = new mkbindump::BinDumpSaveCB(64 << 10, cwr);
 
       unsigned written_raw_data_sz = 0;
       if (exp_chunk_cnt)
         threadpool::init(min(cpujobs::get_physical_core_count(), 4), exp_chunk_cnt, 256 << 10);
       threadpool::parallel_for_inline(0, exp_chunk_cnt + 1, 1, [&](uint32_t begin, uint32_t, uint32_t) {
-        mkbindump::BinDumpSaveCB cwr_hm(16 << 10, cwr.getTarget(), cwr.WRITE_BE);
+        mkbindump::BinDumpSaveCB cwr_hm(16 << 10, cwr);
         if (exp_ver == HmapVersion::HMAP_CBLOCK_DELTAC_VER)
         {
           unsigned b0 = 0, b1 = c_hmap.bw * c_hmap.bh;
@@ -2449,51 +2463,16 @@ void HmapLandPlugin::writeAddLtinputData(IGenSave &cwr)
   class BlankTextureRemap : public ITextureNumerator
   {
   public:
-    virtual int addTextureName(const char *fname) { return -1; }
-    virtual int addDDSxTexture(const char *fname, ddsx::Buffer &b) { return -1; }
-    virtual int getTextureOrdinal(const char *fname) const { return -1; }
-    virtual int getTargetCode() const { return _MAKE4C('PC'); }
+    int addTextureName(const char *fname) override { return -1; }
+    int addDDSxTexture(const char *fname, ddsx::Buffer &b) override { return -1; }
+    int getTextureOrdinal(const char *fname) const override { return -1; }
+    int getTargetCode() const override { return _MAKE4C('PC'); }
   };
 
   BlankTextureRemap temp;
   mkbindump::BinDumpSaveCB bdcwr(128 << 20, _MAKE4C('PC'), false);
   buildAndWrite(bdcwr, temp, NULL);
   bdcwr.copyDataTo(cwr);
-}
-// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
-
-
-void HmapLandPlugin::requestHeightmapData(int x0, int y0, int step, int x_size, int y_size) {}
-
-bool HmapLandPlugin::isLandPreloadRequestComplete() { return true; }
-
-
-void HmapLandPlugin::getHeightmapData(int x0, int y0, int step, int x_size, int y_size, real *data, int stride_bytes)
-{
-  char *ptr = (char *)data;
-  /*
-  if (exportType == EXPORT_PSEUDO_PLANE)
-  {
-    float y0 = 0; //heightMap.heightOffset;
-    for (int y=0, yc=y0; y<y_size; ++y, yc+=step)
-      for (int x=0, xc=x0; x<x_size; ++x, xc+=step, ptr+=stride_bytes)
-        *(real*)ptr=y0;
-    return;
-  }
-  */
-
-  if (render.showFinalHM)
-  {
-    for (int y = 0, yc = y0; y < y_size; ++y, yc += step)
-      for (int x = 0, xc = x0; x < x_size; ++x, xc += step, ptr += stride_bytes)
-        *(real *)ptr = heightMap.getFinalData(xc, yc);
-  }
-  else
-  {
-    for (int y = 0, yc = y0; y < y_size; ++y, yc += step)
-      for (int x = 0, xc = x0; x < x_size; ++x, xc += step, ptr += stride_bytes)
-        *(real *)ptr = heightMap.getInitialData(xc, yc);
-  }
 }
 
 BBox3 HmapLandPlugin::getBBoxWithHMapWBBox() const
@@ -2502,6 +2481,14 @@ BBox3 HmapLandPlugin::getBBoxWithHMapWBBox() const
     return BBox3();
 
   return hmlService->getBBoxWithHMapWBBox(*landMeshManager);
+}
+
+bool HmapLandPlugin::isLandmeshRenderingMode() const
+{
+  if (!landMeshRenderer)
+    return true;
+
+  return landMeshRenderer->getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_LANDMESH;
 }
 
 
@@ -2718,6 +2705,47 @@ static __forceinline unsigned convert_argb4_to_argb8(unsigned a)
          (convert_4bit_to8bit(a >> 12) << 24);
 }
 
+static __forceinline unsigned interpolate_colors(unsigned src_c1, unsigned src_c2)
+{
+  unsigned result = 0;
+  // bitwise interpolation, as we use ARGB4 format
+  unsigned mask = 0xF;
+  for (int i = 0; i < 32; i += 4)
+  {
+    unsigned v1 = (src_c1 & mask) >> 1;
+    unsigned v2 = (src_c2 & mask) >> 1;
+
+    result |= (v1 + v2) & mask;
+    mask = mask << 4;
+  }
+  return result;
+}
+
+void HmapLandPlugin::readLandDetailTexturePixel(unsigned &ret_u, unsigned &ret_u2, int xc, int yc, dag::ConstSpan<uint8_t> type_remap)
+{
+  uint64_t p_wt = detTexWtMap->getData(xc, yc);
+  uint64_t p_idx = detTexIdxMap->getData(xc, yc);
+  unsigned u = 0, u2 = 0xFF000000;
+
+  for (int i = 0; i < 8; i++, p_wt >>= 8, p_idx >>= 8)
+    if (p_wt)
+    {
+      int idx = type_remap[int(p_idx & 0xFF)];
+      if (idx == 0xFF)
+        continue;
+      if (idx < 3)
+        u |= ((p_wt >> 4) & 0xF) << (8 - idx * 4);
+      else if (idx == 3)
+        u |= (p_wt & 0xF0) << 8;
+      else if (idx < 6)
+        u2 |= (p_wt & 0xFF) << (16 - (idx - 4) * 8);
+    }
+    else
+      break;
+  ret_u = u;
+  ret_u2 = u2;
+}
+
 int HmapLandPlugin::loadLandDetailTexture(unsigned targetCode, int x0, int y0, char *tex1, int stride, char *tex2, int stride2,
   carray<uint8_t, LMAX_DET_TEX_NUM> &detail_tex_ids, bool *done_mark, int det_size, int det_elem_size, bool tex1_rgba, bool tex2_rgba)
 {
@@ -2767,27 +2795,54 @@ int HmapLandPlugin::loadLandDetailTexture(unsigned targetCode, int x0, int y0, c
     TexPixel32 *p2 = pix2DataPtr;
 
     for (int yc = y0, yce = yc + texDataSize; yc < yce; yc++, p += add_step1, p2 += add_step2)
+    {
+      int yOfs = 0;
+      if (yc == y0 && y0 > 0)
+        yOfs = -1;
+      if (yc == yce - 1)
+        yOfs = 1;
+
       for (int xc = x0, xce = xc + texDataSize; xc < xce; xc++, p++, p2++)
       {
-        uint64_t p_wt = detTexWtMap->getData(xc, yc);
-        uint64_t p_idx = detTexIdxMap->getData(xc, yc);
-        unsigned u = 0, u2 = 0xFF000000;
+        int xOfs = 0;
+        if (xc == x0 && x0 > 0)
+          xOfs = -1;
+        if (xc == xce - 1)
+          xOfs = 1;
 
-        for (int i = 0; i < 8; i++, p_wt >>= 8, p_idx >>= 8)
-          if (p_wt)
-          {
-            int idx = typeRemap[int(p_idx & 0xFF)];
-            if (idx == 0xFF)
-              continue;
-            if (idx < 3)
-              u |= ((p_wt >> 4) & 0xF) << (8 - idx * 4);
-            else if (idx == 3)
-              u |= (p_wt & 0xF0) << 8;
-            else if (idx < 6)
-              u2 |= (p_wt & 0xFF) << (16 - (idx - 4) * 8);
-          }
-          else
-            break;
+        unsigned u = 0, u2 = 0xFF000000;
+        readLandDetailTexturePixel(u, u2, xc, yc, make_span(typeRemap));
+
+        // if we are on border of cell, read adjacent pixels in interpolate colors between them
+        // for fixing visible borders between cells (color not interpolate between different textures)
+        // TODO: do real fix for problem and include bordering pixels to this texture
+        if (yOfs != 0 && xOfs != 0)
+        {
+          unsigned u_1 = 0, u2_1 = 0xFF000000;
+          readLandDetailTexturePixel(u_1, u2_1, xc + xOfs, yc + yOfs, make_span(typeRemap));
+          unsigned u_2 = 0, u2_2 = 0xFF000000;
+          readLandDetailTexturePixel(u_2, u2_2, xc + xOfs, yc, make_span(typeRemap));
+          unsigned u_3 = 0, u2_3 = 0xFF000000;
+          readLandDetailTexturePixel(u_3, u2_3, xc, yc + yOfs, make_span(typeRemap));
+          // blend all 4 pixels
+          u = interpolate_colors(interpolate_colors(u, u_1), interpolate_colors(u_2, u_3));
+          u2 = interpolate_colors(interpolate_colors(u2, u2_1), interpolate_colors(u2_2, u2_3));
+        }
+        else if (yOfs != 0)
+        {
+          unsigned u_1 = 0, u2_1 = 0xFF000000;
+          readLandDetailTexturePixel(u_1, u2_1, xc, yc + yOfs, make_span(typeRemap));
+          u = interpolate_colors(u, u_1);
+          u2 = interpolate_colors(u2, u2_1);
+        }
+        else if (xOfs != 0)
+        {
+          unsigned u_1 = 0, u2_1 = 0xFF000000;
+          readLandDetailTexturePixel(u_1, u2_1, xc + xOfs, yc, make_span(typeRemap));
+          u = interpolate_colors(u, u_1);
+          u2 = interpolate_colors(u2, u2_1);
+        }
+
         if (tex1_rgba)
         {
           *(unsigned *)p = convert_argb4_to_argb8(u); //-V1032
@@ -2798,6 +2853,7 @@ int HmapLandPlugin::loadLandDetailTexture(unsigned targetCode, int x0, int y0, c
         if (tex2)
           p2->u = u2;
       }
+    }
     G_ASSERT((char *)p <= tex1 + stride * texSize);
     G_ASSERT(!tex2 || (char *)p2 <= ((char *)pix2DataPtr) + pix2DataPtrStride * texSize);
   }
@@ -2871,102 +2927,6 @@ int HmapLandPlugin::loadLandDetailTexture(unsigned targetCode, int x0, int y0, c
       dxtCvt, texSize);
 
   *done_mark = true;
-  return typesUsed;
-}
-
-static const int MAX_DETAILS_PER_QUAD = 64;
-struct QuadData
-{
-  uint8_t *data;
-  int w, h;
-
-  QuadData() : data(NULL), w(0), h(0) {}
-  ~QuadData()
-  {
-    if (data)
-      memfree_anywhere(data);
-  }
-};
-class UpdateRawTextures
-{
-public:
-  Texture *texture[256];
-  bool textureLocked[256];
-  uint8_t *textureData[256];
-  int textureStride[256];
-  uint8_t lockedTextures[256];
-  int lockedTexturesCnt;
-  int wd, ht;
-  UpdateRawTextures(int w, int h) : wd(w), ht(h)
-  {
-    memset(texture, 0, sizeof(texture));
-    memset(textureLocked, 0, sizeof(textureLocked));
-    memset(textureData, 0, sizeof(textureData));
-    memset(textureStride, 0, sizeof(textureStride));
-    memset(lockedTextures, 0, sizeof(lockedTextures));
-    lockedTexturesCnt = 0;
-  }
-  void startUpdateData(int x0, int y0, int x1, int y1) { G_ASSERT(lockedTexturesCnt == 0); }
-
-  void updateData(uint8_t texId, int x, int y, uint8_t val)
-  {
-    if (!textureLocked[texId])
-    {
-      if (!texture[texId])
-        texture[texId] = d3d::create_tex(NULL, wd, ht, TEXFMT_L8 | TEXCF_READABLE | TEXCF_DYNAMIC, 1, "blueWhite");
-      G_ASSERT(texture[texId]);
-      unsigned texLockFlags = TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_NOSYSLOCK | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK;
-      if (texture[texId]->lockimg((void **)&textureData[texId], textureStride[texId], 0, texLockFlags))
-      {
-        textureLocked[texId] = true;
-        lockedTextures[lockedTexturesCnt] = texId;
-        lockedTexturesCnt++;
-      }
-    }
-    if (!textureLocked[texId])
-      return;
-    textureData[texId][clamp(x, 0, wd - 1) + clamp(y, 0, ht - 1) * textureStride[texId]] = val;
-  }
-  void endUpdateData(uint8_t texId, int x, int y, uint8_t val)
-  {
-    for (int i = 0; i < lockedTexturesCnt; ++i)
-    {
-      int texId = lockedTextures[i];
-      G_ASSERT(textureLocked[texId]);
-      if (textureLocked[texId])
-      {
-        texture[texId]->unlockimg();
-        textureLocked[texId] = false;
-      }
-    }
-    lockedTexturesCnt = 0;
-  }
-};
-
-template <class UpdateLC>
-int HmapLandPlugin::updateLandclassWeight(int x0, int y0, int x1, int y1, UpdateLC &update_cb)
-{
-  G_ASSERT(detTexWtMap)
-  update_cb.startUpdateData(x0, y0, x1, y1);
-  int w = y1 - y0 + 1, h = x1 - x0 + 1;
-  for (int yc = y0; yc <= y1; yc++)
-    for (int xc = x0; xc <= x1; xc++)
-    {
-      uint64_t p_wt = detTexWtMap->getData(xc, yc);
-      uint64_t p_idx = detTexIdxMap->getData(xc, yc);
-      unsigned u = 0, u2 = 0xFF000000;
-
-      for (int i = 0; i < 8; i++, p_wt >>= 8, p_idx >>= 8)
-        if (p_wt)
-        {
-          int idx = int(p_idx & 0xFF);
-          update_cb.updateData(idx, xc, yc, uint8_t(p_wt & 0xFF));
-        }
-        else
-          break;
-    }
-  update_cb.endUpdateData();
-
   return typesUsed;
 }
 
@@ -3062,7 +3022,7 @@ void HmapLandPlugin::createHeightmap()
   public:
     CreateHeightmapEventHandler(HmapLandPlugin *plugin) : mPlugin(plugin) {}
 
-    void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+    void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
     {
       Point2 p2;
 
@@ -3278,9 +3238,9 @@ void HmapLandPlugin::importHeightmap()
           panel.createEditFloat(ID_HEIGHT_RANGE, "Height range:", heightRange);
         }
 
-        ~HmapImportSizeDlg() { del_it(mDialog); }
+        ~HmapImportSizeDlg() override { del_it(mDialog); }
 
-        virtual bool execute()
+        bool execute()
         {
           int ret = mDialog->showDialog();
 
@@ -4716,8 +4676,6 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
     dd_erase(DAGORED2->getPluginFilePath(HmapLandPlugin::self, "delaunayGen.cache.bin"));
   }
 
-  ignoreEvents = true;
-
   lastHmapImportPath = local_data.getStr("lastHmapImportPath", lastHmapImportPath);
   LD_LOCAL_VAR(lastHmapImportPathMain, Str);
   LD_LOCAL_VAR(lastChangeMain.size, Int64);
@@ -4767,6 +4725,8 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   meshCells = blk.getInt("meshCells", meshCells);
   meshErrorThreshold = blk.getReal("meshErrorThreshold", meshErrorThreshold);
   numMeshVertices = blk.getInt("numMeshVertices", numMeshVertices);
+  riMaxCellSz = blk.getReal("riMaxCellSz", riMaxCellSz);
+  riMaxGenLayerCellDivisor = blk.getInt("riMaxGenLayerCellDiv", riMaxGenLayerCellDivisor);
 
   lod1TrisDensity = blk.getInt("lod1TrisDensity", -1);
   if (lod1TrisDensity < 0)
@@ -4971,6 +4931,11 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   loadMapFile(heightMap.getInitialMap(), HEIGHTMAP_FILENAME, con);
   heightMap.resetFinal();
 
+  if (hmlService->getHmapUpscale() > 1)
+  {
+    upscaleHeightMap(con);
+  }
+
   if (detDivisor)
   {
     loadMapFile(heightMapDet.getInitialMap(), "det-" HEIGHTMAP_FILENAME, con);
@@ -5133,10 +5098,14 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
 
 void HmapLandPlugin::beforeMainLoop()
 {
-  ignoreEvents = false;
   applyHmModifiers(false, true, false);
   updateHeightMapTex(false);
   updateHeightMapTex(true);
+
+  if (!loadLevelSettingsBlk(levelBlk))
+    levelBlk.reset();
+  else if (!waterService && levelBlk.getBool("water", false))
+    initWaterSurface();
 
   if (useMeshSurface && exportType != EXPORT_PSEUDO_PLANE && landMeshMap.isEmpty()) // Before entities to place them correctly.
   {
@@ -5235,6 +5204,258 @@ void HmapLandPlugin::createHeightmapFile(CoolConsole &con)
     waterMaskScale = 1;
   }
   applyHmModifiers(false);
+}
+
+void HmapLandPlugin::upscaleHeightMap(CoolConsole &con)
+{
+  int hmapUpscale = hmlService->getHmapUpscale();
+  int hmapUpscaleAlgo = hmlService->getHmapUpscaleAlgo(); // BICUBIC / LANCZOS / HERMITE
+  int srcW = heightMap.getMapSizeX();
+  int srcH = heightMap.getMapSizeY();
+  int dstW = srcW * hmapUpscale;
+  int dstH = srcH * hmapUpscale;
+  dag::Vector<float> srcData(srcW * srcH);
+
+  MapStorage<float> &initialMap = heightMap.getInitialMap();
+  for (int y = 0; y < srcH; ++y)
+  {
+    for (int x = 0; x < srcW; ++x)
+    {
+      srcData[y * srcW + x] = initialMap.getData(x, y);
+    }
+  }
+
+  heightMap.getInitialMap().reset(dstW, dstH, 0);
+  heightMap.resetFinal();
+  createMapFile(heightMap.getInitialMap(), HEIGHTMAP_FILENAME, con);
+
+  auto ClampI = [](int v, int lo, int hi) -> int { return max(lo, min(v, hi)); };
+
+  auto CubicInterpolate = [](float v0, float v1, float v2, float v3, float t) -> float {
+    float a0 = v3 - v2 - v0 + v1;
+    float a1 = v0 - v1 - a0;
+    float a2 = v2 - v0;
+    float a3 = v1;
+    return ((a0 * t + a1) * t + a2) * t + a3;
+  };
+
+  auto steffenSlope = [](float ym1, float y0, float y1) -> float {
+    float d0 = y0 - ym1, d1 = y1 - y0;
+    if (d0 == 0.f || d1 == 0.f || (d0 > 0 && d1 < 0) || (d0 < 0 && d1 > 0))
+      return 0.f;
+    float s = d0 > 0 ? 1.f : -1.f;
+    float a = min(abs(d0), abs(d1));
+    float b = 0.5f * (abs(d0) + abs(d1));
+    return s * min(a, b);
+  };
+  auto hermite = [](float t, float y0, float y1, float m0, float m1) -> float {
+    float t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * m1;
+  };
+
+  auto Lanczos3 = [&](float t) -> float {
+    t = fabsf(t);
+    const int a = 3;
+    if (t == 0.f)
+      return 1.f;
+    if (t >= float(a))
+      return 0.f;
+    float pix = M_PI * t;
+    return (a * sinf(pix) * sinf(pix / a)) / (pix * pix);
+  };
+
+  switch (hmapUpscaleAlgo)
+  {
+    default:
+    case 0: // BICUBIC
+    {
+      for (int y = 0; y < dstH; ++y)
+      {
+        float srcYf = float(y) / float(hmapUpscale);
+        int srcY = int(srcYf);
+        float yLerp = srcYf - srcY;
+
+        int yIndices[4] = {
+          ClampI(srcY - 1, 0, srcH - 1), ClampI(srcY, 0, srcH - 1), ClampI(srcY + 1, 0, srcH - 1), ClampI(srcY + 2, 0, srcH - 1)};
+
+        for (int x = 0; x < dstW; ++x)
+        {
+          float srcXf = float(x) / float(hmapUpscale);
+          int srcX = int(srcXf);
+          float xLerp = srcXf - srcX;
+
+          int xIndices[4] = {
+            ClampI(srcX - 1, 0, srcW - 1), ClampI(srcX, 0, srcW - 1), ClampI(srcX + 1, 0, srcW - 1), ClampI(srcX + 2, 0, srcW - 1)};
+
+          float row[4];
+          for (int i = 0; i < 4; ++i)
+          {
+            float p0 = srcData[yIndices[i] * srcW + xIndices[0]];
+            float p1 = srcData[yIndices[i] * srcW + xIndices[1]];
+            float p2 = srcData[yIndices[i] * srcW + xIndices[2]];
+            float p3 = srcData[yIndices[i] * srcW + xIndices[3]];
+            row[i] = CubicInterpolate(p0, p1, p2, p3, xLerp);
+          }
+
+          float value = CubicInterpolate(row[0], row[1], row[2], row[3], yLerp);
+          initialMap.setData(x, y, value);
+        }
+      }
+    }
+    break;
+
+    case 1: // Lanczos-3 (separable, 6 taps)
+    {
+      dag::Vector<float> tmp(dstW * srcH);
+
+      for (int y = 0; y < srcH; ++y)
+      {
+        for (int x = 0; x < dstW; ++x)
+        {
+          float srcXf = float(x) / float(hmapUpscale);
+          int i0 = int(floorf(srcXf)) - 2; // 2*a-1 = 5, a=3
+          float sum = 0.f, wsum = 0.f;
+          for (int i = 0; i < 6; ++i)
+          {
+            int sx = ClampI(i0 + i, 0, srcW - 1);
+            float w = Lanczos3(srcXf - float(i0 + i));
+            sum += srcData[y * srcW + sx] * w;
+            wsum += w;
+          }
+          tmp[y * dstW + x] = (wsum != 0.f) ? (sum / wsum) : sum;
+        }
+      }
+
+      for (int y = 0; y < dstH; ++y)
+      {
+        float srcYf = float(y) / float(hmapUpscale);
+        int i0 = int(floorf(srcYf)) - 2;
+        for (int x = 0; x < dstW; ++x)
+        {
+          float sum = 0.f, wsum = 0.f;
+          for (int i = 0; i < 6; ++i)
+          {
+            int sy = ClampI(i0 + i, 0, srcH - 1);
+            float w = Lanczos3(srcYf - float(i0 + i));
+            sum += tmp[sy * dstW + x] * w;
+            wsum += w;
+          }
+          float v = (wsum != 0.f) ? (sum / wsum) : sum;
+          initialMap.setData(x, y, v);
+        }
+      }
+    }
+    break;
+
+    case 2: // Steffen–Hermite + unsharp
+    {
+      dag::Vector<float> dstData(dstW * dstH);
+
+      // monotonic upscale
+      for (int y = 0; y < dstH; ++y)
+      {
+        float srcYf = float(y) / float(hmapUpscale);
+        int srcY = int(srcYf);
+        float yLerp = srcYf - srcY;
+
+        int yIdx[4] = {
+          ClampI(srcY - 1, 0, srcH - 1), ClampI(srcY, 0, srcH - 1), ClampI(srcY + 1, 0, srcH - 1), ClampI(srcY + 2, 0, srcH - 1)};
+
+        for (int x = 0; x < dstW; ++x)
+        {
+          float srcXf = float(x) / float(hmapUpscale);
+          int srcX = int(srcXf);
+          float xLerp = srcXf - srcX;
+
+          int xIdx[4] = {
+            ClampI(srcX - 1, 0, srcW - 1), ClampI(srcX, 0, srcW - 1), ClampI(srcX + 1, 0, srcW - 1), ClampI(srcX + 2, 0, srcW - 1)};
+
+          float row[4];
+          for (int i = 0; i < 4; ++i)
+          {
+            const float v_m1 = srcData[yIdx[i] * srcW + xIdx[0]];
+            const float v0 = srcData[yIdx[i] * srcW + xIdx[1]];
+            const float v1 = srcData[yIdx[i] * srcW + xIdx[2]];
+            const float v2 = srcData[yIdx[i] * srcW + xIdx[3]];
+
+            float m0 = steffenSlope(v_m1, v0, v1);
+            float m1 = steffenSlope(v0, v1, v2);
+
+            row[i] = hermite(xLerp, v0, v1, m0, m1);
+          }
+
+          float my0 = steffenSlope(row[0], row[1], row[2]);
+          float my1 = steffenSlope(row[1], row[2], row[3]);
+          float v = hermite(yLerp, row[1], row[2], my0, my1);
+
+          dstData[y * dstW + x] = v;
+        }
+      }
+
+      dag::Vector<float> tmp(dstW * dstH), blur(dstW * dstH);
+
+      for (int y = 0; y < dstH; ++y)
+      {
+        for (int x = 0; x < dstW; ++x)
+        {
+          int xl = ClampI(x - 1, 0, dstW - 1);
+          int xr = ClampI(x + 1, 0, dstW - 1);
+          tmp[y * dstW + x] = (dstData[y * dstW + xl] + 2.f * dstData[y * dstW + x] + dstData[y * dstW + xr]) * 0.25f;
+        }
+      }
+
+      for (int y = 0; y < dstH; ++y)
+      {
+        int yu = ClampI(y - 1, 0, dstH - 1);
+        int yd = ClampI(y + 1, 0, dstH - 1);
+        for (int x = 0; x < dstW; ++x)
+        {
+          blur[y * dstW + x] = (tmp[yu * dstW + x] + 2.f * tmp[y * dstW + x] + tmp[yd * dstW + x]) * 0.25f;
+        }
+      }
+
+      const float alpha = 0.08f; // 0.05..0.12
+      for (int y = 0; y < dstH; ++y)
+      {
+        float srcYf = float(y) / float(hmapUpscale);
+        int srcY = int(srcYf);
+        int yIdx[4] = {
+          ClampI(srcY - 1, 0, srcH - 1), ClampI(srcY, 0, srcH - 1), ClampI(srcY + 1, 0, srcH - 1), ClampI(srcY + 2, 0, srcH - 1)};
+
+        for (int x = 0; x < dstW; ++x)
+        {
+          float srcXf = float(x) / float(hmapUpscale);
+          int srcX = int(srcXf);
+          int xIdx[4] = {
+            ClampI(srcX - 1, 0, srcW - 1), ClampI(srcX, 0, srcW - 1), ClampI(srcX + 1, 0, srcW - 1), ClampI(srcX + 2, 0, srcW - 1)};
+
+          float val = dstData[y * dstW + x] * (1.f + alpha) - blur[y * dstW + x] * alpha;
+
+          float nmin = 1e30f, nmax = -1e30f;
+          for (int yy = 0; yy < 4; ++yy)
+            for (int xx = 0; xx < 4; ++xx)
+            {
+              float s = srcData[yIdx[yy] * srcW + xIdx[xx]];
+              if (s < nmin)
+                nmin = s;
+              if (s > nmax)
+                nmax = s;
+            }
+          if (val < nmin)
+            val = nmin;
+          if (val > nmax)
+            val = nmax;
+
+          initialMap.setData(x, y, val);
+        }
+      }
+    }
+    break;
+  }
+
+  gridCellSize /= hmapUpscale;
+
+  heightMap.flushData();
 }
 
 void HmapLandPlugin::createWaterHmapFile(CoolConsole &con, bool det)
@@ -5343,7 +5564,6 @@ void HmapLandPlugin::updateHeightMapTex(bool det_hmap, const IBBox2 *dirty_box)
     debug("updateHeightMapTex(%d): tex=%p %dx%d", det_hmap, tex, dmsz_x, dmsz_y);
     if (tex)
     {
-      tex->texaddr(TEXADDR_CLAMP); //== we render finite HMAP! (det_hmap ? TEXADDR_CLAMP : TEXADDR_MIRROR);
       texId = dagRender->registerManagedTex(det_hmap ? "!hmapDet" : "!hmapMain", tex);
     }
   }
@@ -5355,11 +5575,10 @@ void HmapLandPlugin::updateHeightMapTex(bool det_hmap, const IBBox2 *dirty_box)
   }
 
   // fill HMAP texture
-  unsigned texLockFlags = TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK;
   float *imgPtr;
   int stride;
 
-  if (tex->lockimgEx(&imgPtr, stride, 0, texLockFlags))
+  if (tex->lockimgEx(&imgPtr, stride, 0, TEXLOCK_READWRITE))
   {
     imgPtr += stride / sizeof(*imgPtr) * y0;
     if (render.showFinalHM)
@@ -5540,6 +5759,8 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
   blk.setInt("lod1TrisDensity", lod1TrisDensity);
   blk.setReal("importanceMaskScale", importanceMaskScale);
   blk.setBool("geomLoftBelowAll", geomLoftBelowAll);
+  blk.setReal("riMaxCellSz", riMaxCellSz);
+  blk.setInt("riMaxGenLayerCellDiv", riMaxGenLayerCellDivisor);
 
   blk.setBool("hasWaterSurface", hasWaterSurface);
   blk.setStr("waterMatAsset", waterMatAsset);
@@ -5687,7 +5908,6 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
   renderBlk.setReal("canyonVertTile", render.canyonVertTile);
   renderBlk.setReal("canyonAngle", render.canyonAngle);
   renderBlk.setReal("canyonFadeAngle", render.canyonFadeAngle);
-  renderBlk.setInt("holesLod", render.holesLod);
   renderBlk.setInt("showFinalHM", render.showFinalHM);
   renderBlk.setE3dcolor("monoLand", monochromeLandCol);
 
@@ -5875,6 +6095,8 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
       wingw::message_box(wingw::MBS_EXCL, "Tile offset changed", text);
   #endif*/
 
+  objEd.saveOutlinerState();
+
   con.endLog();
   if (strcmp(origBasePath, base_path) != 0)
     origBasePath = base_path;
@@ -5946,143 +6168,38 @@ bool HmapLandPlugin::hmCommitChanges()
 
 void HmapLandPlugin::clearObjects()
 {
-  origBasePath = NULL;
-  hmlService->destroyLandMeshRenderer(landMeshRenderer);
-  hmlService->destroyLandMeshManager(landMeshManager);
-  debugLmeshCells = false;
-  renderAllSplinesAlways = false;
-  renderSelSplinesAlways = false;
+  if (recreate_plugin)
+  {
+    // This uses both static and non-static members, so it must be before the plugin instance recreation.
+    clearNavMesh();
 
-  showBlueWhiteMask = true;
-  numDetailTextures = 0;
-  detailTexBlkName.clear();
+    if (waterService)
+    {
+      waterService->term();
+      waterService->init();
+    }
 
-  doAutocenter = false;
-  objEd.removeAllObjects(false);
+    DataBlock globalSettings, perAppSettings;
+    saveSettings(globalSettings, perAppSettings);
 
-  editedScriptImage = NULL;
-  clear_and_shrink(colorGenParams);
-  colorGenParamsData->reset();
-  clear_and_shrink(scriptImages);
+    objEd.removeAllObjects(false); // clear objects here to avoid doing this unsafely in nested destructor
+    unregistered();
+    this->~HmapLandPlugin();
+    new (this) HmapLandPlugin;
+    registered();
 
-  heightMap.closeFile(true);
-  heightMapDet.closeFile(true);
-  landClsMap.closeFile(true);
-  colorMap.closeFile(true);
-  lightMapScaled.closeFile(true);
-  waterHeightmapDet.closeFile(true);
-  waterHeightmapMain.closeFile(true);
+    loadSettings(globalSettings, perAppSettings);
 
-  if (detTexIdxMap)
-    detTexIdxMap->closeFile(true);
-  if (detTexWtMap)
-    detTexWtMap->closeFile(true);
+    // This is needed because initWaterSurface() might have turned it off on a different level.
+    if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_waterSurf"))
+      p->setVisible(true);
+  }
 
-  currentBrushId = 0;
-  brushFullDirtyBox.setEmpty();
-  noTraceNow = false;
-
-  gridCellSize = 1.0;
-  heightMapOffset = Point2(0, 0);
-
-  detDivisor = 0;
-  detRect[0].set(0, 0);
-  detRect[1].set(0, 0);
-  detRectC.setEmpty();
   if (hmlService)
     hmlService->setupRenderHm2(1, 1, 1, 1, NULL, BAD_TEXTUREID, 0, 0, 1, 1, NULL, BAD_TEXTUREID, 0, 0, 1, 1);
-  for (int i = 0; i < 2; i++)
-    if (hmapTex[i])
-      dagRender->releaseManagedTexVerified(hmapTexId[i], hmapTex[i]);
 
-  collisionArea.ofs = Point2(0, 0);
-  collisionArea.sz = Point2(100, 100);
-  collisionArea.show = false;
-  tileXSize = 32;
-  tileYSize = 32;
-  tileTexName = "---";
-  tileTexId = BAD_TEXTUREID;
-
-  useVertTex = false;
-  useVertTexForHMAP = true;
-  releaseVertTexRef();
-  vertTexName = NULL;
-  vertNmTexName = NULL;
-  vertDetTexName = NULL;
-  vertTexXZtile = vertTexYtile = 1;
-  vertTexYOffset = 0.f;
-  vertTexAng0 = 30;
-  vertTexAng1 = 90;
-  vertTexHorBlend = 1;
-  vertDetTexXZtile = vertDetTexYtile = 1;
-  vertDetTexYOffset = 0.f;
-
-  hasWaterSurface = false;
-  waterMatAsset = NULL;
-  waterSurfaceLevel = 0;
-  minUnderwaterBottomDepth = 2;
-  hasWorldOcean = true;
-  geomLoftBelowAll = false;
-  worldOceanExpand = 100;
-  worldOceanShorelineTolerance = 0.3;
   waterMask.resize(0, 0);
-  waterMaskScale = 1;
-
-  renderDebugLines = false;
-
-  render.init();
-  showMonochromeLand = false;
-  monochromeLandCol = E3DCOLOR(20, 120, 20, 255);
-
-  showHtLevelCurves = false;
-  htLevelCurveStep = 5.0f, htLevelCurveThickness = 0.3f, htLevelCurveOfs = 0.0f, htLevelCurveDarkness = 0.8f;
-
-  sunAzimuth = DegToRad(135);
-  sunZenith = DegToRad(45);
-
-  ldrLight.init();
-
-  shadowBias = 0.01f;
-  shadowTraceDist = 100;
-  shadowDensity = 0.90f;
-
-  lightmapScaleFactor = 1;
-  lcmScale = 1;
-
-  lastHmapImportPath = "";
-  lastHmapImportPathDet = "";
-  lastChangeDet = {};
-  lastHmapImportPathMain = "";
-  lastChangeMain = {};
-  lastWaterHeightmapImportPath = "";
-  lastWaterHeightmapImportPathDet = "";
-  lastChangeWaterDet = {};
-  lastWaterHeightmapImportPathMain = "";
-  lastChangeWaterMain = {};
-  lastLandExportPath = "";
-  lastHmapExportPath = "";
-  lastColormapExportPath = "",
-  // colorGenScriptFilename
-    lastTexImportPath = "";
-
-  lastExpLoftFolder = "";
-  lastExpLoftMain = lastExpLoftDet = true;
-  lastExpLoftMainSz = lastExpLoftDetSz = 4096;
-  lastExpLoftCreateAreaSubfolders = true;
-  lastExpLoftUseRect[0] = lastExpLoftUseRect[1] = false;
-  lastExpLoftRect[0][0].set(0, 0);
-  lastExpLoftRect[0][1].set(1024, 1024);
-  lastExpLoftRect[1] = lastExpLoftRect[0];
-
-  isVisible = true;
-
-  lastMinHeight[0] = lastMinHeight[1] = lastHeightRange[0] = lastHeightRange[1] = MAX_REAL;
-  waterHeightMinRangeDet = Point2(0, 0);
-  waterHeightMinRangeMain = Point2(0, 0);
-
   syncLight = false;
-  syncDirLight = false;
-  pendingResetRenderer = false;
   objEd.clearToDefaultState();
 
   DataBlock app_blk;
@@ -6111,12 +6228,6 @@ void HmapLandPlugin::clearObjects()
 
   LandscapeEntityObject::loadColliders(*app_blk.getBlockByNameEx("projectDefaults"));
 
-  heightMap.closeFile();
-  colorMap.closeFile();
-  lightMapScaled.closeFile();
-  del_it(detTexIdxMap);
-  del_it(detTexWtMap);
-
   heightMap.reset(512, 512, 0);
   landClsMap.reset(512, 512, 0);
   if (hasColorTex)
@@ -6131,7 +6242,11 @@ void HmapLandPlugin::clearObjects()
   if (propPanel)
     propPanel->fillPanel();
   onLandSizeChanged();
+  grassService = nullptr;
+  gpuGrassService = nullptr;
+  waterService = nullptr;
   missing_tile_reported = false;
+  recreate_plugin = true;
 }
 
 
@@ -6184,7 +6299,8 @@ void HmapLandPlugin::renderHeight()
     if (!useVertTexForHMAP)
       dagGeom->shaderGlobalSetTexture(landTileVerticalTexVarId, BAD_TEXTUREID);
 
-    hmlService->renderHm2(dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0), false, true);
+    if (landMeshRenderer)
+      hmlService->renderHm2(*landMeshRenderer, dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0), false, true);
 
     if (!useVertTexForHMAP)
       updateVertTex();
@@ -6226,9 +6342,9 @@ void HmapLandPlugin::renderGrassMask()
     dagGeom->shaderGlobalSetBlock(dagGeom->shaderGlobalGetBlockId("global_frame"), ShaderGlobal::LAYER_FRAME);
 
     hmlService->renderLandMeshGrassMask(*landMeshRenderer, *landMeshManager);
-    int oldMode = hmlService->setGrassMaskRenderingMode();
+    LMeshRenderingMode oldMode = hmlService->setGrassMaskRenderingMode(*landMeshRenderer);
     objEd.renderGrassMask();
-    hmlService->restoreRenderingMode(oldMode);
+    hmlService->restoreRenderingMode(*landMeshRenderer, oldMode);
     dagRender->curView() = saveCurView;
 
     dagGeom->shaderGlobalSetBlock(-1, ShaderGlobal::LAYER_FRAME);
@@ -6421,8 +6537,9 @@ void HmapLandPlugin::renderGeometry(Stage stage)
         float height = p.y;
         if (getHeightmapPointHt(p, NULL))
           height = height - p.y;
-        if (!(editedScriptImage && showBlueWhiteMask))
-          hmlService->prepareClipmap(*landMeshRenderer, *landMeshManager, height * 1.5);
+        if (objEd.supportsRealtimeUpdate())
+          if (!(editedScriptImage && showBlueWhiteMask))
+            hmlService->prepareClipmap(*landMeshRenderer, *landMeshManager, height * 1.5);
       }
 
       if (landMeshRenderer && !(editedScriptImage && showBlueWhiteMask) && landMeshManager)
@@ -6459,7 +6576,8 @@ void HmapLandPlugin::renderGeometry(Stage stage)
 
         if (!useVertTexForHMAP)
           dagGeom->shaderGlobalSetTexture(landTileVerticalTexVarId, BAD_TEXTUREID);
-        hmlService->renderHm2(dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0), false);
+        if (landMeshRenderer)
+          hmlService->renderHm2(*landMeshRenderer, dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0), false);
         if (!useVertTexForHMAP)
           updateVertTex();
       }
@@ -6539,7 +6657,8 @@ void HmapLandPlugin::renderGeometry(Stage stage)
 
         if (!useVertTexForHMAP)
           dagGeom->shaderGlobalSetTexture(landTileVerticalTexVarId, BAD_TEXTUREID);
-        hmlService->renderHm2VSM(dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0));
+        if (landMeshRenderer)
+          hmlService->renderHm2VSM(*landMeshRenderer, dagRender->curView().pos - Point3(0, render.hm2YbaseForLod, 0));
         if (!useVertTexForHMAP)
           updateVertTex();
       }
@@ -6566,7 +6685,7 @@ void HmapLandPlugin::renderGeometry(Stage stage)
     case STG_RENDER_GRASS_MASK: renderGrassMask(); break;
 
     case STG_RENDER_LAND_DECALS:
-      if (need_lmap)
+      if (need_lmap && landMeshRenderer)
         hmlService->renderDecals(*landMeshRenderer, *landMeshManager);
       break;
   }
@@ -6696,7 +6815,7 @@ bool HmapLandPlugin::catchEvent(unsigned ev_huid, void *userData)
     delayedResetRenderer();
     hmlService->invalidateClipmap(true);
   }
-  if (ev_huid == HUID_InvalidateClipmap)
+  else if (ev_huid == HUID_InvalidateClipmap)
   {
     hmlService->invalidateClipmap((bool)userData);
     if (grassService)
@@ -6704,7 +6823,7 @@ bool HmapLandPlugin::catchEvent(unsigned ev_huid, void *userData)
     if (gpuGrassService)
       gpuGrassService->invalidate();
   }
-  if (ev_huid == HUID_AutoSaveDueToCrash)
+  else if (ev_huid == HUID_AutoSaveDueToCrash)
     onPluginMenuClick(CM_COMMIT_HM_CHANGES);
   return false;
 }
@@ -6844,7 +6963,7 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx, dag::Span<RenderableEditableOb
   public:
     UndoLayerChange(RenderableEditableObject *o, int old_l, int new_l) : obj(o), oldLayerIdx(old_l), newLayerIdx(new_l) {}
 
-    virtual void restore(bool /*save_redo*/)
+    void restore(bool /*save_redo*/) override
     {
       if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(obj))
         o->setEditLayerIdx(oldLayerIdx);
@@ -6853,7 +6972,7 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx, dag::Span<RenderableEditableOb
 
       onObjectEditLayerChanged(*obj);
     }
-    virtual void redo()
+    void redo() override
     {
       if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(obj))
         o->setEditLayerIdx(newLayerIdx);
@@ -6863,9 +6982,9 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx, dag::Span<RenderableEditableOb
       onObjectEditLayerChanged(*obj);
     }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoEditLayerIdxChange"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoEditLayerIdxChange"; }
   };
 
   objEd.getUndoSystem()->begin();

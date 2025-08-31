@@ -102,7 +102,7 @@ struct TimeIntervalInfo
 
 #if TDR_PROFILE
 #undef TIME_D3D_PROFILE
-#define TIME_D3D_PROFILE(LabelName) TdrProfile DAG_CONCAT(TdrProfile, LabelName)(#LabelName);
+#define TIME_D3D_PROFILE(LabelName) TdrProfile DAG_CONCAT(TdrProfile, __LINE__)(#LabelName);
 
 struct TdrProfile
 {

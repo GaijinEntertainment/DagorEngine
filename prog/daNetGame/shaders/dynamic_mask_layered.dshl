@@ -109,7 +109,7 @@ shader dynamic_mask_layered
       void vs_post_function(VsInput input, inout VsOutput output)
       {
         #if COLOR_NEEDED
-          output.colorMul = getColorMul(get_per_instance_hashval());
+          output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
         #endif
         output.pointToEye.w = 1.0;
         output.uv12.xy = input.uv0 * (1.0 / 4096.0);
@@ -135,6 +135,6 @@ shader dynamic_mask_layered
       #define IS_DYNAMIC 1
     }
     WRITE_GBUFFER()
-    MASK_LAYERED_PS()
+    MASK_LAYERED_PS(true)
   }
 }

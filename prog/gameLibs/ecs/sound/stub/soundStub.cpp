@@ -4,6 +4,7 @@
 #include <ecs/sound/soundGroup.h>
 
 ECS_DEF_PULL_VAR(soundComponent);
+ECS_DEF_PULL_VAR(animcharSound);
 
 using namespace sndsys;
 

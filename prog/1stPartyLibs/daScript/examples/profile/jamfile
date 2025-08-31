@@ -15,6 +15,10 @@ Sources =
   test_profile.cpp
   ../../dagorAdapter/da.cpp
   ../../utils/daScript/main.cpp
+  ../../utils/dasFormatter/ds_parser.cpp
+  ../../utils/dasFormatter/fmt.cpp
+  ../../utils/dasFormatter/formatter.cpp
+  ../../utils/dasFormatter/helpers.cpp
 ;
 
 UseProgLibs =

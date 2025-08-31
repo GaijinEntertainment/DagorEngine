@@ -15889,9 +15889,7 @@ struct ExecutionModeWriteVisitor
 void encodeExecutionMode(ModuleBuilder &module, WordWriter &writer)
 {
   module.enumerateExecutionModes([&writer](auto func, auto em) //
-    {
-      executionModeVisitor(em, ExecutionModeWriteVisitor{writer, func});
-    });
+    { executionModeVisitor(em, ExecutionModeWriteVisitor{writer, func}); });
 }
 void encodeDebugString(ModuleBuilder &module, WordWriter &writer)
 {
@@ -18500,14 +18498,10 @@ void encodeTypeVariableAndConstant(ModuleBuilder &module, WordWriter &writer)
   }
   // global undef stuff
   module.enumerateAllGlobalUndefs([&writer, &module](auto node) //
-    {
-      NodeWriteVisitor{writer, module}(node.get());
-    });
+    { NodeWriteVisitor{writer, module}(node.get()); });
   // variable stuff
   module.enumerateAllGlobalVariables([&writer, &module](auto node) //
-    {
-      NodeWriteVisitor{writer, module}(as<NodeOpVariable>(node).get());
-    });
+    { NodeWriteVisitor{writer, module}(as<NodeOpVariable>(node).get()); });
 }
 void encodeFunctionDeclaration(ModuleBuilder &module, WordWriter &writer)
 {
@@ -18542,7 +18536,8 @@ void encodeFunctionDefinition(ModuleBuilder &module, WordWriter &writer)
           visitNode(inst, visitor);
         for (auto &&prop : as<NodeOpLabel>(block)->properties)
           visitProperty(prop.get(), BranchPropertyWriter{writer});
-        visitNode(block->exit, visitor);
+        if (block->exit)
+          visitNode(block->exit, visitor);
       }
       writer.beginInstruction(Op::OpFunctionEnd, 0);
       writer.endWrite();

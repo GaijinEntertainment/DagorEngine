@@ -28,8 +28,14 @@
 #include <stdint.h>
 #include <string.h>
 #if defined(_MSC_VER) && defined(_M_X64)
-  #include <intrin.h>
+  extern "C" unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64*);
   #pragma intrinsic(_umul128)
+  #ifdef __clang__
+    #include <popcntintrin.h>
+  #else
+    extern "C" __int64 _mm_popcnt_u64(unsigned __int64);
+    #pragma intrinsic(_mm_popcnt_u64)
+  #endif
 #endif
 
 //likely and unlikely macros
@@ -282,7 +288,13 @@ static inline constexpr uint64_t wyhash_const(const char *p, uint64_t seed, cons
 }
 
 //a useful 64bit-64bit mix function to produce deterministic pseudo random numbers that can pass BigCrush and PractRand
-static inline uint64_t wyhash64_const(uint64_t A, uint64_t B){ A^=0xa0761d6478bd642full; B^=0xe7037ed1a0b428dbull; _wymum_const(&A,&B); return _wymix_const(A^0xa0761d6478bd642full,B^0xe7037ed1a0b428dbull);}
+static inline constexpr uint64_t wyhash64_const(uint64_t A, uint64_t B)
+{
+  A ^= 0xa0761d6478bd642full;
+  B ^= 0xe7037ed1a0b428dbull;
+  _wymum_const(&A, &B);
+  return _wymix_const(A ^ 0xa0761d6478bd642full, B ^ 0xe7037ed1a0b428dbull);
+}
 
 #endif
 

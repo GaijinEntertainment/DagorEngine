@@ -14,12 +14,14 @@ namespace darg
 {
 
 class GuiScene;
+class Screen;
 
 class GamepadCursor
 {
 public:
   GamepadCursor(GuiScene *gui_scene);
-  void update(float dt);
+  void update(Screen *screen, float dt);
+  void scroll(Screen *screen, HumanInput::IGenJoystick *joy, float dt);
 
 public:
   static const int SECTOR_NUM = 8; //[0..7]
@@ -28,8 +30,7 @@ public:
   bool isMovingMouse = false;
 
 private:
-  Point2 moveMouse(HumanInput::IGenJoystick *joy, const Point2 &mousePos, float dt);
-  void scroll(HumanInput::IGenJoystick *joy, float dt);
+  Point2 moveMouse(Screen *screen, HumanInput::IGenJoystick *joy, const Point2 &mousePos, float dt);
 
 private:
   int currentSector = SECTOR_NONE;

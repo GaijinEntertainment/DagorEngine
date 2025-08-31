@@ -2,7 +2,7 @@
 
 #include "de_IDagorPhysImpl.h"
 
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 
 #include <math/dag_capsule.h>
 
@@ -48,11 +48,11 @@ FastRtDump *DeDagorPhys::getFastRtDump() const { return DagorPhys::getFastRtDump
 
 
 //==================================================================================================
-void DeDagorPhys::initClippingBinary(StaticSceneRayTracer *rt) const { DagorPhys::init_clipping_binary(rt); }
+void DeDagorPhys::initCollisionBinary(StaticSceneRayTracer *rt) const { DagorPhys::init_collision_binary(rt); }
 
 
 //==================================================================================================
-void DeDagorPhys::closeClipping() const { DagorPhys::close_clipping(); }
+void DeDagorPhys::closeCollision() const { DagorPhys::close_collision(); }
 
 
 //==================================================================================================

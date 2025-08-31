@@ -11,6 +11,7 @@
 #include <3d/dag_gpuConfig.h>
 #include <math/dag_TMatrix4more.h>
 #include <3d/dag_render.h>
+#include <resourcePool/resourcePool.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
@@ -25,6 +26,8 @@
 namespace rendinst::render
 {
 static int sourceTexVarId[rendinst::render::IMP_COUNT] = {-1, -1, -1};
+static int sourceTexSmpVarId[rendinst::render::IMP_COUNT] = {-1, -1, -1};
+static d3d::SamplerHandle smp = d3d::INVALID_SAMPLER_HANDLE;
 static int texelSizeVarId = -1;
 static int texIndVid = -1;
 int baked_impostor_multisampleVarId = -1;
@@ -36,7 +39,7 @@ bool impostorPreshadowNeedUpdate = false;
 static int impostor_tex_count = rendinst::render::IMP_COUNT;
 static uint32_t impostor_texformats[rendinst::render::IMP_COUNT] = {TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 0, 0};
 static E3DCOLOR impostor_clear_color[rendinst::render::IMP_COUNT] = {0x00000000, 0x00FFFFFF, 0xFFFFFFFF};
-UniqueTex impostorColorTexture[rendinst::render::IMP_COUNT];
+RTargetPool::Ptr impostorColorTextureRTPool[rendinst::render::IMP_COUNT];
 PostFxRenderer *postfxBuildMip = nullptr;
 static shaders::UniqueOverrideStateId impostorShadowOverride;
 
@@ -69,15 +72,12 @@ void initImpostorsTempTextures()
   int texWidth = rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
   int texHeight = texWidth * IMPOSTOR_MAX_ASPECT_RATIO;
 
-  if (rendinst::render::use_color_padding && !rendinst::render::impostorColorTexture[0].getTex2D())
+  if (rendinst::render::use_color_padding && !rendinst::render::impostorColorTextureRTPool[0])
   {
     for (int i = 0; i < rendinst::render::impostor_tex_count; ++i)
     {
-      rendinst::render::impostorColorTexture[i] = dag::create_tex(nullptr, texWidth, texHeight,
-        TEXCF_RTARGET | rendinst::render::impostor_texformats[i], 1, String(0, "colorImpostorTexture%i", i).str());
-      rendinst::render::impostorColorTexture[i]->texfilter(TEXFILTER_POINT);
-      rendinst::render::impostorColorTexture[i]->texaddru(TEXADDR_CLAMP);
-      rendinst::render::impostorColorTexture[i]->texaddrv(TEXADDR_CLAMP);
+      rendinst::render::impostorColorTextureRTPool[i] =
+        RTargetPool::get(texWidth, texHeight, TEXCF_RTARGET | rendinst::render::impostor_texformats[i], 1);
     }
   }
 }
@@ -109,6 +109,7 @@ void initImpostorsGlobals()
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Compare;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     ShaderGlobal::set_sampler(get_shader_variable_id("impostor_shadow_samplerstate", true), d3d::request_sampler(smpInfo));
   }
 
@@ -130,6 +131,15 @@ void initImpostorsGlobals()
   rendinst::render::sourceTexVarId[0] = ::get_shader_variable_id("source_tex0");
   rendinst::render::sourceTexVarId[1] = ::get_shader_variable_id("source_tex1", true);
   rendinst::render::sourceTexVarId[2] = ::get_shader_variable_id("source_tex2", true);
+  rendinst::render::sourceTexSmpVarId[0] = ::get_shader_variable_id("source_tex0_samplerstate");
+  rendinst::render::sourceTexSmpVarId[1] = ::get_shader_variable_id("source_tex1_samplerstate", true);
+  rendinst::render::sourceTexSmpVarId[2] = ::get_shader_variable_id("source_tex2_samplerstate", true);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    rendinst::render::smp = d3d::request_sampler(smpInfo);
+  }
   rendinst::render::texelSizeVarId = ::get_shader_variable_id("texel_size");
   rendinst::render::texIndVid = ::get_shader_variable_id("rendinst_impostor_tex_index", true);
   rendinst::render::dynamicImpostorViewXVarId = ::get_shader_glob_var_id("impostor_view_x");
@@ -164,7 +174,7 @@ void termImpostorsGlobals()
   del_it(rendinst::render::postfxBuildMip);
   for (int i = 0; i < rendinst::render::impostor_tex_count; ++i)
   {
-    rendinst::render::impostorColorTexture[i].close();
+    rendinst::render::impostorColorTextureRTPool[i] = nullptr;
   }
   rendinst::render::impostorDepthTextures.clear();
 }
@@ -326,11 +336,8 @@ void RendInstGenData::RtData::initImpostors()
       d3d_err(pool.impostor.tex[0].getBaseTex());
 
       // pure bilinear filtering of impostors gives ~1 msec gain on PS3
-      pool.impostor.tex[0].getBaseTex()->texaddr(TEXADDR_CLAMP);
-      pool.impostor.tex[0].getBaseTex()->texlod(0);
       if (compatibilityMode)
       {
-        pool.impostor.tex[0].getBaseTex()->setAnisotropy(1);
         add_anisotropy_exception(pool.impostor.tex[0].getTexId());
       }
 
@@ -351,9 +358,6 @@ void RendInstGenData::RtData::initImpostors()
         const uint32_t fmt = rendinst::render::impostor_texformats[i];
         pool.impostor.tex[i] = dag::create_tex(nullptr, rtSize, rtSizeY, texflags | fmt, pool.impostor.renderMips, name);
         d3d_err(pool.impostor.tex[i].getBaseTex());
-        pool.impostor.tex[i].getBaseTex()->texaddr(TEXADDR_CLAMP);
-        pool.impostor.tex[i].getBaseTex()->texlod(0);
-        pool.impostor.tex[i].getBaseTex()->setAnisotropy(1);
         add_anisotropy_exception(pool.impostor.tex[i].getTexId());
       }
       pool.impostor.renderMips = max(1, pool.impostor.renderMips);
@@ -551,7 +555,6 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
   UniqueTex depthAtlas = get_impostor_texture_mgr()->renderDepthAtlasForShadow(riRes[poolNo]);
   G_ASSERT_RETURN(depthAtlas, false);
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, nullptr);
   bool updated = fill_palette_vb(palette.count, palette.rotations);
   d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::rotationPaletteTmVb);
   if (!updated)
@@ -630,10 +633,7 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
 
   // set states
   for (int j = 0; j < pool.impostor.tex.size(); ++j)
-  {
-    if (pool.impostor.tex[j].getBaseTex())
-      pool.impostor.tex[j].getBaseTex()->texfilter(TEXFILTER_POINT);
-  }
+    ShaderGlobal::set_sampler(rendinst::render::sourceTexSmpVarId[j], rendinst::render::smp);
 
   // copy image to other mips
   for (int mip = 1; mip < currentRenderMips; ++mip)
@@ -674,7 +674,6 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
     if (pool.impostor.tex[j].getBaseTex())
     {
       pool.impostor.tex[j].getBaseTex()->texmiplevel(pool.impostor.baseMip, lastMip);
-      pool.impostor.tex[j].getBaseTex()->texfilter(TEXFILTER_DEFAULT);
     }
   }
 }
@@ -724,7 +723,6 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
   cb.setBBoxZero();
 
   rendinst::render::startRenderInstancing();
-  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, nullptr);
   d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::rotationPaletteTmVb);
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
@@ -740,7 +738,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
       continue;
     rendinst::render::RtPoolData &pool = *rtPoolData[poolNo];
     RenderableInstanceLodsResource *res = riRes[poolNo];
-    if (!pool.hadVisibleImpostor)
+    if (!res->isBakedImpostor() && !pool.hadVisibleImpostor)
     {
       // we skip updating completely invisible impostor
       continue;
@@ -754,7 +752,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
     d3d::set_render_target(); // Remove other MRTs
     bool hasShadow = shadowDistance > range;
     // debug("impostor range = %g, original range =%g shadowD=%g", range, pool.lodRange[sourceLodNo], shadowDistance);
-    if (hasShadow && !pool.hasUpdatedShadowImpostor)
+    if ((hasShadow || res->isBakedImpostor()) && !pool.hasUpdatedShadowImpostor)
       pool.hasUpdatedShadowImpostor = updateImpostorsPreshadow(poolNo, sunDir0);
 
     // Set new matrices.
@@ -882,12 +880,16 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
 
     RenderableInstanceResource *sourceScene = riResLodScene(poolNo, sourceLodNo);
     {
-      UniqueTex *dstRT[rendinst::render::IMP_COUNT];
+      ManagedTex *dstRT[rendinst::render::IMP_COUNT];
+      RTarget::Ptr tempTargetPtrs[rendinst::render::IMP_COUNT];
 
       for (int j = 0; j < pool.impostor.tex.size(); ++j)
       {
         if (rendinst::render::use_color_padding)
-          dstRT[j] = &rendinst::render::impostorColorTexture[j];
+        {
+          tempTargetPtrs[j] = rendinst::render::impostorColorTextureRTPool[j]->acquire();
+          dstRT[j] = tempTargetPtrs[j].get();
+        }
         else
           dstRT[j] = &pool.impostor.tex[j];
       }
@@ -961,8 +963,8 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
         d3d::setview(0, 0, vpWidth, vpHeight, 0.f, 1.f);
 
         TextureInfo tempRTInfo;
-        UniqueTex &tex = rendinst::render::impostorColorTexture[0];
-        tex.getTex2D()->getinfo(tempRTInfo, 0);
+        G_ASSERT(tempTargetPtrs[0]);
+        tempTargetPtrs[0]->getTex2D()->getinfo(tempRTInfo, 0);
 
         G_ASSERT(vpWidth <= tempRTInfo.w && vpHeight <= tempRTInfo.h);
 
@@ -1020,17 +1022,23 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
           if (pTex)
           {
             d3d::set_render_target(j, pTex, pool.impostor.baseMip);
-            ShaderGlobal::set_texture(rendinst::render::sourceTexVarId[j], rendinst::render::impostorColorTexture[j].getTexId());
+            ShaderGlobal::set_texture(rendinst::render::sourceTexVarId[j], tempTargetPtrs[j]->getTexId());
+            ShaderGlobal::set_sampler(rendinst::render::sourceTexSmpVarId[j], rendinst::render::smp);
           }
         }
         TextureInfo ti;
-        UniqueTex &tex = rendinst::render::impostorColorTexture[0];
-        tex.getBaseTex()->getinfo(ti, 0);
+        tempTargetPtrs[0]->getBaseTex()->getinfo(ti, 0);
         ShaderGlobal::set_color4(rendinst::render::texelSizeVarId, viewportPartX, viewportPartY, 1.f / ti.w, 1.f / ti.h);
         ShaderGlobal::set_int(maxTranslucancyVarId, 0);
         ShaderGlobal::set_int(rendinst::render::texIndVid, -1);
 
         pFx->render();
+
+        for (int j = 0; j < pool.impostor.tex.size(); ++j)
+        {
+          ShaderGlobal::set_texture(rendinst::render::sourceTexVarId[j], BAD_TEXTUREID);
+          tempTargetPtrs[j] = nullptr;
+        }
       }
 
       renderImpostorMips(pool, currentRenderMips);
@@ -1105,7 +1113,9 @@ void rendinst::updateRIGenImpostors(float shadowDistance, const Point3 &sunDir0,
 
     if (needsReset)
     {
-      rgl->rtData->initImpostors();               // tex2D <-> texArray migration
+      for (rendinst::render::RtPoolData *poolData : rgl->rtData->rtPoolData)
+        if (poolData)
+          poolData->hasUpdatedShadowImpostor = false;
       rgl->rtData->dynamicImpostorToUpdateNo = 0; // new update cycle
     }
 

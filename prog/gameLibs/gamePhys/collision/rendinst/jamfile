@@ -1,7 +1,6 @@
 Root    ?= ../../../../.. ;
 
 Location = prog/gameLibs/gamePhys/collision/rendinst ;
-UsingStaticCore = yes ;
 
 StrictCompile = yes ;
 
@@ -22,7 +21,7 @@ Sources =
   rendinstContactResultWrapper.cpp
 ;
 
-if $(UseApex) = yes { CPPopt += -DENABLE_APEX=1 ; }
+if $(UseApex) = yes { CPPopt += -DENABLE_APEX ; }
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

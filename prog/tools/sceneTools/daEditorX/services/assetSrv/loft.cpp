@@ -5,12 +5,14 @@
 #include <math/dag_bezierPrec.h>
 #include <math/dag_Matrix3.h>
 #include <debug/dag_debug.h>
+#include <gameMath/objgenPrng.h>
 
 #include <de3_splineClassData.h>
 #include <EditorCore/ec_interface.h>
 #include <libTools/staticGeomUi/nodeFlags.h>
 #include <generic/dag_tab.h>
 
+using namespace objgenerator; // prng
 using splineclass::Attr;
 using splineclass::SegData;
 
@@ -112,7 +114,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
   seg_data.back().offset = start_margin > 0 ? bezie_point.getTFromS(start_margin) : 0.f;
   seg_data.back().attr = start_scale;
   seg_data.back().attr.opacity =
-    clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * _srnd(opacity_seed)), 0.f, 1.f);
+    clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * srnd(opacity_seed)), 0.f, 1.f);
 
   Point3 lastPt = bezie_point.point(0.f);
   float lastS = 0, lastTgA = MAX_REAL;
@@ -176,7 +178,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
         SET_INTERP_ATTR(tc3u);
         SET_INTERP_ATTR(tc3v);
         seg_data.back().attr.opacity =
-          clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * _srnd(opacity_seed)), 0.f, 1.f);
+          clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * srnd(opacity_seed)), 0.f, 1.f);
         lastTgA = (current.y - lastPt.y) / targetLength;
         lastPt = current;
         lastS = s;
@@ -218,7 +220,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
         SET_INTERP_ATTR(tc3u);
         SET_INTERP_ATTR(tc3v);
         seg_data.back().attr.opacity =
-          clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * _srnd(opacity_seed)), 0.f, 1.f);
+          clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * srnd(opacity_seed)), 0.f, 1.f);
         lastPt = current;
         lastS = s;
 
@@ -236,7 +238,7 @@ static void buildSegment(const BezierSplinePrecInt3d &bezie_point, float min_ste
     seg_data.back().y = get_ht(bezie_point.point(1), above_ht, place_on_collision, follow_hills, follow_hollows);
     seg_data.back().attr = end_scale;
     seg_data.back().attr.opacity =
-      clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * _srnd(opacity_seed)), 0.f, 1.f);
+      clamp(seg_data.back().attr.opacity * (opacity_mul[0] + opacity_mul[1] * srnd(opacity_seed)), 0.f, 1.f);
   }
 }
 
@@ -488,6 +490,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
     full_len += path.segs[i + start_idx].len;
   float zo0_pos = zero_opac_fore_end > 0 ? path_margin_s + zero_opac_fore_end : 0.f;
   float zo1_pos = zero_opac_back_end > 0 ? full_len - path_margin_e - zero_opac_back_end : 0.f;
+
   float m1_pos = path_margin_e > 0 ? full_len - path_margin_e : 0.f;
 
   for (int i = 0; i < segCnt; i++, seg_s0 += slen)
@@ -514,6 +517,8 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
     *out_loftSeg = segData;
 
   const int totalPathPoints = segData.size();
+  if (totalPathPoints < 2)
+    return;
   Tab<Face> &face = mesh.face;
   Tab<TFace> &tface = mesh.tface[0];
 
@@ -648,7 +653,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
       tverts0[tvi] = Point2(atPath, v);
       tverts1[tvi] = Point2(
         opacity_scale *
-          clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * _srnd(opacity_seed)), 0.f, 1.f),
+          clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * srnd(opacity_seed)), 0.f, 1.f),
         atPath / fullPathLen);
       tverts2[tvi] =
         Point2(shapei == totalShapePoints - 1 ? -1 : shapei, pt_attr.size() ? pt_attr[shapei / shape_subdiv_count].attr : 0);
@@ -752,7 +757,7 @@ void SplineClassAssetMgr::createLoftMesh(Mesh &mesh, const splineclass::LoftGeom
       tverts0[tvi] = Point2(atPath, 1.0);
       tverts1[tvi] = Point2(
         opacity_scale *
-          clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * _srnd(opacity_seed)), 0.f, 1.f),
+          clamp(cur_attr.opacity * (loft.randomOpacityMulAcross[0] + loft.randomOpacityMulAcross[1] * srnd(opacity_seed)), 0.f, 1.f),
         atPath / fullPathLen);
       tverts2[tvi] = Point2(0, pt_attr.size() ? pt_attr[0].attr : 0);
       tverts3[tvi] = Point2(cur_attr.tc3u, cur_attr.tc3v);

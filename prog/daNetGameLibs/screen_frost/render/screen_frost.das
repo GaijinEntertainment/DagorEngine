@@ -4,7 +4,7 @@ require ecs
 require danetlibs.screen_frost.render.screen_frost_events
 require DagorMath
 require DagorShaders
-require daBfg.resource_slot_ecs
+require daFrameGraph.resource_slot_ecs
 
 let
   screenCorruptionDiffuseVarId        = get_shader_variable_id("screen_corruption_diffuse", true)
@@ -46,17 +46,17 @@ def screen_frost_update_es(info : UpdateStageInfoAct; screen_frost__maxIntensity
 
 [resource_slot_ecs]
 def register_screen_frost(var screenFrost : NodeHandleWithSlotsAccess&)
-  screenFrost <- root() |> registerAccess("screen_frost", [[SlotActions update <- [{Update slot="postfx_input_slot", resource="frame_with_screen_frost", priority=300}] ]]) <| @(slots_state; var registry : Registry)
+  screenFrost <- root() |> registerAccess("screen_frost", SlotActions(update <- [Update(slot="postfx_input_slot", resource="frame_with_screen_frost", priority=300)])) <| @(slots_state; var registry : Registry)
 
-    registry |> read(slots_state |> resourceToReadFrom("postfx_input_slot")) |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("frame_tex")
+    registry |> read(slots_state |> resourceToReadFrom("postfx_input_slot")) |> texture |> atStage(Stage.POST_RASTER) |> bindToShaderVar("frame_tex")
 
-    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot"), History No) |> texture(
-      [[Texture2dCreateInfo()
+    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot"), History.No) |> texture(
+      Texture2dCreateInfo(
         creationFlags = TEXFMT_R11G11B10F | TEXCF_RTARGET,
-        resolution = [[TextureResolution2 autoRes=registry |> getResolution`2("main_view")]],
-      ]]
+        resolution = TextureResolution2(autoRes = registry |> getResolution`2("main_view"))
+      )
     )
-    registry |> requestRenderPass |> color([[auto[] slots_state |> resourceToCreateFor("postfx_input_slot")]])
+    registry |> requestRenderPass |> color(fixed_array(slots_state |> resourceToCreateFor("postfx_input_slot")))
 
     return <- @ <|
       query() <| $ [es] (screen_frost__shader : PostFxRenderer)

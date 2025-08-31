@@ -23,9 +23,6 @@
 
 
 #define DAFX_DEFAULT_WARP 32
-#ifndef __cplusplus
-#pragma wave32
-#endif
 
 // #define DAFX_DEBUG_CULLING_FETCH 1
 

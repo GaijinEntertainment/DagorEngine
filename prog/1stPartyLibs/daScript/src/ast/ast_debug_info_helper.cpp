@@ -153,6 +153,7 @@ namespace das {
         if ( gcf & TypeDecl::gcFlag_stringHeap ) sti->flags |= StructInfo::flag_stringHeapGC;
         sti->count = (uint32_t) st.fields.size();
         sti->size = st.getSizeOf();
+        s2cppTypeName[sti] = describeCppType(&tdecl, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
         sti->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti->count );
         for ( uint32_t i=0, is=sti->count; i!=is; ++i ) {
             auto & var = st.fields[i];
@@ -282,8 +283,9 @@ namespace das {
         }
         info->argNames = nullptr;
         auto argNamesCount = uint32_t(type->argNames.size());
+        t2cppTypeName[info] = describeCppType(type, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
         if ( argNamesCount ) {
-            assert(info->argCount == 0 || info->argCount == argNamesCount);
+            DAS_ASSERT(info->argCount == 0 || info->argCount == argNamesCount);
             info->argCount = argNamesCount;
             info->argNames = (const char **) debugInfo->allocate(sizeof(char *) * info->argCount );
             for ( uint32_t i=0, is=info->argCount; i!=is; ++i ) {

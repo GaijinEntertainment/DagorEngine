@@ -254,13 +254,6 @@ void occplugin::Occluder::onPPBtnPressed(int pid, PropPanel::ContainerPropertyCo
 {}
 
 
-// bool occplugin::Occluder::onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
-//     dag::ConstSpan<RenderableEditableObject*> objects)
-//{
-//   return true;
-// }
-
-
 void occplugin::Occluder::load(const DataBlock &blk)
 {
   if (blk.getStr("name", NULL))

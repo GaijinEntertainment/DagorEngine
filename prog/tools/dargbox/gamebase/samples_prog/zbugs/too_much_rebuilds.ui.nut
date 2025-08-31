@@ -10,11 +10,11 @@ let comps = {
 }
 let s = ["a", "b", "c","d"]
 let gen = Watched(s)
-let click = @() gen.value.len()==1 ? gen(s) : gen(gen.value.slice(0,-1))
+let click = @() gen.modify(@(v) v.len()==1 ? s : v.slice(0,-1))
 
 let buttonC = watchElemState( @(sf) {
     rendObj = ROBJ_BOX
-    size = [sh(20),SIZE_TO_CONTENT]
+    size = static [sh(20),SIZE_TO_CONTENT]
     padding = sh(2)
     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
     borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -36,5 +36,5 @@ return @(){
   flow = FLOW_VERTICAL
   halign = ALIGN_CENTER
   vplace = ALIGN_CENTER
-  children = [buttonC].extend(gen.value.map(@(i) comps[i]))
+  children = [buttonC].extend(gen.get().map(@(i) comps[i]))
 }

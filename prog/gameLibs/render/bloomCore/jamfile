@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/bloomCore ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/bloomCore.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  bloomCore.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

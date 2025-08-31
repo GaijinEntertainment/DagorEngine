@@ -30,6 +30,7 @@
   VAR(clouds_field_downsample_ratio, false)                                               \
   VAR(clouds_field_res, false)                                                            \
   VAR(clouds_field_volume, false)                                                         \
+  VAR(clouds_field_volume_samplerstate, true)                                             \
   VAR(clouds_first_layer_density, false)                                                  \
   VAR(clouds_forward_eccentricity, false)                                                 \
   VAR(clouds_forward_eccentricity_weight, false)                                          \

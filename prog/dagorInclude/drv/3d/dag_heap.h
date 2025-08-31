@@ -5,6 +5,7 @@
 #pragma once
 
 #include <util/dag_inttypes.h>
+#include <util/dag_string.h>
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_resource.h>
 #include <drv/3d/dag_d3dResource.h>
@@ -26,11 +27,11 @@ enum class ResourceActivationAction : unsigned
   REWRITE_AS_COPY_DESTINATION, ///< Rewrite the resource as a copy destination.
   REWRITE_AS_UAV,              ///< Rewrite the resource as an unordered access view.
   REWRITE_AS_RTV_DSV,          ///< Rewrite the resource as a render target or depth-stencil view.
-  CLEAR_F_AS_UAV,              ///< Clear the resource as a floating-point unordered access view.
-  CLEAR_I_AS_UAV,              ///< Clear the resource as an integer unordered access view.
-  CLEAR_AS_RTV_DSV,            ///< Clear the resource as a render target or depth-stencil view.
-  DISCARD_AS_UAV,              ///< Discard the resource as an unordered access view.
-  DISCARD_AS_RTV_DSV,          ///< Discard the resource as a render target or depth-stencil view.
+  CLEAR_F_AS_UAV,     ///< Clear the resource as a floating-point unordered access view. Implemented as a clear to zero for buffers.
+  CLEAR_I_AS_UAV,     ///< Clear the resource as an integer unordered access view. Implemented as a clear to zero for buffers.
+  CLEAR_AS_RTV_DSV,   ///< Clear the resource as a render target or depth-stencil view.
+  DISCARD_AS_UAV,     ///< Discard the resource as an unordered access view.
+  DISCARD_AS_RTV_DSV, ///< Discard the resource as a render target or depth-stencil view.
 };
 
 /**
@@ -107,7 +108,7 @@ struct ArrayCubeTextureResourceDescription : CubeTextureResourceDescription
  */
 struct ResourceDescription
 {
-  uint32_t resType; ///< The type of the resource. One of the RES3D_* constants.
+  D3DResourceType type; ///< The type of the resource.
   union
   {
     BasicResourceDescription asBasicRes;                   ///< The basic resource description.
@@ -125,21 +126,22 @@ struct ResourceDescription
   ResourceDescription &operator=(const ResourceDescription &) = default; ///< Copy assignment operator.
 
   ResourceDescription(const BufferResourceDescription &buf) :
-    resType{RES3D_SBUF}, asBufferRes{buf} {} ///< Constructor for buffer resources.
+    type{D3DResourceType::SBUF}, asBufferRes{buf} {} ///< Constructor for buffer resources.
 
-  ResourceDescription(const TextureResourceDescription &tex) : resType{RES3D_TEX}, asTexRes{tex} {} ///< Constructor for 2D textures.
+  ResourceDescription(const TextureResourceDescription &tex) :
+    type{D3DResourceType::TEX}, asTexRes{tex} {} ///< Constructor for 2D textures.
 
   ResourceDescription(const VolTextureResourceDescription &tex) :
-    resType{RES3D_VOLTEX}, asVolTexRes{tex} {} ///< Constructor for volume textures.
+    type{D3DResourceType::VOLTEX}, asVolTexRes{tex} {} ///< Constructor for volume textures.
 
   ResourceDescription(const ArrayTextureResourceDescription &tex) :
-    resType{RES3D_ARRTEX}, asArrayTexRes{tex} {} ///< Constructor for array textures.
+    type{D3DResourceType::ARRTEX}, asArrayTexRes{tex} {} ///< Constructor for array textures.
 
   ResourceDescription(const CubeTextureResourceDescription &tex) :
-    resType{RES3D_CUBETEX}, asCubeTexRes{tex} {} ///< Constructor for cube textures.
+    type{D3DResourceType::CUBETEX}, asCubeTexRes{tex} {} ///< Constructor for cube textures.
 
   ResourceDescription(const ArrayCubeTextureResourceDescription &tex) :
-    resType{RES3D_CUBEARRTEX}, asArrayCubeTexRes{tex} {} ///< Constructor for array cube textures.
+    type{D3DResourceType::CUBEARRTEX}, asArrayCubeTexRes{tex} {} ///< Constructor for array cube textures.
 
   /**
    * @brief Equality operator for resource descriptions.
@@ -152,25 +154,25 @@ struct ResourceDescription
   bool operator==(const ResourceDescription &r) const
   {
 #define FIELD_MATCHES(field) (this->field == r.field)
-    if (!FIELD_MATCHES(resType) || !FIELD_MATCHES(asBasicRes.cFlags))
+    if (!FIELD_MATCHES(type) || !FIELD_MATCHES(asBasicRes.cFlags))
       return false;
-    if (resType == RES3D_SBUF)
+    if (type == D3DResourceType::SBUF)
       return FIELD_MATCHES(asBufferRes.elementCount) && FIELD_MATCHES(asBufferRes.elementSizeInBytes) &&
              FIELD_MATCHES(asBufferRes.viewFormat);
     if (!FIELD_MATCHES(asBasicTexRes.mipLevels))
       return false;
-    if (resType == RES3D_CUBETEX || resType == RES3D_CUBEARRTEX)
+    if (type == D3DResourceType::CUBETEX || type == D3DResourceType::CUBEARRTEX)
     {
       if (!FIELD_MATCHES(asCubeTexRes.extent))
         return false;
-      if (resType == RES3D_CUBEARRTEX)
+      if (type == D3DResourceType::CUBEARRTEX)
         return FIELD_MATCHES(asArrayCubeTexRes.cubes);
     }
     if (!FIELD_MATCHES(asTexRes.width) || !FIELD_MATCHES(asTexRes.height))
       return false;
-    if (resType == RES3D_VOLTEX)
+    if (type == D3DResourceType::VOLTEX)
       return FIELD_MATCHES(asVolTexRes.depth);
-    if (resType == RES3D_ARRTEX)
+    if (type == D3DResourceType::ARRTEX)
       return FIELD_MATCHES(asArrayTexRes.arrayLayers);
     return true;
 #undef FIELD_MATCHES
@@ -185,29 +187,29 @@ struct ResourceDescription
    */
   HashT hash() const
   {
-    HashT hashValue = resType;
-    switch (resType)
+    HashT hashValue = eastl::to_underlying(type);
+    switch (type)
     {
-      case RES3D_SBUF:
+      case D3DResourceType::SBUF:
         return hashPack(hashValue, asBufferRes.cFlags, asBufferRes.elementCount, asBufferRes.elementSizeInBytes,
           asBufferRes.viewFormat);
-      case RES3D_TEX:
+      case D3DResourceType::TEX:
         return hashPack(hashValue, eastl::to_underlying(asTexRes.activation), asTexRes.cFlags, asTexRes.mipLevels, asTexRes.height,
           asTexRes.width, asTexRes.clearValue.asUint[0], asTexRes.clearValue.asUint[1], asTexRes.clearValue.asUint[2],
           asTexRes.clearValue.asUint[3]);
-      case RES3D_VOLTEX:
+      case D3DResourceType::VOLTEX:
         return hashPack(hashValue, eastl::to_underlying(asVolTexRes.activation), asVolTexRes.cFlags, asVolTexRes.mipLevels,
           asVolTexRes.height, asVolTexRes.width, asVolTexRes.depth, asVolTexRes.clearValue.asUint[0], asVolTexRes.clearValue.asUint[1],
           asVolTexRes.clearValue.asUint[2], asVolTexRes.clearValue.asUint[3]);
-      case RES3D_ARRTEX:
+      case D3DResourceType::ARRTEX:
         return hashPack(hashValue, eastl::to_underlying(asArrayTexRes.activation), asArrayTexRes.arrayLayers, asArrayTexRes.cFlags,
           asArrayTexRes.height, asArrayTexRes.mipLevels, asArrayTexRes.height, asArrayTexRes.width, asArrayTexRes.clearValue.asUint[0],
           asArrayTexRes.clearValue.asUint[1], asArrayTexRes.clearValue.asUint[2], asArrayTexRes.clearValue.asUint[3]);
-      case RES3D_CUBETEX:
+      case D3DResourceType::CUBETEX:
         return hashPack(hashValue, eastl::to_underlying(asCubeTexRes.activation), asCubeTexRes.cFlags, asCubeTexRes.extent,
           asCubeTexRes.mipLevels, asCubeTexRes.clearValue.asUint[0], asCubeTexRes.clearValue.asUint[1],
           asCubeTexRes.clearValue.asUint[2], asCubeTexRes.clearValue.asUint[3]);
-      case RES3D_CUBEARRTEX:
+      case D3DResourceType::CUBEARRTEX:
         return hashPack(hashValue, eastl::to_underlying(asArrayCubeTexRes.activation), asArrayCubeTexRes.cFlags,
           asArrayCubeTexRes.mipLevels, asArrayCubeTexRes.cubes, asArrayCubeTexRes.extent, asArrayCubeTexRes.clearValue.asUint[0],
           asArrayCubeTexRes.clearValue.asUint[1], asArrayCubeTexRes.clearValue.asUint[2], asArrayCubeTexRes.clearValue.asUint[3]);
@@ -217,43 +219,43 @@ struct ResourceDescription
 
   String toDebugString() const
   {
-    switch (resType)
+    switch (type)
     {
-      case RES3D_SBUF:
+      case D3DResourceType::SBUF:
         return String(0,
           "Buffer { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .elementSizeInBytes = %u, .elementCount = %u, .viewFormat = %u }",
           asBufferRes.cFlags, eastl::to_underlying(asBufferRes.activation), asBufferRes.clearValue.asUint[0],
           asBufferRes.clearValue.asUint[1], asBufferRes.clearValue.asUint[2], asBufferRes.clearValue.asUint[3],
           asBufferRes.elementSizeInBytes, asBufferRes.elementCount, asBufferRes.viewFormat);
-      case RES3D_TEX:
+      case D3DResourceType::TEX:
         return String(0,
           "Texture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .mipLevels = %u, .width = %u, .height = %u }",
           asTexRes.cFlags, eastl::to_underlying(asTexRes.activation), asTexRes.clearValue.asUint[0], asTexRes.clearValue.asUint[1],
           asTexRes.clearValue.asUint[2], asTexRes.clearValue.asUint[3], asTexRes.mipLevels, asTexRes.width, asTexRes.height);
-      case RES3D_VOLTEX:
+      case D3DResourceType::VOLTEX:
         return String(0,
           "VolumeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .mipLevels = %u, .width = %u, .height = %u, .depth = %u }",
           asVolTexRes.cFlags, eastl::to_underlying(asVolTexRes.activation), asVolTexRes.clearValue.asUint[0],
           asVolTexRes.clearValue.asUint[1], asVolTexRes.clearValue.asUint[2], asVolTexRes.clearValue.asUint[3], asVolTexRes.mipLevels,
           asVolTexRes.width, asVolTexRes.height, asVolTexRes.depth);
-      case RES3D_ARRTEX:
+      case D3DResourceType::ARRTEX:
         return String(0,
           "ArrayTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .mipLevels = %u, .width = %u, .height = %u, .arrayLayers = %u }",
           asArrayTexRes.cFlags, eastl::to_underlying(asArrayTexRes.activation), asArrayTexRes.clearValue.asUint[0],
           asArrayTexRes.clearValue.asUint[1], asArrayTexRes.clearValue.asUint[2], asArrayTexRes.clearValue.asUint[3],
           asArrayTexRes.mipLevels, asArrayTexRes.width, asArrayTexRes.height, asArrayTexRes.arrayLayers);
-      case RES3D_CUBETEX:
+      case D3DResourceType::CUBETEX:
         return String(0,
           "CubeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .mipLevels = %u, .extent = %u }",
           asCubeTexRes.cFlags, eastl::to_underlying(asCubeTexRes.activation), asCubeTexRes.clearValue.asUint[0],
           asCubeTexRes.clearValue.asUint[1], asCubeTexRes.clearValue.asUint[2], asCubeTexRes.clearValue.asUint[3],
           asCubeTexRes.mipLevels, asCubeTexRes.extent);
-      case RES3D_CUBEARRTEX:
+      case D3DResourceType::CUBEARRTEX:
         return String(0,
           "ArrayCubeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
           " .mipLevels = %u, .extent = %u, .cubes = %u }",
@@ -341,8 +343,9 @@ struct ResourceHeapGroupProperties
       /// On consoles this is usually true for all heap groups, on PC only
       /// for memory dedicated to the GPU.
       bool isGPULocal : 1;
-      /// Special on chip memory, like ESRAM of the XB1.
-      bool isOnChip : 1;
+      /// Same as GPU local but much more limited, like ESRAM of the XB1.
+      /// User should be allowed to allocate the whole memory of this heap group. It's a common usecase.
+      bool isDedicatedFastGPULocal : 1;
     };
   };
   /// The maximum size of a resource that can be placed into a heap of this group.
@@ -482,8 +485,7 @@ ResourceHeapGroupProperties get_resource_heap_group_properties(ResourceHeapGroup
  * @param gpu_pipeline The GPU pipeline to use (optional).
  * @warning gpu_pipeline parameter doesn't work currently.
  */
-void activate_buffer(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &value = {},
-  GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
+void activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
 
 /**
  * @brief Activates a texture with the specified action and optional clear value.
@@ -553,9 +555,9 @@ inline ResourceHeapGroupProperties get_resource_heap_group_properties(ResourceHe
 {
   return d3di.get_resource_heap_group_properties(heap_group);
 }
-inline void activate_buffer(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &value, GpuPipeline gpu_pipeline)
+inline void activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline)
 {
-  d3di.activate_buffer(buf, action, value, gpu_pipeline);
+  d3di.activate_buffer(buf, action, gpu_pipeline);
 }
 inline void activate_texture(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
   GpuPipeline gpu_pipeline)

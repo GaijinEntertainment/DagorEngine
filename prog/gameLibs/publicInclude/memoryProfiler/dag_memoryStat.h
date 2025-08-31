@@ -35,18 +35,12 @@ void end_memory_allocation(const char *name, const MemoryInfo &prev_current, con
 
 #define END_MEM(name) memstat::end_memory_allocation(#name, beginMemCurrent##name, beginMemTotal##name)
 
-#define SCOPE_MEM(text)                                        \
-  struct ScopeMem##text                                        \
-  {                                                            \
-    memstat::MemoryInfo current, total;                        \
-    ScopeMem##text()                                           \
-    {                                                          \
-      memstat::begin_memory_allocation(#text, current, total); \
-    }                                                          \
-    ~ScopeMem##text()                                          \
-    {                                                          \
-      memstat::end_memory_allocation(#text, current, total);   \
-    }                                                          \
+#define SCOPE_MEM(text)                                                           \
+  struct ScopeMem##text                                                           \
+  {                                                                               \
+    memstat::MemoryInfo current, total;                                           \
+    ScopeMem##text() { memstat::begin_memory_allocation(#text, current, total); } \
+    ~ScopeMem##text() { memstat::end_memory_allocation(#text, current, total); }  \
   } scope_mem_##text
 
 void dump_statistics();

@@ -61,6 +61,10 @@ protected:
 public:
   ImageCreateResult createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii, const char *name);
   Image *adoptTexture(ID3D12Resource *texture, const char *name);
+#if _TARGET_PC_WIN
+  Image *cloneRenderTarget(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
+    D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET);
+#endif
 
   void destroyTextureOnFrameCompletion(Image *texture)
   {
@@ -110,7 +114,12 @@ class AliasHeapProvider : public TextureImageFactory
 
     explicit operator bool() const { return static_cast<bool>(memory); }
 
-    void reset() { memory = {}; }
+    void reset()
+    {
+      images.clear();
+      buffers.clear();
+      memory = {};
+    }
 
     bool shouldBeFreed() const { return flags.test(Flag::AUTO_FREE) && images.empty() && buffers.empty(); }
   };
@@ -155,6 +164,22 @@ protected:
     {
       processAutoFree();
     }
+  }
+
+  void preRecovery()
+  {
+    auto aliasHeapsAccess = aliasHeaps.access();
+    for (auto &heap : *aliasHeapsAccess)
+    {
+      if (!heap)
+        continue;
+      ResourceHeapProperties properties;
+      properties.raw = heap.memory.getHeapID().group;
+      recordDeletedUserResourceHeap(heap.memory.size(), !properties.isCPUVisible());
+      free(heap.memory, false);
+      heap.reset();
+    }
+    BaseType::preRecovery();
   }
 
 public:
@@ -221,12 +246,12 @@ protected:
     bool ensureSize(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment, ScratchBufferProvider *heap)
     {
       auto spaceNeeded = align_value(allocatedSpace, alignment) + size;
-      if (spaceNeeded <= buffer.bufferMemory.size())
+      if (spaceNeeded <= buffer.getBufferMemorySize())
       {
         return true;
       }
       // default to times 2 so we stop to realloc at some point
-      auto nextSize = max<size_t>(scartch_buffer_min_size, buffer.bufferMemory.size() * 2);
+      auto nextSize = max<size_t>(scartch_buffer_min_size, buffer.getBufferMemorySize() * 2);
       // out of space
       if (buffer)
       {
@@ -273,7 +298,7 @@ protected:
       if (DX12_CHECK_OK(errorCode))
       {
         heap->recordScratchBufferAllocated(desc.Width);
-        heap->updateMemoryRangeUse(memory, ScratchBufferReference{buffer.buffer.Get()});
+        heap->updateMemoryRangeUse(memory, ScratchBufferReference{buffer.getResourcePtr()});
       }
       else
       {
@@ -289,7 +314,7 @@ protected:
       ensureSize(adapter, device, size, alignment, heap);
       if (buffer)
       {
-        result.buffer = buffer.buffer.Get();
+        result.buffer = buffer.getResourcePtr();
         result.offset = align_value(allocatedSpace, alignment);
         // keep allocatedSpace as it is only used for one operation and can be reused on the next
       }
@@ -355,7 +380,7 @@ protected:
     if (DX12_CHECK_OK(errorCode))
     {
       recordScratchBufferAllocated(desc.Width);
-      updateMemoryRangeUse(memory, ScratchBufferReference{scratchBufferAccess->buffer.buffer.Get()});
+      updateMemoryRangeUse(memory, ScratchBufferReference{scratchBufferAccess->buffer.getResourcePtr()});
     }
     else
       free(memory, allocation_flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION));
@@ -365,8 +390,8 @@ protected:
   bool tryMoveScratchBuffer(ScratchBufferWrapper::AccessToken &scratchBufferAccess, DXGIAdapter *adapter, ID3D12Device *device,
     AllocationFlags allocation_flags)
   {
-    uint32_t size = scratchBufferAccess->buffer.bufferMemory.size();
-    auto movedBuffer = allocateNewScratchBuffer(adapter, device, size, allocation_flags, scratchBufferAccess);
+    auto movedBuffer = allocateNewScratchBuffer(adapter, device, scratchBufferAccess->buffer.getBufferMemorySize(), allocation_flags,
+      scratchBufferAccess);
     if (!movedBuffer)
     {
       return false;
@@ -403,7 +428,7 @@ public:
   {
     for (auto &buffer : data.deletedScratchBuffers)
     {
-      recordScratchBufferFreed(buffer.bufferMemory.size());
+      recordScratchBufferFreed(buffer.getBufferMemorySize());
       buffer.reset(this);
     }
     data.deletedScratchBuffers.clear();
@@ -621,9 +646,6 @@ class HeapFragmentationManager : public SamplerDescriptorProvider
   ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentBidirectionalBufferReference ref,
     AllocationFlags allocation_flags, bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
-    frontend::BindlessManager &bindless_manager, HeapID heap_id, RaytraceAccelerationStructureHeapReference ref,
-    AllocationFlags allocation_flags, bool is_emergency_defragmentation);
 
   bool processGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device, frontend::BindlessManager &bindless_manager,
     uint32_t index);
@@ -692,6 +714,8 @@ protected:
 public:
   void processEmergencyDefragmentation(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
     uint32_t group_index, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv);
+
+  void processDefragmentationForAllGroups(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager);
 };
 
 class FrameFinalizer : public HeapFragmentationManager
@@ -757,6 +781,17 @@ protected:
     // make thread sanitizer happy
     {
       OSSpinlockScopedLock lock{recodingPendingFrameCompletionMutex};
+      for (int i = 1; i < countof(finalizerData); ++i)
+      {
+        finalizerData[0].deletedImages.insert(finalizerData[0].deletedImages.end(), begin(finalizerData[i].deletedImages),
+          end(finalizerData[i].deletedImages));
+        for (int j = 0; j < finalizerData[i].deletedBuffers.size(); ++j)
+        {
+          finalizerData[0].deletedBuffers.push_back(std::move(finalizerData[i].deletedBuffers[j]));
+        }
+        finalizerData[i].deletedImages.clear();
+        finalizerData[i].deletedBuffers.clear();
+      }
       for (; info.historyIndex < countof(finalizerData); ++info.historyIndex)
       {
         BaseType::completeFrameExecution(info, finalizerData[info.historyIndex]);
@@ -1074,6 +1109,7 @@ public:
   using BeginFrameRecordingInfo = BaseType::BeginFrameRecordingInfo;
 
   using BaseType::preRecovery;
+  using BaseType::resetTqlStatsForRecovery;
   using BaseType::setup;
   using BaseType::shutdown;
 
@@ -1082,8 +1118,12 @@ public:
   using BaseType::beginFrameRecording;
 
 #if D3D_HAS_RAY_TRACING
+  using BaseType::createAccelerationStructure;
+  using BaseType::createAccelerationStructurePool;
   using BaseType::deleteRaytraceBottomAccelerationStructureOnFrameCompletion;
   using BaseType::deleteRaytraceTopAccelerationStructureOnFrameCompletion;
+  using BaseType::destroyAccelerationStructureOnFrameCompletion;
+  using BaseType::destroyAccelerationStructurePoolOnFrameCompletion;
   using BaseType::getRaytraceAccelerationStructuresGpuMemoryUsage;
   using BaseType::newRaytraceBottomAccelerationStructure;
   using BaseType::newRaytraceTopAccelerationStructure;
@@ -1123,7 +1163,6 @@ public:
   using BaseType::reserveBufferObjects;
 
   using BaseType::deleteBufferObject;
-  using BaseType::getResourceMemoryForBuffer;
 
   using BaseType::allocatePersistentBidirectional;
   using BaseType::allocatePersistentReadBack;
@@ -1148,6 +1187,9 @@ public:
 
   using BaseType::adoptTexture;
   using BaseType::aliasTexture;
+#if _TARGET_PC_WIN
+  using BaseType::cloneRenderTarget;
+#endif
   using BaseType::createTexture;
   using BaseType::deleteTextureObjectOnFrameCompletion;
   using BaseType::destroyTextureOnFrameCompletion;
@@ -1189,19 +1231,17 @@ public:
 
   using BaseType::completeFrameRecording;
 
+  using BaseType::processDefragmentationForAllGroups;
   using BaseType::processEmergencyDefragmentation;
 
 #if DX12_USE_ESRAM
   using BaseType::aliasESRamTexture;
   using BaseType::createESRamTexture;
   using BaseType::deselectLayout;
-  using BaseType::fetchMovableTextures;
   using BaseType::hasESRam;
-  using BaseType::registerMovableTexture;
   using BaseType::resetAllLayouts;
   using BaseType::selectLayout;
   using BaseType::unmapResource;
-  using BaseType::writeBackMovableTextures;
 #endif
 
   using BaseType::enterSuspended;
@@ -1235,7 +1275,6 @@ public:
   using BaseType::PersistentReadBackBufferReference;
   using BaseType::PersistentUploadBufferReference;
   using BaseType::PushRingBufferReference;
-  using BaseType::RaytraceAccelerationStructureHeapReference;
   using BaseType::reportOOMInformation;
   using BaseType::ScratchBufferReference;
   using BaseType::TempUploadBufferReference;

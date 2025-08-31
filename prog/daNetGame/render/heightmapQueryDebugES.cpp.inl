@@ -13,8 +13,10 @@
 #include <ecs/delayedAct/actInThread.h>
 #include <EASTL/array.h>
 #include <util/dag_convar.h>
+#include <math/dag_hlsl_floatx.h>
 #include <debug/dag_debug3d.h>
 #include <landMesh/heightmapQuery.h>
+#include "landMesh/heightmap_query_result.hlsli"
 
 
 CONSOLE_BOOL_VAL("hmap_query_debug", debug_draw, false);
@@ -90,6 +92,7 @@ static void debug_draw_heightmap_queries_es(const ecs::UpdateStageInfoRenderDebu
   {
     TIME_PROFILE(process);
     begin_draw_cached_debug_lines();
+    float hitDist = 0.0f;
     for (auto &elem : cachedDebugElems)
     {
       if (elem.queryIndex >= 0)
@@ -98,8 +101,9 @@ static void debug_draw_heightmap_queries_es(const ecs::UpdateStageInfoRenderDebu
         GpuReadbackResultState queryResultState = heightmap_query::get_query_result(elem.queryIndex, queryResult);
         if (::is_gpu_readback_query_successful(queryResultState))
         {
-          elem.pos.y = (query_type == 0) ? queryResult.heightNoOffset
-                                         : ((query_type == 1) ? queryResult.heightWithOffset : queryResult.heightWithOffsetDeform);
+          hitDist = (query_type == 0) ? queryResult.hitDistNoOffset
+                                      : ((query_type == 1) ? queryResult.hitDistWithOffset : queryResult.hitDistWithOffsetDeform);
+          elem.pos += queryResult.normal * hitDist;
           elem.queryIndex = -1;
         }
         else if (::is_gpu_readback_query_failed(queryResultState))
@@ -109,7 +113,7 @@ static void debug_draw_heightmap_queries_es(const ecs::UpdateStageInfoRenderDebu
       draw_cached_debug_line_twocolored(elem.pos, elem.pos + offsetPos, E3DCOLOR(255, 0, 255), E3DCOLOR(255, 255, 0));
 
       if (enable_query && elem.queryIndex < 0)
-        elem.queryIndex = heightmap_query::query(Point2(elem.pos.x, elem.pos.z));
+        elem.queryIndex = heightmap_query::query(elem.pos, Point3(0, -1, 0));
     }
     end_draw_cached_debug_lines();
   }

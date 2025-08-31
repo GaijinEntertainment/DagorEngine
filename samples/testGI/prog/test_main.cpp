@@ -23,6 +23,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <debug/dag_debug.h>
+#include <memory/dag_framemem.h>
 #include "test_main.h"
 
 #include <gui/dag_guiStartup.h>
@@ -186,6 +187,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   for (; !quitted;) // infinite cycle
   {
     ::dagor_work_cycle();
+    reset_framemem();
   }
   return 0;
 }

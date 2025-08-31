@@ -12,7 +12,7 @@
 #include <assets/assetMgr.h>
 #include <de3_drawInvalidEntities.h>
 #include <oldEditor/de_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <regExp/regExp.h>
@@ -22,6 +22,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
+#include <3d/dag_texMgrTags.h>
 #include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
@@ -66,30 +67,29 @@ class PrefabEntity : public VirtualPrefabEntity, public IEntityCollisionState
 public:
   PrefabEntity() : VirtualPrefabEntity(prefabEntityClassId) { tm.identity(); }
 
-  virtual void setTm(const TMatrix &_tm);
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy();
+  void setTm(const TMatrix &_tm) override;
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override;
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IEntityCollisionState);
     return NULL;
   }
 
   // IEntityCollisionState
-  virtual void setCollisionFlag(bool f)
+  void setCollisionFlag(bool f) override
   {
     if (f)
       flags |= FLG_CLIP_EDITOR | FLG_CLIP_GAME;
     else
       flags &= ~(FLG_CLIP_EDITOR | FLG_CLIP_GAME);
   }
-  virtual bool hasCollision() { return flags & FLG_CLIP_GAME; }
-  virtual int getAssetNameId();
-  virtual DagorAsset *getAsset();
+  bool hasCollision() override { return flags & FLG_CLIP_GAME; }
+  int getAssetNameId() override;
+  DagorAsset *getAsset() override;
 
 public:
-  static const int STEP = 512;
   enum
   {
     FLG_CLIP_EDITOR = 0x0001,
@@ -465,7 +465,7 @@ public:
   IObjEntity *getVirtualEnt() { return &virtualEntity; }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     del_it(geom);
     sumNodeFlags = 0;
@@ -473,7 +473,7 @@ public:
     occlQuadV.clear();
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     del_it(geom);
     bbox.setempty();
@@ -481,6 +481,8 @@ public:
 
     loadDag(asset);
     EDITORCORE->invalidateViewportCache();
+    if (DAGORED2 && needsRenderToClipmap() && ent.size())
+      DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)true);
   }
 
   bool isCollidable() const { return (sumNodeFlags & StaticGeometryNode::FLG_COLLIDABLE); }
@@ -644,6 +646,19 @@ protected:
           if (hasGeomForClipmap)
             break;
         }
+    if (hasGeomForClipmap)
+    {
+      textag_mark_begin(TEXTAG_USER_START + 0);
+      for (auto *n : g->nodes)
+        if (n && n->mesh.get() && (n->flags & StaticGeometryNode::FLG_RENDERABLE))
+        {
+          for (auto &m : n->mesh->mats)
+            for (auto &t : m->textures)
+              if (t)
+                get_managed_texture_id(t->fileName);
+        }
+      textag_mark_end();
+    }
     debug("prefab [%s]: %s for clipmap render %s", asset.getName(), hasGeomForClipmap ? "USE" : "DONT use",
       hasGeomForClipmap ? (renderForClipmapLate ? "(stage_late)" : "(stage_normal)") : "");
 
@@ -712,22 +727,22 @@ public:
     if (DAGORED2)
       DAGORED2->registerCustomCollider(this);
   }
-  ~PrefabEntityManagementService()
+  ~PrefabEntityManagementService() override
   {
     if (DAGORED2)
       DAGORED2->unregisterCustomCollider(this);
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_prefabEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Prefab entities"; }
+  const char *getServiceName() const override { return "_prefabEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Prefab entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     if (!p.size())
@@ -739,10 +754,10 @@ public:
     for (int i = 0; i < p.size(); i++)
       p[i]->renderService(subtypeMask);
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
     {
@@ -756,7 +771,7 @@ public:
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -767,7 +782,7 @@ public:
   }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
@@ -848,6 +863,8 @@ public:
         for (int i = 0; i < p.size(); i++)
           if (p[i]->needsRenderAsHeightmapPatch())
             p[i]->render(frustum);
+
+      default: break;
     }
     if (landCellShortDecodeXZ != -1)
       ShaderGlobal::set_color4(landCellShortDecodeXZ, dec_xz_0);
@@ -856,12 +873,12 @@ public:
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return prefabEntityClassId >= 0 && prefabEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     int pool_idx = prefabPool.findPool(asset);
     if (pool_idx < 0)
@@ -883,7 +900,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     PrefabEntity *o = reinterpret_cast<PrefabEntity *>(origin);
     if (!prefabPool.canAddEntity(o->poolIdx))
@@ -900,8 +917,8 @@ public:
   }
 
   // IGatherStaticGeometry interface
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &cont) { gatherStaticVisualGeometryForStage(cont, 0); }
-  virtual void gatherStaticVisualGeometryForStage(StaticGeometryContainer &cont, int stage_idx)
+  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override { gatherStaticVisualGeometryForStage(cont, 0); }
+  void gatherStaticVisualGeometryForStage(StaticGeometryContainer &cont, int stage_idx) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
@@ -910,15 +927,15 @@ public:
       if (p[i]->checkStageIdx(stage_idx))
         p[i]->addGeometry(cont, StaticGeometryNode::FLG_RENDERABLE, 0, st_mask, lh_mask);
   }
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer &cont) {}
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont)
+  void gatherStaticEnviGeometry(StaticGeometryContainer &cont) override {}
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
     for (int i = 0; i < p.size(); i++)
       p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_GAME, st_mask);
   }
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont)
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
@@ -927,7 +944,7 @@ public:
   }
 
   // IDagorEdCustomCollider interface
-  virtual bool traceRay(const Point3 &p0, const Point3 &dir, real &maxt, Point3 *norm)
+  bool traceRay(const Point3 &p0, const Point3 &dir, real &maxt, Point3 *norm) override
   {
     if (maxt <= 0)
       return false;
@@ -939,7 +956,7 @@ public:
         ret = true;
     return ret;
   }
-  virtual bool shadowRayHitTest(const Point3 &p0, const Point3 &dir, real maxt)
+  bool shadowRayHitTest(const Point3 &p0, const Point3 &dir, real maxt) override
   {
     if (maxt <= 0)
       return false;
@@ -950,17 +967,17 @@ public:
         return true;
     return false;
   }
-  virtual const char *getColliderName() const { return getServiceFriendlyName(); }
-  virtual bool isColliderVisible() const { return visible; }
+  const char *getColliderName() const override { return getServiceFriendlyName(); }
+  bool isColliderVisible() const override { return visible; }
 
   // IOccluderGeomProvider
-  virtual void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads)
+  void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     for (int i = 0; i < p.size(); i++)
       p[i]->gatherOccluders(occl_boxes, occl_quads);
   }
-  virtual void renderOccluders(const Point3 &camPos, float max_dist) {}
+  void renderOccluders(const Point3 &camPos, float max_dist) override {}
 
   // IStaticGeometryMaterialEditor
   void setMaterialColorForEntity(IObjEntity *entity, int node_idx, int material_idx, const E3DCOLOR &color) override

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <daSkies2/daSkies.h>
+#include <resourcePool/resourcePool.h>
 
 #include "shaders/clouds2/cloud_settings.hlsli"
 
@@ -10,9 +11,15 @@ struct CloudsRendererData
   int w = 0, h = 0;
   bool useBlurredClouds = false;
 
-  carray<UniqueTex, 3> cloudsTextureColor = {};
+  RTargetPool::Ptr cloudsColorPoolRT;
+  RTargetPool::Ptr cloudsColorBlurPoolRT;
+  RTargetPool::Ptr cloudsWeightPoolRT;
+  RTarget::Ptr prevCloudsColor, nextCloudsColor;
+  RTarget::Ptr cloudsTextureColor;
+  RTarget::Ptr cloudsBlurTextureColor;
+  RTarget::Ptr prevCloudsWeight;
+  RTarget::Ptr cloudsTextureWeight;
   UniqueTex cloudsTextureDepth;
-  carray<UniqueTex, 2> cloudsTextureWeight;
   // todo: reflection never needs clouds_color_close
 
   UniqueTex clouds_color_close;

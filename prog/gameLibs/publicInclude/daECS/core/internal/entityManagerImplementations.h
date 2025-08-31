@@ -350,11 +350,13 @@ DAECS_RELEASE_INLINE T *__restrict EntityManager::getNullableRWFast(EntityId eid
 }
 
 template <class T>
-DAECS_RELEASE_INLINE void EntityManager::setOptionalFast(EntityId eid, const FastGetInfo name, const T &__restrict v)
+DAECS_RELEASE_INLINE bool EntityManager::setOptionalFast(EntityId eid, const FastGetInfo name, const T &__restrict v)
 {
   T *__restrict to = getNullableRWFast<T>(eid, name);
-  if (to)
-    *to = v;
+  if (!to)
+    return false;
+  *to = v;
+  return true;
 }
 
 template <class T>
@@ -407,24 +409,32 @@ DAECS_RELEASE_INLINE T *__restrict EntityManager::getNullableRW(EntityId eid, co
 
 
 template <class T, bool optional>
-DAECS_RELEASE_INLINE void EntityManager::setComponentInternal(EntityId eid, const HashedConstString name, const T &__restrict v)
+DAECS_RELEASE_INLINE bool EntityManager::setComponentInternal(EntityId eid, const HashedConstString name, const T &__restrict v)
 {
   T *__restrict attr = getNullableRW<T>(eid, name);
   if (attr)
     *attr = v;
   else if (!optional)
+  {
     accessError(eid, name);
+    return false;
+  }
+  return true;
 }
 
 template <typename T, bool optional>
-typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value>::type DAECS_RELEASE_INLINE EntityManager::setComponentInternal(
-  EntityId eid, const HashedConstString name, T &&v)
+typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value, bool>::type DAECS_RELEASE_INLINE
+EntityManager::setComponentInternal(EntityId eid, const HashedConstString name, T &&v)
 {
   T *__restrict attr = getNullableRW<T>(eid, name);
   if (attr)
     *attr = eastl::move(v);
   else if (!optional)
+  {
     accessError(eid, name);
+    return false;
+  }
+  return true;
 }
 
 inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return EntityManager::make_eid(index, gen); }
@@ -459,7 +469,7 @@ __forceinline void EntityManager::emplaceUntypedEvent(Storage &storage, EntityId
     memcpy(at, (void *)&evt, len); // we can memcpy such event
   }
   else
-    eventDb.moveOut(at, eastl::move(evt)); // hash lookup
+    eventDb.moveOut(*this, at, eastl::move(evt)); // hash lookup
 }
 
 __forceinline void EntityManager::dispatchEvent(EntityId eid, Event &&evt) { dispatchEvent(eid, (Event &)evt); }
@@ -520,7 +530,7 @@ inline ecs::template_t EntityManager::getEntityTemplateId(ecs::EntityId eid) con
 inline const char *EntityManager::getEntityTemplateName(ecs::EntityId eid) const { return getTemplateName(getEntityTemplateId(eid)); }
 
 template <bool optional>
-__forceinline void EntityManager::setComponentInternal(EntityId eid, const HashedConstString name, ChildComponent &&a)
+__forceinline bool EntityManager::setComponentInternal(EntityId eid, const HashedConstString name, ChildComponent &&a)
 {
   component_index_t cidx;
   uint32_t archetype;
@@ -529,7 +539,7 @@ __forceinline void EntityManager::setComponentInternal(EntityId eid, const Hashe
   {
     if (!optional)
       accessError(eid, name);
-    return;
+    return false;
   }
   scheduleTrackChangedCheck(eid, archetype, cidx);
   type_index_t componentType = a.componentTypeIndex;
@@ -546,6 +556,7 @@ __forceinline void EntityManager::setComponentInternal(EntityId eid, const Hashe
       // ctm->move(data, a.getRawData());a.reset();//should be move, but we don't support move yet
     }
   }
+  return true;
 }
 
 inline bool EntityManager::isLoadingEntity(EntityId eid) const
@@ -570,20 +581,20 @@ inline void EntityManager::set(EntityId eid, const HashedConstString name, const
   setComponentInternal<T, false>(eid, name, v);
 }
 
-inline void EntityManager::setOptional(EntityId eid, const HashedConstString name, ChildComponent &&a)
+inline bool EntityManager::setOptional(EntityId eid, const HashedConstString name, ChildComponent &&a)
 {
-  setComponentInternal<true>(eid, name, eastl::move(a));
+  return setComponentInternal<true>(eid, name, eastl::move(a));
 }
 template <typename T>
-typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value>::type inline EntityManager::setOptional(EntityId eid,
+typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value, bool>::type inline EntityManager::setOptional(EntityId eid,
   const HashedConstString name, T &&v)
 {
-  setComponentInternal<T, true>(eid, name, eastl::move(v));
+  return setComponentInternal<T, true>(eid, name, eastl::move(v));
 }
 template <class T>
-inline void EntityManager::setOptional(EntityId eid, const HashedConstString name, const T &v)
+inline bool EntityManager::setOptional(EntityId eid, const HashedConstString name, const T &v)
 {
-  setComponentInternal<T, true>(eid, name, v);
+  return setComponentInternal<T, true>(eid, name, v);
 }
 
 

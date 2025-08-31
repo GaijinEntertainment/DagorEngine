@@ -23,6 +23,7 @@ void clear_slow(int write_mask, const float (&color_value)[4], float z_value, ui
   {
     shaders::RenderState state;
     state.independentBlendEnabled = 0;
+    state.dualSourceBlendEnabled = 0;
     for (auto &blendParam : state.blendParams)
     {
       blendParam.ablend = 0;

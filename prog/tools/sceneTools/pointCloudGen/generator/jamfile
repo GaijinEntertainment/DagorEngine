@@ -27,14 +27,12 @@ Sources =
 
 UseProgLibs +=
   gameLibs/rendInst
-  gameLibs/rendInst/riFx/stub
   gameLibs/landMesh
   gameLibs/daECS/core
   gameLibs/ecs/gameres
   gameLibs/render
   gameLibs/gamePhys/phys
   gameLibs/gamePhys/collision/customRendinstTrace
-  gameLibs/gamePhys/collision/rendinst/stub
   gameLibs/gamePhys/collision/collision-common
 
   tools/libTools/assetMgr

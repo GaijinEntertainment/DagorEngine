@@ -3,7 +3,7 @@ from "%scripts/ui/ui_library.nut" import *
 let {sliderWithText} = require("%scripts/ui/widgets/slider.nut")
 let {round_by_value} = require("%sqstd/math.nut")
 let {sound_set_volume = @(...) null} = require_optional("sound")
-let {mkSaveData, mkSettingsOption} = require("options_lib.nut")
+let {mkSaveData, mkSettingsOption} = require("%scripts/ui/settings/options_lib.nut")
 
 let mkRounded = @(val) round_by_value(val, 0.01)
 let clamp_0_1 = @(v) v<0.0 ? 0.0 : (v>1.0 ? 1.0 : v)

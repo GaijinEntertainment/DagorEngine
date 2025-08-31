@@ -1,0 +1,4 @@
+local R = prog/gameLibs/render/outline ;
+Sources +=
+  $(R)/dasModules/outline.cpp
+;

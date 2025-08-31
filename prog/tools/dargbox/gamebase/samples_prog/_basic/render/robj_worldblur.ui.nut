@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let wbp = @(color = null, fillColor = null) {
   // so, fillColor is not needed
   rendObj = ROBJ_WORLD_BLUR_PANEL
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   minWidth = SIZE_TO_CONTENT
   halign = ALIGN_CENTER
   padding = sh(1)
@@ -15,7 +15,7 @@ let wbp = @(color = null, fillColor = null) {
 
 let img = {
   rendObj = ROBJ_IMAGE
-  size = [ph(100), ph(100)]
+  size = ph(100)
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
   keepAspect = true

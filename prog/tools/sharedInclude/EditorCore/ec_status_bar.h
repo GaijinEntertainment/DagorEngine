@@ -46,6 +46,10 @@ public:
   /// @return Gizmo's center type (see IEditorCoreEngine::CenterType)
   IEditorCoreEngine::CenterType getCenterType() const;
 
+  /// Get Gizmo center type for a specific mode.
+  ///@return Gizmo center type a specific mode (see IEditorCoreEngine::CenterType and see IEditorCoreEngine::ModeType)
+  IEditorCoreEngine::CenterType getGizmoCenterTypeForMode(IEditorCoreEngine::ModeType tp) const;
+
   /// Get Gizmo's basis type
   /// @return Gizmo's basis type (see IEditorCoreEngine::BasisType)
   IEditorCoreEngine::BasisType getBasisType() const;
@@ -112,6 +116,7 @@ protected:
 
   const char *getBasisWorldCaption() const { return "World"; }
   const char *getBasisLocalCaption() const { return "Local"; }
+  const char *getBasisParentCaption() const { return "Parent"; }
 
   const char *getCenterPivotCaption() const { return "Pivot"; }
   const char *getCenterSelectionCaption() const { return "Selection"; }

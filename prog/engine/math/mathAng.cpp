@@ -366,18 +366,23 @@ void sincos(float rad, float &s, float &c)
 
 Point3 basis_aware_angles_to_dir(const Point2 &angles, const Point3 &up, const Point3 &fwd)
 {
-  Point3 dir = Quat(up, angles.x) * fwd;
-  Point3 zaxis = normalize(cross(dir, up));
-  return Quat(zaxis, angles.y) * dir;
+  quat4f q = v_quat_from_unit_vec_ang(v_ldu(&up.x), v_splats(angles.x));
+  vec3f dir = v_quat_mul_vec3(q, v_ldu(&fwd.x));
+  vec3f zAxis = v_norm3_safe(v_cross3(dir, v_ldu(&up.x)), V_C_UNIT_0010);
+  quat4f qz = v_quat_from_unit_vec_ang(zAxis, v_splats(angles.y));
+  Point3_vec4 ret;
+  v_st(&ret.x, v_quat_mul_vec3(qz, dir));
+  return ret;
 }
 
 Point2 basis_aware_dir_to_angles(const Point3 &dir, const Point3 &up, const Point3 &fwd)
 {
-  Point3 dxdz = normalize(dir - up * dot(dir, up));
-  float dy = dot(dir, up);
-  Point3 root2dxdz = cross(fwd, dxdz);
-  float sign = dot(up, root2dxdz) > .0 ? 1.0 : -1.0;
-  return Point2(atan2(root2dxdz.length() * sign, dot(dxdz, fwd)), asin(dy));
+  vec3f vDir = v_ldu(&dir.x), vUp = v_ldu(&up.x);
+  vec3f dxdz = v_norm3_safe(v_nmsub(vUp, v_dot3(vDir, vUp), vDir), V_C_UNIT_0010);
+  vec4f dy = v_dot3_x(vDir, vUp);
+  vec4f root2dxdz = v_cross3(v_ldu(&fwd.x), dxdz);
+  vec4f sign = v_and(V_CI_SIGN_MASK, v_dot3_x(vUp, root2dxdz));
+  return Point2(v_extract_x(v_atan2_x(v_xor(v_length3_x(root2dxdz), sign), v_dot3_x(dxdz, v_ldu(&fwd.x)))), v_extract_x(v_asin_x(dy)));
 }
 
 Point2 basis_aware_clamp_angles_by_dir(const Point2 &angles, const Point4 max_angles, const Point3 &dir, const Point3 &up,

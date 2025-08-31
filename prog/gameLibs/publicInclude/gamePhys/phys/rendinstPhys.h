@@ -69,7 +69,10 @@ struct RendInstPhys
   float ttl;
   float maxTtl;
   float maxLifeDist;
-  float distConstrainedPhys;
+  float collisionDistLimit;
+  float collisionAngleLimitCos;
+  bool groundJointLimitsEnabled = false;
+  bool groundJointExists = false;
 
   rendinst::TreeInstData treeInstData;
 

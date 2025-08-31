@@ -7,6 +7,14 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/utility.h>
 
+namespace eastl
+{
+template <typename T>
+struct default_delete;
+template <typename T, typename D>
+class unique_ptr;
+} // namespace eastl
+
 namespace dag
 {
 
@@ -19,8 +27,14 @@ struct is_type_relocatable<T, typename eastl::enable_if_t<eastl::is_trivially_co
 {};
 
 template <typename T1, typename T2>
-struct is_type_relocatable<eastl::pair<T1, T2>,
-  typename eastl::enable_if_t<is_type_relocatable<T1>::value && is_type_relocatable<T2>::value>> : public eastl::true_type
+struct is_type_relocatable<eastl::pair<T1, T2>, typename eastl::disable_if_t<eastl::is_trivially_copyable_v<eastl::pair<T1, T2>>>>
+{
+  static constexpr bool value =
+    eastl::is_trivially_copyable_v<eastl::pair<T1, T2>> || (is_type_relocatable<T1>::value && is_type_relocatable<T2>::value);
+};
+
+template <typename T>
+struct is_type_relocatable<eastl::unique_ptr<T, eastl::default_delete<T>>, void> : public eastl::true_type
 {};
 
 template <typename T>

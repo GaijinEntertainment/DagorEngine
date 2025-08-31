@@ -20,66 +20,66 @@ public:
   static Plugin *self;
 
   Plugin();
-  ~Plugin();
+  ~Plugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "occluders"; }
-  virtual const char *getMenuCommandName() const { return "Occluders"; }
-  virtual const char *getHelpUrl() const { return NULL; }
+  const char *getInternalName() const override { return "occluders"; }
+  const char *getMenuCommandName() const override { return "Occluders"; }
+  const char *getHelpUrl() const override { return NULL; }
 
-  virtual int getRenderOrder() const { return 101; }
-  virtual int getBuildOrder() const { return 0; }
+  int getRenderOrder() const override { return 101; }
+  int getBuildOrder() const override { return 0; }
 
-  virtual bool showInTabs() const { return true; }
-  virtual bool showSelectAll() const { return true; }
+  bool showInTabs() const override { return true; }
+  bool showSelectAll() const override { return true; }
 
-  virtual bool acceptSaveLoad() const { return true; }
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
-  virtual void beforeMainLoop() {}
+  void registered() override {}
+  void unregistered() override {}
+  void beforeMainLoop() override {}
 
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end();
-  virtual void onNewProject() {}
-  virtual IGenEventHandler *getEventHandler() { return this; }
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override;
+  void onNewProject() override {}
+  IGenEventHandler *getEventHandler() override { return this; }
 
-  virtual void setVisible(bool vis) { isVisible = vis; }
-  virtual bool getVisible() const { return isVisible; }
-  virtual bool getSelectionBox(BBox3 &box) const { return objEd.getSelectionBox(box); }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  void setVisible(bool vis) override { isVisible = vis; }
+  bool getVisible() const override { return isVisible; }
+  bool getSelectionBox(BBox3 &box) const override { return objEd.getSelectionBox(box); }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual void selectAll() { objEd.selectAll(); }
-  virtual void deselectAll() { objEd.unselectAll(); }
+  void clearObjects() override;
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  void selectAll() override { objEd.selectAll(); }
+  void deselectAll() override { objEd.unselectAll(); }
 
-  virtual void actObjects(float dt);
-  virtual void beforeRenderObjects(IGenViewportWnd *vp);
-  virtual void renderObjects();
-  virtual void renderTransObjects();
+  void actObjects(float dt) override;
+  void beforeRenderObjects(IGenViewportWnd *vp) override;
+  void renderObjects() override;
+  void renderTransObjects() override;
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool onPluginMenuClick(unsigned id);
-  virtual void handleViewportAcceleratorCommand(unsigned id) override;
-  virtual void registerMenuAccelerators() override;
+  bool onPluginMenuClick(unsigned id) override;
+  void handleViewportAcceleratorCommand(unsigned id) override;
+  void registerMenuAccelerators() override;
 
   // IGenEventHandler
-  virtual IGenEventHandler *getWrappedHandler() { return &objEd; }
+  IGenEventHandler *getWrappedHandler() override { return &objEd; }
 
   // IBinaryDataBuilder
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
-  virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
-  virtual bool checkMetrics(const DataBlock &metrics_blk) { return true; }
-  virtual bool useExportParameters() const { return true; }
-  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
+  bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) override;
+  bool addUsedTextures(ITextureNumerator &tn) override { return true; }
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) override;
+  bool checkMetrics(const DataBlock &metrics_blk) override { return true; }
+  bool useExportParameters() const override { return true; }
+  void fillExportPanel(PropPanel::ContainerPropertyControl &params) override;
 
   // IOccluderGeomProvider
-  virtual void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads);
-  virtual void renderOccluders(const Point3 &camPos, float max_dist) {}
+  void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads) override;
+  void renderOccluders(const Point3 &camPos, float max_dist) override {}
 
 private:
   ObjEd objEd;

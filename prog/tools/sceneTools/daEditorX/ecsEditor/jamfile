@@ -1,0 +1,26 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/ecsEditor ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/ecseditor.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  ecsEditableObject.cpp
+  ecsEditorMain.cpp
+  ecsEditorPlugin.cpp
+  ecsEntityCreateData.cpp
+  ecsObjectEditor.cpp
+;
+
+UseProgLibs =
+  tools/libTools/ObjectEditor
+  tools/libTools/ecsPropPanel
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

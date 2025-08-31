@@ -8,7 +8,8 @@
 #include <math/dag_traceRayTriangle.h>
 #include <math/dag_wooray2d.h>
 #include <math/dag_math2d.h>
-#include <EASTL/utility.h>
+#include <math/dag_bounds3.h> // BBox3
+#include <EASTL/type_traits.h>
 
 
 // Supplementary class used for heightmap raytracing.
@@ -35,24 +36,15 @@ struct HmapGetMinMax
   static constexpr bool has_method = sizeof(SFINAE<T>(nullptr)) == sizeof(int);
   static constexpr bool has_world_box = sizeof(SFINAE2<T>(nullptr)) == sizeof(int);
 
-  template <bool B, typename CT = void>
-  struct enable_if
-  {};
-  template <typename CT>
-  struct enable_if<true, CT>
-  {
-    typedef CT type;
-  };
-
   template <typename U = T>
-  static typename enable_if<HmapGetMinMax<U>::has_method, bool>::type getHeightmapCell5PtMinMax(const T &hm, const IPoint2 &cell,
-    float &h0, float &hx, float &hy, float &hxy, float &med, float minY, float maxY)
+  static eastl::enable_if_t<HmapGetMinMax<U>::has_method, bool> getHeightmapCell5PtMinMax(const T &hm, const IPoint2 &cell, float &h0,
+    float &hx, float &hy, float &hxy, float &med, float minY, float maxY)
   {
     return hm.getHeightmapCell5PtMinMax(cell, h0, hx, hy, hxy, med, minY, maxY);
   }
   template <typename U = T>
-  static typename enable_if<!HmapGetMinMax<U>::has_method, bool>::type getHeightmapCell5PtMinMax(const T &hm, const IPoint2 &cell,
-    float &h0, float &hx, float &hy, float &hxy, float &med, float minY, float maxY)
+  static eastl::enable_if_t<!HmapGetMinMax<U>::has_method, bool> getHeightmapCell5PtMinMax(const T &hm, const IPoint2 &cell, float &h0,
+    float &hx, float &hy, float &hxy, float &med, float minY, float maxY)
   {
     if (!hm.getHeightmapCell5Pt(cell, h0, hx, hy, hxy, med))
       return false;
@@ -60,7 +52,7 @@ struct HmapGetMinMax
   }
 
   template <typename U = T>
-  static typename enable_if<HmapGetMinMax<U>::has_world_box, bbox3f>::type getWorldBox(const T &hm)
+  static eastl::enable_if_t<HmapGetMinMax<U>::has_world_box, bbox3f> getWorldBox(const T &hm)
   {
     BBox3 bs = hm.getWorldBox();
     bbox3f b;
@@ -69,7 +61,7 @@ struct HmapGetMinMax
     return b;
   }
   template <typename U = T>
-  static typename enable_if<!HmapGetMinMax<U>::has_world_box, bbox3f>::type getWorldBox(const T &hm)
+  static eastl::enable_if_t<!HmapGetMinMax<U>::has_world_box, bbox3f> getWorldBox(const T &hm)
   {
     const float cellSize = hm.getHeightmapCellSize();
     const Point3 ofs = hm.getHeightmapOffset();

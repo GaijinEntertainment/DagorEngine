@@ -2,7 +2,7 @@
 
 #include <ecs/core/entitySystem.h>
 
-extern size_t pull_das_daBfg_aot_lib();
+extern size_t pull_das_daFrameGraph_aot_lib();
 
 #define REG_SYS_DEV RS(animCharDbgRender)
 
@@ -28,7 +28,9 @@ extern size_t pull_das_daBfg_aot_lib();
   RS(shaders)                \
   RS(lightning)              \
   RS(decals)                 \
-  RS(samplerHandle)
+  RS(samplerHandle)          \
+  RS(skiesSettings)          \
+  RS(camouflageOverrideParams)
 
 #define REG_SQM RS(bind_screencap)
 
@@ -51,7 +53,7 @@ size_t framework_render_pulls = 0 REG_SYS
 #define RS(x) +sq_autobind_pull_##x
                                     REG_SQM
 #undef RS
-                                + pull_das_daBfg_aot_lib();
+                                + pull_das_daFrameGraph_aot_lib();
 
 #include <util/dag_console.h>
 PULL_CONSOLE_PROC(camera_console_handler)

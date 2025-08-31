@@ -4,7 +4,6 @@ spline_gen_geometry{
   spline_gen_geometry__request_active:b=yes
   spline_gen_geometry__renderer_active:b=yes
   spline_gen_geometry__is_rendered:b=yes
-  spline_gen_geometry__radius:p3=0.25, -1, 0 // radius at points 0, stripes - 1, stripes respectively
   spline_gen_geometry__displacement_strength:r=0.25
   spline_gen_geometry__tiles_around:i=1
   spline_gen_geometry__tile_size_meters:r=0.75
@@ -17,6 +16,18 @@ spline_gen_geometry{
 
   "spline_gen_geometry__lods_eid:eid"{}
   "spline_gen_geometry__points:list<p3>"{}
+  "spline_gen_geometry__radii:list<p2>"{
+    _info { desc:t="First coordinate is position on spline (0 to 1), second is the radius itself. Must contain at minimum 2 radii: radius at 0, radius at 1. NOTE: It is assumed in the code that the radii are sorted by their position on the curve in an ascending order." }
+    p:p2=0, 0.25
+    p:p2=1, 0.0
+  }
+  "spline_gen_geometry__emissive_points:list<p3>"{
+    _info { desc:t="Optional emissive data points. First coordinate is position on spline (0 to 1), second is radius on the sline (also 0 to 1 - radius is normalized), third value is intensity. Example: 'p:p3=0.5, 0.05, 0.5'" }
+  }
+  "spline_gen_geometry__emissive_color:p4"{
+    _info { desc:t="Color of the emissive points. Default is white. (The absolute value of) Alpha is maximum emission (intensity from the emissive points are clamped to this and MAX_EMISSION). The sign of alpha determines whether masking is done by 'mask' or '1 - mask' (mask comes from the blue channel of the normalmap)." }
+    value:p4=1, 1, 1, 1
+  }
 }
 
 spline_gen_template{
@@ -24,10 +35,25 @@ spline_gen_template{
   spline_gen_template__template_name:t=""
   spline_gen_template__slices:i=0
   spline_gen_template__stripes:i=0
+  "spline_gen_template__shader_type:t"{
+    value:t="regular"
+    _info { desc:t="The name of the splineGen shader(s). Supported values: 'regular' (default value), 'emissive' and 'skin'." }
+  }
   spline_gen_template__diffuse_name:t="" //optional
   spline_gen_template__normal_name:t=""
+  "spline_gen_template__emissive_mask_name:t"{
+    _info { desc:t="Emissive mask texture name, required only if the type of the shader is 'emissive'. If specified, the shader will use it to mask the emissive color." }
+    value:t=""
+  }
+  "spline_gen_template__skin_ao_tex_name:t"{
+    _info { desc:t="Name of the ambient occlusion texture for the skin variant. Optional. Used only if the type of the shader is 'skin'." }
+    value:t=""
+  }
   spline_gen_template__asset_name:t=""
   spline_gen_template__asset_lod:i=0
+  "spline_gen_template__preload:SplineGenGeometryAssetPreload"{
+    _tags:t="render"
+  }
 }
 
 spline_gen_lods{

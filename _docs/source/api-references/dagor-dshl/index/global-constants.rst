@@ -16,31 +16,31 @@ List of constants:
 
 Usage example:
 
-.. code-block:: c
+.. code-block:: text
 
-  shader example_shader
-  {
-    // grabbing global constants via preshader
-    (vs)
+    shader example_shader
     {
-      viewprojtm@f44 = viewprojtm;
-      world_local_x@f3 = world_local_x;
-      world_local_y@f3 = world_local_y;
-      world_local_z@f3 = world_local_z;
-      world_local_pos@f3 = world_local_pos;
-    }
-
-    hlsl(vs)
-    {
-      float4 example_vs(float4 pos: POSITION0)
+      // grabbing global constants via preshader
+      (vs)
       {
-        // using global constants in hlsl
-        float3 worldPos = float3(pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos);
-        return mulPointTm(worldPos, viewprojtm);
+        viewprojtm@f44 = viewprojtm;
+        world_local_x@f3 = world_local_x;
+        world_local_y@f3 = world_local_y;
+        world_local_z@f3 = world_local_z;
+        world_local_pos@f3 = world_local_pos;
       }
-    }
 
-  }
+      hlsl(vs)
+      {
+        float4 example_vs(float4 pos: POSITION0)
+        {
+          // using global constants in hlsl
+          float3 worldPos = float3(pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos);
+          return mulPointTm(worldPos, viewprojtm);
+        }
+      }
+
+    }
 
 .. warning::
   Matrix constants ``globtm, projtm, viewprojtm`` are only available for ``(vs)`` preshader.

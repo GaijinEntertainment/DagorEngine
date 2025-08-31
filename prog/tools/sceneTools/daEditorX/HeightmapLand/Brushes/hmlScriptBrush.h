@@ -11,13 +11,13 @@ class HmapScriptBrush : public HmapLandBrush
 public:
   HmapScriptBrush(IBrushClient *client, IHmapBrushImage &height_map) : HmapLandBrush(client, height_map) {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void fillParams(PropPanel::ContainerPropertyControl &panel) override;
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual bool brushPaintApply(int x, int y, float inc, bool rb) { return true; }
+  bool brushPaintApply(int x, int y, float inc, bool rb) override { return true; }
 
-  virtual void saveToBlk(DataBlock &blk) const;
-  virtual void loadFromBlk(const DataBlock &blk);
+  void saveToBlk(DataBlock &blk) const override;
+  void loadFromBlk(const DataBlock &blk) override;
 
-  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid) override;
 };

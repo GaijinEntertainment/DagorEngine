@@ -1,5 +1,4 @@
-let {split_by_chars, regexp} = require("string")
-
+from "string" import split_by_chars, regexp
 /**
  * Normalize file path slashes to be unix-like forward slashes.
  * Condenses repeat slashes to a single slash and removes and trailing slashes.

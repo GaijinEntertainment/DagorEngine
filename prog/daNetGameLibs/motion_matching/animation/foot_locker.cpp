@@ -17,6 +17,67 @@ static vec3f transform_upto_root(const NodeTSRFixedArray &nodes, const GeomNodeT
   return pos;
 }
 
+void load_steps_from_a2d(const AnimationDataBase &database, FootLockerClipData &out, const AnimationClip &clip)
+{
+  const char *leg_names[2] = {"left", "right"};
+  const char *step_begin = "_step";
+  const char *step_end = "_step_end";
+
+  int numLegs = database.footLockerNodes.size();
+  G_ASSERT(numLegs == countof(leg_names));
+  out.lockStates.resize(numLegs * clip.tickDuration, false);
+  for (int i = 0; i < numLegs; ++i)
+  {
+    int stepBeginFrame = -1;
+    int firstStepEndFrame = -1; // for looped animations
+    for (const auto &track : clip.animation->dumpData.noteTrack)
+    {
+      const char *lableName = track.name.get();
+      int legNameLen = strlen(leg_names[i]);
+      if (strncmp(lableName, leg_names[i], legNameLen) != 0)
+        continue;
+      lableName += legNameLen;
+      if (!strcmp(lableName, step_begin))
+      {
+        if (stepBeginFrame >= 0)
+          logerr("MM: '%s%s' label is missed for '%s' at frame #%d%s", leg_names[i], step_end, lableName, stepBeginFrame,
+            get_mm_data_base_loading_error_context());
+        stepBeginFrame = a2d_ticks_to_mm_frame(track.time);
+      }
+      else if (!strcmp(lableName, step_end))
+      {
+        if (stepBeginFrame < 0)
+        {
+          if (firstStepEndFrame < 0 && clip.looped)
+            firstStepEndFrame = a2d_ticks_to_mm_frame(track.time);
+          else
+            logerr("MM: '%s%s' label is missed for '%s' at frame #%d%s", leg_names[i], step_begin, lableName,
+              a2d_ticks_to_mm_frame(track.time), get_mm_data_base_loading_error_context());
+          continue;
+        }
+        int stepEndFrame = a2d_ticks_to_mm_frame(track.time);
+        G_ASSERT(stepBeginFrame <= stepEndFrame);
+        for (int frame = stepBeginFrame; frame < stepEndFrame; ++frame)
+          out.lockStates[frame * numLegs + i] = true;
+        stepBeginFrame = -1;
+      }
+    }
+    if (stepBeginFrame >= 0 && firstStepEndFrame >= 0)
+    {
+      for (int frame = stepBeginFrame; frame < clip.tickDuration; ++frame)
+        out.lockStates[frame * numLegs + i] = true;
+      for (int frame = 0; frame < firstStepEndFrame; ++frame)
+        out.lockStates[frame * numLegs + i] = true;
+    }
+    else if (stepBeginFrame >= 0)
+      logerr("MM: '%s%s' label is missed for '%s%s' at frame #%d%s", leg_names[i], step_end, leg_names[i], step_begin, stepBeginFrame,
+        get_mm_data_base_loading_error_context());
+    else if (firstStepEndFrame >= 0)
+      logerr("MM: '%s%s' label is missed for '%s%s' at frame #%d%s", leg_names[i], step_begin, leg_names[i], step_end,
+        firstStepEndFrame, get_mm_data_base_loading_error_context());
+  }
+}
+
 void load_foot_locker_states(
   const AnimationDataBase &database, FootLockerClipData &out, const AnimationClip &clip, const DataBlock &clip_block)
 {
@@ -25,6 +86,11 @@ void load_foot_locker_states(
   const DataBlock *lockParams = clip_block.getBlockByName("use_foot_ik_locker");
   if (!lockParams)
     return;
+  if (lockParams->getBool("use_a2d_labels", false))
+  {
+    load_steps_from_a2d(database, out, clip);
+    return;
+  }
   float velocityThreshold = lockParams->getReal("velocity_threshold", 0.3);
   vec4f threshold = v_set_x(sqr(velocityThreshold / TICKS_PER_SECOND));
   int medianFilterRadius = lockParams->getInt("median_filter_radius", 2);
@@ -43,16 +109,15 @@ void load_foot_locker_states(
   eastl::bitvector<framemem_allocator> tmpLockStates(numLegs * clip.tickDuration, false);
   for (int legId = 0; legId < numLegs; ++legId)
     prevPos[legId] = transform_upto_root(nodes, tree, footNodes[legId]);
-  for (int frame = 1; frame < clip.tickDuration; ++frame)
+  for (int frame = 0; frame < clip.tickDuration; ++frame)
   {
-    float timeInSeconds = clip.duration * frame / clip.tickDuration;
+    float timeInSeconds = clip.duration * (frame + 1) / clip.tickDuration;
     sample_animation(timeInSeconds, clip, nodes);
     for (int legId = 0; legId < numLegs; ++legId)
     {
       vec3f curPos = transform_upto_root(nodes, tree, footNodes[legId]);
       if (v_test_vec_x_lt(v_length3_sq_x(v_sub(curPos, prevPos[legId])), threshold))
       {
-        tmpLockStates[(frame - 1) * numLegs + legId] = true;
         tmpLockStates[frame * numLegs + legId] = true;
       }
       prevPos[legId] = curPos;

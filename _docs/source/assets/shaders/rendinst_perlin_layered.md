@@ -1,4 +1,4 @@
-# Shader: rendinst_perlin_layered
+# `rendinst_perlin_layered`
 
 ## Overview
 
@@ -60,13 +60,13 @@ variation to surfaces in large-scale environments.
 - `script:t="hmap_blend_height=0.1"` - Height of the blend strip (default is
   0.1).
 
-### War Thunder Parameters
+### War Thunder-based Parameters
 
 - `script:t="details_tile=1,1,1,0"` - Tiling of the details. The first three
   components are multipliers for the tiling of Details1-3. The fourth component
   is unused but required.
 
-## General Operation and Principles
+## Functionality
 
 The shader operates with three details (layered), blending them based on:
 
@@ -98,7 +98,7 @@ Details are assigned to the following slots:
 
 ### Blending Details
 
-#### First Level – Blending by Height Gradient
+#### First Level: Blending by Height Gradient
 
 This is a special case where Detail3 is blended based on its height gradient
 from the ground. If not configured properly, Detail3 may not be visible on most
@@ -115,7 +115,7 @@ applied to the heightmap of Detail3.
 
 <br>
 
-#### Second Level – Blending by Heightmaps
+#### Second Level: Blending by Heightmaps
 
 Each detail has its own heightmap. Let's examine them:
 
@@ -140,7 +140,7 @@ As shown in the screenshot, the heightmap of the white stucco (Detail2) is
 significantly "higher" than that of the gray stucco (Detail1). Meanwhile,
 Detail3 appears at the bottom based on the height gradient.
 
-#### Third Level – Blending by Perlin Noise
+#### Third Level: Blending by Perlin Noise
 
 As seen in the screenshots above, the gray stucco (with a weaker heightmap)
 appears in a specific corner. It's absent in other areas because the Perlin
@@ -383,7 +383,7 @@ syntax is similar to `simple_aces`. For example:
 - `micro_detail_layer_uv_scale=16.371` - Scale (tiling) of the microdetail
   texture.
 
-## daNetGame-Based Parameters
+## daNetGame-based Parameters
 
 ### Overlaying the Detail2 by Normals
 
@@ -586,7 +586,7 @@ Global shadervars can be changed in the game in real-time:
   settings UI, which is called up by pressing `F12`.
 ```
 
-## War Thunder Parameters
+## War Thunder-based Parameters
 
 ### Detail Tiling
 
@@ -598,7 +598,7 @@ parameter `details_tile=1,1,1,0` was introduced.
   tiling of its corresponding detail.
 - The default value for each component is `1`.
 
-### Height-Based Painting
+### Height-based Painting
 
 <img src="_images/rendinst_perlin_layered_36.jpg" width="80%" align="center" class="bg-primary">
 

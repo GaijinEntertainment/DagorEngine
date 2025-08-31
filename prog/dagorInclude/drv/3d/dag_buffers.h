@@ -48,12 +48,11 @@ public:
   virtual bool setReloadCallback(IReloadData *) { return false; }
 
   /**
-   * @brief Returns the type of the D3dResource. It is always RES3D_SBUF for Sbuffer objects.
+   * @brief Returns the type of the D3dResource. It is always D3DResourceType::SBUF for Sbuffer objects.
    *
-   * @todo make RES3D_ a enum class.
-   * @return int RES3D_SBUF.
+   * @return D3DResourceType::SBUF.
    */
-  int restype() const override final { return RES3D_SBUF; }
+  D3DResourceType getType() const final { return D3DResourceType::SBUF; }
 
   /**
    * Locks a portion of the buffer for reading or writing.
@@ -85,7 +84,7 @@ public:
    *
    * @return The name of the buffer.
    */
-  const char *getBufName() const { return getResName(); }
+  const char *getBufName() const { return getName(); }
 
   /**
    * @brief Get the size of the structured buffer element.
@@ -223,9 +222,6 @@ public:
     G_ASSERT((getFlags() & SBCF_INDEX32));
     return lockEx(ofs_bytes, size_bytes, p, flags);
   }
-
-protected:
-  ~Sbuffer() override {}
 };
 
 namespace d3d

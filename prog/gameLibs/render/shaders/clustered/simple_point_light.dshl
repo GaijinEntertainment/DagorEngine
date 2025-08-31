@@ -24,6 +24,7 @@ macro INIT_AND_USE_SIMPLE_POINT_LIGHT(code)
     #endif
     #include "punctualLights.hlsl"
 
+    #define applyDynamicAoEffect(gbufferAO) (gbufferAO)
     half3 get_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float3 view,
       float w, float2 screenpos, float NoV, float3 specularColor, float2 tc, half enviAO)
     {

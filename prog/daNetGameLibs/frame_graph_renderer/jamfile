@@ -8,7 +8,7 @@ local DasModule = daNetGameLibs_frame_graph_renderer_DAS_pull_AOT ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/gameLibs/render/daBfg
+  $(Root)/prog/gameLibs/render/daFrameGraph
   $(Root)/prog/daNetGame
   $(Root)/prog/1stPartyLibs/daScript/include
 ;

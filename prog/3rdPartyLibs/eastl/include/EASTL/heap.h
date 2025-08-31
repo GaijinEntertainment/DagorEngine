@@ -299,10 +299,10 @@ namespace eastl
 		typedef typename eastl::iterator_traits<RandomAccessIterator>::difference_type difference_type;
 		typedef typename eastl::iterator_traits<RandomAccessIterator>::value_type      value_type;
 
-		const value_type tempBottom(eastl::forward<value_type>(*(last - 1)));
+		value_type tempBottom(eastl::forward<value_type>(*(last - 1)));
 
 		eastl::promote_heap<RandomAccessIterator, difference_type, value_type>
-						   (first, (difference_type)0, (difference_type)(last - first - 1), eastl::forward<const value_type>(tempBottom));
+						   (first, (difference_type)0, (difference_type)(last - first - 1), eastl::forward<value_type>(tempBottom));
 	}
 
 
@@ -322,10 +322,10 @@ namespace eastl
 		typedef typename eastl::iterator_traits<RandomAccessIterator>::difference_type difference_type;
 		typedef typename eastl::iterator_traits<RandomAccessIterator>::value_type      value_type;
 
-		const value_type tempBottom(*(last - 1));
+		value_type tempBottom(eastl::forward<value_type>(*(last - 1)));
 
 		eastl::promote_heap<RandomAccessIterator, difference_type, value_type, Compare>
-						   (first, (difference_type)0, (difference_type)(last - first - 1), tempBottom, compare);
+						   (first, (difference_type)0, (difference_type)(last - first - 1), eastl::forward<value_type>(tempBottom), compare);
 	}
 
 

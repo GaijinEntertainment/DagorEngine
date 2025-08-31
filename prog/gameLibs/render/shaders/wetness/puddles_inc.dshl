@@ -1,0 +1,197 @@
+include "toroidal_puddlemap.dshl"
+
+float landmesh_puddles_mul = 1; // on aircrafs we don't have displacement which limits puddles a lot,
+                                // so puddles became much larger. So we reduce puddle influence in aircraft mode
+
+float4 puddles_params = float4(160.0, 200.0, 0, 0);
+// x = 0..1 - dist puddles min
+// y = 0..1 - dist puddles max
+// z, w - unused
+
+macro USE_PUDDLE_DISTANCES(code)
+  (code) {
+    puddles_params@f4 = (1.0 / max(0.01, puddles_params.y - puddles_params.x),
+                      -puddles_params.x / max(0.01, puddles_params.y - puddles_params.x), puddles_params.z, puddles_params.w);
+  }
+
+  hlsl (code) {
+    #define WETNESS_PUDDLE_SLOPE 0.002
+    float get_puddle_slope_fade(float3 vertical_normal)
+    {
+      return ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE);
+    }
+  }
+endmacro
+
+macro USE_PUDDLES_WETNESS(code)
+  INIT_TOROIDAL_PUDDLES(code)
+  USE_TOROIDAL_PUDDLES(code)
+  USE_PUDDLE_DISTANCES(code)
+
+  hlsl (code) {
+    #include "noise/Perlin2D.hlsl"
+
+    bool check_puddles_conditions(float puddle_level, float eye_dist, float3 vertical_normal)
+    {
+      return puddle_level > 0.0 && get_puddle_slope_fade(vertical_normal) > 0 && (eye_dist * puddles_params.x + puddles_params.y) < 1.0;
+    }
+
+    float get_puddles_wetness(float3 world_pos, float3 vertical_normal, float eye_dist, float puddle_level, float land_thickness, float land_deformation, float height, out float puddle_displacement)
+    {
+      // slope fade for puddle level
+      puddle_level *= get_puddle_slope_fade(vertical_normal);
+
+      // puddle level remapped between hmap_displacement_down and land_thickness + hmap_displacement_up
+
+      puddle_displacement = 0;
+
+      float totalThickness = 0.01;
+      ##if shader == heightmap && render_with_normalmap == render_displacement
+        totalThickness = hmap_displacement_max - hmap_displacement_min;
+        puddle_displacement = hmap_displacement_min;
+      ##endif
+      totalThickness += land_thickness;
+      float realThickness = land_thickness * land_deformation + height;
+
+      float wetness = saturate(3*( puddle_level - realThickness/totalThickness));
+
+      // dist fade
+      wetness *= 1.0 - saturate(eye_dist * puddles_params.x + puddles_params.y);
+      // slope fade
+      wetness *= ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE*0.5);
+
+      wetness *= saturate(puddle_level * 100);
+
+      puddle_displacement += puddle_level * totalThickness;
+
+      return wetness;
+    }
+  }
+endmacro
+
+float4 heightmap_mud_color = (0.08, 0.05, 0.015, 3);
+
+macro USE_LAND_WETNESS()
+  USE_PUDDLES_WETNESS(ps)
+  USE_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS()
+  WRITE_GBUFFER_WETNESS()
+  USE_WATER_RIPPLES(@smp2d)
+
+  (ps) { heightmap_mud_color@f4 = heightmap_mud_color; }
+
+  hlsl(ps) {
+
+    bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, out float base_wetness, out float water_border)
+    {
+      base_wetness = get_base_wetness(world_pos, vertical_normal, water_border);
+      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > get_wetness_water_level());
+    }
+
+    float2 get_land_wetness(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, float land_thickness, float land_deformation, float height, float base_wetness, float water_border)
+    {
+      // puddles
+      float puddleDisplacement = 0;
+      float puddlesWetness = get_puddles_wetness(world_pos, vertical_normal, dist, puddle_level, land_thickness, land_deformation, height, puddleDisplacement);
+      // underwater
+      puddlesWetness *= max(water_border, 0);
+
+      return float2(base_wetness, puddlesWetness);
+    }
+
+    void apply_land_wetness(float2 wetness, float water_border, float3 world_pos, float3 vertical_norm, float3 view, float3 sunDir, float landThickness, inout UnpackedGbuffer g_buf)
+    {
+      float totalWetness = max(wetness.x, wetness.y);
+      float fresnelterm = 0.04 + 0.96 * saturate(1.2*pow3(1-view.y));
+      float wetMaterial = get_wet_material(totalWetness, water_border);
+      float porosity = wetness_blend_porosity_params.w;
+      float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
+      float3 albedoSqr = 0.8*g_buf.albedo.rgb * g_buf.albedo.rgb;
+
+      // we overriding real normal by vertical normal, so we lose all microdetails on puddle bottom. fake them by sundot
+      float preshadow = saturate(dot(g_buf.normal, sunDir));
+
+      g_buf.normal = lerp(g_buf.normal, vertical_norm, wetnessAO);
+      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, albedoSqr, ClampRange(totalWetness, 0.0, 0.35) * porosity);
+      g_buf.albedo.rgb *= lerp(1, preshadow, 0.8 * wetnessAO);
+      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb,
+                              heightmap_mud_color.rgb,
+                              saturate(heightmap_mud_color.w*landThickness*ClampRange(wetness.y, 0.55, 1)));
+      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, float3(0.015, 0.015, 0.015), fresnelterm*pow2(totalWetness));
+      g_buf.ao = lerp(g_buf.ao, 1.0, wetnessAO);
+      g_buf.shadow = lerp(g_buf.shadow, 1.0, wetnessAO);
+      g_buf.translucency *= (1 - wetnessAO);
+      g_buf.smoothness = lerp(g_buf.smoothness, 1, ClampRange(wetMaterial, 0.2, 1.0));
+
+      if (max(wetness.x, wetness.y) > get_base_wetness_max_level())
+        g_buf.normal = RNM_ndetail_normalized(g_buf.normal.xzy, get_water_ripples_normal(world_pos).xzy).xzy;
+
+      g_buf.reflectance = lerp(g_buf.reflectance, 1.0, wetMaterial);
+    }
+  }
+endmacro
+
+float object_default_porosity = 0.6;
+float decal_default_porosity = 0.7;
+
+// Rendinsts not have any displacement or trackdirt offsets, aswell as water ripples and etc
+// so we use much simplier function to apply toroidal puddles (with some variance)
+macro USE_RENDINST_PUDDLES(code)
+  INIT_TOROIDAL_PUDDLES(code)
+  USE_TOROIDAL_PUDDLES(code)
+  USE_WETNESS()
+  USE_PUDDLE_DISTANCES(code)
+
+  (code) {
+    porosity_params@f2 = (object_default_porosity, decal_default_porosity);
+    landmesh_puddles_mul@f1 = landmesh_puddles_mul;
+  }
+
+  hlsl(code) {
+    #define object_default_porosity porosity_params.x
+    #define decal_default_porosity porosity_params.y
+
+    float get_rendinst_puddles(float3 world_pos, float3 vertical_normal, float eye_dist, float puddle_influence, float puddle_variance)
+    {
+      // as we don't have any displacement relief or trackdirt offs, make puddles more sharp
+      float puddleLevel = saturate((sample_tor_puddle(world_pos.xz)*landmesh_puddles_mul * 4 - 0.4) * puddle_influence);
+
+      // slope fade for puddle level
+      puddleLevel *= get_puddle_slope_fade(vertical_normal);
+
+      float wetness = saturate(3*( puddleLevel - puddle_variance));
+
+      // dist fade
+      wetness *= 1.0 - saturate(eye_dist * puddles_params.x + puddles_params.y);
+      // slope fade
+      wetness *= ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE*0.5);
+
+      wetness *= saturate(puddleLevel * 100);
+
+      return wetness;
+    }
+
+    void apply_rendinst_puddles(float porosity, float puddle_influence, float puddle_variance, float water_border, float eye_dist, float3 world_pos, float3 vertical_norm, float3 view, float3 sunDir, inout UnpackedGbuffer g_buf)
+    {
+      float wetness = get_rendinst_puddles(world_pos, vertical_norm, eye_dist, puddle_influence, puddle_variance);
+      float fresnelterm = 0.04 + 0.96 * saturate(1.2*pow3(1-view.y));
+      float wetMaterial = get_wet_material(wetness, water_border);
+      float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
+      float3 albedoSqr = 0.8*g_buf.albedo.rgb * g_buf.albedo.rgb;
+
+      // we overriding real normal by vertical normal, so we lose all microdetails on puddle bottom. fake them by sundot
+      float preshadow = saturate(dot(g_buf.normal, sunDir));
+
+      g_buf.normal = lerp(g_buf.normal, vertical_norm, wetnessAO);
+      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, albedoSqr, ClampRange(wetness, 0.0, 0.35) * porosity);
+      g_buf.albedo.rgb *= lerp(1, preshadow, 0.8 * wetnessAO);
+      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, float3(0.015, 0.015, 0.015), fresnelterm*pow2(wetness));
+      g_buf.ao = lerp(g_buf.ao, 1.0, wetnessAO);
+      g_buf.shadow = lerp(g_buf.shadow, 1.0, wetnessAO);
+      g_buf.translucency *= (1 - wetnessAO);
+      g_buf.smoothness = lerp(g_buf.smoothness, 1, ClampRange(wetMaterial, 0.2, 1.0));
+
+      g_buf.reflectance = lerp(g_buf.reflectance, 1.0, wetMaterial);
+    }
+  }
+endmacro

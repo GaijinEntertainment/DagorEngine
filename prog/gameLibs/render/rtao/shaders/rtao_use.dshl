@@ -1,4 +1,5 @@
 int rtao_bindless_slot = -1;
+int rtao_bindless_sampler_slot = -1;
 int rtao_res_mul = 1;
 int4 rtao_resolutionI = (1,1,1,1);
 
@@ -7,6 +8,7 @@ macro CHECKING_RTAO(stage)
   {
     (stage) {
       rtao_bindless_slot@i1 = rtao_bindless_slot;
+      rtao_bindless_sampler_slot@u1 = rtao_bindless_sampler_slot;
     }
 
     hlsl (stage) {
@@ -46,21 +48,7 @@ macro USING_RTAO(stage, rtao_tex_space)
       float getRTAO(uint2 tci)
       {
         float2 uv = (tci.xy + 0.5) * inv_output_resolution;
-        float2 unnormalizedUv = uv * output_resolutionF;
-        float2 unnormalizedUvOfs = unnormalizedUv - 0.5;
-        float2 texelPos = frac(unnormalizedUvOfs);
-        uint2 crd = uint2(unnormalizedUvOfs);
-
-        float tl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd, output_resolutionI - 1)).r; // TODO: Remove "min" when we ceil resolution scaling (only this line).
-        float tr = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 0), output_resolutionI - 1)).r;
-        float bl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(0, 1), output_resolutionI - 1)).r;
-        float br = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 1), output_resolutionI - 1)).r;
-
-        float top = lerp(tl, tr, texelPos.x);
-        float bottom = lerp(bl, br, texelPos.x);
-
-        return lerp(top, bottom, texelPos.y);
-
+        return rt_texture_outputs[rtao_bindless_slot].SampleLevel(global_samplers_array[rtao_bindless_sampler_slot], uv, 0).r;
       }
     }
   }

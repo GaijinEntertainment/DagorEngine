@@ -1,12 +1,16 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "locSnapshotsES.cpp.inl"
 ECS_DEF_PULL_VAR(locSnapshots);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc send_transform_snapshots_es_comps[] ={};
 static void send_transform_snapshots_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    send_transform_snapshots_es(*info.cast<ecs::UpdateStageInfoAct>());
+    send_transform_snapshots_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc send_transform_snapshots_es_es_desc
 (
@@ -68,6 +72,7 @@ static void interp_loc_snapshots_es_all(const ecs::UpdateStageInfo &__restrict i
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     interp_loc_snapshots_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RW_COMP(interp_loc_snapshots_es_comps, "transform", TMatrix)
     , ECS_RO_COMP(interp_loc_snapshots_es_comps, "loc_snapshots__snapshotData", LocSnapshotsList)
     , ECS_RO_COMP(interp_loc_snapshots_es_comps, "eid", ecs::EntityId)
@@ -119,10 +124,10 @@ static ecs::EntitySystemDesc init_snapshot_send_period_es_event_handler_es_desc
 //static constexpr ecs::ComponentDesc rcv_loc_snapshots_es_event_handler_comps[] ={};
 static void rcv_loc_snapshots_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<TransformSnapshots>());
   rcv_loc_snapshots_es_event_handler(static_cast<const TransformSnapshots&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc rcv_loc_snapshots_es_event_handler_es_desc
 (
@@ -158,9 +163,9 @@ static ecs::CompileTimeQueryDesc gather_transform_snapshot_entities_ecs_query_de
   empty_span(),
   make_span(gather_transform_snapshot_entities_ecs_query_comps+6, 2)/*no*/);
 template<typename Callable>
-inline void gather_transform_snapshot_entities_ecs_query(Callable function)
+inline void gather_transform_snapshot_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_transform_snapshot_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_transform_snapshot_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -191,9 +196,9 @@ static ecs::CompileTimeQueryDesc apply_transform_snapshot_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void apply_transform_snapshot_ecs_query(ecs::EntityId eid, Callable function)
+inline void apply_transform_snapshot_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, apply_transform_snapshot_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, apply_transform_snapshot_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

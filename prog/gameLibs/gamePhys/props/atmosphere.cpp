@@ -92,7 +92,7 @@ float atmosphere::getAltitudeByAirDensity(float air_density, float tolerance, fl
   {
     CalcAirDensityByAltitude calcAirDensityByAltitude(air_density);
     float result = start_altitude;
-    solve_newton(calcAirDensityByAltitude, start_altitude, tolerance, tolerance, 10, result);
+    solve_newton(calcAirDensityByAltitude, start_altitude, tolerance, tolerance, 0.0f, 10, result);
     return result;
   }
 }
@@ -114,7 +114,7 @@ float atmosphere::getAltitudeByAirPressure(float air_pressure, float tolerance, 
   {
     CalcAirPressureByAltitude calcAirPressureByAltitude(air_pressure);
     float result = start_altitude;
-    solve_newton(calcAirPressureByAltitude, start_altitude, tolerance, tolerance, 10, result);
+    solve_newton(calcAirPressureByAltitude, start_altitude, tolerance, tolerance, 0.0f, 10, result);
     return result;
   }
 }

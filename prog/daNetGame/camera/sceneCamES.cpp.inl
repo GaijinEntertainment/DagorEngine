@@ -5,7 +5,7 @@
 #include <ecs/core/entityManager.h>
 #include <ecs/core/utility/ecsRecreate.h>
 #include <math/dag_mathUtils.h> // check_nan
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "game/dasEvents.h"
 #include "game/gameEvents.h"
 #include "main/ecsUtils.h"
@@ -33,7 +33,7 @@ bool create_free_camera()
   ECS_INIT(amap, transform, TMatrix::IDENT);
   ECS_INIT(amap, camera__active, false);
   ECS_INIT(amap, fov, 90.f);
-  freeCam = create_simple_entity(freeCamSettings->getStr("template_name", "free_cam"), eastl::move(amap));
+  freeCam = create_simple_entity(*g_entity_mgr, freeCamSettings->getStr("template_name", "free_cam"), eastl::move(amap));
   G_ASSERT_RETURN(freeCam != ecs::INVALID_ENTITY_ID, false);
   return true;
 }

@@ -22,6 +22,7 @@
 #include <render/pointLod/range.h>
 #include <rendInst/packedMultidrawParams.hlsli>
 #include <shaders/dag_shaderVarsUtils.h>
+#include <math/integer/dag_IPoint3.h>
 
 
 // Tools don't have depth prepass for trees.
@@ -126,10 +127,8 @@ public:
       bool result = a.isTree == b.isTree && a.drawOrder_stage == b.drawOrder_stage && a.vstride == b.vstride && a.vbIdx == b.vbIdx &&
                     a.rstate == b.rstate && get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog;
 
-#if DAGOR_DBGLEVEL > 0
       if constexpr (separate_lods)
         result &= a.lod == b.lod;
-#endif
 
       return result;
     };
@@ -221,8 +220,9 @@ public:
 #if USE_DEPTH_PREPASS_FOR_TREES
     shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
     bool currentDepthPrepass = false;
+    const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
     const bool validOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::CULL_NONE ||
-                               shaders::overrides::get(previousOverrideId).bits == 0;
+                               hasStencilTestStateOverride || shaders::overrides::get(previousOverrideId).bits == 0;
     G_UNUSED(validOverride);
 #endif
 
@@ -238,11 +238,11 @@ public:
 
       if (needDepthPrepass != currentDepthPrepass)
       {
-        G_ASSERTF(validOverride, "Only disabled backface culling is available override here in colored pass");
+        G_ASSERTF(validOverride, "Only [disabled backface culling or stencil test] are available overrides here in colored pass");
         currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
-          shaders::overrides::set(afterDepthPrepassOverride);
+          shaders::overrides::set(hasStencilTestStateOverride ? afterDepthPrepassWithStencilTestOverride : afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
@@ -287,12 +287,14 @@ public:
     cb.flushPerDraw();
 
     int cVbIdx = -1, cStride = 0;
-    IPoint2 curOfsAndVertexByteStart(-1, -1);
+    IPoint3 curOfsAndVertexByteStartPerDrawOffset(-1, -1, -1);
 #if USE_DEPTH_PREPASS_FOR_TREES
     shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
     bool currentDepthPrepass = false;
+    const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
+
     const bool validOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::CULL_NONE ||
-                               shaders::overrides::get(previousOverrideId).bits == 0;
+                               hasStencilTestStateOverride || shaders::overrides::get(previousOverrideId).bits == 0;
     G_UNUSED(validOverride);
 #endif
 
@@ -335,18 +337,19 @@ public:
       curDisableOptimization = rl.disableOptimization;
       currentTessellationState = rl.isTessellated;
 
-      RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
+      const uint32_t poolId = riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK;
+      const RiExtraPool &riPool = riExtra[poolId];
 #if USE_DEPTH_PREPASS_FOR_TREES
 
       const bool needDepthPrepass =
         (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass && !isTransparentPass);
       if (needDepthPrepass != currentDepthPrepass)
       {
-        G_ASSERTF(validOverride, "Only disabled backface culling is available override here in colored pass");
+        G_ASSERTF(validOverride, "Only [disabled backface culling or stencil test] are available overrides here in colored pass");
         currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
-          shaders::overrides::set(afterDepthPrepassOverride);
+          shaders::overrides::set(hasStencilTestStateOverride ? afterDepthPrepassWithStencilTestOverride : afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
@@ -360,12 +363,13 @@ public:
       if (!skipApply)
         set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state);
 
-      IPoint2 ofsAndVertexByteStart = {rl.ofsAndCnt.x, rl.bv * rl.vstride};
-      const bool setInstancing = curOfsAndVertexByteStart != ofsAndVertexByteStart;
+      const int perDataBufferOffset = get_per_draw_offset(poolId);
+      const IPoint3 ofsAndVertexByteStartPerDrawOffset = {rl.ofsAndCnt.x, rl.bv * rl.vstride, perDataBufferOffset};
+      const bool setInstancing = curOfsAndVertexByteStartPerDrawOffset != ofsAndVertexByteStartPerDrawOffset;
       if (setInstancing || gpu_instancing)
       {
-        d3d::set_immediate_const(STAGE_VS, (uint32_t *)&ofsAndVertexByteStart.x, 2);
-        curOfsAndVertexByteStart = ofsAndVertexByteStart;
+        d3d::set_immediate_const(STAGE_VS, (uint32_t *)&ofsAndVertexByteStartPerDrawOffset.x, 3);
+        curOfsAndVertexByteStartPerDrawOffset = ofsAndVertexByteStartPerDrawOffset;
       }
       if (gpu_instancing)
         d3d::draw_indexed_indirect(PRIM_TRILIST, indirect_buffer, sizeof(uint32_t) * DRAW_INDEXED_INDIRECT_NUM_ARGS * rl.ofsAndCnt.x);
@@ -502,9 +506,49 @@ public:
       coalesceDrawcalls<false>(allowReordering);
   }
 
+  struct RiExtraElementsToHide
+  {
+    RiExtraElementsToHide() = default;
+    RiExtraElementsToHide(const SimpleString &materialName, uint16_t poolId,
+      const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide)
+    {
+      if (materialName.empty() || elementsToHide.size() == 0)
+      {
+        shaderName = nullptr;
+        return;
+      }
+
+      // This returns the pointer stored in the shaderClass allowing pointer equality checks in the hot path
+      shaderName = get_shader_class_name_by_material_name(materialName.c_str());
+      if (!shaderName)
+        return;
+
+      // elementsToHide is already sorted by poolId, store the range of hidden roots for this pool
+      int beginIdx = -1;
+      for (int i = 0; i < elementsToHide.size(); ++i)
+      {
+        if (beginIdx < 0 && elementsToHide[i].poolId == poolId)
+          beginIdx = i;
+        else if (beginIdx >= 0 && elementsToHide[i].poolId != poolId)
+        {
+          instances =
+            dag::ConstSpan<RiGenExtraVisibility::HideMarkedMaterialForInstance>(elementsToHide.data() + beginIdx, i - beginIdx);
+          return;
+        }
+      }
+      if (beginIdx >= 0)
+        instances = dag::ConstSpan<RiGenExtraVisibility::HideMarkedMaterialForInstance>(elementsToHide.data() + beginIdx,
+          elementsToHide.size() - beginIdx);
+    }
+
+    const char *shaderName = nullptr;
+    dag::ConstSpan<RiGenExtraVisibility::HideMarkedMaterialForInstance> instances;
+  };
+
   inline void addObjectToRender(uint16_t ri_idx, int optimizationInstances, bool optimization_depth_prepass,
     bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod, uint16_t pool_order, const TexStreamingContext &texCtx,
-    float dist2, float minDist2, const ShaderElement *shader_override = nullptr, bool gpu_instancing = false)
+    float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide, const ShaderElement *shader_override = nullptr,
+    bool gpu_instancing = false)
   {
     if (ri_idx >= riExtra.size())
     {
@@ -537,7 +581,7 @@ public:
         lod = riPool.res->getQlBestLod();
         if (riPool.isPosInst() && (lod == riPool.res->lods.size() - 1)) // No imposters allowed here
           return;
-        if (lod >= RiExtraPool::MAX_LODS)
+        if (lod >= RiExtraPool::MAX_LODS) // -V::547 with 8 this is always false because lod is stored in 3 bits in the resource
           return;
       }
     }
@@ -559,8 +603,8 @@ public:
 #else
     uint32_t correctedEndStage = endStage;
 #endif
-#if DAGOR_DBGLEVEL > 0
     int counter = lod;
+#if DAGOR_DBGLEVEL > 0
     if (debug_mesh::is_enabled(debug_mesh::Type::drawElements))
     {
       counter = 0;
@@ -575,6 +619,7 @@ public:
         }
     }
 #endif
+
     for (unsigned int stage = startStage; stage <= correctedEndStage; stage++, startEIOfs++)
       for (uint32_t EI = allElemsIndex[startEIOfs], endEI = allElemsIndex[startEIOfs + 1], startEI = EI; EI < endEI; ++EI)
       {
@@ -602,12 +647,8 @@ public:
         const bool isTessellated = riPool.elemMask[lod].tessellation & (1 << (EI - startEI));
         RIExRenderRecord record = RIExRenderRecord(currentShader, curVar, prog, state, rstate, tstate, cstate, pool_order,
           (uint16_t)elem.vstride, (uint8_t)elem.vbIdx, elem.drawOrder, EI - startEI, elem.primitive, IPoint2(ofsAndCnt.x, count),
-          elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated, disableOptimization
-#if DAGOR_DBGLEVEL > 0
-          ,
-          (uint8_t)max(counter, 0)
-#endif
-        );
+          elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated, disableOptimization,
+          (uint8_t)max(counter, 0));
 
         const auto isPacked = is_packed_material(cstate);
         G_ASSERT(!isPacked || elem.si != RELEM_NO_INDEX_BUFFER);
@@ -618,6 +659,31 @@ public:
           record.isSWVertexFetch = true;
           if (dist2 > minDist2)
             record.numv >>= plod::get_density_power2_scale(dist2, minDist2);
+        }
+
+        // Checking pointer equality, this is valid because shaderName is pointing to the same memory as shaderClassName
+        if (elem.shader->getShaderClassName() == elementsToHide.shaderName)
+        {
+          // Split the current record in two for each hidden element
+          uint32_t processedCounter = 0;
+          for (uint32_t i = 0; i < elementsToHide.instances.size(); i++)
+          {
+            RIExRenderRecord record2 = record;
+            uint32_t instance = elementsToHide.instances[i].instanceIdx;
+            record2.ofsAndCnt.y = instance - processedCounter;
+            record.ofsAndCnt.x += (record2.ofsAndCnt.y + 1) * rendinst::RIEXTRA_VECS_COUNT;
+            record.ofsAndCnt.y -= record2.ofsAndCnt.y + 1;
+            processedCounter = instance + 1;
+            if (record2.ofsAndCnt.y > 0)
+            {
+              if (!isPacked)
+                list.emplace_back(eastl::move(record2));
+              else
+                multidrawList.emplace_back(eastl::move(record2));
+            }
+          }
+          if (record.ofsAndCnt.y <= 0)
+            continue;
         }
 
         if (!isPacked)
@@ -649,8 +715,10 @@ public:
         int optimizationInstances = (riResOrder[k] >> RI_RES_ORDER_COUNT_SHIFT);
         float distSq = v.minSqDistances[l][i];
         float minDistSq = v.minAllowedSqDistances[l][i];
+        RiExtraElementsToHide elementsToHide(riExtra[i].materialMarkedForHiding, i, v.hideMarkedMaterialsForInstances);
         addObjectToRender(i, optimizationInstances, optimization_depth_prepass == OptimizeDepthPrepass::Yes,
-          ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes, ofsAndCnt, l, k, texCtx, distSq, minDistSq);
+          ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes, ofsAndCnt, l, k, texCtx, distSq, minDistSq,
+          elementsToHide);
       }
     }
   }

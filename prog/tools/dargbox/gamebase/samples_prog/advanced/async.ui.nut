@@ -1,11 +1,9 @@
+from "%sqstd/asyncHttp.nut" import TaskHttpGet, TaskHttpMultiGet
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
 
-let {
-  TaskHttpGet
-//  ,TaskHttpMultiGet
-} = require("%sqstd/asyncHttp.nut")
 let Promise = require("%sqstd/Promise.nut")
+let { Task } = require("%sqstd/monads.nut")
 
 function btn(text, handler){
   return comp(Padding(hdpx(10)), RendObj(ROBJ_SOLID), Colr(60,60,60), comp(Button, OnClick(handler), txt(text)))
@@ -15,9 +13,9 @@ let consoleStream = Watched([""])
 const MAX_ITEMS = 20
 
 function conlog(...){
-  let v = consoleStream.value.slice(-(MAX_ITEMS-vargv.len()))
+  let v = consoleStream.get().slice(-(MAX_ITEMS-vargv.len()))
   v.extend(vargv)
-  consoleStream(v)
+  consoleStream.set(v)
 }
 
 function checkPromises(){
@@ -38,20 +36,20 @@ function checkObservables(){
   eventStream.subscribe(function(v) {
     if (isSuccessful(v)) {
       i = i+1
-      gui_scene.setTimeout(0.1, @() eventStream(i))
+      gui_scene.setTimeout(0.1, @() eventStream.set(i))
       conlog($"observable chain, resolved {v}")
     }
     else
       conlog($"observable chain, failed {v}")
   })
-  gui_scene.setTimeout(0.1, @() eventStream(i))
+  gui_scene.setTimeout(0.1, @() eventStream.set(i))
 }
 
-let task = TaskHttpGet("https://gaijin.net").map(@(v) conlog(v.as_string()) ?? conlog("submit new request")).flatMap(@(_) TaskHttpGet("http://ya.ru"))
+let task = TaskHttpGet("https://gaijin.net").map(@(v) conlog(v.as_string().slice(0,100)) ?? conlog("submit new request")).flatMap(@(_) TaskHttpGet("http://ya.ru"))
 function checkHttpTask(){
   conlog("submitted requested")
   task.exec(@(...) conlog($"error {" ".join(vargv)}"), function(v) {
-    conlog($"success {v.as_string()}")
+    conlog($"success {v.as_string().slice(0,100)}")
   })
 }
 
@@ -86,9 +84,64 @@ function checkHttpTask(){
 */
 
 let console = @() {
-  watch = consoleStream vplace = ALIGN_BOTTOM rendObj = ROBJ_SOLID size = [sw(30), flex()] clipChildren = true color = Color(10,10,10) valign = ALIGN_BOTTOM
-  children = vflow(consoleStream.value.map(txt), Gap(hdpx(2)))
+  watch = consoleStream vplace = ALIGN_BOTTOM rendObj = ROBJ_SOLID size = static [sw(30), flex()] clipChildren = true color = Color(10,10,10) valign = ALIGN_BOTTOM
+  children = vflow(consoleStream.get().map(txt), Gap(hdpx(2)))
 }
+let setTimeout = @(func, timeout) gui_scene.setTimeout(timeout, func)
+// Monad Task
+
+// Example 1: Create a Task that waits and returns "hello"
+let waitAndSayHelloTask = Task(@(_err, ok) setTimeout(@() ok("hello"), 1))
+
+// Example 2: Wrap a value in a Task
+let helloTask = Task.of("hello")
+
+// Example 3: Run a Task
+let helloTaskBtn = btn("helloTask", @() helloTask.exec(
+    @(err) conlog($"Error: {err}"),
+    @(result) conlog($"Result: {result}")
+))
+
+// Example 4: Transform result with map
+let upperTask = helloTask.map(@(x) x.toupper())
+let upperTaskBtn = btn("upperTask", @() upperTask.exec(
+    @(err) conlog($"Error: {err}"),
+    @(result) conlog($"Result: {result}")
+))
+
+// Example 5: Chain async Tasks with flatMap
+function nextTaskAfterHello(str) {
+  return Task(@(_err, ok) setTimeout(@() ok(str.concat(" world!")), 1))
+}
+
+let waitAndSayHelloTaskNext = waitAndSayHelloTask.flatMap(nextTaskAfterHello)
+
+let waitAndSayHelloBtn = btn("waitAndSayHello", @() waitAndSayHelloTaskNext.exec(
+    @(err) conlog($"Error: {err}"),
+    @(result) conlog($"Result: {result}")
+  )
+)
+
+// Example 6: Handle errors
+let errorTask = Task(@(err, _ok) err("Something went wrong"))
+let errorTaskBtn = btn("errorTask", @() errorTask.exec(
+    @(err) conlog($"Error: {err}"),
+    @(result) conlog($"Result: {result}")
+))
+
+
+// Example 7: Compose and chain
+let t = Task.of(5)
+    .map(@(x) x * 2)
+    .flatMap(@(x) Task.of(x + 3))
+    .flatMap(@(x) Task(@(_err, ok) setTimeout(@() ok(x + 100), 0.5)))
+    .map(@(x) "".concat($"Result is: ", x))
+
+let composeAndChainBtn = btn("composeAndChainBtn 5+3+100", @() t.exec(
+    @(err) conlog($"Error: {err}"),
+    @(result) conlog(result)
+))
+
 return {
   flow = FLOW_HORIZONTAL
   gap = hdpx(50)
@@ -99,10 +152,15 @@ return {
       btn("check promise", checkPromises)
       btn("check HttpTask monad", checkHttpTask)
       btn("check observables", checkObservables)
+      helloTaskBtn
+      upperTaskBtn
+      waitAndSayHelloBtn
+      errorTaskBtn
+      composeAndChainBtn
     )
     console
   ]
-  size = [sh(50), sh(50)]
+  size = sh(50)
   rendObj=ROBJ_SOLID
   color =Color(30,30,30)
 }

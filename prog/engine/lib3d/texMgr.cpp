@@ -196,6 +196,12 @@ TEXTUREID iterate_all_managed_textures(TEXTUREID after_tid, int min_ref_count)
 
 TEXTUREID get_max_managed_texture_id() { return RMGR.toId(RMGR.getAccurateIndexCount() - 1); }
 
+uint16_t get_managed_texture_streaming_generation(TEXTUREID tid)
+{
+  G_ASSERT(RMGR.isValidID(tid));
+  return RMGR.getTexStreamingGeneration(tid.index());
+}
+
 // internal helpers
 int texmgr_internal::find_texture_rec(const char *name, bool auto_add, TextureFactory *f)
 {
@@ -243,7 +249,8 @@ int texmgr_internal::find_texture_rec(const char *name, bool auto_add, TextureFa
     mem_set_0(make_span(managed_tex_map_by_idx).subspan(b));
   }
   managed_tex_map_by_idx[idx] = stored_name;
-  RMGR.texSamplers[idx] = d3d::request_sampler(get_sampler_info(tmd));
+  RMGR.texSamplerInfo[idx] = get_sampler_info(tmd);
+  RMGR.texSamplers[idx] = d3d::request_sampler(RMGR.texSamplerInfo[idx]);
 
   // debug("[TEXMGR] added texture (%s) as %d", name, idx);
 
@@ -335,7 +342,6 @@ void add_anisotropy_exception(TEXTUREID id)
 
 void reset_anisotropy(const char *tex_name_filter)
 {
-  String stor;
   bool isFilterValid = tex_name_filter != nullptr && strlen(tex_name_filter) > 0;
   TEX_REC_AUTO_LOCK();
   for (unsigned i = 0, ie = RMGR.getAccurateIndexCount(); i < ie; i++)
@@ -350,9 +356,9 @@ void reset_anisotropy(const char *tex_name_filter)
       if (anisotropy_exceptions.has((TEXTUREID)i))
         continue;
       TextureMetaData tmd;
-      tmd.decode(name, &stor);
-      if (bt->isSamplerEnabled())
-        bt->setAnisotropy(tmd.calcAnisotropy(::dgs_tex_anisotropy));
+      tmd.decodeData(name);
+      RMGR.texSamplerInfo[i].anisotropic_max = tmd.calcAnisotropy(::dgs_tex_anisotropy);
+      set_texture_separate_sampler(RMGR.toId(i), RMGR.texSamplerInfo[i]);
     }
 }
 
@@ -641,7 +647,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   if (t)
     RMGR.changeTexUsedMem(idx, cur_sz, full_sz);
 
-  int newTexSize = t ? t->ressize() : 0;
+  int newTexSize = t ? t->getSize() : 0;
   if (!t)
   {
     if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && getBaseTexUsedCount(idx) > 0)
@@ -655,14 +661,14 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
     if (ret == TexLoadRes::OK)
       completion_cb(idx);
   }
-  else if (cur_ql == TQL_stub || !t->ressize())
+  else if (cur_ql == TQL_stub || !t->getSize())
   {
     if (BaseTexture *tmp_tex = t->makeTmpTexResCopy(w, h, d, l))
     {
       ret = d3d_load_ddsx_tex_contents(tmp_tex, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, 0, on_tex_slice_loaded_cb);
       if (ret == TexLoadRes::OK)
       {
-        newTexSize = tmp_tex->ressize();
+        newTexSize = tmp_tex->getSize();
         RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
       }
       else
@@ -679,7 +685,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
         on_tex_slice_loaded_cb, tmp_tex == t);
       if (ret == TexLoadRes::OK)
       {
-        newTexSize = tmp_tex->ressize();
+        newTexSize = tmp_tex->getSize();
         RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
       }
       else if (t != tmp_tex)
@@ -690,7 +696,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   {
     if (auto tmp_tex = tql::makeResizedTmpTexResCopy(t, w, h, d, l, ld_lev))
     {
-      newTexSize = tmp_tex->ressize();
+      newTexSize = tmp_tex->getSize();
       ret = TexLoadRes::OK;
       RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
     }
@@ -813,7 +819,7 @@ TextureMetaData get_texture_meta_data(TEXTUREID id)
   const char *name = RMGR.getName(idx);
 
   TextureMetaData tmd;
-  tmd.decode(name);
+  tmd.decodeData(name);
   return tmd;
 }
 
@@ -855,6 +861,7 @@ bool set_texture_separate_sampler(TEXTUREID id, const d3d::SamplerInfo &sampler_
   if (idx < 0)
     return false;
 
-  RMGR.texSamplers[idx] = d3d::request_sampler(sampler_info);
+  RMGR.texSamplerInfo[idx] = sampler_info;
+  RMGR.texSamplers[idx] = d3d::request_sampler(RMGR.texSamplerInfo[idx]);
   return true;
 }

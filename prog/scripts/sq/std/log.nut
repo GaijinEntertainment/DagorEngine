@@ -1,9 +1,9 @@
 // warning disable: -file:forbidden-function
+import "math" as math
+import "dagor.debug" as dagorDebug
+import "string.nut" as string
+from "string" import split_by_chars
 
-let dagorDebug = require("dagor.debug")
-let string = require("string.nut")
-let { split_by_chars } = require("string")
-let math = require("math")
 let tostring_r = string.tostring_r
 let join = string.join //like join, but skip emptylines
 
@@ -84,12 +84,12 @@ function Log(tostringfunc=null) {
     fprefix = fprefix != "" ? fprefix : null
     if (fprefix != null)
       foreach (w in watched) {
-        logger(fprefix, ftransform(w.value))
+        logger(fprefix, ftransform(w.get()))
         w.subscribe(@(v) logger(fprefix, ftransform(v)))
       }
     else
       foreach (w in watched) {
-        logger(ftransform(w.value))
+        logger(ftransform(w.get()))
         w.subscribe(@(v) logger(ftransform(v)))
       }
   }

@@ -10,7 +10,7 @@
 #include <render/dag_cur_view.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_shaders.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <oldEditor/de_util.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
@@ -22,7 +22,7 @@ struct WwaterProjFxRenderHelper : IWwaterProjFxRenderHelper
 {
   WwaterProjFxRenderHelper();
   ~WwaterProjFxRenderHelper();
-  bool render_geometry();
+  bool render_geometry(float) override;
 };
 
 
@@ -30,7 +30,7 @@ WwaterProjFxRenderHelper::WwaterProjFxRenderHelper() {}
 
 WwaterProjFxRenderHelper::~WwaterProjFxRenderHelper() {}
 
-bool WwaterProjFxRenderHelper::render_geometry()
+bool WwaterProjFxRenderHelper::render_geometry(float)
 {
   IRenderingService *prefabMgr;
   IRenderingService *hmap = NULL;
@@ -70,16 +70,9 @@ class WaterProjFxService : public IWaterProjFxService
 public:
   bool srvDisabled;
 
-  WaterProjFxService::WaterProjFxService() : renderer(NULL), srvDisabled(false) {}
+  WaterProjFxService() : renderer(NULL), srvDisabled(false) {}
 
-  WaterProjFxService::~WaterProjFxService()
-  {
-    if (renderer != NULL)
-    {
-      delete renderer;
-      renderer = NULL;
-    }
-  }
+  ~WaterProjFxService() { release(); }
 
   bool initSrv()
   {
@@ -87,23 +80,24 @@ public:
     return true;
   }
 
-  virtual void init()
+  void init() override
   {
     WaterProjectedFx::TargetDesc targetDesc = {TEXFMT_A8R8G8B8, SimpleString("projected_on_water_effects_tex"), 0xFF000000};
     renderer = new WaterProjectedFx(1024, 1024, dag::Span<WaterProjectedFx::TargetDesc>(&targetDesc, 1), nullptr);
   }
 
+  void release() { del_it(renderer); }
 
-  virtual void beforeRender(Stage stage) {}
+  void beforeRender(Stage stage) override {}
 
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!renderer)
       return;
   }
 
 
-  virtual void render(float waterLevel, float significantWaveHeight)
+  void render(float waterLevel, float significantWaveHeight) override
   {
     if (!renderer)
       return;
@@ -121,6 +115,7 @@ public:
 
 
 static WaterProjFxService srv;
+static bool is_inited = false;
 
 void setup_water_proj_fx_service(const DataBlock &app_blk)
 {
@@ -131,7 +126,6 @@ void *get_generic_water_proj_fx_service()
   if (srv.srvDisabled)
     return NULL;
 
-  static bool is_inited = false;
   if (!is_inited)
   {
     is_inited = true;
@@ -142,4 +136,13 @@ void *get_generic_water_proj_fx_service()
     }
   }
   return &srv;
+}
+
+void release_generic_water_proj_fx_service()
+{
+  if (is_inited)
+  {
+    is_inited = false;
+    srv.release();
+  }
 }

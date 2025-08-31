@@ -16,12 +16,12 @@ public:
   PointCloudDagExporter(PointCloudDagExporter &&) = default;
   PointCloudDagExporter &operator=(const PointCloudDagExporter &) = delete;
   PointCloudDagExporter &operator=(PointCloudDagExporter &&) = default;
-  virtual ~PointCloudDagExporter() = default;
+  ~PointCloudDagExporter() override = default;
 
-  virtual void exportPointClouds(const char *file_name, dag::Span<PointCloud> clouds, const char *cloud_name);
+  void exportPointClouds(const char *file_name, dag::Span<PointCloud> clouds, const char *cloud_name);
 
 private:
-  virtual void savePointCloudNodes(dag::Span<PointCloud> clouds, const char *cloud_name);
+  void savePointCloudNodes(dag::Span<PointCloud> clouds, const char *cloud_name);
 };
 
 } // namespace plod

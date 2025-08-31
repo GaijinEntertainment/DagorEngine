@@ -22,9 +22,9 @@ public:
     idx2 = (idx + 2) % s->points.size();
   }
 
-  ~UndoRefineSpline() { p = NULL; }
+  ~UndoRefineSpline() override { p = NULL; }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     for (int i = 0; i < s->points.size(); i++)
       s->points[i]->arrId = i;
@@ -39,7 +39,7 @@ public:
     s->getSpline();
   }
 
-  virtual void redo()
+  void redo() override
   {
     s->points[idx]->setProps(endPr1);
     s->points[idx]->setPos(s->points[idx]->getPt());
@@ -51,9 +51,9 @@ public:
     s->getSpline();
   }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoRefineSpline"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoRefineSpline"; }
 };
 
 
@@ -76,9 +76,9 @@ public:
     ed->addObject(p);
   }
 
-  ~UndoSplitSpline() { p = NULL; }
+  ~UndoSplitSpline() override { p = NULL; }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     for (int i = 1; i < o2->points.size(); i++)
     {
@@ -99,7 +99,7 @@ public:
     o1->selectObject(true);
   }
 
-  virtual void redo()
+  void redo() override
   {
     const char *assetBlkName = o1->getBlkGenName();
     for (int i = 1; i <= idx; i++)
@@ -137,9 +137,9 @@ public:
     o2->selectObject();
   }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoSplitSpline"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoSplitSpline"; }
 };
 
 
@@ -214,13 +214,13 @@ public:
     p2->setBlkGenName(assetBlkName2);
   }
 
-  ~UndoSplitPoly()
+  ~UndoSplitPoly() override
   {
     p1 = NULL;
     p2 = NULL;
   }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     for (int i = 1; i < (int)o2->points.size() - 1; i++)
     {
@@ -240,7 +240,7 @@ public:
     p2->arrId = 1;
   }
 
-  virtual void redo()
+  void redo() override
   {
     for (int i = idx1 + 1; i < idx2; i++)
     {
@@ -265,9 +265,9 @@ public:
     o2->selectObject();
   }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoSplitPoly"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoSplitPoly"; }
 };
 
 
@@ -278,23 +278,23 @@ public:
 
   UndoReverse(dag::ConstSpan<SplineObject *> spls_) : spls(tmpmem) { spls = spls_; }
 
-  virtual ~UndoReverse() { spls.clear(); }
+  ~UndoReverse() override { spls.clear(); }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     for (int i = 0; i < spls.size(); i++)
       spls[i]->reverse();
   }
 
-  virtual void redo()
+  void redo() override
   {
     for (int i = 0; i < spls.size(); i++)
       spls[i]->reverse();
   }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoReverse"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoReverse"; }
 };
 
 class UndoAttachSpline : public UndoRedoObject
@@ -309,7 +309,7 @@ public:
     cnt = o2->points.size();
   }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     int offs = o1->points.size() - cnt;
     for (int i = 0; i < cnt; i++)
@@ -333,7 +333,7 @@ public:
     o2->getSpline();
   }
 
-  virtual void redo()
+  void redo() override
   {
     append_items(o1->points, o2->points.size(), o2->points.data());
 
@@ -349,9 +349,9 @@ public:
     o1->getSpline();
   }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoAttachSpline"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoAttachSpline"; }
 };
 
 class UndoChangeAsset : public UndoRedoObject
@@ -373,7 +373,7 @@ public:
     }
   }
 
-  virtual void restore(bool save_redo)
+  void restore(bool save_redo) override
   {
     String tmp;
     bool tmp_use = false;
@@ -421,9 +421,9 @@ public:
     s->getObjEditor()->invalidateObjectProps();
   }
 
-  virtual void redo() { restore(true); }
+  void redo() override { restore(true); }
 
-  virtual size_t size() { return sizeof(*this); }
-  virtual void accepted() {}
-  virtual void get_description(String &s) { s = "UndoChangeAsset"; }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "UndoChangeAsset"; }
 };

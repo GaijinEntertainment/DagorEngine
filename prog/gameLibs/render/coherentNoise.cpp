@@ -20,7 +20,7 @@
   b0 = (((int)t) & PM) & BM;     \
   b1 = (((b0) + 1) & PM) & BM;   \
   r0 = t - (int)t;               \
-  r1 = (r0)-1.;
+  r1 = (r0) - 1.;
 
 float PerlinNoise::perlin_noise3(float x, float y, float z, int PM)
 {
@@ -44,7 +44,7 @@ float PerlinNoise::perlin_noise3(float x, float y, float z, int PM)
   sy = S_CURVE(ry0);
   sz = S_CURVE(rz0);
 
-#define AT3(rx, ry, rz) ((rx)*q[0] + (ry)*q[1] + (rz)*q[2])
+#define AT3(rx, ry, rz) ((rx) * q[0] + (ry) * q[1] + (rz) * q[2])
 
   q = g3[b00 + bz0];
   u = AT3(rx0, ry0, rz0);

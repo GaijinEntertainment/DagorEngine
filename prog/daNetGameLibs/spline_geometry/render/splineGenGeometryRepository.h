@@ -3,7 +3,7 @@
 
 #include "splineGenGeometryIb.h"
 #include "splineGenGeometryAsset.h"
-#include "splineGenGeometryMananger.h"
+#include "splineGenGeometryManager.h"
 #include <daECS/core/entityComponent.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 

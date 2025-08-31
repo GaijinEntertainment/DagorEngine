@@ -19,14 +19,14 @@ let WND_PARAMS = {
 function mkModalWindowsMngr(wndParams = null){
   let modalWindows = []
   let modalWindowsGeneration = Watched(0)
-  let hasModalWindows = Computed(@() modalWindowsGeneration.value >= 0 && modalWindows.len() > 0)
+  let hasModalWindows = Computed(@() modalWindowsGeneration.get() >= 0 && modalWindows.len() > 0)
   wndParams = WND_PARAMS.__merge(wndParams ?? {})
   function removeModalWindow(key) {
     let idx = modalWindows.findindex(@(w) w.key == key)
     if (idx == null)
       return false
     modalWindows.remove(idx)
-    modalWindowsGeneration(modalWindowsGeneration.value+1)
+    modalWindowsGeneration.modify(@(v)v+1)
     return true
   }
 
@@ -41,14 +41,14 @@ function mkModalWindowsMngr(wndParams = null){
     }
     wnd.onClick = wnd.onClick ?? @() removeModalWindow(wnd.key)
     modalWindows.append(wnd)
-    modalWindowsGeneration(modalWindowsGeneration.value+1)
+    modalWindowsGeneration.modify(@(v)v+1)
   }
 
   function hideAllModalWindows() {
     if (modalWindows.len() == 0)
       return
     modalWindows.clear()
-    modalWindowsGeneration(modalWindowsGeneration.value+1)
+    modalWindowsGeneration.modify(@(v)v+1)
   }
 
   let modalWindowsComponent = @() {

@@ -7,7 +7,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
 #include <gamePhys/collision/collisionLib.h>
@@ -24,7 +24,7 @@ static constexpr float g_cached_indoors_time_threshold = 1.f;
 static float g_cached_indoors_next_time = 0.f;
 static Point3 g_cached_indoors_last_listener_pos;
 
-static std::atomic_bool g_cached_indoors_inited = ATOMIC_VAR_INIT(false);
+static dag::AtomicInteger<bool> g_cached_indoors_inited = false;
 static eastl::fixed_vector<TMatrix, 8, true> g_cached_indoors;
 static bool g_is_listener_indoor = false;
 static float g_listener_height_above_ground = 0.f;
@@ -119,11 +119,16 @@ static float trace_occlusion_impl(const Point3 &from, const Point3 &to, float ne
 
   const float distance = length(dir);
 
-  if (distance > 0.01)
+  // decrease ray length to prevent unexpected occlusion if source is located almost on collision surface
+  // this may not help when large angle between ray and surface normal(need normal)
+  // also should move each sound source itself along surface normal a little when possible
+  constexpr const float offset = 0.03;
+
+  if (distance > offset + 0.01)
   {
     float accumulated = 0.f;
     float maximum = 0.f;
-    dacoll::rayhit_normalized_sound_occlusion(from, dir / distance, distance, g_ray_mat_id, accumulated, maximum);
+    dacoll::rayhit_normalized_sound_occlusion(from, dir / distance, distance - offset, g_ray_mat_id, accumulated, maximum);
 
     value = maximum;
 
@@ -140,10 +145,10 @@ static float trace_occlusion_impl(const Point3 &from, const Point3 &to, float ne
 
 static void before_trace_proc(const Point3 &listener, float far)
 {
-  if (!g_cached_indoors_inited || get_sync_time() >= g_cached_indoors_next_time ||
+  if (!g_cached_indoors_inited.load() || get_sync_time() >= g_cached_indoors_next_time ||
       lengthSq(listener - g_cached_indoors_last_listener_pos) > sqr(g_cached_indoors_move_theshold))
   {
-    g_cached_indoors_inited = false;
+    g_cached_indoors_inited.store(false);
     g_cached_indoors.clear();
 
     if (!lengthSq(listener) || !is_level_loaded())
@@ -151,7 +156,7 @@ static void before_trace_proc(const Point3 &listener, float far)
 
     g_cached_indoors_next_time = get_sync_time() + g_cached_indoors_time_threshold;
     g_cached_indoors_last_listener_pos = listener;
-    g_cached_indoors_inited = true;
+    g_cached_indoors_inited.store(true);
 
     cache_indoors_impl(listener, g_cached_indoors_move_theshold + far);
   }
@@ -162,7 +167,7 @@ static void before_trace_proc(const Point3 &listener, float far)
 ECS_TAG(sound)
 ECS_ON_EVENT(EventGameObjectsCreated)
 ECS_REQUIRE(ecs::Tag msg_sink)
-static void dngsound_occlusion_gameobjects_created_es(const ecs::Event &) { g_cached_indoors_inited = false; }
+static void dngsound_occlusion_gameobjects_created_es(const ecs::Event &) { g_cached_indoors_inited.store(false); }
 
 ECS_TAG(sound)
 ECS_ON_EVENT(on_appear, EventLevelLoaded)
@@ -188,7 +193,7 @@ static void dngsound_occlusion_enable_es(const ecs::Event &,
     g_undergroundDepthDistInv = safeinv(sound_occlusion__undergroundDepthDist);
   }
   sndsys::occlusion::enable(enabled);
-  g_cached_indoors_inited = false;
+  g_cached_indoors_inited.store(false);
 }
 
 ECS_TAG(sound)

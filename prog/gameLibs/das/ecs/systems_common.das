@@ -1,3 +1,4 @@
+options indenting = 2
 module systems_common shared
 require ecs
 require EcsUtils

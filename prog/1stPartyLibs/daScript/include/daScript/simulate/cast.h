@@ -120,7 +120,7 @@ namespace das
         }
     };
 
-    template <typename TT>
+    template <typename TT, typename = void>
     struct cast;
 
     template <typename TT>
@@ -423,4 +423,7 @@ namespace das
       static __forceinline vec4f from ( TT x )          { return cast<typename das::underlying_type<TT>::type>::from(static_cast<typename das::underlying_type<TT>::type>(x)); }
       static __forceinline vec4f from ( int x )         { return v_cast_vec4f(v_seti_x(int32_t(x))); }
     };
+
+    template <typename TT>
+    struct cast<TT, std::enable_if_t<std::is_enum_v<TT>>> : cast_enum<TT> {};
 }

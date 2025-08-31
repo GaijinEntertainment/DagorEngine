@@ -28,6 +28,12 @@ enum class RenderFlag : uint32_t
 using RenderFlags = BitFlagsMask<RenderFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(RenderFlag);
 
+inline RenderFlags body_dbg_flags()
+{
+  return RenderFlag::BODIES | RenderFlag::CONSTRAINTS | RenderFlag::CONSTRAINT_LIMITS | RenderFlag::CONSTRAINT_REFSYS |
+         RenderFlag::BODY_CENTER;
+}
+
 inline RenderFlags max_dbg_flags()
 {
   return RenderFlag::BODIES | RenderFlag::CONSTRAINTS | RenderFlag::CONSTRAINT_LIMITS | RenderFlag::CONSTRAINT_REFSYS |

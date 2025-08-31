@@ -88,7 +88,11 @@ static inline void riex_object_group_process_es(const dagdp::EventObjectGroupPro
         {
           // The last LOD is the impostor LOD.
           numMeshLods--;
-          G_ASSERT(numMeshLods > 0);
+          if (numMeshLods <= 0)
+          {
+            logerr("daGdp: object with RI name '%s' doesn't have non-impostor lods", assetName.c_str());
+            continue;
+          }
         }
 
         for (int lodIndex = 0; lodIndex < numMeshLods; lodIndex++)
@@ -109,8 +113,8 @@ static inline void riex_object_group_process_es(const dagdp::EventObjectGroupPro
             }
           }
 
-          // TODO: Distortions https://youtrack.gaijin.team/issue/RE-741/daGDP-distortions-support
-          // TODO: Transparency https://youtrack.gaijin.team/issue/RE-742/daGDP-transparency-support
+          // TODO: Distortions
+          // TODO: Transparency
           if (shaderMesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_decal).size() != shaderMesh->getAllElems().size())
           {
             stagesOk = false;
@@ -119,7 +123,16 @@ static inline void riex_object_group_process_es(const dagdp::EventObjectGroupPro
         }
 
         if (hasCrossDissolve)
+        {
           --numMeshLods;
+          if (numMeshLods <= 0)
+          {
+            logerr("daGdp: object with RI name '%s' uses material with `use_cross_dissolve` enabled but the object doesn't "
+                   "have enough lods for that",
+              assetName.c_str());
+            continue;
+          }
+        }
 
         if (!stagesOk)
         {

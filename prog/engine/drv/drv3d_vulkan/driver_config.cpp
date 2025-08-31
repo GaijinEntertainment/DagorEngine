@@ -8,6 +8,9 @@
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include "timeline_latency.h"
 #include <osApiWrappers/dag_direct.h>
+#include "pipeline_barrier.h"
+#include <EASTL/string_view.h>
+#include <gpuVendor.h>
 
 using namespace drv3d_vulkan;
 
@@ -45,9 +48,6 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.preRotation = cfg->getBool("preRotation", false);
   debug("vulkan: pre-rotation in swapchain: %s", bits.preRotation ? "yes" : "no");
 
-  bits.keepLastRenderedImage = cfg->getBool("keepLastRenderedImage", false);
-  debug("vulkan: keep last rendered image in swapchain: %s", bits.keepLastRenderedImage ? "yes" : "no");
-
   static const char deferred_exection_name[] = "deferred";
   static const char threaded_exection_name[] = "threaded";
   const char *config_exection = cfg->getStr("executionMode", threaded_exection_name);
@@ -81,15 +81,14 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
 
 #if DAGOR_DBGLEVEL > 0 && (_TARGET_PC || _TARGET_ANDROID || _TARGET_C3)
   bits.validateRenderPassSplits = cfg->getBool("validateRenderPassSplits", false);
-  bits.fatalOnNRPSplit = true;
-#else
-  bits.fatalOnNRPSplit = cfg->getBool("fatalOnNRPSplit", false);
 #endif
-  bits.debugImageGarbadgeReads = cfg->getBool("debugImageGarbadgeReads", false);
+  bits.fatalOnNRPSplit = cfg->getBool("fatalOnNRPSplit", true);
+  bits.debugGarbadgeReads = cfg->getBool("debugGarbadgeReads", false);
   bits.allowAssertOnValidationFail = cfg->getBool("allowAssertOnValidationFail", false);
   bits.enableRenderDocLayer = cfg->getBool("enableRenderDocLayer", false);
   bits.robustBufferAccess = cfg->getBool("robustBufferAccess", false);
   bits.highPriorityQueues = cfg->getBool("highPriorityQueues", false);
+  bits.useCustomAllocationCallbacks = cfg->getBool("useCustomAllocationCallbacks", false);
 }
 
 void DriverConfig::fillDeviceBits()
@@ -102,7 +101,7 @@ void DriverConfig::fillDeviceBits()
   has.multiDrawIndirect = VK_FALSE != Globals::VK::phy.features.multiDrawIndirect;
   has.drawIndirectFirstInstance = VK_FALSE != Globals::VK::phy.features.drawIndirectFirstInstance;
   has.depthStencilResolve = Globals::VK::phy.hasDepthStencilResolve;
-  has.adrenoViewportConflictWithCS = Globals::VK::phy.vendorId == D3D_VENDOR_QUALCOMM;
+  has.adrenoViewportConflictWithCS = Globals::VK::phy.vendor == GpuVendor::QUALCOMM;
 
   const bool hasEnoughDescriptorSetsForTessShader =
     Globals::VK::phy.properties.limits.maxBoundDescriptorSets > spirv::graphics::evaluation::REGISTERS_SET_INDEX;
@@ -197,16 +196,20 @@ void DriverConfig::configurePerDeviceDriverFeatures()
 
   {
     const DataBlock *latWaitProp = Globals::cfg.getPerDriverPropertyBlock("latencyWait");
+
+    bits.allowSharedFenceLatencyWait = latWaitProp->getBool("useSharedFenceWait", false);
+    bits.allowPredictedLatencyWaitApp = latWaitProp->getBool("waitApp", false);
+    bits.autoPredictedLatencyWaitApp = latWaitProp->getBool("waitAppAuto", true);
+    bits.allowPredictedLatencyWaitWorker = latWaitProp->getBool("waitWorker", false);
+    debug("vulkan: allowPredictedLatencyWaitApp=%d, autoPredictedLatencyWaitApp=%d, allowPredictedLatencyWaitWorker=%d, "
+          "allowSharedFenceLatencyWait=%d",
+      bits.allowPredictedLatencyWaitApp, bits.autoPredictedLatencyWaitApp, bits.allowPredictedLatencyWaitWorker,
+      bits.allowSharedFenceLatencyWait);
+
     latencyWaitThresholdUs = latWaitProp->getInt64("thresholdUs", 800);
     latencyWaitDeltaUs = latWaitProp->getInt64("deltaUs", 100);
     // max wait is 33ms by default, for lower frame rate using latency compensation may trigger too much waits on frame rate changes
     latencyWaitMaxUs = latWaitProp->getInt64("maxWaitUs", 33 * 1000);
-
-    bits.allowPredictedLatencyWaitApp = latWaitProp->getBool("waitApp", true);
-    bits.autoPredictedLatencyWaitApp = latWaitProp->getBool("waitAppAuto", true);
-    bits.allowPredictedLatencyWaitWorker = latWaitProp->getBool("waitWorker", true);
-    debug("vulkan: allowPredictedLatencyWaitApp=%d, autoPredictedLatencyWaitApp=%d, allowPredictedLatencyWaitWorker=%d",
-      bits.allowPredictedLatencyWaitApp, bits.autoPredictedLatencyWaitApp, bits.allowPredictedLatencyWaitWorker);
   }
 
   {
@@ -228,9 +231,93 @@ void DriverConfig::configurePerDeviceDriverFeatures()
 
   {
     const DataBlock *multiQueueProp = Globals::cfg.getPerDriverPropertyBlock("multiQueue");
-    bits.allowMultiQueue = multiQueueProp->getBool("allow", false);
-    if (bits.allowMultiQueue)
-      debug("vulkan: using multi queue submit scheme");
+#if _TARGET_PC
+    bool enableMultiQueueByDefault = Globals::VK::phy.hasTimelineSemaphore;
+#else
+    bool enableMultiQueueByDefault = false;
+#endif
+    bool separateCompute = &Globals::VK::queue[DeviceQueueType::COMPUTE] != &Globals::VK::queue[DeviceQueueType::GRAPHICS];
+    bool separateTransfers =
+      &Globals::VK::queue[DeviceQueueType::TRANSFER_READBACK] != &Globals::VK::queue[DeviceQueueType::TRANSFER_UPLOAD];
+
+    // no point to enable multiple queues when there is no compute
+    bits.allowMultiQueue = separateCompute && multiQueueProp->getBool("allow", enableMultiQueueByDefault);
+    bits.allowUserProvidedMultiQueue = bits.allowMultiQueue && multiQueueProp->getBool("userMultiQueue", false);
+    // no point to use async readback if there is no dedicated queue for it
+    bits.allowAsyncReadback = separateTransfers && bits.allowMultiQueue && multiQueueProp->getBool("allowAsyncReadback", true);
+    bits.ignoreQueueFamilyOwnershipTransferBarriers =
+      multiQueueProp->getBool("ignoreQFOT", Globals::VK::phy.vendor == GpuVendor::NVIDIA);
+
+    debug("vulkan: using %s queue submit scheme. separate compute %s, separate transfers %s",
+      bits.allowMultiQueue ? "multi" : "single", separateCompute ? "yes" : "no", separateTransfers ? "yes" : "no");
+
+    if (bits.allowAsyncReadback)
+      debug("vulkan: allow async readback");
+    if (bits.allowUserProvidedMultiQueue)
+      debug("vulkan: allow user provided multi queue logic");
+    if (bits.ignoreQueueFamilyOwnershipTransferBarriers)
+      debug("vulkan: ignore queue family ownership transfer barrriers");
+  }
+
+  {
+    const DataBlock *barrierMergeProp = Globals::cfg.getPerDriverPropertyBlock("barrierMerge");
+    // only NVIDIA benefit from this so far, so adjust default value to avoid keeping this in every target config blk
+    barrierMergeMode = barrierMergeProp->getInt("mode",
+      Globals::VK::phy.vendor == GpuVendor::NVIDIA ? PipelineBarrier::MERGE_DST : PipelineBarrier::MERGE_ALL);
+    debug("vulkan: barrier merge mode %u", barrierMergeMode);
+  }
+
+  {
+    const DataBlock *dumpPipelineExecutableStatisticsProp = Globals::cfg.getPerDriverPropertyBlock("dumpPipelineExecutableStatistics");
+    bits.dumpPipelineExecutableStatistics = dumpPipelineExecutableStatisticsProp->getBool("enabled", false);
+    if (bits.dumpPipelineExecutableStatistics)
+      debug("vulkan: dumping pipeline executable statistics");
+  }
+
+  {
+    const DataBlock *memsetOnRubProp = Globals::cfg.getPerDriverPropertyBlock("memsetOnRub");
+    bits.memsetOnRub = memsetOnRubProp->getBool("affected", false);
+    if (bits.memsetOnRub)
+      debug("vulkan: memsetOnRub enabled");
+  }
+
+  {
+    const DataBlock *disallowedFormatsProp = Globals::cfg.getPerDriverPropertyBlock("disallowedFormats");
+    formatSupportMask.resize(Globals::VK::phy.formatProperties.size());
+    for (uint32_t i = 0; i < Globals::VK::phy.formatProperties.size(); ++i)
+    {
+      VkFormat itrFmt = (VkFormat)i;
+      if (strstr(disallowedFormatsProp->getStr("list", "<none>"), Globals::VK::phy.formatName(itrFmt)))
+      {
+        formatSupportMask[itrFmt] = false;
+        debug("vulkan: format %s disallowed from usage", Globals::VK::phy.formatName(itrFmt));
+      }
+      else
+        formatSupportMask[itrFmt] = true;
+    }
+  }
+
+  {
+    const DataBlock *swapchainProp = Globals::cfg.getPerDriverPropertyBlock("swapchain");
+    bits.forceSwapchainOnlyBackendAcquire = swapchainProp->getBool("forceOnlyBackendAcquireMode", false);
+    bits.useSwapchainAcquireExclusiveTest =
+      swapchainProp->getBool("useAcquireExclusiveTest", Globals::VK::phy.vendor == GpuVendor::AMD);
+    bits.recreateSwapchainWhenImageAcquired = swapchainProp->getBool("recreteWhenImageAcquired", false);
+    swapchainMaxExtraImages = swapchainProp->getInt("maxExtraImages",
+#if _TARGET_ANDROID || _TARGET_C3
+      1 // one image is usually locked by presentation engine
+#else
+      0
+#endif
+    );
+    debug("vulkan: swapchain max extra images %u", swapchainMaxExtraImages);
+  }
+
+  {
+    const DataBlock *disableDepthClampProp = Globals::cfg.getPerDriverPropertyBlock("disableDepthClamp");
+    bits.disableDepthClamp = disableDepthClampProp->getBool("affected", false);
+    if (bits.disableDepthClamp)
+      debug("vulkan: depth clamp force-disabled");
   }
 }
 
@@ -261,8 +348,13 @@ const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
     if (entry.paramExists("gpu"))
     {
       gpuMatch = false;
-      dblk::iterate_params_by_name(entry, "gpu",
-        [&](int idx, int, int) { gpuMatch |= strstr(Globals::VK::phy.properties.deviceName, entry.getStr(idx)) != NULL; });
+      eastl::string_view gpu = Globals::VK::phy.properties.deviceName;
+      dblk::iterate_params_by_name(entry, "gpu", [&](int idx, int, int) {
+        eastl::string_view mask = entry.getStr(idx);
+        size_t pos = gpu.find(mask);
+        // Check that the mask is not part of a longer number, like "Mali-G72" and "Mali-G720", but skip GPU revisions.
+        gpuMatch |= pos != eastl::string_view::npos && (pos + mask.size() == gpu.size() || !isdigit(gpu[pos + mask.size()]));
+      });
     }
 
     if (entry.paramExists("driverInfo"))
@@ -337,13 +429,14 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
   caps.caps.hasForcedSamplerCount = false;
   caps.caps.hasVolMipMap = true;
   caps.caps.hasAsyncCompute = false;
-  caps.caps.hasOcclusionQuery = false;
+  caps.caps.hasOcclusionQuery = true;
   caps.caps.hasConstBufferOffset = false;
   caps.caps.hasResourceCopyConversion = true;
   caps.caps.hasReadMultisampledDepth = true;
   caps.caps.hasGather4 = true;
   caps.caps.hasNVApi = false;
   caps.caps.hasATIApi = false;
+  caps.caps.hasStreamOutput = false;
   // needs VK_NV_shading_rate_image
   caps.caps.hasVariableRateShading = false;
   caps.caps.hasVariableRateShadingTexture = false;
@@ -355,10 +448,6 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
   caps.caps.hasBufferOverlapCopy = false;
   caps.caps.hasBufferOverlapRegionsCopy = false;
   caps.caps.hasShader64BitIntegerResources = false;
-  caps.caps.hasTiled2DResources = false;
-  caps.caps.hasTiled3DResources = false;
-  caps.caps.hasTiledSafeResourcesAccess = false;
-  caps.caps.hasTiledMemoryAliasing = false;
   caps.caps.hasDLSS = false;
   caps.caps.hasXESS = false;
   caps.caps.hasMeshShader = false;
@@ -404,7 +493,8 @@ void DriverConfig::extCapsFillMultiplatform(Driver3dDesc &caps)
   debug("vulkan: hasWellSupportedIndirect=%d", (int)caps.caps.hasWellSupportedIndirect);
 
   caps.caps.hasUAVOnlyForcedSampleCount = has.UAVOnlyForcedSampleCount;
-#if D3D_HAS_RAY_TRACING
+  caps.caps.hasUAVOnEveryStage = Globals::VK::phy.features.vertexPipelineStoresAndAtomics;
+#if VULKAN_HAS_RAYTRACING
   caps.caps.hasRayAccelerationStructure = Globals::VK::phy.hasAccelerationStructure;
   caps.caps.hasRayQuery = Globals::VK::phy.hasRayQuery;
   caps.caps.hasRayDispatch = Globals::VK::phy.hasRayTracingPipeline;
@@ -423,6 +513,14 @@ void DriverConfig::extCapsFillMultiplatform(Driver3dDesc &caps)
   // Only offer AS support when we can actually use it with anything
   // -V:caps.caps.hasRayAccelerationStructure:1048 not true
   caps.caps.hasRayAccelerationStructure = caps.caps.hasRayAccelerationStructure && caps.caps.hasRayQuery;
+
+  // don't allow tiled resources without timeline semaphores, for code simplicity around sparse binding sync logic
+  bool allowTiledResources = Globals::VK::phy.features.sparseBinding && Globals::VK::phy.hasTimelineSemaphore;
+  caps.caps.hasTiled2DResources = allowTiledResources && Globals::VK::phy.features.sparseResidencyImage2D;
+  caps.caps.hasTiled3DResources = allowTiledResources && Globals::VK::phy.features.sparseResidencyImage3D;
+  caps.caps.hasTiledSafeResourcesAccess = Globals::VK::phy.properties.sparseProperties.residencyNonResidentStrict;
+  caps.caps.hasTiledMemoryAliasing = Globals::VK::phy.features.sparseResidencyAliased;
+
 #endif
 #endif
 #if _TARGET_PC_WIN || _TARGET_PC_LINUX || _TARGET_C3 || _TARGET_ANDROID
@@ -440,10 +538,10 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
   // ~99% of device / drivers support it, the remaining 1% is probably not compatible anyways
   caps.caps.hasAnisotropicFilter = has.anisotropicSampling;
 
-  switch (Globals::VK::phy.vendorId)
+  switch (Globals::VK::phy.vendor)
   {
     // Qualcomm Adreno GPUs
-    case D3D_VENDOR_QUALCOMM:
+    case GpuVendor::QUALCOMM:
       // TBDR GPU
       caps.caps.hasTileBasedArchitecture = true;
       // CS writes to 3d texture are not working for some reason
@@ -458,10 +556,11 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
       caps.issues.hasSmallSampledBuffers = true;
 
       caps.issues.hasRenderPassClearDataRace = getPerDriverPropertyBlock("adrenoClearStoreRace")->getBool("affected", false);
+      caps.issues.hasFloatClearBug = getPerDriverPropertyBlock("hasFloatClearBug")->getBool("affected", false);
 
       break;
     // Arm Mali GPUs
-    case D3D_VENDOR_ARM:
+    case GpuVendor::ARM:
       // TBDR GPU
       caps.caps.hasTileBasedArchitecture = true;
       // have buggy/time limited compute stage
@@ -471,8 +570,8 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
       caps.issues.hasSmallSampledBuffers = true;
       break;
     // Imagetec PowerVR GPUs and Samsung Exynos
-    case D3D_VENDOR_IMGTEC:
-    case D3D_VENDOR_SAMSUNG:
+    case GpuVendor::IMGTEC:
+    case GpuVendor::SAMSUNG:
       // TBDR GPU
       caps.caps.hasTileBasedArchitecture = true;
       break;
@@ -486,6 +585,13 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
     caps.issues.hasMultisampledAndInstancingHang = true;
     debug("vulkan: DeviceDriverCapabilities::bugMultisampledAndInstancingHang - GPU hangs with combination of MSAA, non-RGB8 RT and "
           "instancing in RIEx");
+  }
+
+  if (getPerDriverPropertyBlock("brokenMsaaInputAttachment")->getBool("affected", false))
+  {
+    caps.issues.hasBrokenMultisampledInputAttachment = true;
+    debug("vulkan: DeviceDriverCapabilities::brokenMsaaInputAttachment - device lost happens when trying to bind multisampled "
+          "texture as input attachment");
   }
 
   if (getPerDriverPropertyBlock("ignoreDeviceLost")->getBool("affected", false))
@@ -508,14 +614,6 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
           "the application and back");
   }
 
-  if (getPerDriverPropertyBlock("brokenMTRecreateImage")->getBool("affected", false))
-  {
-    caps.issues.hasBrokenMTRecreateImage = true;
-    debug(
-      "vulkan: DeviceDriverCapabilities::hasBrokenMTRecreateImage - mt texture recreation (e.g. when changing quality in settings) "
-      "might cause a crash");
-  }
-
   if (caps.caps.hasTileBasedArchitecture)
   {
     // only check on TBDRs, all other stuff is considered bugged driver or some software renderers
@@ -536,6 +634,9 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
 
   if (caps.issues.hasRenderPassClearDataRace)
     debug("vulkan: running on device-driver combo with clear-store race");
+
+  if (caps.issues.hasFloatClearBug)
+    debug("vulkan: set hasFloatClearBug for the device");
 
   if (getPerDriverPropertyBlock("disableShaderFloat16")->getBool("affected", false))
   {
@@ -575,6 +676,10 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
 void DriverConfig::extCapsFillUniversal(Driver3dDesc &caps)
 {
   VkPhysicalDeviceProperties &properties = Globals::VK::phy.properties;
+#if !_TARGET_C3
+  caps.info.isUMA = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+#endif
+  gpu::update_device_attributes(properties.vendorID, properties.deviceID, caps.info);
   caps.caps.hasBindless = false;
   caps.caps.hasRenderPassDepthResolve = Globals::VK::phy.hasDepthStencilResolve;
 
@@ -640,6 +745,11 @@ void DriverConfig::extCapsFillUniversal(Driver3dDesc &caps)
   caps.maxSimRT = min(caps.maxSimRT, (int)properties.limits.maxColorAttachments);
   caps.minWarpSize = Globals::VK::phy.warpSize;
   caps.maxWarpSize = Globals::VK::phy.warpSize;
+
+#if _TARGET_ANDROID
+  caps.caps.hasDualSourceBlending =
+    Globals::VK::phy.features.dualSrcBlend && Globals::VK::phy.properties.limits.maxFragmentDualSrcAttachments >= 1;
+#endif
 }
 
 void DriverConfig::setBindlessConfig()

@@ -6,10 +6,46 @@
 #include "shaders.h"
 #include <3d/dag_eventQueryHolder.h>
 #include <util/dag_generationReferencedData.h>
+#include <memory/dag_framemem.h>
+#include <daFx/dafx_render_dispatch_desc.hlsli>
 
 namespace dafx
 {
 struct Context;
+
+struct DrawState
+{
+  const eastl::vector<TextureDesc> *resources;
+  ShaderElement *shader;
+  D3DRESID dataSource;
+  int dispatchBufferIdx;
+  int primPerElem;
+  int vrs;
+  uint32_t changes;
+};
+
+struct DrawCall
+{
+  int stateId;
+  int instanceCount;
+};
+
+struct MultiDrawCall
+{
+  int stateId;
+  int bufId;
+  int bufOffset;
+  int drawCallCount;
+  int totalPrimCount;
+};
+
+struct DrawQueue
+{
+  dag::Vector<DrawState, framemem_allocator> states;
+  dag::Vector<DrawCall, framemem_allocator> drawCalls;
+  dag::Vector<MultiDrawCall, framemem_allocator> multidrawCalls;
+  dag::Vector<RenderDispatchDesc, framemem_allocator> dispatches; // 1 dispatch desc for each instance
+};
 
 struct CullingState
 {
@@ -22,7 +58,11 @@ struct CullingState
   eastl::array<int, Config::max_render_tags> vrsRemapTags;
   eastl::array<int, Config::max_render_tags> shadingRates;
   eastl::array<float, Config::max_render_tags> discardThreshold;
+  uint32_t disableOcclusion = 0;
+  static_assert(Config::max_render_tags <= sizeof(disableOcclusion) * CHAR_BIT);
   uint32_t visibilityMask = 0xffffffff;
+
+  eastl::array<DrawQueue, Config::max_render_tags> drawQueue;
 };
 using CullingStates = GenerationReferencedData<CullingId, CullingState>;
 

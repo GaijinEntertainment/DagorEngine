@@ -65,7 +65,9 @@ void listUpdate()
   Globals::Mem::res.iterateAllocated<Buffer>(statPrintCb);
   Globals::Mem::res.iterateAllocated<Image>(statPrintCb);
   Globals::Mem::res.iterateAllocated<RenderPassResource>(statPrintCb);
-#if D3D_HAS_RAY_TRACING
+  Globals::Mem::res.iterateAllocated<SamplerResource>(statPrintCb);
+  Globals::Mem::res.iterateAllocated<MemoryHeapResource>(statPrintCb);
+#if VULKAN_HAS_RAYTRACING
   Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(statPrintCb);
 #endif
 }

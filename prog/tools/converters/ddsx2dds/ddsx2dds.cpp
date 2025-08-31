@@ -399,7 +399,9 @@ static bool skip_exp_cache_header(IGenLoad &crd)
 {
   if (crd.readInt() != _MAKE4C('fC1'))
     return false;
-  if (crd.readInt() != 2)
+
+  const int cacheFileVersion = crd.readInt();
+  if (cacheFileVersion != 2 && cacheFileVersion != 3)
     return false;
 
   // read target file data hash
@@ -420,6 +422,10 @@ static bool skip_exp_cache_header(IGenLoad &crd)
   // read versions of exporters
   crd.beginBlock();
   crd.endBlock();
+
+  if (cacheFileVersion >= 3)
+    for (int i = crd.readInt(); i > 0; --i)
+      crd.skipString();
 
   if (crd.readInt() != _MAKE4C('.end'))
     return false;

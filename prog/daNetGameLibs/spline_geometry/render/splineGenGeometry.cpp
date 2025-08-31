@@ -50,6 +50,9 @@ SplineGenGeometryManager &SplineGenGeometry::getManager()
 
 void SplineGenGeometry::requestActiveState(bool request_active)
 {
+  if (!isRendered())
+    return;
+
   if (getManager().isReactivationInProcess())
   {
     inactiveFrames = 0;
@@ -67,20 +70,22 @@ void SplineGenGeometry::requestActiveState(bool request_active)
     {
       inactiveFrames++;
       if (!isActive() && wasActive)
-        getManager().makeInstanceInctive(id);
+        getManager().makeInstanceInactive(id);
     }
   }
 }
 
 void SplineGenGeometry::updateInstancingData(const eastl::vector<SplineGenSpline, framemem_allocator> &spline_vec,
-  const Point3 &radius,
+  float max_radius,
   float displacement_strength,
   uint32_t tiles_around,
   float tile_size_meters,
   float obj_size_mul,
-  float meter_between_objs)
+  float meter_between_objs,
+  const Point4 &emissive_color)
 {
   G_ASSERT(isActive());
+  G_ASSERT(max_radius >= 0.0f);
   SplineGenGeometryManager &manager = getManager();
 
   uint32_t slices = manager.slices;
@@ -97,14 +102,14 @@ void SplineGenGeometry::updateInstancingData(const eastl::vector<SplineGenSpline
     bbox += spline_vec[i].pos;
   }
 
-  instance.radius = radius;
   instance.tcMul = Point2(tiles_around, splineLength / tile_size_meters);
   float texelPerSample = min(static_cast<float>(displacementTexSize.x) * instance.tcMul.x / static_cast<float>(slices),
     static_cast<float>(displacementTexSize.y) * instance.tcMul.y / static_cast<float>(stripes));
   instance.displacementLod = texelPerSample > 0 ? max(log2f(texelPerSample), 0.0f) : 1000;
   instance.displacementStrength = displacement_strength;
 
-  float extension = max(radius.x, max(radius.y, radius.z)) * (1 + displacement_strength);
+  instance.inverseMaxRadius = 1.0f / max_radius;
+  float extension = max_radius * (1 + displacement_strength);
 
   instance.objSizeMul = obj_size_mul;
   if (manager.hasObj())
@@ -119,18 +124,17 @@ void SplineGenGeometry::updateInstancingData(const eastl::vector<SplineGenSpline
   bbox.inflate(extension);
   instance.bbox_lim0 = bbox.lim[0];
   instance.bbox_lim1 = bbox.lim[1];
+  instance.emissiveColor = emissive_color;
 
-
-  manager.updateInstancingData(id, instance, spline_vec, batchIds);
-
-  instance.flags |= PREV_VB_VALID | PREV_ATTACHMENT_DATA_VALID;
+  manager.updateInstancingData(id, instance, spline_vec);
 }
 
-void SplineGenGeometry::updateInactive()
+void SplineGenGeometry::updateAttachmentBatchIds()
 {
-  G_ASSERT(!isActive());
-  instance.flags = 0; // position doesn't change if inactive, so turn off reading the prev buffer
-  getManager().updateInactive(id, instance, batchIds);
+  if (!isActive())
+    instance.flags = 0; // position doesn't change if inactive, so turn off reading the prev buffer
+  getManager().updateAttachmentBatchIds(id, instance, batchIds);
+  instance.flags |= PREV_SB_VALID | PREV_ATTACHMENT_DATA_VALID;
 }
 
 bool SplineGenGeometry::isActive() const { return inactiveFrames <= 2; }

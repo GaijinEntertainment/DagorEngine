@@ -16,6 +16,7 @@ class Point3;
 class Point4;
 class IPoint2;
 class IPoint3;
+class IPoint4;
 class TMatrix;
 
 
@@ -39,6 +40,7 @@ public:
     TYPE_E3DCOLOR, ///< E3DCOLOR.
     TYPE_MATRIX,   ///< TMatrix.
     TYPE_INT64,    ///< int64_t
+    TYPE_IPOINT4,  ///< IPoint4.
   };
 
 
@@ -142,6 +144,7 @@ public:
   const Point4 &getPoint4(int idx) const { return castParam<Point4>(idx); }
   const IPoint2 &getIPoint2(int idx) const { return castParam<IPoint2>(idx); }
   const IPoint3 &getIPoint3(int idx) const { return castParam<IPoint3>(idx); }
+  const IPoint4 &getIPoint4(int idx) const { return castParam<IPoint4>(idx); }
   const TMatrix &getTm(int idx) const { return castParam<TMatrix>(idx); }
   int64_t getInt64(int idx) const { return *(int64_t *)(ptrdiff_t(nameMap.get()) + params[idx].i); }
 
@@ -222,6 +225,14 @@ public:
     int i = findParam(name);
     if (i >= 0 && params[i].type == TYPE_IPOINT3)
       return getIPoint3(i);
+    return def;
+  }
+
+  const IPoint4 &getIPoint4(const char *name, const IPoint4 &def) const
+  {
+    int i = findParam(name);
+    if (i >= 0 && params[i].type == TYPE_IPOINT4)
+      return getIPoint4(i);
     return def;
   }
 

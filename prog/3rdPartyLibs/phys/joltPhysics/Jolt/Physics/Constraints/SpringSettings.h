@@ -21,9 +21,9 @@ enum class ESpringMode : uint8
 /// Settings for a linear or angular spring
 class JPH_EXPORT SpringSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, SpringSettings)
 
+public:
 	/// Constructor
 								SpringSettings() = default;
 								SpringSettings(const SpringSettings &) = default;
@@ -41,7 +41,7 @@ public:
 
 	/// Selects the way in which the spring is defined
 	/// If the mode is StiffnessAndDamping then mFrequency becomes the stiffness (k) and mDamping becomes the damping ratio (c) in the spring equation F = -k * x - c * v. Otherwise the properties are as documented.
-	ESpringMode 				mMode = ESpringMode::FrequencyAndDamping;
+	ESpringMode					mMode = ESpringMode::FrequencyAndDamping;
 
 	union
 	{

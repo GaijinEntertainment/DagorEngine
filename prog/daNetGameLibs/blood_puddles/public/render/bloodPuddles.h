@@ -13,17 +13,24 @@
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <blood_puddles/public/shaders/blood_puddles.hlsli>
 #include <rendInst/rendInstDesc.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <decalMatrices/decalsMatrices.h>
 #include <util/dag_simpleString.h>
 
 class Point3;
 class Point4;
 
+namespace ecs
+{
+class Object;
+}
 
 class BloodPuddles
 {
   using uint = uint32_t;
+
+  constexpr static uint32_t MAX_PUDDLES = 4096;
+  constexpr static uint32_t REMOVE_PUDDLES_THRESHOLD = MAX_PUDDLES / 4 * 3;
 
 public:
   enum DecalGroup
@@ -39,26 +46,21 @@ private:
   UniqueBufHolder perGroupParametersBuf;
   SharedTexHolder puddleTex;
   SharedTexHolder flowmapTex;
-  bool useSeparateFlowmapTex = false;
   uint32_t maxSplashesPerFrame = 0;
   uint32_t splashesThisFrame = 0;
 
   int puddlesToRemoveCount = 0;
 
   bool isDeferredMode = false;
-  dabfg::NodeHandle prepassNode;
-  dabfg::NodeHandle resolveNode;
+  dafg::NodeHandle prepassNode;
+  dafg::NodeHandle resolveNode;
   uint32_t updateOffset, updateLength;
-  float additionalRandomInfl = 0.5;
-  int splashFxId = -1;
   SimpleString splashFxTemplName;
-  float splashFxLifeTime = 0;
-  float splashFxScale = 0;
   float puddleFreshnessTime = 0;
   float footprintEmitterDryingTime = 0;
-  float footprintDecayPerStep = 1;
-
-  const char *BLOOD_PARAMS_DATA_BLOCK_NAME = "gamedata/bloodparams.blk";
+  float footprintStrengthDecayPerStep = 1;
+  float footprintMinStrength = 0.2f;
+  float explosionMaxVerticalThreshold = 0.7f;
 
   const eastl::array<const char *, BLOOD_DECAL_GROUPS_COUNT> groupNames = {
 #define BLOOD_DECAL_NO_COUNT
@@ -74,15 +76,14 @@ private:
   eastl::array<PerGroupParams, BLOOD_DECAL_GROUPS_COUNT> perGroupPackedParams;
   eastl::vector<IPoint2> footprintsRanges;
 
-  void initResources(const DataBlock &blk);
+  void initAtlasResources(const ecs::Object &atlas_settings);
   void closeResources();
   void initNodes();
   void closeNodes();
 
-  void initTextureParams(const DataBlock &blk);
-  void initShadingParams(const DataBlock &blk);
-  void initGroupDists(const DataBlock &blk);
-  int getDecalVariant(const int group) const;
+  void initGroupVariantsRanges(const ecs::Object &group_attributes);
+
+  int getDecalVariant(const int group, Point3 decal_normal) const;
   void addDecal(const int group,
     const Point3 &pos,
     const Point3 &normal,
@@ -109,17 +110,14 @@ private:
 
   float addRandomToSize(int group, float size) const;
 
-  bool texturesAreReady() const
-  {
-    if (useSeparateFlowmapTex)
-      return (bool)(puddleTex && flowmapTex);
-
-    return (bool)puddleTex;
-  }
+  bool texturesAreReady() const { return (bool)(puddleTex && flowmapTex); }
 
 public:
   BloodPuddles();
   ~BloodPuddles();
+
+  void initGroupAttributes(const ecs::Object &group_attributes);
+
   struct PuddleCtx
   {
     Point3 pos, normal;
@@ -144,7 +142,9 @@ public:
   int getCount() const { return puddles.size(); }
   int getMaxSplashesPerFrame() const { return maxSplashesPerFrame; }
   bool tryAllocateSplashEffect() { return splashesThisFrame++ < maxSplashesPerFrame; }
-  float getFootprintDecayPerStep() const { return footprintDecayPerStep; }
+  float getFootprintStrengthDecayPerStep() const { return footprintStrengthDecayPerStep; }
+  float getFootprintMinStrength() const { return footprintMinStrength; }
+  float getexplosionMaxVerticalThreshold() const { return explosionMaxVerticalThreshold; }
   void setMaxSplashesPerFrame(int max) { maxSplashesPerFrame = max; }
   template <class F>
   void erasePuddles(const F &pred)
@@ -184,6 +184,17 @@ public:
   void putDecal(int group,
     const Point3 &pos,
     const Point3 &normal,
+    const Point3 &dir,
+    float size,
+    const Point3 &hit_pos,
+    bool projective,
+    int variant,
+    float strength,
+    const uint32_t matrix_id,
+    const bool is_landscape);
+  void putDecal(int group,
+    const Point3 &pos,
+    const Point3 &normal,
     float size,
     rendinst::riex_handle_t riex_handle,
     const Point3 &hit_pos,
@@ -213,8 +224,11 @@ public:
 
   DecalsMatrices *getMatrixManager() { return &matrixManager; }
 
-  void reinitShadingParams();
-  void useDeferredMode(const bool v) { isDeferredMode = v; }
+  void useDeferredMode(const bool v)
+  {
+    debug("BloodPuddles: using deferredMode: %d", (int)v);
+    isDeferredMode = v;
+  }
 };
 
 BloodPuddles *get_blood_puddles_mgr();

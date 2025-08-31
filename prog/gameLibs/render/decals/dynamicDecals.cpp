@@ -214,6 +214,8 @@ void init(const DataBlock &blk)
   dynDecalsNoiseTexId = ::get_tex_gameres(dynDecalsNoiseName);
   G_ASSERTF(dynDecalsNoiseTexId != BAD_TEXTUREID, "missing tex <%s>", dynDecalsNoiseName);
   ShaderGlobal::set_texture(dynDecalsNoiseTexVarId, dynDecalsNoiseTexId);
+  ShaderGlobal::set_sampler(get_shader_variable_id("dyn_decals_noise_samplerstate", true),
+    get_texture_separate_sampler(dynDecalsNoiseTexId));
 
   initial_atlas_size_index = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("dynDecalsInitialAtlasSizeIndex", 0);
   G_ASSERT(initial_atlas_size_index < ATLAS_SIZES.size());
@@ -655,7 +657,9 @@ static void init_atlas(unsigned tex_fmt)
   atlas.initAtlas(ATLAS_ELEM_MAX_NUM, dag::ConstSpan<unsigned>(&tex_fmt, 1), "dynamic_decals_atlas", ATLAS_SIZES[current_atlas_size],
     8);
   ShaderGlobal::set_texture(get_shader_variable_id("dynamic_decals_atlas", true), atlas.atlasTex[0].getTexId());
-  atlas.atlasTex[0].getTex2D()->setAnisotropy(::dgs_tex_anisotropy);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+  ShaderGlobal::set_sampler(::get_shader_variable_id("dynamic_decals_atlas_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 static void close_atlas()

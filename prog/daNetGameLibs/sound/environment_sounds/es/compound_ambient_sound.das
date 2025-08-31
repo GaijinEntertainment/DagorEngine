@@ -1,30 +1,31 @@
 require ecs
-require app
 require math.base
 require math
 require DagorMath
 require soundEvent
 require soundSystem
 require soundHash
-require sound_utils_net.modules.sound_utils_net_events
+require danetlibs.renderer.includes.pufd_events
 require environment_sounds.modules.game_object_sound_common
 require gameObject
+require DagorSystem
 
 
-[es(tag=sound, on_appear, track=sound_banks_state__isPresetLoaded)]
-def compound_ambient_sound_type_setup(evt : Event;
-                                      sound_banks_state__isPresetLoaded : bool;
-                                      compound_ambient_sound_type__path : string;
-                                      var compound_ambient_sound_type__range : float&;
-                                      compound_ambient_sound_type__autoRange : bool;
-                                      var compound_ambient_sound_type__event : SoundEvent&;
-                                      var compound_ambient_sound_type__volume : float&)
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def compound_ambient_sound_type_appear(evt : Event;
+                                       compound_ambient_sound_type__path : string;
+                                       var compound_ambient_sound_type__range : float&;
+                                       compound_ambient_sound_type__autoRange : bool;
+                                       var compound_ambient_sound_type__event : SoundEvent&;
+                                       var compound_ambient_sound_type__volume : float&)
   release_immediate(compound_ambient_sound_type__event)
   compound_ambient_sound_type__event.enabled = false
   compound_ambient_sound_type__volume = 0.
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     if compound_ambient_sound_type__autoRange
       compound_ambient_sound_type__range = get_max_distance(compound_ambient_sound_type__path)
+    if compound_ambient_sound_type__range <= 0.
+      logerr("bad range for positioned ambient sound event {compound_ambient_sound_type__path}")
 
 
 def find_closest_volume(box : BBox3; sound_type_hash : uint; listener : float3; max_range_sq : float; var closest_dist_sq : float&; var closest_pt : float3&) : bool
@@ -48,6 +49,9 @@ def find_closest_volume(box : BBox3; sound_type_hash : uint; listener : float3; 
 def compound_ambient_sound_controller_update(info : ParallelUpdateFrameDelayed;
                                              var compound_ambient_sound_controller__curTypeId : int&;
                                              compound_ambient_sound_controller__soundTypes : StringList)
+
+  if !sound_banks_is_master_preset_loaded()
+    return
 
   assume curTypeId = compound_ambient_sound_controller__curTypeId
   assume soundTypes = compound_ambient_sound_controller__soundTypes
@@ -73,11 +77,8 @@ def compound_ambient_sound_controller_update(info : ParallelUpdateFrameDelayed;
                      var compound_ambient_sound_type__closestPt : float3&;
                      var compound_ambient_sound_type__closestDistSq : float&;
                      var compound_ambient_sound_type__event : SoundEvent&;
-                     var compound_ambient_sound_type__volume : float&;
+                     var compound_ambient_sound_type__volume : float&)
 
-                     sound_banks_state__isPresetLoaded : bool)
-
-    let listener = get_listener_pos()
     assume soundType = compound_ambient_sound_type__soundType
     assume closestDistSq = compound_ambient_sound_type__closestDistSq
     assume closestPt = compound_ambient_sound_type__closestPt
@@ -86,26 +87,23 @@ def compound_ambient_sound_controller_update(info : ParallelUpdateFrameDelayed;
     assume fadeInOutSpeed = compound_ambient_sound_type__fadeInOutSpeed
     assume reverb = compound_ambient_sound_type__reverb_intensity_roomSize_absorption_weight
 
-    if soundType != curSoundType || !sound_banks_state__isPresetLoaded
+    if soundType != curSoundType
       if closestDistSq == 0. && is_valid_handle_value(event)
-        set_pos(event, listener)
+        set_pos(event, get_listener_pos())
       outReverb = lerp(outReverb, float4(reverb.x, reverb.y, reverb.z, volume * reverb.w), 1. - saturate(outReverb.w))
       return
 
     ret = true
 
-    let maxRange = event.enabled ? compound_ambient_sound_type__range : compound_ambient_sound_type__range * 0.9
-    let maxRangeSq = square(maxRange)
-
+    let listener = get_listener_pos()
+    let maxRange = compound_ambient_sound_type__range * (event.enabled ? 0.98 : 0.9)
     let aa = listener - float3(maxRange, maxRange, maxRange)
     let bb = listener + float3(maxRange, maxRange, maxRange)
 
-    event.enabled = find_closest_volume(BBox3(aa, bb), curSoundTypeHash, listener, maxRangeSq, closestDistSq, closestPt)
-
-    if event.enabled
-      if !is_playing(event)
-        release_immediate(event)
+    if find_closest_volume(BBox3(aa, bb), curSoundTypeHash, listener, square(maxRange), closestDistSq, closestPt)
+      if !event.enabled
         event |> reset(play(compound_ambient_sound_type__path, closestPt))
+        event.enabled = true
 
       if volume < 1.
         volume = min(volume + fadeInOutSpeed.x * float(length(soundTypes)) * info.dt, 1.)
@@ -114,13 +112,14 @@ def compound_ambient_sound_controller_update(info : ParallelUpdateFrameDelayed;
       set_var(event, "dist", sqrt(closestDistSq))
       set_pos(event, closestDistSq == 0. ? listener : closestPt)
 
-    elif volume > 0. || is_valid_handle_value(event)
+    elif event.enabled
       volume -= fadeInOutSpeed.y * float(length(soundTypes)) * info.dt
       if volume > 0.
         set_volume(event, volume)
       else
         volume = 0.
         release_immediate(event)
+        event.enabled = false
 
     outReverb = lerp(outReverb, float4(reverb.x, reverb.y, reverb.z, volume * reverb.w), 1. - saturate(outReverb.w))
 
@@ -128,6 +127,6 @@ def compound_ambient_sound_controller_update(info : ParallelUpdateFrameDelayed;
     sound_debug("entity/compound_ambient_sound_type with _soundType={curSoundType} not found!")
 
   if outReverb.w > 0.
-    find_query() <| $ [es] (var reverb_sound__intensity_roomSize_absorption_weight : float4&)
-      reverb_sound__intensity_roomSize_absorption_weight = outReverb
+    find_query() <| $ [es] (var reverb_sound__intensity_roomSize_absorption_blend : float4&)
+      reverb_sound__intensity_roomSize_absorption_blend = outReverb
       return true

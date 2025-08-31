@@ -1,0 +1,35 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/imageReadTest ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/imageReadTest ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
+
+Sources =
+  imageReadTest.cpp
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/image
+  engine/drv/drv3d_null
+  engine/perfMon/daProfilerStub
+
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/image/libpng-1.4.22
+  3rdPartyLibs/image/avif
+  3rdPartyLibs/image/tiff-4.4.0
+  3rdPartyLibs/image/jpeg-6b
+;
+
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

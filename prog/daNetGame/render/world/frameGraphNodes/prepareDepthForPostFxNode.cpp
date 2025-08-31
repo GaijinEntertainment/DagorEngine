@@ -1,27 +1,26 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
-dabfg::NodeHandle makePrepareDepthForPostFxNode(bool withHistory)
+dafg::NodeHandle makePrepareDepthForPostFxNode(bool withHistory)
 {
-  return dabfg::register_node("prepare_depth_for_postfx", DABFG_PP_NODE_SRC, [withHistory](dabfg::Registry registry) {
+  return dafg::register_node("prepare_depth_for_postfx", DAFG_PP_NODE_SRC, [withHistory](dafg::Registry registry) {
     registry.renameTexture("depth_after_transparency", "depth_for_postfx",
-      withHistory ? dabfg::History::DiscardOnFirstFrame : dabfg::History::No);
+      withHistory ? dafg::History::DiscardOnFirstFrame : dafg::History::No);
   });
 }
 
-dabfg::NodeHandle makePrepareDepthAfterTransparent()
+dafg::NodeHandle makePrepareDepthAfterTransparent()
 {
-  return dabfg::register_node("prepare_depth_after_transparency", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.renameTexture("depth_for_transparency", "depth_after_transparency", dabfg::History::No);
-  });
+  return dafg::register_node("prepare_depth_after_transparency", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.renameTexture("depth_for_transparency", "depth_after_transparency", dafg::History::No); });
 }
 
-dabfg::NodeHandle makePrepareMotionVectorsAfterTransparent(bool withHistory)
+dafg::NodeHandle makePrepareMotionVectorsAfterTransparent(bool withHistory)
 {
-  return dabfg::register_node("prepare_motion_vectors_after_transparency", DABFG_PP_NODE_SRC, [withHistory](dabfg::Registry registry) {
+  return dafg::register_node("prepare_motion_vectors_after_transparency", DAFG_PP_NODE_SRC, [withHistory](dafg::Registry registry) {
     registry.orderMeBefore("after_world_render_node");
     registry.renameTexture("motion_vecs", "motion_vecs_after_transparency",
-      withHistory ? dabfg::History::DiscardOnFirstFrame : dabfg::History::No);
+      withHistory ? dafg::History::DiscardOnFirstFrame : dafg::History::No);
   });
 }

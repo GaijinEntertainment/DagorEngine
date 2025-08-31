@@ -14,24 +14,12 @@
 
 DebugLightProbeShapeRenderer::DebugLightProbeShapeRenderer(const IndoorProbeScenes *scenes) : scenes(scenes) {}
 
-union vec4f_indexable
-{
-  float f[4];
-  vec4f val;
-};
-
-float length(const vec4f_indexable &vec)
-{
-  return sqrt(vec.f[0] * vec.f[0] + vec.f[1] * vec.f[1] + vec.f[2] * vec.f[2] /*+ vec[3] * vec[3]*/);
-}
-
 void draw_transformed_capsule_shape(mat44f_cref m, const BBox3 &box, E3DCOLOR color)
 {
   alignas(16) TMatrix tm;
   v_mat_43ca_from_mat44(tm.m[0], m);
 
-  Point3 boxSize(length(reinterpret_cast<const vec4f_indexable &>(m.col0)), length(reinterpret_cast<const vec4f_indexable &>(m.col1)),
-    length(reinterpret_cast<const vec4f_indexable &>(m.col2)));
+  Point3 boxSize(v_extract_x(v_length3_x(m.col0)), v_extract_x(v_length3_x(m.col1)), v_extract_x(v_length3_x(m.col2)));
   float width = min(boxSize.x, boxSize.y);
   float half_height = (boxSize.z - width) * 0.5f;
   Point3 a(0, 0, half_height / boxSize.z);
@@ -48,8 +36,7 @@ void draw_transformed_cylinder_shape(mat44f_cref m, const BBox3 &box, E3DCOLOR c
   alignas(16) TMatrix tm;
   v_mat_43ca_from_mat44(tm.m[0], m);
 
-  Point3 boxSize(length(reinterpret_cast<const vec4f_indexable &>(m.col0)), length(reinterpret_cast<const vec4f_indexable &>(m.col1)),
-    length(reinterpret_cast<const vec4f_indexable &>(m.col2)));
+  Point3 boxSize(v_extract_x(v_length3_x(m.col0)), v_extract_x(v_length3_x(m.col1)), v_extract_x(v_length3_x(m.col2)));
   float width = min(boxSize.x, min(boxSize.y, boxSize.z));
   float radius = width / 2.0f;
 

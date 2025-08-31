@@ -11,6 +11,8 @@
 namespace resptr_detail
 {
 
+using namespace resizeable_detail;
+
 static key_t make_key(uint32_t width, uint32_t height, uint32_t d)
 {
   const uint32_t sz = width * height * d;
@@ -30,9 +32,9 @@ void ResizableManagedTex::calcKey()
   }
 }
 
-static UniqueTex try_get_existing(key_t key, ResizableManagedTex::AliasMap &aliases)
+static UniqueBaseTex try_get_existing(key_t key, ResizableManagedTex::AliasMap &aliases)
 {
-  UniqueTex result;
+  UniqueBaseTex result;
 
   auto existingIterator = aliases.find(key);
   if (existingIterator != aliases.end())
@@ -43,39 +45,41 @@ static UniqueTex try_get_existing(key_t key, ResizableManagedTex::AliasMap &alia
   return result;
 }
 
-static UniqueTex try_get_aliased(const UniqueTex &original, unsigned short res_type, int width, int height, int depth, int flags,
+static UniqueBaseTex try_get_aliased(BaseTexture *original, D3DResourceType res_type, int width, int height, int depth, int flags,
   int mip_levels, const char *name)
 {
-  TexPtr result;
+  UniqueBaseTex result;
   if (d3d::get_driver_desc().caps.hasAliasedTextures)
   {
     switch (res_type)
     {
-      case RES3D_TEX: result = dag::alias_tex(original.getTex2D(), nullptr, width, height, flags, mip_levels, name); break;
-      case RES3D_CUBETEX: result = dag::alias_cubetex(original.getCubeTex(), width, flags, mip_levels, name); break;
-      case RES3D_VOLTEX: result = dag::alias_voltex(original.getVolTex(), width, height, depth, flags, mip_levels, name); break;
-      case RES3D_ARRTEX: result = dag::alias_array_tex(original.getArrayTex(), width, height, depth, flags, mip_levels, name); break;
-      case RES3D_CUBEARRTEX: result = dag::alias_cube_array_tex(original.getArrayTex(), width, depth, flags, mip_levels, name); break;
+      case D3DResourceType::TEX: result.reset(d3d::alias_tex(original, nullptr, width, height, flags, mip_levels, name)); break;
+      case D3DResourceType::CUBETEX: result.reset(d3d::alias_cubetex(original, width, flags, mip_levels, name)); break;
+      case D3DResourceType::VOLTEX: result.reset(d3d::alias_voltex(original, width, height, depth, flags, mip_levels, name)); break;
+      case D3DResourceType::ARRTEX: result.reset(d3d::alias_array_tex(original, width, height, depth, flags, mip_levels, name)); break;
+      case D3DResourceType::CUBEARRTEX:
+        result.reset(d3d::alias_cube_array_tex(original, width, depth, flags, mip_levels, name));
+        break;
       default: G_ASSERT(0); break;
     }
-    d3d::resource_barrier({{original.getBaseTex(), result.get()}, {RB_ALIAS_FROM, RB_ALIAS_TO_AND_DISCARD}, {0, 0}, {0, 0}});
   }
-  return UniqueTex(eastl::move(result), name);
+  return result;
 }
 
-static UniqueTex try_create_new(unsigned short res_type, int width, int height, int depth, int flags, int mip_levels, const char *name)
+static UniqueBaseTex try_create_new(D3DResourceType res_type, int width, int height, int depth, int flags, int mip_levels,
+  const char *name)
 {
-  TexPtr result;
+  UniqueBaseTex result;
   switch (res_type)
   {
-    case RES3D_TEX: result = dag::create_tex(nullptr, width, height, flags, mip_levels, name); break;
-    case RES3D_CUBETEX: result = dag::create_cubetex(width, flags, mip_levels, name); break;
-    case RES3D_VOLTEX: result = dag::create_voltex(width, height, depth, flags, mip_levels, name); break;
-    case RES3D_ARRTEX: result = dag::create_array_tex(width, height, depth, flags, mip_levels, name); break;
-    case RES3D_CUBEARRTEX: result = dag::create_cube_array_tex(width, depth, flags, mip_levels, name); break;
+    case D3DResourceType::TEX: result.reset(d3d::create_tex(nullptr, width, height, flags, mip_levels, name)); break;
+    case D3DResourceType::CUBETEX: result.reset(d3d::create_cubetex(width, flags, mip_levels, name)); break;
+    case D3DResourceType::VOLTEX: result.reset(d3d::create_voltex(width, height, depth, flags, mip_levels, name)); break;
+    case D3DResourceType::ARRTEX: result.reset(d3d::create_array_tex(width, height, depth, flags, mip_levels, name)); break;
+    case D3DResourceType::CUBEARRTEX: result.reset(d3d::create_cube_array_tex(width, depth, flags, mip_levels, name)); break;
     default: G_ASSERT(0); break;
   }
-  return UniqueTex(eastl::move(result), name);
+  return result;
 }
 
 void ResizableManagedTex::resize(int width, int height, int depth)
@@ -84,59 +88,155 @@ void ResizableManagedTex::resize(int width, int height, int depth)
   {
     mAliases.clear();
     calcKey();
+    originalTexture = mResource;
   }
 
   const key_t newKey = make_key(width, height, depth);
   if (currentKey == newKey)
     return;
 
-  G_ASSERT_RETURN(this->mResource, );
+  G_ASSERT_RETURN(originalTexture, );
+  G_ASSERT_RETURN(mResource, );
 
-  // first add our 'current' texture to list of aliases
+  TextureInfo tex_info;
+  originalTexture->getinfo(tex_info);
+
+  ResourceDescription resDesc;
+  switch (tex_info.type)
   {
-    UniqueTex this_tex;
-    ManagedTex::swap(this_tex);
-    G_VERIFY(mAliases.emplace(currentKey, eastl::move(this_tex)).second);
+    case D3DResourceType::TEX:
+    {
+      TextureResourceDescription texDesc;
+      texDesc.width = tex_info.w;
+      texDesc.height = tex_info.h;
+      texDesc.cFlags = tex_info.cflg;
+      texDesc.mipLevels = tex_info.mipLevels;
+      resDesc = ResourceDescription(texDesc);
+    }
+    break;
+
+    case D3DResourceType::CUBETEX:
+    {
+      CubeTextureResourceDescription texDesc;
+      texDesc.extent = tex_info.w;
+      texDesc.cFlags = tex_info.cflg;
+      texDesc.mipLevels = tex_info.mipLevels;
+      resDesc = ResourceDescription(texDesc);
+    }
+    break;
+
+    case D3DResourceType::VOLTEX:
+    {
+      VolTextureResourceDescription texDesc;
+      texDesc.width = tex_info.w;
+      texDesc.height = tex_info.h;
+      texDesc.depth = tex_info.d;
+      texDesc.cFlags = tex_info.cflg;
+      texDesc.mipLevels = tex_info.mipLevels;
+      resDesc = ResourceDescription(texDesc);
+    }
+    break;
+
+    case D3DResourceType::ARRTEX:
+    {
+      ArrayTextureResourceDescription texDesc;
+      texDesc.width = tex_info.w;
+      texDesc.height = tex_info.h;
+      texDesc.arrayLayers = tex_info.a;
+      texDesc.cFlags = tex_info.cflg;
+      texDesc.mipLevels = tex_info.mipLevels;
+      resDesc = ResourceDescription(texDesc);
+    }
+    break;
+
+    default: G_ASSERT(0);
   }
+  ResourceAllocationProperties originalAllocProps = d3d::get_resource_allocation_properties(resDesc);
 
-  UniqueTex newTex = try_get_existing(newKey, mAliases);
-  if (!newTex)
+  switch (tex_info.type)
   {
-    const UniqueTex &original_texture = mAliases.rbegin()->second;
+    case D3DResourceType::TEX:
+    {
+      resDesc.asTexRes.width = width;
+      resDesc.asTexRes.height = height;
+    }
+    break;
 
-    TextureInfo tex_info;
-    original_texture.getBaseTex()->getinfo(tex_info);
+    case D3DResourceType::CUBETEX:
+    {
+      resDesc.asCubeTexRes.extent = width;
+    }
+    break;
 
-    const eastl::fixed_string<char, 128> texture_name = original_texture.getBaseTex()->getTexName();
-    eastl::fixed_string<char, 128> managed_name({}, "%s-%ix%i", texture_name.c_str(), width, height);
+    case D3DResourceType::VOLTEX:
+    {
+      resDesc.asVolTexRes.width = width;
+      resDesc.asVolTexRes.height = height;
+      resDesc.asVolTexRes.depth = depth;
+    }
+    break;
+
+    case D3DResourceType::ARRTEX:
+    {
+      resDesc.asArrayTexRes.width = width;
+      resDesc.asArrayTexRes.height = height;
+    }
+    break;
+
+    default: G_ASSERT(0);
+  }
+  ResourceAllocationProperties newAllocProps = d3d::get_resource_allocation_properties(resDesc);
+
+  if (d3d::get_driver_desc().caps.hasAliasedTextures && newAllocProps.sizeInBytes <= originalAllocProps.sizeInBytes &&
+      !tex_info.isCommitted)
+  {
+    // first add our 'current' texture to list of aliases
+    BaseTexture *previous = eastl::exchange(mResource, nullptr);
+    G_VERIFY(mAliases.emplace(currentKey, UniqueBaseTex(previous)).second);
+
+    UniqueBaseTex newTex = try_get_existing(newKey, mAliases);
+    if (!newTex)
+    {
+      const eastl::fixed_string<char, 128> texture_name = originalTexture->getTexName();
+      eastl::fixed_string<char, 128> managed_name({}, "%s-%ix%i", texture_name.c_str(), width, height);
+
+      const int max_mips = eastl::min(get_log2w(width), get_log2w(height)) + 1;
+      const int mip_levels = min<int>(tex_info.mipLevels, max_mips);
+
+      newTex = try_get_aliased(originalTexture, tex_info.type, width, height, depth, tex_info.cflg, mip_levels, managed_name.c_str());
+    }
+
+    G_ASSERT(newTex);
+
+    mResource = newTex.release();
+
+    change_managed_texture(mResId, mResource);
+    d3d::resource_barrier({{previous, mResource}, {RB_ALIAS_FROM, RB_ALIAS_TO_AND_DISCARD}, {0, 0}, {0, 0}});
+
+    currentKey = newKey;
+    lastMResId = mResId;
+  }
+  else
+  {
+    debug("This platform (or texture) doesn't support aliasing or new texture is larger than original texture. Texture %s will be "
+          "recreated",
+      originalTexture->getTexName());
 
     const int max_mips = eastl::min(get_log2w(width), get_log2w(height)) + 1;
     const int mip_levels = min<int>(tex_info.mipLevels, max_mips);
 
-    // try to alias only when downsizing because drivers generally don't support aliasing larger textures on smaller ones
-    if (width <= tex_info.w && height <= tex_info.h && depth <= tex_info.d)
-    {
-      newTex =
-        try_get_aliased(original_texture, tex_info.resType, width, height, depth, tex_info.cflg, mip_levels, managed_name.c_str());
-    }
-    else
-    {
-      debug("Resizing %s to larger size (%dx%dx%d) than it has. This texture will be recreated", texture_name.c_str(), width, height,
-        depth);
-    }
+    BaseTexture *previous = eastl::exchange(mResource,
+      try_create_new(tex_info.type, width, height, depth, tex_info.cflg, mip_levels, originalTexture->getTexName()).release());
 
-    if (!newTex)
-    {
-      mAliases.clear(); // in this case we don't need to keep the old textures around, and it'd be wasteful to do so
-      newTex = try_create_new(tex_info.resType, width, height, depth, tex_info.cflg, mip_levels, texture_name.c_str());
-    }
+    G_ASSERT(mResource);
+    change_managed_texture(mResId, mResource);
+
+    currentKey = newKey;
+    originalTexture = mResource;
+
+    mAliases.clear();
+    del_d3dres(previous);
   }
-
-  G_ASSERT(newTex); // we must have succeeded one way or another
-
-  ManagedTex::swap(newTex);
-  currentKey = newKey;
-  lastMResId = mResId;
 }
 
 } // namespace resptr_detail

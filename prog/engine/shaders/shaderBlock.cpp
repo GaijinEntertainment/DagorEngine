@@ -53,12 +53,21 @@ class ArrayConstSetter : public shaders_internal::ConstSetter
 public:
   eastl::array<dag::RelocatableFixedVector<Color4, 4, true, framemem_allocator, uint32_t, false>, 3> consts;
 
-  virtual bool setConst(ShaderStage stage, unsigned reg_base, const void *data, unsigned num_regs) override
+  // @TODO: replace 2 calls to setConstImpl with having one global cbuf for the graphics pipeline.
+
+  virtual bool setConst(ShaderStage stage, unsigned reg_base, const void *data, unsigned num_regs) final
   {
-    auto &values = consts[stage];
-    if (values.size() < reg_base + num_regs)
-      values.resize(reg_base + num_regs);
-    memcpy(&values[reg_base], data, sizeof(Color4) * num_regs);
+    setConstImpl(stage, reg_base, data, num_regs);
+
+    // @HACK-ish: global const buffer hlsl declaration is shared between ps and vs stage. After the compiler update the preshader
+    // statements are filtered (relying on ODR) -- if a const is compiled in one stage, it is not compiled in the other. This makes it
+    // necessary to flush all writes to both stages' constbuffers.
+    if (stage != STAGE_CS)
+    {
+      ShaderStage otherStage = stage == STAGE_VS ? STAGE_PS : STAGE_VS;
+      setConstImpl(otherStage, reg_base, data, num_regs);
+    }
+
     return true;
   }
 
@@ -101,6 +110,14 @@ public:
   }
 
 private:
+  void setConstImpl(ShaderStage stage, unsigned reg_base, const void *data, unsigned num_regs)
+  {
+    auto &values = consts[stage];
+    if (values.size() < reg_base + num_regs)
+      values.resize(reg_base + num_regs);
+    memcpy(&values[reg_base], data, sizeof(Color4) * num_regs);
+  }
+
   void dump_consts(ShaderStage stage)
   {
     for (const Color4 &reg : consts[stage])
@@ -109,7 +126,6 @@ private:
 };
 
 static void exec_stcode(dag::ConstSpan<int> cod, int block_id, shaders_internal::ConstSetter *const_setter);
-static ShaderStateBlockId record_state_block(const int *__restrict, dag::ConstSpan<int> cod, char *regs);
 
 static eastl::array<int, ShaderGlobal::LAYER_OBJECT + 1> current_blocks = {-1, -1, -1};
 static int current_global_const = -1;
@@ -164,7 +180,7 @@ const char *ShaderGlobal::getBlockName(int block_id)
   }
 }
 
-static void execute_chosen_stcode(uint16_t stcodeId, int blockId, shaders_internal::ConstSetter *c_setter)
+static void execute_chosen_stcode(uint16_t stcodeId, uint16_t extStcodeId, int blockId, shaders_internal::ConstSetter *c_setter)
 {
   TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV("execute_chosen_stcode__block");
 
@@ -177,13 +193,13 @@ static void execute_chosen_stcode(uint16_t stcodeId, int blockId, shaders_intern
 #endif
 
 #if STCODE_RUNTIME_CHOICE
-  if (stcode::execution_mode() == stcode::ExecutionMode::BYTECODE)
+  if (DAGOR_UNLIKELY(stcode::execution_mode() == stcode::ExecutionMode::BYTECODE))
     exec_stcode(shBinDump().stcode[stcodeId], blockId, c_setter);
   else
 #endif
   {
     stcode::ScopedCustomConstSetter csetOverride(c_setter);
-    stcode::run_routine(stcodeId, nullptr, false);
+    stcode::run_dyn_routine(extStcodeId, nullptr);
   }
 
 #if VALIDATE_CPP_STCODE
@@ -191,7 +207,7 @@ static void execute_chosen_stcode(uint16_t stcodeId, int blockId, shaders_intern
   if (stcode::execution_mode() == stcode::ExecutionMode::TEST_CPP_AGAINST_BYTECODE)
     exec_stcode(shBinDump().stcode[stcodeId], blockId, c_setter);
 
-  stcode::dbg::validate_accumulated_records(stcodeId, "<block>");
+  stcode::dbg::validate_accumulated_records(extStcodeId, stcodeId, ShaderGlobal::getBlockName(blockId), true);
 #endif
 
 #else
@@ -236,7 +252,7 @@ static void setBlockPrivate(int block_id, int layer)
       if (b.stcodeId != -1)
       {
         ArrayConstSetter setter;
-        execute_chosen_stcode(b.stcodeId, block_id, &setter);
+        execute_chosen_stcode(b.stcodeId, b.cppStcodeId, block_id, &setter);
         setter.upload();
       }
       current_global_const = block_id;
@@ -266,7 +282,7 @@ static void setBlockPrivate(int block_id, int layer)
         int b_scene = decodeBlock(shaderbindump::blockStateWord, ShaderGlobal::LAYER_SCENE);
         int b_obj = decodeBlock(shaderbindump::blockStateWord, ShaderGlobal::LAYER_OBJECT);
         LOGERR("block <%s> cannot be set when stateWord=%04X\n\ncurrent blocks=(%s:%s:%s)\n",
-          (const char *)shBinDump().blockNameMap[block_id], blockStateWord,
+          (const char *)shBinDump().blockNameMap[b.nameId], blockStateWord,
           b_frame >= 0 ? (const char *)shBinDump().blockNameMap[b_frame] : "NULL",
           b_scene >= 0 ? (const char *)shBinDump().blockNameMap[b_scene] : "NULL",
           b_obj >= 0 ? (const char *)shBinDump().blockNameMap[b_obj] : "NULL");
@@ -277,7 +293,7 @@ static void setBlockPrivate(int block_id, int layer)
       if (b.stcodeId != -1)
       {
         D3dConstSetter setter;
-        execute_chosen_stcode(b.stcodeId, block_id, &setter);
+        execute_chosen_stcode(b.stcodeId, b.cppStcodeId, block_id, &setter);
       }
       current_blocks[layer] = block_id;
 
@@ -294,7 +310,7 @@ static void setBlockPrivate(int block_id, int layer)
           LOGERR("shader block no nullblock in layer = %d", layer);
         else if (nullBlock[layer]->uidMask != b.uidMask)
           LOGERR("block <%s> doesn't belong to layer #%d, block mask=%04X, required=%04X",
-            (const char *)shBinDump().blockNameMap[block_id], layer, b.uidMask, nullBlock[layer]->uidMask);
+            (const char *)shBinDump().blockNameMap[b.nameId], layer, b.uidMask, nullBlock[layer]->uidMask);
       }
 #endif
     }
@@ -403,6 +419,8 @@ void ShaderGlobal::changeStateWord(unsigned new_block_state_word)
   }
 }
 
+void ShaderBlockIdHolder::resolve() { id = ShaderGlobal::getBlockId(name, layer); }
+
 static const char *find_block(dag::ConstSpan<int> cod)
 {
   for (int i = 0; i < shBinDump().blockNameMap.size(); i++)
@@ -413,10 +431,10 @@ static const char *find_block(dag::ConstSpan<int> cod)
 }
 
 #if DAGOR_DBGLEVEL > 0
-static void shader_block_default_before_resource_used_callback(const D3dResource *, const char *){};
+static void shader_block_default_before_resource_used_callback(const D3dResource *, const char *) {}
 void (*shader_block_on_before_resource_used)(const D3dResource *, const char *) = &shader_block_default_before_resource_used_callback;
 #else
-static void shader_block_on_before_resource_used(const D3dResource *, const char *){};
+static void shader_block_on_before_resource_used(const D3dResource *, const char *) {}
 #endif
 
 __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, shaders_internal::ConstSetter *const_setter)
@@ -426,22 +444,6 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
   char *regs = (char *)vregs;
   const vec4f *tm_world_c = NULL, *tm_lview_c = NULL;
   const int *__restrict codp = cod.data(), *__restrict codp_end = codp + cod.size();
-  if (getOp(*codp) == SHCOD_BLK_ICODE_LEN)
-  {
-    int len = getOp1p1(*codp);
-    codp++;
-    unsigned opc = *codp;
-    if (getOp(opc) == SHCOD_STATIC_BLOCK)
-    {
-      ShaderStateBlockId blockId = block_init_code[block_id];
-      if (blockId == ShaderStateBlockId::Invalid)
-        blockId = block_init_code[block_id] = record_state_block(codp, make_span_const(cod).subspan(3, len - 2), regs);
-
-      if (blockId != ShaderStateBlockId::Invalid)
-        ShaderStateBlock::blocks[blockId].apply();
-    }
-    codp += len;
-  }
 
 #if DAGOR_DBGLEVEL > 0
   const char *blockName = ShaderGlobal::getBlockName(block_id);
@@ -449,13 +451,13 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
   const char *blockName = "";
 #endif
 
-  STCODE_PROFILE_BEGIN();
+  DYNSTCODE_PROFILE_BEGIN();
 
   for (uint32_t opc; codp < codp_end; codp++)
     switch (getOp(opc = *codp))
     {
-      case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<Color4>(getOp2p2(opc)); break;
-      case SHCOD_GET_GMAT44: float4x4_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<TMatrix4>(getOp2p2(opc)); break;
+      case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<Color4>(getOp2p2(opc)); break;
+      case SHCOD_GET_GMAT44: float4x4_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<TMatrix4>(getOp2p2(opc)); break;
       case SHCOD_VPR_CONST:
         const_setter->setVsConst(getOp2p1(opc), get_reg_ptr<float>(regs, getOp2p2(opc)), 1);
         stcode::dbg::record_set_const(stcode::dbg::RecordType::REFERENCE, STAGE_VS, getOp2p1(opc),
@@ -487,9 +489,8 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(opc);
         const uint32_t slot = shaderopcode::getOpStageSlot_Slot(opc);
         const uint32_t id = shaderopcode::getOpStageSlot_Reg(opc);
-        d3d::SamplerHandle smp = shBinDump().globVars.get<d3d::SamplerHandle>(id);
-        if (smp != d3d::INVALID_SAMPLER_HANDLE)
-          d3d::set_sampler(stage, slot, smp);
+        d3d::SamplerHandle smp = shBinDumpOwner().globVarsState.get<d3d::SamplerHandle>(id);
+        d3d::set_sampler(stage, slot, smp);
 
         stcode::dbg::record_set_sampler(stcode::dbg::RecordType::REFERENCE, stage, slot, smp);
       }
@@ -541,7 +542,7 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
         reg[0] = reg[1] = reg[2] = reg[3] = v;
       }
       break;
-      case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<real>(getOp2p2(opc)); break;
+      case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<real>(getOp2p2(opc)); break;
       case SHCOD_MUL_REAL: real_reg(regs, getOp3p1(opc)) = real_reg(regs, getOp3p2(opc)) * real_reg(regs, getOp3p3(opc)); break;
       case SHCOD_MAKE_VEC:
       {
@@ -562,10 +563,14 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
           tm_lview_c = &d3d::gettm_cref(TM_VIEW2LOCAL).col0;
         v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_lview_c[getOp2p2(opc)]);
         break;
-      case SHCOD_GET_GTEX: tex_reg(regs, getOp2p1(opc)) = shBinDump().globVars.getTex(getOp2p2(opc)).texId; break;
-      case SHCOD_GET_GBUF: buf_reg(regs, getOp2p1(opc)) = shBinDump().globVars.getBuf(getOp2p2(opc)).buf; break;
+      case SHCOD_GET_GTEX:
+        tex_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<shaders_internal::Tex>(getOp2p2(opc)).texId;
+        break;
+      case SHCOD_GET_GBUF:
+        buf_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<shaders_internal::Buf>(getOp2p2(opc)).buf;
+        break;
       case SHCOD_GET_GTLAS:
-        tlas_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<RaytraceTopAccelerationStructure *>(getOp2p2(opc));
+        tlas_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<RaytraceTopAccelerationStructure *>(getOp2p2(opc));
         break;
       case SHCOD_G_TM:
       {
@@ -648,11 +653,31 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
       }
       break;
 
-      case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
-      case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
+      case SHCOD_INT_TOREAL:
+      {
+        const uint32_t regDst = shaderopcode::getOp1p1(opc);
+        const uint32_t regSrc = shaderopcode::getOp2p2(opc);
+        real_reg(regs, regDst) = real(int_reg(regs, regSrc));
+      }
+      break;
+      case SHCOD_IVEC_TOREAL:
+      {
+        const uint32_t regDst = shaderopcode::getOp1p1(opc);
+        const uint32_t regSrc = shaderopcode::getOp2p2(opc);
+        real *reg = get_reg_ptr<real>(regs, regDst);
+        const int *src = get_reg_ptr<int>(regs, regSrc);
+        reg[0] = src[0];
+        reg[1] = src[1];
+        reg[2] = src[2];
+        reg[3] = src[3];
+      }
+      break;
+
+      case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<int>(getOp2p2(opc)); break;
+      case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDumpOwner().globVarsState.get<int>(getOp2p2(opc)); break;
       case SHCOD_GET_GIVEC_TOREAL:
       {
-        const IPoint4 &ivec = shBinDump().globVars.get<IPoint4>(shaderopcode::getOp2p2(opc));
+        const IPoint4 &ivec = shBinDumpOwner().globVarsState.get<IPoint4>(shaderopcode::getOp2p2(opc));
         color4_reg(regs, shaderopcode::getOp2p1(opc)) = Color4(ivec.x, ivec.y, ivec.z, ivec.w);
       }
       break;
@@ -662,74 +687,5 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
           ShUtils::shcod_tokname(getOp(opc)), codp - cod.data());
     }
 
-  STCODE_PROFILE_END();
-}
-
-#include "stateBlockStCode.h"
-static ShaderStateBlockId record_state_block(const int *__restrict cod_p, dag::ConstSpan<int> cod, char * /*regs*/)
-{
-  using namespace shaderopcode;
-  // debug("record_state_block(%p, (%p,%d))", &block, cod.data(), cod.size());
-  const vec4f *tm_world_c = NULL, *tm_lview_c = NULL;
-
-  auto maybeShStateBlock = execute_st_block_code(cod_p, cod.data() + cod.size(), find_block(cod), -1 /*stcodeId*/,
-    [&](const int &codAt, char *regs, Point4 *vsConsts, int vscBase) {
-      uint32_t opc = codAt;
-      switch (getOp(opc))
-      {
-        case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<Color4>(getOp2p2(opc)); break;
-        case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<real>(getOp2p2(opc)); break;
-        case SHCOD_LVIEW:
-          if (!tm_lview_c)
-            tm_lview_c = &d3d::gettm_cref(TM_VIEW2LOCAL).col0;
-          v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_lview_c[getOp2p2(opc)]);
-          break;
-        case SHCOD_GET_GTEX: tex_reg(regs, getOp2p1(opc)) = shBinDump().globVars.getTex(getOp2p2(opc)).texId; break;
-        case SHCOD_TMWORLD:
-          if (!tm_world_c)
-            tm_world_c = &d3d::gettm_cref(TM_WORLD).col0;
-          v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_world_c[getOp2p2(opc)]);
-          break;
-
-        case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
-        case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
-        case SHCOD_GET_GIVEC_TOREAL:
-        {
-          const IPoint4 &ivec = shBinDump().globVars.get<IPoint4>(getOp2p2(opc));
-          color4_reg(regs, getOp2p1(opc)) = Color4(ivec.x, ivec.y, ivec.z, ivec.w);
-        }
-        break;
-
-        case SHCOD_G_TM:
-        {
-          TMatrix4_vec4 &gtm = *(TMatrix4_vec4 *)&vsConsts[getOp2p2_16(opc) - vscBase];
-          switch (shaderopcode::getOp2p1_8(opc))
-          {
-            case P1_SHCOD_G_TM_GLOBTM: d3d::getglobtm(gtm); break;
-            case P1_SHCOD_G_TM_PROJTM: d3d::gettm(TM_PROJ, &gtm); break;
-            case P1_SHCOD_G_TM_VIEWPROJTM:
-            {
-              TMatrix4_vec4 v, p;
-              d3d::gettm(TM_VIEW, &v);
-              d3d::gettm(TM_PROJ, &p);
-              gtm = v * p;
-            }
-            break;
-            default: G_ASSERTF(0, "SHCOD_G_TM(%d, %d)", getOp2p1_8(opc), getOp2p2_16(opc));
-          }
-          process_tm_for_drv_consts(gtm);
-        }
-        break;
-        default:
-          logerr("%s: exec_stcode: illegal instruction %u %s (index=%d)", find_block(cod), getOp(opc),
-            ShUtils::shcod_tokname(getOp(opc)), &codAt - cod.data());
-          return false;
-      }
-      return true;
-    });
-
-  if (!maybeShStateBlock.has_value())
-    return DEFAULT_SHADER_STATE_BLOCK_ID;
-
-  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock), {});
+  DYNSTCODE_PROFILE_END();
 }

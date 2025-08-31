@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <de3_WindService.h>
+#include <de3_windService.h>
 #include <render/wind/ambientWind.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
@@ -83,7 +83,7 @@ public:
     weatherWindDir(cosf(DegToRad(defaultWindSettings.windAzimuth)), sinf(DegToRad(defaultWindSettings.windAzimuth)))
   {}
 
-  virtual void init(const char *inAppDdir, const DataBlock &envBlk) override
+  void init(const char *inAppDdir, const DataBlock &envBlk) override
   {
     appDir = inAppDdir;
     windTemplateBlk = DataBlock::emptyBlock;
@@ -112,11 +112,11 @@ public:
     updateParams();
   }
 
-  virtual void term() override { close_ambient_wind(); }
+  void term() override { close_ambient_wind(); }
 
-  virtual void update() override { update_ambient_wind(); }
+  void update() override { update_ambient_wind(); }
 
-  virtual void setWeather(const DataBlock &inWeatherTypeBlk, const Point2 &inWeatherWindDir) override
+  void setWeather(const DataBlock &inWeatherTypeBlk, const Point2 &inWeatherWindDir) override
   {
     weatherWindStrength = inWeatherTypeBlk.getReal("wind_strength", defaultWindSettings.windStrength);
     weatherAmbientWindBlk = *inWeatherTypeBlk.getBlockByNameEx("ambientWindParams");
@@ -124,13 +124,13 @@ public:
     updateParams();
   }
 
-  virtual void setPreview(const PreviewSettings &inPreviewSettings) override
+  void setPreview(const PreviewSettings &inPreviewSettings) override
   {
     previewSettings = inPreviewSettings;
     updateParams();
   }
 
-  virtual bool isLevelEcsSupported() const override { return useTemplate; }
+  bool isLevelEcsSupported() const override { return useTemplate; }
 
 private:
   static void readFromTemplate(WindSettings &inout, const DataBlock &windTemplateBlk)

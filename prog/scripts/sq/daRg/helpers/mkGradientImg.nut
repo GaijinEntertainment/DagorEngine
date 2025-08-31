@@ -2,8 +2,7 @@
 //see example at https://briangrinstead.com/gradient/
 from "%darg/ui_imports.nut" import *
 from "base64" import encodeString
-
-let math = require("math")
+import "math" as math
 
 const BLEND_MODE_PREMULTIPLIED = "PREMULTIPLIED"
 const BLEND_MODE_NONPREMULTIPLIED = "NONPREMULTIPLIED"
@@ -103,7 +102,7 @@ let mkRadialGradientImg = kwarg(function(points, width, height, cx=null, cy=null
   return Picture($"{prefix}b64://{text}.svg:{width}:{height}?Ac")
 })
 
-return {
+return freeze({
   GRADSPREAD
   BLEND_MODE_PREMULTIPLIED
   BLEND_MODE_NONPREMULTIPLIED
@@ -113,4 +112,4 @@ return {
   mkLinearGradSvgTxt = kwarg(mkLinearGradSvgTxtImpl)
   mkRadialGradientImg
   mkRadialGradSvgTxt = kwarg(mkRadialGradSvgTxtImpl)
-}
+})

@@ -154,13 +154,13 @@ class TiffBitMaskImageMgr : public IBitMaskImageMgr
   };
 
 public:
-  virtual bool createImage32(BitmapMask &_img, int w, int h)
+  bool createImage32(BitmapMask &_img, int w, int h) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     img.alloc(w, h, 32, true);
     return true;
   }
-  virtual bool createBitMask(BitmapMask &_img, int w, int h, int bpp)
+  bool createBitMask(BitmapMask &_img, int w, int h, int bpp) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     if (bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8 || bpp == 16 || bpp == 32)
@@ -171,13 +171,13 @@ public:
     img.init();
     return false;
   }
-  virtual void destroyImage(BitmapMask &_img)
+  void destroyImage(BitmapMask &_img) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     img.destroy();
   }
 
-  virtual bool loadImage(BitmapMask &_img, const char *folder, const char *image_name)
+  bool loadImage(BitmapMask &_img, const char *folder, const char *image_name) override
   {
     String fname;
     makeFullPath(fname, folder, image_name, ".tif");
@@ -346,7 +346,7 @@ public:
     debug("loaded %dx%dx%dbit from %s", img.getWidth(), img.getHeight(), img.getBitsPerPixel(), (char *)fname);
     return true;
   }
-  virtual bool getBitMaskProps(const char *folder, const char *image_name, int &out_w, int &out_h, int &out_bpp)
+  bool getBitMaskProps(const char *folder, const char *image_name, int &out_w, int &out_h, int &out_bpp) override
   {
     String fname;
     makeFullPath(fname, folder, image_name, ".tif");
@@ -370,7 +370,7 @@ public:
     out_bpp = spp * bps;
     return true;
   }
-  virtual bool checkBitMask(const char *folder, const char *image_name, int w, int h, int bpp)
+  bool checkBitMask(const char *folder, const char *image_name, int w, int h, int bpp) override
   {
     String fname;
     makeFullPath(fname, folder, image_name, ".tif");
@@ -404,7 +404,7 @@ public:
     return true;
   }
 
-  virtual bool saveImage(BitmapMask &_img, const char *folder, const char *image_name)
+  bool saveImage(BitmapMask &_img, const char *folder, const char *image_name) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     String fname;
@@ -478,7 +478,7 @@ public:
     return true;
   }
 
-  virtual bool resampleBitMask(BitmapMask &img, int new_w, int new_h, int new_bpp)
+  bool resampleBitMask(BitmapMask &img, int new_w, int new_h, int new_bpp) override
   {
     int bpp = img.getBitsPerPixel();
 
@@ -522,12 +522,12 @@ public:
 
     return true;
   }
-  virtual void clearBitMask(BitmapMask &_img)
+  void clearBitMask(BitmapMask &_img) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     img.clear();
   }
-  virtual void calcBitMaskMD5(BitmapMask &_img, void *md5_state)
+  void calcBitMaskMD5(BitmapMask &_img, void *md5_state) override
   {
     PublicBitmapMask &img = static_cast<PublicBitmapMask &>(_img);
     int linew = (img.getWidth() * img.getBitsPerPixel() + 7) / 8;

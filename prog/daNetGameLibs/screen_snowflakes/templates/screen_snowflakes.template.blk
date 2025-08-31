@@ -9,7 +9,7 @@ screen_snowflakes_renderer{
 
   "screen_snowflakes__instances_buf:UniqueBufHolder"{}
   "screen_snowflakes__instances:SnowflakeInstances"{}
-  "screen_snowflakes__node:dabfg::NodeHandle"{}
+  "screen_snowflakes__node:dafg::NodeHandle"{}
 }
 
 screen_snowflakes_settings{

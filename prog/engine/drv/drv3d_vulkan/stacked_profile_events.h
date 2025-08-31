@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/vector.h>
 #include <perfMon/dag_statDrv.h>
 #include <generic/dag_objectPool.h>
 
@@ -14,7 +13,7 @@ struct StackedProfileEvents
 #if DA_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0
   ::da_profiler::desc_id_t lastChainDescId = -1;
   ObjectPool<::da_profiler::ScopedEvent> storage;
-  eastl::vector<::da_profiler::ScopedEvent *> stack;
+  dag::Vector<::da_profiler::ScopedEvent *> stack;
   void push(::da_profiler::desc_id_t desc_id) { stack.push_back(storage.allocate(desc_id)); }
   void pop()
   {

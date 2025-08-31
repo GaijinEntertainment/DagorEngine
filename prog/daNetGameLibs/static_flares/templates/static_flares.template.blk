@@ -26,5 +26,5 @@ static_flares_renderer{
 
   "static_flares__instancesBuf:UniqueBufHolder"{}
   "static_flares__instances:StaticFlareInstances"{}
-  "static_flares__node:dabfg::NodeHandle"{}
+  "static_flares__node:dafg::NodeHandle"{}
 }

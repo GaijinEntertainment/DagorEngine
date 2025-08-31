@@ -18,7 +18,7 @@
 #include <drv/3d/dag_info.h>
 
 static constexpr int BBOX_VIS_RESULT_REG_ID = 1;
-static constexpr int MAX_TESTS_IN_QUEUE = 128 << 10; // 8Mb
+static constexpr int MAX_TESTS_IN_QUEUE = 16 << 10; // 1Mb
 
 template <typename VectorTy>
 static void safeCopyToEnd(VectorTy &arr, int firstPos, int lastPos)
@@ -63,7 +63,10 @@ void GpuVisibilityTestManager::addObjectGroupToTest(dag::ConstSpan<TestObjectDat
   objectGroups.push_back(GroupInfo{view_transform, startObjectId});
 }
 
-int GpuVisibilityTestManager::getAvailableSpace() const { return MAX_TESTS_IN_QUEUE - objectsToTest.size(); }
+int GpuVisibilityTestManager::getAvailableSpace() const
+{
+  return MAX_TESTS_IN_QUEUE - reservedSpaceForTestObjects - objectsToTest.size();
+}
 
 void GpuVisibilityTestManager::getVisibilityTestResults(
   const eastl::function<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/)> &tested_fn)
@@ -103,7 +106,7 @@ void GpuVisibilityTestManager::getVisibilityTestResults(
   cleanTestedData(curObjectToRead);
 }
 
-void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
+void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
 {
   if (d3d::device_lost(nullptr))
     return;
@@ -126,16 +129,10 @@ void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
     int startObjectId = curObjectToTestId;
     int endObjectId = curObjectToTestId + bboxesToTestCnt;
 
-    SCOPE_RENDER_TARGET;
-    SCOPE_VIEW_PROJ_MATRIX;
-    int x, y, w, h;
-    float minz, maxz;
-    d3d::getview(x, y, w, h, minz, maxz);
-
     d3d::set_render_target();
     d3d::set_render_target(0, (Texture *)NULL, 0);
     int levels = 0;
-    if (depth_tex->restype() == RES3D_ARRTEX)
+    if (depth_tex->getType() == D3DResourceType::ARRTEX)
     {
       TextureInfo arrayInfo;
       depth_tex->getinfo(arrayInfo);
@@ -146,8 +143,7 @@ void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
     else
       d3d::set_depth(depth_tex, 0, DepthAccess::SampledRO);
     d3d::resource_barrier({depth_tex, RB_RO_CONSTANT_DEPTH_STENCIL_TARGET | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
-    uint32_t zeroes[4] = {0, 0, 0, 0};
-    d3d::clear_rwbufi(resultBuffer, zeroes);
+    d3d::zero_rwbufi(resultBuffer);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, BBOX_VIS_RESULT_REG_ID, VALUE), resultBuffer);
     shaders::overrides::set(visTestOverrideId);
 
@@ -185,13 +181,55 @@ void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
 
     d3d::set_immediate_const(STAGE_VS, nullptr, 0);
     shaders::overrides::reset();
-    d3d::setview(x, y, w, h, minz, maxz);
     curTestsIssued.push_back(TestInfo{bboxesToTestCnt, testFrame});
     d3d::resource_barrier({depth_tex, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
   }
 
   TIME_PROFILE(visibility_tests_copy);
   visResultRingBuffer.startCPUCopy();
+}
+
+void GpuVisibilityTestManager::removeOutdatedObjectGroups(
+  const eastl::fixed_function<sizeof(void *) * 2, bool(const ViewTransformData & /*group_view*/)> &is_group_outdated)
+{
+  int groupId = findGroupByObjId(curObjectToTestId);
+  while (groupId < objectGroups.size())
+  {
+    const GroupInfo &group = objectGroups[groupId];
+    if (EASTL_UNLIKELY(is_group_outdated(group.view)))
+    {
+      // We don't want to erase objects which already were sent for testing (It can happen when last group was partially processed).
+      // Depth tex was valid at the moment of sending and we'll use their data during visibility readback.
+      int eraseObjectsFrom = max(group.startObjectId, curObjectToTestId);
+      bool eraseGroup = eraseObjectsFrom == group.startObjectId;
+      if (groupId + 1 < objectGroups.size())
+      {
+        const GroupInfo &nextGroup = objectGroups[groupId + 1];
+        int eraseObjectsCount = nextGroup.startObjectId - eraseObjectsFrom;
+        objectsToTest.erase(objectsToTest.begin() + eraseObjectsFrom, objectsToTest.begin() + nextGroup.startObjectId);
+        auto groupIter = objectGroups.begin() + groupId;
+        if (eraseGroup)
+          groupIter = objectGroups.erase(groupIter);
+        else
+          groupIter++;
+        for (; groupIter != objectGroups.end(); ++groupIter)
+          groupIter->startObjectId -= eraseObjectsCount;
+      }
+      else
+      {
+        objectsToTest.erase(objectsToTest.begin() + eraseObjectsFrom, objectsToTest.end());
+        if (eraseGroup)
+          objectGroups.pop_back();
+      }
+      if (!eraseGroup)
+      {
+        groupId++;
+        curGroupId++;
+      }
+    }
+    else
+      groupId++;
+  }
 }
 
 void GpuVisibilityTestManager::clearObjectsToTest()
@@ -244,6 +282,8 @@ void GpuVisibilityTestManager::cleanTestedData(int until_id)
       group.startObjectId -= until_id;
     int groupId = findGroupByObjId(0);
     objectGroups.erase(objectGroups.begin(), objectGroups.begin() + groupId);
+    if (objectGroups.size())
+      objectGroups[0].startObjectId = 0;
     curGroupId -= groupId;
   }
 }
@@ -260,8 +300,8 @@ int GpuVisibilityTestManager::findGroupByObjId(int obj_id)
 
 int GpuVisibilityTestManager::getObjectsToTestCount(int original_count)
 {
-  int count = min(original_count, MAX_TESTS_IN_QUEUE - int(objectsToTest.size()));
+  int count = min(original_count, getAvailableSpace());
   if (count < original_count)
-    logwarn("%d visibility tests can't be proceed due to the queue is full", original_count - count);
+    logerr("%d visibility tests can't be proceed due to the queue is full", original_count - count);
   return count;
 }

@@ -8,12 +8,21 @@
 #error "raytrace interface implementation used when stub must be used"
 #endif
 
+#if VULKAN_HAS_RAYTRACING
+
+#ifndef D3D_HAS_RAY_TRACING
+#error "raytrace public header define should match to raytrace inner driver define"
+#elif D3D_HAS_RAY_TRACING != VULKAN_HAS_RAYTRACING
+#error "raytrace public header define should match to raytrace inner driver define"
+#endif
+
+#endif
+
 #include "frontend.h"
 #include "globals.h"
 #include "buffer.h"
 #include "vulkan_device.h"
 #include "device_context.h"
-#include "raytrace_scratch_buffer.h"
 #include "raytrace_as_resource.h"
 #include "resource_manager.h"
 #include "vk_format_utils.h"
@@ -74,13 +83,13 @@ RaytraceBLASBufferRefs getRaytraceGeometryRefs(const RaytraceGeometryDescription
 
 bool isRaytraceAcclerationStructure(VkDescriptorType descType) { return descType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR; }
 
-VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(RaytraceGeometryDescription *geometry, uint32_t count,
+VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(const RaytraceGeometryDescription *geometry, uint32_t count,
   RaytraceBuildFlags flags)
 {
   VulkanDevice &dev = Globals::VK::dev;
 
-  eastl::vector<VkAccelerationStructureGeometryKHR> geometryDef;
-  eastl::vector<uint32_t> maxPrimCounts;
+  dag::Vector<VkAccelerationStructureGeometryKHR> geometryDef;
+  dag::Vector<uint32_t> maxPrimCounts;
   const bool isTopAS = (geometry == nullptr);
   if (!isTopAS)
   {
@@ -113,9 +122,6 @@ VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(RaytraceGeometryDes
     {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
   dev.vkGetAccelerationStructureBuildSizesKHR(dev.get(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
     maxPrimCounts.data(), &size_info);
-
-  // TODO: remove this when all code migrate to user scratch buffers
-  Globals::rtScratchBuffer.ensureRoomForBuild(size_info.buildScratchSize);
 
   return size_info;
 }
@@ -168,31 +174,27 @@ void d3d::set_top_acceleration_structure(ShaderStage stage, uint32_t index, Rayt
 void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as,
   const ::raytrace::BottomAccelerationStructureBuildInfo &basbi)
 {
-  BufferRef scratchRef{};
-  if (basbi.scratchSpaceBuffer)
-  {
-    auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
-    G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
-      "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
-      "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
-    // more validation needed
-
-    scratchRef = scratchSpaceBuffer->getBufferRef();
-    scratchRef.addOffset(basbi.scratchSpaceBufferOffsetInBytes);
-  }
-  else
-    scratchRef = BufferRef(Globals::rtScratchBuffer.get());
+  D3D_CONTRACT_ASSERTF(basbi.scratchSpaceBuffer, "vulkan: user scratch buffer must be provided for BLAS build!");
+  auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
+  D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+    "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
+    "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
+  // more validation needed
+  BufferRef scratchRef = scratchSpaceBuffer->getBufferRef();
+  scratchRef.addOffset(basbi.scratchSpaceBufferOffsetInBytes);
 
   BufferRef compactionSizeBuffer{};
   if (RaytraceBuildFlags::ALLOW_COMPACTION == (basbi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
   {
     auto compactedSizeOutputBuffer = (GenericBufferInterface *)basbi.compactedSizeOutputBuffer;
-    G_ASSERTF_RETURN(compactedSizeOutputBuffer, , "vulkan: Compacted size buffer must be provided when compaction is enabled");
-    G_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, , "vulkan: Compacted size buffer must have an UAV");
-    G_ASSERTF_RETURN(compactedSizeOutputBuffer->getElementSize() == sizeof(uint64_t), ,
+    D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer, ,
+      "vulkan: Compacted size buffer must be provided when compaction is enabled");
+    D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, ,
+      "vulkan: Compacted size buffer must have an UAV");
+    D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer->getElementSize() == sizeof(uint64_t), ,
       "vulkan: Compacted size buffer must have element size %u (provided %u)", sizeof(uint64_t),
       compactedSizeOutputBuffer->getElementSize());
-    G_ASSERTF_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes % sizeof(uint64_t) == 0, ,
+    D3D_CONTRACT_ASSERTF_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes % sizeof(uint64_t) == 0, ,
       "vulkan: Compacted size buffer must have offset aligned to %u (provided %u)", sizeof(uint64_t),
       basbi.compactedSizeOutputBufferOffsetInBytes);
 
@@ -201,7 +203,7 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
   }
   else
   {
-    G_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, ,
+    D3D_CONTRACT_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, ,
       "vulkan: Compacted size buffer should not be provided when compaction is disabled");
   }
 
@@ -252,9 +254,12 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
 
 void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelerationStructureBuildInfo *as_array, uint32_t as_count)
 {
+  if (as_count == 0)
+    return;
   auto asSpan = make_span(as_array, as_count);
   for (::raytrace::BatchedBottomAccelerationStructureBuildInfo &itr : asSpan)
-    G_ASSERTF_RETURN(itr.basbi.scratchSpaceBuffer, , "vulkan: This API requires providing a scatch buffer for the AS builds");
+    D3D_CONTRACT_ASSERTF_RETURN(itr.basbi.scratchSpaceBuffer, ,
+      "vulkan: This API requires providing a scatch buffer for the AS builds");
 
   OSSpinlockScopedLock lockedFront(Globals::ctx.getFrontLock());
   CmdRaytraceBuildStructures cmd{Frontend::replay->raytraceStructureBuildStore.size(), as_count};
@@ -262,7 +267,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
   {
     const ::raytrace::BottomAccelerationStructureBuildInfo &basbi = itr.basbi;
     auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
-    G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+    D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
       "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
       "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
     // more validation needed
@@ -274,13 +279,14 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
     if (RaytraceBuildFlags::ALLOW_COMPACTION == (basbi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
     {
       auto compactedSizeOutputBuffer = (GenericBufferInterface *)basbi.compactedSizeOutputBuffer;
-      G_ASSERTF_RETURN(compactedSizeOutputBuffer, , "vulkan: Compacted size buffer must be provided when compaction is enabled");
-      G_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, ,
+      D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer, ,
+        "vulkan: Compacted size buffer must be provided when compaction is enabled");
+      D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, ,
         "vulkan: Compacted size buffer must have an UAV");
-      G_ASSERTF_RETURN(compactedSizeOutputBuffer->getElementSize() == sizeof(uint64_t), ,
+      D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer->getElementSize() == sizeof(uint64_t), ,
         "vulkan: Compacted size buffer must have element size %u (provided %u)", sizeof(uint64_t),
         compactedSizeOutputBuffer->getElementSize());
-      G_ASSERTF_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes % sizeof(uint64_t) == 0, ,
+      D3D_CONTRACT_ASSERTF_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes % sizeof(uint64_t) == 0, ,
         "vulkan: Compacted size buffer must have offset aligned to %u (provided %u)", sizeof(uint64_t),
         basbi.compactedSizeOutputBufferOffsetInBytes);
 
@@ -289,7 +295,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
     }
     else
     {
-      G_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, ,
+      D3D_CONTRACT_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, ,
         "vulkan: Compacted size buffer should not be provided when compaction is disabled");
     }
 
@@ -340,20 +346,14 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
 void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
   const ::raytrace::TopAccelerationStructureBuildInfo &tasbi)
 {
-  BufferRef scratchRef{};
-  if (tasbi.scratchSpaceBuffer)
-  {
-    auto scratchSpaceBuffer = (GenericBufferInterface *)tasbi.scratchSpaceBuffer;
-    G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
-      "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
-      "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
-    // more validation needed
-
-    scratchRef = scratchSpaceBuffer->getBufferRef();
-    scratchRef.addOffset(tasbi.scratchSpaceBufferOffsetInBytes);
-  }
-  else
-    scratchRef = BufferRef(Globals::rtScratchBuffer.get());
+  D3D_CONTRACT_ASSERTF(tasbi.scratchSpaceBuffer, "vulkan: user scratch buffer must be provided for TLAS build!");
+  auto scratchSpaceBuffer = (GenericBufferInterface *)tasbi.scratchSpaceBuffer;
+  D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+    "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
+    "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
+  // more validation needed
+  BufferRef scratchRef = scratchSpaceBuffer->getBufferRef();
+  scratchRef.addOffset(tasbi.scratchSpaceBufferOffsetInBytes);
 
   auto vkBuf = (GenericBufferInterface *)tasbi.instanceBuffer;
   const BufferRef &instanceBufRef = vkBuf->getBufferRef();
@@ -377,9 +377,12 @@ void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
 
 void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationStructureBuildInfo *as_array, uint32_t as_count)
 {
+  if (as_count == 0)
+    return;
   auto asSpan = make_span(as_array, as_count);
   for (::raytrace::BatchedTopAccelerationStructureBuildInfo &itr : asSpan)
-    G_ASSERTF_RETURN(itr.tasbi.scratchSpaceBuffer, , "vulkan: This API requires providing a scatch buffer for the AS builds");
+    D3D_CONTRACT_ASSERTF_RETURN(itr.tasbi.scratchSpaceBuffer, ,
+      "vulkan: This API requires providing a scatch buffer for the AS builds");
 
   OSSpinlockScopedLock lockedFront(Globals::ctx.getFrontLock());
   CmdRaytraceBuildStructures cmd{Frontend::replay->raytraceStructureBuildStore.size(), as_count};
@@ -387,7 +390,7 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
   {
     const ::raytrace::TopAccelerationStructureBuildInfo &tasbi = itr.tasbi;
     auto scratchSpaceBuffer = (GenericBufferInterface *)tasbi.scratchSpaceBuffer;
-    G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+    D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
       "vulkan: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
       "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
     // more validation needed
@@ -418,32 +421,31 @@ void d3d::write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceG
   // now fixup the struct ptr
   auto tptr = reinterpret_cast<VkAccelerationStructureInstanceKHR *>(ptr);
   for (uint32_t i = 0; i < count; ++i)
-    tptr[i].accelerationStructureReference =
-      ((RaytraceAccelerationStructure *)desc[i].accelerationStructure)->getDeviceAddress(Globals::VK::dev);
+    tptr[i].accelerationStructureReference = ((RaytraceAccelerationStructure *)desc[i].accelerationStructure)->getDeviceAddress();
 }
 
 uint64_t d3d::get_raytrace_acceleration_structure_size(RaytraceAnyAccelerationStructure as)
 {
   if (as.top)
-    return reinterpret_cast<RaytraceAccelerationStructure *>(as.top)->getMemory().size;
+    return reinterpret_cast<RaytraceAccelerationStructure *>(as.top)->getDescription().size;
   if (as.bottom)
-    return reinterpret_cast<RaytraceAccelerationStructure *>(as.bottom)->getMemory().size;
+    return reinterpret_cast<RaytraceAccelerationStructure *>(as.bottom)->getDescription().size;
   return 0;
 }
 
 RaytraceAccelerationStructureGpuHandle d3d::get_raytrace_acceleration_structure_gpu_handle(RaytraceAnyAccelerationStructure as)
 {
   if (as.top)
-    return {reinterpret_cast<RaytraceAccelerationStructure *>(as.top)->getDeviceAddress(Globals::VK::dev)};
+    return {reinterpret_cast<RaytraceAccelerationStructure *>(as.top)->getDeviceAddress()};
   if (as.bottom)
-    return {reinterpret_cast<RaytraceAccelerationStructure *>(as.bottom)->getDeviceAddress(Globals::VK::dev)};
+    return {reinterpret_cast<RaytraceAccelerationStructure *>(as.bottom)->getDeviceAddress()};
   return {0};
 }
 
 void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure dst, RaytraceAnyAccelerationStructure src,
   bool compact)
 {
-  G_ASSERT_RETURN((dst.bottom && src.bottom) || (dst.top && src.top), );
+  D3D_CONTRACT_ASSERT_RETURN((dst.bottom && src.bottom) || (dst.top && src.top), );
 
   auto rsrc = src.top ? reinterpret_cast<RaytraceAccelerationStructure *>(src.top)
                       : reinterpret_cast<RaytraceAccelerationStructure *>(src.bottom);
@@ -460,12 +462,118 @@ bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build
                 VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR);
 }
 
+// partial implemented
+
+::raytrace::AccelerationStructurePool d3d::raytrace::create_acceleration_structure_pool(
+  const ::raytrace::AccelerationStructurePoolCreateInfo &info)
+{
+  G_UNUSED(info);
+  return ::raytrace::InvalidAccelerationStructurePool;
+}
+
+void d3d::raytrace::destroy_acceleration_structure_pool(::raytrace::AccelerationStructurePool pool)
+{
+  G_UNUSED(pool);
+  D3D_CONTRACT_ASSERT(::raytrace::InvalidAccelerationStructurePool == pool);
+}
+
+RaytraceAccelerationStructureGpuHandle d3d::raytrace::get_pool_base_address(::raytrace::AccelerationStructurePool pool)
+{
+  G_UNUSED(pool);
+  D3D_CONTRACT_ASSERT(::raytrace::InvalidAccelerationStructurePool == pool);
+  return {0};
+}
+
+namespace
+{
+::raytrace::AnyAccelerationStructure create_as(const ::raytrace::BottomAccelerationStructurePlacementInfo &info)
+{
+  return (RaytraceBottomAccelerationStructure *)RaytraceAccelerationStructure::create(false /*topLevel*/, info.sizeInBytes);
+}
+
+::raytrace::AnyAccelerationStructure create_as(const ::raytrace::TopAccelerationStructurePlacementInfo &info)
+{
+  return (RaytraceTopAccelerationStructure *)RaytraceAccelerationStructure::create(true /*topLevel*/, info.sizeInBytes);
+}
+
+::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::TopAccelerationStructureSizeCalculcationInfo &info)
+{
+  VkAccelerationStructureBuildSizesInfoKHR sizes = getSizeByDriverDesc(nullptr, info.elementCount, info.flags);
+
+  ::raytrace::AccelerationStructureSizes result;
+  result.structureSizeInBytes = sizes.accelerationStructureSize;
+  result.buildScratchBufferSizeInBytes = sizes.buildScratchSize;
+  result.updateScratchBufferSizeInBytes = sizes.updateScratchSize;
+
+  return result;
+}
+
+::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::BottomAccelerationStructureSizeCalculcationInfo &info)
+{
+  VkAccelerationStructureBuildSizesInfoKHR sizes = getSizeByDriverDesc(info.geometryDesc.data(), info.geometryDesc.size(), info.flags);
+
+  ::raytrace::AccelerationStructureSizes result;
+  result.structureSizeInBytes = sizes.accelerationStructureSize;
+  result.buildScratchBufferSizeInBytes = sizes.buildScratchSize;
+  result.updateScratchBufferSizeInBytes = sizes.updateScratchSize;
+
+  return result;
+}
+} // namespace
+
+::raytrace::AccelerationStructureSizes d3d::raytrace::calculate_acceleration_structure_sizes(
+  const ::raytrace::AccelerationStructureSizeCalculcationInfo &info)
+{
+  return eastl::visit([](auto &i) { return calculate_as_sizes(i); }, info);
+}
+
+::raytrace::AnyAccelerationStructure d3d::raytrace::create_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  const ::raytrace::AccelerationStructurePlacementInfo &placement_info)
+{
+  D3D_CONTRACT_ASSERT(::raytrace::InvalidAccelerationStructurePool == pool);
+  if (::raytrace::InvalidAccelerationStructurePool == pool)
+  {
+    return eastl::visit([](auto &info) { return create_as(info); }, placement_info);
+  }
+  return {};
+}
+
+void d3d::raytrace::destroy_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  ::raytrace::AnyAccelerationStructure structure)
+{
+  D3D_CONTRACT_ASSERT(::raytrace::InvalidAccelerationStructurePool == pool);
+  if (::raytrace::InvalidAccelerationStructurePool == pool)
+  {
+    if (structure.top)
+    {
+      Globals::ctx.deleteRaytraceTopAccelerationStructure(structure.top);
+    }
+    else if (structure.bottom)
+    {
+      Globals::ctx.deleteRaytraceBottomAccelerationStructure(structure.bottom);
+    }
+  }
+}
+
+void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters build_params,
+  ::raytrace::AccelerationStructureBuildMode)
+{
+  if (!build_params.bottomBuilds.empty())
+  {
+    build_bottom_acceleration_structures(build_params.bottomBuilds.data(), build_params.bottomBuilds.size());
+  }
+  if (!build_params.topBuilds.empty())
+  {
+    build_top_acceleration_structures(build_params.topBuilds.data(), build_params.topBuilds.size());
+  }
+}
+
 /// unimplemented
 
 ::raytrace::Pipeline d3d::raytrace::create_pipeline(const ::raytrace::PipelineCreateInfo &pci)
 {
   G_UNUSED(pci);
-  G_ASSERTF(false, "d3d::raytrace::create_pipeline called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::create_pipeline called on API without support");
   return ::raytrace::InvalidPipeline;
 }
 
@@ -473,7 +581,7 @@ bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build
 {
   G_UNUSED(pipeline);
   G_UNUSED(pei);
-  G_ASSERTF(false, "d3d::raytrace::expand_pipeline called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::expand_pipeline called on API without support");
   return ::raytrace::InvalidPipeline;
 }
 
@@ -484,7 +592,7 @@ void d3d::raytrace::destroy_pipeline(::raytrace::Pipeline &p) { G_UNUSED(p); }
 {
   G_UNUSED(sbtci);
   G_UNUSED(pipeline);
-  G_ASSERTF(false, "d3d::raytrace::destroy_pipeline called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::destroy_pipeline called on API without support");
   return {};
 }
 
@@ -495,7 +603,7 @@ void d3d::raytrace::dispatch(const ::raytrace::ResourceBindingTable &rbt, const 
   G_UNUSED(pipeline);
   G_UNUSED(rdp);
   G_UNUSED(gpu_pipeline);
-  G_ASSERTF(false, "d3d::raytrace::dispatch called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::dispatch called on API without support");
 }
 
 void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
@@ -505,7 +613,7 @@ void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &rb
   G_UNUSED(pipeline);
   G_UNUSED(rdip);
   G_UNUSED(gpu_pipeline);
-  G_ASSERTF(false, "d3d::raytrace::dispatch_indirect called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::dispatch_indirect called on API without support");
 }
 
 void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
@@ -515,5 +623,5 @@ void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTab
   G_UNUSED(pipeline);
   G_UNUSED(rdicp);
   G_UNUSED(gpu_pipeline);
-  G_ASSERTF(false, "d3d::raytrace::dispatch_indirect_count called on API without support");
+  D3D_CONTRACT_ASSERT_FAIL("d3d::raytrace::dispatch_indirect_count called on API without support");
 }

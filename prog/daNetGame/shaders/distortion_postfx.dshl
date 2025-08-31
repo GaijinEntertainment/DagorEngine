@@ -6,10 +6,6 @@ include "postfx_common.dshl"
 shader distortion_postfx {
   color_write = rgba;
 
-  INIT_HEAT_HAZE_OFFSET()
-  USE_HEAT_HAZE_OFFSET()
-  COMMON_POSTFX()
-
   hlsl(ps) {
     half3 sampleSceneColor(float2 uv)
     {
@@ -19,7 +15,14 @@ shader distortion_postfx {
     {
       return tex2Dlod(frame_tex, float4(uv,0,0)).a;
     }
+    ##if antialiasing_type == tsr
+      #define SAMPLE_HAZE_SCENE_DEPTH(tc) sampleSceneAlpha(tc)
+    ##endif
   }
+
+  INIT_HEAT_HAZE_OFFSET()
+  USE_HEAT_HAZE_OFFSET()
+  COMMON_POSTFX()
 
   INIT_DISTORTION_POSTFX()
   USE_DISTORTION_POSTFX()

@@ -14,23 +14,62 @@
 #include "animation_sampling.h"
 #include "savgol.h"
 
-#include <sstream>
 #include <ioSys/dag_dataBlock.h>
 
 
-static Tags get_tags(const OAHashNameMap<false> &tagsMap, const char *tags)
+String get_mm_data_base_loading_error_context()
+{
+  char logerrContextBuf[2 << 10];
+  return String(dgs_get_fatal_context(logerrContextBuf, sizeof(logerrContextBuf)));
+}
+
+static Tags get_tags(const OAHashNameMap<false> &tagsMap, const char *tags, const Tags *default_tags)
 {
   if (tags == nullptr)
-    return 0;
+    return default_tags ? *default_tags : 0;
   Tags tagMask;
-  std::stringstream tagsStream(tags);
-  std::string tag;
-
-  while (std::getline(tagsStream, tag, ','))
+  const char *tag = tags;
+  bool useDefaultTags = false;
+  while (*tag)
   {
-    int tag_idx = tagsMap.getNameId(tag.c_str());
+    const char *tagEnd = strchr(tag, ',');
+    bool tagValue = true;
+    if (*tag == '+' || *tag == '-')
+    {
+      if (!default_tags)
+      {
+        logerr("MM: you can't use tags including/excluding (`+tag1,-tag2`) for `default_tags`\n%s\n%*c\n%s", tags, tag - tags + 1, '^',
+          get_mm_data_base_loading_error_context());
+        return tagMask;
+      }
+      if (!useDefaultTags && tagMask.any())
+      {
+        logerr("MM: you can either list all tags (`tag1,tag2`) or use tags including/excluding (`+tag1,-tag2`)\n%s\n%*c\n%s", tags,
+          tag - tags + 1, '^', get_mm_data_base_loading_error_context());
+        return tagMask;
+      }
+      if (!useDefaultTags)
+      {
+        useDefaultTags = true;
+        tagMask = *default_tags;
+      }
+      if (*tag == '-')
+        tagValue = false;
+      tag++;
+    }
+    else if (useDefaultTags)
+    {
+      logerr("MM: you can either list all tags (`tag1,tag2`) or use tags including/excluding (`+tag1,-tag2`)\n%s\n%*c\n%s", tags,
+        tag - tags + 1, '^', get_mm_data_base_loading_error_context());
+      return tagMask;
+    }
+    int nameLen = tagEnd ? tagEnd - tag : strlen(tag);
+    int tag_idx = tagsMap.getNameId(tag, nameLen);
     if (tag_idx >= 0)
-      tagMask.set(tag_idx);
+      tagMask.set(tag_idx, tagValue);
+    else
+      logerr("MM: unknown tag '%s'%s", String::mk_sub_str(tag, tag + nameLen), get_mm_data_base_loading_error_context());
+    tag = tagEnd ? tagEnd + 1 : tag + nameLen;
   }
   return tagMask;
 }
@@ -53,14 +92,6 @@ static dag::Index16 find_anim_channel(const eastl::string &channel_name, const A
     if (!strcmp(chan.nodeName[i].get(), channel_name.c_str()))
       return chan.nodeTrack[i];
   return dag::Index16();
-}
-
-constexpr int a2dtimeConversion = 2 * 256;
-
-
-static int frame_duration_from_a2d_duration(int a2d_time)
-{
-  return a2d_time / a2dtimeConversion; // magic consts
 }
 
 static void copy_animation(const AnimV20::AnimData &anim_data, AnimationClip &clip, const GeomNodeTree &tree, const DataBlock &mask)
@@ -119,9 +150,9 @@ static void load_animation_tags(const AnimationDataBase &dataBase,
   const AnimV20::AnimData &anim_data,
   AnimationClip &clip,
   const DataBlock *clip_block,
-  const char *default_tags)
+  const Tags &default_tags)
 {
-  Tags currentTags = get_tags(dataBase.tags, clip_block->getStr("tags", default_tags));
+  Tags currentTags = get_tags(dataBase.tags, clip_block->getStr("tags", nullptr), &default_tags);
   if (const DataBlock *tagRanges = clip_block->getBlockByName("tag_ranges"))
   {
     for (uint32_t i = 0, ie = tagRanges->blockCount(); i < ie; ++i)
@@ -129,7 +160,7 @@ static void load_animation_tags(const AnimationDataBase &dataBase,
       const DataBlock *range = tagRanges->getBlock(i);
       uint32_t from = range->getInt("from");
       uint32_t to = range->getInt("to");
-      Tags tags = get_tags(dataBase.tags, range->getStr("tags"));
+      Tags tags = get_tags(dataBase.tags, range->getStr("tags"), &default_tags);
       if (clip.intervals.empty() || clip.intervals.back().to == from)
         clip.intervals.emplace_back(AnimationInterval{from, to, tags});
       else
@@ -140,18 +171,17 @@ static void load_animation_tags(const AnimationDataBase &dataBase,
     return;
   }
   uint32_t from = 0;
+  const char *tagsPrefix = "tags:";
+  int prefixLen = strlen(tagsPrefix);
   for (const auto &track : anim_data.dumpData.noteTrack)
   {
-    if (strcmp(track.name.get(), "start") && strcmp(track.name.get(), "end"))
+    if (!strncmp(track.name.get(), tagsPrefix, prefixLen))
     {
-      Tags newTags = get_tags(dataBase.tags, track.name);
-      if (newTags.any())
-      {
-        uint32_t to = frame_duration_from_a2d_duration(track.time);
-        clip.intervals.emplace_back(AnimationInterval{from, to, currentTags});
-        currentTags ^= newTags;
-        from = to;
-      }
+      Tags newTags = get_tags(dataBase.tags, track.name + prefixLen, &currentTags);
+      uint32_t to = a2d_ticks_to_mm_frame(track.time);
+      clip.intervals.emplace_back(AnimationInterval{from, to, currentTags});
+      currentTags = newTags;
+      from = to;
     }
   }
   uint32_t to = clip.tickDuration;
@@ -239,6 +269,13 @@ static bool load_root_motion_from_a2d_node(AnimationClip &clip, const eastl::str
     sampler.seek(clip.duration * tick / clip.tickDuration);
     clip.rootMotion[tick] = {sampler.samplePos(), sampler.sampleRot()};
   }
+#if DAGOR_DBGLEVEL > 0
+  vec4f maxDiff = v_splats(0.05f);
+  vec4f maxRelDiff = v_splats(2.0f);
+  vec4f rootUpDir = clip.rootMotion[0].transformDirection(V_C_UNIT_0100);
+  if (!v_check_xyz_all_true(v_cmp_relative_equal(rootUpDir, V_C_UNIT_0100, maxDiff, maxRelDiff)))
+    logerr("MM: root motion node '%s' is not vertically aligned. Clip '%s', up dir " FMT_P3, a2d_node_name, clip.name, V3D(rootUpDir));
+#endif
   return true;
 }
 
@@ -480,6 +517,7 @@ static void load_anim_tree_timer(const AnimationDataBase &dataBase, AnimationCli
     const char *timerName = timer->getStr("timer_name", nullptr);
     if (timerName)
       clip.animTreeTimer = dataBase.referenceAnimGraph->getParamId(timerName, AnimV20::AnimCommonStateHolder::PT_TimeParam);
+    clip.immediateAnimTreeTimerSync = timer->getBool("immediate_sync", false);
     clip.animTreeTimerCycle = timer->getReal("timer_cycle", 1.0f);
   }
 }
@@ -489,8 +527,8 @@ void validate_clips_duplication(const AnimationDataBase &data_base, const char *
   for (const AnimationClip &clip : data_base.clips)
     if (clip.name == clip_name)
     {
-      char buf[2 << 10];
-      logerr("MM: duplicated animation%s", dgs_get_fatal_context(buf, sizeof(buf)));
+      logerr("MM: duplicated animation%s", get_mm_data_base_loading_error_context());
+      break;
     }
 }
 
@@ -509,13 +547,10 @@ static void load_animations(AnimationDataBase &dataBase, const DataBlock &node_m
     logerr("MM: only single 'clips' block is supported (%s)", path.c_str());
   }
   const char *defaultMaskName = clipsBlock->getStr("default_animation_mask", nullptr);
-  const char *defaultTags = clipsBlock->getStr("default_tags", nullptr);
-  int featuresNormalizationGroup = 0;
-  if (clipsBlock->getBool("separate_features_normalization", false))
-  {
-    featuresNormalizationGroup = dataBase.normalizationGroupsCount;
-    dataBase.normalizationGroupsCount++;
-  }
+  const char *defaultTagsStr = clipsBlock->getStr("default_tags", nullptr);
+  Tags defaultTags = get_tags(dataBase.tags, defaultTagsStr, nullptr);
+  const char *normalizationGroupName = clipsBlock->getStr("features_normalization_group", "default");
+  int featuresNormalizationGroup = dataBase.featuresNormalizationGroups.addNameId(normalizationGroupName);
   auto &clips = dataBase.clips;
   clips.reserve(clips.size() + clipsBlock->blockCount());
 
@@ -535,7 +570,7 @@ static void load_animations(AnimationDataBase &dataBase, const DataBlock &node_m
       int a2dTicks = anim_max_time(animData->anim);
       if (clipBlock->paramExists("endLabel"))
         a2dTicks = min(a2dTicks, animData->getLabelTime(clipBlock->getStr("endLabel")));
-      clip.tickDuration = a2dTicks * TICKS_PER_SECOND / AnimV20::TIME_TicksPerSec; // in ticks(30 per second)
+      clip.tickDuration = a2dTicks * TICKS_PER_SECOND / (float)AnimV20::TIME_TicksPerSec; // in ticks(30 per second)
       // one-frame, zero time animation
       clip.tickDuration = clip.tickDuration < 1 ? 1 : clip.tickDuration;
       clip.duration = clip.tickDuration / TICKS_PER_SECOND;
@@ -543,6 +578,7 @@ static void load_animations(AnimationDataBase &dataBase, const DataBlock &node_m
       clip.looped = clip.name == clip.nextClipName;
       clip.playSpeedMultiplierRange = clipBlock->getPoint2("play_speed_multiplier_range", Point2::ONE);
       clip.featuresNormalizationGroup = featuresNormalizationGroup;
+      clip.featuresCostBias = clipBlock->getReal("costBias", 0.0f);
 
       const char *maskName = clipBlock->getStr("animation_mask", defaultMaskName);
       const DataBlock *nodeMask = node_masks.getBlockByName(maskName);
@@ -608,6 +644,7 @@ static void transform_pose_to_root_motion_space(NodeTSRFixedArray &pose, RootMot
     pose[root_node_id].rotation = v_norm4(v_quat_mul_quat(invRot, pose[root_node_id].rotation));
 }
 
+#if DAGOR_DBGLEVEL > 0
 static void validate_next_clip_pose(const AnimationClip &prev_clip, const AnimationClip &next_clip, const AnimationDataBase &dataBase)
 {
   const GeomNodeTree &tree = *dataBase.getReferenceSkeleton();
@@ -638,23 +675,26 @@ static void validate_next_clip_pose(const AnimationClip &prev_clip, const Animat
         nextFirstPose[i].changeBit & AnimV20::AnimBlender::RM_SCL_B ? 'S' : '-');
       continue;
     }
-    vec4f maxDiff = v_splats(0.01);
-    vec4f maxRelDiff = v_splats(0.1);
+    vec4f maxPosDiff = v_splats(dataBase.validateNextClipPosThreshold);
+    vec4f maxRotDiff = v_splats(dataBase.validateNextClipRotThreshold);
+    vec4f maxSclDiff = v_splats(dataBase.validateNextClipSclThreshold);
+    vec4f maxRelDiff = v_splats(2.f);
     if ((lastPose[i].changeBit & AnimV20::AnimBlender::RM_POS_B) &&
-        v_test_all_bits_zeros(v_cmp_relative_equal(lastPose[i].translation, nextFirstPose[i].translation, maxDiff, maxRelDiff)))
+        !v_check_xyz_all_true(v_cmp_relative_equal(lastPose[i].translation, nextFirstPose[i].translation, maxPosDiff, maxRelDiff)))
       logerr("MM: different pos channel in 'nextClip' animation. %s -> %s (%s) " FMT_P3 " != " FMT_P3, prev_clip.name, next_clip.name,
         tree.getNodeName(dag::Index16(i)), V3D(lastPose[i].translation), V3D(nextFirstPose[i].translation));
     if ((lastPose[i].changeBit & AnimV20::AnimBlender::RM_ROT_B) &&
-        v_test_all_bits_zeros(v_or(v_cmp_relative_equal(lastPose[i].rotation, nextFirstPose[i].rotation, maxDiff, maxRelDiff),
-          v_cmp_relative_equal(lastPose[i].rotation, v_quat_conjugate(nextFirstPose[i].rotation), maxDiff, maxRelDiff))))
+        !v_check_xyzw_all_true(v_cmp_relative_equal(lastPose[i].rotation, nextFirstPose[i].rotation, maxRotDiff, maxRelDiff)) &&
+        !v_check_xyzw_all_true(v_cmp_relative_equal(lastPose[i].rotation, v_neg(nextFirstPose[i].rotation), maxRotDiff, maxRelDiff)))
       logerr("MM: different rot channel in 'nextClip' animation. %s -> %s (%s) " FMT_P4 " != " FMT_P4, prev_clip.name, next_clip.name,
         tree.getNodeName(dag::Index16(i)), V4D(lastPose[i].rotation), V4D(nextFirstPose[i].rotation));
     if ((lastPose[i].changeBit & AnimV20::AnimBlender::RM_SCL_B) &&
-        v_test_all_bits_zeros(v_cmp_relative_equal(lastPose[i].scale, nextFirstPose[i].scale, maxDiff, maxRelDiff)))
+        !v_check_xyz_all_true(v_cmp_relative_equal(lastPose[i].scale, nextFirstPose[i].scale, maxSclDiff, maxRelDiff)))
       logerr("MM: different scl channel in 'nextClip' animation. %s -> %s (%s) " FMT_P3 " != " FMT_P3, prev_clip.name, next_clip.name,
         tree.getNodeName(dag::Index16(i)), V3D(lastPose[i].scale), V3D(nextFirstPose[i].scale));
   }
 }
+#endif
 
 static void resolve_next_clips(dag::Vector<AnimationClip> &clips, const AnimationDataBase &dataBase)
 {
@@ -665,7 +705,9 @@ static void resolve_next_clips(dag::Vector<AnimationClip> &clips, const Animatio
     auto it = eastl::find_if(clips.begin(), clips.end(), [&](const AnimationClip &other) { return other.name == clip.nextClipName; });
     if (it != clips.end())
     {
+#if DAGOR_DBGLEVEL > 0
       validate_next_clip_pose(clip, *it, dataBase);
+#endif
       clip.nextClip = it - clips.begin();
       if (!clip.looped)
         updade_trajectory_features_from_next_clip(clip, *it, dataBase);
@@ -702,13 +744,13 @@ void load_animations(AnimationDataBase &dataBase,
   load_animation_root_motion_bones(rootMotionConfig, dataBase);
   dataBase.defaultCenterOfMass = extract_center_of_mass(dataBase, *dataBase.getReferenceSkeleton());
 
-  dataBase.normalizationGroupsCount = 1;
+  dataBase.featuresNormalizationGroups.clear();
   for (const ecs::string &path : clips_path)
     load_animations(dataBase, node_masks, path);
   dataBase.playOnlyFromStartTag = dataBase.tags.getNameId("play_only_from_start");
   resolve_next_clips(dataBase.clips, dataBase);
   calculate_normalization(dataBase.clips, dataBase.featuresAvg, dataBase.featuresStd, dataBase.featuresSize,
-    dataBase.normalizationGroupsCount);
+    dataBase.featuresNormalizationGroups.nameCount());
   calculate_acceleration_struct(dataBase.clips, dataBase.featuresSize);
 
   debug("[MM] loading motion matching data base in %d ms", get_time_usec(refTime) / 1000);

@@ -51,7 +51,7 @@ DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData
 // This one ignores subcells and doesn't return buffer (as we use it when we don't need to restore it)
 // As well it doesn't updateVb, as it's used in batches, so you'll updateVb only once, when you need it
 DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb = nullptr,
-  int32_t user_data = -1);
+  int32_t user_data = -1, const Point3 &impulse = Point3(), const Point3 &impulse_pos = Point3());
 DynamicPhysObjectData *doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb = nullptr);
 
 bool restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer);
@@ -59,20 +59,35 @@ riex_handle_t restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferDa
 
 struct TreeInstData
 {
+  enum class CutType : uint8_t
+  {
+    None,
+    Top,
+    Bottom
+  };
+
   float timer = 0.0f;
   float disappearStartTime = -1.0f;
   float maxDistanceSq = 0.0f;
   int rndSeed = 0;
   Point2 impactXZ = Point2(0.0f, 0.0f);
-  rendinstdestr::TreeDestr::BranchDestr branchDestr;
+  Point3 localImpactPos = Point3::ZERO;
+  CutType cutType = CutType::None;
+  uint64_t originalTmDataId = ~0ull;
+  rendinstdestr::BranchDestr branchDestr;
 };
 
 struct TreeInstDebugData
 {
-  rendinstdestr::TreeDestr::BranchDestr branchDestrFromDamage;
-  rendinstdestr::TreeDestr::BranchDestr branchDestrOther;
+  rendinstdestr::BranchDestr branchDestrFromDamage;
+  rendinstdestr::BranchDestr branchDestrOther;
   float timer_offset = 0.0f;
+  float cutHeightOverride = 0.0f;
+  bool disableCut = false;
+  Point3 lastHitPos = Point3(0.0f, 0.0f, 0.0f);
+  Tab<Point3> impulsePositions;
   bool last_object_was_from_damage = false;
+  bool useCutHeightOverride = false;
 };
 
 struct DestroyedRi
@@ -97,8 +112,9 @@ struct DestroyedRi
 };
 
 DestroyedRi *doRIGenExternalControl(const RendInstDesc &desc, bool rem_rendinst = true);
-bool fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, bool from_damage, TreeInstData &out_data);
-void updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle_t ri_handle, TreeInstData &tree_inst_data,
+Tab<DestroyedRi *> doRIGenExternalControlMultiple(const RendInstDesc &desc, int copy_count, bool rem_rendinst = true);
+bool fillTreeInstData(const RendInstDesc &desc, bool from_damage, TreeInstData &out_data);
+void updateTreeDestrRenderData(riex_handle_t ri_handle, TreeInstData &tree_inst_data,
   const TreeInstDebugData *tree_inst_debug_data = nullptr);
 
 bool should_clear_external_controls();

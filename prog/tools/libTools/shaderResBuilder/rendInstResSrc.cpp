@@ -2,6 +2,7 @@
 
 #include <math/dag_mesh.h>
 #include <shaders/dag_rendInstRes.h>
+#include <rendInst/rendInstConsts.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_genIo.h>
 #include <libTools/dagFileRW/dagFileNode.h>
@@ -31,6 +32,8 @@
 #include <sceneRay/dag_sceneRay.h>
 #include <libTools/ambientOcclusion/ambientOcclusion.h>
 #include <supp/dag_alloca.h>
+#include <EASTL/vector_set.h>
+#include <EASTL/string.h>
 
 // RenderableInstanceLodsResSrc //
 #include <ioSys/dag_fileIo.h>
@@ -43,6 +46,7 @@ bool RenderableInstanceLodsResSrc::optimizeForCache = true;
 float RenderableInstanceLodsResSrc::sideWallAreaThresForOccluder = 10;
 DataBlock *RenderableInstanceLodsResSrc::buildResultsBlk = NULL;
 bool RenderableInstanceLodsResSrc::sepMatToBuildResultsBlk = false;
+const DataBlock *RenderableInstanceLodsResSrc::warnTwoSided = nullptr;
 eastl::vector<DeleteParametersFromLod> RenderableInstanceLodsResSrc::deleteParameters;
 bool generate_quads = false;
 bool generate_strips = false;
@@ -1306,20 +1310,30 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
   forceLeftSideMatrices = blk.getBool("forceLeftSideMatrices", false);
   doNotSplitLods = blk.getBool("dont_split_lods", false);
 
+  // TODO: this check is not correct, hasImpostor is changed later in this function
+  // for now, it doesn't matter much, because of max lod limit being 8
+  // to fix it, insert the tessellation split lod at the end, then change order
+  const bool hasTransitionLod = hasImpostor && blk.getNameId("transition_lod") != -1;
+
   int lodNameId = blk.getNameId("lod");
   int plodNameId = blk.getNameId("plod");
 
   LodsEqualMaterialGather matGather;
   Tab<AScene *> curScenes(tmpmem);
 
-  int numBlk = blk.blockCount();
+  const int numBlk = blk.blockCount();
   int lastLodBlkIdx = -1, beforeLastLodBlkIdx = -1;
+  int numLods = 0;
   for (int blkId = 0; blkId < numBlk; ++blkId)
     if (blk.getBlock(blkId)->getBlockNameId() == lodNameId)
     {
+      numLods++;
       beforeLastLodBlkIdx = lastLodBlkIdx;
       lastLodBlkIdx = blkId;
     }
+
+  const int availableLods = rendinst::RI_MAX_LODS - (hasTransitionLod ? 1 : 0);
+  const bool canSplitTessellationLods = numLods < availableLods;
 
   int lodId = 0;
   for (int blkId = 0; blkId < numBlk; ++blkId)
@@ -1338,7 +1352,60 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
       clear_all_ptr_items(curScenes);
       return false;
     }
+
     lodId++;
+    if (lodId == 1)
+    {
+      // get tesselation range
+      int material_pn_triangulation_var_id = VariableMap::getVariableId("material_pn_triangulation", true);
+      int max_tessellation_distance_var_id = VariableMap::getVariableId("max_tessellation_distance", true);
+      int max_dispacement_distance_var_id = VariableMap::getVariableId("max_dispacement_distance", true);
+      int tessellation_transition_distance_var_id = VariableMap::getVariableId("tessellation_transition_distance", true);
+
+      float tessRange = -1;
+      for (const auto &elem : lods[0].rigid.meshData.elems)
+      {
+        int pnTrig = 0;
+        bool got = elem.mat->getIntVariable(material_pn_triangulation_var_id, pnTrig);
+        if (pnTrig == 0)
+          continue;
+
+        const char *shaderName = elem.mat->getShaderClassName();
+        bool isClipmap = strcmp(shaderName, "rendinst_clipmap") == 0;
+        bool isLandclass = strcmp(shaderName, "rendinst_landclass") == 0;
+        float matRange = -1;
+        if (!elem.mat->getRealVariable(
+              ((isLandclass || isClipmap) ? max_dispacement_distance_var_id : max_tessellation_distance_var_id), matRange))
+        {
+          ISSUE_FATAL("Material is missing tesselation range parameter in %s", fileName);
+          continue;
+        }
+        float transRange = 0;
+        elem.mat->getRealVariable(tessellation_transition_distance_var_id, transRange);
+        matRange += transRange;
+        matRange += lods[0].bsph.r;
+        tessRange = max(tessRange, matRange);
+      }
+
+      if (tessRange > 0 && tessRange < lods[0].range)
+      {
+        if (!canSplitTessellationLods)
+        {
+          ISSUE_FATAL("Tessellation: too many LODs in %s (%d+1 > %d), cannot split at tesselation range!", fileName, numLods,
+            availableLods);
+          continue;
+        }
+        // split lod 0 at tessRange
+        debug("%s : tesselation split at %g .. %g", fileName, tessRange, range);
+        lods[0].range = tessRange;
+        if (!addLod(lodId, fileName, range, matGather, curScenes, *materialOverrides)) // -V1051
+        {
+          clear_all_ptr_items(curScenes);
+          return false;
+        }
+        lodId++;
+      }
+    }
   }
 
   if (hasImpostor && blk.getNameId("transition_lod") != -1)
@@ -1668,6 +1735,29 @@ bool RenderableInstanceLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const Lod
     matSaver.writeMatVdataHdr(cwr, texSaver);
     texSaver.writeTexStr(cwr);
     matSaver.writeMatVdata(cwr, texSaver);
+  }
+
+  if (warnTwoSided && warnTwoSided->getBool("enabled", false))
+  {
+    for (int lodIdx = 0; lodIdx < lods.size(); lodIdx++)
+    {
+      RenderableInstanceLodsResSrc::Lod &lod = lods[lodIdx];
+      eastl::vector_set<eastl::string> listedMaterials;
+      for (ShaderMeshData::RElem &elem : lod.rigid.meshData.elems)
+        if (elem.mat->get_flags() & SHFLG_2SIDED)
+        {
+          const char *className = elem.mat->getShaderClassName();
+          bool allowed = false;
+          dblk::iterate_params_by_name(*warnTwoSided, "allowForShaders",
+            [&](int idx, auto, auto) { allowed |= strcmp(warnTwoSided->getStr(idx), className) == 0; });
+          if (!allowed && (listedMaterials.find(eastl::string(className)) == listedMaterials.end()))
+          {
+            log_writer.addMessage(ILogWriter::WARNING,
+              "twosided enabled for LOD \"%s\" <%s> (warnTwoSided set in project configuration)", lod.fileName.c_str(), className);
+            listedMaterials.insert(eastl::string(className));
+          }
+        }
+    }
   }
 
 

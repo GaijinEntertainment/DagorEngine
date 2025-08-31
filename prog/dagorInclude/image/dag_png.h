@@ -11,6 +11,8 @@ struct TexImage32;
 struct TexPixel32;
 class IGenLoad;
 
+// read PNG headers and dimensions
+bool read_png32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha);
 
 // load PNG file (RGBX/RGBA)
 TexImage32 *load_png32(const char *fn, IMemAlloc *mem, bool *out_used_alpha = NULL, eastl::string *comments = NULL);

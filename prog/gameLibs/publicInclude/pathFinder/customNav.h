@@ -61,40 +61,55 @@ public:
 
 private:
   friend class CustomNavHelper;
-  struct Area
-  {
-    inline BBox3 getAABB() const { return isCylinder ? oobb : tm * oobb; }
 
+  struct BaseArea
+  {
     uint32_t id = 0;
-    bool isCylinder = false;
     BBox3 oobb;
-    TMatrix tm;    // for box areas only.
-    TMatrix invTm; // for box areas only.
     eastl::array<float, 2> weight;
     bool optimize = true;
     uint32_t generation = 0;
     int tileCount = 0;
   };
 
-  struct Tile
+  struct BoxArea : BaseArea
   {
-    eastl::fixed_vector<Area, 16, true> boxAreas;
-    eastl::fixed_vector<Area, 16, true> cylinderAreas;
+    inline BBox3 getAABB() const { return tm * oobb; }
+
+    TMatrix tm;
+    TMatrix invTm;
   };
 
-  template <typename T>
-  void walkAreaTiles(const Area &area, T cb);
+  struct CylArea : BaseArea
+  {
+    inline BBox3 getAABB() const { return oobb; }
+  };
 
-  void areaUpdate(const Area &area, float posThreshold, float angCosThreshold);
+  struct Tile
+  {
+    eastl::fixed_vector<BoxArea, 16, true> boxAreas;
+    eastl::fixed_vector<CylArea, 16, true> cylinderAreas;
+  };
 
-  void areaAddToTiles(Area &area);
-  void addAreaToTile(Area &area, uint32_t tile_id);
+  template <typename AreaT, typename CB>
+  void walkAreaTiles(const AreaT &area, CB cb);
 
-  void areaRemoveFromTiles(Area &area, Tab<uint32_t> &affected_tiles);
+  template <typename AreaT, typename AreaHashMapT, typename AltAreaHashMapT, typename GetTileAreasCB, typename AllowUpdateCB>
+  void areaUpdate(AreaT &area, AreaHashMapT &areas, AltAreaHashMapT &alt_areas, GetTileAreasCB get_tile_areas_cb,
+    AllowUpdateCB allow_update_cb);
+
+  template <typename AreaT>
+  void areaAddToTiles(AreaT &area);
+  void addAreaToTile(CylArea &area, uint32_t tile_id);
+  void addAreaToTile(BoxArea &area, uint32_t tile_id);
+
+  template <typename AreaT, typename GetTileAreasCB>
+  void areaRemoveFromTiles(AreaT &area, Tab<uint32_t> &affected_tiles, GetTileAreasCB get_tile_areas_cb);
 
   uint32_t getHash(uint64_t poly_ref) const;
 
-  ska::flat_hash_map<uint32_t, Area> areas;
+  ska::flat_hash_map<uint32_t, BoxArea> boxAreas;
+  ska::flat_hash_map<uint32_t, CylArea> cylAreas;
   ska::flat_hash_map<uint32_t, Tile> tiles;
   mutable Tab<eastl::pair<uint32_t, uint32_t>> tmpHashBuff;
 

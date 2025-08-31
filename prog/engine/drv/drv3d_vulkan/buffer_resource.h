@@ -6,6 +6,7 @@
 #include "descriptor_set.h"
 #include "debug_naming.h"
 #include "timeline_latency.h"
+#include "cleanup_queue_tags.h"
 
 namespace drv3d_vulkan
 {
@@ -18,9 +19,9 @@ enum BufferMemoryFlags
   NONE = 0x0,
   DEDICATED = 0x1,
   TEMP = 0x2,
-  FAILABLE = 0x4,
-  IN_PLACED_HEAP = 0x8,
-  FRAMEMEM = 0x10
+  IN_PLACED_HEAP = 0x4,
+  FRAMEMEM = 0x8,
+  NOT_EVICTABLE = 0x10
 };
 
 struct BufferDescription
@@ -68,9 +69,9 @@ class Buffer : public BufferImplBase,
                public ResourceBindlessExtend
 {
 public:
-  static constexpr int CLEANUP_DESTROY = 0;
   static constexpr uint32_t DISCARD_INDEX_FRAMEMEM = ~0;
 
+  // external handlers
   void destroyVulkanObject();
   void createVulkanObject();
   MemoryRequirementInfo getMemoryReq();
@@ -86,18 +87,21 @@ public:
   void restoreFromSysCopy(ExecutionContext &ctx);
   void makeSysCopy(ExecutionContext &ctx);
   bool mayAlias() { return desc.memFlags & IN_PLACED_HEAP; }
+  Buffer *getHostCopyBuffer();
+  void delayedRestoreFromSysCopy();
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupBackend();
 
-  template <int Tag>
-  void onDelayedCleanupFrontend(){};
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
 private:
+  FormatStore viewFmt = FormatStore(0);
   eastl::unique_ptr<VulkanBufferViewHandle[]> views;
+  Buffer *hostCopy = nullptr;
 
   uint32_t discardIndex = 0;
   uint32_t lastDiscardFrame = 0;
@@ -202,14 +206,14 @@ public:
     if (isFakeFrameMem())
       return false;
 #endif
-    if (desc.memFlags & BufferMemoryFlags::FRAMEMEM)
+    if (isFrameMem())
       return discardIndex > 0;
     return false;
   }
   void checkFrameMemAccess()
   {
 #if DAGOR_DBGLEVEL > 0
-    if (desc.memFlags & BufferMemoryFlags::FRAMEMEM)
+    if (isFrameMem())
       verifyFrameMem();
 #endif
   }
@@ -256,7 +260,7 @@ public:
   uint8_t *ptrOffsetLoc(VkDeviceSize ofs) const { return ptrOffsetAbs(ofs) + getCurrentDiscardOffset(); }
 
 #if VK_KHR_buffer_device_address
-  VkDeviceAddress getDeviceAddress(VulkanDevice &device) const;
+  VkDeviceAddress getDeviceAddress() const;
   VkDeviceAddress devOffsetAbs(VkDeviceSize ofs) const;
   VkDeviceAddress devOffsetLoc(VkDeviceSize ofs) const { return devOffsetAbs(ofs) + getCurrentDiscardOffset(); }
 #endif
@@ -277,7 +281,7 @@ public:
     if (in_desc.memFlags & BufferMemoryFlags::FRAMEMEM)
       discardIndex = 1;
   }
-  static VkBufferUsageFlags getUsage(VulkanDevice &device, DeviceMemoryClass memClass);
+  static VkBufferUsageFlags getUsage(DeviceMemoryClass memClass);
 
   static Buffer *create(uint32_t size, DeviceMemoryClass memory_class, uint32_t discard_count, BufferMemoryFlags mem_flags);
   void addBufferView(FormatStore format);

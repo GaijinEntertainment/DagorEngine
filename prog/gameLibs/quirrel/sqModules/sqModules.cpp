@@ -35,7 +35,7 @@ const char *SqModules::__analysis__ = "__analysis__";
 
 #if _TARGET_PC
 bool SqModules::tryOpenFilesFromRealFS = true; // by default we allow loading from fs on PC.
-#else
+#elif DAGOR_DBGLEVEL > 0
 bool SqModules::tryOpenFilesFromRealFS = false; // by default we disallow loading from fs on non-PC platforms.
 #endif
 
@@ -255,12 +255,6 @@ bool SqModules::readFile(const String &resolved_fn, const char *requested_fn, Ta
     return fileSystemOverride->readFile(resolved_fn, requested_fn, buf, out_err_msg);
 
   uint32_t fileFlags = DF_READ | DF_IGNORE_MISSING | (tryOpenFilesFromRealFS ? 0 : DF_VROM_ONLY);
-#if !_TARGET_PC && DAGOR_DBGLEVEL == 0
-  // according to MS XRs we can't allow scripts to be loaded from not-signed files. There is little sense to do that for other non-PC
-  // platforms either although it should be switched of with tryOpenFilesFromRealFS, we don't rely on it, and mandatory force loading
-  // from vroms
-  fileFlags |= DF_VROM_ONLY;
-#endif
   file_ptr_t f = df_open(resolved_fn, fileFlags);
   if (!f)
   {
@@ -380,7 +374,7 @@ Sqrat::Table SqModules::setupStateStorage(const char *resolved_fn)
 SqModules::Module *SqModules::findModule(const char *resolved_fn)
 {
   for (Module &m : modules)
-    if (dd_fname_equal(resolved_fn, m.fn.c_str()))
+    if (m.fn == resolved_fn)
       return &m;
 
   return nullptr;
@@ -714,7 +708,9 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   sq_pushobject(vm, scriptClosure.GetObject());
   sq_pushnull(vm); // module 'this'
 
+  runningScriptClosuresStack.push_back(scriptClosure);
   SQRESULT callRes = sq_call(vm, 1, true, true);
+  runningScriptClosuresStack.pop_back();
 
   G_UNUSED(rsIdx);
 
@@ -742,6 +738,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   module.fn = resolvedFn;
   module.stateStorage = stateStorage;
   module.refHolder = refHolder;
+  module.scriptClosure = scriptClosure;
   module.__name__ = __name__;
 
   modules.push_back(module);
@@ -803,13 +800,16 @@ bool SqModules::reloadAll(String &full_err_msg)
 }
 
 
-bool SqModules::addNativeModule(const char *name, const Sqrat::Object &exports)
+bool SqModules::addNativeModule(const char *name, const Sqrat::Object &exports, const char *module_doc_string)
 {
   eastl::string module_name(name);
   if (nativeModules.find(module_name) != nativeModules.end())
   {
     G_ASSERTF_RETURN(0, false, "Native module '%s' is already registered", name);
   }
+
+  if (module_doc_string)
+    sq_setobjectdocstring(exports.GetVM(), &const_cast<Sqrat::Object &>(exports).GetObject(), module_doc_string);
 
   nativeModules[module_name] = exports;
   return true;
@@ -939,6 +939,8 @@ void SqModules::registerIoLib()
 
 void SqModules::callAndClearUnloadHandlers(bool is_closing)
 {
+  resetStaticMemos();
+
   for (const Sqrat::Object &f : onModuleUnload)
   {
     SQInteger nparams = 0, nfreevars = 0;
@@ -979,6 +981,18 @@ SQInteger SqModules::register_on_module_unload(HSQUIRRELVM vm)
   return 0;
 }
 
+void SqModules::resetStaticMemos()
+{
+  for (Module &module : modules)
+    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
+
+  for (Module &module : prevModules)
+    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
+
+  for (Sqrat::Object &f : runningScriptClosuresStack)
+    sq_reset_static_memos(sqvm, f.GetObject());
+}
+
 
 void SqModules::registerModulesModule()
 {
@@ -988,12 +1002,16 @@ void SqModules::registerModulesModule()
   Sqrat::Var<Sqrat::Object> selfObj(sqvm, -1);
   sq_pop(sqvm, 1);
 
-  ///@module modules
   exports
-    .Func("get_native_module_names", [this]() { return this->getNativeModuleNames(); })
-    ///@return list of native modules names
-    .SquirrelFunc("on_module_unload", register_on_module_unload, 2, ".c", nullptr, 1, &selfObj.value)
-    /// register modules unload callback
-    ;
-  addNativeModule("modules", exports);
+    .Func(
+      "get_native_module_names", [this]() { return this->getNativeModuleNames(); },
+      "Returns an array with a list of names of native modules.")
+    .Func(
+      "reset_static_memos", [this]() { return this->resetStaticMemos(); }, "Reset static memo expressions cache.")
+    .SquirrelFunc("on_module_unload", register_on_module_unload, 2, ".c",
+      "Register module unload callback. "
+      "Example: on_module_unload( function(is_app_closing) {println(is_app_closing ? \"Closing\" : \"Soft reloading\")} )",
+      1, &selfObj.value);
+
+  addNativeModule("modules", exports, "Contains functions to work with modules, like on_module_unload(), get_native_module_names()");
 }

@@ -23,14 +23,14 @@ ASTCENC_DECLARE_STATIC_DATA();
 
 struct ErrorHandler : public nvtt::ErrorHandler
 {
-  virtual void error(nvtt::Error e) { logerr("nvtt: '%s'", nvtt::errorString(e)); }
+  void error(nvtt::Error e) override { logerr("nvtt: '%s'", nvtt::errorString(e)); }
 };
 struct OutputHandler : public nvtt::OutputHandler
 {
   IGenSave *cwr;
 
-  virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) {}
-  virtual bool writeData(const void *data, int size)
+  void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {}
+  bool writeData(const void *data, int size) override
   {
     cwr->write(data, size);
     return true;

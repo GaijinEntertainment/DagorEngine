@@ -3,10 +3,6 @@ int dagi_screenprobes_filter_quality = 1;
 interval dagi_screenprobes_filter_quality: simple < 1, use_angle;
 
 macro SP_SPATIAL_FILTER_PROBES(code)
-  SP_HIT_DISTANCE_ENCODE(code)
-  (code) {
-    screenprobes_current_radiance_distance@smp2d = screenprobes_current_radiance_distance;
-  }
   hlsl(code)
   {
     ##if dagi_screenprobes_filter_quality == use_angle

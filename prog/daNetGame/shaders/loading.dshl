@@ -1,5 +1,9 @@
 include "shader_global.dshl"
 
+int loading_splash_noise_64_tex_l8_const_no = 0;
+int loading_splash_noise_128_tex_hash_const_no = 1;
+int loading_splash_iGlobalTime_iResolution_iPaperWhiteNits_const_no = 0;
+
 // The 0-3 numbers from enum HdrOutputMode
 shader loading_splash,
   loading_splash_0,
@@ -13,6 +17,12 @@ shader loading_splash,
 
   POSTFX_VS_TEXCOORD(0, tc)
 
+  (ps){
+    noise_64_tex_l8@smp2d : register(loading_splash_noise_64_tex_l8_const_no);
+    noise_128_tex_hash@smp2d : register(loading_splash_noise_128_tex_hash_const_no);
+    iGlobalTime_iResolution@f4 :register(loading_splash_iGlobalTime_iResolution_iPaperWhiteNits_const_no);
+  }
+
   hlsl(ps) {
     struct PsOutput
     {
@@ -25,13 +35,6 @@ shader loading_splash,
       float4 sdr_result : SV_Target0;
     ##endif
     };
-
-    Texture2D noise_64_tex_l8:register(t0);
-    SamplerState noise_64_tex_l8_samplerstate:register(s0);
-    Texture2D noise_128_tex_hash:register(t1);
-    SamplerState noise_128_tex_hash_samplerstate:register(s1);
-
-    float3 iGlobalTime_iResolution :register(c0);
 
     #define iGlobalTime (iGlobalTime_iResolution.x)
     #define iResolution (iGlobalTime_iResolution.yz)

@@ -35,6 +35,14 @@ float4 stereo_params = (0, 0, 0, 0);
 float csm_distance = 1000;
 
 texture combined_shadows;
+float4 projtm_psf_0;
+float4 projtm_psf_1;
+float4 projtm_psf_2;
+float4 projtm_psf_3;
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
 
 macro COMMON_RESOLVE()
   (vs) {world_view_pos@f3 = world_view_pos;}
@@ -177,8 +185,16 @@ shader deferred_shadow_to_buffer
 
   if (dynamic_lights_count != lights_off)
   {
+    (ps) {
+      projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3};
+      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+      viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+    }
     hlsl(ps) {
+      #include "contactShadows.hlsl"
       #include <BRDF.hlsl>
+      #define OMNI_CONTACT_SHADOWS 1
+      #define shadow_frame 0
     }
     USE_SPOT_LIGHT_MASK(ps)
     USE_OMNI_LIGHT_MASK(ps)
@@ -236,7 +252,7 @@ shader deferred_shadow_to_buffer
       float NoV = abs( NdotV ) + 1e-5;
       float alpha = pow2(gbuffer.linearRoughness);
 
-      half enviAO = gbuffer.ao * ssao;//we still modulate by albedo color, so we don't need micro AO
+      half enviAO = gbuffer.ao * ssao.x;//we still modulate by albedo color, so we don't need micro AO
       half enviAmbientAO = enviAO;//we still modulate by albedo color, so we don't need micro AO
       half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, alpha);// dice spec occlusion
       //specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
@@ -257,8 +273,11 @@ shader deferred_shadow_to_buffer
       half otherShadow = clouds_shadow(worldPos.xyz);
       //half trees_shadow = min(cloudShadow, vsmShadow);
 
-      csmShadow = min(csmShadow, gbuffer.shadow);
-      half shadow = min(csmShadow, otherShadow);
+      csmShadow = csmShadow*gbuffer.shadow;
+      half shadow = csmShadow*otherShadow;
+      #if SSAO_CONTACT_SHADOWS
+      shadow *= ssao.CONTACT_SHADOWS_ATTR;
+      #endif
       //shadow *= saturate(NoL * 6 - 0.2);//fake: reduce shadow artifacts in specular!
 
       //SUN
@@ -301,7 +320,7 @@ shader deferred_shadow_to_buffer
       half3 giSpecular, giAmbient;
       decode_gi_colors(screen_ambient[int2(screenpos)], screen_specular[int2(screenpos)], giAmbient, giSpecular);
 ##if ssao_tex != NULL
-      half3 localIndirect = MultiBounce(ssao, gbuffer.diffuseColor);
+      half3 localIndirect = MultiBounce(ssao.x, gbuffer.diffuseColor);
 ##else
       half localIndirect = 1;
 ##endif
@@ -332,7 +351,7 @@ shader deferred_shadow_to_buffer
       result += reflection;
       result = result*(1-gbuffer.emission_part) + gbuffer.emissionColor;
       ##if (dynamic_lights_count != lights_off)
-      result += get_dynamic_lighting(gbuffer, worldPos.xyz, -view, w, screenpos, NoV, specularColor, input.texcoord.xy, enviAO);
+      result += get_dynamic_lighting(gbuffer, worldPos.xyz, -input.viewVect, w, screenpos, NoV, specularColor, input.texcoord.xy, enviAO);
       ##endif
 
       //envi-
@@ -554,11 +573,13 @@ shader deferred_simple
   compile("target_ps", "deferred_simple_ps");
 }
 
+include "heightmap_shadows_common.dshl"
+include "contact_shadows_new.dshl"
+
 shader combine_shadows
 {
   no_ablend;
 
-  
   cull_mode  = none;
 
   z_test = false;
@@ -566,12 +587,19 @@ shader combine_shadows
   (ps) {
     csm_distance@f1 = (csm_distance);
     world_view_pos@f4 = world_view_pos;
+    from_sun_direction@f3=from_sun_direction;
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf,0);
+    shadow_frame@i1 = shadow_frame;
   }
   if (oculus == oculus_on)
   {
     (ps) { stereo_params@f4 = stereo_params; }
   }
   (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+  hlsl {
+    #define EARLY_EXIT_CONTACT_SHADOWS 1
+    //#define FASTEST_STATIC_SHADOW_PCF 1
+  }
 
   USE_POSTFX_VERTEX_POSITIONS()
   USE_AND_INIT_VIEW_VEC_VS()
@@ -585,8 +613,8 @@ shader combine_shadows
 
   INIT_CSM_SHADOW(ps)
   USE_CSM_SHADOW_DEF_NUM()
-
-
+  //CONTACT_SHADOWS_NEW(ps)
+  CONTACT_SHADOWS_BASE(ps)
 
   hlsl {
     struct VsOutput
@@ -611,26 +639,74 @@ shader combine_shadows
     }
   }
 
+  INIT_HMAP_SHADOWS(ps)
+  USE_HMAP_SHADOWS(ps)
   hlsl(ps)
   {
-    half4 shadows_to_target_ps(VsOutput input) : SV_Target0
+    half4 shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
       float rawDepth = readGbufferDepth(input.texcoord.xy);
       float w = linearize_z(rawDepth, zn_zfar.zw);
 
       float3 pointToEye = -input.viewVect * w;
+      //return !rayShadowTLAS(world_view_pos.xyz - pointToEye - 0.01*from_sun_direction, -from_sun_direction, -rcp(from_sun_direction));
 ##if oculus == oculus_on
       pointToEye -= stereo_params.xyz;
 ##endif
+      float3 worldNormal = normalize(cross(ddx(pointToEye), ddy(pointToEye)));
+      float NoLAbs = abs(dot(from_sun_direction, worldNormal));
       float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
+      //float frame = 0;
+      float dither = interleavedGradientNoiseFramed(screenpos.xy, shadow_frame);
       //return getStaticShadow(worldPos.xyz);
+      //return getHmapShadow(worldPos.xyz);
 
       half3 csmShadow = half3( 1, 9, 1 );
+      csmShadow.x = getHmapShadowDithered(worldPos.xyz, dither);
       BRANCH
-      if ( w < csm_distance.x && w > zn_zfar.x )
-        csmShadow = get_csm_shadow( pointToEye, w );
+      if ( csmShadow.x > 0 && w < csm_distance.x && w > zn_zfar.x )
+        csmShadow *= get_csm_shadow( pointToEye, w );
 
       csmShadow.x = csmShadow.x * lerp(1, getStaticShadow(worldPos.xyz), 1-pow4(1-csmShadow.z));
+
+      float shlen = max(w * contact_shadow_len*0.5, min(0.1, w));
+      int steps = 10;
+      float2 hitUV;
+      float contactShadow;
+      #if (1)
+      {
+        int filteredSteps = 1;
+        half hit_t = contactShadowFilteredRayCastWithScaleHitT(
+          depth_gbuf_read, depth_gbuf_read_samplerstate, global_linear_clamp_sampler,
+          -pointToEye, -from_sun_direction, shlen, filteredSteps, steps-filteredSteps, dither-0.5, projectionMatrix, w, globtm_no_ofs_psf, hitUV, float4(1,1,0,0));
+        contactShadow = 1.h - saturate(1.h - pow2(hit_t));
+      }
+      #else
+      {
+        DepthRayMarch rayMarch = DepthRayMarch::new_from_depth(global_linear_clamp_sampler, depth_gbuf_read_samplerstate, depth_gbuf_read, depth_gbuf_dim);
+        rayMarch.with_linear_steps(steps);
+        //rayMarch.with_bisection_steps(1);
+        //rayMarch.with_use_secant(true);
+        //rayMarch.with_depth_thickness(max(0.1, w*0.04 - 1));
+        rayMarch.with_depth_thickness(shlen*0.2);
+        rayMarch.with_jitter(dither);
+        rayMarch.with_march_behind_surfaces(true);
+        //rayMarch.with_use_sloppy_march_first_step(true);
+        rayMarch.with_use_sloppy_march_steps(true);
+        rayMarch.from_cs(float3(uv_to_cs(input.texcoord.xy), rawDepth));
+        //rayMarch.from_cs(position_world_to_sample(-pointToEye));
+        rayMarch.to_ws(-pointToEye - shlen*from_sun_direction);
+
+        DepthRayMarchResult raymarch_result = rayMarch.march();
+
+        half shadow = saturate(1.h - 1.h*pow2(raymarch_result.hit_t));
+        //contactShadow = raymarch_result.hit ? 1 - shadow*(1-pow4(raymarch_result.hit_penetration_frac)) : 1;//smoothstep(0, 1, raymarch_result.hit_penetration_frac) : 1;// shadow : 1;//
+        contactShadow = 1.h - saturate(1.h - pow2(raymarch_result.hit_t));
+        hitUV = raymarch_result.hit_uv;
+      }
+      #endif
+      csmShadow.x *= contactShadow;
 
       return csmShadow.xxxx;
     }

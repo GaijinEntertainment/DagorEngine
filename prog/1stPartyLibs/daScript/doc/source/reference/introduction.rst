@@ -53,8 +53,31 @@ How it looks?
 
 Mandatory fibonacci samples::
 
+    def fibR(n) {
+        if (n < 2) {
+            return n
+        } else {
+            return fibR(n - 1) + fibR(n - 2)
+        }
+    }
+
+    def fibI(n) {
+        var last = 0
+        var cur = 1
+        for ( i in 0..n-1 ) {
+            let tmp = cur
+            cur += last
+            last = tmp
+        }
+        return cur
+    }
+
+The same samples with significant white space (python style), for those who prefer this type of syntax::
+
+    options gen2=false
+
     def fibR(n)
-       if (n < 2)
+       if n < 2
            return n
        else
            return fibR(n - 1) + fibR(n - 2)
@@ -62,33 +85,13 @@ Mandatory fibonacci samples::
     def fibI(n)
        var last = 0
        var cur = 1
-       for i in range(0, n - 1)
+       for i in 0 .. n-1
            let tmp = cur
            cur += last
            last = tmp
        return cur
 
-The same samples with curly brackets, for those who prefer this type of syntax::
-
-    def fibR(n) {
-        if (n < 2) {
-            return n;
-        } else {
-            return fibR(n - 1) + fibR(n - 2);
-        }
-    }
-    def fibI(n) {
-        var last = 0;
-        var cur = 1;
-        for i in range(0, n-1); {
-            let tmp = cur;
-            cur += last;
-            last = tmp;
-        }
-        return cur;
-    }
-
-Please note, that semicolons(';') are mandatory within curly brackets. You can actually mix both ways in your codes, but for clarity in the documentation, we will only use the pythonic way.
+At this point gen2 style syntax (with curly bracers) is the default, but you can switch to gen1 style (with indentation) by setting the `gen2` option to `false`.
 
 ++++++++++++++++++++++++++++++++++++
 Generic programming and type system
@@ -100,9 +103,11 @@ Generic programming in Daslang allows very powerful compile-time type reflection
 Unlike C++ with it's SFINAE, you can use common conditionals (if) in order to change the instance of the function depending on type info of its arguments.
 Consider the following example::
 
-    def setSomeField(var obj; val)
-        static_if typeinfo(has_field<someField> obj)
+    def setSomeField(var obj; val) {
+        static_if ( typeinfo has_field<someField>(obj) ) {
             obj.someField = val
+        }
+    }
 
 This function sets `someField` in the provided argument *if* it is a struct with a `someField` member.
 
@@ -118,16 +123,20 @@ In fact, the Daslang compiler runs the Daslang interpreter for each module and h
 The following example modifies function calls at compilation time to add a precomputed hash of a constant string argument::
 
     [tag_function_macro(tag="get_hint_tag")]
-    class GetHintFnMacro : AstFunctionAnnotation
-        [unsafe] def override transform ( var call : smart_ptr<ExprCall>;
-            var errors : das_string ) : ExpressionPtr
-            if call.arguments[1] is ExprConstString
-                let arg2 = reinterpret<ExprConstString?>(call.arguments[1])
-                var mkc <- new [[ExprConstUInt() at=arg2.at, value=hash("{arg2.value}")]]
-                push(call.arguments, ExpressionPtr(mkc))
-                return <- ExpressionPtr(call)
-            return [[ExpressionPtr]]
-
+    class GetHintFnMacro : AstFunctionAnnotation {
+        def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+            if (call.arguments[1] is ExprConstString) {
+                unsafe {
+                    var new_call := call // <- clone_expression(call)
+                    let arg2 = reinterpret<ExprConstString?>(call.arguments[1])
+                    let hint = hash("{arg2.value}")
+                    emplace_new(new_call.arguments, new ExprConstUInt64(at = arg2.at, value = hint))
+                    return new_call
+                }
+            }
+            return <- default<ExpressionPtr>
+        }
+    }
 
 ++++++++++++++++++++++++++++++++++++
 Features

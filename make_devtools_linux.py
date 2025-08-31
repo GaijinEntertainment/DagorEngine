@@ -192,18 +192,18 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/linux64/inc').mkdir(parents=True, exist_ok=True)
 
 
-# DXC-1.7.2207
-dxc_dest_folder = dest_dir+'/DXC-1.7.2207'
+# DXC-1.8.2407
+dxc_dest_folder = dest_dir+'/DXC-1.8.2407'
 if pathlib.Path(dxc_dest_folder).exists():
-  print('=== DXC Jul 2022 found at {0}, skipping setup'.format(dxc_dest_folder))
+  print('=== DXC Jul 2024 1.8.2407 found at {0}, skipping setup'.format(dxc_dest_folder))
 else:
-  download_url('https://github.com/GaijinEntertainment/DXC-prebuilt/releases/download/dxc-1.7.2207/DXC-1.7.2207.tar.gz')
-  with tarfile.open(os.path.normpath(dest_dir+'/.packages/DXC-1.7.2207.tar.gz'), 'r:gz') as tar_file:
-    tar_file.extractall(dest_dir)
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/linux_dxc_2024_07_31.x86_64.tar.gz')
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/linux_dxc_2024_07_31.x86_64.tar.gz'), 'r:gz') as tar_file:
+    tar_file.extractall(dxc_dest_folder)
     tar_file.close()
-    shutil.rmtree(dxc_dest_folder+'/lib/macosx')
-    shutil.rmtree(dxc_dest_folder+'/lib/win64')
-    print('+++ DXC Jul 2022 installed at {0}'.format(dxc_dest_folder))
+    pathlib.Path(dxc_dest_folder+'/lib/linux64').mkdir(parents=True, exist_ok=True);
+    make_directory_symlink(dxc_dest_folder+'/lib/libdxcompiler.so', dxc_dest_folder+'/lib/linux64/libdxcompiler.so')
+    print('+++ DXC Jul 2024 1.8.2407 installed at {0}'.format(dxc_dest_folder))
     if linux_arch_type == 'e2k':
       print('!!! arch={0} differs from x86_64, you should rebuild {1} for\n'
             '    your arch and place result binary to {2}/lib/linux64/libdxcompiler.so\n\n'

@@ -11,7 +11,6 @@
 #include <dasModules/aotDacoll.h>
 #include <gamePhys/phys/walker/humanWeapState.h>
 #include <gamePhys/phys/walker/humanControlState.h>
-#include <gamePhys/phys/walker/humanAnimState.h>
 #include <util/dag_lookup.h>
 
 DAS_BIND_ENUM_CAST_98(HUMoveState);
@@ -30,19 +29,6 @@ DAS_BASE_BIND_ENUM_98(HumanControlThrowSlot, HumanControlThrowSlot, HCTS_EMPTY, 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(HumanPhysState::StateFlag, StateFlag);
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(HumanControlState::DodgeState, DodgeState);
 DAS_BIND_ENUM_CAST_98(PrecomputedPresetMode)
-DAS_BIND_ENUM_CAST_98(HumanStatePos);
-DAS_BASE_BIND_ENUM_98(HumanStatePos, HumanStatePos, E_STAND, E_CROUCH, E_CRAWL, E_SWIM, E_SWIM_UNDERWATER, E_DOWNED, E_BIPOD);
-DAS_BIND_ENUM_CAST_98(HumanStateMove);
-DAS_BASE_BIND_ENUM_98(HumanStateMove, HumanStateMove, E_STILL, E_MOVE, E_RUN, E_SPRINT, E_ROTATE_LEFT, E_ROTATE_RIGHT);
-DAS_BIND_ENUM_CAST_98(HumanStateUpperBody);
-DAS_BASE_BIND_ENUM_98(HumanStateUpperBody, HumanStateUpperBody, E_READY, E_AIM, E_RELOAD, E_CHANGE, E_DOWN, E_DEFLECT, E_FAST_THROW,
-  E_THROW, E_HEAL, E_PUT_OUT_FIRE, E_USE_RADIO, E_USE_MORTAR, E_USE_DEFIBRILLATOR_START, E_USE_DEFIBRILLATOR_FINISH);
-DAS_BIND_ENUM_CAST_98(StateJump);
-DAS_BASE_BIND_ENUM_98(StateJump, StateJump, E_NOT_JUMP, E_FROM_STAND, E_FROM_RUN);
-DAS_BIND_ENUM_CAST_98(RidingState)
-DAS_BIND_ENUM_CAST(HumanAnimStateFlags)
-DAS_BASE_BIND_ENUM(HumanAnimStateFlags, HumanAnimStateFlags, None, Dead, Attacked, Climbing, Ladder, Gunner, RidingStand, RidingWalk,
-  RidingSprint, ClimbingOverObstacle, FastClimbing);
 DAS_BASE_BIND_ENUM_98(PrecomputedPresetMode, PrecomputedPresetMode, FPV, TPV)
 
 MAKE_TYPE_FACTORY(HumanWeaponParams, HumanWeaponParams);
@@ -58,6 +44,9 @@ DAS_BIND_VECTOR(HumanControlStateTab, HumanControlStateTab, HumanControlState, "
 
 using HumanWeaponParamsArray = carray<HumanWeaponParams, EWS_NUM>;
 DAS_BIND_ARRAY(HumanWeaponParamsArray, HumanWeaponParamsArray, HumanWeaponParams);
+
+using HumanPhysAlignSpeedsArray = carray<float, ESS_NUM>;
+DAS_BIND_ARRAY(HumanPhysAlignSpeedsArray, HumanPhysAlignSpeedsArray, float);
 
 namespace bind_dascript
 {
@@ -119,6 +108,8 @@ inline void human_phys_calcGunTm(const HumanPhys &phys, PrecomputedPresetMode mo
 {
   reinterpret_cast<TMatrix &>(out_gun_tm) = phys.calcGunTm(reinterpret_cast<const TMatrix &>(tm), gun_angles, lean_pos, height, mode);
 }
+
+inline bool human_phys_isGoProneAllowed(const HumanPhys &phys) { return phys.isGoProneAllowed(); }
 
 inline void human_control_state_set_walk_speed(HumanControlState &ct, float speed) { ct.setWalkSpeed(speed); }
 

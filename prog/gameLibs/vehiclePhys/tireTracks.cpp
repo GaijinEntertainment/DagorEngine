@@ -643,13 +643,11 @@ void init(const char *blk_file, bool pack_normal_into_color_)
   if (texName != NULL)
   {
     matNull->mtex[0] = ::get_tex_gameres(texName);
-    BaseTexture *texture = acquire_managed_tex(matNull->mtex[0]);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
 
-    if (texture)
-      texture->texaddr(TEXADDR_WRAP);
-    else
-      logerr("Can't open tiretrack texture - '%s'", texName);
-    release_managed_tex(matNull->mtex[0]);
+    if (!set_texture_separate_sampler(matNull->mtex[0], smpInfo))
+      logerr("Can't set a sampler for tiretrack texture - '%s'", texName);
   }
 
   currentMaterial = new_shader_material(*matNull);

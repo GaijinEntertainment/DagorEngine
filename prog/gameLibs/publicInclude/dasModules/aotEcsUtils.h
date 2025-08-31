@@ -70,8 +70,8 @@ inline bool find_component(const ecs::ComponentsList &list,
 }
 
 inline bool find_component_eid(ecs::EntityId eid,
-  const das::TBlock<bool, das::TTemporary<const char *>, das::TTemporary<ecs::EntityComponentRef>> &block, das::Context *context,
-  das::LineInfoArg *at)
+  const das::TBlock<bool, const das::TTemporary<const char *>, const das::TTemporary<ecs::EntityComponentRef>> &block,
+  das::Context *context, das::LineInfoArg *at)
 {
   bool found = false;
   vec4f args[2];
@@ -91,10 +91,10 @@ inline bool find_component_eid(ecs::EntityId eid,
 }
 inline ecs::Scene &get_active_scene() { return ecs::g_scenes->getActiveScene(); }
 bool das_get_underlying_ecs_type(das::TypeDeclPtr info, bool with_module_name,
-  const das::TBlock<void, das::TTemporary<const char *>> &block, das::Context *context, das::LineInfoArg *at);
+  const das::TBlock<void, const das::TTemporary<const char *>> &block, das::Context *context, das::LineInfoArg *at);
 
 inline bool find_templateDB(const ecs::TemplateDB &db,
-  const das::TBlock<bool, das::TTemporary<const char *>, das::TTemporary<ecs::Template>> &block, das::Context *context,
+  const das::TBlock<bool, const das::TTemporary<const char *>, const das::TTemporary<ecs::Template>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
   vec4f args[2];
@@ -115,7 +115,8 @@ inline bool find_templateDB(const ecs::TemplateDB &db,
   return found;
 }
 
-inline bool find_systemDB(const das::TBlock<bool, das::TTemporary<const char *>, das::TTemporary<ecs::EntitySystemDesc>> &block,
+inline bool find_systemDB(
+  const das::TBlock<bool, const das::TTemporary<const char *>, const das::TTemporary<ecs::EntitySystemDesc>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
   auto systems = g_entity_mgr->getSystems();

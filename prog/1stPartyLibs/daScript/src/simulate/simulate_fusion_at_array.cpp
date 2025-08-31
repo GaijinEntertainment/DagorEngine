@@ -150,7 +150,7 @@ namespace das {
     void createFusionEngine_at_array() {
         REGISTER_SETOP_SCALAR(ArrayAtR2V);
         REGISTER_SETOP_NUMERIC_VEC(ArrayAtR2V);
-        (*g_fusionEngine)["ArrayAt"].emplace_back(new FusionPoint_Set_ArrayAt_StringPtr());
+        (**g_fusionEngine)["ArrayAt"].emplace_back(new FusionPoint_Set_ArrayAt_StringPtr());
     }
 }
 

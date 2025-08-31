@@ -11,8 +11,6 @@ void FastPhysSystem::debugRender()
   E3DCOLOR color(255, 20, 20);
   E3DCOLOR velColor(255, 20, 255);
 
-  ::set_cached_debug_lines_wtm(TMatrix::IDENT);
-
   for (int i = 0; i < points.size(); ++i)
   {
     Point &pt = points[i];

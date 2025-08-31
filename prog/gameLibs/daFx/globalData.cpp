@@ -88,7 +88,7 @@ bool get_global_value(ContextId cid, const eastl::string &name, void *data, int 
 void update_global_data(Context &ctx)
 {
   TIME_D3D_PROFILE(dafx_update_global_data);
-  update_gpu_cb_buffer(ctx.globalData.gpuBuf.getBuf(), ctx.globalData.cpuRes.get(), ctx.globalData.size);
+  update_gpu_cb_buffer(ctx.globalData.gpuBuf.getBuf(), ctx.globalData.cpuRes.get(), ctx.globalData.size * sizeof(uint32_t));
 }
 
 void flush_global_values(ContextId cid)

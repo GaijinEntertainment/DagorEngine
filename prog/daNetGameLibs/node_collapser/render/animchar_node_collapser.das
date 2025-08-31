@@ -9,7 +9,7 @@ require DagorSystem
 require math.base
 require ecs.soa_template
 
-[soa_es, es(on_appear)]
+[soa_es, es(on_appear, track=animchar_node_collapser__nodes)]
 def node_collapser_create(evt : Event;
                           eid : EntityId;
                           var animchar_node_collapser : AnimcharNodeCollapser_SOA&;
@@ -51,11 +51,11 @@ def node_collapser_create(evt : Event;
           childNodes |> push(*geomtree |> geomtree_getChildNodeIdx(childNodes[i], uint(j)))
         i += 1
       let target = iter.value ?? ""
-      animchar_node_collapser |> push() <| [[AnimcharNodeCollapser
+      animchar_node_collapser |> push() <| AnimcharNodeCollapser(
         animchar_node_collapser__rootNode = rootRenderNodeIdx,
         animchar_node_collapser__targetNode = target == "" ? -1 : *scene |> scene_instance_getNodeId(target),
         animchar_node_collapser__childrenCount = childrenCount
-      ]]
+      )
 
   if length(animchar_node_collapser) == 0 && !isDisabled
     logwarn("animchar_node_collapser: not found any nodes of entity {eid} <{getEntityTemplateName(eid)}>")
@@ -63,7 +63,7 @@ def node_collapser_create(evt : Event;
 [soa_es, es(REQUIRE=watchedPlayerItem, before=animchar_before_render_es)]
 def on_animchar_node_collapser_item(evt : HideNodesEvent;
                                     var animchar_render : AnimcharRendComponent&;
-                                    animchar_visbits : uint8;
+                                    animchar_visbits : animchar_visbits_t;
                                     animchar_bsph : vec4f;
                                     animchar_node_collapser : AnimcharNodeCollapser_SOA;
                                     animchar_node_collapser__children : IntList;
@@ -77,7 +77,7 @@ def on_animchar_node_collapser_item(evt : HideNodesEvent;
 [soa_es, es(REQUIRE=hero, before=animchar_before_render_es)]
 def on_animchar_node_collapser(evt : HideNodesEvent;
                                var animchar_render : AnimcharRendComponent&;
-                               animchar_visbits : uint8;
+                               animchar_visbits : animchar_visbits_t;
                                animchar_bsph : vec4f;
                                animchar_node_collapser : AnimcharNodeCollapser_SOA;
                                animchar_node_collapser__children : IntList;

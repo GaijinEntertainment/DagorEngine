@@ -12,7 +12,9 @@ void teardown(ContextId) {}
 void on_unload_scene(ContextId) {}
 void reload_grass(ContextId, RandomGrass *) {}
 void get_instances(ContextId, Sbuffer *&, Sbuffer *&) {}
-void get_memory_statistics(int &vb, int &ib, int &blas, int &meta, int &queries) { vb = ib = blas = meta = queries = 0; }
-void blas_compacted(int, int, uint64_t) {}
+void get_memory_statistics(int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
+{
+  vb = ib = blas = meta = queries = 0;
+}
 UniqueBLAS *get_blas(int, int) { return nullptr; }
 } // namespace bvh::grass

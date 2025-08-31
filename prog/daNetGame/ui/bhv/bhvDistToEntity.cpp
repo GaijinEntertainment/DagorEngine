@@ -11,9 +11,8 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
-
+#include <supp/dag_alloca.h>
 #include <3d/dag_render.h>
-
 #include "ui/uiShared.h"
 
 using namespace darg;

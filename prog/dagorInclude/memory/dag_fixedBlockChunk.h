@@ -134,7 +134,7 @@ struct FixedBlockChunk : public FixedBlockChunkData
 {
   ~FixedBlockChunk() { memfree_anywhere(blocks); }
   FixedBlockChunk() : FixedBlockChunkData() {}
-  FixedBlockChunk(FixedBlockChunk &&a) : FixedBlockChunkData((FixedBlockChunkData &&) a) {}
+  FixedBlockChunk(FixedBlockChunk &&a) : FixedBlockChunkData((FixedBlockChunkData &&)a) {}
   FixedBlockChunk &operator=(const FixedBlockChunk &) = delete;
   FixedBlockChunk &operator=(FixedBlockChunk &&a)
   {

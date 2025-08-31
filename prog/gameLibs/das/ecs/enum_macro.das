@@ -1,3 +1,4 @@
+options indenting = 2
 options no_aot
 module enum_macro shared
 

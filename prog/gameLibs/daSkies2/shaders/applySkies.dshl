@@ -2,25 +2,58 @@ include "postfx_inc.dshl"
 include "sky_shader_global.dshl"
 include "skies_special_vision.dshl"
 include "vr_reprojection.dshl"
+include "camera_in_camera.dshl"
 
 texture lowres_sky;
 texture apply_sky_src_depth;
 
+float zFarSphere_radius = 1000000.;
+float4 zFarSphere_center_offset_dist = 0.;
+
 int blend_apply_skies = 0;
 interval blend_apply_skies: no < 1, yes;
+int deferred_msaa_subpass = 0;
+interval deferred_msaa_subpass: no < 1, yes;
 float sky_blendup_range = 0.0000005;
 
-shader applySkies
+shader applySkies, applySkies_sphere
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   cull_mode = none;
+  if (shader == applySkies_sphere)
+  {
+    z_write = true; // Otherwise transparent objects, like water, will write on top.
+  }
+  else
+  {
+    z_write = false;
+  }
 
-  z_write = false;
 
+  if ((blend_apply_skies == no || apply_sky_src_depth != NULL || !hardware.vulkan) && deferred_msaa_subpass == yes)
+  {
+    dont_render;
+  }
   if (blend_apply_skies == yes)
   {
-    z_test = false;
-    blend_src = sa;
-    blend_dst = isa;
+    if (shader == applySkies_sphere)
+    {
+      dont_render; // Not implemented.
+    }
+
+    if (deferred_msaa_subpass == no)
+    {
+      z_test = false;
+      blend_src = sa;
+      blend_dst = isa;
+    }
+    else
+    {
+      z_test = true;
+      blend_src = 1;
+      blend_dst = sa;
+    }
 
     INIT_ZNZFAR()
 
@@ -39,8 +72,11 @@ shader applySkies
         #ifndef APPLY_SKIES_DEPTH_IA
           #define APPLY_SKIES_DEPTH_IA 2
         #endif
-
-        SUBPASS_RESOURCE(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
+        ##if deferred_msaa_subpass == yes
+          SUBPASS_RESOURCE_MS(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
+        ##else
+          SUBPASS_RESOURCE(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
+        ##endif
       }
     }
     else
@@ -53,10 +89,58 @@ shader applySkies
     z_test = true;
   }
 
-  POSTFX_VS_TEXCOORD(0, texcoord)
+  if (shader == applySkies_sphere)
+  {
+    channel float3 pos = pos;
 
-  INIT_BOUNDING_VIEW_REPROJECTION(ps)
-  USE_BOUNDING_VIEW_REPROJECTION(ps)
+    hlsl {
+      struct VsInput
+      {
+        float3 pos: POSITION;
+      };
+
+      struct VsOutput
+      {
+        VS_OUT_POSITION(pos)
+        noperspective float2 texcoord: TEXCOORD0;
+      };
+    }
+
+    (vs) {
+      zFarSphere_radius@f1 = (zFarSphere_radius);
+      zFarSphere_center_offset@f3 = (zFarSphere_center_offset_dist);
+      globtm@f44 = globtm;
+    }
+
+    hlsl(vs) {
+      VsOutput apply_skies_sphere_vs(VsInput input) {
+        VsOutput output;
+        float3 relativePos = input.pos * zFarSphere_radius + zFarSphere_center_offset;
+        output.pos = mulPointTm(relativePos, globtm);
+
+        float2 clipSpace = output.pos.xy / output.pos.w;
+        output.texcoord = clipSpace*float2(0.5, -0.5) + 0.5; // mimic full-screen triangle texcoords. noperspective required.
+        return output;
+      }
+    }
+
+    compile("target_vs", "apply_skies_sphere_vs");
+  }
+  else
+  {
+    if (blend_apply_skies == yes && deferred_msaa_subpass == yes)
+    {
+      (vs) { sky_blendup_range_z@f1 = (sky_blendup_range + 0.001); }
+      POSTFX_VS_TEXCOORD(sky_blendup_range_z, texcoord)
+    }
+    else
+    {
+      POSTFX_VS_TEXCOORD(0, texcoord)
+    }
+  }
+
+  INIT_BOUNDING_VIEW_REPROJECTION_PS()
+  USE_BOUNDING_VIEW_REPROJECTION_PS()
 
   (ps) { lowres_sky@smp2d = lowres_sky;}
   hlsl(ps) {
@@ -67,12 +151,14 @@ shader applySkies
       tc = vr_bounding_view_reproject_tc(tc,0);
 ##endif
 
-##if blend_apply_skies == yes
-  ##if apply_sky_src_depth == NULL
+      float2 skyTc = check_and_remap_to_main_view_uv(tc);
+##if deferred_msaa_subpass == no
+  ##if blend_apply_skies == yes
+    ##if apply_sky_src_depth == NULL
       float depth = SUBPASS_LOAD(subpass_depth_tex, tc).r;
-  ##else
+    ##else
       float depth = tex2Dlod(src_depth_tex, float4(tc,0,0)).r;
-  ##endif
+    ##endif
       // should be blended only for distant horizon
       BRANCH
       if (depth > sky_blendup_range)
@@ -83,13 +169,35 @@ shader applySkies
       //fake distant fog/lightning
       float distCoef = (sky_blendup_range - depth) / sky_blendup_range;
       float alpha = saturate(distCoef);
-##else
+  ##else
       float alpha = 0;
-##endif
+  ##endif
 
-      float4 sky = tex2Dlod(lowres_sky, float4(tc,0,0));
+      float4 sky = tex2Dlod(lowres_sky, float4(skyTc,0,0));
       sky.a = alpha;
       return sky;
+##elif blend_apply_skies == yes
+      float4 depth;
+      depth.r = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 0).r;
+      depth.g = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 1).r;
+      depth.b = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 2).r;
+      depth.a = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 3).r;
+      BRANCH
+      if (min(min(depth.r, depth.g), min(depth.b, depth.a)) > sky_blendup_range)
+      {
+        return float4(0,0,0,1);
+      }
+      float4 zeroDepth = float4(depth == float4(0,0,0,0));
+      float zeroDepthFraction = dot(zeroDepth, 0.25);
+      float averageNonzeroDepth = dot(depth * (1 - zeroDepth), 0.25) / (1 - zeroDepthFraction);
+      float distCoef = (sky_blendup_range - averageNonzeroDepth) / sky_blendup_range;
+      float alpha = saturate(distCoef);
+      float4 sky = tex2Dlod(lowres_sky, float4(skyTc,0,0));
+      // Have to premultiply color output since we can have only part of samples covered, but they still require sky blend. In this case blend_src + blend_dst != 1
+      sky.a = 1 - alpha;
+      sky.rgb *= (zeroDepthFraction + alpha * (1 - zeroDepthFraction));
+      return sky;
+##endif
     }
   }
   compile("target_ps", "apply_skies_ps");

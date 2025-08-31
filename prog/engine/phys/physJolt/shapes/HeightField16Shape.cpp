@@ -460,7 +460,7 @@ void HeightField16Shape::GetSupportingFace(const SubShapeID &inSubShapeID, Vec3A
 
   // Flip triangle if scaled inside out
   if (ScaleHelpers::IsInsideOut(inScale))
-    swap(outVertices[1], outVertices[2]);
+    std::swap(outVertices[1], outVertices[2]);
 
   // Transform to world space
   Mat44 transform = inCenterOfMassTransform.PreScaled(inScale);
@@ -663,7 +663,7 @@ class HeightField16Shape::DecodingContext
 public:
   JPH_INLINE explicit DecodingContext(const HeightField16Shape *inShape) : mShape(inShape)
   {
-    static_assert(sizeof(CompressedHeightmap::sHierGridOffsets) / sizeof(uint) == cNumBitsXY + 1, "Offsets array is not long enough");
+    static_assert(std::size(CompressedHeightmap::sHierGridOffsets) == cNumBitsXY + 1, "Offsets array is not long enough");
 
     // Construct root stack entry
     mPropertiesStack[0] = 0; // level: 0, x: 0, y: 0
@@ -675,6 +675,11 @@ public:
     // Early out if there's no collision
     if (!mShape->mHData->blockVariance)
       return;
+
+    // Assert that an inside-out bounding box does not collide
+    JPH_IF_ENABLE_ASSERTS(UVec4 dummy = UVec4::sReplicate(0);)
+    JPH_ASSERT(ioVisitor.VisitRangeBlock(Vec4::sReplicate(-1.0e6f), Vec4::sReplicate(1.0e6f), Vec4::sReplicate(-1.0e6f),
+                 Vec4::sReplicate(1.0e6f), Vec4::sReplicate(-1.0e6f), Vec4::sReplicate(1.0e6f), dummy, 0) == 0);
 
     // Precalculate values relating to sample count
     uint32 sample_count = mShape->mSampleCount;
@@ -809,8 +814,8 @@ public:
           uint32 stride = block_size_plus_1 - size_x_plus_1;
 
           // Start range with a very large inside-out box
-          Vec3 value_min = Vec3::sReplicate(1.0e30f);
-          Vec3 value_max = Vec3::sReplicate(-1.0e30f);
+          Vec3 value_min = Vec3::sReplicate(cLargeFloat);
+          Vec3 value_max = Vec3::sReplicate(-cLargeFloat);
 
           // Loop over the samples to determine the min and max of this block
           for (uint32 block_y = 0; block_y < size_y_plus_1; ++block_y)
@@ -1077,7 +1082,7 @@ void HeightField16Shape::CastRay(const RayCast &inRay, const RayCastSettings &in
       mRayOrigin(inRay.mOrigin),
       mRayDirection(inRay.mDirection),
       mRayInvDirection(inRay.mDirection),
-      mBackFaceMode(inRayCastSettings.mBackFaceMode),
+      mBackFaceMode(inRayCastSettings.mBackFaceModeTriangles),
       mShape(inShape),
       mSubShapeIDCreator(inSubShapeIDCreator)
     {}
@@ -1138,9 +1143,8 @@ void HeightField16Shape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &
   // A height field doesn't have volume, so we can't test insideness
 }
 
-void HeightField16Shape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices,
-  uint inNumVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity,
-  int inCollidingShapeIndex) const
+void HeightField16Shape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale,
+  const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const
 {
   JPH_PROFILE_FUNCTION();
 
@@ -1162,6 +1166,9 @@ void HeightField16Shape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransfor
       Vec4 dist_sq =
         AABox4DistanceSqToPoint(mLocalPosition, inBoundsMinX, inBoundsMinY, inBoundsMinZ, inBoundsMaxX, inBoundsMaxY, inBoundsMaxZ);
 
+      // Clear distance for invalid bounds
+      dist_sq = Vec4::sSelect(Vec4::sReplicate(FLT_MAX), dist_sq, Vec4::sLessOrEqual(inBoundsMinY, inBoundsMaxY));
+
       // Sort so that highest values are first (we want to first process closer hits and we process stack top to bottom)
       return SortReverseAndStore(dist_sq, mClosestDistanceSq, ioProperties, &mDistanceStack[inStackTop]);
     }
@@ -1177,12 +1184,12 @@ void HeightField16Shape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransfor
 
   Visitor visitor(inCenterOfMassTransform, inScale);
 
-  for (SoftBodyVertex *v = ioVertices, *sbv_end = ioVertices + inNumVertices; v < sbv_end; ++v)
-    if (v->mInvMass > 0.0f)
+  for (CollideSoftBodyVertexIterator v = inVertices, sbv_end = inVertices + inNumVertices; v != sbv_end; ++v)
+    if (v.GetInvMass() > 0.0f)
     {
-      visitor.StartVertex(*v);
+      visitor.StartVertex(v);
       WalkHeightField(visitor);
-      visitor.FinishVertex(*v, inCollidingShapeIndex);
+      visitor.FinishVertex(v, inCollidingShapeIndex);
     }
 }
 

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "menuCam.cpp.inl"
 ECS_DEF_PULL_VAR(menuCam);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc menu_cam_init_es_comps[] =
 {
@@ -66,6 +68,7 @@ static void menu_cam_es_all(const ecs::UpdateStageInfo &__restrict info, const e
     if ( !(!ECS_RO_COMP(menu_cam_es_comps, "menu_cam__shouldRotateTarget", bool)) )
       continue;
     menu_cam_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(menu_cam_es_comps, "menu_cam__target", ecs::EntityId)
     , ECS_RO_COMP(menu_cam_es_comps, "menu_cam__offset", Point3)
     , ECS_RO_COMP(menu_cam_es_comps, "menu_cam__offsetMult", Point3)
@@ -112,6 +115,7 @@ static void menu_rotate_target_cam_init_es_all(const ecs::UpdateStageInfo &__res
     if ( !(!ECS_RW_COMP(menu_rotate_target_cam_init_es_comps, "menu_cam__dirInited", bool) && ECS_RO_COMP(menu_rotate_target_cam_init_es_comps, "menu_cam__shouldRotateTarget", bool)) )
       continue;
     menu_rotate_target_cam_init_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(menu_rotate_target_cam_init_es_comps, "menu_cam__target", ecs::EntityId)
     , ECS_RW_COMP(menu_rotate_target_cam_init_es_comps, "menu_cam__lastTarget", ecs::EntityId)
     , ECS_RW_COMP(menu_rotate_target_cam_init_es_comps, "menu_cam__initialTransform", TMatrix)
@@ -153,6 +157,7 @@ static void menu_rotate_target_cam_es_all(const ecs::UpdateStageInfo &__restrict
     if ( !(ECS_RO_COMP(menu_rotate_target_cam_es_comps, "menu_cam__dirInited", bool) && ECS_RO_COMP(menu_rotate_target_cam_es_comps, "menu_cam__shouldRotateTarget", bool)) )
       continue;
     menu_rotate_target_cam_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(menu_rotate_target_cam_es_comps, "menu_cam__target", ecs::EntityId)
     , ECS_RO_COMP(menu_rotate_target_cam_es_comps, "menu_cam__initialTransform", TMatrix)
     , ECS_RW_COMP(menu_rotate_target_cam_es_comps, "menu_cam__angles", Point2)
@@ -186,9 +191,9 @@ static ecs::CompileTimeQueryDesc menu_cam_target_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void menu_cam_target_ecs_query(ecs::EntityId eid, Callable function)
+inline void menu_cam_target_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, menu_cam_target_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, menu_cam_target_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -214,9 +219,9 @@ static ecs::CompileTimeQueryDesc menu_rotate_target_cam_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void menu_rotate_target_cam_ecs_query(ecs::EntityId eid, Callable function)
+inline void menu_rotate_target_cam_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, menu_rotate_target_cam_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, menu_rotate_target_cam_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -246,9 +251,9 @@ static ecs::CompileTimeQueryDesc menu_rotate_target_cam_with_offset_ecs_query_de
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void menu_rotate_target_cam_with_offset_ecs_query(ecs::EntityId eid, Callable function)
+inline void menu_rotate_target_cam_with_offset_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, menu_rotate_target_cam_with_offset_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, menu_rotate_target_cam_with_offset_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

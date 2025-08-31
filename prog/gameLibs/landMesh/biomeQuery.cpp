@@ -140,6 +140,11 @@ bool BiomeQueryCtx::init()
 
 void biome_query::init()
 {
+  if (!shader_exists("biome_query_cs"))
+  {
+    debug("Biome query system shader 'biome_query_cs' is not present, initialization skipped");
+    return;
+  }
   BIOME_QUERY_BLOCK;
   biome_query_ctx = eastl::make_unique<BiomeQueryCtx>();
   if (!biome_query_ctx->init())

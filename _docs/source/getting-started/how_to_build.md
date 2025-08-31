@@ -46,7 +46,7 @@ Requirements for building and using the Dagor Engine toolkit:
    python3 make_devtools.py X:\develop\devtools
    ```
 
-   ```{importnat}
+   ```{important}
    - If the script is not run as an administrator, installers of certain
      programs may request permission for installation, which you should grant.
    - If you plan to use plugins for 3ds Max, press `Y` when the script asks if
@@ -90,22 +90,27 @@ Download and extract additional binary files from the repository
 The directory structure should look like this:
 
 ```text
-X:\develop\DagorEngine\tools\...
-
-X:\develop\DagorEngine\samples\skiesSample\game
-                              \skiesSample\develop
-                              \skiesSample\prog
-
-X:\develop\DagorEngine\samples\testGI\game
-                              \testGI\develop
-                              \testGI\prog
+develop
+└── DagorEngine
+    ├── prog
+    ├── samples
+    │   ├── skiesSample
+    │   │   ├── game
+    │   │   ├── develop
+    │   │   └── prog
+    │   └── testGI
+    │       ├── game
+    │       ├── develop
+    │       └── prog
+    ├── tools
+    └── _docs
 ```
 
 where
 
-- `prog/`: contains game source code.
-- `develop/`: contains initial assets.
-- `game/`: directory where assets are placed after building and game executable
+- `prog`: contains game source code.
+- `develop`: contains initial assets.
+- `game`: directory where assets are placed after building and game executable
   files are located.
 
   ```{seealso}
@@ -117,11 +122,11 @@ where
 
 To build the **testGI** sample:
 
-1. Navigate to the `X:\develop\DagorEngine\samples\testGI\prog` directory.
+1. Navigate to the `X:/develop/DagorEngine/samples/testGI/prog` directory.
 
 2. Run the `jam` command.
 
-   After building, the executable file will be placed in the `testGI\game`
+   After building, the executable file will be placed in the `testGI/game`
    directory.
 
 3. Run `DagorEngine/build_all.cmd` to build the entire project toolkit from the

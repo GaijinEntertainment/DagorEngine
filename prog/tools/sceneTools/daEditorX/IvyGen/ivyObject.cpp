@@ -5,7 +5,7 @@
 #include <EditorCore/ec_IEditorCore.h>
 #include <drv/3d/dag_driver.h>
 
-#include "plugIn.h"
+#include "plugin.h"
 #include <sceneRay/dag_sceneRay.h>
 #include <math/dag_traceRayTriangle.h>
 #include <scene/dag_frtdump.h>
@@ -26,6 +26,7 @@
 
 #include <debug/dag_debug.h>
 
+using namespace objgenerator; // prng
 using editorcore_extapi::dagGeom;
 using editorcore_extapi::dagRender;
 using editorcore_extapi::make_full_start_path;
@@ -88,7 +89,7 @@ public:
   MyCollisionCallback() : rt(NULL), hmap(NULL), faces(tmpmem) {}
 
   /** compute the adhesion of scene objects at a point pos*/
-  virtual Point3 computeAdhesion(const Point3 &pos, real maxDist, Point3 &norm)
+  Point3 computeAdhesion(const Point3 &pos, real maxDist, Point3 &norm) override
   {
     float minDist = maxDist;
     Point3 adhesionVector = Point3(0, 0, 0);
@@ -149,7 +150,7 @@ public:
     }
   }
 
-  virtual bool traceRay(const Point3 &p, const Point3 &dir, float &dist, Point3 &normal)
+  bool traceRay(const Point3 &p, const Point3 &dir, float &dist, Point3 &normal) override
   {
     return DAGORED2->traceRay(p, dir, dist, &normal, false);
   }
@@ -672,7 +673,7 @@ void IvyObject::putMoveUndo()
   public:
     ReGrowUndo(IvyObject *o) : UndoMove(o) {}
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoPos = obj->getPos();
@@ -682,7 +683,7 @@ void IvyObject::putMoveUndo()
       if (v)
         v->reGrow();
     }
-    virtual void redo()
+    void redo() override
     {
       obj->setPos(redoPos);
 
@@ -1065,7 +1066,7 @@ void IvyObject::grow()
         1.0f - (cos(roots[i]->nodes[j]->length / roots[i]->nodes[roots[i]->nodes.size() - 1]->length * 2.0f * PI) * 0.5f + 0.5f);
 
       // random influence
-      float probability = _frnd(currentSeed);
+      float probability = frnd(currentSeed);
 
       if (probability * weight > branchingProbability)
       {

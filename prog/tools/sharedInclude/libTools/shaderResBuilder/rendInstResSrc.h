@@ -43,6 +43,7 @@ public:
   static float sideWallAreaThresForOccluder;
   static DataBlock *buildResultsBlk;
   static bool sepMatToBuildResultsBlk;
+  static const DataBlock *warnTwoSided;
   static eastl::vector<DeleteParametersFromLod> deleteParameters;
 
   struct RigidObj

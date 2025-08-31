@@ -37,12 +37,13 @@ void check_lost_dobjects()
 
 
 #ifdef DEBUG_DOBJECTS
+#include <util/dag_string.h>
 DObject::DObject()
 {
   ref_count = 0;
   dobject_flags = 0;
 #ifdef CHK_LOST_DOBJ
-  dobj.setmem(inimem_ptr()); // to ensure it is initialized
+  dobj.get_allocator().m = inimem_ptr(); // to ensure it is initialized
 
   int i;
   for (i = 0; i < dobj.size(); ++i)
@@ -93,33 +94,34 @@ static String stackInfo()
 void DObject::addRef()
 {
   if (dobject_flags & DOBJFLG_DEBUG)
-    debug("ref %d++ %s %X\n%s", ref_count, class_name(), this, stackInfo());
+    debug("ref %d++ %s %X\n%s", interlocked_acquire_load(ref_count), class_name(), this, stackInfo());
 
-  ++ref_count;
+  interlocked_increment(ref_count);
 }
 
 
 void DObject::delRef()
 {
-  if (ref_count == 0)
-  {
-    debug("ref_count already 0 %X", this);
-    const char *cn = "<unknown>";
-    DAGOR_TRY { cn = class_name(); }
-    DAGOR_CATCH(DagorException) {}
-    debug("ref_count already 0 %s %X", cn, this);
-    DAG_FATAL("ref_count already 0 %s %X", cn, this);
-  }
-
-  if (dobject_flags & DOBJFLG_DEBUG)
-    debug("ref %d-- %s %X\n%s", ref_count, class_name(), this, stackInfo());
-
-  if (--ref_count <= 0)
+  int rc = interlocked_decrement(ref_count);
+  if (rc >= 0)
   {
     if (dobject_flags & DOBJFLG_DEBUG)
-      debug("delref0 %s %X", class_name(), this);
-    delete this;
+      debug("ref %d-- %s %X\n%s", rc + 1, class_name(), this, stackInfo());
+
+    if (rc == 0)
+    {
+      if (dobject_flags & DOBJFLG_DEBUG)
+        debug("delref0 %s %X", class_name(), this);
+      delete this;
+    }
+    return;
   }
+
+  const char *cn = "<unknown>";
+  DAGOR_TRY { cn = class_name(); }
+  DAGOR_CATCH(DagorException) {}
+  debug("ref_count already 0 %s %X", cn, this);
+  DAG_FATAL("ref_count already 0 %s %X", cn, this);
 }
 
 

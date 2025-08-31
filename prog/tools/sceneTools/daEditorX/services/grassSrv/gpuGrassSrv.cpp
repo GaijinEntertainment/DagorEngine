@@ -6,6 +6,9 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <oldEditor/de_interface.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <vecmath/dag_vecMathDecl.h>
+
 
 bool RandomGPUGrassRenderHelper::isValid() const { return hmap != nullptr; }
 
@@ -80,7 +83,10 @@ void GPUGrassService::beforeRender(Stage stage)
     return;
 
   const TMatrix &itm = ::grs_cur_view.itm;
-  grass->generate(itm.getcol(3), itm.getcol(2), grassHelper);
+  mat44f globtm;
+  d3d::getglobtm(globtm);
+  Frustum frustum(globtm);
+  grass->generate(frustum, itm.getcol(3), itm.getcol(2), grassHelper);
 }
 
 void GPUGrassService::renderGeometry(Stage stage)

@@ -55,6 +55,11 @@ D3dResource *RingCPUBufferLock::getNewTargetAndId(uint32_t &frame, D3DRESID &id)
     return nullptr;
 
   uint32_t bufferIdx = currentBufferIssued % buffers.size();
+  // after ring reset, some readback work may not yet be completed, breaking async readback conditions
+  // make sure it is completed before giving target for writes
+  if (!d3d::get_event_query_status(buffers[bufferIdx].event, false))
+    return nullptr;
+
   state = NEWTARGET;
   frame = currentBufferIssued;
   currentBufferIssued++;
@@ -78,7 +83,7 @@ void RingCPUBufferLock::startCPUCopy()
 
 void RingCPUBufferLock::unlockData(int buffer)
 {
-  if (buffers[buffer].gpu->restype() == RES3D_SBUF)
+  if (buffers[buffer].gpu->getType() == D3DResourceType::SBUF)
     ((Sbuffer *)buffers[buffer].gpu)->unlock();
   else
     ((Texture *)buffers[buffer].gpu)->unlockimg();
@@ -86,7 +91,7 @@ void RingCPUBufferLock::unlockData(int buffer)
 
 bool RingCPUBufferLock::lockData(int buffer, int &stride, uint8_t **pdata, bool wait)
 {
-  if (buffers[buffer].gpu->restype() == RES3D_SBUF)
+  if (buffers[buffer].gpu->getType() == D3DResourceType::SBUF)
     return ((Sbuffer *)buffers[buffer].gpu)->lock(0, 0, (void **)pdata, VBLOCK_READONLY | (wait ? 0 : VBLOCK_NOSYSLOCK));
   else
     return ((Texture *)buffers[buffer].gpu)
@@ -158,11 +163,4 @@ void RingCPUBufferLock::unlock()
   unlockData(currentBufferToLock % buffers.size());
   currentBufferToLock++;
   state = NORMAL;
-}
-
-void RingCPUBufferLock::texaddr(int addrmode)
-{
-  G_ASSERT_RETURN(buffers[0].gpu && buffers[0].gpu->restype() == RES3D_TEX, );
-  for (int i = 0; i < buffers.size(); ++i)
-    ((Texture *)buffers[i].gpu)->texaddr(addrmode);
 }

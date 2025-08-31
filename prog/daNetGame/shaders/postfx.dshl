@@ -61,7 +61,7 @@ endmacro
 define_macro_if_not_defined USE_POSTFX_MODIFIER()
   hlsl(ps)
   {
-    void apply_postfx_modifiers(float2 screen_uv, inout float3 color) {}
+    void apply_postfx_modifiers(float2 screen_uv, inout float3 color, float3 bloom) {}
   }
 endmacro
 
@@ -157,7 +157,7 @@ shader postfx
   USE_SHADER_GAMMA()
   INIT_VIGNETTE()
   USE_VIGNETTE()
-  INIT_FILM_GRAIN()
+  INIT_FILM_GRAIN(true)
   USE_FILM_GRAIN()
   if (cinematic_mode_on == on)
   {
@@ -401,7 +401,7 @@ shader postfx
         result = apply_film_grain(result, pos);
       ##if cinematic_mode_on == on
         BRANCH
-        if (flare_params.x > 0.0 || flare_params.y > 0.0)
+        if ((flare_params.x > 0.0 || flare_params.y > 0.0) && flare_enabled())
           result += (float3)flare_value(tc, 0.0f);
       ##endif
     }
@@ -468,9 +468,11 @@ shader postfx
         flash_blind_effect(sceneUV, frame);
       }
 
-      apply_postfx_modifiers(sceneUV, frame);
+      float3 bloom = getBloom(input.tc);
 
-      half3 result = common_postfx(frame, input.tc, get_local_exposure(frame, input.tc));
+      apply_postfx_modifiers(sceneUV, frame, bloom);
+
+      half3 result = common_postfx_with_precalculated_bloom(frame, input.tc, get_local_exposure(frame, input.tc), bloom);
 
       apply_post_bloom_effects(input.tc, result);
       apply_cinematic_mode_pre_tonemap_effects(result, input.tc, pos.xy);
@@ -489,6 +491,7 @@ shader postfx
       ##endif
 
       ##if (hdr_ps_output_mode == sdr_only) || (hdr_ps_output_mode == hdr10_and_sdr)
+        // note: for the special effects that use lerp with the result, it would be more correct to apply gamma and tonemapping to the components individually
         float3 sdr_result = performLUTTonemap(result);
         sdr_result = apply_shader_gamma(sdr_result);
         apply_cinematic_mode_post_tonemap_effects(sdr_result, input.tc);

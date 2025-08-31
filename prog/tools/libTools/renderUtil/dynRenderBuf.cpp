@@ -44,12 +44,14 @@ DynRenderBuffer::DynRenderBuffer(const char *class_name) : edVerts(midmem), edFa
   if (!edMat)
   {
     texVarId = -1;
+    texSamplerstateVarId = -1;
     edBuffer = NULL;
     logerr("failed to get shader <%s>", class_name);
     return;
   }
 
   texVarId = get_shader_variable_id("tex");
+  texSamplerstateVarId = get_shader_variable_id("tex_samplerstate");
 
   if (!edMat->checkChannels(channels, sizeof(channels) / sizeof(channels[0])))
     DAG_FATAL("Invalid channels for shader '%s'!", (char *)edMat->getShaderClassName());
@@ -59,6 +61,15 @@ DynRenderBuffer::DynRenderBuffer(const char *class_name) : edVerts(midmem), edFa
 
   createBuffer(vertexMaxCount, faceMaxCount);
   edMat->set_texture_param(texVarId, BAD_TEXTUREID);
+  edMat->set_sampler_param(texSamplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
+}
+DynRenderBuffer::~DynRenderBuffer()
+{
+  if (edMat)
+  {
+    edMat->set_texture_param(texVarId, BAD_TEXTUREID);
+    edMat->set_sampler_param(texSamplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
+  }
 }
 
 void DynRenderBuffer::createBuffer(int max_verts, int max_faces)
@@ -298,9 +309,6 @@ void DynRenderBuffer::drawBox(const TMatrix &tm, E3DCOLOR color)
 }
 
 
-void DynRenderBuffer::flushToBuffer(TEXTUREID tid) { addFaces(tid); }
-
-
 void DynRenderBuffer::addFaces(TEXTUREID tid)
 {
   const int faceCnt = edFaces.size() / 3;
@@ -337,6 +345,7 @@ void DynRenderBuffer::addFaces(TEXTUREID tid)
   G_ASSERT(edMat);
 
   edMat->set_texture_param(texVarId, tid);
+  edMat->set_sampler_param(texSamplerstateVarId, get_texture_separate_sampler(tid));
   if (edFaces.size() >= 3)
   {
     edBuffer->addFaces(&edVerts[0], edVerts.size(), &edFaces[0], edFaces.size() / 3);

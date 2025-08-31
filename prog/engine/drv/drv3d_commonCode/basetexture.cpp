@@ -13,26 +13,18 @@ bool BaseTextureImpl::isSameFormat(int cflg1, int cflg2)
   return false;
 }
 
-BaseTextureImpl::BaseTextureImpl(int set_cflg, int set_type)
-{
-  anisotropyLevel = 1;
-  addrU = TEXADDR_WRAP;
-  addrV = TEXADDR_WRAP;
-  addrW = TEXADDR_WRAP;
-
-  texFilter = TEXFILTER_DEFAULT;
-  mipFilter = TEXMIPMAP_DEFAULT;
-  minMipLevel = 15; // 32768 texture size
-  maxMipLevel = 0;
-  mipLevels = 1;
-  cflg = set_cflg;
-  type = set_type;
-  base_format = (cflg & TEXFMT_MASK);
-}
+BaseTextureImpl::BaseTextureImpl(uint32_t cflg, D3DResourceType type) :
+  minMipLevel{15}, // 32768 texture size
+  maxMipLevel{0},
+  mipLevels{1},
+  cflg{cflg},
+  type{type},
+  base_format{cflg & TEXFMT_MASK}
+{}
 
 int BaseTextureImpl::level_count() const { return mipLevels; }
 
-void BaseTextureImpl::setTexName(const char *name) { setResName(name); }
+void BaseTextureImpl::setTexName(const char *name) { setName(name); }
 
 int BaseTextureImpl::getinfo(TextureInfo &ti, int level) const
 {
@@ -43,27 +35,28 @@ int BaseTextureImpl::getinfo(TextureInfo &ti, int level) const
   ti.h = max<uint32_t>(1u, height >> level);
   switch (type)
   {
-    case RES3D_CUBETEX:
+    case D3DResourceType::TEX:
+      ti.d = 1;
+      ti.a = 1;
+      break;
+    case D3DResourceType::CUBETEX:
       ti.d = 1;
       ti.a = 6;
       break;
-    case RES3D_CUBEARRTEX:
-    case RES3D_ARRTEX:
-      ti.d = 1;
-      ti.a = depth * (isCubeArray() ? 6 : 1);
-      break;
-    case RES3D_VOLTEX:
+    case D3DResourceType::VOLTEX:
       ti.d = max<uint32_t>(1u, depth >> level);
       ti.a = 1;
       break;
-    default:
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
       ti.d = 1;
-      ti.a = 1;
+      ti.a = depth * (isCubeArray() ? 6 : 1);
       break;
+    case D3DResourceType::SBUF: G_ASSERT(false); break;
   }
 
   ti.mipLevels = mipLevels;
-  ti.resType = type;
+  ti.type = type;
   ti.cflg = cflg;
   return 1;
 }

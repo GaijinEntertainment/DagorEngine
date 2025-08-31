@@ -8,15 +8,15 @@
 #include <assets/assetRefs.h>
 
 #include <de3_interface.h>
+#include <EditorCore/ec_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <winGuiWrapper/wgw_busy.h>
 
 
 BadRefFinder::BadRefFinder(DagorAssetMgr *assetMgr) : mAssetMgr(assetMgr), mBadRefCount(0)
 {
-  wingw::set_busy(true);
+  ec_set_busy(true);
   findBadReferences();
-  wingw::set_busy(false);
+  ec_set_busy(false);
 
   if (mBadRefCount)
   {
@@ -48,7 +48,8 @@ void BadRefFinder::checkAssetReferences(DagorAsset *asset)
   if (!refProvider)
     return;
 
-  dag::ConstSpan<IDagorAssetRefProvider::Ref> refs = refProvider->getAssetRefs(*asset);
+  Tab<IDagorAssetRefProvider::Ref> refs;
+  refProvider->getAssetRefs(*asset, refs);
 
   for (int i = 0; i < refs.size(); ++i)
   {

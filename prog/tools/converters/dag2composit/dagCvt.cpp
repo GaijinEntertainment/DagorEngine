@@ -130,26 +130,26 @@ int convertFile(const char *in_filename, const char *out_filename = NULL)
 
 int convertDir(const char *in_dir, const char *out_dir)
 {
-  alefind_t ff;
   String mask(in_dir);
   append_slash(mask);
   mask += DAG_FILE_MASK;
-  if (::dd_find_first(mask, DA_FILE, &ff))
+  bool firstIteration = true;
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
   {
-    String outDir(out_dir);
-    append_slash(outDir);
-    dd_mkpath(outDir);
-    do
+    if (firstIteration) // create new folder if some files were found
     {
-      String filename(in_dir);
-      append_slash(filename);
-      filename += ff.name;
+      String outDir(out_dir);
+      append_slash(outDir);
+      dd_mkpath(outDir);
+      firstIteration = false;
+    }
+    String filename(in_dir);
+    append_slash(filename);
+    filename += ff.name;
 
-      String outfname(outDir + ff.name);
-      if (convertFile(filename, outfname) == 0)
-        printf("processed: %s\n", (char *)filename);
-    } while (::dd_find_next(&ff));
-    ::dd_find_close(&ff);
+    String outfname(outDir + ff.name);
+    if (convertFile(filename, outfname) == 0)
+      printf("processed: %s\n", (char *)filename);
   }
 
   return 0;

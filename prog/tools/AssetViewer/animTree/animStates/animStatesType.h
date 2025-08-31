@@ -19,6 +19,7 @@ enum class AnimStatesType
   PREVIEW,
   INIT_FIFO3,
   POST_BLEND_CTRL_ORDER,
+  ROOT_PROPS,
 };
 
 inline const Tab<String> state_desc_combo_box_types = {String("State"), String("Channel"), String("State alias")};
@@ -28,3 +29,4 @@ int get_state_desc_cbox_index(AnimStatesType type);
 AnimStatesType get_state_desc_cbox_enum_value(const char *block_name);
 const char *get_state_desc_cbox_block_name(int idx);
 const char *get_state_desc_cbox_block_name(AnimStatesType type);
+const char *get_state_desc_icon(AnimStatesType type);

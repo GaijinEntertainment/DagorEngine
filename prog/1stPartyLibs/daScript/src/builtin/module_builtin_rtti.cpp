@@ -29,6 +29,7 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(AnnotationArguments,AnnotationArguments)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(AnnotationArgumentList,AnnotationArgumentList)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(AnnotationDeclaration,AnnotationDeclaration)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(AnnotationList,AnnotationList)
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(DebugInfoHelper,DebugInfoHelper)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Program,Program)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Module,Module)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(Error,Error)
@@ -181,33 +182,37 @@ namespace das {
         }
     };
 
+
+    enum RttiIdx {
+        RttiBool = 0,
+        RttiInt32 = 1,
+        RttiUint32 = 2,
+        RttiInt64 = 3,
+        RttiUint64 = 4,
+        RttiFloat = 5,
+        RttiDouble = 6,
+        RttiString = 7,
+        RttiAny = 8,
+    };
+
     template <>
     struct typeFactory<RttiValue> {
         static TypeDeclPtr make(const ModuleLibrary & library ) {
             auto vtype = make_smart<TypeDecl>(Type::tVariant);
             vtype->alias = "RttiValue";
-            vtype->aotAlias = true;
-            vtype->addVariant("tBool",   typeFactory<decltype(RttiValue::bValue  )>::make(library));
-            vtype->addVariant("tInt",    typeFactory<decltype(RttiValue::iValue  )>::make(library));
-            vtype->addVariant("tUInt",   typeFactory<decltype(RttiValue::uValue  )>::make(library));
-            vtype->addVariant("tInt64",  typeFactory<decltype(RttiValue::i64Value)>::make(library));
-            vtype->addVariant("tUInt64", typeFactory<decltype(RttiValue::u64Value)>::make(library));
-            vtype->addVariant("tFloat",  typeFactory<decltype(RttiValue::fValue  )>::make(library));
-            vtype->addVariant("tDouble", typeFactory<decltype(RttiValue::dfValue )>::make(library));
-            vtype->addVariant("tString", typeFactory<decltype(RttiValue::sValue  )>::make(library));
-            vtype->addVariant("nothing", typeFactory<decltype(RttiValue::nothing )>::make(library));
+            vtype->aotAlias = false;
+            vtype->addVariant("tBool",   typeFactory<RttiValue::NthType<RttiBool>>::make(library));
+            vtype->addVariant("tInt",    typeFactory<RttiValue::NthType<RttiInt32>>::make(library));
+            vtype->addVariant("tUInt",   typeFactory<RttiValue::NthType<RttiUint32>>::make(library));
+            vtype->addVariant("tInt64",  typeFactory<RttiValue::NthType<RttiInt64>>::make(library));
+            vtype->addVariant("tUInt64", typeFactory<RttiValue::NthType<RttiUint64>>::make(library));
+            vtype->addVariant("tFloat",  typeFactory<RttiValue::NthType<RttiFloat>>::make(library));
+            vtype->addVariant("tDouble", typeFactory<RttiValue::NthType<RttiDouble>>::make(library));
+            vtype->addVariant("tString", typeFactory<RttiValue::NthType<RttiString>>::make(library));
+            vtype->addVariant("nothing", typeFactory<RttiValue::NthType<RttiAny>>::make(library));
             // optional validation
             DAS_ASSERT(sizeof(RttiValue) == vtype->getSizeOf());
             DAS_ASSERT(alignof(RttiValue) == vtype->getAlignOf());
-            DAS_ASSERT(offsetof(RttiValue, bValue  ) == vtype->getVariantFieldOffset(0));
-            DAS_ASSERT(offsetof(RttiValue, iValue  ) == vtype->getVariantFieldOffset(1));
-            DAS_ASSERT(offsetof(RttiValue, uValue  ) == vtype->getVariantFieldOffset(2));
-            DAS_ASSERT(offsetof(RttiValue, i64Value) == vtype->getVariantFieldOffset(3));
-            DAS_ASSERT(offsetof(RttiValue, u64Value) == vtype->getVariantFieldOffset(4));
-            DAS_ASSERT(offsetof(RttiValue, fValue  ) == vtype->getVariantFieldOffset(5));
-            DAS_ASSERT(offsetof(RttiValue, dfValue ) == vtype->getVariantFieldOffset(6));
-            DAS_ASSERT(offsetof(RttiValue, sValue  ) == vtype->getVariantFieldOffset(7));
-            DAS_ASSERT(offsetof(RttiValue, nothing ) == vtype->getVariantFieldOffset(8));
             return vtype;
         }
     };
@@ -216,7 +221,8 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ModuleFlags";
         ft->argNames = {
-            "builtIn", "promoted", "isPublic", "isModule", "isSolidContext", "doNotAllowUnsafe"
+            "builtIn", "promoted", "isPublic", "isModule", "isSolidContext", "doNotAllowUnsafe",
+            "wasParsedNameless", "visibleEverywhere"
         };
         return ft;
     }
@@ -285,6 +291,8 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(last_exception)>("last_exception");
             addField<DAS_BIND_MANAGED_FIELD(exceptionAt)>("exceptionAt");
             addField<DAS_BIND_MANAGED_FIELD(contextMutex)>("contextMutex");
+            addProperty<DAS_BIND_MANAGED_PROP(getInitSemanticHash)>("getInitSemanticHash",
+                                                                  "getInitSemanticHash");
             addProperty<DAS_BIND_MANAGED_PROP(getTotalFunctions)>("totalFunctions",
                 "getTotalFunctions");
             addProperty<DAS_BIND_MANAGED_PROP(getTotalVariables)>("totalVariables",
@@ -348,9 +356,17 @@ namespace das {
     struct ProgramAnnotation : ManagedStructureAnnotation <Program,false,true> {
         ProgramAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("Program", ml) {
             addField<DAS_BIND_MANAGED_FIELD(thisModuleName)>("thisModuleName");
+            addField<DAS_BIND_MANAGED_FIELD(thisNamespace)>("thisNamespace");
+            addField<DAS_BIND_MANAGED_FIELD(totalFunctions)>("totalFunctions");
+            addField<DAS_BIND_MANAGED_FIELD(totalVariables)>("totalVariables");
+            addField<DAS_BIND_MANAGED_FIELD(globalStringHeapSize)>("globalStringHeapSize");
+            addField<DAS_BIND_MANAGED_FIELD(initSemanticHashWithDep)>("initSemanticHashWithDep");
             addFieldEx ( "flags", "flags", offsetof(Program, flags), makeProgramFlags() );
+            addProperty<DAS_BIND_MANAGED_PROP(getThisModule)>("getThisModule");
+            addProperty<DAS_BIND_MANAGED_PROP(getDebugger)>("getDebugger");
             addField<DAS_BIND_MANAGED_FIELD(errors)>("errors");
             addField<DAS_BIND_MANAGED_FIELD(options)>("_options","options");
+            addField<DAS_BIND_MANAGED_FIELD(policies)>("policies","policies");
         }
     };
 
@@ -412,6 +428,7 @@ namespace das {
             addProperty<DAS_BIND_MANAGED_PROP(avoidNullPtr)>("avoidNullPtr");
             addProperty<DAS_BIND_MANAGED_PROP(getSizeOf)>("sizeOf", "getSizeOf");
             addProperty<DAS_BIND_MANAGED_PROP(getAlignOf)>("alignOf", "getAlignOf");
+            from("Annotation");
         }
     };
 
@@ -420,6 +437,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
             addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
             addProperty<DAS_BIND_MANAGED_PROP(fieldCount)>("fieldCount");
+            from("TypeAnnotation");
         }
     };
 
@@ -456,7 +474,7 @@ namespace das {
         using TT = ST;
         DAS_PTR_NODE;
         SimNode_DebugInfoAtField ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t ofs )
-            : SimNode_At(at, rv, idx, 0, ofs, 0) {}
+            : SimNode_At(at, rv, idx, 0, ofs, 0, "type<DebugInfo>.field[index]") {}
         __forceinline char * compute ( Context & context ) {
             DAS_PROFILE_NODE
             auto pValue = (ST *) value->evalPtr(context);
@@ -626,6 +644,10 @@ namespace das {
 
     struct TypeInfoAnnotation : ManagedTypeInfoAnnotation <TypeInfo> {
         TypeInfoAnnotation(ModuleLibrary & ml) : ManagedTypeInfoAnnotation ("TypeInfo", ml) {
+            addField<DAS_BIND_MANAGED_FIELD(type)>("_type","type");
+            addField<DAS_BIND_MANAGED_FIELD(dim)>("dim");
+            // addField<DAS_BIND_MANAGED_FIELD(annotation_or_name)>("annotation_or_name");
+            addProperty<DAS_BIND_MANAGED_PROP(getAnnotation)>("annotation_or_name", "getAnnotation");
         }
     };
 
@@ -666,14 +688,15 @@ namespace das {
         FuncInfoAnnotation(ModuleLibrary & ml) : DebugInfoAnnotation ("FuncInfo", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
             addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
+            addField<DAS_BIND_MANAGED_FIELD(fields)>("fields");
             addField<DAS_BIND_MANAGED_FIELD(stackSize)>("stackSize");
             addField<DAS_BIND_MANAGED_FIELD(result)>("result");
             addField<DAS_BIND_MANAGED_FIELD(locals)>("locals");
-            addField<DAS_BIND_MANAGED_FIELD(localCount)>("localCount");
             addField<DAS_BIND_MANAGED_FIELD(globals)>("globals");
-            addField<DAS_BIND_MANAGED_FIELD(globalCount)>("globalCount");
             addField<DAS_BIND_MANAGED_FIELD(hash)>("hash");
             addField<DAS_BIND_MANAGED_FIELD(flags)>("flags");
+            addField<DAS_BIND_MANAGED_FIELD(localCount)>("localCount");
+            addField<DAS_BIND_MANAGED_FIELD(globalCount)>("globalCount");
             fieldType = makeType<VarInfo>(*mlib);
             fieldType->ref = true;
         }
@@ -693,6 +716,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(aot)>("aot");
             addField<DAS_BIND_MANAGED_FIELD(standalone_context)>("standalone_context");
             addField<DAS_BIND_MANAGED_FIELD(aot_module)>("aot_module");
+            addField<DAS_BIND_MANAGED_FIELD(aot_macros)>("aot_macros");
             addField<DAS_BIND_MANAGED_FIELD(completion)>("completion");
             addField<DAS_BIND_MANAGED_FIELD(export_all)>("export_all");
             addField<DAS_BIND_MANAGED_FIELD(serialize_main_module)>("serialize_main_module");
@@ -732,7 +756,6 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(aot_order_side_effects)>("aot_order_side_effects");
             addField<DAS_BIND_MANAGED_FIELD(no_unused_function_arguments)>("no_unused_function_arguments");
             addField<DAS_BIND_MANAGED_FIELD(no_unused_block_arguments)>("no_unused_block_arguments");
-            addField<DAS_BIND_MANAGED_FIELD(smart_pointer_by_value_unsafe)>("smart_pointer_by_value_unsafe");
             addField<DAS_BIND_MANAGED_FIELD(allow_block_variable_shadowing)>("allow_block_variable_shadowing");
             addField<DAS_BIND_MANAGED_FIELD(allow_local_variable_shadowing)>("allow_local_variable_shadowing");
             addField<DAS_BIND_MANAGED_FIELD(allow_shared_lambda)>("allow_shared_lambda");
@@ -768,6 +791,14 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(threadlock_context)>("threadlock_context");
         }
         virtual bool isLocal() const override { return true; }
+    };
+
+
+    struct DebugInfoHelperAnnotation : ManagedStructureAnnotation<DebugInfoHelper> {
+        DebugInfoHelperAnnotation(ModuleLibrary & ml)
+            : ManagedStructureAnnotation<DebugInfoHelper> ("DebugInfoHelper", ml) {
+            addField<DAS_BIND_MANAGED_FIELD(rtti)>("rtti");
+        }
     };
 
     template <typename TT>
@@ -820,19 +851,21 @@ namespace das {
     }
 
     void rtti_builtin_simulate ( const smart_ptr<Program> & program,
-            const TBlock<void,bool,smart_ptr<Context>,string> & block, Context * context, LineInfoArg * lineinfo ) {
+            const TBlock<void,bool,smart_ptr_raw<Context>,string> & block, Context * context, LineInfoArg * lineinfo ) {
         TextWriter issues;
         auto ctx = get_context(program->getContextStackSize());
+        ctx->addRef();
         bool failed = !program->simulate(*ctx, issues);
         if ( failed ) {
             for ( auto & err : program->errors ) {
                 issues << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
             }
             string istr = issues.str();
-            das_invoke<void>::invoke<bool,smart_ptr<Context>,const string &>(context,lineinfo,block,false,nullptr,istr);
+            das_invoke<void>::invoke<bool,smart_ptr_raw<Context>,const string &>(context,lineinfo,block,false,nullptr,istr);
         } else {
-            das_invoke<void>::invoke<bool,smart_ptr<Context>,const string &>(context,lineinfo,block,true,ctx,"");
+            das_invoke<void>::invoke<bool,smart_ptr_raw<Context>,const string &>(context,lineinfo,block,true,ctx,"");
         }
+        ctx->delRef();
     }
 
     void rtti_builtin_compile ( char * modName, char * str, const CodeOfPolicies & cop,
@@ -920,58 +953,49 @@ namespace das {
     }
 
     RttiValue rtti_builtin_argument_value(const AnnotationArgument & info, Context * context, LineInfoArg * at ) {
-        RttiValue nada;
-        nada._variant = 8;  // nothing
-        nada.nothing = v_zero();
+        const auto align = sizeof(vec4f) - sizeof(int32_t);
         switch (info.type) {
-        case Type::tBool:
-            nada._variant = 0;
-            nada.bValue = info.bValue;
-            break;
-        case Type::tInt:
-            nada._variant = 1;
-            nada.iValue = info.iValue;
-            break;
-        case Type::tFloat:
-            nada._variant = 5;
-            nada.fValue = info.fValue;
-            break;
-        case Type::tString:
-            nada._variant = 7;
-            nada.sValue = context->allocateString(info.sValue, at);
-            break;
-        default:;
+        case Type::tBool:   return RttiValue::create<bool, RttiBool>(info.bValue, align);
+        case Type::tInt:    return RttiValue::create<int32_t, RttiInt32>(info.iValue, align);
+        case Type::tFloat:  return RttiValue::create<float, RttiFloat>(info.fValue, align);
+        case Type::tString: return RttiValue::create<char*, RttiString>(context->allocateString(info.sValue, at), align);
+        default: DAS_ASSERT(false); // I guess unreachable?
         }
-        return nada;
+        return RttiValue{};
     }
 
 
     RttiValue rtti_builtin_variable_value(const VarInfo & info) {
-        RttiValue nada;
-        nada._variant = 8;  // nothing
-        nada.nothing = v_zero();
+        RttiValue def {};
+        def.index = RttiAny;
         if (info.dimSize == 0 && (info.flags & TypeInfo::flag_hasInitValue)!=0 ) {
+            const auto align = sizeof(vec4f) - sizeof(int32_t);
             switch (info.type) {
-            case Type::tBool:   nada._variant = 0; break;
-            case Type::tInt:    nada._variant = 1; break;
+            case Type::tBool:   def.index = RttiBool; break;
+            case Type::tInt:    def.index = RttiInt32; break;
             case Type::tBitfield:
-            case Type::tUInt:   nada._variant = 2; break;
-            case Type::tInt64:  nada._variant = 3; break;
-            case Type::tUInt64: nada._variant = 4; break;
-            case Type::tFloat:  nada._variant = 5; break;
-            case Type::tDouble: nada._variant = 6; break;
-            case Type::tString: nada._variant = 7; break;
-            default:;
+            case Type::tUInt:   def.index = RttiUint32; break;
+            case Type::tInt64:  def.index = RttiInt64; break;
+            case Type::tUInt64: def.index = RttiUint64; break;
+            case Type::tFloat:  def.index = RttiFloat; break;
+            case Type::tDouble: def.index = RttiDouble; break;
+            case Type::tString: def.index = RttiString; break;
+            default: DAS_ASSERT(false); // I guess unreachable?
             }
-            if (nada._variant != 8) {
-                if (nada._variant != 7) {
-                    nada.nothing = info.value;
+            /*
+             * Due to alignment we can't simply copy value.
+             */
+            if (def.index != RttiAny) {
+                if (def.index == RttiString) {
+                    def.set<char*, RttiString>(info.sValue, align);
                 } else {
-                    nada.sValue = info.sValue;
+                    auto prev = def.index;
+                    def.set<vec4f, RttiAny>(info.value, align);
+                    def.index = prev;
                 }
             }
         }
-        return nada;
+        return def;
     }
 
     void rtti_builtin_module_for_each_structure ( Module * module, const TBlock<void,const StructInfo> & block, Context * context, LineInfoArg * at ) {
@@ -1112,7 +1136,9 @@ namespace das {
                     cast<smart_ptr<Program>>::from(program),
                     cast<string *>::from(&istr)
                 };
+                (*daScriptEnvironment::bound)->g_Program = program;
                 context->invoke(block, args, nullptr, at);
+                (*daScriptEnvironment::bound)->g_Program.reset();
             }
         } else {
             context->throw_error_at(at, "rtti_compile internal error, something went wrong");
@@ -1151,7 +1177,7 @@ namespace das {
     struct SimNode_RttiGetTypeDecl : SimNode_CallBase {
         DAS_PTR_NODE;
         SimNode_RttiGetTypeDecl ( const LineInfo & at, const ExpressionPtr & d )
-            : SimNode_CallBase(at) {
+            : SimNode_CallBase(at,"") {
             typeExpr = d->type.get();
         }
         virtual SimNode * visit ( SimVisitor & vis ) override {
@@ -1186,7 +1212,7 @@ namespace das {
         return lineInfo ? *lineInfo : LineInfo();
     }
 
-    char * builtin_print_data ( void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at ) {
+    char * builtin_print_data ( const void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at ) {
         TextWriter ssw;
         ssw << debug_value(data, (TypeInfo *)typeInfo, PrintFlags(uint32_t(flags)));
         return context->allocateString(ssw.str(), at);
@@ -1377,6 +1403,9 @@ namespace das {
             addAlias(makeStructInfoFlags());
             addAlias(makeModuleFlags());
             addAlias(makeAnnotationDeclarationFlags());
+            // CodeOfPolicies
+            addAnnotation(make_smart<CodeOfPoliciesAnnotation>(lib));
+            addCtorAndUsing<CodeOfPolicies>(*this,lib,"CodeOfPolicies","CodeOfPolicies");
             // enums
             addEnumeration(make_smart<EnumerationCompilationError>());
             // type annotations
@@ -1414,9 +1443,8 @@ namespace das {
             initRecAnnotation(sia, lib);
             addAnnotation(make_smart<FuncInfoAnnotation>(lib));
             addAnnotation(make_smart<SimFunctionAnnotation>(lib));
-            // CodeOfPolicies
-            addAnnotation(make_smart<CodeOfPoliciesAnnotation>(lib));
-            addCtorAndUsing<CodeOfPolicies>(*this,lib,"CodeOfPolicies","CodeOfPolicies");
+            // DebugInfoHelper
+            addAnnotation(make_smart<DebugInfoHelperAnnotation>(lib));
             // RttiValue
             addAlias(typeFactory<RttiValue>::make(lib));
             // func info flags
@@ -1547,7 +1575,7 @@ namespace das {
                 SideEffects::none, "rtti_get_das_type_name")
                     ->args({"type","context","at"});
             addExtern<DAS_BIND_FUN(rtti_add_annotation_argument)>(*this, lib,  "add_annotation_argument",
-                SideEffects::none, "add_annotation_argument")
+                SideEffects::none, "rtti_add_annotation_argument")
                     ->args({"annotation","name"});
             // data printer
             addExtern<DAS_BIND_FUN(builtin_print_data)>(*this, lib, "sprint_data",
@@ -1561,11 +1589,11 @@ namespace das {
                 SideEffects::none, "builtin_debug_type")
                     ->args({"type","context","at"});
             auto dl = addExtern<DAS_BIND_FUN(builtin_debug_line)>(*this, lib, "describe",
-                SideEffects::none, "builtin_debug_line_info")
+                SideEffects::none, "builtin_debug_line")
                     ->args({"lineinfo","fully","context","at"});
             dl->arguments[1]->init = make_smart<ExprConstBool>(false);
             addExtern<DAS_BIND_FUN(builtin_get_typeinfo_mangled_name)>(*this, lib, "get_mangled_name",
-                SideEffects::none, "getTypeInfoMangledName")
+                SideEffects::none, "builtin_get_typeinfo_mangled_name")
                     ->args({"type","context","at"});
             // function mnh lookup
             addExtern<DAS_BIND_FUN(builtin_get_function_info_by_mnh)>(*this, lib, "get_function_info",

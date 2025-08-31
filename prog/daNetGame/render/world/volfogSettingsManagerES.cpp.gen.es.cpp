@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "volfogSettingsManagerES.cpp.inl"
 ECS_DEF_PULL_VAR(volfogSettingsManager);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc volfog_convar_init_es_comps[] =
 {

@@ -22,7 +22,7 @@ static void verbose_tex_info(int idx)
   else if (BaseTexture *t = RMGR.baseTexture(idx))
   {
     t->getinfo(ti);
-    texmem_sz = tql::sizeInKb(t->ressize());
+    texmem_sz = tql::sizeInKb(t->getSize());
   }
   else
     ti.w = ti.h = ti.d = 0;
@@ -120,7 +120,7 @@ static bool texmgr_dbgcontrol_console_handler(const char *argv[], int argc)
 
         if (brief)
           console::print_d("%d: %dx%dx%d,L%d rc=%d tid=0x%x (%s) %p sz=%dK", idx, ti.w, ti.h, ti.d, ti.mipLevels,
-            RMGR.getRefCount(idx), RMGR.toId(idx), RMGR.getName(idx), res, res ? tql::sizeInKb(res->ressize()) : 0);
+            RMGR.getRefCount(idx), RMGR.toId(idx), RMGR.getName(idx), res, res ? tql::sizeInKb(res->getSize()) : 0);
         else
           verbose_tex_info(idx);
       }
@@ -217,6 +217,7 @@ static bool texmgr_dbgcontrol_console_handler(const char *argv[], int argc)
     else
       console::print_d("texture (%s) not registered", argv[1]);
   }
+  CONSOLE_CHECK_NAME("tex", "trim", 1, 1) { tql::schedule_trim_discardable_tex_mem(); }
   return found;
 }
 

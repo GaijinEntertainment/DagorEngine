@@ -101,7 +101,7 @@ shader blood_projective_decal_decals
   }
 
 
-  POJECTIVE_DECALS_VS_COMMON()
+  PROJECTIVE_DECALS_VS_COMMON()
   USE_POSTFX_VERTEX_POSITIONS()
 
   (vs) {
@@ -174,7 +174,7 @@ shader blood_projective_decal_decals
   INIT_STATIC_SHADOW_PS()
   REDUCE_GBUFFER_MRT_MOBILE()
   WRITE_GBUFFER()
-  POJECTIVE_DECALS_PS_COMMON()
+  PROJECTIVE_DECALS_PS_COMMON()
   ENABLE_ASSERT(ps)
 
   hlsl(ps) {

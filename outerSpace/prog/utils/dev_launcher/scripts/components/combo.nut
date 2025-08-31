@@ -211,7 +211,7 @@ function combobox(watches, options, tooltip=null) {
 
   wdata = watches.value
   wdisable = watches?.disable ?? Watched(false)
-  wupdate = watches?.update ?? @(v) wdata(v)
+  wupdate = watches?.update ?? @(v) wdata.set(v)
 
 
   function dropdownList() {

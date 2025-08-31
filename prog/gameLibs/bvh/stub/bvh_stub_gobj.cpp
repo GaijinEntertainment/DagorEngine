@@ -12,6 +12,6 @@ void teardown() {}
 void init(ContextId) {}
 void teardown(ContextId) {}
 void on_unload_scene(ContextId) {}
-void get_memory_statistics(int &meta, int &queries) { meta = queries = 0; }
+void get_memory_statistics(int64_t &meta, int64_t &queries) { meta = queries = 0; }
 void get_instances(ContextId, Sbuffer *&, Sbuffer *&) {}
 } // namespace bvh::gobj

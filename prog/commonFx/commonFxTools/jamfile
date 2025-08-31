@@ -20,9 +20,7 @@ Sources =
 
   $(fxList)_tools.cpp
   dafxEmitter_tools.cpp
-  stdEmitter_tools.cpp
-  staticVisSphere_tools.cpp
-  stdFxShaderParams_tools.cpp
+  lightfxShadow_tools.cpp
 ;
 
 if $(DabuildEmbeddedInGame) = yes {

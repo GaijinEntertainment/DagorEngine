@@ -175,7 +175,7 @@ struct FloatSerializeProps
   bool sign = false;
   bool rough = false;
   float quantizeLimit = -1.f;
-  FloatSerializeProps(bool s, bool r, float q) : sign(s), rough(r), quantizeLimit(q){};
+  FloatSerializeProps(bool s, bool r, float q) : sign(s), rough(r), quantizeLimit(q) {}
 };
 void write_float(danet::BitStream &bs, float val, const FloatSerializeProps &props);
 bool read_float(const danet::BitStream &bs, float &val, const FloatSerializeProps &props);

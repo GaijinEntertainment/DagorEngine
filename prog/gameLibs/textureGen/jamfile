@@ -24,6 +24,7 @@ Sources =
   textureGenErosion.cpp
   textureGenCache.cpp
   textureDataCache.cpp
+  textureGenPseudoDLA.cpp
 ;
 
 UseProgLibs +=

@@ -1616,7 +1616,7 @@ bool CNavMesh::SampleStep(IGenericProgressIndicator *progress_ind)
 
             if (!nav_rt_trace_ray(fromOrigin, dir / dist, dist))
             {
-              // the trace didnt hit anything - clear
+              // the trace didn't hit anything - clear
               // Msg("No hits");
 
               float toGround = to.y;

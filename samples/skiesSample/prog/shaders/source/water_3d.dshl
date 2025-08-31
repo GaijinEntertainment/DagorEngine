@@ -89,8 +89,6 @@ macro USE_DEBUG_WATER()
     }
 endmacro
 
-//texture heightmap_tex;
-
 macro GET_WATER_COLOR()
 hlsl(ps) {
   #define INV_MIN_IOR 100
@@ -288,11 +286,11 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
   SQ_CLOUDS_SHADOW()
   DECL_POSTFX_TC_VS_RT()//fixme: should depend on where we render
   GET_WATER_COLOR()
-  INIT_SKY_UP_DIFFUSE()
+  INIT_SKY_UP_DIFFUSE(ps)
   USE_SKY_UP_DIFFUSE()
 
-  INIT_UNDERWATER_FOG()
-  GET_UNDERWATER_FOG_PERLIN()
+  INIT_UNDERWATER_FOG(ps)
+  GET_UNDERWATER_FOG_PERLIN(ps)
   //USE_SNOISE()
 
   INIT_VSM()

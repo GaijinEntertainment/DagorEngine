@@ -1,0 +1,25 @@
+R"(ROUTINE_VISIBILITY void dynroutine%u(const void *vars, uint32_t dyn_table_offset) // <- local routine id
+{
+  enum class Location : size_t
+  {
+
+  // Destination registers for constants and slots for resources
+%s
+
+  };
+
+  const uint8_t *vars_base = (const uint8_t *)vars;
+
+  // temp storage for numeric shader constants
+%s
+
+  // Custom (local and bool vars) decls
+%s
+
+  // Routine code
+%s
+
+  // constant range setters
+%s
+}
+)"

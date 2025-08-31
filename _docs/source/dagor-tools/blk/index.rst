@@ -1,15 +1,13 @@
 
-.blk File Format
+BLK File Format
 =========================================
 
 Syntax, structure, and usage of `.blk` files, including configuration examples
 and parsing directives.
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
-   :glob:
+   :caption: Contents:
 
    blk.md
 

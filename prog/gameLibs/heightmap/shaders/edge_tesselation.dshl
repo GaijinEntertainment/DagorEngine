@@ -4,8 +4,10 @@ macro DECODE_EDGE_TESSELATION()
     //uint adapt_edge_tesselation(uint y, uint tess){return y - y%tess;}//still slower on current gpu (PS4), unless you use mul24 or bits
     uint4 decode_edge_tesselation(float4 edge_const)
     {
-      uint edge_consti = (uint)(edge_const.y + 0.5);
-      return (uint4(edge_consti&15, (edge_consti>>4)&15, (edge_consti>>8)&15, (edge_consti>>12)&15)) + 1;
+      uint edge_consti = asuint(edge_const.y);
+      uint4 edges = uint4(edge_consti, edge_consti>>4, edge_consti>>8, edge_consti>>12)&15;
+      //return edges - 1;
+      return uint4(1,1,1,1)<<edges;
     }
     float2 decodeWorldPosXZConst(float4 decConst, float2 inPos)
     {
@@ -15,43 +17,64 @@ macro DECODE_EDGE_TESSELATION()
     {
       return decConst.x*tess;
     }
+    #ifndef HMAP_QUAD_MASK
+      #define HMAP_QUAD_MASK 15
+      #define HMAP_QUAD_SHIFT 4
+    #endif
+    int2 decodePosXZWithoutIB(uint vertexID)
+    {
+      // on both Xbox One and Scarlett there is virtually no difference between DrawIndexed or just Draw.
+      // so, we can store 'flip' for each quad per patch, and decrease error metrics.
+      uint triID = vertexID / 3u;
+      uint vertInTri = vertexID % 3u;
+      uint quadId = triID>>1;
+
+      uint2 quad = uint2(quadId & HMAP_QUAD_MASK, quadId >> HMAP_QUAD_SHIFT);
+
+      uint isSecondTri = (triID & 1);
+      uint flip = (quad.x + quad.y)&1;
+
+      FLATTEN
+      if (vertInTri == 0) return int2(quad.x + (isSecondTri&flip), quad.y);
+      FLATTEN
+      if (vertInTri == 2) return int2(quad.x + 1, quad.y + isSecondTri);
+      return int2(quad.x + !(flip|isSecondTri), quad.y + 1);
+    }
+
     #define INPUT_VERTEXID_POSXZ uint vertexId : SV_VertexID
     #define DECODE_VERTEXID_POSXZ int2 posXZ = int2(vertexId%patchDimPlus1, vertexId/patchDimPlus1);
+    //#define DECODE_VERTEXID_POSXZ int2 posXZ = decodePosXZWithoutIB(vertexId);
   }
 endmacro
 
 int heightmap_scale_offset = 70 always_referenced;
 
 macro BASE_HEIGHTMAP_DECODE_EDGE_TESSELATION()
-  DECODE_EDGE_TESSELATION()
   hlsl(vs) {
-    float3 patchDim_patchDimPlus1_cellSize: register(c69);
-    #define patchDim patchDim_patchDimPlus1_cellSize.x
-    #define patchDimPlus1 int(patchDim_patchDimPlus1_cellSize.y)
-    #define oneCellSize float(patchDim_patchDimPlus1_cellSize.z)
+    struct {
+      float x;
+      uint y;
+      float z;
+      uint w;
+    } patchDim_patchDimPlus1_cellSize: register(c69);
+    uint4 hmapPatchesInfo: register(c68);
 
-    #if NO_HW_INSTANCING
-      float4 heightmap_scale_offset: register(c70);
-      #define input_used_instance_id
-      #define used_instance_id
-      #define USED_INSTANCE_ID
-      #define USE_INSTANCE_ID
-    #else
-      float4 heightmap_scale_offset[440]: register(c70);
-      float4 lastreg:register(c511);
-      ##if hardware.dx11 || hardware.ps4 || hardware.ps5 || hardware.vulkan || hardware.metal
-         #define input_used_instance_id ,uint instance_id
-         #define used_instance_id ,instance_id
-         #define USED_INSTANCE_ID ,instance_id
-         #define USE_INSTANCE_ID  ,uint instance_id:SV_InstanceID
-      ##else
-          #define input_used_instance_id ,int2 instance_id
-          #define used_instance_id ,instance_id
-          #define USED_INSTANCE_ID ,instance_id.x
-          #define USE_INSTANCE_ID  ,int2 instance_id:TEXCOORD12
-      ##endif
-    #endif
+    #define HMAP_INSTANCE_OFS (hmapPatchesInfo.x)
+    #define HMAP_QUAD_DOUBLE_SHIFT (hmapPatchesInfo.y)
+    #define patchDim patchDim_patchDimPlus1_cellSize.x
+    #define patchDimPlus1 uint(patchDim_patchDimPlus1_cellSize.y)
+    #define oneCellSize float(patchDim_patchDimPlus1_cellSize.z)
+    #define HMAP_QUAD_SHIFT uint(patchDim_patchDimPlus1_cellSize.w)
+    #define HMAP_QUAD_MASK uint(patchDim_patchDimPlus1_cellSize.y - 2)//hmapPatchesInfo.z
+
+    float4 heightmap_scale_offset[440]: register(c70);
+    uint4 lastreg:register(c511);
+    #define input_used_instance_id ,uint instance_id
+    #define used_instance_id ,instance_id
+    #define USED_INSTANCE_ID ,instance_id
+    #define USE_INSTANCE_ID  ,uint instance_id:SV_InstanceID
   }
+  DECODE_EDGE_TESSELATION()
 endmacro
 
 macro HEIGHTMAP_CHANNELS()

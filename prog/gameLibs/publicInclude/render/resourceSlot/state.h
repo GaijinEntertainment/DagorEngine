@@ -4,12 +4,12 @@
 //
 #pragma once
 
-#include <render/daBfg/nameSpace.h>
+#include <render/daFrameGraph/nameSpace.h>
 
-namespace dabfg
+namespace dafg
 {
 NameSpace root();
-} // namespace dabfg
+} // namespace dafg
 
 namespace resource_slot
 {
@@ -52,12 +52,12 @@ struct State
   bool isNodeLastInChain() const { return order == size - 1; }
 
 private:
-  dabfg::NameSpace nameSpace;
+  dafg::NameSpace nameSpace;
   int nodeId;
   uint16_t order;
   uint16_t size;
 
-  State(dabfg::NameSpace ns, int node_id, uint16_t order_in_chain, uint16_t size_of_chain);
+  State(dafg::NameSpace ns, int node_id, uint16_t order_in_chain, uint16_t size_of_chain);
   friend void resolve_access();
 };
 

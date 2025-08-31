@@ -17,6 +17,8 @@ struct WindowState
   inline static main_wnd_f *mainCallback = nullptr;
   const char *windowTitle = nullptr;
   bool ownsWindow = false;
+  int currentResolutionX = 0;
+  int currentResolutionY = 0;
 
   struct Settings
   {
@@ -47,6 +49,9 @@ struct WindowState
 
   inline bool setRenderWindowParams()
   {
+    if (currentResolutionX == settings.resolutionX && currentResolutionY == settings.resolutionY && ownsWindow)
+      return true;
+
     closeWindow();
 
     XVisualInfo vInfoTemplate = {};
@@ -71,6 +76,8 @@ struct WindowState
 
     if (x11.initWindow(vi, windowTitle, settings.resolutionX, settings.resolutionY))
     {
+      currentResolutionX = settings.resolutionX;
+      currentResolutionY = settings.resolutionY;
       settings.aspect = (float)settings.resolutionX / settings.resolutionY;
       XFree(vi);
       ownsWindow = true;
@@ -85,7 +92,7 @@ struct WindowState
   {
     if (!ownsWindow)
       return nullptr;
-    return &x11.mainWindow;
+    return x11.getMainWindowPtrHandle();
   }
 
   void closeWindow()

@@ -67,6 +67,8 @@ constexpr uint32_t MAX_SHADER_RECORD_CONSTANT_DWORD_COUNT = MAX_SHADER_RECORD_CO
 /// Absolute total limit of resources that can be referenced in a shader record, when space needed for constants 0.
 constexpr uint32_t MAX_SHADER_RECORD_RESOURCE_COUNT = MAX_SHADER_RECORD_CONSTANT_SIZE_IN_BYTES / sizeof(uint64_t);
 
+inline constexpr uint32_t MAX_SEMANTIC_NAME_SIZE = 32;
+
 enum class ShaderStage : uint32_t
 {
   VERTEX,
@@ -90,13 +92,36 @@ enum class ShaderStage : uint32_t
   NODE,
   // meta type for library may be used in some special cases
   LIBRARY,
-  INVALID_STAGE = 0xFFFF,
+  INVALID_STAGE = 0xFF,
 };
 
 enum SpecialConstantType
 {
-  SC_DRAW_ID = 1,
+  SC_DRAW_ID = 1u << 0,
+  /// shader uses NV extension hacks
+  /// Those are enabled by a special UAV resource
+  /// We encode this with this bit and the slot and space index is hardcoded, see extension::nvidia namespace
+  SC_NVIDIA_EXTENSION = 1u << 1,
+  /// Same as SC_NVIDIA_EXTENSION
+  /// It is mutual exclusive to SC_NVIDIA_EXTENSION
+  /// Slot and space encoding is located in extension::amd
+  SC_AMD_EXTENSION = 1u << 2,
 };
+
+namespace extension
+{
+namespace nvidia
+{
+const uint32_t register_space_index = 99;
+const uint32_t register_index = 0;
+} // namespace nvidia
+namespace amd
+{
+// default used by AMD, could be overridden, but why bother...
+const uint32_t register_space_index = 0x7FFF0ADE;
+const uint32_t register_index = 0;
+} // namespace amd
+} // namespace extension
 
 struct ShaderResourceUsageTable
 {
@@ -137,7 +162,51 @@ struct ShaderDeviceRequirement
   uint32_t shaderFeatureFlagsHigh;
   /// Lower 8 bits of D3D12_SHADER_DESC::Version
   uint8_t shaderModel;
-  uint8_t unusedBytes[3];
+  /// see ExtensionVendor
+  uint8_t extensionVendor;
+  /// see VendorExtensionBits
+  uint16_t vendorExtensionMask;
+};
+
+enum ExtensionVendor : uint8_t
+{
+  NoExtensionsUsed,
+  NVIDIA,
+  AMD,
+};
+
+enum VendorExtensionBits : uint16_t
+{
+  // NVIDIA_* only valid when ShaderDeviceRequirement::extensionVendor equals ExtensionVendor::NVidia
+  NVIDIA_DXR_SHADER_EXECUTION_REORDER = 1u << 0,
+  NVIDIA_DXR_MICRO_MAP = 1u << 1,
+  NVIDIA_WAVE_MULTI_PREFIX = 1u << 2,
+  NVIDIA_TEXTURE_FOOTPRINT = 1u << 3,
+  NVIDIA_VARIABLE_RATE_SHADING = 1u << 4,
+  NVIDIA_FP16_ATOMICS = 1u << 5,
+  NVIDIA_FP32_ATOMICS = 1u << 6,
+  NVIDIA_U64_ATOMICS = 1u << 7,
+  NVIDIA_SPECIAL_REGISTER = 1u << 8,
+  NVIDIA_WARP_VOTE = 1u << 9,
+  NVIDIA_WARP_SHUFFLE = 1u << 10,
+  NVIDIA_LANE_ID = 1u << 11,
+  NVIDIA_WAVE_MATCH = 1u << 12,
+  NVIDIA_DXR_CLUSTER_GEOMETRY = 1u << 13,
+  NVIDIA_DXR_LINEAR_SWEPT_SPHERE = 1u << 14,
+  // AMD_* only valid when ShaderDeviceRequirement::extensionVendor equals ExtensionVendor::AMD
+  // ReadFirstLane, ReadLane, LaneID, Swizzle, Ballot, MBCount, Med3, Barycentrics
+  AMD_INTRISICS_16 = 1u << 0,
+  // WaveReduce, WaveScan
+  AMD_INTRISICS_17 = 1u << 1,
+  // DrawIndex, AtomicU64
+  AMD_INTRISICS_19 = 1u << 2,
+  AMD_GET_BASE_VERTEX = 1u << 3,
+  AMD_GET_BASE_INSTANCE = 1u << 4,
+  AMD_FLOAT_CONVERSION = 1u << 5,
+  AMD_READ_LINE_AT = 1u << 6,
+  AMD_DXR_RAY_HIT_TOKEN = 1u << 7,
+  AMD_SHADER_CLOCK = 1u << 8,
+  AMD_GET_WAVE_SIZE = 1u << 9,
 };
 
 inline bool is_compatible(const ShaderDeviceRequirement &base, const ShaderDeviceRequirement &compare)
@@ -146,7 +215,11 @@ inline bool is_compatible(const ShaderDeviceRequirement &base, const ShaderDevic
   return base.shaderModel >= compare.shaderModel &&
          // when any feature bit is set by compare that base does not has, its not compatible.
          0 == ((~base.shaderFeatureFlagsLow) & compare.shaderFeatureFlagsLow) &&
-         0 == ((~base.shaderFeatureFlagsHigh) & compare.shaderFeatureFlagsHigh);
+         0 == ((~base.shaderFeatureFlagsHigh) & compare.shaderFeatureFlagsHigh) &&
+         // either when no extension vendor is needed than we don't care about vendor extensions at all
+         // or we have to check the extension mask the same like the feature mask
+         ((ExtensionVendor::NoExtensionsUsed == compare.extensionVendor) ||
+           ((base.extensionVendor == compare.extensionVendor) && (0 == ((~base.vendorExtensionMask) & compare.vendorExtensionMask))));
 }
 
 // Allows for masking off feature flags that should not be taken into account
@@ -158,14 +231,13 @@ inline bool is_compatible(const ShaderDeviceRequirement &base, const ShaderDevic
   return base.shaderModel >= compare.shaderModel &&
          // when any feature bit is set by compare that base does not has, its not compatible.
          0 == (feature_mask_low & ((~base.shaderFeatureFlagsLow) & compare.shaderFeatureFlagsLow)) &&
-         0 == (feature_mask_high & ((~base.shaderFeatureFlagsHigh) & compare.shaderFeatureFlagsHigh));
+         0 == (feature_mask_high & ((~base.shaderFeatureFlagsHigh) & compare.shaderFeatureFlagsHigh)) &&
+         ((ExtensionVendor::NoExtensionsUsed == base.extensionVendor) ||
+           ((base.extensionVendor == compare.extensionVendor) && (0 == ((~base.vendorExtensionMask) & compare.vendorExtensionMask))));
 }
 
 struct ShaderHeader
 {
-  uint16_t shaderType;
-  // input primitive for tesselation stages
-  uint16_t inputPrimitive;
   uint32_t maxConstantCount;
   uint32_t bonesConstantsUsed;
   ShaderResourceUsageTable resourceUsageTable;
@@ -178,8 +250,9 @@ struct ShaderHeader
   uint8_t tRegisterTypes[MAX_T_REGISTERS];
   uint8_t uRegisterTypes[MAX_U_REGISTERS];
 
-  // @TODO: proper padding zeroeing
-  uint8_t pad_[4 - MAX_U_REGISTERS % 4];
+  uint8_t shaderType;
+  // input primitive for tesselation stages
+  uint16_t inputPrimitive;
 
   ShaderDeviceRequirement deviceRequirement;
 
@@ -201,10 +274,19 @@ struct SemanticTableEntry
   uint32_t size;
 };
 
+struct StreamOutputComponentInfo
+{
+  char semanticName[MAX_SEMANTIC_NAME_SIZE];
+  uint8_t semanticIndex;
+  uint8_t mask : 4;
+  uint8_t slot : 4; // it requires 2 bits, but we use 4 to avoid padding with possible random bits
+};
+
 struct ShaderHeaderCompileResult
 {
   ShaderHeader header = {};
   ComputeShaderInfo computeShaderInfo = {};
+  dag::Vector<StreamOutputComponentInfo> streamOutputComponents;
   bool isOk = true;
   eastl::string logMessage;
 };
@@ -243,7 +325,7 @@ inline uint32_t getIndexFromSementicAndSemanticIndex(const char *name, uint32_t 
 }
 
 ShaderHeaderCompileResult compileHeaderFromReflectionData(ShaderStage stage, const eastl::vector<uint8_t> &reflection,
-  uint32_t max_const_count, void *dxc_lib);
+  uint32_t max_const_count, dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components, void *dxc_lib);
 
 // identifies simple shader blob with one shader
 const uint32_t SHADER_IDENT = _MAKE4C('SX12');
@@ -311,16 +393,29 @@ BINDUMP_BEGIN_LAYOUT(MeshShaderPipeline)
   Ptr<Shader> amplificationShader;
 BINDUMP_END_LAYOUT()
 
-enum class StoredShaderType
+BINDUMP_BEGIN_LAYOUT(ShaderWithStreamOutput)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<StreamOutputComponentInfo> streamOutputComponents;
+  VecHolder<uint8_t> data;
+BINDUMP_END_LAYOUT()
+
+enum class StoredShaderType : uint16_t
 {
   singleShader,
   combinedVertexShader,
   meshShader,
 };
 
+struct ShaderContainerType // -V730 All members are initialized
+{
+  StoredShaderType shaderType = StoredShaderType::singleShader;
+  uint16_t hasStreamOutput : 1 = 0;
+  uint16_t pad : 15 = 0;
+};
+
 BINDUMP_BEGIN_LAYOUT(ShaderContainer)
   BINDUMP_USING_EXTENSION()
-  StoredShaderType type;
+  ShaderContainerType type;
   HashValue dataHash;
   VecHolder<uint8_t> data;
 BINDUMP_END_LAYOUT()
@@ -399,6 +494,268 @@ using FunctionExtraDataQuery = eastl::function<eastl::optional<FunctionExtraInfo
 LibraryShaderPropertiesCompileResult compileLibraryShaderPropertiesFromReflectionData(uint32_t default_playload_size_in_bytes,
   const FunctionExtraDataQuery &function_extra_data_query, eastl::span<const uint8_t> reflection, void *dxc_lib_handle);
 
+struct NvidiaExtensionOpCodeToExtensionBitEntry
+{
+  // hlsl extension of codes
+  uint16_t opCode = 0;
+  // dxil::VendorExtensionBits::NVIDIA_* values
+  uint16_t extensionBit = 0;
+};
+inline eastl::span<const NvidiaExtensionOpCodeToExtensionBitEntry> get_nvidia_extension_op_code_to_extension_bit_table()
+{
+#if !NV_SHADER_EXTN_VERSION
+#define NV_SHADER_EXTN_DEFINED_HERE 1
+#define NV_EXTN_OP_SHFL             1
+#define NV_EXTN_OP_SHFL_UP          2
+#define NV_EXTN_OP_SHFL_DOWN        3
+#define NV_EXTN_OP_SHFL_XOR         4
+
+#define NV_EXTN_OP_VOTE_ALL    5
+#define NV_EXTN_OP_VOTE_ANY    6
+#define NV_EXTN_OP_VOTE_BALLOT 7
+
+#define NV_EXTN_OP_GET_LANE_ID 8
+#define NV_EXTN_OP_FP16_ATOMIC 12
+#define NV_EXTN_OP_FP32_ATOMIC 13
+
+#define NV_EXTN_OP_GET_SPECIAL 19
+
+#define NV_EXTN_OP_UINT64_ATOMIC 20
+
+#define NV_EXTN_OP_MATCH_ANY 21
+
+// FOOTPRINT - For Sample and SampleBias
+#define NV_EXTN_OP_FOOTPRINT      28
+#define NV_EXTN_OP_FOOTPRINT_BIAS 29
+
+#define NV_EXTN_OP_GET_SHADING_RATE 30
+
+// FOOTPRINT - For SampleLevel and SampleGrad
+#define NV_EXTN_OP_FOOTPRINT_LEVEL 31
+#define NV_EXTN_OP_FOOTPRINT_GRAD  32
+
+// SHFL Generic
+#define NV_EXTN_OP_SHFL_GENERIC 33
+
+#define NV_EXTN_OP_VPRS_EVAL_ATTRIB_AT_SAMPLE 51
+#define NV_EXTN_OP_VPRS_EVAL_ATTRIB_SNAPPED   52
+
+// HitObject API
+#define NV_EXTN_OP_HIT_OBJECT_TRACE_RAY                      67
+#define NV_EXTN_OP_HIT_OBJECT_MAKE_HIT                       68
+#define NV_EXTN_OP_HIT_OBJECT_MAKE_HIT_WITH_RECORD_INDEX     69
+#define NV_EXTN_OP_HIT_OBJECT_MAKE_MISS                      70
+#define NV_EXTN_OP_HIT_OBJECT_REORDER_THREAD                 71
+#define NV_EXTN_OP_HIT_OBJECT_INVOKE                         72
+#define NV_EXTN_OP_HIT_OBJECT_IS_MISS                        73
+#define NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_ID                74
+#define NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_INDEX             75
+#define NV_EXTN_OP_HIT_OBJECT_GET_PRIMITIVE_INDEX            76
+#define NV_EXTN_OP_HIT_OBJECT_GET_GEOMETRY_INDEX             77
+#define NV_EXTN_OP_HIT_OBJECT_GET_HIT_KIND                   78
+#define NV_EXTN_OP_HIT_OBJECT_GET_RAY_DESC                   79
+#define NV_EXTN_OP_HIT_OBJECT_GET_ATTRIBUTES                 80
+#define NV_EXTN_OP_HIT_OBJECT_GET_SHADER_TABLE_INDEX         81
+#define NV_EXTN_OP_HIT_OBJECT_LOAD_LOCAL_ROOT_TABLE_CONSTANT 82
+#define NV_EXTN_OP_HIT_OBJECT_IS_HIT                         83
+#define NV_EXTN_OP_HIT_OBJECT_IS_NOP                         84
+#define NV_EXTN_OP_HIT_OBJECT_MAKE_NOP                       85
+
+// Micro-map API
+#define NV_EXTN_OP_RT_TRIANGLE_OBJECT_POSITIONS       86
+#define NV_EXTN_OP_RT_MICRO_TRIANGLE_OBJECT_POSITIONS 87
+#define NV_EXTN_OP_RT_MICRO_TRIANGLE_BARYCENTRICS     88
+#define NV_EXTN_OP_RT_IS_MICRO_TRIANGLE_HIT           89
+#define NV_EXTN_OP_RT_IS_BACK_FACING                  90
+#define NV_EXTN_OP_RT_MICRO_VERTEX_OBJECT_POSITION    91
+#define NV_EXTN_OP_RT_MICRO_VERTEX_BARYCENTRICS       92
+
+// Megageometry API
+#define NV_EXTN_OP_RT_GET_CLUSTER_ID                        93
+#define NV_EXTN_OP_RT_GET_CANDIDATE_CLUSTER_ID              94
+#define NV_EXTN_OP_RT_GET_COMMITTED_CLUSTER_ID              95
+#define NV_EXTN_OP_HIT_OBJECT_GET_CLUSTER_ID                96
+#define NV_EXTN_OP_RT_CANDIDATE_TRIANGLE_OBJECT_POSITIONS   97
+#define NV_EXTN_OP_RT_COMMITTED_TRIANGLE_OBJECT_POSITIONS   98
+#define NV_EXTN_OP_HIT_OBJECT_GET_TRIANGLE_OBJECT_POSITIONS 99
+
+// Linear Swept Sphere API
+#define NV_EXTN_OP_RT_SPHERE_OBJECT_POSITION_AND_RADIUS             100
+#define NV_EXTN_OP_RT_CANDIDATE_SPHERE_OBJECT_POSITION_AND_RADIUS   101
+#define NV_EXTN_OP_RT_COMMITTED_SPHERE_OBJECT_POSITION_AND_RADIUS   102
+#define NV_EXTN_OP_HIT_OBJECT_GET_SPHERE_OBJECT_POSITION_AND_RADIUS 103
+#define NV_EXTN_OP_RT_LSS_OBJECT_POSITIONS_AND_RADII                104
+#define NV_EXTN_OP_RT_CANDIDATE_LSS_OBJECT_POSITIONS_AND_RADII      105
+#define NV_EXTN_OP_RT_COMMITTED_LSS_OBJECT_POSITIONS_AND_RADII      106
+#define NV_EXTN_OP_HIT_OBJECT_GET_LSS_OBJECT_POSITIONS_AND_RADII    107
+#define NV_EXTN_OP_RT_IS_SPHERE_HIT                                 108
+#define NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_SPHERE                 109
+#define NV_EXTN_OP_RT_COMMITTED_IS_SPHERE                           110
+#define NV_EXTN_OP_HIT_OBJECT_IS_SPHERE_HIT                         111
+#define NV_EXTN_OP_RT_IS_LSS_HIT                                    112
+#define NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_LSS                    113
+#define NV_EXTN_OP_RT_COMMITTED_IS_LSS                              114
+#define NV_EXTN_OP_HIT_OBJECT_IS_LSS_HIT                            115
+#define NV_EXTN_OP_RT_CANDIDATE_LSS_HIT_PARAMETER                   116
+#define NV_EXTN_OP_RT_COMMITTED_LSS_HIT_PARAMETER                   117
+#define NV_EXTN_OP_RT_CANDIDATE_BUILTIN_PRIMITIVE_RAY_T             118
+#define NV_EXTN_OP_RT_COMMIT_NONOPAQUE_BUILTIN_PRIMITIVE_HIT        119
+#endif
+  static const dxil::NvidiaExtensionOpCodeToExtensionBitEntry table[] = {
+    {NV_EXTN_OP_SHFL, ::dxil::VendorExtensionBits::NVIDIA_WARP_SHUFFLE},
+    {NV_EXTN_OP_SHFL_UP, ::dxil::VendorExtensionBits::NVIDIA_WARP_SHUFFLE},
+    {NV_EXTN_OP_SHFL_DOWN, ::dxil::VendorExtensionBits::NVIDIA_WARP_SHUFFLE},
+    {NV_EXTN_OP_SHFL_XOR, ::dxil::VendorExtensionBits::NVIDIA_WARP_SHUFFLE},
+    {NV_EXTN_OP_VOTE_ALL, ::dxil::VendorExtensionBits::NVIDIA_WARP_VOTE},
+    {NV_EXTN_OP_VOTE_ANY, ::dxil::VendorExtensionBits::NVIDIA_WARP_VOTE},
+    {NV_EXTN_OP_VOTE_BALLOT, ::dxil::VendorExtensionBits::NVIDIA_WARP_VOTE},
+    {NV_EXTN_OP_GET_LANE_ID, ::dxil::VendorExtensionBits::NVIDIA_LANE_ID},
+    {NV_EXTN_OP_FP16_ATOMIC, ::dxil::VendorExtensionBits::NVIDIA_FP16_ATOMICS},
+    {NV_EXTN_OP_FP32_ATOMIC, ::dxil::VendorExtensionBits::NVIDIA_FP32_ATOMICS},
+    {NV_EXTN_OP_GET_SPECIAL, ::dxil::VendorExtensionBits::NVIDIA_SPECIAL_REGISTER},
+    {NV_EXTN_OP_UINT64_ATOMIC, ::dxil::VendorExtensionBits::NVIDIA_U64_ATOMICS},
+    {NV_EXTN_OP_MATCH_ANY, ::dxil::VendorExtensionBits::NVIDIA_WAVE_MATCH},
+    {NV_EXTN_OP_FOOTPRINT, ::dxil::VendorExtensionBits::NVIDIA_TEXTURE_FOOTPRINT},
+    {NV_EXTN_OP_FOOTPRINT_BIAS, ::dxil::VendorExtensionBits::NVIDIA_TEXTURE_FOOTPRINT},
+    {NV_EXTN_OP_GET_SHADING_RATE, ::dxil::VendorExtensionBits::NVIDIA_VARIABLE_RATE_SHADING},
+    {NV_EXTN_OP_FOOTPRINT_LEVEL, ::dxil::VendorExtensionBits::NVIDIA_TEXTURE_FOOTPRINT},
+    {NV_EXTN_OP_FOOTPRINT_GRAD, ::dxil::VendorExtensionBits::NVIDIA_TEXTURE_FOOTPRINT},
+    {NV_EXTN_OP_SHFL_GENERIC, ::dxil::VendorExtensionBits::NVIDIA_WAVE_MULTI_PREFIX},
+    {NV_EXTN_OP_VPRS_EVAL_ATTRIB_AT_SAMPLE, ::dxil::VendorExtensionBits::NVIDIA_VARIABLE_RATE_SHADING},
+    {NV_EXTN_OP_VPRS_EVAL_ATTRIB_SNAPPED, ::dxil::VendorExtensionBits::NVIDIA_VARIABLE_RATE_SHADING},
+    {NV_EXTN_OP_HIT_OBJECT_TRACE_RAY, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_MAKE_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_MAKE_HIT_WITH_RECORD_INDEX, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_MAKE_MISS, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_REORDER_THREAD, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_INVOKE, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_IS_MISS, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_ID, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_INDEX, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_PRIMITIVE_INDEX, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_GEOMETRY_INDEX, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_HIT_KIND, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_RAY_DESC, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_ATTRIBUTES, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_GET_SHADER_TABLE_INDEX, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_LOAD_LOCAL_ROOT_TABLE_CONSTANT, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_IS_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_IS_NOP, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_HIT_OBJECT_MAKE_NOP, ::dxil::VendorExtensionBits::NVIDIA_DXR_SHADER_EXECUTION_REORDER},
+    {NV_EXTN_OP_RT_TRIANGLE_OBJECT_POSITIONS, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_MICRO_TRIANGLE_OBJECT_POSITIONS, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_MICRO_TRIANGLE_BARYCENTRICS, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_IS_MICRO_TRIANGLE_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_IS_BACK_FACING, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_MICRO_VERTEX_OBJECT_POSITION, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_MICRO_VERTEX_BARYCENTRICS, ::dxil::VendorExtensionBits::NVIDIA_DXR_MICRO_MAP},
+    {NV_EXTN_OP_RT_GET_CLUSTER_ID, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_RT_GET_CANDIDATE_CLUSTER_ID, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_RT_GET_COMMITTED_CLUSTER_ID, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_HIT_OBJECT_GET_CLUSTER_ID, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_RT_CANDIDATE_TRIANGLE_OBJECT_POSITIONS, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_RT_COMMITTED_TRIANGLE_OBJECT_POSITIONS, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_HIT_OBJECT_GET_TRIANGLE_OBJECT_POSITIONS, ::dxil::VendorExtensionBits::NVIDIA_DXR_CLUSTER_GEOMETRY},
+    {NV_EXTN_OP_RT_SPHERE_OBJECT_POSITION_AND_RADIUS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_SPHERE_OBJECT_POSITION_AND_RADIUS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMITTED_SPHERE_OBJECT_POSITION_AND_RADIUS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_HIT_OBJECT_GET_SPHERE_OBJECT_POSITION_AND_RADIUS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_LSS_OBJECT_POSITIONS_AND_RADII, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_LSS_OBJECT_POSITIONS_AND_RADII, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMITTED_LSS_OBJECT_POSITIONS_AND_RADII, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_HIT_OBJECT_GET_LSS_OBJECT_POSITIONS_AND_RADII, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_IS_SPHERE_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_SPHERE, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMITTED_IS_SPHERE, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_HIT_OBJECT_IS_SPHERE_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_IS_LSS_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_LSS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMITTED_IS_LSS, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_HIT_OBJECT_IS_LSS_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_LSS_HIT_PARAMETER, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMITTED_LSS_HIT_PARAMETER, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_CANDIDATE_BUILTIN_PRIMITIVE_RAY_T, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+    {NV_EXTN_OP_RT_COMMIT_NONOPAQUE_BUILTIN_PRIMITIVE_HIT, ::dxil::VendorExtensionBits::NVIDIA_DXR_LINEAR_SWEPT_SPHERE},
+  };
+#if NV_SHADER_EXTN_DEFINED_HERE
+#undef NV_SHADER_EXTN_DEFINED_HERE
+#undef NV_EXTN_OP_SHFL
+#undef NV_EXTN_OP_SHFL_UP
+#undef NV_EXTN_OP_SHFL_DOWN
+#undef NV_EXTN_OP_SHFL_XOR
+#undef NV_EXTN_OP_VOTE_ALL
+#undef NV_EXTN_OP_VOTE_ANY
+#undef NV_EXTN_OP_VOTE_BALLOT
+#undef NV_EXTN_OP_GET_LANE_ID
+#undef NV_EXTN_OP_FP16_ATOMIC
+#undef NV_EXTN_OP_FP32_ATOMIC
+#undef NV_EXTN_OP_GET_SPECIAL
+#undef NV_EXTN_OP_UINT64_ATOMIC
+#undef NV_EXTN_OP_MATCH_ANY
+#undef NV_EXTN_OP_FOOTPRINT
+#undef NV_EXTN_OP_FOOTPRINT_BIAS
+#undef NV_EXTN_OP_GET_SHADING_RATE
+#undef NV_EXTN_OP_FOOTPRINT_LEVEL
+#undef NV_EXTN_OP_FOOTPRINT_GRAD
+#undef NV_EXTN_OP_SHFL_GENERIC
+#undef NV_EXTN_OP_VPRS_EVAL_ATTRIB_AT_SAMPLE
+#undef NV_EXTN_OP_VPRS_EVAL_ATTRIB_SNAPPED
+#undef NV_EXTN_OP_HIT_OBJECT_TRACE_RAY
+#undef NV_EXTN_OP_HIT_OBJECT_MAKE_HIT
+#undef NV_EXTN_OP_HIT_OBJECT_MAKE_HIT_WITH_RECORD_INDEX
+#undef NV_EXTN_OP_HIT_OBJECT_MAKE_MISS
+#undef NV_EXTN_OP_HIT_OBJECT_REORDER_THREAD
+#undef NV_EXTN_OP_HIT_OBJECT_INVOKE
+#undef NV_EXTN_OP_HIT_OBJECT_IS_MISS
+#undef NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_ID
+#undef NV_EXTN_OP_HIT_OBJECT_GET_INSTANCE_INDEX
+#undef NV_EXTN_OP_HIT_OBJECT_GET_PRIMITIVE_INDEX
+#undef NV_EXTN_OP_HIT_OBJECT_GET_GEOMETRY_INDEX
+#undef NV_EXTN_OP_HIT_OBJECT_GET_HIT_KIND
+#undef NV_EXTN_OP_HIT_OBJECT_GET_RAY_DESC
+#undef NV_EXTN_OP_HIT_OBJECT_GET_ATTRIBUTES
+#undef NV_EXTN_OP_HIT_OBJECT_GET_SHADER_TABLE_INDEX
+#undef NV_EXTN_OP_HIT_OBJECT_LOAD_LOCAL_ROOT_TABLE_CONSTANT
+#undef NV_EXTN_OP_HIT_OBJECT_IS_HIT
+#undef NV_EXTN_OP_HIT_OBJECT_IS_NOP
+#undef NV_EXTN_OP_HIT_OBJECT_MAKE_NOP
+#undef NV_EXTN_OP_RT_TRIANGLE_OBJECT_POSITIONS
+#undef NV_EXTN_OP_RT_MICRO_TRIANGLE_OBJECT_POSITIONS
+#undef NV_EXTN_OP_RT_MICRO_TRIANGLE_BARYCENTRICS
+#undef NV_EXTN_OP_RT_IS_MICRO_TRIANGLE_HIT
+#undef NV_EXTN_OP_RT_IS_BACK_FACING
+#undef NV_EXTN_OP_RT_MICRO_VERTEX_OBJECT_POSITION
+#undef NV_EXTN_OP_RT_MICRO_VERTEX_BARYCENTRICS
+#undef NV_EXTN_OP_RT_GET_CLUSTER_ID
+#undef NV_EXTN_OP_RT_GET_CANDIDATE_CLUSTER_ID
+#undef NV_EXTN_OP_RT_GET_COMMITTED_CLUSTER_ID
+#undef NV_EXTN_OP_HIT_OBJECT_GET_CLUSTER_ID
+#undef NV_EXTN_OP_RT_CANDIDATE_TRIANGLE_OBJECT_POSITIONS
+#undef NV_EXTN_OP_RT_COMMITTED_TRIANGLE_OBJECT_POSITIONS
+#undef NV_EXTN_OP_HIT_OBJECT_GET_TRIANGLE_OBJECT_POSITIONS
+#undef NV_EXTN_OP_RT_SPHERE_OBJECT_POSITION_AND_RADIUS
+#undef NV_EXTN_OP_RT_CANDIDATE_SPHERE_OBJECT_POSITION_AND_RADIUS
+#undef NV_EXTN_OP_RT_COMMITTED_SPHERE_OBJECT_POSITION_AND_RADIUS
+#undef NV_EXTN_OP_HIT_OBJECT_GET_SPHERE_OBJECT_POSITION_AND_RADIUS
+#undef NV_EXTN_OP_RT_LSS_OBJECT_POSITIONS_AND_RADII
+#undef NV_EXTN_OP_RT_CANDIDATE_LSS_OBJECT_POSITIONS_AND_RADII
+#undef NV_EXTN_OP_RT_COMMITTED_LSS_OBJECT_POSITIONS_AND_RADII
+#undef NV_EXTN_OP_HIT_OBJECT_GET_LSS_OBJECT_POSITIONS_AND_RADII
+#undef NV_EXTN_OP_RT_IS_SPHERE_HIT
+#undef NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_SPHERE
+#undef NV_EXTN_OP_RT_COMMITTED_IS_SPHERE
+#undef NV_EXTN_OP_HIT_OBJECT_IS_SPHERE_HIT
+#undef NV_EXTN_OP_RT_IS_LSS_HIT
+#undef NV_EXTN_OP_RT_CANDIDATE_IS_NONOPAQUE_LSS
+#undef NV_EXTN_OP_RT_COMMITTED_IS_LSS
+#undef NV_EXTN_OP_HIT_OBJECT_IS_LSS_HIT
+#undef NV_EXTN_OP_RT_CANDIDATE_LSS_HIT_PARAMETER
+#undef NV_EXTN_OP_RT_COMMITTED_LSS_HIT_PARAMETER
+#undef NV_EXTN_OP_RT_CANDIDATE_BUILTIN_PRIMITIVE_RAY_T
+#undef NV_EXTN_OP_RT_COMMIT_NONOPAQUE_BUILTIN_PRIMITIVE_HIT
+#endif
+  return {table};
+}
 } // namespace dxil
 
 // TODO: move this somewhere else...

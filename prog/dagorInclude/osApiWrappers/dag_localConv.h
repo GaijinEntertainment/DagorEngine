@@ -38,6 +38,11 @@ extern "C"
   // memicmp() analogue
   KRNLIMP int dd_memicmp(const char *a, const char *b, int n);
 
+  // Find string within a string (case-insensitive).
+  // If needle is empty then it returns with haystack (just like strstr).
+  // strcasestr() and StrStrIA() analogue
+  KRNLIMP const char *dd_stristr(const char *haystack, const char *needle);
+
   //! returns pointer to internal uptab[256]
   extern KRNLIMP const unsigned char *dd_local_cmp_uptab;
   //! returns pointer to internal lwtab[256]

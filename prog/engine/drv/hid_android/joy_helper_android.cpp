@@ -48,8 +48,8 @@ bool HumanInput::JoyDeviceHelper::attach()
   attachArgs.group = NULL;
 
   // always attach to the caller's thread
-  jint result = android::get_java_vm(activity ? activity : s_AttachedActivity)->AttachCurrentThread(&s_Jni, &attachArgs);
-  if (result == JNI_ERR || s_Jni == NULL)
+  jint result = android::attach_current_thread(android::get_java_vm(activity ? activity : s_AttachedActivity), &s_Jni, &attachArgs);
+  if (result != JNI_OK || s_Jni == NULL)
     return false;
 
   // check if already inited

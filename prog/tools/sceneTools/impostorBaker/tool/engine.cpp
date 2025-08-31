@@ -12,7 +12,6 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <util/dag_texMetaData.h>
 #include <assets/assetExpCache.h>
-#include <de3_dxpFactory.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/fileUtils.h>
@@ -179,7 +178,7 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir)
       G_ASSERT(dabuildcache::init(start_dir, &console));
       G_ASSERT(dabuildcache::bind_with_mgr(assetMgr, appblk, app_dir) >= 0);
     }
-    if (texconvcache::init(assetMgr, appblk, start_dir, false, true))
+    if (texconvcache::init(assetMgr, appblk, start_dir))
     {
       addMessage(ILogWriter::NOTE, "texture conversion cache inited");
       int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));

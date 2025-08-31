@@ -12,7 +12,7 @@ namespace drv3d_dx12::debug::ags
 AGSContext *get_context();
 
 bool create_device_with_user_markers(AGSContext *ags_context, DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level,
-  void **ptr);
+  void **ptr, HLSLVendorExtensions &extensions);
 
 } // namespace drv3d_dx12::debug::ags
 #endif

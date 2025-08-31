@@ -6,12 +6,15 @@
 #include <daECS/core/event.h>
 #include <daECS/core/entityId.h>
 #include "daECS/net/connection.h"
+#include "dasModules/aotEcsEvents.h"
+
 #include <daECS/net/netbase.h>
 #include <daECS/net/object.h>
 #include <daECS/net/schemelessEventSerialize.h>
 #include <daECS/net/msgSink.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <ecs/scripts/netsqevent.h>
+#include <dasModules/dasSharedStack.h>
 #include <dasModules/aotEcs.h>
 #include <dasModules/aotNet.h>
 #include <dasModules/dasManagedTab.h>
@@ -76,7 +79,7 @@ inline ecs::EntityId do_entity_recreate_fn_with_init_and_lambda(ecs::EntityId ei
       argI[2] = das::cast<ecs::ComponentsInitializer &>::from(cInit);
       if (!context->ownStack)
       {
-        das::SharedStackGuard guard(*context, bind_dascript::get_shared_stack());
+        das::SharedFramememStackGuard guard(*context);
         (void)context->call(simFunc, argI, 0);
       }
       else
@@ -160,4 +163,14 @@ inline bool deserialize_snapshot_quantized_info(Point3 &pos, Quat &orientation, 
 {
   return CachedQuantizedInfoT<>::template deserializeQLoc<>(bitstream, pos, orientation, in_motion);
 }
+
+inline uint32_t das_get_dasevent_net_version(das::Context *context)
+{
+  const EsContext *ctx = cast_es_context(context);
+  return get_dasevent_net_version(*ctx->mgr);
+}
+
+uint16_t get_NET_PROTO_VERSION();
+int get_NET_MAX_PLAYERS();
+
 } // namespace bind_dascript

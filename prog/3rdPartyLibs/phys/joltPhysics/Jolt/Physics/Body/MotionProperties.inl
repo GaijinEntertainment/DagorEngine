@@ -8,8 +8,8 @@ JPH_NAMESPACE_BEGIN
 
 void MotionProperties::MoveKinematic(Vec3Arg inDeltaPosition, QuatArg inDeltaRotation, float inDeltaTime)
 {
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::ReadWrite));
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sPositionAccess, BodyAccess::EAccess::Read));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess(), BodyAccess::EAccess::ReadWrite));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sPositionAccess(), BodyAccess::EAccess::Read));
 	JPH_ASSERT(mCachedBodyType == EBodyType::RigidBody);
 	JPH_ASSERT(mCachedMotionType != EMotionType::Static);
 
@@ -25,7 +25,7 @@ void MotionProperties::MoveKinematic(Vec3Arg inDeltaPosition, QuatArg inDeltaRot
 
 void MotionProperties::ClampLinearVelocity()
 {
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::ReadWrite));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess(), BodyAccess::EAccess::ReadWrite));
 
 	float len_sq = mLinearVelocity.LengthSq();
 	JPH_ASSERT(isfinite(len_sq));
@@ -35,7 +35,7 @@ void MotionProperties::ClampLinearVelocity()
 
 void MotionProperties::ClampAngularVelocity()
 {
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::ReadWrite));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess(), BodyAccess::EAccess::ReadWrite));
 
 	float len_sq = mAngularVelocity.LengthSq();
 	JPH_ASSERT(isfinite(len_sq));
@@ -48,6 +48,16 @@ inline Mat44 MotionProperties::GetLocalSpaceInverseInertiaUnchecked() const
 	Mat44 rotation = Mat44::sRotation(mInertiaRotation);
 	Mat44 rotation_mul_scale_transposed(mInvInertiaDiagonal.SplatX() * rotation.GetColumn4(0), mInvInertiaDiagonal.SplatY() * rotation.GetColumn4(1), mInvInertiaDiagonal.SplatZ() * rotation.GetColumn4(2), Vec4(0, 0, 0, 1));
 	return rotation.Multiply3x3RightTransposed(rotation_mul_scale_transposed);
+}
+
+inline void MotionProperties::ScaleToMass(float inMass)
+{
+	JPH_ASSERT(mInvMass > 0.0f, "Body must have finite mass");
+	JPH_ASSERT(inMass > 0.0f, "New mass cannot be zero");
+
+	float new_inv_mass = 1.0f / inMass;
+	mInvInertiaDiagonal *= new_inv_mass / mInvMass;
+	mInvMass = new_inv_mass;
 }
 
 inline Mat44 MotionProperties::GetLocalSpaceInverseInertia() const
@@ -91,14 +101,14 @@ Vec3 MotionProperties::MultiplyWorldSpaceInverseInertiaByVector(QuatArg inBodyRo
 
 void MotionProperties::ApplyGyroscopicForceInternal(QuatArg inBodyRotation, float inDeltaTime)
 {
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::ReadWrite));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess(), BodyAccess::EAccess::ReadWrite));
 	JPH_ASSERT(mCachedBodyType == EBodyType::RigidBody);
 	JPH_ASSERT(mCachedMotionType == EMotionType::Dynamic);
 
 	// Calculate local space inertia tensor (a diagonal in local space)
 	UVec4 is_zero = Vec3::sEquals(mInvInertiaDiagonal, Vec3::sZero());
-	Vec3 denominator = Vec3::sSelect(mInvInertiaDiagonal, Vec3::sReplicate(1.0f), is_zero);
-	Vec3 nominator = Vec3::sSelect(Vec3::sReplicate(1.0f), Vec3::sZero(), is_zero);
+	Vec3 denominator = Vec3::sSelect(mInvInertiaDiagonal, Vec3::sOne(), is_zero);
+	Vec3 nominator = Vec3::sSelect(Vec3::sOne(), Vec3::sZero(), is_zero);
 	Vec3 local_inertia = nominator / denominator; // Avoid dividing by zero, inertia in this axis will be zero
 
 	// Calculate local space angular momentum
@@ -119,7 +129,7 @@ void MotionProperties::ApplyGyroscopicForceInternal(QuatArg inBodyRotation, floa
 
 void MotionProperties::ApplyForceTorqueAndDragInternal(QuatArg inBodyRotation, Vec3Arg inGravity, float inDeltaTime)
 {
-	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::ReadWrite));
+	JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess(), BodyAccess::EAccess::ReadWrite));
 	JPH_ASSERT(mCachedBodyType == EBodyType::RigidBody);
 	JPH_ASSERT(mCachedMotionType == EMotionType::Dynamic);
 

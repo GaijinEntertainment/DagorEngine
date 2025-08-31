@@ -2,6 +2,8 @@
 #pragma once
 
 #include "shsyn.h"
+#include "commonUtils.h"
+#include "nameMap.h"
 
 #include <drv/3d/dag_consts.h>
 
@@ -11,20 +13,27 @@
 #include <EASTL/fixed_vector.h>
 #include <EASTL/map.h>
 #include <EASTL/optional.h>
+#include <EASTL/bitvector.h>
+
+namespace shc
+{
+class TargetContext;
+}
 
 namespace ShaderParser
 {
 
 class AssembleShaderEvalCB;
 
-class VariablesMerger
+struct VariablesMerger
 {
-public:
   enum
   {
     TYPE_FLOAT,
     TYPE_INT,
     TYPE_UINT,
+
+    TYPE_COUNT
   };
 
   struct MergedVarInfo
@@ -53,36 +62,57 @@ public:
     }
   };
 
-  using MergeableStateBlocks = eastl::array<eastl::vector<ShaderTerminal::state_block_stat>, (int)ShaderStage::STAGE_MAX>;
+  using MergeableStateBlocks = Tab<ShaderTerminal::state_block_stat *>;
+  using MergeableStateBlocksPerStage = eastl::array<MergeableStateBlocks, (int)ShaderStage::STAGE_MAX>;
   using MergedVars = eastl::fixed_vector<MergedVarInfo, 4>;
-  using MergedVarsMap = eastl::map<eastl::string, MergedVars>;
+  using MergedVarsMap = ska::flat_hash_map<eastl::string, MergedVars>;
+  using MergedVarsMapsPerStage = eastl::array<MergedVarsMap, (int)ShaderStage::STAGE_MAX>;
 
-  void addStat(ShaderTerminal::state_block_stat &state_block, ShaderStage stage, bool is_dynamic)
+  MergeableStateBlocksPerStage constBlocks;
+  MergedVarsMapsPerStage constVarsMaps;
+  MergeableStateBlocks bufferedBlocks;
+  MergedVarsMap bufferedVarsMap;
+
+  // @TODO: this is to prune duplicate ps/vs stat pairs for buffered stats. Should be replaced with actual syntax tree comparison
+  // (currently, different decls for vs and ps race to be the one chosen for buffer)
+  SCFastNameMap bufferedStatsNames;
+  eastl::bitvector<> bufferedDeclaredInVs, bufferedDeclaredInPsOrCs;
+
+  shc::TargetContext &ctx;
+
+  explicit VariablesMerger(shc::TargetContext &a_ctx) : ctx{a_ctx} {}
+
+  void addConstStat(ShaderTerminal::state_block_stat &state_block, ShaderStage stage)
   {
-    (is_dynamic ? dynamicBlocks : staticBlocks)[stage].emplace_back(state_block);
+    constBlocks[stage].emplace_back(&state_block);
   }
+  void addBufferedStat(ShaderTerminal::state_block_stat &state_block, ShaderStage stage);
 
   void mergeAllVars(AssembleShaderEvalCB *ascb)
   {
-    mergeVars(ascb, dynamicBlocks, dynamicVarsMap);
-    mergeVars(ascb, staticBlocks, staticVarsMap);
+    for (ShaderStage stage : {STAGE_CS, STAGE_PS, STAGE_VS})
+      mergeVars(ascb, constBlocks[stage], constVarsMaps[stage], stage);
+    mergeVars(ascb, bufferedBlocks, bufferedVarsMap, STAGE_PS); // Both STAGE_PS and STAGE_VS are ok here -- static cbuf is shared
   }
 
-  const MergedVars *findOriginalVarsInfo(const eastl::string merged_var_name, bool is_dynamic) const
+  const MergedVars *findOriginalConstVarsInfo(const eastl::string merged_var_name, ShaderStage stage) const
   {
-    const MergedVarsMap &varMap = (is_dynamic ? dynamicVarsMap : staticVarsMap);
-    auto found = varMap.find(merged_var_name);
-    if (found == varMap.end())
+    return findOriginalVarsInfo(merged_var_name, constVarsMaps[stage]);
+  }
+  const MergedVars *findOriginalBufferedVarsInfo(const eastl::string merged_var_name) const
+  {
+    return findOriginalVarsInfo(merged_var_name, bufferedVarsMap);
+  }
+
+  void mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks &blocks, MergedVarsMap &var_map, ShaderStage stage);
+  static const MergedVars *findOriginalVarsInfo(const eastl::string merged_var_name, const MergedVarsMap &map)
+  {
+    auto found = map.find(merged_var_name);
+    if (found == map.end())
       return nullptr;
 
     return &found->second;
   }
-
-private:
-  MergeableStateBlocks dynamicBlocks, staticBlocks;
-  MergedVarsMap dynamicVarsMap, staticVarsMap;
-
-  void mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks &blocks, MergedVarsMap &var_map);
 };
 
 } // namespace ShaderParser

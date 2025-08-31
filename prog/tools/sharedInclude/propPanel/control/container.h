@@ -19,7 +19,7 @@ class ContainerPropertyControl : public PropertyControlBase
 public:
   ContainerPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x = 0, int y = 0,
     hdpi::Px w = hdpi::Px(0), hdpi::Px h = hdpi::Px(0));
-  ~ContainerPropertyControl();
+  ~ContainerPropertyControl() override;
 
   // Creates
 
@@ -60,6 +60,7 @@ public:
   virtual void createButtonLText(int id, const char caption[], bool enabled = true, bool new_line = true);
   virtual void createIndent(int id = 0, bool new_line = true);
   virtual void createSeparator(int id = 0, bool new_line = true);
+  virtual void createSeparatorText(int id, const char caption[], bool new_line = true);
   virtual void createCombo(int id, const char caption[], const Tab<String> &vals, int index, bool enabled = true,
     bool new_line = true);
   virtual void createCombo(int id, const char caption[], const Tab<String> &vals, const char *selection, bool enabled = true,
@@ -133,6 +134,7 @@ public:
   virtual void setSelection(int id, const Tab<int> &sels); // for multiselect list
   virtual void setCaption(int id, const char value[]);
   virtual void setButtonPictures(int id, const char *fname = NULL);
+  virtual void setListBoxEventHandler(int id, IListBoxControlEventHandler *handler);
 
   // change strings in list
   virtual int addString(int id, const char *value);
@@ -153,12 +155,14 @@ public:
   virtual void getTextGradient(int id, TextGradient &destGradient) const;
   virtual void getCurveCoefs(int id, Tab<Point2> &points) const;
   virtual bool getCurveCubicCoefs(int id, Tab<Point2> &xy_4c_per_seg) const;
+  virtual const char *getTooltipById(int id) const;
 
   virtual int getStrings(int id, Tab<String> &vals);
+  virtual dag::ConstSpan<String> getStrings(int id);
   virtual int getSelection(int id, Tab<int> &sels); // for multiselect list
 
-  virtual unsigned getTypeMaskForSet() const override;
-  virtual unsigned getTypeMaskForGet() const override;
+  unsigned getTypeMaskForSet() const override;
+  unsigned getTypeMaskForGet() const override;
 
   virtual SimpleString getCaption() const;
 
@@ -174,8 +178,8 @@ public:
 
   virtual void onChildResize(int id) { G_UNUSED(id); }
 
-  virtual const ContainerPropertyControl *getContainer() const override { return this; }
-  virtual ContainerPropertyControl *getContainer() override { return this; }
+  const ContainerPropertyControl *getContainer() const override { return this; }
+  ContainerPropertyControl *getContainer() override { return this; }
   virtual bool isRealContainer() { return true; }
   virtual bool isImguiContainer() const { return true; }
 
@@ -192,8 +196,8 @@ public:
 
   // saving and loading state with datablock
 
-  virtual int saveState(DataBlock &datablk) override;
-  virtual int loadState(DataBlock &datablk) override;
+  int saveState(DataBlock &datablk, bool by_name = false) override;
+  int loadState(DataBlock &datablk, bool by_name = false) override;
 
   // fast fill for large pannels
 
@@ -261,6 +265,12 @@ public:
   {
     G_UNUSED(leaf);
     G_UNUSED(fname);
+  }
+
+  virtual void copyButtonPictures(TLeafHandle from, TLeafHandle to)
+  {
+    G_UNUSED(from);
+    G_UNUSED(to);
   }
 
   virtual void setColor(TLeafHandle leaf, E3DCOLOR value)
@@ -358,10 +368,13 @@ public:
 
   virtual void setHorizontalSpaceBetweenControls(hdpi::Px space);
 
-  virtual void setTreeEventHandler(ITreeControlEventHandler *event_handler) {}
-  virtual void setTreeCheckboxIcons(const char *checked, const char *unchecked) {}
+  virtual void setAlignRightFromChild(int index) { alignRightFromChild = index; }
+  virtual int getAlignRightFromChild() { return alignRightFromChild; }
 
-  virtual void updateImgui() override;
+  virtual void setTreeEventHandler([[maybe_unused]] ITreeControlEventHandler *event_handler) {}
+  virtual void setTreeCheckboxIcons([[maybe_unused]] const char *checked, [[maybe_unused]] const char *unchecked) {}
+
+  void updateImgui() override;
 
 protected:
   virtual void resizeControl(unsigned w, unsigned h)
@@ -386,6 +399,7 @@ protected:
 
   Tab<PropertyControlBase *> mControlArray;
   Tab<bool> mControlsNewLine;
+  Tab<ImVec2> mControlsLastRectSize;
 
 private:
   const bool mUpdate = false; // NOTE: ImGui porting: unused.
@@ -395,6 +409,8 @@ private:
 
   bool useCustomHorizontalSpacing = false;
   float horizontalSpaceBetweenControls = 0.0f;
+
+  int alignRightFromChild = -1;
 };
 
 // iterate all tree leaves recursively (using children), root is usually nullptr and not iterated

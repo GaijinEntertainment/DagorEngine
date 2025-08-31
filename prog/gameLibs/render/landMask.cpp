@@ -87,18 +87,30 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
   landHeightTex = UniqueTexHolder(dag::create_tex(NULL, landTexSize, landTexSize, TEXFMT_DEPTH16 | flags, 1, "landHeightTex"),
     "random_grass_heightmap");
 
-  if (d3d::get_texformat_usage(TEXFMT_DEPTH16) & d3d::USAGE_FILTER)
-    landHeightTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
+  {
+    d3d::SamplerInfo smpInfo;
+    if (d3d::get_texformat_usage(TEXFMT_DEPTH16) & d3d::USAGE_FILTER)
+      smpInfo.filter_mode = d3d::FilterMode::Linear;
+    else
+    {
+      smpInfo.filter_mode = d3d::FilterMode::Point;
+      smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+    }
+    ShaderGlobal::set_sampler(::get_shader_variable_id("random_grass_heightmap_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
 
   if (needGrass)
   {
     // these textures are needed only when we have grass!
-    grassTypeTex = dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_L8, 1, "land_grass_type_tex");
-    grassTypeTex.getTex2D()->texfilter(TEXFILTER_POINT);
+    grassTypeTex = dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_R8, 1, "land_grass_type_tex");
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("land_grass_type_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 
     landColorTex = UniqueTexHolder(
       dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "landColorTex"),
       "grass_land_color_mask");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("grass_land_color_mask_samplerstate", true), d3d::request_sampler({}));
   }
 
   torHelper.texSize = landTexSize;

@@ -69,6 +69,8 @@ class BasicStreamingSceneManager : public IStreamingSceneManager
       ::enable_tex_mgr_mt(true, 0);
     }
 
+    const char *getJobName(bool &) const override { return "LevelStreamJob"; }
+
     virtual void doJob()
     {
       struct FinishSyncAction : public DelayedAction

@@ -1,0 +1,37 @@
+x
+1
+(
+)
+[
+]
+...
+int
+-
+,
+.
+|
+(|
+(int
+function_name(())
+function_name([)
+function_name(])
+function_name(.)
+function_name(,,,,,,,,x)
+function_name(x x x)
+1function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name)(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name.(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name(1arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: 1number, [arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, )[arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, [[arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, ][arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: number, [arg2_name float, arg3_name: float], ...)
+function_name(arg1_name: number, [arg2_name: float arg3_name: float], ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float, ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float] ....)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...])
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float],] ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], [...])
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...(

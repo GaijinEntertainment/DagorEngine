@@ -20,8 +20,8 @@ bool get_clipboard_utf8_text(char *dest, int buf_size)
   JavaVM *vm = app->activity->vm;
   JNIEnv *env;
 
-  jint result = vm->AttachCurrentThread(&env, NULL);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(vm, &env, NULL);
+  if (result != JNI_OK)
     return false;
 
   jclass context_class = env->GetObjectClass(android::get_activity_class(app->activity));
@@ -103,8 +103,8 @@ bool set_clipboard_utf8_text(const char *text)
   JavaVM *vm = app->activity->vm;
   JNIEnv *env;
 
-  jint result = vm->AttachCurrentThread(&env, NULL);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(vm, &env, NULL);
+  if (result != JNI_OK)
     return false;
 
   jclass context_class = env->GetObjectClass(android::get_activity_class(app->activity));
@@ -147,6 +147,8 @@ bool set_clipboard_bmp_image(TexPixel32 * /*im*/, int /*wd*/, int /*ht*/, int /*
   // no implementation yet
   return false;
 }
+
+bool set_clipboard_file(const char * /*filename*/) { return false; }
 
 #undef DETACH_VM
 

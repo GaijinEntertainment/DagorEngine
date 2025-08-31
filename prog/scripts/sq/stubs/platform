@@ -1,7 +1,9 @@
-local {get_arg_value_by_name} = require("dagor.system")
+let {get_arg_value_by_name} = require("dagor.system")
 
 return {
   get_platform_string_id = @() get_arg_value_by_name("platform") ?? "stub"
+  get_host_platform = @() get_arg_value_by_name("host_platform") ?? "windows"
+  get_host_arch = @() get_arg_value_by_name("host_arch") ?? "x86_64"
   get_locale_country = @() get_arg_value_by_name("country") ?? "__"
   get_console_model = @() get_arg_value_by_name("console_model") ?? "PC"
   get_console_model_revision = @(_consoleModel) ""

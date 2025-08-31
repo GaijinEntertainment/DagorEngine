@@ -110,5 +110,5 @@ if $(MaxVer) = Max2011 || $(MaxVer) = Max2012 || $(MaxVer) = Max2014 {
 CPPopt += -FImax_cpt.h ;
 
 if $(MaxVer) in Max2013 Max2014 Max2015 Max2016 Max2017 Max2018 Max2019 Max2020 Max2021 Max2022 Max2023 Max2024 Max2025 {
-  CPPopt +=  /D "_UNICODE" /D "UNICODE" -DNOMINMAX ;
+  CPPopt +=  -D_UNICODE -DUNICODE -DNOMINMAX ;
 }

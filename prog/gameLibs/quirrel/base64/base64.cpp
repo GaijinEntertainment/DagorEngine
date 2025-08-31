@@ -21,11 +21,28 @@ static eastl::string encode_base64(const char *text)
   return {b64Coder.c_str()};
 }
 
+static eastl::string encode_base64_url(const char *text)
+{
+  G_ASSERT(text);
+
+  Base64 b64Coder;
+  b64Coder.encode_urlsafe((const uint8_t *)text, strlen(text));
+  return {b64Coder.c_str()};
+}
+
 static eastl::string decode_base64(const char *text)
 {
   Base64 b64Coder(text);
   String result;
   b64Coder.decode(result);
+  return {result.str()};
+}
+
+static eastl::string decode_base64_url(const char *text)
+{
+  Base64 b64Coder(text);
+  String result;
+  b64Coder.decode_urlsafe(result);
   return {result.str()};
 }
 
@@ -64,7 +81,9 @@ void bind_base64_utils(SqModules *mgr)
   Sqrat::Table b64(mgr->getVM());
   b64 //
     .Func("encodeString", encode_base64)
+    .Func("encodeUrlString", encode_base64_url)
     .Func("decodeString", decode_base64)
+    .Func("decodeUrlString", decode_base64_url)
     .Func("encodeJson", obj_to_base64)
     .Func("encodeBlk", blk_to_base64)
     .SquirrelFunc("encodeBlob", encode_blob, 2, ".x")

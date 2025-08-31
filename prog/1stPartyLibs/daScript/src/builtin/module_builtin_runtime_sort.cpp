@@ -126,7 +126,7 @@ namespace das
         virtual bool finalize ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override { return false; }
         virtual ExpressionPtr transformCall ( ExprCallFunc * call, string & err ) override {
             for ( auto & arg : call->arguments ) {
-                if ( !arg->type || !arg->type->isFullyInferred() ) {
+                if ( !arg->type || !arg->type->isFullySealed() ) {
                     err = "sort requires fully inferred arguments";
                     return nullptr;
                 }

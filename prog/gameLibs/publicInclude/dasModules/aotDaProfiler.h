@@ -9,8 +9,8 @@
 namespace bind_dascript
 {
 void instrument_function(das::Context &ctx, das::SimFunction *FNPTR, bool isInstrumenting, uint64_t userData);
-void daProfiler_resolve_path(const char *fname, const das::TBlock<void, das::TTemporary<const char *>> &blk, das::Context *context,
-  das::LineInfoArg *at);
+void daProfiler_resolve_path(const char *fname, const das::TBlock<void, const das::TTemporary<const char *>> &blk,
+  das::Context *context, das::LineInfoArg *at);
 
 inline void profile_block(const char *name, const das::TBlock<void> &block, das::Context *context, das::LineInfoArg *at)
 {

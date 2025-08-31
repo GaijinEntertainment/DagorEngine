@@ -22,6 +22,7 @@
 #include "render.h"
 #include "textureloader.h"
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 
 using namespace drv3d_metal;
 
@@ -236,7 +237,13 @@ bool setRtState(TrackDriver3dRenderTarget &oldrt, TrackDriver3dRenderTarget &rt)
 bool dirty_render_target()
 {
   if (d3d::RenderPass::active)
+  {
+    if (vp.used)
+    {
+      render.setViewport(vp.x, vp.y, vp.w, vp.h, vp.minz, vp.maxz);
+    }
     return false;
+  }
 
   if (!nextRtState.changed || nextRtState.isEqual(currentRtState))
   {
@@ -273,7 +280,7 @@ void set_depth_impl(::BaseTexture *tex, int face, bool readonly)
   else
   {
     drv3d_metal::Texture *depth = (drv3d_metal::Texture*)tex;
-    G_ASSERTF(is_depth_format(depth->cflg), "%s", depth->getResName());
+    D3D_CONTRACT_ASSERTF(is_depth_format(depth->cflg), "%s", depth->getName());
     nextRtState.setDepth(depth, face, readonly);
   }
 }
@@ -298,13 +305,13 @@ bool set_render_target_impl(int rt_index, ::BaseTexture* rt, int level, int laye
 
   if (is_depth_format(tex->cflg))
   {
-    D3D_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
     return false;
   }
 
   if (!(tex->cflg&TEXCF_RTARGET))
   {
-    D3D_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
     return false;
   }
 
@@ -421,7 +428,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
     return false;
   }
 
-  G_ASSERT(level < tex->mipLevels);
+  D3D_CONTRACT_ASSERT(level < tex->mipLevels);
 
   w = max(1, tex->width >> level);
   h = max(1, tex->height >> level);
@@ -448,7 +455,7 @@ bool d3d::setview(int x, int y, int w, int h, float minz, float maxz)
 bool d3d::setviews(dag::ConstSpan<Viewport> viewports)
 {
   G_UNUSED(viewports);
-  G_ASSERTF(false, "Not implemented");
+  D3D_CONTRACT_ASSERT_FAIL("Not implemented");
   return false;
 }
 
@@ -517,7 +524,7 @@ bool d3d::setscissor(int x, int y, int w, int h)
 bool d3d::setscissors(dag::ConstSpan<ScissorRect> scissorRects)
 {
   G_UNUSED(scissorRects);
-  G_ASSERTF(false, "Not implemented");
+  D3D_CONTRACT_ASSERT_FAIL("Not implemented");
   return false;
 }
 
@@ -526,7 +533,7 @@ float d3d::get_screen_aspect_ratio()
   return (float)render.scr_wd / (float)render.scr_ht;
 }
 
-bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst)
+bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
 {
   if (!src)
   {
@@ -549,10 +556,15 @@ bool d3d::copy_from_current_render_target(BaseTexture* to_tex)
   TrackDriver3dRenderTarget* rs = nextRtState.changed ? &nextRtState : &currentRtState;
 
   drv3d_metal::Texture* src = rs->isBackBufferColor() ? render.backbuffer : (drv3d_metal::Texture*)rs->color[0].tex;
-  G_ASSERT(src);
+  D3D_CONTRACT_ASSERT(src);
   render.copyTex(src, (drv3d_metal::Texture*)to_tex);
 
   return false;
+}
+
+BaseTexture *d3d::get_backbuffer_tex()
+{
+  return drv3d_metal::render.backbuffer;
 }
 
 namespace d3d
@@ -580,8 +592,8 @@ void RenderPass::bind()
 {
   using namespace drv3d_metal;
 
-  G_ASSERT(active);
-  G_ASSERT(active_subpass < active->subpasses.size());
+  D3D_CONTRACT_ASSERT(active);
+  D3D_CONTRACT_ASSERT(active_subpass < active->subpasses.size());
 
   Subpass &pass = active->subpasses[active_subpass];
 
@@ -598,24 +610,25 @@ void RenderPass::bind()
   {
     auto attach = toRenderAttachment(color, active->textures);
     render.setRT(color.index, attach);
-    nextRtState.setColor(color.index, attach.resolve_target ? attach.resolve_target : attach.texture, attach.level, attach.layer);
+    set_render_target_impl(color.index, attach.resolve_target ? attach.resolve_target : attach.texture, attach.level, attach.layer);
   }
 
   if (pass.depth_stencil.index != ~0u)
   {
     auto attach = toRenderAttachment(pass.depth_stencil, active->textures);
     render.setDepth(attach);
-    nextRtState.setDepth(attach.resolve_target ? attach.resolve_target : attach.texture, attach.layer, attach.store_action == MTLStoreActionDontCare);
+    set_depth_impl(attach.resolve_target ? attach.resolve_target : attach.texture, attach.layer, attach.store_action == MTLStoreActionDontCare);
   }
 
   for (auto &tex : pass.inputs)
   {
-    G_ASSERT(tex.src_slot < active->textures.size());
+    D3D_CONTRACT_ASSERT(tex.src_slot < active->textures.size());
     const RenderPassTarget &target = active->textures[tex.src_slot];
-    render.setTexture(STAGE_PS, tex.dst_slot, (drv3d_metal::Texture *)target.resource.tex, false, 0, false);
+    render.setTexture(STAGE_PS, tex.dst_slot, (drv3d_metal::Texture *)target.resource.tex, false, 0, 0);
   }
 
   render.setViewport(active->area.left, active->area.top, active->area.width, active->area.height, active->area.minZ, active->area.maxZ);
+  d3d::setview(active->area.left, active->area.top, active->area.width, active->area.height, active->area.minZ, active->area.maxZ);
 }
 
 RenderPass *RenderPass::active = nullptr;
@@ -681,13 +694,13 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
   int subpass_count = -1;
   for (uint32_t i = 0; i < rp_desc.bindCount; ++i)
     subpass_count = std::max(subpass_count, rp_desc.binds[i].subpass);
-  G_ASSERTF(subpass_count >= 0, "Render pass %s doesn't have any passes", rp_desc.debugName ? rp_desc.debugName : "(unknown)");
+  D3D_CONTRACT_ASSERTF(subpass_count >= 0, "Render pass %s doesn't have any passes", rp_desc.debugName ? rp_desc.debugName : "(unknown)");
 
   rp->name = rp_desc.debugName ? rp_desc.debugName : "unknown rp";
   rp->textures.resize(rp_desc.targetCount);
   rp->subpasses.resize(subpass_count + 1);
 
-  G_ASSERT(rp_desc.targetCount <= Program::MAX_SIMRT);
+  D3D_CONTRACT_ASSERT(rp_desc.targetCount <= Program::MAX_SIMRT);
   RenderPass::Subpass::Attachment attachments[Program::MAX_SIMRT + 1];
   for (int i = 0; i < Program::MAX_SIMRT + 1; ++i)
   {
@@ -743,7 +756,7 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
     }
     else
     {
-      G_ASSERT(subpass_action != RP_TA_SUBPASS_RESOLVE && "Not implemented for image blocks");
+      D3D_CONTRACT_ASSERT(subpass_action != RP_TA_SUBPASS_RESOLVE && "Not implemented for image blocks");
       if ((bind.action & (RP_TA_LOAD_MASK | RP_TA_STORE_MASK)) == 0)
         continue;
 
@@ -772,21 +785,21 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
 
 void delete_render_pass(RenderPass *rp)
 {
-  G_ASSERT(rp);
+  D3D_CONTRACT_ASSERT(rp);
   delete rp;
 }
 
 void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
 {
-  G_ASSERT(rp);
-  G_ASSERT(RenderPass::active == nullptr);
+  D3D_CONTRACT_ASSERT(rp);
+  D3D_CONTRACT_ASSERT(RenderPass::active == nullptr);
   RenderPass::active = rp;
 
   for (size_t i = 0; i < rp->textures.size(); ++i)
     rp->textures[i] = targets[i];
   rp->area = area;
 
-  G_ASSERT(rp->subpasses.empty() == false);
+  D3D_CONTRACT_ASSERT(rp->subpasses.empty() == false);
   RenderPass::bind();
 
   render.setRenderPass(true);
@@ -794,18 +807,21 @@ void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPa
 
 void next_subpass()
 {
-  G_ASSERT(RenderPass::active);
-  G_ASSERT(RenderPass::active_subpass + 1 < RenderPass::active->subpasses.size());
+  D3D_CONTRACT_ASSERT(RenderPass::active);
+  D3D_CONTRACT_ASSERT(RenderPass::active_subpass + 1 < RenderPass::active->subpasses.size());
   RenderPass::active_subpass++;
   if (render.has_image_blocks == false)
     RenderPass::bind();
   else
+  {
     render.setViewport(RenderPass::active->area.left, RenderPass::active->area.top, RenderPass::active->area.width, RenderPass::active->area.height, RenderPass::active->area.minZ, RenderPass::active->area.maxZ);
+    d3d::setview(RenderPass::active->area.left, RenderPass::active->area.top, RenderPass::active->area.width, RenderPass::active->area.height, RenderPass::active->area.minZ, RenderPass::active->area.maxZ);
+  }
 }
 
 void end_render_pass()
 {
-  G_ASSERT(RenderPass::active);
+  D3D_CONTRACT_ASSERT(RenderPass::active);
   RenderPass::active = nullptr;
   RenderPass::active_subpass = 0;
 

@@ -1,9 +1,11 @@
+# daEditor
+
 ## Overview
 
-*daEditor* (*Dagor Editor*) is one of the two primary tools for working with
-assets, and in some cases, for creating them. It offers a vast array of
-parameters and features. In this article, we will cover the basic principles of
-using daEditor, aimed at helping new users get started.
+daEditor (Dagor Editor) is one of the two primary tools for working with assets,
+and in some cases, for creating them. It offers a vast array of parameters and
+features. In this article, we will cover the basic principles of using daEditor,
+aimed at helping new users get started.
 
 ## Navigation
 

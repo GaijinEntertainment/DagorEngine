@@ -16,7 +16,7 @@ Dependencies =
 ;
 
 local editor_jam = $(Root)/$(Location)/jamfile-editor ;
-platform on $(editor_jam:G=JAM) = -sPlatform=$(Platform) -sPlatformArch=$(PlatformArch) ;
+platform on $(editor_jam:G=JAM) = -sPlatform=$(Platform) -sPlatformArch=$(PlatformArch) -sCPPStd=$(CPPStd) ;
 BuildJams = $(editor_jam) ;
 
 include $(Root)/prog/_jBuild/build.jam ;

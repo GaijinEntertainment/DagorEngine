@@ -38,9 +38,14 @@ Voxelizer::Voxelizer(float world_box_width, float meters_per_voxel_xz, int num_s
 
   voxelizeCs.reset(new_compute_shader("voxelize_depth_above"));
   generateBoundariesCs.reset(new_compute_shader("cfd_generate_boundaries"));
-  voxelTex = dag::create_voltex(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, TEXFMT_L8 | TEXCF_UNORDERED, 1, "cfd_voxel_tex");
-  voxelTex->texfilter(TEXFILTER_POINT);
-  voxelTex->texaddr(TEXADDR_CLAMP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_voxel_tex_samplerstate", true), smp);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_prev_boundaries_samplerstate", true), smp);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_next_boundaries_samplerstate", true), smp);
+  voxelTex = dag::create_voltex(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, "cfd_voxel_tex");
 
   boundaryCascades.resize(numCascades);
   for (int i = 0; i < numCascades; ++i)
@@ -48,9 +53,7 @@ Voxelizer::Voxelizer(float world_box_width, float meters_per_voxel_xz, int num_s
     int width = voxelTexSize.x >> i;
     int height = voxelTexSize.y >> i;
     boundaryCascades[i] =
-      dag::create_voltex(width, height, voxelTexSize.z, TEXFMT_L8 | TEXCF_UNORDERED, 1, String(0, "cfd_boundary_tex_%d", i));
-    boundaryCascades[i]->texfilter(TEXFILTER_POINT);
-    boundaryCascades[i]->texaddr(TEXADDR_CLAMP);
+      dag::create_voltex(width, height, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, String(0, "cfd_boundary_tex_%d", i));
   }
 
   ShaderGlobal::set_int4(cfd_voxel_tex_sizeVarId, IPoint4(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, 0));

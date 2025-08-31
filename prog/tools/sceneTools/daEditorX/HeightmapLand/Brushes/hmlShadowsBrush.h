@@ -8,21 +8,21 @@ class HmapShadowsBrush : public HmapLandBrush
 public:
   HmapShadowsBrush(IBrushClient *client, IHmapBrushImage &height_map) : HmapLandBrush(client, height_map) {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void fillParams(PropPanel::ContainerPropertyControl &panel) override;
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual bool brushPaintApply(int x, int y, float inc, bool rb) { return true; }
+  bool brushPaintApply(int x, int y, float inc, bool rb) override { return true; }
 
-  virtual void onBrushPaintEnd(int buttons, int key_modif);
+  void onBrushPaintEnd(int buttons, int key_modif) override;
 
-  virtual IBBox2 getDirtyBox() const
+  IBBox2 getDirtyBox() const override
   {
     IBBox2 box;
     return box;
   }
 
-  virtual void saveToBlk(DataBlock &blk) const;
-  virtual void loadFromBlk(const DataBlock &blk);
+  void saveToBlk(DataBlock &blk) const override;
+  void loadFromBlk(const DataBlock &blk) override;
 
-  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid) override;
 };

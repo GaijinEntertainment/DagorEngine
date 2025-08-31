@@ -1,0 +1,76 @@
+include "water_vertex.dshl"
+
+float wfx_height_limit = 100;
+
+macro WATER_3D_COMMON_VS_WT()
+hlsl {
+  // WaveWorks related structs
+  struct VS_OUTPUT
+  {
+    float4 nvsf_eye_vec: TEXCOORD1;
+    float3 pos_world_undisplaced  : TEXCOORD2;
+    float4 screenTc: TEXCOORD3;
+    #if has_projection_effects
+      float4 pos_clip_undisplaced   : TEXCOORD4;
+    #endif
+    ##if water_heightmap_pages != NULL
+      float3 tangent            : TEXCOORD5;
+      float3 bitangent          : TEXCOORD6;
+    ##endif
+    float3 flowmap_normal : TEXCOORD9;
+    VS_OUT_POSITION(pos_clip)
+  };
+
+  #define PS_INPUT VS_OUTPUT
+
+  struct VS_OUTPUT_FOR_TESSELATION
+  {
+    float4 worldPos_distFade : TEXCOORD0;
+  };
+}
+endmacro
+
+macro WATER_3D_DEFERRED_COMMON_VS_WT()
+WATER_3D_POSITION(vs)
+WATER_3D_TBN(vs)
+
+(vs) { wfx_height_limit@f1 = wfx_height_limit; }
+
+hlsl (vs) {
+  PS_INPUT calc_ps_input_from_world_position(float3 pos_world, float distFade, bool useWaterHeightmap)
+  {
+    VS_OUTPUT Output;
+
+    float3 pos_world_undisplaced = pos_world.xzy;
+    float4 pos_clip_undisplaced = mul(float4(pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
+
+    ShoreData shoreData;
+    getShoreAttributes(pos_world, shoreData);
+
+    float3 waterDispl = getWavesDisplacement(pos_world.xzy, shoreData);
+    #if has_water_flowmap
+      waterDispl.z += getWaterFlowmapDisplacement(pos_world);
+    #endif
+    waterDispl += getWFXDisplacement(pos_world.xzy, pos_clip_undisplaced);
+    pos_world.xzy += (shoreData.shoreWavesDisplacement + waterDispl*shoreData.oceanWavesMultiplier) * distFade;
+
+    float4 pos_clip = mul(float4(pos_world,1), globtm);
+    Output.pos_clip = pos_clip;
+    Output.nvsf_eye_vec = float4(world_view_pos.xzy - pos_world.xzy, pos_clip.w * inv_zfar);
+    Output.pos_world_undisplaced = pos_world_undisplaced;
+    #if has_projection_effects
+      Output.pos_clip_undisplaced = pos_clip_undisplaced;
+    #endif
+    #if has_water_flowmap
+      Output.flowmap_normal = getWaterFlowmapNormal(pos_world.xzy);
+    #endif
+    Output.screenTc = float4(pos_clip.xy * RT_SCALE_HALF + float2(0.50001, 0.50001) * pos_clip.w, pos_clip.zw);
+
+    ##if water_heightmap_pages != NULL
+      calcWaterTBN(pos_world, useWaterHeightmap, Output.tangent, Output.bitangent);
+    ##endif
+
+    return Output;
+  }
+}
+endmacro

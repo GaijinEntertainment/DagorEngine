@@ -6,7 +6,7 @@
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotProps.h>
 
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "render/fx/fx.h"
 #include "render/fx/effectEntity.h"
 #include <drv/3d/dag_decl.h>
@@ -63,18 +63,27 @@ inline void effect_set_gravity_tm(TheEffect &effect, const Matrix3 &tm)
     fx.fx->setGravityTm(tm);
 }
 
-inline AcesEffect *start_effect(int fx_type, const TMatrix &emitter_tm, const TMatrix &fx_tm, bool is_player)
+// Actually what is needed is to destruct the effect,
+// but such functionality isn't provided to AcesEffect's user.
+inline void effect_hide_and_reset(TheEffect &effect)
+{
+  for (auto &fx : effect.getEffects())
+    if (fx.fx)
+      fx.fx->hide(true);
+  effect.reset();
+}
+
+inline bool start_effect(int fx_type, const TMatrix &emitter_tm, const TMatrix &fx_tm, bool is_player)
 {
   FxErrorType fxErr = FX_ERR_NONE;
-  AcesEffect *fx = acesfx::start_effect(fx_type, emitter_tm, fx_tm, is_player, &acesfx::defSoundDesc, &fxErr);
-  if (fx)
-    return fx;
+  acesfx::start_effect(fx_type, emitter_tm, fx_tm, is_player, -1.0f, nullptr, &fxErr);
 
 #if DAGOR_DBGLEVEL > 0
-  if (fxErr != FX_ERR_HAS_ENOUGH)
+  if (fxErr == FX_ERR_INVALID_TYPE)
     logerr("das: can't create effect with type <%d> err: %d", fx_type, fxErr);
 #endif
-  return nullptr;
+
+  return fxErr == FX_ERR_NONE;
 }
 
 inline bool start_effect_block(int fx_type,
@@ -85,11 +94,13 @@ inline bool start_effect_block(int fx_type,
   das::Context *context,
   das::LineInfoArg *at)
 {
-  AcesEffect *fx = start_effect(fx_type, emitter_tm, fx_tm, is_player);
+  AcesEffect *fx = nullptr;
+  acesfx::start_effect(fx_type, emitter_tm, fx_tm, is_player, -1.0f, &fx);
   if (fx)
   {
     vec4f arg = das::cast<AcesEffect *>::from(fx);
     context->invoke(block, &arg, nullptr, at);
+    fx->unlock();
     return true;
   }
 
@@ -103,8 +114,9 @@ inline void effects_update(float dt)
   acesfx::setDepthTex(nullptr);
   acesfx::setNormalsTex(nullptr);
 
-  acesfx::start_update_prepare(dt, Driver3dPerspective(), 1, 1);
-  acesfx::start_update(dt);
-  acesfx::finish_update(TMatrix4::IDENT);
+  acesfx::update_fx_managers(dt);
+  acesfx::flush_dafx_commands();
+  acesfx::start_dafx_update(dt);
+  acesfx::finish_update_main_camera(TMatrix4::IDENT);
 }
 } // namespace bind_dascript

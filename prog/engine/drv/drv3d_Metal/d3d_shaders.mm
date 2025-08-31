@@ -17,6 +17,7 @@
 #include <util/dag_watchdog.h>
 
 #include "render.h"
+#include "drv_assert_defs.h"
 
 #include "indicesManager.h"
 
@@ -93,12 +94,12 @@ void d3d::delete_program(PROGRAM prog)
 
 int d3d::set_vs_constbuffer_size(int required_size)
 {
-  return min(Render::MAX_CBUFFER_SIZE, required_size);
+  return min(Render::MAX_CBUFFER_SIZE / 16, required_size);
 }
 
 bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigned num_regs)
 {
-  G_ASSERT_RETURN(stage < STAGE_MAX, false);
+  D3D_CONTRACT_ASSERT_RETURN(stage < STAGE_MAX, false);
   render.setConst(stage, reg_base, (const float*)data, num_regs);
 
   return true;
@@ -106,7 +107,7 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
 
 int d3d::set_cs_constbuffer_size(int required_size)
 {
-  return min(Render::MAX_CBUFFER_SIZE, required_size);
+  return min(Render::MAX_CBUFFER_SIZE / 16, required_size);
 }
 
 bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z, GpuPipeline gpu_pipeline)
@@ -127,17 +128,12 @@ bool d3d::dispatch_indirect(Sbuffer* buffer, uint32_t offset, GpuPipeline gpu_pi
 
 void d3d::dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z)
 {
-  G_UNUSED(thread_group_x);
-  G_UNUSED(thread_group_y);
-  G_UNUSED(thread_group_z);
+  render.dispatchMesh(thread_group_x, thread_group_y, thread_group_z);
 }
 
 void d3d::dispatch_mesh_indirect(Sbuffer *args, uint32_t dispatch_count, uint32_t stride_bytes, uint32_t byte_offset)
 {
-  G_UNUSED(args);
-  G_UNUSED(dispatch_count);
-  G_UNUSED(stride_bytes);
-  G_UNUSED(byte_offset);
+  render.dispatchMeshIndirect((Buffer *)args, dispatch_count, stride_bytes, byte_offset);
 }
 
 void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes, uint32_t args_byte_offset, Sbuffer *count,
@@ -149,16 +145,12 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes
   G_UNUSED(count);
   G_UNUSED(count_byte_offset);
   G_UNUSED(max_count);
+  G_ASSERT(0 && "Not implemented");
 }
 
-bool d3d::clear_rwbuff(Sbuffer* buff, const float val[4])
+bool d3d::zero_rwbufi(Sbuffer *buf)
 {
-  render.clearRwBuffer(buff, val);
-  return true;
-}
-
-bool d3d::clear_rwbufi(Sbuffer *tex, const unsigned val[4])
-{
-  render.clearRwBufferi(tex, val);
+  uint32_t val[4] = {0, 0, 0, 0};
+  render.clearRwBufferi(buf, val);
   return true;
 }

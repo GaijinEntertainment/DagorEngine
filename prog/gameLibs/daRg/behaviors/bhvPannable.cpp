@@ -106,6 +106,9 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
     if (!bhvData->isActive() && elem->hitTest(pos) && !(accum_res & R_STOPPED))
     {
       elem->setGroupStateFlags(activeStateFlag);
+      Sqrat::Function onTouchBegin = elem->props.scriptDesc.GetFunction(elem->csk->onTouchBegin);
+      if (!onTouchBegin.IsNull())
+        onTouchBegin();
 
       bhvData->start(device, pointer_id, button_id, pos);
       etree->stopKineticScroll(elem);
@@ -119,6 +122,7 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
     {
       elem->clearGroupStateFlags(activeStateFlag);
 
+      Sqrat::Function kineticScrollOnTouchEnd = elem->props.scriptDesc.GetFunction(elem->csk->kineticScrollOnTouchEnd);
       Point2 scrollVel = bhvData->kineticTracker.curVelocity();
       if (lengthSq(scrollVel) > 0)
       {
@@ -131,8 +135,12 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
             scrollVel = Point2(cosf(nearestAxisAngle), sinf(nearestAxisAngle)) * length(scrollVel);
         }
 
-        etree->startKineticScroll(elem, scrollVel);
+        if (kineticScrollOnTouchEnd.IsNull())
+          etree->startKineticScroll(elem, scrollVel);
       }
+
+      if (!kineticScrollOnTouchEnd.IsNull())
+        kineticScrollOnTouchEnd(scrollVel);
 
       bhvData->finish();
 

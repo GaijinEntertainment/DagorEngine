@@ -21,7 +21,7 @@ namespace das
 
     template <typename TT, typename Policy>
     struct SimNode_VecCtor<TT,Policy,1> : SimNode_CallBase {
-        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(VecCtor_1);
@@ -38,7 +38,7 @@ namespace das
 
     template <typename TT, typename Policy>
     struct SimNode_VecCtor<TT,Policy,2> : SimNode_CallBase {
-        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(VecCtor_2);
@@ -59,7 +59,7 @@ namespace das
 
     template <typename TT, typename Policy>
     struct SimNode_VecCtor<TT,Policy,3> : SimNode_CallBase {
-        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(VecCtor_3);
@@ -83,7 +83,7 @@ namespace das
 
     template <typename TT, typename Policy>
     struct SimNode_VecCtor<TT,Policy,4> : SimNode_CallBase {
-        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_VecCtor(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(VecCtor_4);
@@ -108,7 +108,7 @@ namespace das
 
     template <typename TT, typename Policy>
     struct SimNode_Range1Ctor: SimNode_CallBase {
-        SimNode_Range1Ctor(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_Range1Ctor(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(Range1Ctor);
@@ -127,7 +127,7 @@ namespace das
     };
 
     struct SimNode_VecPassThrough: SimNode_CallBase {
-        SimNode_VecPassThrough(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_VecPassThrough(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(VecPassThrough);
@@ -147,49 +147,49 @@ namespace das
 #endif
 
 #define ADD_VEC_CTOR_1(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_Zero,VTYPE>> (#VTYPE,lib,"v_zero",false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,1>,VTYPE,float>>   (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,1>,VTYPE,double>>  (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,1>,VTYPE,int32_t>> (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,1>,VTYPE,uint32_t>>(#VTYPE,lib,VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_Zero,const VTYPE>> (#VTYPE,lib,"v_zero",false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,1>,const VTYPE,float>>   (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,1>,const VTYPE,double>>  (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,1>,const VTYPE,int32_t>> (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,1>,const VTYPE,uint32_t>>(#VTYPE,lib,VNAME,false) );
 
 #define ADD_RANGE_CTOR_1(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_Zero,VTYPE>> (#VTYPE,lib,"v_zero",false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<float,   SimPolicy<VTYPE>>,VTYPE,float>>   (#VTYPE,lib,"mk_" VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<double,  SimPolicy<VTYPE>>,VTYPE,double>>  (#VTYPE,lib,"mk_" VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<int32_t, SimPolicy<VTYPE>>,VTYPE,int32_t>> (#VTYPE,lib,"mk_" VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<uint32_t,SimPolicy<VTYPE>>,VTYPE,uint32_t>>(#VTYPE,lib,"mk_" VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_Zero,const VTYPE>> (#VTYPE,lib,"v_zero",false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<float,   SimPolicy<VTYPE>>,const VTYPE,float>>   (#VTYPE,lib,"mk_" VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<double,  SimPolicy<VTYPE>>,const VTYPE,double>>  (#VTYPE,lib,"mk_" VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<int32_t, SimPolicy<VTYPE>>,const VTYPE,int32_t>> (#VTYPE,lib,"mk_" VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<uint32_t,SimPolicy<VTYPE>>,const VTYPE,uint32_t>>(#VTYPE,lib,"mk_" VNAME,false) );
 
 #define ADD_RANGE64_CTOR_1(VTYPE,VNAME) \
 ADD_RANGE_CTOR_1(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<int64_t, SimPolicy<VTYPE>>,VTYPE,int64_t>> (#VTYPE,lib,"mk_" VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<uint64_t,SimPolicy<VTYPE>>,VTYPE,uint64_t>>(#VTYPE,lib,"mk_" VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<int64_t, SimPolicy<VTYPE>>,const VTYPE,int64_t>> (#VTYPE,lib,"mk_" VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_Range1Ctor<uint64_t,SimPolicy<VTYPE>>,const VTYPE,uint64_t>>(#VTYPE,lib,"mk_" VNAME,false) );
 
 #define ADD_VEC_CTOR_2(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,2>,VTYPE,float,float>>      (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,2>,VTYPE,double,double>>    (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,2>,VTYPE,int32_t,int32_t>>  (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,2>,VTYPE,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,2>,const VTYPE,float,float>>      (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,2>,const VTYPE,double,double>>    (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,2>,const VTYPE,int32_t,int32_t>>  (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,2>,const VTYPE,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
 
 #define ADD_VEC64_CTOR_2(VTYPE,VNAME) \
 ADD_VEC_CTOR_2(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int64_t, SimPolicy<VTYPE>,2>,VTYPE,int64_t,int64_t>>  (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint64_t,SimPolicy<VTYPE>,2>,VTYPE,uint64_t,uint64_t>>(#VTYPE,lib,VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int64_t, SimPolicy<VTYPE>,2>,const VTYPE,int64_t,int64_t>>  (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint64_t,SimPolicy<VTYPE>,2>,const VTYPE,uint64_t,uint64_t>>(#VTYPE,lib,VNAME,false) );
 
 #define ADD_VEC_CTOR_3(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,3>,VTYPE,float,float,float>>         (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,3>,VTYPE,double,double,double>>      (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,3>,VTYPE,int32_t,int32_t,int32_t>>   (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,3>,VTYPE,uint32_t,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,3>,const VTYPE,float,float,float>>         (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,3>,const VTYPE,double,double,double>>      (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,3>,const VTYPE,int32_t,int32_t,int32_t>>   (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,3>,const VTYPE,uint32_t,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
 
 #define ADD_VEC_CTOR_4(VTYPE,VNAME) \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,4>,VTYPE,float,float,float,float>>            (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,4>,VTYPE,double,double,double,double>>        (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,4>,VTYPE,int32_t,int32_t,int32_t,int32_t>>    (#VTYPE,lib,VNAME,false) ); \
-addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,VTYPE,uint32_t,uint32_t,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<float,   SimPolicy<VTYPE>,4>,const VTYPE,float,float,float,float>>            (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<double,  SimPolicy<VTYPE>,4>,const VTYPE,double,double,double,double>>        (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<int32_t, SimPolicy<VTYPE>,4>,const VTYPE,int32_t,int32_t,int32_t,int32_t>>    (#VTYPE,lib,VNAME,false) ); \
+addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,const VTYPE,uint32_t,uint32_t,uint32_t,uint32_t>>(#VTYPE,lib,VNAME,false) );
 
     struct SimNode_Int4ToFloat4 : SimNode_CallBase {
-        SimNode_Int4ToFloat4(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_Int4ToFloat4(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(Int4ToFloat4);
@@ -204,7 +204,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
     };
 
     struct SimNode_UInt4ToFloat4 : SimNode_CallBase {
-        SimNode_UInt4ToFloat4(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_UInt4ToFloat4(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(UInt4ToFloat4);
@@ -219,7 +219,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
     };
 
     struct SimNode_Float4ToInt4 : SimNode_CallBase {
-        SimNode_Float4ToInt4(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_Float4ToInt4(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(Float4ToInt4);
@@ -234,7 +234,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
     };
 
     struct SimNode_Float4ToUInt4 : SimNode_CallBase {
-        SimNode_Float4ToUInt4(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_Float4ToUInt4(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(Float4ToUInt4);
@@ -249,7 +249,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
     };
 
     struct SimNode_AnyIntToAnyInt : SimNode_CallBase {
-        SimNode_AnyIntToAnyInt(const LineInfo & at) : SimNode_CallBase(at) {}
+        SimNode_AnyIntToAnyInt(const LineInfo & at) : SimNode_CallBase(at,"") {}
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
             V_OP(AnyIntToAnyInt);

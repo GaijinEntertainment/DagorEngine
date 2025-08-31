@@ -26,7 +26,8 @@ if 'shaders' in BUILD_COMPONENTS:
   run_per_platform(
     cmds_windows = ['compile_shaders_dx12.bat', 'compile_shaders_dx11.bat',
                     'compile_shaders_metal.bat', 'compile_shaders_spirv.bat',
-                    'compile_shaders_tools.bat'],
+                    'compile_shaders_tools.bat', 'compile_shaders_exp.bat',
+                    'compile_shaders_impostorbaker.bat'],
     cmds_macOS   = ['./compile_shaders_metal.sh', './compile_tool_shaders_metal.sh'],
     cmds_linux   = ['./compile_shaders_spirv.sh', './compile_tool_shaders_spirv.sh'],
     cwd='./shaders')

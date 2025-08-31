@@ -32,10 +32,6 @@ inline dag::Span<T *> mk_slice(PtrTab<T> &t)
 ObjectEditorPropPanelBar::ObjectEditorPropPanelBar(ObjectEditor *obj_ed, void *hwnd, const char *caption) :
   objEd(obj_ed), objects(midmem)
 {
-  IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
-  G_ASSERT(manager && "ObjectEditorPropPanelBar ctor: WndManager is NULL!");
-  manager->setCaption(hwnd, caption);
-
   propPanel = IEditorCoreEngine::get()->createPropPanel(this, caption);
 }
 
@@ -313,9 +309,29 @@ void ObjectEditorPropPanelBar::createPanelTransform(int mode)
         break;
       default: G_ASSERT_FAIL("ObjectEditorPropPanelBar::createPanelTransform: unsupported mode!"); return;
     }
+
     transformGrp->createEditFloatWidthEx(pid, "x:", 0.0f, prec, true, true, false);
     transformGrp->createEditFloatWidthEx(pid + 1, "y:", 0.0f, prec, true, false, false);
     transformGrp->createEditFloatWidthEx(pid + 2, "z:", 0.0f, prec, true, false, false);
+
+    // Ugly, but important! Pt is not always cached in objEd
+    // before transforming the object (selection is not enough)
+    if (mode == CM_OBJED_MODE_MOVE)
+    {
+      // No need if movement is already selected and don't do it for
+      // other transforms since it breaks clone movement!
+      int editMode = objEd->getEditMode();
+      if (editMode != mode)
+      {
+        const bool updateViewportGizmo = objEd->getUpdateViewportGizmo();
+        objEd->setUpdateViewportGizmo(false);
+        objEd->updateGizmo(0, &mode);
+
+        // reset
+        objEd->updateGizmo();
+        objEd->setUpdateViewportGizmo(updateViewportGizmo);
+      }
+    }
   }
 }
 

@@ -5,7 +5,10 @@
 #pragma once
 
 #include <util/dag_stdint.h>
+#include <perfMon/dag_daProfilerToken.h>
+#include <util/dag_compilerDefs.h>
 #include <supp/dag_define_KRNLIMP.h>
+#include <osApiWrappers/dag_atomic.h>
 
 
 namespace cpujobs
@@ -30,13 +33,32 @@ public:
   //! called by job manager to perform task; executed in context of worker thread
   virtual unsigned getJobTag() { return 0; };
 
+  //! called by job manager before performing the task for measurements;
+  //! set `copystr` to true if string need to be copied (i.e not static/persistently allocated)
+  virtual const char *getJobName(bool & /*copystr*/) const = 0;
+  da_profiler::desc_id_t getJobNameProfDesc() const;
+
+private:
+  da_profiler::desc_id_t addJobNameProfDesc(const char *job_name, bool copystr) const;
+
+public:
   IJob *next;
+
+  mutable da_profiler::desc_id_t jobNameProfDesc = 0;
   union
   {
     volatile int needRelease;
     volatile int done;
   };
 };
+
+inline da_profiler::desc_id_t IJob::getJobNameProfDesc() const
+{
+  if (auto jd = interlocked_acquire_load(jobNameProfDesc); DAGOR_LIKELY(jd))
+    return jd;
+  bool copystr = false;
+  return addJobNameProfDesc(getJobName(copystr), copystr);
+}
 
 static constexpr int DEFAULT_THREAD_PRIORITY = 0; // MS - THREAD_PRIORITY_NORMAL
 static constexpr int THREAD_PRIORITY_LOWER_STEP = -1;

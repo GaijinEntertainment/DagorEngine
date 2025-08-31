@@ -1,7 +1,7 @@
 include "screen_droplets/shaders/apply.dshl"
-include "local_tone_mapping/shaders/apply.dshl"
+include "localToneMapping/shaders/apply.dshl"
 include "screen_snowflakes/shaders/apply.dshl"
-include "lens_flare/shaders/use_flares.dshl"
+include "use_flares.dshl"
 
 macro INIT_POSTFX_MODIFIER()
   INIT_SCREEN_DROPLETS()
@@ -12,10 +12,10 @@ endmacro
 macro USE_POSTFX_MODIFIER()
   USE_SCREEN_DROPLETS()
   USE_SCREEN_SNOWFLAKES()
-  USE_FLARES()
+  USE_FLARES(frame_tex_samplerstate)
   hlsl(ps)
   {
-    void apply_postfx_modifiers(float2 screen_uv, inout float3 color)
+    void apply_postfx_modifiers(float2 screen_uv, inout float3 color, float3 bloom)
     {
       apply_lens_flare(color, screen_uv);
       apply_screen_droplets(color, screen_uv);

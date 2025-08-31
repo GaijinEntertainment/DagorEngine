@@ -320,6 +320,7 @@ namespace das {
             return true;
         }
         virtual bool canVisitFunction ( Function * fun ) override {
+            if ( fun->isTemplate ) return false;
             if ( fun->aliasesResolved ) return false;
             if ( !fun->used && !isEverything ) return false;
             fun->aliasesResolved = isPermanent;

@@ -48,6 +48,7 @@ public:
   virtual const char *getBuildString() = 0;
   virtual bool registerService(IEditorService *srv) = 0;
   virtual bool unregisterService(IEditorService *srv) = 0;
+  virtual IEditorService *findService(const char *internalName) const = 0;
 
   virtual bool registerEntityMgr(IObjEntityMgr *oemgr) = 0;
   virtual bool unregisterEntityMgr(IObjEntityMgr *oemgr) = 0;
@@ -163,7 +164,7 @@ public:
   virtual void onBeforeReset3dDevice() {}
   virtual void clearServiceData() {}
 
-  virtual bool catchEvent(unsigned event_huid, void *userData) { return false; }
+  virtual bool catchEvent([[maybe_unused]] unsigned event_huid, [[maybe_unused]] void *userData) { return false; }
 
   // COM-like facilities
   virtual void *queryInterfacePtr(unsigned huid) = 0;

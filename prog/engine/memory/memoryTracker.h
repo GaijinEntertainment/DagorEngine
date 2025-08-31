@@ -228,7 +228,7 @@ struct DumpHeader
 
 struct MemoryTrackerNull
 {
-  void registerHeap(IMemAlloc * /*heap*/, const char * /*name*/){};
+  void registerHeap(IMemAlloc * /*heap*/, const char * /*name*/) {}
   void init(int /*num_memory_blocks*/, int /*back_trace_elements*/, int /*dump_size_percent*/) {}
   void addBlock(IMemAlloc * /*heap*/, void * /*addr*/, size_t /*size*/, bool user_heap = false) { (void)user_heap; }
   bool removeBlock(IMemAlloc * /*heap*/, void * /*addr*/, size_t user_size = 0, bool anywhere = false)

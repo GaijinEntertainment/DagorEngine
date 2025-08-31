@@ -17,6 +17,22 @@ interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render
 int fluid_wind_support_assume = 0;
 interval fluid_wind_support_assume: off < 1, on;
 
+int disable_obstacle_interaction = 0;
+
+int layered_material_detail_quality = 0;
+
+int debug_disable_new_layered_hmap_blend = 0; // for testing // TODO: remove it if everything is fine
+
+float fast_grass_placed_fade_start = 8;
+float fast_grass_placed_fade_end = 10;
+
+macro INIT_RENDINST_GRASS_OPACITY()
+  (vs) {
+    grass_opacity@f2 = ((fast_grass_placed_fade_start - fast_grass_placed_fade_end),
+      -fast_grass_placed_fade_end * (fast_grass_placed_fade_start - fast_grass_placed_fade_end));
+  }
+endmacro
+
 macro RENDINST_BLOCK()
   if (rendinst_render_pass == rendinst_render_pass_to_shadow ||
       rendinst_render_pass == rendinst_render_pass_depth ||
@@ -53,11 +69,14 @@ block(scene) rendinst_scene
         1.0 / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y),
         -cliff_color_overlay_map_left_top_right_bottom.x / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
         -cliff_color_overlay_map_left_top_right_bottom.y / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y));
+    disable_obstacle_interaction@i1 = disable_obstacle_interaction;
   }
 
   (ps) {
     perlin_noise3d@smp3d = perlin_noise3d;
     time_scroll_param@f1 = (time_phase(1000, 0) * 1000, 0, 0, 0);
+    layered_material_detail_quality@i1 = layered_material_detail_quality;
+    debug_disable_new_layered_hmap_blend@i1 = debug_disable_new_layered_hmap_blend;
   }
 
   RENDINST_SCENE_COMMON()
@@ -70,6 +89,7 @@ block(scene) rendinst_scene
   INIT_RENDINST_IMPOSTOR_SHADOW()
   INIT_AMBIENT_WIND(vs)
   INIT_RENDINST_HEIGHTMAP_OFS(vs)
+  INIT_RENDINST_GRASS_OPACITY()
   if (compatibility_mode != compatibility_mode_on)
   {
     INIT_HMAP_FOR_RI_BLOCK()
@@ -94,10 +114,13 @@ block(scene) rendinst_depth_scene
   (vs) {
     tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
     tess_quality@f1 = (tess_quality);
+    from_sun_direction_for_shadow_offset@f3 = from_sun_direction;
+    disable_obstacle_interaction@i1 = disable_obstacle_interaction;
   }
   INIT_WORLD_HEIGHTMAP_VS()
   INIT_HMAP_HOLES(vs)
   INIT_RENDINST_HEIGHTMAP_OFS(vs)
+  INIT_RENDINST_GRASS_OPACITY()
   RENDINST_SCENE_COMMON()
   if (fluid_wind_support_assume == on)
   {

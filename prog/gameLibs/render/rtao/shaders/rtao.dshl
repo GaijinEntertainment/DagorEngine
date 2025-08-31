@@ -2,12 +2,13 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
+include "blue_noise.dshl"
+include "rtsm_sun_dir.dshl"
+include "bvh_common_includes.dshl"
 
 float4x4 inv_proj_tm;
 
 texture rtao_target;
-
-int rtao_frame_index;
 
 float4 rtao_hit_dist_params;
 int4 rtao_resolutionI = (1,1,1,1);
@@ -15,8 +16,10 @@ int rtao_res_mul = 1;
 
 interval rtao_res_mul: off<2, on;
 
-define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
-endmacro
+int rtao_checkerboard = 0;
+interval rtao_checkerboard: off<1, on;
+
+float impostor_shadow_offset = -10;
 
 shader rt_ao
 {
@@ -26,14 +29,16 @@ shader rt_ao
   }
   ENABLE_ASSERT(cs)
 
+  RTSM_SUN_DIR()
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtao_resolutionI.xy;
     inv_aligned_resolution@f2 = (rtao_res_mul*screen_pos_to_texcoord.xy);
     hit_dist_params@f4 = rtao_hit_dist_params;
-    frame_index@i1 = rtao_frame_index;
+    rtao_checkerboard@i1 = rtao_checkerboard;
     output@uav = rtao_target hlsl { RWTexture2D<float> output@uav; };
+    impostor_shadow_offset@f1 = impostor_shadow_offset;
   }
 
   hlsl(cs) {
@@ -47,32 +52,36 @@ shader rt_ao
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
   INIT_BVH(cs, 0, true)
   USE_BVH_FOR_AO(cs)
 
-  USE_CALC_GEOMETRY_NORMAL(cs)
+  if (rtao_res_mul == on)
+  {
+    INIT_HALF_RES_DEPTH_TEX(cs)
+    USE_CALC_GEOMETRY_NORMAL_HALF(cs)
+  }
+  else
+  {
+    USE_CALC_GEOMETRY_NORMAL(cs)
+  }
 
-  INIT_BVH_WATER_FADE(cs)
-  USE_BVH_WATER_FADE(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
+
+  INIT_BVH_WATER_FADE_BASE(cs)
+  USE_BVH_WATER_FADE_BASE(cs)
+
+  INIT_BLUE_NOISE(cs)
+  USE_BLUE_NOISE(cs)
 
   hlsl(cs)
   {
-    #define MAX_ACCUM_DENOISE_FRAMES 30
-
-    float2 hash2(inout float seed)
+    float3 cosine_sample_hemisphere(float2 outputIndex, float3 n, float scale = 1)
     {
-      float s1 = seed += 1;
-      float s2 = seed += 1;
-      return float2( frac( sin( float2( s1, s2 ) ) * float2( 43758.5453123,22578.1459123 ) ) );
-    }
-
-    float3 cosine_sample_hemisphere(float3 n, inout float seed, float scale = 1)
-    {
-      float2 u     = hash2(seed);
+      float2 u     = GetBlueNoise(outputIndex, rtao_checkerboard, 0);
       float  r     = half(sqrt(u.x)) * scale;
       float  theta = half(2.0 * PI * u.y);
       float3 B     = normalize(cross(n, half3(0.0, 1.0, 1.0)));
@@ -90,7 +99,7 @@ shader rt_ao
     {
       uint2 rayIndex    = dtid;
       uint2 outputIndex = rayIndex;
-
+##if rtao_checkerboard == on
       rayIndex.x *= 2;
 
       bool evenFrame = ( frame_index & 1 ) == 0;
@@ -98,7 +107,7 @@ shader rt_ao
 
       if ( evenFrame == evenLine )
         ++rayIndex.x;
-
+##endif
       if (any(rayIndex >= resolution))
         return;
 
@@ -112,7 +121,7 @@ shader rt_ao
       float roughness = linearSmoothnessToLinearRoughness(gbuffer.smoothness);
 
       BRANCH
-      if (rawDepth <= 0)
+      if (rawDepth <= 0 || !bvhMainValid)
       {
         texture2DAt(output, outputIndex) = calc_output_value(NRD_FP16_MAX, NRD_FP16_MAX, 0);
         return;
@@ -130,9 +139,11 @@ shader rt_ao
 
       bool isImpostor = gbuffer.impostorMask > 0.5;
       bool isGrass = gbuffer.isGrass;
+      bool isTwoSided = gbuffer.isTwoSided;
+      bool isFoliage = gbuffer.material == SHADING_FOLIAGE;
 
-      float seed = outputIndex.x + outputIndex.y * 3.43121412313 + frac(1.12345314312 * (frame_index % MAX_ACCUM_DENOISE_FRAMES));
       float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
+      relPos += impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
       float3 normal = gbuffer.normal;
       if (!isGrass)
       {
@@ -142,24 +153,24 @@ shader rt_ao
           normal = calc_geometry_normal(rayIndex, inv_aligned_resolution, resolution);
         ##endif
       }
-      float3 sampleDir = cosine_sample_hemisphere(normal, seed);
+      float3 sampleDir = cosine_sample_hemisphere(rayIndex, normal);
 
-      float bias = gbuffer.isTwoSided ? 0.002 : 0.0;
+      relPos = applyAdaptiveRayOffset(relPos, normal);
 
+      float minT = 0;
       uint groupMask = bvhGroupAO;
       if (isImpostor)
         groupMask &= ~bvhGroupImpostor;
       else if (isGrass)
         groupMask &= ~bvhGroupGrass;
+      if (isFoliage)
+        minT = bvh_foliage_bias;
 
       float aoDistance = hit_dist_params.x;
 
-      if (gbuffer.isTwoSided)
-        relPos += normal * (gbuffer.isUnstable ? 0.2 : 0.001);
-
       HitInfo hitInfo;
 
-      bool isHit = trace_ray(bvhMain, relPos, sampleDir, bias, aoDistance, w, groupMask, hitInfo);
+      bool isHit = trace_ray(bvhMain, relPos, sampleDir, minT, aoDistance, w, groupMask, hitInfo);
       if (isHit)
         texture2DAt(output, outputIndex.xy) = calc_output_value(hitInfo.t, w, roughness);
       else

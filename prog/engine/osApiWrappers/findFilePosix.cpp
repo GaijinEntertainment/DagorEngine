@@ -290,8 +290,6 @@ extern "C" int dd_find_first(const char *mask, char attr, alefind_t *fs)
 
 extern "C" int dd_find_next(alefind_t *fs)
 {
-  static alefind_t f;
-
   if (bp_find_next(fs))
     return 1;
 

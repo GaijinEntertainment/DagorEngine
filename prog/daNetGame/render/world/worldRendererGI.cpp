@@ -41,6 +41,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <GIWindows/GIWindows.h>
+#include <render/world/bvh.h>
 
 
 CONSOLE_FLOAT_VAL_MINMAX("render", world_sdf_from_collision_rasterize_below, 3, -1, 16);
@@ -67,7 +68,7 @@ CONSOLE_BOOL_VAL("render", gi_show_resticted_update_box, false);
 
 static ShaderVariableInfo ssr_alternate_reflectionsVarId("ssr_alternate_reflections", true);
 
-extern int rendinstVoxelizeSceneBlockId;
+extern ShaderBlockIdHolder rendinstVoxelizeSceneBlockId;
 extern float cascade0Dist;
 
 void WorldRenderer::invalidateGI(bool force)
@@ -89,6 +90,7 @@ void WorldRenderer::drawGIDebug(const Frustum &camera_frustum)
 
 // static const int DEFERRED_FRAMES_TO_INVALIDATE_GI = 9;
 static const int MAX_GI_FRAMES_TO_INVALIDATE_POS = 32;
+static ShaderVariableInfo use_hw_rt_giVarId("use_hw_rt_gi", true);
 
 void WorldRenderer::setGIQualityFromSettings()
 {
@@ -128,12 +130,27 @@ void WorldRenderer::setGIQualityFromSettings()
       gi_quality.set(GI_ONLY_AO);
       break;
   }
+  if (is_rtgi_enabled())
+  {
+    gi_quality.set(GI_SCREEN_PROBES);
+    ShaderGlobal::set_int(use_hw_rt_giVarId, 1);
+  }
+  else
+  {
+    ShaderGlobal::set_int(use_hw_rt_giVarId, 0);
+    if (is_ptgi_enabled())
+      gi_quality.set(GI_COLORED);
+  }
   gi_algorithm_quality.set(quality.algorithmQuality);
 
+  invalidateNodeBasedResources();
   initGI();
 
   gi_enabled.set(true);
   giUpdatePosFrameCounter = 0;
+
+  if (daGI2)
+    daGI2->afterSettingsChanged();
 }
 
 bool WorldRenderer::giNeedsReprojection()
@@ -142,13 +159,14 @@ bool WorldRenderer::giNeedsReprojection()
          daGI2->getNextSettings().screenProbes.tileSize > 8;
 }
 
+uint32_t WorldRenderer::getGIHistoryFrames() const { return daGI2 ? daGI2->getHistoryFrames() : 0; }
+
+uint32_t get_gi_history_frames() { return static_cast<WorldRenderer *>(get_world_renderer())->getGIHistoryFrames(); }
+
 void WorldRenderer::giBeforeRender()
 {
   if (daGI2 && !gi_enabled.get())
-  {
     closeGI();
-    makePrepareDepthForPostFxNode();
-  }
 
   if (!daGI2 && gi_enabled.get())
     initGI();
@@ -159,7 +177,7 @@ void WorldRenderer::giBeforeRender()
     return;
   TIME_D3D_PROFILE(gi2_before_render)
 
-  const bool hadReprojection = giNeedsReprojection();
+  const bool giNeededReprojection = giNeedsReprojection();
 
   int w, h, maxW, maxH;
   getRenderingResolution(w, h);
@@ -168,16 +186,16 @@ void WorldRenderer::giBeforeRender()
   auto s = daGI2->getNextSettings();
   constexpr float ALBEDO_MEDIA_MUL = 0.0625f;
   constexpr float LIT_SCENE_MUL = 0.0625f;
-  const DataBlock *graphicsGI = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("gi");
-  s.voxelScene.sdfResScale = graphicsGI->getReal("voxelSceneResScale", 0.5);
+  const auto cachedSettings = s.giDatablockCache;
+  s.voxelScene.sdfResScale = cachedSettings.voxelSceneResScale;
   const bool temporality = gi_quality == GI_SCREEN_PROBES || gi_algorithm_quality > 0.0001;
 
   const float temporalSpeed = temporality ? lerp<float>(0.05, 1, gi_algorithm_quality) : 0;
   s.mediaScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
   s.voxelScene.temporalSpeed = temporalSpeed * LIT_SCENE_MUL;
   s.albedoScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
-  s.sdf.clips = clamp(graphicsGI->getInt("sdfClips", bareMinimumPreset ? 5 : 6), 4, 6);
-  s.sdf.voxel0Size = clamp(graphicsGI->getReal("sdfVoxel0", 0.15), 0.065f, 0.45f);
+  s.sdf.clips = clamp(cachedSettings.sdfClips > 0 ? cachedSettings.sdfClips : (bareMinimumPreset ? 5 : 6), 4, 6);
+  s.sdf.voxel0Size = cachedSettings.sdfVoxel0;
   if (gi_quality == GI_ONLY_AO)
   {
     s.skyVisibility.clipW = bareMinimumPreset ? 64 : 56;
@@ -193,9 +211,9 @@ void WorldRenderer::giBeforeRender()
   else if (gi_quality == GI_COLORED)
   {
     s.skyVisibility.clipW = 0;
-    s.albedoScene.clips = graphicsGI->getInt("albedoClips", 3);
-    s.radianceGrid.w = graphicsGI->getInt("radianceGridClipW", 28);
-    s.radianceGrid.clips = graphicsGI->getInt("radianceGridClips", 4);
+    s.albedoScene.clips = cachedSettings.albedoClips;
+    s.radianceGrid.w = cachedSettings.radianceGridClipW;
+    s.radianceGrid.clips = cachedSettings.radianceGridClips;
     s.radianceGrid.irradianceProbeDetail = 2.f;
     s.radianceGrid.additionalIrradianceClips = 2;
     s.screenProbes.tileSize = 0;
@@ -205,11 +223,11 @@ void WorldRenderer::giBeforeRender()
   else if (gi_quality == GI_SCREEN_PROBES)
   {
     s.skyVisibility.clipW = 0;
-    s.radianceGrid.w = graphicsGI->getInt("radianceGridClipW", 28);
-    s.radianceGrid.clips = graphicsGI->getInt("radianceGridClips", 4);
+    s.radianceGrid.w = cachedSettings.radianceGridClipW;
+    s.radianceGrid.clips = cachedSettings.radianceGridClips;
     s.radianceGrid.irradianceProbeDetail = 1.f;
     s.radianceGrid.additionalIrradianceClips = 0;
-    s.albedoScene.clips = graphicsGI->getInt("albedoClips", 3);
+    s.albedoScene.clips = cachedSettings.albedoClips;
 
     auto remap = [](float min_value, float max_value, float interval_min, float interval_max, float t) -> float {
       G_ASSERT(interval_min < interval_max);
@@ -240,15 +258,36 @@ void WorldRenderer::giBeforeRender()
     float radianceOctResF = remap(4, 8, 0.f, 0.5f, gi_algorithm_quality);
     s.screenProbes.radianceOctRes = static_cast<int>(round(radianceOctResF));
 
-    s.screenProbes.angleFiltering = gi_algorithm_quality > 0.875f;
+    s.screenProbes.angleFiltering = gi_algorithm_quality > 0.975f;
     s.volumetricGI.tileSize = (int(lerp(64.f, 48.f, gi_algorithm_quality)) + 1) & ~1;
     s.volumetricGI.slices = int(lerp(16.f, 24.f, gi_algorithm_quality));
   }
   daGI2->setSettings(s);
 
   ShaderGlobal::set_int(ssr_alternate_reflectionsVarId, ssrWantsAlternateReflections && gi_quality > 0 ? 1 : 0);
+  // if InitGI called only on level load it can cause GI artifacts, for some reason.
+  // Calling it a bit later, or invalidating GI fixes the issue once and for all.
+  // if (++giInvalidateDeferred == DEFERRED_FRAMES_TO_INVALIDATE_GI)
+  //  daGI2->invalidateDeferred();
+  // we check if static shadows are valid in the pos where we moved to
+  // static shadows are valid if: either it is completely valid, or it is within the region (although there might be invalid regions)
+  // region size is decreased each frame
+  const float giUpdateDist = 100.f; // fixme:
+  DaGI::RadianceUpdate ru = DaGI::RadianceUpdate::On;
+  // todo: check teleportation and set giUpdatePosFrameCounter = 0 on teleportation
+  if (!ignoreStaticShadowsForGI && ++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS) // if frames passed < threshold
+  {
+    const Point3 &pos = currentFrameCamera.viewItm.getcol(3);
+
+    if (!shadowsManager.insideStaticShadows(pos, giUpdateDist)   // we are not even inside static shadows
+        || !shadowsManager.validStaticShadows(pos, giUpdateDist) // static shadows are invalid
+        // if static shadows are fully updated, render immediately, otherwise try to wait for one frame
+        || (giUpdatePosFrameCounter == 1 && !shadowsManager.fullyUpdatedStaticShadows(pos, giUpdateDist)))
+      ru = DaGI::RadianceUpdate::Off;
+  }
+
   daGI2->beforeRender(w, h, maxW, maxH, currentFrameCamera.viewItm, currentFrameCamera.jitterProjTm,
-    currentFrameCamera.noJitterPersp.zn, currentFrameCamera.noJitterPersp.zf);
+    currentFrameCamera.noJitterPersp.zn, currentFrameCamera.noJitterPersp.zf, ru);
 
   if (treesAbove)
   {
@@ -269,9 +308,12 @@ void WorldRenderer::giBeforeRender()
     const float halfDist = sdfW * sdfV * 0.5f * 1.2f; // 120% bigger
     treesAbove->init(halfDist, voxel0);
   }
-  makePrepareDepthForPostFxNode();
-  if (giNeedsReprojection() != hadReprojection)
+
+  if (gi_quality.pullValueChange() || gi_algorithm_quality.pullValueChange() || giNeededReprojection != giNeedsReprojection())
+  {
+    makePrepareDepthForPostFxNode();
     createDeferredLightNode();
+  }
 }
 
 void WorldRenderer::renderGiCollision(const TMatrix &view_itm, const Frustum &)
@@ -304,27 +346,6 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
 
   if (giWindows)
     giWindows->updatePos(pos);
-
-  // if InitGI called only on level load it can cause GI artifacts, for some reason.
-  // Calling it a bit later, or invalidating GI fixes the issue once and for all.
-  // if (++giInvalidateDeferred == DEFERRED_FRAMES_TO_INVALIDATE_GI)
-  //  daGI2->invalidateDeferred();
-  // we check if static shadows are valid in the pos where we moved to
-  // static shadows are valid if: either it is completely valid, or it is within the region (although there might be invalid regions)
-  // region size is decreased each frame
-  const float giUpdateDist = 100.f; // fixme:
-
-  if (!ignoreStaticShadowsForGI && ++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS) // if frames passed < threshold
-  {
-    if (!shadowsManager.insideStaticShadows(pos, giUpdateDist)) // we are not even inside static shadows
-      return;
-    if (!shadowsManager.validStaticShadows(pos, giUpdateDist)) // static shadows are invalid
-      return;
-    // if static shadows are fully updated, render immediately, otherwise try to wait for one frame
-    if (giUpdatePosFrameCounter == 1 && !shadowsManager.fullyUpdatedStaticShadows(pos, giUpdateDist))
-      return;
-  }
-  giUpdatePosFrameCounter = 0;
 
   {
     float minZ, maxZ;
@@ -454,7 +475,8 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
         {
           TIME_PROFILE(cull_lights)
           alignas(16) TMatrix4 globtm = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
-          lights.cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightsManager::GI_LIGHT_MASK, OmniLightsManager::GI_LIGHT_MASK);
+          lights.cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI,
+            OmniLightMaskType::OMNI_LIGHT_MASK_GI);
           lights.setOutOfFrustumLightsToShader();
         }
         else
@@ -507,7 +529,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
 #include <sceneRay/dag_sceneRay.h>
 namespace dacoll
 {
-DeserializedStaticSceneRayTracer *get_frt();
+const StaticSceneRayTracer *get_frt(); // To consider: move to public interface?
 }
 
 void WorldRenderer::initGIWindows(eastl::unique_ptr<scene::TiledScene> &&windows)
@@ -527,7 +549,7 @@ void WorldRenderer::initGI()
     return;
   }
 
-  if (DeserializedStaticSceneRayTracer *frt = dacoll::get_frt())
+  if (const StaticSceneRayTracer *frt = dacoll::get_frt())
   {
     if (frt->getFacesCount())
     {
@@ -541,27 +563,27 @@ void WorldRenderer::initGI()
       uint16_t *indices = (uint16_t *)midmem->alloc(frt->getFacesCount() * 3 * sizeof(uint16_t));
       if (frt->getVertsCount() > 65536)
         logerr("not supporting frt dumps with %d verts correctly. Split into two collision resources", frt->getVertsCount());
-      for (uint32_t ii = 0, ie = frt->getFacesCount(); ii != ie;)
       {
         auto &node = staticSceneCollisionResource->createNode();
         node.flags = CollisionNode::FLAG_VERTICES_ARE_REFS | CollisionNode::IDENT;
         node.type = COLLISION_NODE_TYPE_MESH;
-        if (ii != 0)
-          node.flags |= CollisionNode::FLAG_INDICES_ARE_REFS;
         node.modelBBox = frt->getBox();
         node.boundingSphere = frt->getSphere();
 
         uint32_t indicesCnt = frt->getFacesCount() * 3;
-        node.resetVertices(dag::Span<Point3_vec4>(&frt->verts(0), frt->getVertsCount()));
-        for (uint32_t j = 0, f = ii / 3; j < indicesCnt; j += 3, ++f)
+        node.resetVertices(dag::Span<Point3_vec4>((Point3_vec4 *)&frt->verts(0), min<uint32_t>(65536, frt->getVertsCount())));
+        uint32_t validIndices = 0;
+        for (uint32_t j = 0, f = 0; j < indicesCnt; j += 3, ++f)
         {
-          indices[j + 0] = frt->faces(f).v[0];
-          indices[j + 1] = frt->faces(f).v[1];
-          indices[j + 2] = frt->faces(f).v[2];
+          uint32_t v0 = frt->faces(f).v[0], v1 = frt->faces(f).v[1], v2 = frt->faces(f).v[2];
+          if (v0 >= 65536 || v1 >= 65536 || v2 >= 65536)
+            continue;
+          indices[j + 0] = v0;
+          indices[j + 1] = v1;
+          indices[j + 2] = v2;
+          validIndices += 3;
         }
-        node.resetIndices(dag::Span<uint16_t>(indices, indicesCnt));
-        indices += indicesCnt;
-        ii += indicesCnt / 3;
+        node.resetIndices(dag::Span<uint16_t>((uint16_t *)indices, validIndices));
       }
     }
   }
@@ -619,6 +641,8 @@ void WorldRenderer::closeGI()
 
   rendinst::destroyRIGenVisibility(rendinst_trees_visibility);
   rendinst_trees_visibility = nullptr;
+
+  makePrepareDepthForPostFxNode();
 }
 
 const scene::TiledScene *WorldRenderer::getWallsScene() const { return nullptr; }
@@ -663,8 +687,9 @@ void WorldRenderer::createDeferredLightNode()
   if (isForwardRender())
     return;
 
-  deferredLightNode =
-    hasFeature(FeatureRenderFlags::DEFERRED_LIGHT) ? makeDeferredLightNode(giNeedsReprojection()) : dabfg::NodeHandle{};
+  deferredLightNodes = {dafg::NodeHandle{}, dafg::NodeHandle{}};
+  if (hasFeature(FeatureRenderFlags::DEFERRED_LIGHT))
+    deferredLightNodes = makeDeferredLightNode(giNeedsReprojection());
 }
 
 void WorldRenderer::createResolveGbufferNode()
@@ -691,5 +716,9 @@ void WorldRenderer::createResolveGbufferNode()
   };
 
   createDeferredLightNode();
-  resolveGbufferNode = makeResolveGbufferNode(resolve_shader, resolve_cshader, classify_cshader, resolve_permutations);
+  makePrepareDepthForPostFxNode();
+  resolveGbufferNodes.clear();
+  resolveGbufferNodes = makeResolveGbufferNodes(resolve_shader, resolve_cshader, classify_cshader, resolve_permutations);
 }
+
+WorldSDF *WorldRenderer::getWorldSDF() { return daGI2 ? &daGI2->getWorldSDF() : nullptr; }

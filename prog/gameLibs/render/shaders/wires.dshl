@@ -12,6 +12,8 @@ float pixel_scale;
 int bvh_cables_vertices_buf_reg_no = 6;
 int bvh_cables_indices_buf_reg_no = 7;
 
+float4 global_wires_albedo_color = (0, 0, 0, 0);
+
 int cables_render_pass = 1;
 interval cables_render_pass : cables_render_pass_shadow < 1, cables_render_pass_opaque < 2, cables_render_pass_trans < 3, cables_render_pass_bvh;
 
@@ -21,7 +23,7 @@ shader wires
   supports global_const_block;
   cull_mode = none;
 
-  if (cables_render_pass == cables_render_pass_bvh && !hardware.dx12 && !hardware.vulkan)
+  if (cables_render_pass == cables_render_pass_bvh && !hardware.dx12 && !hardware.vulkan && !hardware.metal && !hardware.ps5)
   {
     dont_render;
   }
@@ -52,6 +54,8 @@ shader wires
       StructuredBuffer<CableData> cables_buf@buf;
     }
   }
+
+  (ps) {wires_albedo_color@f3 = global_wires_albedo_color}
 
   if (cables_render_pass == cables_render_pass_bvh)
   {
@@ -146,7 +150,7 @@ shader wires
         {
           uint baseVertex = instance_id * vertexPerCable + vertex_id;
 
-          uint3 indices = uint3(baseVertex + 0, baseVertex + 1, baseVertex + 2);
+          uint3 indices = uint3(baseVertex + 0, baseVertex + 1, baseVertex + 2) % vertexPerCable;
           if (vertex_id & 1)
             indices = indices.yzx;
 
@@ -200,7 +204,7 @@ shader wires
       {
         UnpackedGbuffer result;
         init_gbuffer(result);
-        init_albedo(result, float3(0.0, 0.0, 0.0));
+        init_albedo(result, wires_albedo_color);
         init_normal(result, normalize(input.normal_blend.xyz));
         //init_dynamic(result, 1);
         init_smoothness(result, 0.25);

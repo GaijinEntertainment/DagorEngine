@@ -392,8 +392,11 @@ void FrameBoundaryBufferManager::updateDebugTexture()
     if (!d3d::check_texformat(fmt))
       fmt = TEXFMT_A16B16G16R16F;
     debugTexture = dag::create_tex(NULL, DEBUG_TEX_SIZE, DEBUG_TEX_SIZE, fmt, 1, "dafx_frame_boundary_debug_tex");
-    debugTexture->texfilter(TEXFILTER_POINT);
-    debugTexture->texaddr(TEXADDR_CLAMP);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(get_shader_variable_id("dafx_frame_boundary_debug_tex_samplerstate", true),
+      d3d::request_sampler(smpInfo));
   }
 
   if (frameBoundaryElemArr.empty())

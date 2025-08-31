@@ -5,4 +5,5 @@
 #include <daECS/core/event.h>
 
 ECS_BROADCAST_EVENT_TYPE(EventOnSoundPresetLoaded, sndsys::str_hash_t /*preset_name_hash*/, bool /*is_loaded*/)
+ECS_BROADCAST_EVENT_TYPE(EventOnMasterSoundPresetLoaded, bool /*is_loaded*/)
 ECS_BROADCAST_EVENT_TYPE(EventSoundDrawDebug)

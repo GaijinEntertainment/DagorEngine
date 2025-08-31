@@ -30,7 +30,8 @@ struct CpuInfoAnnotation : public das::ManagedStructureAnnotation<CpuInfo, false
 
 namespace bind_dascript
 {
-void get_video_info(const das::TBlock<void, das::TTemporary<const VideoInfo>> &block, das::Context *context, das::LineInfoArg *at)
+void get_video_info(const das::TBlock<void, const das::TTemporary<const VideoInfo>> &block, das::Context *context,
+  das::LineInfoArg *at)
 {
   String desktopResolution, videoCard, videoVendor;
   systeminfo::get_video_info(desktopResolution, videoCard, videoVendor);
@@ -39,7 +40,7 @@ void get_video_info(const das::TBlock<void, das::TTemporary<const VideoInfo>> &b
   context->invoke(block, &arg, nullptr, at);
 }
 
-void get_cpu_info(const das::TBlock<void, das::TTemporary<const CpuInfo>> &block, das::Context *context, das::LineInfoArg *at)
+void get_cpu_info(const das::TBlock<void, const das::TTemporary<const CpuInfo>> &block, das::Context *context, das::LineInfoArg *at)
 {
   String cpu, cpuFreq, cpuVendor, cpuSeriesCores;
   int numCores;

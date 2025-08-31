@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "vhsCameraRendererES.cpp.inl"
 ECS_DEF_PULL_VAR(vhsCameraRenderer);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc vhs_camera_preset_add_es_comps[] =
 {
@@ -135,6 +137,40 @@ static ecs::EntitySystemDesc vhs_camera_preset_params_track_es_es_desc
   ecs::EventSetBuilder<>::build(),
   0
 ,nullptr,"*");
+static constexpr ecs::ComponentDesc vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps[] =
+{
+//start of 4 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("vhs_camera__resolutionDownscale"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("vhs_camera__isActive"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [4]
+  {ECS_HASH("vhs_camera__isPreset"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static void vhs_camera_fg_node_reinit_on_res_downscale_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+  {
+    if ( !(ECS_RO_COMP_OR(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps, "camera__active", bool( true)) && ECS_RO_COMP(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps, "vhs_camera__isActive", bool)) )
+      continue;
+    vhs_camera_fg_node_reinit_on_res_downscale_change_es(evt
+          , ECS_RO_COMP(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps, "eid", ecs::EntityId)
+      , ECS_RO_COMP(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps, "vhs_camera__resolutionDownscale", float)
+      );
+  } while (++comp != compE);
+}
+static ecs::EntitySystemDesc vhs_camera_fg_node_reinit_on_res_downscale_change_es_es_desc
+(
+  "vhs_camera_fg_node_reinit_on_res_downscale_change_es",
+  "prog/daNetGameLibs/screen_vhs/render/vhsCameraRendererES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, vhs_camera_fg_node_reinit_on_res_downscale_change_es_all_events),
+  empty_span(),
+  make_span(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps+0, 4)/*ro*/,
+  make_span(vhs_camera_fg_node_reinit_on_res_downscale_change_es_comps+4, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  0
+,nullptr,"vhs_camera__resolutionDownscale");
 static constexpr ecs::ComponentDesc vhs_camera_init_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -233,10 +269,9 @@ inline void get_vhs_camera_presets_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc get_vhs_camera_shader_vars_ecs_query_comps[] =
 {
-//start of 2 rw components at [0]
+//start of 1 rw components at [0]
   {ECS_HASH("vhs_camera__activePresets"), ecs::ComponentTypeInfo<ecs::EidList>()},
-  {ECS_HASH("vhsCamera"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()},
-//start of 7 ro components at [2]
+//start of 7 ro components at [1]
   {ECS_HASH("vhs_camera__downscale"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("vhs_camera__saturation"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("vhs_camera__noise_strength"), ecs::ComponentTypeInfo<ShaderVar>()},
@@ -248,8 +283,8 @@ static constexpr ecs::ComponentDesc get_vhs_camera_shader_vars_ecs_query_comps[]
 static ecs::CompileTimeQueryDesc get_vhs_camera_shader_vars_ecs_query_desc
 (
   "get_vhs_camera_shader_vars_ecs_query",
-  make_span(get_vhs_camera_shader_vars_ecs_query_comps+0, 2)/*rw*/,
-  make_span(get_vhs_camera_shader_vars_ecs_query_comps+2, 7)/*ro*/,
+  make_span(get_vhs_camera_shader_vars_ecs_query_comps+0, 1)/*rw*/,
+  make_span(get_vhs_camera_shader_vars_ecs_query_comps+1, 7)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -269,7 +304,39 @@ inline void get_vhs_camera_shader_vars_ecs_query(Callable function)
             , ECS_RO_COMP(get_vhs_camera_shader_vars_ecs_query_comps, "vhs_camera__dynamic_range_max", ShaderVar)
             , ECS_RO_COMP(get_vhs_camera_shader_vars_ecs_query_comps, "vhs_camera__dynamic_range_gamma", ShaderVar)
             , ECS_RO_COMP(get_vhs_camera_shader_vars_ecs_query_comps, "vhs_camera__scanline_height", ShaderVar)
-            , ECS_RW_COMP(get_vhs_camera_shader_vars_ecs_query_comps, "vhsCamera", resource_slot::NodeHandleWithSlotsAccess)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc reinit_vhs_camera_fg_node_ecs_query_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("vhs_camera__activePresets"), ecs::ComponentTypeInfo<ecs::EidList>()},
+  {ECS_HASH("vhsCamera"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()},
+//start of 1 ro components at [2]
+  {ECS_HASH("vhs_camera__downscale"), ecs::ComponentTypeInfo<ShaderVar>()}
+};
+static ecs::CompileTimeQueryDesc reinit_vhs_camera_fg_node_ecs_query_desc
+(
+  "reinit_vhs_camera_fg_node_ecs_query",
+  make_span(reinit_vhs_camera_fg_node_ecs_query_comps+0, 2)/*rw*/,
+  make_span(reinit_vhs_camera_fg_node_ecs_query_comps+2, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void reinit_vhs_camera_fg_node_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, reinit_vhs_camera_fg_node_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(reinit_vhs_camera_fg_node_ecs_query_comps, "vhs_camera__activePresets", ecs::EidList)
+            , ECS_RO_COMP(reinit_vhs_camera_fg_node_ecs_query_comps, "vhs_camera__downscale", ShaderVar)
+            , ECS_RW_COMP(reinit_vhs_camera_fg_node_ecs_query_comps, "vhsCamera", resource_slot::NodeHandleWithSlotsAccess)
             );
 
         }while (++comp != compE);

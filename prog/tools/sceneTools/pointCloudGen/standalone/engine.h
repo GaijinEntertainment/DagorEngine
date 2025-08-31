@@ -8,6 +8,7 @@
 #include <de3_interface.h>
 #include <libTools/util/conLogWriter.h>
 #include <util/dag_globDef.h>
+#include <util/dag_string.h>
 
 #define DUMMY_IMPL              G_ASSERTF(false, "Unimplemented")
 #define DUMMY_IMPL_VALUE(value) G_ASSERTF_RETURN(false, value, "Unimplemented")
@@ -25,7 +26,7 @@ public:
     REMARK
   };
 
-  virtual void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath) final
+  void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath) final
   {
     G_UNUSED(asset);
     G_UNUSED(asset_src_fpath);
@@ -44,8 +45,8 @@ public:
       case REMARK: debug("Remark: %d", msg); break;
     }
   }
-  virtual int getErrorCount() final { return errorCount; }
-  virtual void resetErrorCount() final { errorCount = 0; }
+  int getErrorCount() final { return errorCount; }
+  void resetErrorCount() final { errorCount = 0; }
 
 private:
   unsigned int errorCount = 0;
@@ -57,7 +58,7 @@ public:
   DaEditor3Engine();
   ~DaEditor3Engine();
 
-  dag::ConstSpan<DagorAsset *> DaEditor3Engine::getAssets() const;
+  dag::ConstSpan<DagorAsset *> getAssets() const;
 
   const char *getBuildString() override { return "1.0"; }
 
@@ -65,6 +66,7 @@ public:
 
   bool registerService(IEditorService *srv) override { DUMMY_IMPL_0; }
   bool unregisterService(IEditorService *srv) override { DUMMY_IMPL_0; }
+  IEditorService *findService(const char *) const override { DUMMY_IMPL_0; }
 
   bool registerEntityMgr(IObjEntityMgr *oemgr) override { DUMMY_IMPL_0; }
   bool unregisterEntityMgr(IObjEntityMgr *oemgr) override { DUMMY_IMPL_0; }
@@ -87,6 +89,9 @@ public:
 
   DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) override;
   DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) override;
+  const DataBlock *getAssetProps(const DagorAsset &asset) override { DUMMY_IMPL_0; }
+  String getAssetTargetFilePath(const DagorAsset &asset) override { DUMMY_IMPL_VALUE(String()); }
+  const char *getAssetParentFolderName(const DagorAsset &asset) override { DUMMY_IMPL_0; }
   const char *resolveTexAsset(const char *tex_asset_name) override { DUMMY_IMPL_0; }
 
   const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str = nullptr,
@@ -125,6 +130,12 @@ public:
 
   ConsoleLogWriter *getConsoleLogWriter() { return &console; }
 
+  void imguiBegin(const char *name, bool *open, unsigned window_flags) override {}
+  void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
+  void imguiEnd() override {}
+
+  Outliner::OutlinerWindow *createOutlinerWindow() override { DUMMY_IMPL_0; }
+
 private:
   ConsoleLogWriter console;
   DagorAssetMgr assetMgr;
@@ -146,10 +157,7 @@ private:
   class ClassName                                           \
   {                                                         \
   public:                                                   \
-    ~ClassName()                                            \
-    {                                                       \
-      func;                                                 \
-    }                                                       \
+    ~ClassName() { func; }                                  \
   } objName;
 
 #define CALL_AT_END_OF_SCOPE(func) \

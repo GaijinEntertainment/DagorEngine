@@ -19,7 +19,7 @@ macro USE_VOLFOG_SHADOW(code)
   hlsl(code)
   {
   ##if volfog_shadow != NULL
-      float get_volfog_shadow(float3 world_pos, float2 screen_tc, float w)
+      float get_volfog_shadow(float2 screen_tc, float w)
       {
         float3 volumePos = float3(screen_tc, depth_to_volume_pos(w, volfog_froxel_range_inv));
         BRANCH
@@ -29,7 +29,7 @@ macro USE_VOLFOG_SHADOW(code)
         return tex3Dlod(volfog_shadow, float4(volumePos, 0.0f)).x;
       }
   ##else
-      float get_volfog_shadow(float3 world_pos, float2 screen_tc, float w)
+      float get_volfog_shadow(float2 screen_tc, float w)
       {
         return 1;
       }

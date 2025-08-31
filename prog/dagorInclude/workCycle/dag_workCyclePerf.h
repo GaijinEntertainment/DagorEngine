@@ -66,6 +66,7 @@ inline void mark_cpu_only_cycle_end()
   {
     last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);
     summed_cpu_only_cycle_time += last_cpu_only_cycle_time_usec;
+    ref_cpu_only_cycle_start = 0;
     num_cpu_only_cycle++;
   }
 }

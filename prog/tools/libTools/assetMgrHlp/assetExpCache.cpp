@@ -11,12 +11,15 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
 #include <sys/types.h>
 #include <libTools/util/makeBindump.h>
 #include <util/dag_string.h>
 
+static SpinLockReadWriteLock sharedDataRWSL;
 struct AssetExportCache::SharedData
 {
   struct Hash
@@ -27,8 +30,8 @@ struct AssetExportCache::SharedData
 
   OAHashNameMap<true> fnames;
   Tab<Hash> rec;
-  bool changed;
-  uint64_t totalHashCalc, totalHashReused;
+  dag::AtomicInteger<uint64_t> totalHashCalc, totalHashReused;
+  dag::AtomicInteger<bool> changed;
   Tab<int> rebuildTypes;
   FastNameMap rebuildAssets;
   void *jobMem;
@@ -41,10 +44,13 @@ struct AssetExportCache::SharedData
 
   void reset()
   {
+    sharedDataRWSL.lockWrite();
     fnames.reset();
     rec.clear();
-    changed = false;
-    totalHashCalc = totalHashReused = 0;
+    changed.store(false);
+    totalHashCalc.store(0);
+    totalHashReused.store(0);
+    sharedDataRWSL.unlockWrite();
   }
   bool load(const char *fname);
   bool save(const char *fname);
@@ -96,6 +102,7 @@ void AssetExportCache::reset()
   anames.reset();
   adPos.clear();
   assetTypeVer.clear();
+  warnings.clear();
   resetTouchMark();
   memset(&target, 0, sizeof(target));
   timeChanged = 0;
@@ -111,7 +118,9 @@ bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, i
       return false;
     if (crd.readInt() != _MAKE4C('fC1'))
       return false;
-    if (crd.readInt() != 2)
+
+    const int cacheFileVersion = crd.readInt();
+    if (cacheFileVersion != 2 && cacheFileVersion != 3)
       return false;
 
     // read target file data hash
@@ -126,6 +135,8 @@ bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, i
       G_VERIFY(i == fnames.addNameId(nm));
     }
     crd.readTabData(rec);
+    for (auto &r : rec)
+      r.changed = 0, r._resv0 = 0; // clear 'changed flag and reserved bits after loading
 
     // read asset exported data references
     adPos.resize(crd.readInt());
@@ -136,10 +147,16 @@ bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, i
     }
     crd.readTabData(adPos);
     if (sharedData && sharedData->rebuildAssets.nameCount())
+    {
       for (int i = 0; i < adPos.size(); i++)
         if (sharedData->rebuildAssets.getNameId(anames.getName(i)) >= 0)
           adPos[i].ofs = -1;
 
+      if (adPos.empty() && fnames.nameCount() && strstr(cache_fname, ".ddsx.")) // ddsx~cvt cache?
+        if (const char *fn = fnames.getName(0))
+          if (strstr(fn, ":tex*") && sharedData->rebuildAssets.getNameId(fn, strlen(fn) - 1) >= 0)
+            return false;
+    }
 
     // read versions of exporters
     crd.beginBlock();
@@ -154,6 +171,13 @@ bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, i
     crd.endBlock();
 
     resetTouchMark();
+
+    if (cacheFileVersion >= 3)
+    {
+      warnings.resize(crd.readInt());
+      for (String &warning : warnings)
+        crd.readString(warning);
+    }
 
     if (crd.readInt() != _MAKE4C('.end'))
       return false;
@@ -175,13 +199,12 @@ bool AssetExportCache::save(const char *cache_fname, const DagorAssetMgr &mgr, m
   if (!cwr.fileHandle)
     return false;
   cwr.writeInt(_MAKE4C('fC1'));
-  cwr.writeInt(2);
+  cwr.writeInt(3);
   cwr.write(&target, sizeof(target));
 
   // write file data hashes
-  for (int i = 0; i < rec.size(); i++)
-    if (rec[i].changed)
-      rec[i].changed = 0;
+  for (auto &r : rec)
+    r.changed = 0, r._resv0 = 0; // clear 'changed flag and reserved bits before saving
 
   cwr.writeInt(rec.size());
   iterate_names(fnames, [&](int, const char *name) { cwr.writeString(name); });
@@ -217,6 +240,10 @@ bool AssetExportCache::save(const char *cache_fname, const DagorAssetMgr &mgr, m
     cwr.writeString(typestr);
   }
   cwr.endBlock();
+
+  cwr.writeInt(warnings.size());
+  for (const String &warning : warnings)
+    cwr.writeString(warning);
 
   cwr.writeInt(_MAKE4C('.end'));
 
@@ -271,7 +298,8 @@ void AssetExportCache::removeUntouched()
 
 void AssetExportCache::updateFileHash(const char *fname)
 {
-  int id = fnames.getNameId(mkRelPath(fname));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.getNameId(mkRelPath(fname, tmp_stor));
   if (id >= 0)
   {
     unsigned fsz, ts = getFileTime(fname, fsz);
@@ -293,7 +321,8 @@ void AssetExportCache::updateFileHash(const char *fname)
 
 bool AssetExportCache::checkFileChanged(const char *fname)
 {
-  int id = fnames.addNameId(mkRelPath(fname));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.addNameId(mkRelPath(fname, tmp_stor));
   if (id < rec.size())
   {
     if (rec[id].changed)
@@ -324,12 +353,14 @@ bool AssetExportCache::checkFileChanged(const char *fname)
   unsigned fsz;
   rec.back().timeStamp = getFileTime(fname, fsz);
   rec.back().changed = 1;
+  rec.back()._resv0 = 0;
   getFileHashX(fname, rec.back().timeStamp, fsz, rec.back().hash);
   return true;
 }
 bool AssetExportCache::checkDataBlockChanged(const char *fname_ref, DataBlock &blk, int test_mode)
 {
-  int id = fnames.addNameId(String(260, "%s*", mkRelPath(fname_ref)));
+  TwoStepRelPath::storage_t tmp_stor;
+  int id = fnames.addNameId(strcat(const_cast<char *>(mkRelPath(fname_ref, tmp_stor)), "*"));
 
   if (id < rec.size() && rec[id].changed && test_mode == 0)
     return true;
@@ -360,6 +391,7 @@ bool AssetExportCache::checkDataBlockChanged(const char *fname_ref, DataBlock &b
   if (test_mode > 0)
     timeChanged = 1;
   rec.back().changed = (test_mode == 0);
+  rec.back()._resv0 = 0;
   getDataHash(cwr.data(), cwr.size(), rec.back().hash);
   return true;
 }
@@ -607,6 +639,12 @@ void AssetExportCache::sharedDataAddForceRebuildAsset(const char *asset_name_typ
   if (sharedData)
     sharedData->rebuildAssets.addNameId(asset_name_typified);
 }
+bool AssetExportCache::sharedDataIsAssetInForceRebuildList(const DagorAsset &a)
+{
+  if (sharedData && sharedData->rebuildAssets.nameCount())
+    return sharedData->rebuildAssets.getNameId(a.getNameTypified()) >= 0;
+  return false;
+}
 void AssetExportCache::setJobSharedMem(void *p)
 {
   if (sharedData)
@@ -641,6 +679,7 @@ bool AssetExportCache::SharedData::load(const char *cache_fname)
   if (crd.readInt() != 1)
     return false;
 
+  sharedDataRWSL.lockWrite();
   // read file data hashes
   rec.resize(crd.readInt());
   String nm;
@@ -650,22 +689,24 @@ bool AssetExportCache::SharedData::load(const char *cache_fname)
     G_VERIFY(i == fnames.addNameId(nm));
   }
   crd.readTabData(rec);
+  sharedDataRWSL.unlockWrite();
 
   if (crd.readInt() != _MAKE4C('.end'))
     return false;
 
-  changed = false;
+  changed.store(false);
   return true;
 }
 bool AssetExportCache::SharedData::save(const char *cache_fname)
 {
-  debug("hash data computed: %dM;  reused: %dM", unsigned(totalHashCalc >> 20), unsigned(totalHashReused >> 20));
-  if (!changed)
+  debug("hash data computed: %dM;  reused: %dM", unsigned(totalHashCalc.load() >> 20), unsigned(totalHashReused.load() >> 20));
+  if (!changed.load())
     return true;
 
   FullFileSaveCB cwr(cache_fname);
   if (!cwr.fileHandle)
     return false;
+  sharedDataRWSL.lockRead();
   cwr.writeInt(_MAKE4C('sdC'));
   cwr.writeInt(1);
 
@@ -674,30 +715,40 @@ bool AssetExportCache::SharedData::save(const char *cache_fname)
   iterate_names(fnames, [&](int, const char *name) { cwr.writeString(name); });
   iterate_names(fnames, [&](int id, const char *) { cwr.write(rec.data() + id, elem_size(rec)); });
   cwr.writeInt(_MAKE4C('.end'));
-  changed = false;
+  sharedDataRWSL.unlockRead();
+  changed.store(false);
   return true;
 }
 void AssetExportCache::SharedData::getFileHash(const char *fn, unsigned time, unsigned sz, unsigned char out_hash[HASH_SZ])
 {
-  int id = fnames.addNameId(AssetExportCache::mkRelPath(fn));
+  TwoStepRelPath::storage_t tmp_stor;
+  const char *rel_fn = AssetExportCache::mkRelPath(fn, tmp_stor);
+  sharedDataRWSL.lockRead();
+  int id = fnames.getNameId(rel_fn);
+  if (id >= 0 && time == rec[id].timeStamp && sz == rec[id].size)
+  {
+    // debug("reused old hash");
+    memcpy(out_hash, rec[id].hash, HASH_SZ);
+    sharedDataRWSL.unlockRead();
+    totalHashReused.fetch_add(sz);
+    return;
+  }
+  sharedDataRWSL.unlockRead();
+
+  AssetExportCache::getFileHash(fn, out_hash);
+  // debug("calc hash: %s", fn);
+  sharedDataRWSL.lockWrite();
+  id = fnames.addNameId(rel_fn);
   if (id >= rec.size())
   {
     G_ASSERT(id == rec.size());
     rec.resize(id + 1);
   }
-  else if (time == rec[id].timeStamp && sz == rec[id].size)
-  {
-    // debug("reused old hash");
-    memcpy(out_hash, rec[id].hash, HASH_SZ);
-    totalHashReused += sz;
-    return;
-  }
-
+  memcpy(rec[id].hash, out_hash, HASH_SZ);
   rec[id].timeStamp = time;
   rec[id].size = sz;
-  AssetExportCache::getFileHash(fn, rec[id].hash);
-  memcpy(out_hash, rec[id].hash, HASH_SZ);
-  changed = true;
-  totalHashCalc += sz;
-  // debug("calc hash: %s", fn);
+  sharedDataRWSL.unlockWrite();
+
+  changed.store(true);
+  totalHashCalc.fetch_add(sz);
 }

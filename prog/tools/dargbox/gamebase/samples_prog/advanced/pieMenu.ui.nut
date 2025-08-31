@@ -1,38 +1,37 @@
+import "math" as math
 from "%darg/ui_imports.nut" import *
-
 let cursors = require("samples_prog/_cursors.nut")
 
 let mkPieMenu = require("mkPieMenu.nut")
-let math = require("math")
 
 function isCurrent(curIdx,i){
   return curIdx==i
 }
 let m = @(curIdx, idx, sf) (sf & S_HOVER) || isCurrent(curIdx, idx) ? 2:1
-function s(idx){
+function s(i){
   let c = Color(math.rand(),math.rand(),math.rand(),255)
-  let onSelect = @() dlog($"{idx} do it")
+  let onSelect = @() dlog($"{i} do it")
   return {
     ctor=function(curIdx, idx){
       let stateFlags = Watched(0)
       return function(){
-        let sf = stateFlags.value
+        let sf = stateFlags.get()
         return {
           watch=[curIdx, stateFlags],
           rendObj=ROBJ_SOLID
-          size = [hdpx(60)*m(curIdx.value, idx, sf),hdpx(60)*m(curIdx.value, idx, sf)]
+          size = [hdpx(60)*m(curIdx.get(), idx, sf),hdpx(60)*m(curIdx.get(), idx, sf)]
           color = c
-          children = {rendObj = ROBJ_TEXT text = $"long text {idx}", color = (sf & S_HOVER) || isCurrent(curIdx.value, idx) ? Color(200,200,200) : Color(50,50,50) hplace = ALIGN_CENTER vplace = ALIGN_CENTER}
+          children = {rendObj = ROBJ_TEXT text = $"long text {idx}", color = (sf & S_HOVER) || isCurrent(curIdx.get(), idx) ? Color(200,200,200) : Color(50,50,50) hplace = ALIGN_CENTER vplace = ALIGN_CENTER}
           behavior = Behaviors.Button
           onHover = @(on) vlog($"on={on} {idx}")
-          onElemState = @(sf) stateFlags(sf)
+          onElemState = @(f) stateFlags.set(f)
           onClick = onSelect
 
         }
       }
     }
-    onSelect=onSelect
-    text = $"action number {idx}"
+    onSelect
+    text = $"action number {i}"
   }
 }
 
@@ -42,7 +41,7 @@ let sangle = 15
 //let selectedBorderColor = Color(200,200,200)
 //local showPieMenu = Watched(false)
 let pieMenu = mkPieMenu({
-//  hotkeys = [["J:D.Up", @() showPieMenu(!showPieMenu.value)]]
+//  hotkeys = [["J:D.Up", @() showPieMenu(!showPieMenu.get())]]
   hotkeyToSelect = "J:D.Down"
 //  hotkeys = "J:D.Up"
 //  showPieMenu = showPieMenu,

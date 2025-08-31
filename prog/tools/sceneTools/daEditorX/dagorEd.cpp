@@ -8,7 +8,6 @@
 #include <de3_dynRenderService.h>
 #include <de3_skiesService.h>
 #include <de3_waterSrv.h>
-#include <de3_dxpFactory.h>
 
 #include <EditorCore/ec_startup.h>
 #include <libTools/dtx/ddsxPlugin.h>
@@ -50,13 +49,15 @@
 
 static struct DagorEdReset3DCallback : public IDrv3DResetCB
 {
-  virtual void beforeReset(bool full_reset)
+  void beforeReset(bool full_reset) override
   {
     DAEDITOR3.conNote("notifying services (onBeforeReset3dDevice)...");
+    if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      drSrv->beforeD3DReset(full_reset);
     ((DagorEdAppWindow *)DAGORED2)->onBeforeReset3dDevice();
   }
 
-  virtual void afterReset(bool full_reset)
+  void afterReset(bool full_reset) override
   {
     extern void rebuild_shaders_stateblocks();
 
@@ -75,7 +76,6 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
     {
       DAEDITOR3.conNote("reloading textures...");
       ddsx::reload_active_textures(0);
-      dxp_factory_after_reset();
     }
     DAEDITOR3.conNote("notifying services (reset finished)...");
     DAGORED2->spawnEvent(HUID_AfterD3DReset, NULL);
@@ -90,7 +90,7 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
 #include <startup/dag_restart.h>
 #include <startup/dag_startupTex.h>
 #include <osApiWrappers/dag_basePath.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 extern const char *de3_drv_name;
 
@@ -105,7 +105,6 @@ static unsigned curLoadedShaderTarget = 0;
 
 void load_exp_shaders_for_target(unsigned tc)
 {
-  static const size_t suffix_len = strlen(".psXX.shdump.bin");
   if (tc == curLoadedShaderTarget)
     return;
   if (curLoadedShaderTarget)
@@ -119,14 +118,26 @@ void load_exp_shaders_for_target(unsigned tc)
       fn = shaderBinFnameAlt[i].fn;
       break;
     }
+
   d3d::shadermodel::Version ver = d3d::smAny;
-  if (strstr(fn, ".ps50.shdump"))
+  size_t suffixLen = strlen(".psXX.shdump.bin");
+  if (trail_strcmp(fn, "SpirV.ps50.shdump.bin"))
+  {
     ver = 5.0_sm;
-  else if (strstr(fn, ".ps40.shdump"))
+    suffixLen = strlen("SpirV.ps50.shdump.bin");
+  }
+  else if (trail_strcmp(fn, "SpirV.bindless.ps50.shdump.bin"))
+  {
+    ver = 5.0_sm;
+    suffixLen = strlen("SpirV.bindless.ps50.shdump.bin");
+  }
+  else if (trail_strcmp(fn, ".ps50.shdump.bin"))
+    ver = 5.0_sm;
+  else if (trail_strcmp(fn, ".ps40.shdump.bin"))
     ver = 4.0_sm;
-  else if (strstr(fn, ".ps30.shdump"))
+  else if (trail_strcmp(fn, ".ps30.shdump.bin"))
     ver = 3.0_sm;
-  if (::load_shaders_bindump(String(0, "%.*s", strlen(fn) - suffix_len, fn), ver, true))
+  if (::load_shaders_bindump(String(0, "%.*s", strlen(fn) - suffixLen, fn), ver, true))
     debug("loaded export-specific shader dump (%c%c%c%c): %s", _DUMP4C(tc), fn);
   else
     DAG_FATAL("failed to load shaders: %s", fn);
@@ -204,7 +215,6 @@ void init3d()
 
   DataBlock texStreamingBlk;
   ::load_tex_streaming_settings(DAGORED2->getWorkspace().getAppPath(), &texStreamingBlk);
-  texStreamingBlk.setBool("texLoadOnDemand", false);
   EDITORCORE->getWndManager()->init3d(de3_drv_name, &texStreamingBlk);
   if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
   {
@@ -243,7 +253,8 @@ void init3d()
     debug("using export-specific shader dump:        %s", shaderBinFname.str());
     for (int i = 0; i < countof(codes); i++)
     {
-      String fn(0, "%s.%s.fexp.%s", sh_file, mkbindump::get_target_str(codes[i]), ver_suffix);
+      uint64_t tc_storage = 0;
+      String fn(0, "%s.%s.fexp.%s", sh_file, mkbindump::get_target_str(codes[i], tc_storage), ver_suffix);
       if (dd_file_exist(fn))
       {
         DabuildIntStrPair &pair = shaderBinFnameAlt.push_back();
@@ -255,13 +266,23 @@ void init3d()
   }
   else
   {
-    full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps50.shdump.bin");
-    if (!dd_file_exist(full_sh_file))
-      full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps40.shdump.bin");
-    if (!dd_file_exist(full_sh_file))
-      full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps30.shdump.bin");
-    if (dd_file_exist(full_sh_file))
-      shaderBinFname = full_sh_file;
+    if (d3d::get_driver_code() == d3d::vulkan)
+    {
+      const char *format = d3d::get_driver_desc().caps.hasBindless ? "%sSpirV.bindless.%s" : "%sSpirV.%s";
+      full_sh_file.printf(260, format, sh_file, "ps50.shdump.bin");
+      if (dd_file_exist(full_sh_file))
+        shaderBinFname = full_sh_file;
+    }
+    else
+    {
+      full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps50.shdump.bin");
+      if (!dd_file_exist(full_sh_file))
+        full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps40.shdump.bin");
+      if (!dd_file_exist(full_sh_file))
+        full_sh_file.printf(260, "%s.%s", sh_file, ver_suffix = "ps30.shdump.bin");
+      if (dd_file_exist(full_sh_file))
+        shaderBinFname = full_sh_file;
+    }
   }
 
   ::shaders_register_console(true);
@@ -313,8 +334,9 @@ extern void setup_water_service(const DataBlock &app_blk);
 extern void setup_grass_service(const DataBlock &app_blk);
 extern void setup_gpu_grass_service(const DataBlock &app_blk);
 
+extern void init_plugin_ecs_editor();
 extern void init_plugin_environment();
-extern void init_plugin_clipping();
+extern void init_plugin_collision();
 extern void init_plugin_scn_export();
 extern void init_plugin_ssview();
 extern void init_plugin_bin_scn_view();
@@ -325,7 +347,7 @@ extern void init_fxmgr_service(const DataBlock &app_blk);
 extern void init_efxmgr_service();
 extern void init_physobj_mgr_service();
 extern void init_gameobj_mgr_service();
-extern void init_composit_mgr_service();
+extern void init_composit_mgr_service(const DataBlock &app_blk);
 extern void init_entity_filter_service();
 extern void init_built_scene_view_service();
 extern void init_invalid_entity_service();
@@ -341,6 +363,10 @@ extern void init_plugin_csg();
 extern void init_plugin_ivygen();
 extern void init_plugin_occluders();
 extern void init_plugin_staticgeom();
+#if HAS_PLUGINS_WT
+extern void init_plugin_missioned2();
+extern void init_plugin_locationscene();
+#endif
 
 void dagored_init_all_plugins(const DataBlock &app_blk)
 {
@@ -358,7 +384,7 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   INIT_SERVICE("prefab", ::init_prefabmgr_service(app_blk));
   INIT_SERVICE("fx", ::init_fxmgr_service(app_blk));
   INIT_SERVICE("efx", ::init_efxmgr_service());
-  INIT_SERVICE("composit", ::init_composit_mgr_service());
+  INIT_SERVICE("composit", ::init_composit_mgr_service(app_blk));
   ::init_entity_filter_service();
   INIT_SERVICE("physObj", ::init_physobj_mgr_service());
   INIT_SERVICE("gameObj", ::init_gameobj_mgr_service());
@@ -376,8 +402,9 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   else
     debug("webUi disabled with game{ enable_webui_de3:b=no;");
 
+  ::init_plugin_ecs_editor();
   ::init_plugin_environment();
-  ::init_plugin_clipping();
+  ::init_plugin_collision();
   ::init_plugin_scn_export();
   ::init_plugin_ssview();
   ::init_plugin_bin_scn_view();
@@ -387,5 +414,9 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   ::init_plugin_ivygen();
   ::init_plugin_occluders();
   ::init_plugin_staticgeom();
+#if HAS_PLUGINS_WT
+  ::init_plugin_missioned2();
+  ::init_plugin_locationscene();
+#endif
 #endif
 }

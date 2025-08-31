@@ -69,8 +69,8 @@ CPPopt =
   -D_CONSOLE
   -DGENERIC_COMPILER
   -DYYDEBUG=0
-  -DENABLE_HLSL=1
-  -DENABLE_OPT=1
+  -DENABLE_HLSL
+  -DENABLE_OPT
 ;
 
 if $(Platform) in windows {

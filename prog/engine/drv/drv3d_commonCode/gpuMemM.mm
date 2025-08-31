@@ -11,9 +11,10 @@
 #include <drv/3d/dag_commands.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <util/dag_string.h>
+#include <EASTL/optional.h>
 
 static int cache_vram = -1;
-static int cache_vendor = -1;
+static eastl::optional<GpuVendor> cache_vendor;
 static bool cache_web_driver = false;
 static String cache_gpu_desc = String("unknown");
 
@@ -34,37 +35,37 @@ static bool str_control_entry(const char *key, String &out_str)
   return true;
 }
 
-static void parse_vendor(const char *gpu_str, int &out_vendor, bool &out_web_driver)
+static void parse_vendor(const char *gpu_str, GpuVendor &out_vendor, bool &out_web_driver)
 {
-  out_vendor = D3D_VENDOR_NONE;
+  out_vendor = GpuVendor::UNKNOWN;
   out_web_driver = false;
   if (char *lower = str_dup(gpu_str, tmpmem))
   {
     lower = dd_strlwr(lower);
     if (strstr(lower, "geforce") || strstr(lower, "nvidia"))
     {
-      out_vendor = D3D_VENDOR_NVIDIA;
+      out_vendor = GpuVendor::NVIDIA;
       out_web_driver = strstr(lower, "web");
     }
     else if (strstr(lower, "ati") || strstr(lower, "amd") || strstr(lower, "radeon"))
     {
-      out_vendor = D3D_VENDOR_ATI;
+      out_vendor = GpuVendor::ATI;
     }
     else if (strstr(lower, "intel"))
     {
-      out_vendor = D3D_VENDOR_INTEL;
+      out_vendor = GpuVendor::INTEL;
     }
     else if (strstr(lower, "apple"))
     {
-      out_vendor = D3D_VENDOR_APPLE;
+      out_vendor = GpuVendor::APPLE;
     }
     memfree(lower, tmpmem);
   }
 }
 
-static void get_graphics_info(int &out_vendor, String &out_gpu_desc, int &out_vram, bool &out_web_driver)
+static void get_graphics_info(GpuVendor &out_vendor, String &out_gpu_desc, int &out_vram, bool &out_web_driver)
 {
-  out_vendor = D3D_VENDOR_NONE;
+  out_vendor = GpuVendor::UNKNOWN;
   out_vram = 0;
   out_web_driver = false;
 
@@ -97,18 +98,18 @@ static void get_graphics_info(int &out_vendor, String &out_gpu_desc, int &out_vr
       const void *GPUModel = CFDictionaryGetValue(serviceDictionary, @"model");
 
       if (GPUModel != nil && CFGetTypeID(GPUModel) == CFDataGetTypeID() &&
-          out_vendor != D3D_VENDOR_NVIDIA && out_vendor != D3D_VENDOR_ATI)
+          out_vendor != GpuVendor::NVIDIA && out_vendor != GpuVendor::ATI)
       {
         // Create a string from the CFDataRef.
         NSString *modelName = [[NSString alloc] initWithData:
                                 (NSData *)GPUModel encoding:NSASCIIStringEncoding];
 
-        int vendor;
+        GpuVendor vendor;
         bool webDriver;
         String gpuDesc([modelName UTF8String]);
         parse_vendor(gpuDesc.data(), vendor, webDriver);
 
-        if (vendor != D3D_VENDOR_NONE)
+        if (vendor != GpuVendor::UNKNOWN)
         {
           out_vendor = vendor;
           out_web_driver = webDriver;
@@ -160,19 +161,19 @@ static void get_graphics_info(int &out_vendor, String &out_gpu_desc, int &out_vr
   }
 }
 
-void mac_get_vdevice_info(int& vram, int& vendor, String &gpu_desc, bool &web_driver)
+void mac_get_vdevice_info(int& vram, GpuVendor& vendor, String &gpu_desc, bool &web_driver)
 {
   if (cache_vram != -1)
   {
     vram = cache_vram;
-    vendor = cache_vendor;
+    vendor = *cache_vendor;
     web_driver = cache_web_driver;
     gpu_desc = cache_gpu_desc;
     return;
   }
 
   vram = 0;
-  vendor = D3D_VENDOR_NONE;
+  vendor = GpuVendor::UNKNOWN;
   web_driver = false;
 
   CFMutableDictionaryRef matchDict = IOServiceMatching("IOAccelerator");
@@ -199,15 +200,15 @@ void mac_get_vdevice_info(int& vram, int& vendor, String &gpu_desc, bool &web_dr
 
       if (GPUModel != nil)
       {
-        int gpuVendor;
+        GpuVendor gpuVendor;
         bool gpuWebDriver;
         parse_vendor([GPUModel UTF8String], gpuVendor, gpuWebDriver);
-        if (vram != 0 && gpuVendor != D3D_VENDOR_ATI && gpuVendor != D3D_VENDOR_NVIDIA)
+        if (vram != 0 && gpuVendor != GpuVendor::ATI && gpuVendor != GpuVendor::NVIDIA)
           continue;
         vendor = gpuVendor;
         web_driver = gpuWebDriver;
 
-        if (gpuVendor != D3D_VENDOR_ATI && gpuVendor != D3D_VENDOR_NVIDIA)
+        if (gpuVendor != GpuVendor::ATI && gpuVendor != GpuVendor::NVIDIA)
         {
             id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
@@ -265,17 +266,17 @@ void mac_get_vdevice_info(int& vram, int& vendor, String &gpu_desc, bool &web_dr
     IOObjectRelease(iterator);
   }
 
-  debug("Mac gpu info from IOA: vendor=%d vram=%d web=%d desc=%s", vendor, vram, web_driver, gpu_desc.str());
+  debug("Mac gpu info from IOA: vendor=%d vram=%d web=%d desc=%s", eastl::to_underlying(vendor), vram, web_driver, gpu_desc.str());
 
-  int gpuVendor;
+  GpuVendor gpuVendor;
   String gpuInfo;
   int gpuVRam;
   bool gpuWebDriver;
   get_graphics_info(gpuVendor, gpuInfo, gpuVRam, gpuWebDriver);
-  if (gpuVendor != D3D_VENDOR_NONE &&
-    !(gpuVendor == D3D_VENDOR_INTEL && gpuVRam == 0 && (vendor != D3D_VENDOR_INTEL || vram != 0)))
+  if (gpuVendor != GpuVendor::UNKNOWN &&
+    !(gpuVendor == GpuVendor::INTEL && gpuVRam == 0 && (vendor != GpuVendor::INTEL || vram != 0)))
   {
-    debug("Mac gpu info from PCI: vendor=%d vram=%d web=%d desc=%s", gpuVendor, gpuVRam, gpuWebDriver, gpuInfo.str());
+    debug("Mac gpu info from PCI: vendor=%d vram=%d web=%d desc=%s", eastl::to_underlying(gpuVendor), gpuVRam, gpuWebDriver, gpuInfo.str());
 
     if (gpuVRam != 0 || vendor != gpuVendor)
       vram = gpuVRam;
@@ -284,10 +285,10 @@ void mac_get_vdevice_info(int& vram, int& vendor, String &gpu_desc, bool &web_dr
     gpu_desc = gpuInfo;
     vendor = gpuVendor;
   }
-  else if (vendor == D3D_VENDOR_NONE)
+  else if (vendor == GpuVendor::UNKNOWN)
   {
     debug("Unknown vendor found. Accept it as Intel");
-    vendor = D3D_VENDOR_INTEL;
+    vendor = GpuVendor::INTEL;
   }
 
   cache_vram = vram;
@@ -298,7 +299,8 @@ void mac_get_vdevice_info(int& vram, int& vendor, String &gpu_desc, bool &web_dr
 
 bool mac_is_web_gpu_driver()
 {
-  int vram, vendor;
+  int vram;
+  GpuVendor vendor;
   String gpuDesc;
   bool webDriver;
   mac_get_vdevice_info(vram, vendor, gpuDesc, webDriver);
@@ -313,7 +315,7 @@ bool mac_get_model(String &out_str)
 unsigned d3d::get_dedicated_gpu_memory_size_kb()
 {
   int vram = 0;
-  int vendor = 0;
+  GpuVendor vendor = GpuVendor::UNKNOWN;
   String gpuDesc;
   bool webDriver;
 

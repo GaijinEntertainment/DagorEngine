@@ -3,6 +3,8 @@
 
 #include "drv_returnAddrStore.h"
 
+#include "resourceName.h"
+
 #include <3d/tql.h>
 #include <debug/dag_log.h>
 #include <drv/3d/dag_buffers.h>
@@ -52,36 +54,36 @@ public:
   }
   static void errorLockWithoutPrevoiusUnlock(const char *name)
   {
-    D3D_ERROR("%s: Buffer '%s' unlocked without previous successful lock", T::driverName(), name);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' unlocked without previous successful lock", T::driverName(), name);
   }
   static void errorLockOffsetIsTooLarge(const char *name, uint32_t offset, uint32_t size)
   {
-    D3D_ERROR("%s: Buffer '%s' lock with offset of %u is larger than buffer size %u", T::driverName(), name, offset, size);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' lock with offset of %u is larger than buffer size %u", T::driverName(), name, offset, size);
   }
   static void errorLockSizeIsTooLarge(const char *name, uint32_t offset, uint32_t range, uint32_t size)
   {
-    D3D_ERROR("%s: Buffer '%s' lock with offset of %u and size of %u (%u) is larger than buffer size "
-              "%u",
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' lock with offset of %u and size of %u (%u) is larger than buffer size "
+                       "%u",
       T::driverName(), name, offset, range, offset + range, size);
   }
   static void errorLockWithInvalidLockingFlags(const char *name, uint32_t flags)
   {
-    D3D_ERROR("%s: Buffer '%s' locked with invalid combination of locking flags 0x%X", T::driverName(), name, flags);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' locked with invalid combination of locking flags 0x%X", T::driverName(), name, flags);
   }
   static void errorLockOffsetIsNotZero(const char *name, uint32_t offset, uint32_t flags)
   {
-    D3D_ERROR("%s: Buffer '%s' lock with offset of %u (for 0x%X locking flags only 0 offset is supported)", T::driverName(), name,
-      offset, flags);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' lock with offset of %u (for 0x%X locking flags only 0 offset is supported)", T::driverName(),
+      name, offset, flags);
   }
   static void errorDiscardingBuffer(const char *name) { D3D_ERROR("%s: Error while discarding buffer '%s'", T::driverName(), name); }
   static void errorUnlockWithoutPreviousLock(const char *name)
   {
-    D3D_ERROR("%s: Buffer '%s' unlocked without previous lock", T::driverName(), name);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' unlocked without previous lock", T::driverName(), name);
   }
   static void errorUnexpectedUseCase(const char *name) { D3D_ERROR("%s: Unexpected use case for buffer '%s'", T::driverName(), name); }
   static void errorInvalidStructSizeForRawView(const char *name, uint32_t struct_size)
   {
-    D3D_ERROR("%s: Buffer '%s' uses invalid struct size of %u for buffer with RAW views", T::driverName(), name, struct_size);
+    D3D_CONTRACT_ERROR("%s: Buffer '%s' uses invalid struct size of %u for buffer with RAW views", T::driverName(), name, struct_size);
   }
   static void errorAllocationOfBufferFailed(const char *name, uint32_t size, uint32_t struct_size, uint32_t cflags)
   {
@@ -91,18 +93,18 @@ public:
   }
   static void errorStructuredIndirect(const char *name)
   {
-    D3D_ERROR("indirect buffer can't be structured one in DX11, check <%s>", name);
+    D3D_CONTRACT_ERROR("indirect buffer can't be structured one in DX11, check <%s>", name);
   }
 
   static void errorDiscardWithoutPointer(const char *name)
   {
-    D3D_ERROR("%s: Discarded buffer '%s' without providing output pointer", name);
+    D3D_CONTRACT_ERROR("%s: Discarded buffer '%s' without providing output pointer", name);
   }
 
   static void errorFormatUsedWithInvalidUsageFlags(const char *name)
   {
-    D3D_ERROR("%s: Can't create buffer '%s' with texture format which is Structured, Vertex, Index or "
-              "Raw",
+    D3D_CONTRACT_ERROR("%s: Can't create buffer '%s' with texture format which is Structured, Vertex, Index or "
+                       "Raw",
       T::driverName(), name);
   }
 };
@@ -388,7 +390,7 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
                                            public GenericBufferDiscardFrameTracker<T::TRACK_DISCARD_FRAME>,
                                            protected GenericBufferErrorHandler<T, T::REPORT_ERRORS>,
                                            protected GenericBufferWarningHandler<T, T::REPORT_WARNINGS>,
-                                           public Sbuffer
+                                           public D3dResourceNameImpl<Sbuffer>
 {
   using BufferReloadImplementation = GenericBufferReloadImplementation<T::HAS_RELOAD_SUPPORT>;
   using BufferMemoryArchitecture = GenericBufferMemoryArchitecture<T, T::IS_UMA>;
@@ -645,7 +647,7 @@ public:
     bufFlags(flags),
     viewFormat(T::viewFormatFromFormatFlags(format_flags))
   {
-    setResName(stat_name);
+    setName(stat_name);
 
     BufferMemoryArchitecture::allocateHostCopyMemory(bufFlags, bufSize);
 
@@ -669,7 +671,7 @@ public:
     bufFlags(flags),
     viewFormat(T::viewFormatFromFormatFlags(format_flags))
   {
-    setResName(stat_name);
+    setName(stat_name);
     BufferMemoryArchitecture::allocateHostCopyMemory(bufFlags, bufSize);
 
     validate_buffer_properties(flags, format_flags, stat_name);
@@ -686,6 +688,7 @@ public:
   }
   ~GenericSbufferImplementation()
   {
+    STORE_RETURN_ADDRESS();
     BufferMemoryArchitecture::freeStagingMemory();
 
     if (T::isValidBuffer(buffer))
@@ -698,7 +701,7 @@ public:
     }
   }
 
-  int ressize() const override { return bufSize; }
+  uint32_t getSize() const override { return bufSize; }
   int getFlags() const override { return bufFlags; }
   bool setReloadCallback(IReloadData *rd) override { return BufferReloadImplementation::updateReloadInfo(rd); }
   void destroy() override
@@ -712,7 +715,7 @@ public:
     STORE_RETURN_ADDRESS();
     if (0 == lastLockFlags)
     {
-      BufferErrorHandler::errorUnlockWithoutPreviousLock(getResName());
+      BufferErrorHandler::errorUnlockWithoutPreviousLock(getName());
     }
 
     if (isStreamBuffer())
@@ -728,7 +731,7 @@ public:
       {
         if (BufferMemoryArchitecture::hasStagingMemory())
         {
-          BufferErrorHandler::errorUnexpectedUseCase(getResName());
+          BufferErrorHandler::errorUnexpectedUseCase(getName());
         }
 
         T::updateBuffer(temporaryMemory, this, bufFlags, buffer, lockOffset);
@@ -739,7 +742,7 @@ public:
         {
           if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized())
           {
-            BufferErrorHandler::errorUnexpectedUseCase(getResName());
+            BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
           // Only copy from local copy to stage or buffer directly, later steps will do the copying
           // and flushing
@@ -757,7 +760,7 @@ public:
             // For one time initialization this is okay to do, but repeatedly, a different was may be a better fit.
             if (isInitialized())
             {
-              BufferWarningHandler::warnPerformanceHostCopyToBufferWithTemporary(getResName());
+              BufferWarningHandler::warnPerformanceHostCopyToBufferWithTemporary(getName());
             }
             auto buf = T::allocateTemporaryUploadMemory(lockSize);
             if (T::isValidMemory(buf))
@@ -768,7 +771,7 @@ public:
             }
             else
             {
-              BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+              BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
           }
         }
@@ -777,7 +780,7 @@ public:
         {
           if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized())
           {
-            BufferErrorHandler::errorUnexpectedUseCase(getResName());
+            BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
           BufferMemoryArchitecture::uploadStagingMemoryToBuffer(lockOffset, buffer, lockOffset, lockSize);
         }
@@ -785,7 +788,7 @@ public:
         {
           if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized() && !T::IS_UMA)
           {
-            BufferErrorHandler::errorUnexpectedUseCase(getResName());
+            BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
           T::flushMappedRange(buffer, lockOffset, lockSize);
         }
@@ -809,24 +812,24 @@ public:
     checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
     if (0 != lastLockFlags)
     {
-      BufferErrorHandler::errorLockWithoutPrevoiusUnlock(getResName());
+      BufferErrorHandler::errorLockWithoutPrevoiusUnlock(getName());
     }
     if (ofs_bytes >= bufSize)
     {
-      BufferErrorHandler::errorLockOffsetIsTooLarge(getResName(), ofs_bytes, bufSize);
+      BufferErrorHandler::errorLockOffsetIsTooLarge(getName(), ofs_bytes, bufSize);
     }
     if (ofs_bytes + size_bytes > bufSize)
     {
-      BufferErrorHandler::errorLockSizeIsTooLarge(getResName(), ofs_bytes, size_bytes, bufSize);
+      BufferErrorHandler::errorLockSizeIsTooLarge(getName(), ofs_bytes, size_bytes, bufSize);
       return 0;
     }
     if (T::HAS_STRICT_LOCKING_RULES && flags == 0 && !BufferMemoryArchitecture::hasHostCopy())
     {
-      BufferErrorHandler::errorLockWithInvalidLockingFlags(getResName(), flags);
+      BufferErrorHandler::errorLockWithInvalidLockingFlags(getName(), flags);
     }
     if ((flags & VBLOCK_DISCARD) != 0 && ofs_bytes != 0)
     {
-      BufferErrorHandler::errorLockOffsetIsNotZero(getResName(), ofs_bytes, flags);
+      BufferErrorHandler::errorLockOffsetIsNotZero(getName(), ofs_bytes, flags);
     }
 
     lastLockFlags = static_cast<uint16_t>(flags);
@@ -838,17 +841,17 @@ public:
     {
       if (bufferLockDiscardRequested(flags))
       {
-        temporaryMemory = T::discardStreamMememory(this, lockSize, structSize, bufFlags, temporaryMemory, getResName());
+        temporaryMemory = T::discardStreamMememory(this, lockSize, structSize, bufFlags, temporaryMemory, getName());
       }
       if (!T::isValidMemory(temporaryMemory))
       {
-        BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+        BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
         lastLockFlags = 0;
         return 0;
       }
       if (!ptr)
       {
-        BufferErrorHandler::errorDiscardWithoutPointer(getResName());
+        BufferErrorHandler::errorDiscardWithoutPointer(getName());
         lastLockFlags = 0;
         return 0;
       }
@@ -858,20 +861,20 @@ public:
 
     if (bufferLockDiscardRequested(flags))
     {
-      buffer = T::discardBuffer(this, buffer, bufSize, structSize, getMemoryClass(), viewFormat, bufFlags, getResName());
+      buffer = T::discardBuffer(this, buffer, bufSize, structSize, getMemoryClass(), viewFormat, bufFlags, getName());
 
       if (!T::isValidBuffer(buffer))
       {
         // Caller has to be prepared that getName may return NULL
-        BufferErrorHandler::errorDiscardingBuffer(getResName());
+        BufferErrorHandler::errorDiscardingBuffer(getName());
         return 0;
       }
 
-      if (BufferMemoryArchitecture::discardStagingMemory(bufFlags, bufSize, getResName(), *this))
+      if (BufferMemoryArchitecture::discardStagingMemory(bufFlags, bufSize, getName(), *this))
       {
         if (!BufferMemoryArchitecture::hasStagingMemory())
         {
-          BufferErrorHandler::errorDiscardingStageMemory(getResName());
+          BufferErrorHandler::errorDiscardingStageMemory(getName());
           return 0;
         }
       }
@@ -882,7 +885,7 @@ public:
       if (T::HAS_STRICT_LOCKING_RULES && (0 == ((VBLOCK_DISCARD | VBLOCK_NOOVERWRITE) & lastLockFlags)) &&
           !BufferMemoryArchitecture::hasHostCopy())
       {
-        BufferErrorHandler::errorLockWithInvalidLockingFlags(getResName(), flags);
+        BufferErrorHandler::errorLockWithInvalidLockingFlags(getName(), flags);
       }
       lastLockFlags |= VBLOCK_WRITEONLY;
     }
@@ -904,7 +907,7 @@ public:
 
           if (!isReadBackInProgress())
           {
-            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getResName());
+            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getName());
             BufferMemoryArchitecture::blockingReadBackBufferToStagingMemory(buffer, lockOffset, lockOffset, lockSize);
             immediateReadBack();
           }
@@ -928,7 +931,7 @@ public:
 
           if (!isReadBackInProgress())
           {
-            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getResName());
+            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getName());
             T::blockingFlushBuffer(buffer, lockOffset, lockSize);
             immediateReadBack();
           }
@@ -942,7 +945,7 @@ public:
         }
         else
         {
-          BufferWarningHandler::warnPerformanceTemporaryMemoryForReadBack(getResName());
+          BufferWarningHandler::warnPerformanceTemporaryMemoryForReadBack(getName());
           if (!ptr)
           {
             if (!T::isValidMemory(temporaryMemory))
@@ -951,7 +954,7 @@ public:
             }
             else
             {
-              BufferWarningHandler::warnPerformanceNotConsumedAsyncReadBack(getResName());
+              BufferWarningHandler::warnPerformanceNotConsumedAsyncReadBack(getName());
             }
             if (T::isValidMemory(temporaryMemory))
             {
@@ -960,7 +963,7 @@ public:
             }
             else
             {
-              BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+              BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
             lastLockFlags = 0;
             return 0;
@@ -971,7 +974,7 @@ public:
             if (T::isValidMemory(temporaryMemory))
               T::freeMemory(temporaryMemory);
 
-            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getResName());
+            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getName());
             temporaryMemory = T::allocateReadWriteStagingMemory(lockSize);
             if (T::isValidMemory(temporaryMemory))
             {
@@ -979,7 +982,7 @@ public:
             }
             else
             {
-              BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+              BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
             immediateReadBack();
           }
@@ -1021,8 +1024,8 @@ public:
         }
         else if (!T::isValidMemory(temporaryMemory))
         {
-          BufferWarningHandler::warnPerformanceTemporaryMemoryForReadBack(getResName());
-          BufferWarningHandler::warnPerformanceReadBackOfUnchangedResource(getResName());
+          BufferWarningHandler::warnPerformanceTemporaryMemoryForReadBack(getName());
+          BufferWarningHandler::warnPerformanceReadBackOfUnchangedResource(getName());
           // Have to read back again, temp memory is released after unlock
           if (!ptr)
           {
@@ -1033,7 +1036,7 @@ public:
             }
             else
             {
-              BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+              BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
             beginReadBackProgress();
             lastLockFlags = 0;
@@ -1045,7 +1048,7 @@ public:
             if (T::isValidMemory(temporaryMemory))
               T::freeMemory(temporaryMemory);
 
-            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getResName());
+            BufferWarningHandler::warnPerformanceBlockingBufferReadBack(getName());
             temporaryMemory = T::allocateReadWriteStagingMemory(lockSize);
             if (T::isValidMemory(temporaryMemory))
             {
@@ -1053,7 +1056,7 @@ public:
             }
             else
             {
-              BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+              BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
             immediateReadBack();
           }
@@ -1083,7 +1086,7 @@ public:
 
     if (!ptr)
     {
-      BufferWarningHandler::warnUsageAsyncWithoutReadBackRequested(getResName());
+      BufferWarningHandler::warnUsageAsyncWithoutReadBackRequested(getName());
       lastLockFlags = 0;
       return 0;
     }
@@ -1100,7 +1103,7 @@ public:
       }
       else
       {
-        BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+        BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
         lastLockFlags = 0;
         return 0;
       }
@@ -1127,7 +1130,7 @@ public:
       }
       else
       {
-        BufferErrorHandler::errorAllocatingTemporaryMemory(getResName());
+        BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
         lastLockFlags = 0;
         return 0;
       }
@@ -1163,28 +1166,28 @@ public:
     STORE_RETURN_ADDRESS();
     if (ofs_bytes + size_bytes > bufSize)
     {
-      BufferErrorHandler::errorLockSizeIsTooLarge(getResName(), ofs_bytes, size_bytes, bufSize);
+      BufferErrorHandler::errorLockSizeIsTooLarge(getName(), ofs_bytes, size_bytes, bufSize);
       return false;
     }
 
-    G_ASSERT_RETURN(size_bytes, false);
+    D3D_CONTRACT_ASSERT_RETURN(size_bytes, false);
 
     if ((lock_flags & VBLOCK_DISCARD) != 0 && ofs_bytes != 0)
     {
-      BufferErrorHandler::errorLockOffsetIsNotZero(getResName(), ofs_bytes, lock_flags);
+      BufferErrorHandler::errorLockOffsetIsNotZero(getName(), ofs_bytes, lock_flags);
     }
 
     if (isStreamBuffer())
     {
       if (bufferLockDiscardRequested(lock_flags))
       {
-        temporaryMemory = T::discardStreamMememory(this, size_bytes, structSize, bufFlags, temporaryMemory, getResName());
+        temporaryMemory = T::discardStreamMememory(this, size_bytes, structSize, bufFlags, temporaryMemory, getName());
       }
       memcpy(T::getMemoryPointer(temporaryMemory, ofs_bytes), src, size_bytes);
       return true;
     }
 
-    // fastest path, mapable + nooverwrite, we can safely memcpy it over and we are done
+    // fastest path, mappable + nooverwrite, we can safely memcpy it over and we are done
     if (bufferSyncUpdateRequested(lock_flags) && T::isMapable(buffer) && !BufferMemoryArchitecture::hasHostCopy() &&
         !BufferMemoryArchitecture::hasStagingMemory())
     {
@@ -1237,7 +1240,7 @@ public:
     statusFlags = 0;
     BufferMemoryArchitecture::resetStagingMemory();
     temporaryMemory = T::getNullTemporaryMemory();
-    compose(getResName());
+    compose(getName());
   }
   void restore()
   {
@@ -1263,6 +1266,11 @@ public:
   bool usableAsUnorderedResource() const { return 0 != (bufFlags & SBCF_BIND_UNORDERED); }
 
   bool usableAsConstantBuffer() const { return 0 != (bufFlags & SBCF_BIND_CONSTANT); }
+
+  bool usableAsStreamOutputBuffer() const
+  {
+    return 0 != (bufFlags & SBCF_USAGE_STREAM_OUTPUT) || 0 != (bufFlags & SBCF_USAGE_STREAM_OUTPUT_COUNTER);
+  }
 
   bool usableAsVertexBuffer() const { return 0 != (bufFlags & SBCF_BIND_VERTEX); }
 

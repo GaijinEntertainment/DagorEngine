@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "scriptsLoaderES.cpp.inl"
 ECS_DEF_PULL_VAR(scriptsLoader);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc game_mode_scripts_loader_es_event_handler_comps[] =
 {

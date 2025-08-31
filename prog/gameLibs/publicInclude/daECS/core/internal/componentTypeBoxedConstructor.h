@@ -24,8 +24,8 @@ struct OnComponentLoaded
   static eastl::no_type SFINAE3(...);
 
   template <typename U = T>
-  static auto SFINAE2(U *u)
-    -> decltype(u->onLoaded(eastl::declval<EntityManager &>(), eastl::declval<const EntityId &>()), eastl::yes_type{});
+  static auto SFINAE2(U *u) -> decltype(u->onLoaded(eastl::declval<EntityManager &>(), eastl::declval<const EntityId &>()),
+                              eastl::yes_type{});
   template <typename U = T>
   static eastl::no_type SFINAE2(...);
 

@@ -5,6 +5,7 @@
 #include "front_render_pass_state.h"
 #include "globals.h"
 #include "driver_config.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -66,8 +67,8 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
     for (uint32_t i = 0; i < desc.targetCount; ++i)
     {
       const StateFieldRenderPassTarget &tgt = state->targets.data[i];
-      G_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", i, this, getBaseHandle(),
-        getDebugName());
+      D3D_CONTRACT_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", i, this,
+        getBaseHandle(), getDebugName());
       if (Globals::cfg.has.imagelessFramebuffer)
       {
         newFB.atts[i].imageless.width = bakedAttachments->infos[i].width;
@@ -117,7 +118,7 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       }
     }
     newFB.extent = areaExtent;
-    newFB.handle = compileFB();
+    newFB.handle = compileFB(newFB);
     ret = newFB.handle;
   }
 
@@ -139,7 +140,7 @@ void RenderPassResource::destroyFBsWithImage(const Image *img)
     {
       if (compiledFBs[i].atts[j].img == img)
       {
-        VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), compiledFBs[i].handle, nullptr));
+        VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), compiledFBs[i].handle, VKALLOC(framebuffer)));
         compiledFBs[i].handle = VulkanFramebufferHandle();
         break;
       }
@@ -147,7 +148,7 @@ void RenderPassResource::destroyFBsWithImage(const Image *img)
   }
 }
 
-VulkanFramebufferHandle RenderPassResource::compileFB()
+VulkanFramebufferHandle RenderPassResource::compileFB(const FbWithCreationInfo &ref_info)
 {
   // FB compile can be time consuming, and yet we not clearly state this for user
   // so make a mark for it just in case user somehow ends up in multiple/realtime FB compilations
@@ -156,7 +157,8 @@ VulkanFramebufferHandle RenderPassResource::compileFB()
   VkFramebufferCreateInfo fbci = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, nullptr};
   fbci.renderPass = getHandle();
   VkExtent2D areaExtent = toVkFbExtent(state->area.data);
-  G_ASSERTF(areaExtent.width && areaExtent.height, "vulkan: render area %u x %u is invalid", areaExtent.width, areaExtent.height);
+  D3D_CONTRACT_ASSERTF(areaExtent.width && areaExtent.height, "vulkan: render area %u x %u is invalid", areaExtent.width,
+    areaExtent.height);
   fbci.width = areaExtent.width;
   fbci.height = areaExtent.height;
   fbci.attachmentCount = desc.targetCount;
@@ -177,6 +179,7 @@ VulkanFramebufferHandle RenderPassResource::compileFB()
     for (uint32_t i = 0; i < desc.targetCount; ++i)
     {
       // TODO: do it once!
+      bakedAttachments->infos[i].usage &= ~VK_IMAGE_USAGE_STORAGE_BIT;
       bakedAttachments->infos[i].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR;
       bakedAttachments->infos[i].pNext = nullptr;
       bakedAttachments->infos[i].viewFormatCount = bakedAttachments->formatLists[i].size();
@@ -192,6 +195,16 @@ VulkanFramebufferHandle RenderPassResource::compileFB()
 
   VulkanDevice &device = Globals::VK::dev;
   VulkanFramebufferHandle fbh;
-  VULKAN_EXIT_ON_FAIL(device.vkCreateFramebuffer(device.get(), &fbci, nullptr, ptr(fbh)));
+  VULKAN_EXIT_ON_FAIL(device.vkCreateFramebuffer(device.get(), &fbci, VKALLOC(framebuffer), ptr(fbh)));
+
+#if VK_KHR_imageless_framebuffer
+  // restore patched usage to original
+  if (Globals::cfg.has.imagelessFramebuffer)
+  {
+    for (uint32_t i = 0; i < desc.targetCount; ++i)
+      bakedAttachments->infos[i].usage = ref_info.atts[i].imageless.usage;
+  }
+#endif
+
   return fbh;
 }

@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "shCompiler.h"
 #include "shaderVariantSrc.h"
+#include "shShaderContext.h"
 #include <generic/dag_tabUtils.h>
 #include <generic/dag_smallTab.h>
 #include <debug/dag_debug.h>
@@ -10,6 +12,7 @@
 #include <shaders/dag_shaders.h>
 #include "sh_stat.h"
 #include "varMap.h"
+#include "commonUtils.h"
 
 namespace ShaderVariant
 {
@@ -36,8 +39,9 @@ String VariantSrc::getVarStringInfo() const
  *
  *********************************/
 // generate all variants from avalible types
-void VariantTableSrc::generateFromTypes(const TypeTable &type_list, const IntervalList &i_list, ShHardwareOptions *opt,
-  bool enable_empty)
+VariantTableSrc::VariantTableSrc(shc::TargetContext &a_ctx) : types{a_ctx}, variants(tmpmem), ctx{a_ctx} {}
+
+void VariantTableSrc::generateFromTypes(const TypeTable &type_list, const IntervalList &i_list, bool enable_empty)
 {
   types = type_list;
   intervals = i_list;
@@ -51,70 +55,48 @@ void VariantTableSrc::generateFromTypes(const TypeTable &type_list, const Interv
     return;
   }
 
-  // check assume_static exist variables
-  DataBlock *block = shc::getAssumedVarsBlock();
-  if (block)
-    for (int n = 0; n < block->paramCount(); n++)
-    {
-      const char *varname = block->getParamName(n);
-      shc::registerAssumedVar(varname, VarMap::getVarId(varname) != -1);
-    }
-
-
   // prepare assumes
   SmallTab<ValueType, TmpmemAlloc> assume_val;
   clear_and_resize(assume_val, types.getCount());
   mem_set_ff(assume_val);
 
-  if (block)
-    for (int i = 0; i < assume_val.size(); i++)
+  for (int i = 0; i < assume_val.size(); i++)
+  {
+    const VariantType &type = types.getType(i);
+    const Interval *interval = nullptr;
+
+    switch (type.type)
     {
-      const VariantType &type = types.getType(i);
-      const Interval *interval = nullptr;
+      case VARTYPE_MODE: break;
 
-      switch (type.type)
+      case VARTYPE_INTERVAL:
+      case VARTYPE_GL_OVERRIDE_INTERVAL:
       {
-        case VARTYPE_MODE: break;
-
-        case VARTYPE_INTERVAL:
-        case VARTYPE_GL_OVERRIDE_INTERVAL:
-        {
-          const IntervalList *iList = types.getIntervals();
-          interval = iList ? iList->getInterval(type.extType) : nullptr;
-        }
-        break;
-
-        case VARTYPE_GLOBAL_INTERVAL: interval = ShaderGlobal::getIntervalList().getInterval(type.extType); break;
-
-        default: G_ASSERT(0);
+        const IntervalList *iList = types.getIntervals();
+        interval = iList ? iList->getInterval(type.extType) : nullptr;
       }
+      break;
 
-      if (interval)
+      case VARTYPE_GLOBAL_INTERVAL: interval = ctx.globVars().getIntervalList().getInterval(type.extType); break;
+
+      default: G_ASSERT(0);
+    }
+
+    if (interval)
+    {
+      const char *varname = get_interval_name(*interval, ctx);
+      // @NOTE: Only global assumes are used here, as in the previous implementation
+      if (auto valueMaybe = ctx.globAssumes().getAssumedVal(varname, true))
       {
-        const char *varname = interval->getNameStr();
-        real value;
-
-        for (int n = 0; n < block->paramCount(); n++)
-          if (strcmp(varname, block->getParamName(n)) == 0)
-          {
-            switch (block->getParamType(n))
-            {
-              case DataBlock::TYPE_INT: value = (real)block->getInt(n); break;
-              case DataBlock::TYPE_REAL: value = block->getReal(n); break;
-              default: sh_debug(SHLOG_ERROR, "Assume variables: type in \"%s\" is neither \"real\" nor \"int\"", varname); continue;
-            }
-
-            assume_val[i] = interval->normalizeValue(value);
-          }
+        assume_val[i] = interval->normalizeValue(*valueMaybe);
       }
     }
+  }
 
   // fill variant table
   variants.reserve(512);
   VariantSrc::defCtorTypeTable = &types;
   VariantSrc result;
-  //    debug(intervals.getStringInfo());
-  //    debug(types.getStringInfo());
   processVariant(types.getCount() - 1, result, &assume_val[types.getCount() - 1]);
   VariantSrc::defCtorTypeTable = NULL;
   variants.shrink_to_fit();

@@ -15,6 +15,7 @@
 #include <generic/dag_carray.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/fixed_vector.h>
+#include <drv/3d/dag_driver.h> // D3D_HAS_QUADS
 #include <drv/3d/dag_vertexIndexBuffer.h>
 
 #define LOG_CACHE 0

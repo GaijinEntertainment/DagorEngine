@@ -6,6 +6,7 @@
 
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_driver.h>
+#include <EASTL/optional.h>
 #include <generic/dag_variantVector.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_spinlock.h>
@@ -27,18 +28,52 @@ struct NullResourceTable;
 
 namespace frontend
 {
-class BindlessManager
+class BindlessTypesValidatorImplementation
+{
+public:
+  void setTypesRange(D3DResourceType type, uint32_t index, uint32_t size);
+  void resetTypesRange(uint32_t index, uint32_t size);
+  void checkTypesRange(D3DResourceType type, uint32_t index, uint32_t size) const;
+  void enableTypesValidation(bool is_enabled) { isEnabled = is_enabled; }
+  void resetTypesValidation() { resourceTypes.clear(); }
+
+private:
+  dag::Vector<eastl::optional<D3DResourceType>> resourceTypes;
+  bool isEnabled = false;
+};
+
+class BindlessTypesValidatorStubImplementation
+{
+public:
+  void setTypesRange(D3DResourceType, uint32_t, uint32_t) {}
+  void resetTypesRange(uint32_t, uint32_t) {}
+  void checkTypesRange(D3DResourceType, uint32_t, uint32_t) const {}
+  void enableTypesValidation(bool) {}
+  void resetTypesValidation() {}
+
+private:
+};
+
+#if DX12_VALIDATE_BINDLESS_TYPES
+using BindlessTypesValidator = BindlessTypesValidatorImplementation;
+#else
+using BindlessTypesValidator = BindlessTypesValidatorStubImplementation;
+#endif
+
+class BindlessManager : BindlessTypesValidator
 {
   struct BufferSlotUsage
   {
     Sbuffer *buffer;
     D3D12_CPU_DESCRIPTOR_HANDLE descriptor;
+    void reset() { descriptor = D3D12_CPU_DESCRIPTOR_HANDLE(); }
   };
   struct TextureSlotUsage
   {
     BaseTex *texture;
     Image *image;
     ImageViewState view;
+    void reset() { image = nullptr; }
   };
 
   struct State
@@ -52,17 +87,19 @@ class BindlessManager
   const NullResourceTable *nullResourceTable = nullptr;
 
 public:
-  void init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler, const NullResourceTable *null_resource_table);
+  void init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler, const NullResourceTable *null_resource_table,
+    bool enable_types_validation);
 
   uint32_t registerSampler(Device &device, DeviceContext &ctx, BaseTex *texture);
   uint32_t registerSampler(DeviceContext &ctx, SamplerDescriptorAndState sampler);
 
-  uint32_t allocateBindlessResourceRange(uint32_t count);
-  uint32_t resizeBindlessResourceRange(DeviceContext &ctx, uint32_t index, uint32_t current_count, uint32_t new_count);
+  uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count);
+  uint32_t resizeBindlessResourceRange(D3DResourceType type, DeviceContext &ctx, uint32_t index, uint32_t current_count,
+    uint32_t new_count);
 
-  void freeBindlessResourceRange(uint32_t index, uint32_t count);
-  void updateBindlessBuffer(DeviceContext &ctx, uint32_t index, Sbuffer *buffer);
-  void updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *res);
+  void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
+  bool updateBindlessBuffer(DeviceContext &ctx, uint32_t index, Sbuffer *buffer);
+  bool updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *res);
 
   struct CheckTextureImagePairResultType
   {
@@ -82,12 +119,12 @@ public:
   // function as expected by searching the whole set and replacing all found matches.
   // Requires front guard and binding guard locked.
   void updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, uint32_t search_offset,
-    uint32_t change_max_count, bool ignore_previous_view);
+    uint32_t change_max_count);
   void updateBufferReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
     D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
 
-  bool hasTextureReference(BaseTex *tex);
-  bool hasTextureReferenceNoLock(BaseTex *tex);
+  bool hasValidTextureReference(BaseTex *tex);
+  bool hasValidTextureReferenceNoLock(BaseTex *tex);
   bool hasTextureImageReference(BaseTex *tex, Image *image);
   bool hasTextureImageViewReference(BaseTex *tex, Image *image, ImageViewState view);
   bool hasImageReference(Image *image);
@@ -100,7 +137,10 @@ public:
   void resetTextureImagePairReferencesNoLock(DeviceContext &ctx, BaseTex *texture, Image *image);
   void resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
 
-  void updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count);
+  void removeTextureReferences(DeviceContext &ctx, BaseTex *texture);
+  void removeBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descripto);
+
+  void updateBindlessNull(DeviceContext &ctx, D3DResourceType type, uint32_t index, uint32_t count);
   void preRecovery();
 
   template <typename T>
@@ -115,14 +155,18 @@ public:
   }
 
 private:
-  static ImageViewState adjust_previous_view(ImageViewState previous_view, int old_count, int new_count);
   template <typename SlotType, typename CheckerType>
   void resetReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
   template <typename SlotType, typename CheckerType>
   void resetReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
+  template <typename SlotType, typename CheckerType>
+  void removeReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
+  template <typename SlotType, typename CheckerType>
+  void removeReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
 
   uint32_t allocateBindlessResourceRangeNoLock(uint32_t count);
-  void freeBindlessResourceRangeNoLock(uint32_t index, uint32_t count);
+  void freeBindlessResourceRangeNoLock(D3DResourceType type, uint32_t index, uint32_t count);
+  void copyBindlessResourceRangeNoLock(uint32_t src, uint32_t dst, uint32_t count);
 
   void checkBindlessRangeAllocatedNoLock(uint32_t index, uint32_t count) const;
 

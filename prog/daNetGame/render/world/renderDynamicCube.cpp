@@ -33,12 +33,9 @@ struct ScopedNoExposure
   ~ScopedNoExposure() { g_entity_mgr->broadcastEventImmediate(RenderSetExposure{true}); }
 };
 
-RenderDynamicCube::RenderDynamicCube()
-{
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  RENDER_DYNAMIC_CUBE_VARS
+RenderDynamicCube::RenderDynamicCube() { RENDER_DYNAMIC_CUBE_VARS; }
 #undef VAR
-}
 
 RenderDynamicCube::~RenderDynamicCube() { close(); }
 
@@ -52,6 +49,8 @@ void RenderDynamicCube::close()
 void RenderDynamicCube::init(int cube_size)
 {
   close();
+  cubeSize = cube_size;
+
   d3d::set_esram_layout(L"Probes cube");
   shadedTarget =
     dag::create_tex(NULL, cube_size, cube_size, TEXFMT_A16B16G16R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, 1, "dynamic_cube_tex_target");
@@ -97,6 +96,12 @@ TMatrix4_vec4 RenderDynamicCube::getGlobTmForFace(int face_num, const Point3 &po
 
 void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, int face_num, RenderMode mode)
 {
+  if (!isInit())
+  {
+    logerr("RenderDynamicCube: update without init");
+    init(cubeSize <= 0 ? 128 : cubeSize);
+  }
+
   SCOPE_VIEW_PROJ_MATRIX;
   SCOPE_RENDER_TARGET;
   ShaderGlobal::set_color4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
@@ -158,6 +163,7 @@ void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, 
 
     d3d::set_render_target(cubeTarget->getCubeTex(), i, 0);
     d3d::settex(2, shadedTarget.getTex2D());
+    d3d::set_sampler(STAGE_PS, 2, d3d::request_sampler({}));
     d3d::resource_barrier({shadedTarget.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     copy.render();
   }

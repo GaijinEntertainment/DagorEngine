@@ -6,7 +6,6 @@ include "dynamic_render_deform_hmap_inc.dshl"
 include "cloth_optional.dshl"
 include "overlay_color_map_inc.dshl"
 
-texture paint_details_tex;
 texture dynamic_decals_atlas;
 texture perlin_noise3d;
 
@@ -18,6 +17,9 @@ float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
 
 int disable_dynmat_params = 0;
+interval disable_dynmat_params: no < 1, yes;
+
+int layered_material_detail_quality = 0;
 
 macro XRAY_DEPTH_PS()
   hlsl(ps) {
@@ -118,6 +120,7 @@ block(scene) dynamic_scene
     vehicle_decals_atlas@tex2d = dynamic_decals_atlas;
     special_vision@i1 = special_vision;
     disable_dynmat_params@i1 = disable_dynmat_params;
+    layered_material_detail_quality@i1 = layered_material_detail_quality;
   }
   INIT_USE_CHARACTER_MICRODETAIL()
   INIT_DYNAMICS_WETNESS()

@@ -78,8 +78,8 @@ public:
   Tab<EqualMaterial> equalMats;
 
   // ctor/dtor
-  EqualMaterialGather() : equalMats(tmpmem){};
-  ~EqualMaterialGather(){};
+  EqualMaterialGather() : equalMats(tmpmem) {}
+  ~EqualMaterialGather() {}
 
   // add material, if it equal to this material & not in list. return index of exists material
   inline int addEqual(MaterialData *m)

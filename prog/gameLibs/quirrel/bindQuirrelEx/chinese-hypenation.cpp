@@ -10,12 +10,12 @@
 #include <debug/dag_fatal.h>
 #include <osApiWrappers/dag_unicode.h>
 
-extern unsigned int read_utf8(const char *&ptr);
+extern unsigned int read_utf8(const dag_char8_t *&ptr);
 extern void write_utf8(unsigned int val, char *&ptr);
 
-const char *cant_break_before =
+const dag_char8_t *cant_break_before =
   u8"\r\n\t !%),.:;>?]}¢¨°·ˇˉ―‖’”„‟†‡›℃∶、。〃〆〈《「『〕〗〞︵︹︽︿﹃﹘﹚﹜！＂％＇），．：；？］｀｜｝～";
-const char *cant_break_after = u8"\r\n\t $(*,£¥·‘“〈《「『【〔〖〝﹗﹙﹛＄（．［｛￡￥";
+const dag_char8_t *cant_break_after = u8"\r\n\t $(*,£¥·‘“〈《「『【〔〖〝﹗﹙﹛＄（．［｛￡￥";
 
 #define IS_LOWER(x)   ((x) < 0x100)
 #define IS_CHINESE(x) (((x) >= 0x4E00) && ((x) <= 9FFF))
@@ -30,7 +30,7 @@ static bool can_break(unsigned int first, unsigned int second)
   if (IS_LOWER(first) && IS_LOWER(second))
     return false;
 
-  const char *ptr = cant_break_after;
+  const dag_char8_t *ptr = cant_break_after;
   for (int i = 0; i < utf8_strlen(cant_break_after); i++)
   {
     if (first == read_utf8(ptr))
@@ -65,7 +65,7 @@ SimpleString process_chinese_string(const char *str, wchar_t sep_char)
     strcpy(out.str(), str);
     return out;
   }
-  const char *src = str;
+  auto src = (const dag_char8_t *)str;
   char *dst = out.str();
   unsigned first = read_utf8(src);
   unsigned second = 0;

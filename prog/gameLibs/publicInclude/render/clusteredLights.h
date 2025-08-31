@@ -66,23 +66,23 @@ struct ClusteredLights
 
   typedef OmniLightsManager::RawLight OmniLight;
   typedef SpotLightsManager::RawLight SpotLight;
-  static const int MAX_SHADOW_PRIORITY = 15; // 15 times more imprtant than anything else
+  static const int MAX_SHADOW_PRIORITY = 15; // 15 times more important than anything else
   ClusteredLights(const char *name_suffix = "");
   ~ClusteredLights();
 
   // initial_frame_light_count is total visible lights for frame. In 32 (words)
-  // shadows_quality is size of dynmic shadow map. 0 means no shadows
+  // shadows_quality is size of dynamic shadow map. 0 means no shadows
   void init(int initial_frame_light_count, uint32_t shadows_quality, bool use_tiled_lights, const char *name_suffix = "");
   void setMaxClusteredDist(const float max_clustered_dist);
   void setMaxShadowDist(const float max_shadow_dist) { maxShadowDist = max_shadow_dist; }
   void changeShadowResolution(uint32_t shadows_quality, bool dynamic_shadow_32bit);
   void close();
   void cullFrustumLights(vec3f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear, Occlusion *occlusion,
-    SpotLightsManager::mask_type_t spot_light_mask, OmniLightsManager::mask_type_t omni_light_mask);
-  void prepareTiledLights()
+    SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask);
+  void prepareTiledLights(const bool clear_lights = true)
   {
     if (tiledLights)
-      tiledLights->computeTiledLigths();
+      tiledLights->computeTiledLigths(clear_lights);
   }
   void toggleTiledLights(bool use_tiled);
   bool hasDeferredLights() const { return renderFarOmniLights.size() + renderFarSpotLights.size() != 0; }
@@ -93,8 +93,8 @@ struct ClusteredLights
   int getVisibleClusteredOmniCount() const { return renderOmniLights.size(); }
   int getVisibleSpotsCount() const { return getVisibleClusteredSpotsCount() + getVisibleNotClusteredSpotsCount(); }
   int getVisibleOmniCount() const { return getVisibleClusteredOmniCount() + getVisibleNotClusteredOmniCount(); }
-  bool cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManager::mask_type_t spot_light_mask,
-    OmniLightsManager::mask_type_t omni_light_mask); // cull without any grid
+  bool cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskType spot_light_mask,
+    OmniLightMaskType omni_light_mask); // cull without any grid
   void setShadowBias(float z_bias, float slope_z_bias, float shader_z_bias, float shader_slope_z_bias);
   void getShadowBias(float &z_bias, float &slope_z_bias, float &shader_z_bias, float &shader_slope_z_bias) const;
 
@@ -111,24 +111,24 @@ struct ClusteredLights
   void drawDebugClusters(int slice);
 
   void destroyLight(uint32_t id);
-  uint32_t addOmniLight(const OmniLight &light, OmniLightsManager::mask_type_t mask = OmniLightsManager::GI_LIGHT_MASK);
+  uint32_t addOmniLight(const OmniLight &light, OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT);
   void setLight(uint32_t id, const OmniLight &light, bool invalidate_shadow);
-  void setLightWithMask(uint32_t id, const OmniLight &light, OmniLightsManager::mask_type_t mask, bool invalidate_shadow);
+  void setLightWithMask(uint32_t id, const OmniLight &light, OmniLightMaskType mask, bool invalidate_shadow);
   OmniLight getOmniLight(uint32_t id) const;
 
-  void setLight(uint32_t id_, const SpotLight &light, SpotLightsManager::mask_type_t mask, bool invalidate_shadow);
-  uint32_t addSpotLight(const SpotLight &light, SpotLightsManager::mask_type_t mask);
+  void setLight(uint32_t id_, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow);
+  uint32_t addSpotLight(const SpotLight &light, SpotLightMaskType mask);
   SpotLight getSpotLight(uint32_t id_) const;
 
   bool isLightVisible(uint32_t id) const;
 
   // priority - the higher, the better. keep in mind, that with very high value you can steal all updates from other volumes
 
-  // hint_dyamic (not cache static) - light is typically moving, and so will be rendered each frame. Makes sense only
+  // hint_dynamic (not cache static) - light is typically moving, and so will be rendered each frame. Makes sense only
   // only_static_casters == false. only_static_casters - light will not cast shadows from dynamic objects
   // quality - the higher the better. It is the speed of going from lowest mip (min_shadow_size) to high mip
   // (max_shadow_size>>shadow_size_srl).
-  //  shadow_size_srl - maximum size degradation (shft right bits count for max shadow. If shadow is 256 maximum, and srl is 2, than
+  //  shadow_size_srl - maximum size degradation (shift right bits count for max shadow. If shadow is 256 maximum, and srl is 2, than
   //  maximum size will be 64)
 
   bool addShadowToLight(uint32_t id, ShadowCastersFlag casters_flags, bool hint_dynamic, uint16_t quality, uint8_t priority,
@@ -137,7 +137,7 @@ struct ClusteredLights
   bool addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
     uint8_t shadow_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects)
   {
-    return addShadowToLight(id, only_static_casters ? DYNAMIC_CASTERS : STATIC_CASTERS, hint_dynamic, quality, priority,
+    return addShadowToLight(id, only_static_casters ? STATIC_CASTERS : DYNAMIC_CASTERS, hint_dynamic, quality, priority,
       shadow_size_srl, render_gpu_objects);
   }
 
@@ -153,7 +153,7 @@ struct ClusteredLights
   void invalidateAllShadows();                   //{ lightShadows->invalidateAllVolumes(); }
   void invalidateStaticObjects(bbox3f_cref box); // invalidate static content within box
 
-  using StaticRenderCallback = void(mat44f_cref globTm, const TMatrix &itm, int updateIndex, int viewIndex,
+  using StaticRenderCallback = void(mat44f_cref globTm, mat44f_cref projTm, const TMatrix &itm, int updateIndex, int viewIndex,
     DynamicShadowRenderGPUObjects render_gpu_objects);
   using DynamicRenderCallback = void(const TMatrix &itm, const mat44f &view_tm, const mat44f &proj_tm);
 
@@ -281,8 +281,8 @@ protected:
   Tab<RenderSpotLight> renderSpotLights, renderFarSpotLights;
   Tab<TMatrix4> renderSpotLightsShadows;
   Tab<uint32_t> clustersOmniGrid, clustersSpotGrid;
-  Tab<SpotLightsManager::mask_type_t> visibleSpotLightsMasks;
-  Tab<OmniLightsManager::mask_type_t> visibleOmniLightsMasks;
+  Tab<SpotLightMaskType> visibleSpotLightsMasks;
+  Tab<OmniLightMaskType> visibleOmniLightsMasks;
   ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> visibleOmniLightsCB, visibleFarOmniLightsCB;
   ReallocatableConstantBuffer<sizeof(RenderSpotLight) / 16, true> visibleSpotLightsCB, visibleFarSpotLightsCB;
   ReallocatableConstantBuffer<1, false> commonLightShadowsBufferCB;
@@ -339,7 +339,7 @@ protected:
   void initClustered(int initial_light_density);
   void clusteredCullLights(mat44f_cref view, mat44f_cref proj, float znear, float minDist, float maxDist,
     dag::ConstSpan<RenderOmniLight> omni_lights, dag::ConstSpan<SpotLightsManager::RawLight> spot_lights,
-    dag::ConstSpan<vec4f> spot_light_bounds, bool use_occlusion, bool &has_omni, bool &has_spot, uint32_t *omni, uint32_t omni_words,
+    dag::ConstSpan<vec4f> spot_light_bounds, Occlusion *occlusion, bool &has_omni, bool &has_spot, uint32_t *omni, uint32_t omni_words,
     uint32_t *spot, uint32_t spot_words);
   bool fillClusteredCB(uint32_t *omni, uint32_t omni_words, uint32_t *spot, uint32_t spot_words);
   void closeOmni();

@@ -1,4 +1,5 @@
-R"(/* shader: %s, stcode header */ // <- shader file name
+R"(%s
+/* shader: %s, stcode header */ // <- shader file name
 #pragma once
 
 #ifndef __GENERATED_STCODE_FILE

@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 import "dainput2" as dainput
 
-let {dtext} = require("widgets/simpleComponents.nut")
+let {dtext} = require("%scripts/ui/widgets/simpleComponents.nut")
 let format_ctrl_name = dainput.format_ctrl_name
 let loc = @(text) text
 

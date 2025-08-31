@@ -14,52 +14,12 @@ texture bvh_gbuf;
 int4 gbuffer_view_size = (1, 1, 0, 0);
 
 hlsl {
-#define GBUFFER_ORDER_STATIC 0
-#define GBUFFER_ORDER_DYNAMIC 1
-
-#define GBUFFER_HAS_DYNAMIC 1
-
-##if mobile_render == deferred
-#define SHADING_NORMAL 0
-#define SHADING_FOLIAGE 1
-#define SUPPORTED_MATERIALS_IN_RESOLVE_MASK 1
-//reserve 2-nd bit
-#define SHADING_SUBSURFACE 2
-#define SHADING_SELFILLUM 3
-##else
-#define SHADING_NORMAL 0
-#define SHADING_SUBSURFACE 1//translucent/blood
-#define SHADING_FOLIAGE 2
-#define SHADING_SELFILLUM 3
-##endif
-#define MATERIAL_COUNT 4
-
-#define MAX_EMISSION 16.0h
-
-#define SSS_PROFILE_MASK 0xF8
-#define SSS_PROFILE_EYES 0xF0
-#define SSS_PROFILE_CLOTH 0x08
-#define SSS_PROFILE_NEUTRAL_TRANSLUCENT 0x10
-
-bool isSubSurfaceShader(int material) {
-##if mobile_render == deferred
-  return material == SHADING_FOLIAGE;
-##else
-  return material == SHADING_FOLIAGE || material == SHADING_SUBSURFACE;
-##endif
-}
-bool isMetallicShader(uint material) {return material == SHADING_NORMAL;}
-bool isEmissiveShader(float material) {return material == SHADING_SELFILLUM;}
-bool isFoliageShader(uint material) {return material == SHADING_FOLIAGE;}
-
-bool isSubSurfaceProfileValid(uint sss_profile) {
-  return sss_profile != SSS_PROFILE_EYES && sss_profile != SSS_PROFILE_CLOTH && sss_profile != SSS_PROFILE_NEUTRAL_TRANSLUCENT;
-}
-
-bool isTranslucentProfileValid(uint sss_profile) {
-  return sss_profile != SSS_PROFILE_EYES && sss_profile != SSS_PROFILE_CLOTH;
-}
-
+  ##if mobile_render == deferred
+    #define DEFERRED_MOBILE 1
+  ##else
+    #define DEFERRED_MOBILE 0
+  ##endif
+  #include "gbuffer_header_DNG.hlsl"
 }
 
 macro PREPARE_EMISSIVE_COLOR(code, emissive_color_var)
@@ -74,19 +34,28 @@ endmacro
 // use it eg. for digital screens or portals
 macro USE_NO_LIGHTING_EMISSIVE_SHADING(code)
   hlsl(code) {
-    void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 albedo, float emission_strength)
+    void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 color, float emission_strength)
     {
+      // TODO: replace this hack and store it in more bits after the gbuffer normal packing optimization
+      static const float EMISSION_SCALE_THRESHOLD = 0.1; // below this, everything turns to shit (above too, in different ways)
+      float maxColor = max4(color.x, color.y, color.z, EMISSION_SCALE_THRESHOLD); // albedo is [0,1] range, but we can store a scaling factor in emission_strength
+      FLATTEN
+      if (maxColor < 1)
+        maxColor = sqrt(maxColor); // it gives a much more natural look for scaling, if it's also gamma corrected
+      color /= maxColor;
+      emission_strength *= maxColor;
+
       init_material(gbuffer, SHADING_SELFILLUM);
       init_normal(gbuffer, 0); // only emission based shading
       init_reflectance(gbuffer, 0);
-      init_albedo(gbuffer, albedo);
+      init_albedo(gbuffer, color);
       init_emission(gbuffer, emission_strength);
       init_emission_color(gbuffer, 1); // using albedo as emission
     }
-    void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 albedo)
+    void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 color)
     {
       float emissiveStrength = 1; // no "extra" emission
-      init_no_lighting_emissive_shading(gbuffer, albedo, emissiveStrength);
+      init_no_lighting_emissive_shading(gbuffer, color, emissiveStrength);
     }
   }
 endmacro
@@ -100,6 +69,9 @@ hlsl(code) {
 USE_GBUFFER_PACK_UNPACK(code)
 
 hlsl(code) {
+  #define NEED_MOTION_VECTOR_UNPACKING 0
+  #include "gbuffer_pack_unpack_DNG.hlsl"
+
   struct ProcessedGbuffer
   {
     half3 albedo;
@@ -130,173 +102,9 @@ hlsl(code) {
     bool isTwoSided;
     bool isGlass;
     bool isGrass;
+    bool isFoliage;
     bool isUnstable;
   };
-
-  struct UnpackedGbuffer
-  {
-    half3 albedo;
-    half smoothness;
-    float3 normal;
-
-    half metalness;//either translucent or metallic or emission
-    half translucency;//either translucent or metallic or emission
-    half emission_strength; // encoded HS(V) color (V==1) //either translucent or metallic or emission
-    half reflectance;
-    half sheen;
-
-    half ao;//either ao, or emission
-    half4 emission_color; // .a is emission_albedo_mult, when encoded: either ao, or emission
-    half shadow;
-    uint material;
-    uint dynamic;
-    uint autoMotionVecs;
-    uint sss_profile;//&SSS_PROFILE_MASK!
-    uint isLandscape;
-    uint isHeroCockpit;
-
-    half3 motion;
-    half reactive;
-
-    // Dummy
-    half impostorMask;
-    bool isTwoSided;
-    bool isGlass;
-    bool isGrass;
-    bool isUnstable;
-  };
-
-  struct PackedGbuffer
-  {
-    half4 albedo_ao;
-    //float4 normal_smoothness_material;//change normal later
-    //half4 reflectance_metallTranslucency_shadow;//processed
-    float4 normal_material;//change normal later
-    // Last two bits of 'shadow'
-    // 0 - static, auto motion
-    // 1 - dynamic, no auto motion
-    // 2 - landscape
-    // 3 - dynamic, auto motion
-    half4 smoothness_reflectance_metallTranslucency_shadow;//processed
-    half4 motion_reactive;
-  };
-
-  /*
-  PackedGbuffer pack_gbuffer_albedo_normal(UnpackedGbuffer gbuffer, uint faceIndex, float alpha)
-  {
-    PackedGbuffer gbuf;
-
-    half2 encodedNormal = PackNormalMajorAxisIndex(gbuffer.normal, faceIndex);
-    half3 normal_smoothness = half3(encodedNormal.xy*0.5+0.5, gbuffer.smoothness);
-    gbuf.normal_smoothness_material = half4(normal_smoothness, alpha);
-    gbuf.albedo_ao = half4(gbuffer.albedo, alpha);
-    gbuf.reflectance_metallTranslucency_shadow = 0;
-    return gbuf;
-  }*/
-  PackedGbuffer pack_gbuffer(UnpackedGbuffer gbuffer)
-  {
-    PackedGbuffer gbuf;
-    half metalnessOrTranslucency = isSubSurfaceShader(gbuffer.material) ? (gbuffer.sss_profile == SSS_PROFILE_CLOTH ? gbuffer.sheen : gbuffer.translucency) : gbuffer.metalness;
-    metalnessOrTranslucency = isEmissiveShader(gbuffer.material) ? encodeEmissionStrength(gbuffer.emission_strength) : metalnessOrTranslucency;
-    half material = gbuffer.material*(1.h/3.0h);
-    half packedReflectance = isEmissiveShader(gbuffer.material) ? encodeReflectance(half2(gbuffer.reflectance, gbuffer.emission_color.a)) : gbuffer.reflectance;
-
-    //uint faceIndex;
-    //half2 encodedNormal = encodeNormal(gbuffer.normal, faceIndex);
-
-    //half3 normal_smoothness = half3(encodedNormal.xy*0.5+0.5, gbuffer.smoothness);
-    //gbuf.normal_smoothness_material = half4(normal_smoothness, material);
-    gbuf.normal_material = half4(gbuffer.normal*0.5h+0.5h, material);
-    gbuf.albedo_ao = half4(gbuffer.albedo, isEmissiveShader(gbuffer.material) ? encodeEmissionColor(gbuffer.emission_color.rgb) : gbuffer.ao);
-    //gbuf.albedo_ao = half4(pow(gbuffer.albedo, 1/2.2), gbuffer.ao);
-    //gbuf.metallTranslucency_shadow = (floor(metalnessOrTranslucency*15)*16+floor(gbuffer.shadow*15))*(1.0/255.0);
-    uint sss_profile_or_shadow = gbuffer.material == SHADING_SUBSURFACE ? gbuffer.sss_profile : uint(gbuffer.shadow*255+0.1h);
-
-    uint dynamicLandscapeMotionVec =
-      (gbuffer.isHeroCockpit << 2)
-      | ((gbuffer.isLandscape | (gbuffer.autoMotionVecs & gbuffer.dynamic)) << 1) | gbuffer.dynamic;
-
-    gbuf.smoothness_reflectance_metallTranslucency_shadow = half4(gbuffer.smoothness, packedReflectance, metalnessOrTranslucency,
-      ((sss_profile_or_shadow&SSS_PROFILE_MASK) + dynamicLandscapeMotionVec)/255.h);
-    //gbuf.reflectance_metallTranslucency_shadow = float4(gbuffer.reflectance, metalnessOrTranslucency, gbuffer.shadow, faceIndex/5.0f);
-    gbuf.motion_reactive = float4(gbuffer.motion, gbuffer.reactive);
-    return gbuf;
-  }
-  void unpackGbufferNormalSmoothness(PackedGbuffer gbuf, out float3 normal, out half smoothness)
-  {
-    //normal = decodeNormal(gbuf.normal_smoothness_material.xy*2-1, decode_normal_basis(gbuf.reflectance_metallTranslucency_shadow));
-    //smoothness = gbuf.normal_smoothness_material.z;
-    normal = normalize(gbuf.normal_material.xyz*2-1);
-    smoothness = gbuf.smoothness_reflectance_metallTranslucency_shadow.x;
-  }
-
-  //gbuffer.material, gbuffer.normal, gbuffer.smoothness, gbuffer.albedo and gbuffer.ao has to be inited already
-  void unpackGbufferTranslucencyChannel(inout UnpackedGbuffer gbuffer, half4 smoothness_reflectance_metallTranslucency_shadow, out half emission_albedo_mult)
-  {
-    half shadow = smoothness_reflectance_metallTranslucency_shadow.w;
-    half metalnessOrTranslucency = smoothness_reflectance_metallTranslucency_shadow.z;
-
-    half packedReflectance = smoothness_reflectance_metallTranslucency_shadow.y;
-    half2 unpackedReflectance = isEmissiveShader(gbuffer.material) ? decodeReflectance(packedReflectance) : packedReflectance;
-    emission_albedo_mult = unpackedReflectance.y;
-    half reflectance = unpackedReflectance.x;
-
-    uint shadowAndDynamic = uint(shadow*255+0.1);
-
-    gbuffer.dynamic = (shadowAndDynamic&1) == 1;
-    gbuffer.isLandscape = (shadowAndDynamic&3) == 2;
-    gbuffer.autoMotionVecs = (shadowAndDynamic&3) != 1;
-    gbuffer.isHeroCockpit = (shadowAndDynamic&4) == 4;
-
-
-    bool isSubSurface = isSubSurfaceShader(gbuffer.material);
-    gbuffer.metalness = isMetallicShader(gbuffer.material) ? metalnessOrTranslucency : 0;
-    gbuffer.translucency = isSubSurface ? metalnessOrTranslucency : 0;
-    gbuffer.emission_strength = isEmissiveShader(gbuffer.material) ? decodeEmissionStrength(metalnessOrTranslucency) : 0;
-    uint sss_profile_or_shadow = (shadowAndDynamic&SSS_PROFILE_MASK);
-    gbuffer.shadow = gbuffer.material == SHADING_SUBSURFACE ? 1.0h : sss_profile_or_shadow/255.h;
-    gbuffer.sss_profile = gbuffer.material == SHADING_SUBSURFACE ? sss_profile_or_shadow : 0;
-    gbuffer.reflectance = reflectance;
-    //gbuffer.diffuseColor = albedo*(1-gbuffer.metalness);
-    //half fresnel0Dielectric = 0.04f;//lerp(0.16f,0.01f, smoothness);//sqr((1.0 - refractiveIndex)/(1.0 + refractiveIndex)) for dielectrics;
-    //gbuffer.specularColor = lerp(half3(fresnel0Dielectric, fresnel0Dielectric, fresnel0Dielectric), albedo, gbuffer.metalness);
-    gbuffer.isTwoSided = gbuffer.isGlass = gbuffer.isGrass = gbuffer.isUnstable = false;
-    gbuffer.impostorMask = 0;
-  }
-  UnpackedGbuffer unpackGbuffer(PackedGbuffer gbuf)
-  {
-    UnpackedGbuffer gbuffer = (UnpackedGbuffer)0;
-
-    //gbuffer.material = uint(gbuf.normal_smoothness_material.w*3.4999f);
-    //half shadow = gbuf.reflectance_metallTranslucency_shadow.z;
-    //half metalnessOrTranslucency = gbuf.reflectance_metallTranslucency_shadow.y;
-    //half reflectance = gbuf.reflectance_metallTranslucency_shadow.x;
-    unpackGbufferNormalSmoothness(gbuf, gbuffer.normal, gbuffer.smoothness);
-    gbuffer.material = uint(gbuf.normal_material.w*(MATERIAL_COUNT-0.50001f));
-    gbuffer.albedo = gbuf.albedo_ao.xyz;
-    gbuffer.ao = isEmissiveShader(gbuffer.material) ? 1 : gbuf.albedo_ao.w;
-    half emission_albedo_mult;
-    unpackGbufferTranslucencyChannel(gbuffer, gbuf.smoothness_reflectance_metallTranslucency_shadow, emission_albedo_mult);
-    gbuffer.emission_color = isEmissiveShader(gbuffer.material) ? half4(decodeEmissionColor(gbuf.albedo_ao.w), emission_albedo_mult) : 0;
-
-    return gbuffer;
-  }
-
-  #ifndef NEUTRAL_SSS_FACTOR
-  #define NEUTRAL_SSS_FACTOR half3(1,1,1)
-  #endif
-
-  #ifndef BLOOD_SSS_FACTOR
-  #define BLOOD_SSS_FACTOR half3(0.8,0.4,0.3)
-  #endif
-
-  #ifndef LEAVES_SSS_FACTOR
-  #define LEAVES_SSS_FACTOR half3(1.0,0.8,0.5)//todo:make me global variable!
-  #endif
-
-  #ifndef SHEEN_SSS_FACTOR
-  #define SHEEN_SSS_FACTOR NEUTRAL_SSS_FACTOR
-  #endif
 
   ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
   {
@@ -304,7 +112,7 @@ hlsl(code) {
     gbuffer.material = gbuf.material;
     gbuffer.normal = gbuf.normal;
     gbuffer.linearRoughness = linearSmoothnessToLinearRoughness(gbuf.smoothness);
-    gbuffer.ggx_alpha = max(1e-4h, gbuffer.linearRoughness*gbuffer.linearRoughness);
+    gbuffer.ggx_alpha = half(max(1e-4h, gbuffer.linearRoughness*gbuffer.linearRoughness));
     gbuffer.metalness = gbuf.metalness;
     gbuffer.translucency = gbuf.sss_profile == SSS_PROFILE_CLOTH ? 0 : gbuf.translucency;
     gbuffer.emissionColor = gbuf.emission_strength * gbuf.emission_color.rgb * lerp(1, gbuf.albedo, gbuf.emission_color.a);
@@ -323,7 +131,7 @@ hlsl(code) {
     gbuffer.ao = gbuf.ao;
     gbuffer.sss_profile = gbuf.sss_profile;
     gbuffer.isLandscape = gbuf.isLandscape;
-    gbuffer.isTwoSided = gbuffer.isGlass = gbuffer.isGrass = gbuffer.isUnstable = false;
+    gbuffer.isTwoSided = gbuffer.isGlass = gbuffer.isGrass = gbuffer.isFoliage = gbuffer.isUnstable = false;
     return gbuffer;
   }
 
@@ -332,7 +140,8 @@ hlsl(code) {
     #ifndef GBUFFER_IS_HERO_COCKPIT
       #define GBUFFER_IS_HERO_COCKPIT 0
     #endif
-    result.albedo = result.normal = 0;
+    result.albedo = 0;
+    result.normal = 0;
     result.smoothness = result.metalness = result.translucency = 0;
     result.emission_color = result.emission_strength = 0;
     result.dynamic = 0;
@@ -346,7 +155,7 @@ hlsl(code) {
     result.motion = 0;
     result.reactive = 0;
     result.sheen = 0;
-    result.isTwoSided = result.isGlass = result.isGrass = result.isUnstable = false;
+    result.isTwoSided = result.isGlass = result.isGrass = result.isFoliage = result.isUnstable = false;
     result.impostorMask = 0;
   }
   void init_albedo(inout UnpackedGbuffer result, half3 albedo)
@@ -377,11 +186,11 @@ hlsl(code) {
   void init_auto_motion_vector(inout UnpackedGbuffer result, bool need_auto_motion_vectors)
     {result.autoMotionVecs = need_auto_motion_vectors;}
   void init_emission(inout UnpackedGbuffer result, float emission_strength)
-    {result.emission_strength = emission_strength;}
+    {result.emission_strength = half(emission_strength);}
   void init_emission_color(inout UnpackedGbuffer result, half4 emission_color) // emission_color.a is emission_albedo_mult
     {result.emission_color = emission_color;}
   void init_reflectance(inout UnpackedGbuffer result, float reflectance)
-    {result.reflectance = reflectance;}
+    {result.reflectance = half(reflectance);}
   void init_sss_profile(inout UnpackedGbuffer result, uint sss_profile)
     {result.sss_profile = sss_profile;}
   void init_isLandscape(inout UnpackedGbuffer result, uint isLandscape)
@@ -521,6 +330,18 @@ macro WRITE_GBUFFER_ALBEDO_NORMAL_DECAL()
 
 endmacro
 
+macro INIT_READ_GBUFFER_ALBEDO(code)
+  BEGIN_ONCE(albedo_gbuf_read_included)
+  (code) { albedo_gbuf_read@smp2d = albedo_gbuf; }
+  END_ONCE()
+endmacro
+
+macro INIT_READ_GBUFFER_NORMAL(code)
+  BEGIN_ONCE(normal_gbuf_read_included)
+  (code) { normal_gbuf_read@smp2d = normal_gbuf; }
+  END_ONCE()
+endmacro
+
 macro INIT_READ_GBUFFER_MATERIAL(code)
   BEGIN_ONCE(material_gbuf_read_included)
   (code) { material_gbuf_read@smp2d = material_gbuf; }
@@ -540,10 +361,8 @@ macro INIT_READ_IS_HERO_COCKPIT(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
-  (code) {
-    albedo_gbuf_read@smp2d = albedo_gbuf;
-    normal_gbuf_read@smp2d = normal_gbuf;
-  }
+  INIT_READ_GBUFFER_ALBEDO(code)
+  INIT_READ_GBUFFER_NORMAL(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE()
@@ -581,6 +400,27 @@ macro INIT_LOAD_DEPTH_GBUFFER()
   INIT_LOAD_DEPTH_GBUFFER_BASE(ps)
 endmacro
 
+macro INIT_RW_GBUFFERS(globally_coherent)
+  if (globally_coherent)
+  {
+    hlsl(cs) { #define RW_PREFIX globallycoherent}
+  }
+  else
+  {
+    hlsl(cs) { #define RW_PREFIX}
+  }
+  hlsl(cs) {
+    #include "gbuffer_rw_init_DNG.hlsl"
+  }
+endmacro
+
+macro USE_PARTIAL_PACK_UNPACK_GBUFF(code)
+  PACK_UNPACK_GBUFFER_BASE(code)
+  hlsl(code){
+    #include "gbuffer_partial_unpacking_DNG.hlsl"
+  }
+endmacro
+
 macro USE_READ_DEPTH_GBUFFER_BASE(code)
   hlsl(code) {
     float readGbufferDepth(float2 tc)
@@ -603,10 +443,6 @@ macro USE_LOAD_DEPTH_GBUFFER_BASE(code)
     float loadGbufferDepth(int2 tc)
     {
       return texelFetch(depth_gbuf_load, tc, 0).r;
-    }
-    float loadGbufferDepth(int t, int c)
-    {
-      return loadGbufferDepth(int2(t, c));
     }
   }
 endmacro
@@ -640,7 +476,7 @@ macro USE_READ_GBUFFER_NORMAL_BASE(code)
     //gbuffer.material, gbuffer.normal, gbuffer.smoothness, gbuffer.albedo and gbuffer.ao has to be inited already
     void readPackedGbufferTranslucencyChannel(float2 tc, inout UnpackedGbuffer gbuffer)
     {
-      half4 smoothness_reflectance_metallTranslucency_shadow = tex2Dlod(material_gbuf_read, float4(tc,0,0));
+      half4 smoothness_reflectance_metallTranslucency_shadow = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
       half emission_albedo_mult;
       unpackGbufferTranslucencyChannel(gbuffer, smoothness_reflectance_metallTranslucency_shadow, emission_albedo_mult);
     }
@@ -651,7 +487,7 @@ macro USE_READ_GBUFFER_NORMAL_BASE(code)
       #if NO_SMOOTHNESS
         gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
       #else
-        gbuf.smoothness_reflectance_metallTranslucency_shadow = tex2Dlod(material_gbuf_read, float4(tc,0,0));
+        gbuf.smoothness_reflectance_metallTranslucency_shadow = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
       #endif
       unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
     }
@@ -660,7 +496,7 @@ macro USE_READ_GBUFFER_NORMAL_BASE(code)
       PackedGbuffer gbuf;
       gbuf.normal_material = texelFetch(normal_gbuf_read, coord, 0);
       gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
-      float smoothness;
+      half smoothness;
       float3 normal;
       unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
       return normal;
@@ -670,7 +506,7 @@ macro USE_READ_GBUFFER_NORMAL_BASE(code)
       PackedGbuffer gbuf;
       gbuf.normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
       gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
-      float smoothness;
+      half smoothness;
       float3 normal;
       unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
       return normal;
@@ -683,6 +519,7 @@ macro USE_READ_GBUFFER_NORMAL()
 endmacro
 
 macro USE_READ_DYNAMIC_FLAG(code)
+BEGIN_ONCE(use_read_dynamic_flag_defined)
 hlsl(code) {
   uint isGbufferDynamic(float2 uv)
   {
@@ -692,6 +529,7 @@ hlsl(code) {
     return dynamic;
   }
 }
+END_ONCE()
 endmacro
 
 macro USE_READ_AUTOGEN_MOTION_VECTOR(code)
@@ -734,7 +572,6 @@ macro INIT_LOAD_GBUFFER()
 endmacro
 
 macro USE_LOAD_GBUFFER_BASE(code, load_bvh_flags)
-ENABLE_ASSERT(code)
 PACK_UNPACK_GBUFFER_BASE(code)
 hlsl(code){
   PackedGbuffer loadPackedGbuffer(int2 tc)
@@ -782,9 +619,9 @@ hlsl(code) {
   PackedGbuffer readPackedGbuffer(float2 tc)
   {
     PackedGbuffer gbuf;
-    gbuf.albedo_ao = tex2Dlod(albedo_gbuf_read, float4(tc,0,0));
-    gbuf.normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
-    gbuf.smoothness_reflectance_metallTranslucency_shadow = tex2Dlod(material_gbuf_read, float4(tc,0,0));
+    gbuf.albedo_ao = half4(tex2Dlod(albedo_gbuf_read, float4(tc,0,0)));
+    gbuf.normal_material = half4(tex2Dlod(normal_gbuf_read, float4(tc,0,0)));
+    gbuf.smoothness_reflectance_metallTranslucency_shadow = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
     return gbuf;
   }
   ProcessedGbuffer readProcessedGbuffer(float2 tc)
@@ -806,6 +643,16 @@ endmacro
 
 macro INIT_READ_MOTION_BUFFER()
   INIT_READ_MOTION_BUFFER_BASE(ps)
+endmacro
+
+macro INIT_READ_RESOLVED_MOTION_BUFFER_BASE(code)
+  (code) {
+    resolved_motion_vectors@smp2d = resolved_motion_vectors;
+  }
+endmacro
+
+macro INIT_READ_RESOLVED_MOTION_BUFFER()
+  INIT_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
 endmacro
 
 macro INIT_LOAD_MOTION_BUFFER_BASE(code)
@@ -831,7 +678,7 @@ macro USE_READ_MOTION_BUFFER_BASE(code)
   hlsl(code) {
     float4 readMotionBuffer(float2 tc)
     {
-      return tex2Dlod(motion_gbuf_read, float4(tc,0,0));
+      return tex2Dlod(resolved_motion_vectors, float4(tc,0,0));
     }
     float4 readMotionBuffer(float t, float c)
     {
@@ -842,6 +689,23 @@ endmacro
 
 macro USE_READ_MOTION_BUFFER()
   USE_READ_MOTION_BUFFER_BASE(ps)
+endmacro
+
+macro USE_READ_RESOLVED_MOTION_BUFFER_BASE(code)
+  hlsl(code) {
+    float4 readResolvedMotionBuffer(float2 tc)
+    {
+      return tex2Dlod(motion_gbuf_read, float4(tc,0,0));
+    }
+    float4 readResolvedMotionBuffer(float t, float c)
+    {
+      return readResolvedMotionBuffer(float2(t, c));
+    }
+  }
+endmacro
+
+macro USE_READ_RESOLVED_MOTION_BUFFER()
+  USE_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
 endmacro
 
 macro INIT_SUBPASS_LOAD_OPAQUE_MASK(reg, mask_iatt)

@@ -16,8 +16,14 @@
 #include <debug/dag_debug.h>
 #include <libTools/util/progressInd.h>
 #include <libTools/util/svgWrite.h>
-#include <direct.h>
 #include <stdio.h>
+
+#if _TARGET_PC_WIN
+#include <direct.h>
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #define DEBUG_SHOW_FINAL_MAPPING 0
 
@@ -1460,7 +1466,6 @@ void AutoUnwrapMapping::set_graphite_folder(const char *) {}
 
 #include <generic/dag_smallTab.h>
 #include <util/dag_simpleString.h>
-#include <windows.h>
 #include <stdlib.h>
 
 static dag::ConstSpan<Face> face1;
@@ -1608,6 +1613,7 @@ static void saveSvg(const char *file_name, const FaceGroup &g)
 
 static void LightMapMapper::unwrap_faces(Face *face, int fnum, Point3 *vert, int vnum, Tab<FaceGroup *> &fgrps)
 {
+#if _TARGET_PC_WIN
   int fgrp_base = fgrps.size();
 
   face1.set(face, fnum);
@@ -1753,6 +1759,9 @@ static void LightMapMapper::unwrap_faces(Face *face, int fnum, Point3 *vert, int
   }
   ::chdir(cwd);
   call_no++;
+#else
+  dagor_unwrap_faces(face, fnum, vert, vnum, fgrps);
+#endif
 }
 void AutoUnwrapMapping::set_graphite_folder(const char *folder) { graphiteWorkDir = folder; }
 

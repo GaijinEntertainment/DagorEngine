@@ -34,6 +34,7 @@ private:
     Point3 viewPos;
     struct RiGenVisibility *visibility = nullptr;
 
+    const char *getJobName(bool &) const override { return "AsyncVisiblityJob"; }
     void doJob() override;
   };
 

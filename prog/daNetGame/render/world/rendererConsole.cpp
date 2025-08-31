@@ -44,7 +44,6 @@
 #include <gui/dag_visualLog.h>
 #include <shaders/dag_shaderDbg.h>
 
-void prerun_fx();
 float get_camera_fov();
 extern void set_up_show_shadows_entity(int show_shadows);
 extern void set_up_show_gbuffer_entity();
@@ -159,10 +158,11 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     struct debugRILoadAsyncJob final : public cpujobs::IJob
     {
       int riToLoad, loaded = 0;
+      const char *getJobName(bool &) const override { return "debugRILoadAsyncJob"; }
       void doJob() override
       {
         DataBlock riBlk;
-        dblk::load(riBlk, "content/common/gamedata/ri_list.blk");
+        dblk::load(riBlk, "gamedata/ri_list.blk");
         for (int i = 0, e = riBlk.paramCount(); i < e && riToLoad > 0; ++i)
         {
           const char *riName = riBlk.getParamName(i);
@@ -185,7 +185,7 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     int riToLoad = 100;
     if (argc >= 2)
       riToLoad = console::to_int(argv[1]);
-    if (dd_file_exist("content/common/gamedata/ri_list.blk"))
+    if (dd_file_exist("gamedata/ri_list.blk"))
     {
       debugRILoadAsyncJob *job = new debugRILoadAsyncJob;
       job->riToLoad = riToLoad;
@@ -211,7 +211,8 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
       pos.y += 0.5f;
       box.setcol(3, pos);
       ((WorldRenderer *)get_world_renderer())
-        ->addOmniLight({pos, Color3(1.f + gfrnd(), 1.f + gfrnd(), 1.f + gfrnd()) * (3 + 2 * gfrnd()), rad, 0.f, box});
+        ->addOmniLight({pos, Color3(1.f + gfrnd(), 1.f + gfrnd(), 1.f + gfrnd()) * (3 + 2 * gfrnd()), rad, 0.f, box},
+          OmniLightMaskType::OMNI_LIGHT_MASK_ALL);
     }
 
     console::print_d("16 lights added");
@@ -231,16 +232,17 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
         ((WorldRenderer *)get_world_renderer())
           ->addSpotLight(
             {pos, Color3(1.f + gfrnd(), 1.f + gfrnd(), 1.f + gfrnd()) * (3 + 2 * gfrnd()), rad, 0.f, dir, 30 * PI / 180, false, false},
-            ~0);
+            SpotLightMaskType::SPOT_LIGHT_MASK_ALL);
       }
     }
 
     console::print_d("96 lights added");
   }
 
-  CONSOLE_CHECK_NAME("render", "show_gbuffer", 1, 2)
+  CONSOLE_CHECK_NAME("render", "show_gbuffer", 1, 3)
   {
     setDebugGbufferMode(argc > 1 ? argv[1] : nullptr);
+    ShaderGlobal::set_real(get_shader_variable_id("gbuf_debug_scale"), argc > 2 ? console::to_real(argv[2]) : 1.f);
     set_up_show_gbuffer_entity();
     console::print("usage: show_gbuffer (%s)", getDebugGbufferUsage().c_str());
   }
@@ -256,8 +258,8 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
   }
   CONSOLE_CHECK_NAME("render", "show_shadows", 1, 2)
   {
-    const eastl::array<eastl::string, 8> options = {
-      "static", "csm", "csm_cascades", "contact", "combine", "clouds", "static_cascades", "ssss"};
+    const eastl::array<eastl::string, 9> options = {
+      "static", "csm", "csm_cascades", "contact", "combine", "clouds", "static_cascades", "ssss", "vsm"};
     int show_shadows = -1;
     if (argc > 1)
     {
@@ -304,7 +306,7 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     if (!str.empty())
       console::print_d(str.str());
   }
-  CONSOLE_CHECK_NAME("app", "prerun_fx", 1, 1) { prerun_fx(); }
+  CONSOLE_CHECK_NAME("app", "prerun_fx", 1, 1) { ((WorldRenderer *)get_world_renderer())->prerunFx(); }
   CONSOLE_CHECK_NAME("render", "invalidate_light_probes", 1, 1) { ((WorldRenderer *)get_world_renderer())->invalidateLightProbes(); }
   CONSOLE_CHECK_NAME("render", "invalidate_gi", 1, 2)
   {
@@ -328,6 +330,18 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     Clipmap *clipmap = ((WorldRenderer *)get_world_renderer())->clipmap;
     if (clipmap)
       clipmap->requestManualUpdates(argc == 2 ? to_int(argv[1]) : 1);
+  }
+  CONSOLE_CHECK_NAME("clipmap", "debug_color_mode", 1, 2)
+  {
+    int debugMode = 0;
+    if (argc > 1)
+      debugMode = to_int(argv[1]);
+    else
+      console::print("Clipmap debug color visualizer.\n 0 - Disabled, 1 - Feedback response, 2- Tiles mips\nShaders should be "
+                     "compiled with assume \"clipmap_allow_debug = yes\"");
+    Clipmap *clipmap = ((WorldRenderer *)get_world_renderer())->clipmap;
+    if (clipmap)
+      clipmap->setDebugColorMode((Clipmap::DebugMode)(debugMode));
   }
   CONSOLE_CHECK_NAME_EX("fx", "spawn", 2, 4, "Spawns visual effect in front of you",
     "<effect_name> [distance from camera in front = 0.0] [is_player = true]")
@@ -442,11 +456,12 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
 #if DAGOR_DBGLEVEL > 0
   CONSOLE_CHECK_NAME("render", "dump_occlusion", 1, 1)
   {
-    if (current_occlusion)
+    Occlusion *occl = wr->getMainCameraOcclusion();
+    if (occl)
     {
       const char *name = "occlusion.bin";
       FullFileSaveCB cb(name);
-      save_occlusion(cb, *current_occlusion);
+      save_occlusion(cb, *occl);
       console::print_d("saved to: (%s)", name);
     }
     else
@@ -497,7 +512,8 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
 
     const Point3_vec4 viewPos = ::grs_cur_view.itm.getcol(3);
     vec4f pos_fov = v_make_vec4f(viewPos.x, viewPos.y, viewPos.z, get_camera_fov());
-    rendinst::render::validateFarLodsWithHeavyShaders(wr->rendinst_main_visibility, pos_fov, 1.f * w / pixelsHistogram);
+    rendinst::render::validateFarLodsWithHeavyShaders(wr->mainCameraVisibilityMgr.getRiMainVisibility(), pos_fov,
+      1.f * w / pixelsHistogram);
   }
   CONSOLE_CHECK_NAME("render", "verify_all_rendinst", 1, 3)
   {
@@ -511,8 +527,8 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     const Point3_vec4 viewPos = ::grs_cur_view.itm.getcol(3);
     vec4f pos_fov = v_make_vec4f(viewPos.x, viewPos.y, viewPos.z, get_camera_fov());
 
-    rendinst::render::collectPixelsHistogramRIGenExtra(wr->rendinst_main_visibility, pos_fov, 1.f * w / pixelsHistogram,
-      name_count_bins);
+    rendinst::render::collectPixelsHistogramRIGenExtra(wr->mainCameraVisibilityMgr.getRiMainVisibility(), pos_fov,
+      1.f * w / pixelsHistogram, name_count_bins);
     debug("pixel view");
     for (int bin = 0; bin < binCount; bin++)
     {

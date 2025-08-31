@@ -10,3 +10,4 @@ class Image;
 }
 
 using FSRUpscalingArgs = amd::FSR::UpscalingArgsBase<drv3d_dx12::Image>;
+using FSRFrameGenArgs = amd::FSR::FrameGenArgsBase<drv3d_dx12::Image>;

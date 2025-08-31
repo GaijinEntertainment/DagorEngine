@@ -5,6 +5,15 @@
 #include <dasModules/dasMacro.h>
 #include <dasModules/dasDataBlock.h>
 #include <anim/dag_animBlend.h>
+#include <anim/dag_animPostBlendCtrl.h>
+
+DAS_BASE_BIND_ENUM_98(AnimcharVisbits, AnimcharVisbits, VISFLG_WITHIN_RANGE, VISFLG_LOD_CHOSEN, VISFLG_GEOM_TREE_UPDATED,
+  VISFLG_MAIN_VISIBLE, VISFLG_MAIN_AND_SHADOW_VISIBLE, VISFLG_COCKPIT_VISIBLE, VISFLG_HMAP_DEFORM, VISFLG_OUTLINE_RENDER, VISFLG_BVH,
+  VISFLG_DYNAMIC_MIRROR, VISFLG_RENDER_CUSTOM, VISFLG_SEMI_TRANS_RENDERED, VISFLG_CSM_SHADOW_RENDERED, VISFLG_MAIN_CAMERA_RENDERED,
+  VISFLG_ALL_BITS);
+
+DAS_ANNOTATE_VECTOR(BnlPtrTab, BnlPtrTab)
+DAS_ANNOTATE_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab)
 
 struct NameIdPairAnnotation : das::ManagedStructureAnnotation<das::NameIdPair, false>
 {
@@ -86,6 +95,18 @@ struct AnimcharRendComponentAnnotation : das::ManagedStructureAnnotation<AnimV20
   }
 };
 
+struct AnimBlenderAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimBlender, false>
+{
+  AnimBlenderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlender", ml)
+  {
+    cppName = " ::AnimV20::AnimBlender";
+
+    addField<DAS_BIND_MANAGED_FIELD(bnl)>("bnl");
+    addField<DAS_BIND_MANAGED_FIELD(pbCtrl)>("pbCtrl");
+    addField<DAS_BIND_MANAGED_FIELD(nodeListValid)>("nodeListValid");
+  }
+};
+
 struct AnimationGraphAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimationGraph, false>
 {
   AnimationGraphAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimationGraph", ml)
@@ -96,6 +117,7 @@ struct AnimationGraphAnnotation : das::ManagedStructureAnnotation<AnimV20::Anima
     addProperty<DAS_BIND_MANAGED_PROP(getAnimNodeCount)>("animNodeCount", "getAnimNodeCount");
     addProperty<DAS_BIND_MANAGED_PROP(getStateCount)>("stateCount", "getStateCount");
     addProperty<DAS_BIND_MANAGED_PROP(getRoot)>("root", "getRoot");
+    addProperty<DAS_BIND_MANAGED_PROP(getBlender)>("blender", "getBlender");
   }
 };
 
@@ -150,6 +172,17 @@ struct AnimBlendNodeContinuousLeafAnnotation : das::ManagedStructureAnnotation<A
   {
     cppName = " ::AnimV20::AnimBlendNodeContinuousLeaf";
 
+    addField<DAS_BIND_MANAGED_FIELD(paramId)>("paramId");
+    addField<DAS_BIND_MANAGED_FIELD(t0)>("t0");
+    addField<DAS_BIND_MANAGED_FIELD(dt)>("dt");
+    addField<DAS_BIND_MANAGED_FIELD(rate)>("rate");
+    addField<DAS_BIND_MANAGED_FIELD(duration)>("duration");
+    addField<DAS_BIND_MANAGED_FIELD(syncTime)>("syncTime");
+    addField<DAS_BIND_MANAGED_FIELD(avgSpeed)>("avgSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(startOffsetEnabled)>("startOffsetEnabled");
+    addField<DAS_BIND_MANAGED_FIELD(eoaIrq)>("eoaIrq");
+    addField<DAS_BIND_MANAGED_FIELD(canRewind)>("canRewind");
+
     addProperty<DAS_BIND_MANAGED_PROP(isAdditive)>("isAdditive");
     addProperty<DAS_BIND_MANAGED_PROP(isAnimationIgnored)>("isAnimationIgnored");
   }
@@ -161,6 +194,8 @@ struct AnimBlendNodeStillLeafAnnotation : das::ManagedStructureAnnotation<AnimV2
   {
     cppName = " ::AnimV20::AnimBlendNodeStillLeaf";
 
+    addField<DAS_BIND_MANAGED_FIELD(ctPos)>("ctPos");
+
     addProperty<DAS_BIND_MANAGED_PROP(isAdditive)>("isAdditive");
     addProperty<DAS_BIND_MANAGED_PROP(isAnimationIgnored)>("isAnimationIgnored");
   }
@@ -171,6 +206,17 @@ struct AnimBlendNodeSingleLeafAnnotation : das::ManagedStructureAnnotation<AnimV
   AnimBlendNodeSingleLeafAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendNodeSingleLeaf", ml)
   {
     cppName = " ::AnimV20::AnimBlendNodeSingleLeaf";
+
+    addField<DAS_BIND_MANAGED_FIELD(paramId)>("paramId");
+    addField<DAS_BIND_MANAGED_FIELD(t0)>("t0");
+    addField<DAS_BIND_MANAGED_FIELD(dt)>("dt");
+    addField<DAS_BIND_MANAGED_FIELD(rate)>("rate");
+    addField<DAS_BIND_MANAGED_FIELD(duration)>("duration");
+    addField<DAS_BIND_MANAGED_FIELD(syncTime)>("syncTime");
+    addField<DAS_BIND_MANAGED_FIELD(avgSpeed)>("avgSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(startOffsetEnabled)>("startOffsetEnabled");
+    addField<DAS_BIND_MANAGED_FIELD(eoaIrq)>("eoaIrq");
+    addField<DAS_BIND_MANAGED_FIELD(canRewind)>("canRewind");
 
     addProperty<DAS_BIND_MANAGED_PROP(isAdditive)>("isAdditive");
     addProperty<DAS_BIND_MANAGED_PROP(isAnimationIgnored)>("isAnimationIgnored");
@@ -229,6 +275,18 @@ struct AnimBlendCtrl_BinaryIndirectSwitchAnnotation
   }
 };
 
+struct AnimBlendCtrl_SetMotionMatchingTagAnnotation
+  : das::ManagedStructureAnnotation<AnimV20::AnimBlendCtrl_SetMotionMatchingTag, false>
+{
+  AnimBlendCtrl_SetMotionMatchingTagAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("AnimBlendCtrl_SetMotionMatchingTag", ml)
+  {
+    cppName = " ::AnimV20::AnimBlendCtrl_SetMotionMatchingTag";
+
+    addProperty<DAS_BIND_MANAGED_PROP(getTagName)>("tagName", "getTagName");
+  }
+};
+
 struct AnimBlendCtrl_LinearPolyAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimBlendCtrl_LinearPoly, false>
 {
   AnimBlendCtrl_LinearPolyAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendCtrl_LinearPoly", ml)
@@ -242,6 +300,17 @@ struct AnimBlendNodeParametricLeafAnnotation : das::ManagedStructureAnnotation<A
   AnimBlendNodeParametricLeafAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendNodeParametricLeaf", ml)
   {
     cppName = " ::AnimV20::AnimBlendNodeParametricLeaf";
+
+    addField<DAS_BIND_MANAGED_FIELD(paramId)>("paramId");
+    addField<DAS_BIND_MANAGED_FIELD(paramId)>("paramLastId");
+    addField<DAS_BIND_MANAGED_FIELD(t0)>("t0");
+    addField<DAS_BIND_MANAGED_FIELD(dt)>("dt");
+    addField<DAS_BIND_MANAGED_FIELD(p0)>("p0");
+    addField<DAS_BIND_MANAGED_FIELD(dp)>("dp");
+    addField<DAS_BIND_MANAGED_FIELD(paramMulK)>("paramMulK");
+    addField<DAS_BIND_MANAGED_FIELD(paramAddK)>("paramAddK");
+    addField<DAS_BIND_MANAGED_FIELD(looping)>("looping");
+    addField<DAS_BIND_MANAGED_FIELD(updateOnParamChanged)>("updateOnParamChanged");
   }
 };
 
@@ -363,6 +432,65 @@ struct AnimationGraphStateRecAnnotation : das::ManagedStructureAnnotation<::Anim
   bool canBePlacedInContainer() const override { return true; } // To pass array of StateRecs
 };
 
+struct AnimPostBlendParamFromNodeLocalDataAnnotation
+  : das::ManagedStructureAnnotation<::AnimV20::AnimPostBlendParamFromNode::LocalData, false>
+{
+  AnimPostBlendParamFromNodeLocalDataAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("AnimPostBlendParamFromNodeLocalData", ml)
+  {
+    cppName = " ::AnimV20::AnimPostBlendParamFromNode::LocalData";
+    addField<DAS_BIND_MANAGED_FIELD(lastRefUid)>("lastRefUid");
+  }
+};
+
+struct AnimPostBlendParamFromNodeAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimPostBlendParamFromNode, false>
+{
+  AnimPostBlendParamFromNodeAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimPostBlendParamFromNode", ml)
+  {
+    cppName = " ::AnimV20::AnimPostBlendParamFromNode";
+    addField<DAS_BIND_MANAGED_FIELD(varId)>("varId");
+    addField<DAS_BIND_MANAGED_FIELD(slotId)>("slotId");
+    addField<DAS_BIND_MANAGED_FIELD(destVarId)>("destVarId");
+    addField<DAS_BIND_MANAGED_FIELD(destVarWtId)>("destVarWtId");
+    addField<DAS_BIND_MANAGED_FIELD(defVal)>("defVal");
+    addFieldEx("nodeName", "nodeName", offsetof(AnimV20::AnimPostBlendParamFromNode, nodeName), das::makeType<char *>(ml));
+    addField<DAS_BIND_MANAGED_FIELD(invertVal)>("invertVal");
+  }
+};
+
+struct AttachGeomNodeCtrlVarIdAnnotation : das::ManagedStructureAnnotation<::AnimV20::AttachGeomNodeCtrl::VarId, false>
+{
+  AttachGeomNodeCtrlVarIdAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AttachGeomNodeCtrlVarId", ml)
+  {
+    cppName = " ::AnimV20::AttachGeomNodeCtrl::VarId";
+    addField<DAS_BIND_MANAGED_FIELD(nodeWtm)>("nodeWtm");
+    addField<DAS_BIND_MANAGED_FIELD(wScale)>("wScale");
+    addField<DAS_BIND_MANAGED_FIELD(wScaleInverted)>("wScaleInverted");
+  }
+};
+
+struct AttachGeomNodeCtrlAttachDescAnnotation : das::ManagedStructureAnnotation<::AnimV20::AttachGeomNodeCtrl::AttachDesc, false>
+{
+  AttachGeomNodeCtrlAttachDescAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AttachGeomNodeCtrlAttachDesc", ml)
+  {
+    cppName = " ::AnimV20::AttachGeomNodeCtrl::AttachDesc";
+    addField<DAS_BIND_MANAGED_FIELD(wtm)>("wtm");
+    addField<DAS_BIND_MANAGED_FIELD(w)>("w");
+  }
+};
+
+struct AttachGeomNodeCtrlAnnotation : das::ManagedStructureAnnotation<AnimV20::AttachGeomNodeCtrl, false>
+{
+  AttachGeomNodeCtrlAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AttachGeomNodeCtrl", ml)
+  {
+    cppName = " ::AnimV20::AttachGeomNodeCtrl";
+    addFieldEx("minNodeScale", "minNodeScale", offsetof(AnimV20::AttachGeomNodeCtrl, minNodeScale), das::makeType<das::float3>(ml));
+    addFieldEx("maxNodeScale", "maxNodeScale", offsetof(AnimV20::AttachGeomNodeCtrl, maxNodeScale), das::makeType<das::float3>(ml));
+    addField<DAS_BIND_MANAGED_FIELD(destVarId)>("destVarId");
+    addField<DAS_BIND_MANAGED_FIELD(perAnimStateDataVarId)>("perAnimStateDataVarId");
+  }
+};
+
 struct AnimcharNodesMat44Annotation : das::ManagedStructureAnnotation<AnimcharNodesMat44, false>
 {
   AnimcharNodesMat44Annotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimcharNodesMat44", ml)
@@ -377,6 +505,24 @@ struct IAnimBlendNodePtrAnnotation : das::ManagedStructureAnnotation<IAnimBlendN
   {
     cppName = " ::IAnimBlendNodePtr";
     // addProperty<DAS_BIND_MANAGED_PROP(get)>("get");
+  }
+  bool canBePlacedInContainer() const override { return true; }
+};
+
+struct AnimBlendNodeLeafPtrAnnotation : das::ManagedStructureAnnotation<AnimBlendNodeLeafPtr, false>
+{
+  AnimBlendNodeLeafPtrAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendNodeLeafPtr", ml)
+  {
+    cppName = " ::AnimBlendNodeLeafPtr";
+  }
+  bool canBePlacedInContainer() const override { return true; }
+};
+
+struct AnimPostBlendCtrlPtrAnnotation : das::ManagedStructureAnnotation<AnimPostBlendCtrlPtr, false>
+{
+  AnimPostBlendCtrlPtrAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimPostBlendCtrlPtr", ml)
+  {
+    cppName = " ::AnimPostBlendCtrlPtr";
   }
   bool canBePlacedInContainer() const override { return true; }
 };
@@ -405,11 +551,17 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("GeomNodeTree"));
     addBuiltinDependency(lib, require("PhysDecl"));
+    addEnumeration(das::make_smart<EnumerationAnimcharVisbits>());
     addAnnotation(das::make_smart<NameIdPairAnnotation>(lib));
     addAnnotation(das::make_smart<AnimDataAnnotation>(lib));
 
     addAnnotation(das::make_smart<IPureAnimStateHolderAnnotation>(lib));
     addAnnotation(das::make_smart<IAnimBlendNodePtrAnnotation>(lib));
+    addAnnotation(das::make_smart<AnimBlendNodeLeafPtrAnnotation>(lib));
+    addAnnotation(das::make_smart<AnimPostBlendCtrlPtrAnnotation>(lib));
+
+    das::typeFactory<BnlPtrTab>::make(lib);
+    das::typeFactory<PbCtrlPtrTab>::make(lib);
 
     auto iAnimBlendNodeAnn = das::make_smart<IAnimBlendNodeAnnotation>(lib);
     auto animBlendNodeLeafAnn = das::make_smart<AnimBlendNodeLeafAnnotation>(lib);
@@ -428,6 +580,7 @@ public:
     add_annotation(this, das::make_smart<AnimBlendCtrl_HubAnnotation>(lib), iAnimBlendNodeAnn);
     add_annotation(this, das::make_smart<AnimBlendCtrl_BlenderAnnotation>(lib), iAnimBlendNodeAnn);
     add_annotation(this, das::make_smart<AnimBlendCtrl_BinaryIndirectSwitchAnnotation>(lib), iAnimBlendNodeAnn);
+    add_annotation(this, das::make_smart<AnimBlendCtrl_SetMotionMatchingTagAnnotation>(lib), iAnimBlendNodeAnn);
     add_annotation(this, das::make_smart<AnimBlendCtrl_LinearPolyAnnotation>(lib), iAnimBlendNodeAnn);
     add_annotation(this, das::make_smart<AnimBlendCtrl_ParametricSwitcherAnnotation>(lib), animBlendNodeLeafAnn);
     add_annotation(this, das::make_smart<AnimPostBlendCtrlAnnotation>(lib), iAnimBlendNodeAnn);
@@ -440,6 +593,13 @@ public:
     addAnnotation(das::make_smart<AnimBlendCtrl_ParametricSwitcherItemAnimAnnotation>(lib));
     addAnnotation(das::make_smart<AnimationGraphStateRecAnnotation>(lib));
 
+    addAnnotation(das::make_smart<AnimPostBlendParamFromNodeLocalDataAnnotation>(lib));
+    addAnnotation(das::make_smart<AnimPostBlendParamFromNodeAnnotation>(lib));
+    addAnnotation(das::make_smart<AttachGeomNodeCtrlVarIdAnnotation>(lib));
+    addAnnotation(das::make_smart<AttachGeomNodeCtrlAttachDescAnnotation>(lib));
+    addAnnotation(das::make_smart<AttachGeomNodeCtrlAnnotation>(lib));
+
+    addAnnotation(das::make_smart<AnimBlenderAnnotation>(lib));
     addAnnotation(das::make_smart<AnimationGraphAnnotation>(lib));
     addAnnotation(das::make_smart<IAnimStateHolderAnnotation>(lib));
     addAnnotation(das::make_smart<AnimcharBaseComponentAnnotation>(lib));
@@ -524,6 +684,11 @@ public:
       "bind_dascript::anim_graph_getBlendNodeId");
     das::addExtern<DAS_BIND_FUN(anim_graph_getParamId)>(*this, lib, "anim_graph_getParamId", das::SideEffects::none,
       "bind_dascript::anim_graph_getParamId");
+    using method_getParamId =
+      das::das_call_member<int (::AnimCharV20::AnimationGraph::*)(const char *) const, &::AnimCharV20::AnimationGraph::getParamId>;
+    das::addExtern<DAS_CALL_METHOD(method_getParamId)>(*this, lib, "anim_graph_getParamId", das::SideEffects::none,
+      "das_call_member<int(::AnimCharV20::AnimationGraph::*)(const char *) const, "
+      "&::AnimCharV20::AnimationGraph::getParamId>::invoke");
     das::addExtern<DAS_BIND_FUN(anim_graph_getFifo3NodePtr)>(*this, lib, "anim_graph_getFifo3NodePtr",
       das::SideEffects::modifyArgument, "bind_dascript::anim_graph_getFifo3NodePtr");
 
@@ -592,6 +757,12 @@ public:
     das::addExtern<DAS_BIND_FUN(IAnimBlendNodePtr_get)>(*this, lib, "get", das::SideEffects::modifyArgument,
       "bind_dascript::IAnimBlendNodePtr_get");
 
+    das::addExtern<DAS_BIND_FUN(AnimBlendNodeLeafPtr_get)>(*this, lib, "get", das::SideEffects::modifyArgument,
+      "bind_dascript::AnimBlendNodeLeafPtr_get");
+
+    das::addExtern<DAS_BIND_FUN(AnimPostBlendCtrlPtr_get)>(*this, lib, "get", das::SideEffects::modifyArgument,
+      "bind_dascript::AnimPostBlendCtrlPtr_get");
+
     das::addExtern<DAS_BIND_FUN(AnimBlendCtrl_Hub_getChildren)>(*this, lib, "AnimBlendCtrl_Hub_getChildren",
       das::SideEffects::worstDefault, "bind_dascript::AnimBlendCtrl_Hub_getChildren");
 
@@ -607,6 +778,13 @@ public:
 
     das::addExtern<DAS_BIND_FUN(AnimBlendCtrl_LinearPoly_getChildren)>(*this, lib, "AnimBlendCtrl_LinearPoly_getChildren",
       das::SideEffects::worstDefault, "bind_dascript::AnimBlendCtrl_LinearPoly_getChildren");
+
+    das::addExtern<DAS_BIND_FUN(AttachGeomNodeCtrl_getNodeNames)>(*this, lib, "AttachGeomNodeCtrl_getNodeNames",
+      das::SideEffects::worstDefault, "bind_dascript::AttachGeomNodeCtrl_getNodeNames");
+
+    using method_getResName = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getResName);
+    das::addExtern<DAS_CALL_METHOD(method_getResName)>(*this, lib, "animchar_getResName", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getResName));
 
     using method_recalcWtm =
       das::das_call_member<void (::AnimCharV20::AnimcharBaseComponent::*)(), &::AnimCharV20::AnimcharBaseComponent::recalcWtm>;
@@ -664,6 +842,10 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getAttachmentTm)>(*this, lib, "animchar_getAttachmentTm", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentTm));
 
+    using method_setAttachedChar = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::setAttachedChar);
+    das::addExtern<DAS_CALL_METHOD(method_setAttachedChar)>(*this, lib, "animchar_setAttachedChar", das::SideEffects::worstDefault,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::setAttachedChar));
+
     using method_getAttachmentSlotsCount = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotsCount);
     das::addExtern<DAS_CALL_METHOD(method_getAttachmentSlotsCount)>(*this, lib, "animchar_getAttachmentSlotsCount",
       das::SideEffects::none, DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotsCount));
@@ -672,13 +854,25 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getAttachmentSlotId)>(*this, lib, "animchar_getAttachmentSlotId", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotId));
 
+    using method_getAttachedChar = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachedChar);
+    das::addExtern<DAS_CALL_METHOD(method_getAttachedChar)>(*this, lib, "animchar_getAttachedChar", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachedChar));
+
     using method_getAttachmentUid = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachmentUid);
     das::addExtern<DAS_CALL_METHOD(method_getAttachmentUid)>(*this, lib, "animchar_getAttachmentUid", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentUid));
 
+    using method_releaseAttachment = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::releaseAttachment);
+    das::addExtern<DAS_CALL_METHOD(method_releaseAttachment)>(*this, lib, "animchar_releaseAttachment", das::SideEffects::worstDefault,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::releaseAttachment));
+
     using method_setTmRel = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::setTmRel);
     das::addExtern<DAS_CALL_METHOD(method_setTmRel)>(*this, lib, "animchar_setTmRel", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::setTmRel));
+
+    using method_reset = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::reset);
+    das::addExtern<DAS_CALL_METHOD(method_reset)>(*this, lib, "animchar_reset", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::reset));
 
     using method_setFastPhysSystemGravityDirection =
       DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::setFastPhysSystemGravityDirection);
@@ -708,7 +902,9 @@ public:
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getParamName, das::SideEffects::none, "anim_graph_getParamName")
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getParamType, das::SideEffects::none, "anim_graph_getParamType")
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getAnimNodeName, das::SideEffects::none, "anim_graph_getAnimNodeName")
-    DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getStateName, das::SideEffects::none, "anim_graph_getStateName")
+    using method_getStateName = DAS_CALL_MEMBER(::AnimCharV20::AnimationGraph::getStateName);
+    das::addExternTempRef<DAS_CALL_METHOD(method_getStateName), das::SimNode_ExtFuncCall>(*this, lib, "anim_graph_getStateName",
+      das::SideEffects::accessExternal, DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimationGraph::getStateName));
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getStateNameByStateIdx, das::SideEffects::none, "anim_graph_getStateNameByStateIdx")
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getBlendNodeName, das::SideEffects::none, "anim_graph_getBlendNodeName")
 
@@ -769,10 +965,13 @@ public:
   ANIM_CTRL(AnimBlendCtrl_Hub)                  \
   ANIM_CTRL(AnimBlendCtrl_Blender)              \
   ANIM_CTRL(AnimBlendCtrl_BinaryIndirectSwitch) \
+  ANIM_CTRL(AnimBlendCtrl_SetMotionMatchingTag) \
   ANIM_CTRL(AnimBlendCtrl_LinearPoly)           \
   ANIM_CTRL(AnimBlendCtrl_ParametricSwitcher)   \
   ANIM_CTRL(AnimBlendNodeLeaf)                  \
-  ANIM_CTRL(AnimPostBlendCtrl)
+  ANIM_CTRL(AnimPostBlendCtrl)                  \
+  ANIM_CTRL(AnimPostBlendParamFromNode)         \
+  ANIM_CTRL(AttachGeomNodeCtrl)
 #define ANIM_CTRL(type) das::addConstant(*this, #type "CID", ::AnimV20::type##CID.id);
     ALL_ANIM_CTRLS
 #undef ANIM_CTRL
@@ -810,6 +1009,10 @@ public:
 
 #undef DAS_BIND_MEMBER
 #undef ALL_ANIM_CTRLS
+
+    auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt16);
+    pType->alias = "animchar_visbits_t";
+    addAlias(pType);
 
     compileBuiltinModule("animchar.das", (unsigned char *)animchar_das, sizeof(animchar_das));
     verifyAotReady();

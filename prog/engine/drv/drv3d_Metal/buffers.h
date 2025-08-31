@@ -6,10 +6,11 @@
 #import <MetalKit/MetalKit.h>
 #import "texture.h"
 #include <drv/3d/dag_buffers.h>
+#include <resourceName.h>
 
 namespace drv3d_metal
 {
-class Buffer : public Sbuffer
+class Buffer : public D3dResourceNameImpl<Sbuffer>, public HazardTracker
 {
 public:
   struct BufTex
@@ -19,17 +20,19 @@ public:
     id<MTLBuffer> buffer;
     Texture *texture;
     BufTex *next;
-    int bufsize = 0;
+    uint32_t bufsize = 0;
     int tid = -1;
     int flags = 0;
     bool initialized = false;
 
-    BufTex(int bufsize, int flags) : bufsize(bufsize), flags(flags) {}
+    BufTex(uint32_t bufsize, int flags) : bufsize(bufsize), flags(flags) {}
 
-    void create(MTLResourceOptions storage, MTLTextureDescriptor *pTexDesc, int aligment, int tex_format, const char *name);
+    void create(Buffer *buf, MTLResourceOptions storage, MTLTextureDescriptor *pTexDesc, int alignment, int tex_format,
+      const char *name);
+    void create(id<MTLBuffer> mtl_buf, const char *name);
     void release();
 
-    int ressize() { return bufsize; }
+    uint32_t getSize() { return bufsize; }
 
     void destroyObject() {}
   };
@@ -37,8 +40,8 @@ public:
 protected:
   int max_buffers = 2;
   bool isDynamic = false;
-  BufTex *cur_buffer;
-  BufTex *cur_render_buffer;
+  BufTex *cur_buffer = nullptr;
+  BufTex *cur_render_buffer = nullptr;
   BufTex *ring_buffer = nullptr;
   bool allow_resize_ring_buffer = false;
   bool fast_discard = false;
@@ -52,7 +55,7 @@ protected:
 
   MTLTextureDescriptor *pTexDesc = nullptr;
   MTLResourceOptions storage;
-  int aligment = 0;
+  int alignment = 0;
   int tex_format = 0;
 
   Buffer();
@@ -76,15 +79,16 @@ public:
   uint64_t last_locked_submit = ~0ull;
 
   Buffer(uint32_t bufsize, int ssize, int buf_flags, int tex_format, const char *name);
+  Buffer(id<MTLBuffer> buf, int buf_flags, const char *name);
   ~Buffer();
 
-  int ressize() const override { return bufSize; }
+  uint32_t getSize() const override { return bufSize; }
   int getFlags() const override { return bufFlags; }
 
   virtual int getElementSize() const { return structSize; }
   virtual int getNumElements() const { return (int)(structSize > 0 ? bufSize / structSize : 0); };
 
-  virtual void setResApiName(const char *name) const;
+  virtual void setApiName(const char *name) const;
 
   virtual int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags);
   void *lock(uint32_t offset_bytes, uint32_t size_bytes, int flags);
@@ -102,6 +106,9 @@ public:
 
   virtual void destroy();
   void release();
+
+  bool is_fast_discard() const { return fast_discard; }
+  bool is_dynamic() const { return isDynamic; }
 
   static void cleanup();
 };

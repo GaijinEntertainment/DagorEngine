@@ -180,17 +180,17 @@ class FreeCamCommandMode : public CommandMode, public MouseCallBack
 public:
   HCURSOR prevcur;
   FreeCamCommandMode() { prevcur = NULL; }
-  int Class() { return 1101; } // VIEWPORT_COMMAND
-  int ID() { return CID_USER + 0x777; }
-  MouseCallBack *MouseProc(int *numPoints)
+  int Class() override { return 1101; } // VIEWPORT_COMMAND
+  int ID() override { return CID_USER + 0x777; }
+  MouseCallBack *MouseProc(int *numPoints) override
   {
     *numPoints = 200000000;
     return this;
   }
-  BOOL ChangeFG(CommandMode *oldMode) { return (oldMode->ChangeFGProc() != CHANGE_FG_SELECTED); }
+  BOOL ChangeFG(CommandMode *oldMode) override { return (oldMode->ChangeFGProc() != CHANGE_FG_SELECTED); }
 
-  ChangeForegroundCallback *ChangeFGProc() { return CHANGE_FG_SELECTED; }
-  void EnterMode()
+  ChangeForegroundCallback *ChangeFGProc() override { return CHANGE_FG_SELECTED; }
+  void EnterMode() override
   {
     started = 0;
     ViewExp *ve = getActiveViewport();
@@ -207,7 +207,7 @@ public:
         65535 * (Rect.top + Rect.bottom) / (2 * desktopr.bottom), 0, NULL);
     prevcur = SetCursor(NULL);
   }
-  void ExitMode()
+  void ExitMode() override
   {
     if (prevcur)
       SetCursor(prevcur);
@@ -218,7 +218,7 @@ public:
 
   IPoint2 op, startop;
   int started;
-  int proc(HWND hwnd, int msg, int point, int flags, IPoint2 m)
+  int proc(HWND hwnd, int msg, int point, int flags, IPoint2 m) override
   {
     if (msg == MOUSE_MOVE)
     {
@@ -311,7 +311,7 @@ public:
     }
     return true;
   }
-  int override(int mode)
+  int override(int mode) override
   {
     return mode;
     // return CLICK_DRAG_CLICK;
@@ -343,7 +343,7 @@ static UINT_PTR timer_id = NULL;
 class FreeCamShortcut : public ActionCallback
 {
 public:
-  BOOL ExecuteAction(int id)
+  BOOL ExecuteAction(int id) override
   {
     if (!freecam.modon)
       return FALSE;
@@ -443,9 +443,9 @@ public:
 
 
   DagFreeCamUtil();
-  void BeginEditParams(Interface *ip, IUtil *iu);
-  void EndEditParams(Interface *ip, IUtil *iu);
-  void DeleteThis() {}
+  void BeginEditParams(Interface *ip, IUtil *iu) override;
+  void EndEditParams(Interface *ip, IUtil *iu) override;
+  void DeleteThis() override {}
   void update_freecam_ui();
   void update_freecam_vars();
 
@@ -460,17 +460,21 @@ static DagFreeCamUtil futil;
 class DagFreeCamUtilDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return &futil; }
-  const TCHAR *ClassName() { return GetString(IDS_DAGFREECAM_UTIL_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return &futil; }
+  const TCHAR *ClassName() override { return GetString(IDS_DAGFREECAM_UTIL_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return DagUtilFreeCam_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  BOOL NeedsToSave() { return TRUE; }
-  IOResult Save(ISave *);
-  IOResult Load(ILoad *);
-  int NumActionTables()
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return DagUtilFreeCam_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  BOOL NeedsToSave() override { return TRUE; }
+  IOResult Save(ISave *) override;
+  IOResult Load(ILoad *) override;
+  int NumActionTables() override
   {
     GetActions();
     return 0;

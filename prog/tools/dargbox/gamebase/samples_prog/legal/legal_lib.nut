@@ -1,9 +1,7 @@
+from "dagor.fs" import read_text_from_file, file_exists
+from "dagor.http" import HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest
+from "json" import parse_json
 from "%darg/ui_imports.nut" import *
-
-let {read_text_from_file, file_exists} = require("dagor.fs")
-let {HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest} = require("dagor.http")
-let {parse_json} = require("json")
-
 let statusText = {
   [HTTP_SUCCESS] = "SUCCESS",
   [HTTP_FAILED] = "FAILED",
@@ -75,12 +73,6 @@ let languageCodeMap = {
   "Ukraine":"ua"
 }
 
-function requestCurVersions(lang, onSuccess, onFail = null) {
-  let lang_code = languageCodeMap?[lang]
-  let langstr = lang_code !=null ? $"&lang={lang_code}" : ""
-  httpGetJson($"{legals_url}/api/v2/documents?token={DOC_ID}{langstr}", onSuccess, onFail)
-}
-
 function requestCurVersion(lang, onSuccess, onFail = null) {
   let lang_code = languageCodeMap?[lang]
   let langstr = lang_code !=null ? $"?lang={lang_code}" : ""
@@ -96,17 +88,17 @@ function requestDocument(lang, onSuccess, onFail=null) {
 function loadConfig(filePath, language, curLangLegalConfig) {
   try{
     let config = file_exists(filePath) ? parse_json(read_text_from_file(filePath)) : null
-    local curLang = language.value.tolower()
+    local curLang = language.get().tolower()
     if (!(curLang in config))
       curLang = "english"
-    curLangLegalConfig.update({
+    curLangLegalConfig.set({
       version = config?[curLang]?.version
       filePath = config?[curLang]?.file
     })
   }
   catch(e){
     logerrOnce(e)
-    curLangLegalConfig.update({version=null, filePath=null})
+    curLangLegalConfig.set({version=null, filePath=null})
   }
 }
 

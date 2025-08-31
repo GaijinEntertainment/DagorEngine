@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <oldEditor/de_brush.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 
 #include <debug/dag_debug.h>
 

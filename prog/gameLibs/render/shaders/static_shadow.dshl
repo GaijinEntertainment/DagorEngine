@@ -60,6 +60,11 @@ macro INIT_STATIC_SHADOW_VS_ONE_CASCADE()
   INIT_STATIC_SHADOW_BASE_ONE_CASCADE(vs)
 endmacro
 
+macro INIT_STATIC_SHADOW_VS_PS_ONE_CASCADE()
+  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(vs)
+  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(ps)
+endmacro
+
 macro USE_STATIC_SHADOW_BASE_NUM(code, num_cascades)
   STATIC_SHADOW_DEFINE_SAMPLER_TYPE(code)
   USE_STATIC_SHADOW_BASE_INT(code, num_cascades)
@@ -81,17 +86,20 @@ macro USE_STATIC_SHADOW_BASE_NUM(code, num_cascades)
 endmacro
 
 macro USE_STATIC_SHADOW_BASE(code)
-  if (static_shadows_cascades == two)
+  if (!DEFINED(skip_use_static_shadow))
   {
-    USE_STATIC_SHADOW_BASE_NUM(code, 2)
-  }
-  else if (static_shadows_cascades == one)
-  {
-    USE_STATIC_SHADOW_BASE_NUM(code, 1)
-  }
-  else if (static_shadows_cascades == off)
-  {
-    USE_STATIC_SHADOW_BASE_NUM(code, 0)
+    if (static_shadows_cascades == two)
+    {
+      USE_STATIC_SHADOW_BASE_NUM(code, 2)
+    }
+    else if (static_shadows_cascades == one)
+    {
+      USE_STATIC_SHADOW_BASE_NUM(code, 1)
+    }
+    else if (static_shadows_cascades == off)
+    {
+      USE_STATIC_SHADOW_BASE_NUM(code, 0)
+    }
   }
 endmacro
 

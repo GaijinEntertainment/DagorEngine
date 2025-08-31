@@ -31,19 +31,33 @@ struct MergeEntry
 {
   int seed;
   float jitter;
-  bool lowerLevel;
+  float displacementNoiseScale;
+  float displacementStrength;
+  float placementNoiseScale;
+  float sampleRange;
   int drawRangeLogFloor;
 
   int biomeIndex;
 
   const ObjectGroupInfo *objectGroupInfo;
   float effectiveDensity;
+  Point4 densityMaskChannelWeights;
+
+  bool lowerLevel;
+  bool useDecals;
+  bool discardOnGrassErasure;
 };
 
-#define COMPARE_GRID_FIELDS \
-  CMP(seed)                 \
-  CMP(jitter)               \
-  CMP(lowerLevel)           \
+#define COMPARE_GRID_FIELDS   \
+  CMP(seed)                   \
+  CMP(jitter)                 \
+  CMP(displacementNoiseScale) \
+  CMP(displacementStrength)   \
+  CMP(placementNoiseScale)    \
+  CMP(lowerLevel)             \
+  CMP(useDecals)              \
+  CMP(discardOnGrassErasure)  \
+  CMP(sampleRange)            \
   CMP(drawRangeLogFloor)
 
 #define COMPARE_OTHER_FIELDS \
@@ -128,22 +142,26 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
 
   const auto &rulesBuilder = evt.get<0>();
   const auto &viewInfo = evt.get<1>();
-  auto &viewBuilder = *evt.get<2>();
   auto &builder = dagdp__heightmap_manager.currentBuilder;
-
-  if (!rulesBuilder.useHeightmapDynamicObjects && rulesBuilder.maxObjects != 0)
-    logwarn("daGdp: note: heightmap placer won't respect the max. objects setting (dagdp__use_heightmap_dynamic_objects is not set).");
 
   dag::Vector<MergeEntry, framemem_allocator> entries;
   heightmap_placers_ecs_query(
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes, float dagdp__density,
-      int dagdp__seed, float dagdp__jitter, bool dagdp__heightmap_lower_level, bool dagdp__heightmap_allow_unoptimal_grids,
-      float dagdp__heightmap_cell_size, const ecs::string &dagdp__name) {
+      int dagdp__seed, float dagdp__jitter, float dagdp__displacement_noise_scale, float dagdp__displacement_strength,
+      float dagdp__placement_noise_scale, bool dagdp__heightmap_lower_level, bool dagdp__heightmap_allow_unoptimal_grids,
+      float dagdp__heightmap_cell_size, const ecs::string &dagdp__name, Point4 dagdp__density_mask_channel_weights,
+      bool dagdp__heightmap_use_decals, float dagdp__sample_range, bool dagdp__discard_on_grass_erasure) {
       auto iter = rulesBuilder.placers.find(eid);
       if (iter == rulesBuilder.placers.end())
         return;
 
       auto &placer = iter->second;
+
+      if (rulesBuilder.maxObjects == 0)
+      {
+        logerr("daGdp: %s is disabled, as the max. objects setting is 0", dagdp__name);
+        return;
+      }
 
       if (dagdp__biomes.size() == 0)
       {
@@ -209,10 +227,17 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
 
       MergeEntry entry;
       entry.jitter = dagdp__jitter;
+      entry.displacementNoiseScale = dagdp__displacement_noise_scale;
+      entry.displacementStrength = dagdp__displacement_strength;
+      entry.placementNoiseScale = dagdp__placement_noise_scale;
       entry.seed = dagdp__seed;
       entry.lowerLevel = dagdp__heightmap_lower_level;
+      entry.useDecals = dagdp__heightmap_use_decals;
+      entry.discardOnGrassErasure = dagdp__discard_on_grass_erasure;
+      entry.sampleRange = dagdp__sample_range;
       entry.drawRangeLogFloor = floor(log(viewIndependentMaxDrawDistance) / log(dagdp__heightmap_manager.config.drawRangeLogBase));
       entry.effectiveDensity = dagdp__density / pow2f(dagdp__heightmap_cell_size);
+      entry.densityMaskChannelWeights = dagdp__density_mask_channel_weights;
 
       for (const auto biomeIndex : dagdp__biomes)
       {
@@ -226,8 +251,6 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
           entries.push_back(entry);
         }
       }
-
-      viewBuilder.hasDynamicPlacers |= rulesBuilder.useHeightmapDynamicObjects && !entries.empty();
     });
 
   stlsort::sort(entries.begin(), entries.end());
@@ -252,7 +275,8 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
           bool sameGroups = true;
           for (uint32_t j = 0; j < vI->objectGroups.size(); ++j)
             if ((vI->objectGroups[j].effectiveDensity != v->objectGroups[j].effectiveDensity) ||
-                (vI->objectGroups[j].info != v->objectGroups[j].info))
+                (vI->objectGroups[j].info != v->objectGroups[j].info) ||
+                (vI->objectGroups[j].densityMaskChannelWeights != v->objectGroups[j].densityMaskChannelWeights))
             {
               sameGroups = false;
               break;
@@ -279,7 +303,13 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
       lastGrid = &builder.grids.push_back();
       lastGrid->prngSeed = entry.seed;
       lastGrid->gridJitter = entry.jitter;
+      lastGrid->displacementNoiseScale = entry.displacementNoiseScale;
+      lastGrid->displacementStrength = entry.displacementStrength;
+      lastGrid->placementNoiseScale = entry.placementNoiseScale;
       lastGrid->lowerLevel = entry.lowerLevel;
+      lastGrid->useDecals = entry.useDecals;
+      lastGrid->discardOnGrassErasure = entry.discardOnGrassErasure;
+      lastGrid->sampleRange = entry.sampleRange;
       lastVariant = nullptr;
       lastObjectGroup = nullptr;
     }
@@ -293,10 +323,12 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
       lastObjectGroup = nullptr;
     }
 
-    if (!lastObjectGroup || lastEntry->objectGroupInfo != entry.objectGroupInfo)
+    if (!lastObjectGroup || lastEntry->objectGroupInfo != entry.objectGroupInfo ||
+        lastObjectGroup->densityMaskChannelWeights != entry.densityMaskChannelWeights)
     {
       lastObjectGroup = &lastVariant->objectGroups.push_back();
       lastObjectGroup->info = entry.objectGroupInfo;
+      lastObjectGroup->densityMaskChannelWeights = entry.densityMaskChannelWeights;
     }
 
     lastObjectGroup->effectiveDensity += entry.effectiveDensity;
@@ -314,7 +346,6 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
 
     grid.tileWorldSize = TILE_INSTANCE_COUNT_1D / sqrtf(grid.density);
 
-    grid.useDynamicAllocation = rulesBuilder.useHeightmapDynamicObjects;
     // Make sure the seeds are different for different grids, even if the default seed 0 is specified.
     // Otherwise, if the density is the same, objects may appear in exactly the same position.
     grid.prngSeed += i;
@@ -327,8 +358,6 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
       for (const auto &objectGroup : variant.objectGroups)
         totalPlaceableCount += objectGroup.info->placeables.size();
 
-    grid.placeablesTileLimits.resize(totalPlaceableCount);
-
     uint32_t pIdStart = 0;
     for (const auto &variant : grid.variants)
     {
@@ -336,22 +365,6 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
       {
         for (const auto [pIdOffset, placeable] : enumerate(objectGroup.info->placeables))
         {
-          uint32_t pId = pIdStart + pIdOffset;
-
-          // TODO: this "tile limit" logic is generalizable to other placers and could be shared.
-          //
-          // TODO: placeables for the same object are now distinct for different variants. So, the per-tile limit
-          // will be calculated independently for each such placeable, leading to more memory usage than optimal.
-          //
-          // Note: placeable weight must already have been group-normalized at this point.
-          float expectedInstancesPerTile = TILE_INSTANCE_COUNT * objectGroup.effectiveDensity / grid.density * placeable.params.weight;
-
-          // Approximates a reasonable upper bound of number of instances per tile.
-          uint32_t tileLimit = ceilf(TILE_LIMIT_MULTIPLIER * expectedInstancesPerTile);
-
-          tileLimit = eastl::min(static_cast<uint32_t>(TILE_INSTANCE_COUNT), eastl::max(1u, tileLimit));
-          grid.placeablesTileLimits[pId] = grid.useDynamicAllocation ? 0 /*unlimited*/ : tileLimit;
-
           float minScale = md_min(placeable.params.scaleMidDev);
           float maxScale = md_max(placeable.params.scaleMidDev);
           G_ASSERT(minScale > 0.0f);
@@ -376,12 +389,6 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
                 // Tile fully outside max. draw distance?
                 if ((pow2f(x1) + pow2f(z1)) * pow2f(grid.tileWorldSize) > pow2f(maxDrawDistance))
                   continue;
-
-                // TODO: the distribution of scales is ignored here. When scale deviation is large,
-                // this uses significantly more memory. Looks like this can be improved with more nuanced calculations.
-
-                // TODO: when the view draw distance does not cover a tile, this obviously wastes some memory.
-                viewBuilder.renderablesMaxInstances[range.rId] += grid.placeablesTileLimits[pId];
 
                 grid.tiles.push_back_unsorted(HeightmapTileCoord{x, z});
               }
@@ -436,8 +443,14 @@ ECS_TRACK(dagdp__name,
   dagdp__density,
   dagdp__seed,
   dagdp__jitter,
+  dagdp__displacement_noise_scale,
+  dagdp__displacement_strength,
+  dagdp__placement_noise_scale,
   dagdp__heightmap_allow_unoptimal_grids,
   dagdp__heightmap_lower_level,
+  dagdp__heightmap_use_decals,
+  dagdp__discard_on_grass_erasure,
+  dagdp__sample_range,
   dagdp__heightmap_cell_size)
 ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap,
   const ecs::string &dagdp__name,
@@ -445,8 +458,14 @@ ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap,
   float dagdp__density,
   int dagdp__seed,
   float dagdp__jitter,
+  float dagdp__displacement_noise_scale,
+  float dagdp__displacement_strength,
+  float dagdp__placement_noise_scale,
   bool dagdp__heightmap_allow_unoptimal_grids,
   bool dagdp__heightmap_lower_level,
+  bool dagdp__heightmap_use_decals,
+  bool dagdp__discard_on_grass_erasure,
+  float dagdp__sample_range,
   float dagdp__heightmap_cell_size)
 static void dagdp_placer_heightmap_changed_es(const ecs::Event &)
 {

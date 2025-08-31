@@ -32,12 +32,12 @@ function item(label) {
               : Color(180,180,180)
     behavior = [Behaviors.Button, Behaviors.RecalcHandler]
     function onClick(evt) {
-      activeSection(label)
+      activeSection.set(label)
       requestMoveToElem(evt.target)
     }
-    hotkeys = [["^J:A", {action = @() activeSection(labels[4])}]]
+    hotkeys = [["^J:A", {action = @() activeSection.set(labels[4])}]]
     function onRecalcLayout(initial, elem) {
-      if (initial && label == activeSection.value) {
+      if (initial && label == activeSection.get()) {
         requestMoveToElem(elem)
       }
     }
@@ -57,7 +57,7 @@ let marker = {
 }
 
 let container = {
-  size = [sw(80), sh(80)]
+  size = static [sw(80), sh(80)]
   rendObj = ROBJ_FRAME
   borderWidth = sh(1)
   padding = sh(5)

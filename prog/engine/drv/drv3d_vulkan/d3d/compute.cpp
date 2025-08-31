@@ -35,9 +35,9 @@ bool d3d::dispatch(uint32_t x, uint32_t y, uint32_t z, GpuPipeline gpu_pipeline)
 bool d3d::dispatch_indirect(Sbuffer *args, uint32_t byte_offset, GpuPipeline gpu_pipeline)
 {
   G_UNUSED(gpu_pipeline);
-  G_ASSERTF(args != nullptr, "dispatch_indirect with nullptr buffer is invalid");
-  G_ASSERTF(args->getFlags() & SBCF_BIND_UNORDERED, "dispatch_indirect buffer without SBCF_BIND_UNORDERED flag");
-  G_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT, "dispatch_indirect buffer is not usable as indirect buffer");
+  D3D_CONTRACT_ASSERTF(args != nullptr, "dispatch_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF(args->getFlags() & SBCF_BIND_UNORDERED, "dispatch_indirect buffer without SBCF_BIND_UNORDERED flag");
+  D3D_CONTRACT_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT, "dispatch_indirect buffer is not usable as indirect buffer");
   VERIFY_GLOBAL_LOCK_ACQUIRED();
   checkComputeOutsideNativeRP();
 

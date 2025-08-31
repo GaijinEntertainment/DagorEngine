@@ -78,9 +78,9 @@ macro SUN_SKY_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes 
   SUN_LIGHT_POINT_TRACE_HIT(code)
   DAGI_GET_COMMON_VOXELIZATION_AMBIENT(code)
   hlsl(code) {
-    float3 get_sun_sky_lit_color(float3 ambientWorldPos, float3 worldPos, float3 worldNormal, float3 albedo, float shadow_offset = 0, float ambient_loss = 1)
+    float3 get_sun_sky_lit_color(float3 ambientWorldPos, float3 worldPos, float3 worldNormal, float3 albedo, float shadow_offset = 0, float ambient_loss = 1, float3 def_ambient = 0)
     {
-      float3 ambient = dagi_get_common_offscreen_ambient(ambientWorldPos, worldNormal);
+      float3 ambient = dagi_get_common_offscreen_ambient(ambientWorldPos, worldNormal, def_ambient);
       float3 litColor = (ambient*ambient_loss + dagi_get_sun_color(worldPos, worldNormal, shadow_offset))*albedo;
       //fixme: add direct lights from camera
       return litColor;
@@ -210,7 +210,7 @@ macro PROJECT_LIGHT_POINT_VOXELIZE_NO_STEP_OUT(code) // when voxelizing radiance
   BASE_USE_CSM_SHADOW_DEF_NUM(code)
   SUN_SKY_LIGHT_POINT_TRACE_HIT(code)
   hlsl(code) {
-    float3 project_get_lit_color_at_voxelize(float3 worldPos, float3 worldNormal, float3 albedo)
+    float3 project_get_lit_color_at_voxelize(float3 worldPos, float3 worldNormal, float3 albedo, float ambient_loss = 0.5, float3 def_ambient = 0)
     {
       float halfVoxelSize = 0.5*world_sdf_raster_voxel_size();
       float3 ambientWorldPos = current_world_view_pos.xyz + (worldPos - current_world_view_pos.xyz)*0.99;
@@ -221,7 +221,7 @@ macro PROJECT_LIGHT_POINT_VOXELIZE_NO_STEP_OUT(code) // when voxelizing radiance
         world_sdf_step_out_clip_unsafe(ambientWorldPos, stepOutMip, 0, 1);
       #endif
       float3 litColor = get_sun_sky_lit_color(current_world_view_pos.xyz + (worldPos - current_world_view_pos.xyz)*0.99,
-        worldPos, worldNormal, albedo, halfVoxelSize, 0.5);
+        worldPos, worldNormal, albedo, halfVoxelSize, ambient_loss, def_ambient);
       #if GI_HAS_DYNAMIC_LIGHTS
         //UnpackedGbuffer gbufU;
         //init_gbuffer(gbufU);

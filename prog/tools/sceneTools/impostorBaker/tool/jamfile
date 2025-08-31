@@ -7,12 +7,16 @@ Location = prog/tools/sceneTools/impostorBaker/tool ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 switch $(Platform) {
-  case windows : UseD3DMultiList = DX11 ;
+  case windows : UseD3DMultiList = DX12 DX11 ;
   case linux :   UseD3DMultiList = vulkan ;
   case macOS :   UseD3DMultiList = Metal ;
 }
 
 include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) in windows {
+  include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+}
 
 TargetType  = exe ;
 Target      = tools/sceneTools/impostorBaker ;
@@ -44,6 +48,7 @@ UseProgLibs =
   engine/workCycle
 
   engine/drv/drv3d_pc_multi
+  engine/imgui/stub
 
   engine/gameRes
   engine/scene
@@ -69,7 +74,6 @@ UseProgLibs =
 
   tools/libTools/shaderResBuilder
   tools/sceneTools/impostorBaker/impostorUtil
-  tools/sceneTools/daEditorX/services/dxpFactory
 
   3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/image/psdRead

@@ -198,40 +198,6 @@ public:
     DataSimpleQsort<int, C, D> dqs;
     dqs.sort(&map[0], map.size(), data);
   }
-
-  template <class T>
-  void arrange(T *elems)
-  {
-    // Rearrange elems in the map order
-    Tab<T> nelems(tmpmem);
-    nomem(nelems.resize(map.size()));
-    for (int i = 0; i < map.size(); ++i)
-      nelems[i] = elems[map[i]];
-    memcpy(elems, &nelems[0], map.size() * sizeof(T));
-  }
-  template <class T>
-  void arrange_big(T *el)
-  {
-    Tab<int> mp(tmpmem);
-    nomem(mp.resize(map.size() * 2));
-    memcpy(&mp[0], &map[0], map.size());
-    int *rmp = &mp[map.size()];
-    for (int i = 0; i < map.size(); ++i)
-      rmp[mp[i]] = i;
-    char buf[sizeof(T)];
-    for (i = 0; i < map.size(); ++i)
-    {
-      int j = mp[i];
-      if (j == i)
-        continue;
-      int k = rmp[i];
-      mp[k] = j;
-      rmp[j] = k;
-      memcpy(buf, el + i, sizeof(T));
-      memcpy(el + i, el + j, sizeof(T));
-      memcpy(el + j, buf, sizeof(T));
-    }
-  }
 };
 
 template <class T>
@@ -262,18 +228,4 @@ public:
     else
       return 0;
   }
-};
-
-template <class T>
-class MapSimpleDescentCompare
-{
-public:
-  static inline int compare(const int &a, const int &b, T *d) { return -MapSimpleAscentCompare<T>::compare(a, b, d); }
-};
-
-template <class T>
-class SimpleDescentCompare
-{
-public:
-  static inline int compare(const T &a, const T &b) { return -SimpleAscentCompare<T>::compare(a, b, d); }
 };

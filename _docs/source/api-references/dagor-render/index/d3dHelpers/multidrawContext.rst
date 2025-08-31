@@ -1,5 +1,5 @@
-MultidrawContext
+Multidraw Context
 =================================================
 
-.. autodoxygenfile:: dag_multidrawContext.h
+.. doxygenfile:: dag_multidrawContext.h
   :project: d3dHelpers

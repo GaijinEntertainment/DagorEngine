@@ -29,13 +29,12 @@ struct OnMouseUp : public ecs::Event
   OnMouseUp(MouseButton button, int x, int y) : ECS_EVENT_CONSTRUCTOR(OnMouseUp), button(button), x(x), y(y) {}
 };
 
-#define ON_MOUSE_EVENT(EVENT_NAME)                                           \
-  struct EVENT_NAME : public ecs::Event                                      \
-  {                                                                          \
-    int x, y;                                                                \
-    ECS_BROADCAST_EVENT_DECL(EVENT_NAME)                                     \
-    EVENT_NAME(int x, int y) : ECS_EVENT_CONSTRUCTOR(EVENT_NAME), x(x), y(y) \
-    {}                                                                       \
+#define ON_MOUSE_EVENT(EVENT_NAME)                                              \
+  struct EVENT_NAME : public ecs::Event                                         \
+  {                                                                             \
+    int x, y;                                                                   \
+    ECS_BROADCAST_EVENT_DECL(EVENT_NAME)                                        \
+    EVENT_NAME(int x, int y) : ECS_EVENT_CONSTRUCTOR(EVENT_NAME), x(x), y(y) {} \
   };
 
 ON_MOUSE_EVENT(OnMouseDownLeft)

@@ -20,6 +20,7 @@ struct DaGIMediaScene
   void rbFinish();
   void debugRender();
   void afterReset();
+  void resetHistoryAge();
 
 protected:
   void initHistory();

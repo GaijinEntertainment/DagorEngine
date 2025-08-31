@@ -102,8 +102,6 @@ protected:
   {
     G_ASSERT(chunk_size > 0 && chunk_size <= Chunk::MAX_CHUNK_SIZE);
     char *memory = new char[chunk_size * blockSize];
-    if (!memory)
-      return false;
     c.create(memory, blockSize, chunk_size);
     return true;
   }
@@ -118,14 +116,12 @@ protected:
         break;
     if (ret == chunksAllocated)
     {
-      static const uint32_t minChunksCount = 4; // we allocate at least 4 chunks.
+      constexpr uint32_t minChunksCount = 4; // we allocate at least 4 chunks.
       const uint32_t newChunksAllocated = chunksAllocated == 0 ? minChunksCount : chunksAllocated * 2;
       Chunk *newChunks = (Chunk *)new char[sizeof(Chunk) * newChunksAllocated];
-      if (!newChunks)
-        return -1;
       memcpy(newChunks, chunks, sizeof(Chunk) * chunksAllocated);
       memset(newChunks + chunksAllocated, 0, sizeof(Chunk) * (newChunksAllocated - chunksAllocated));
-      if (chunks)
+      if (chunks) // -V595
         delete[] ((char *)chunks);
       chunks = newChunks;
       chunksAllocated = newChunksAllocated;

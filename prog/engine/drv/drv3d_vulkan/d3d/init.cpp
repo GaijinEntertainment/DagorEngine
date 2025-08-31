@@ -2,11 +2,14 @@
 
 // driver init and shutdown implementation
 #include <drv/3d/dag_driver.h>
+#include <3d/gpuLatency.h>
 #include "driver.h"
 #include "vulkan_instance.h"
 #include "vulkan_device.h"
 #include "physical_device_set.h"
 #include "device_queue.h"
+#include "dlss.h"
+#include "streamline_adapter.h"
 #include "globals.h"
 #include <EASTL/sort.h>
 #include "driver_config.h"
@@ -24,7 +27,6 @@
 #include "device_memory_report.h"
 #include "buffer_alignment.h"
 #include "execution_markers.h"
-#include "raytrace_scratch_buffer.h"
 #include "dummy_resources.h"
 #include "sampler_cache.h"
 #include <3d/tql.h>
@@ -37,7 +39,12 @@
 #include "global_lock.h"
 #include <destroyEvent.h>
 #include <osApiWrappers/dag_direct.h>
+#include <drv/3d/dag_texture.h>
 #include "wrapped_command_buffer.h"
+#include "resource_readbacks.h"
+#include "resource_upload_limit.h"
+#include "sampler_resource.h"
+#include "swapchain.h"
 
 using namespace drv3d_vulkan;
 
@@ -54,7 +61,7 @@ VulkanSurfaceKHRHandle surface;
 struct InitCtx
 {
   Tab<const char *> enabledInstanceLayers;
-  eastl::vector<VkLayerProperties> layerList;
+  dag::Vector<VkLayerProperties> layerList;
 
   Tab<PhysicalDeviceSet> physicalDeviceSets;
   uint32_t usePhysicalDeviceIndex = -1;
@@ -165,7 +172,7 @@ struct InitCtx
     auto tryInitInstance = [&]() {
       instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(enabledInstanceLayers.size());
       instanceCreateInfo.ppEnabledLayerNames = enabledInstanceLayers.data();
-      return Globals::VK::inst.init(Globals::VK::loader, instanceCreateInfo);
+      return Globals::VK::inst.init(instanceCreateInfo);
     };
 
     if (!tryInitInstance())
@@ -286,6 +293,7 @@ struct InitCtx
     const DataBlock *extensionCfg = nullptr;
 
     PhysicalDeviceSet *set = nullptr;
+    bool inReset = false;
 
     const char *skip = nullptr;
     void reject(const char *msg) { skip = msg; }
@@ -361,6 +369,7 @@ struct InitCtx
       usedDeviceExtension.shrink_to_fit();
 
       auto injectExtensions = [&](const char *injection) {
+        bool allInjected = true;
         char *desiredRendererExtensions = const_cast<char *>(injection);
         while (desiredRendererExtensions && *desiredRendererExtensions)
         {
@@ -380,13 +389,34 @@ struct InitCtx
           }) != usedDeviceExtension.cend();
 
           if (!dupe)
-            usedDeviceExtension.push_back(currentExtension);
+          {
+            bool supported =
+              eastl::find_if(set->extensions.cbegin(), set->extensions.cend(), [currentExtension](const VkExtensionProperties &ext) {
+                return strcmp(ext.extensionName, currentExtension) == 0;
+              }) != set->extensions.cend();
+            if (!supported)
+            {
+              allInjected &= false;
+              debug("vulkan: dropping injection of not supported extension %s", currentExtension);
+            }
+            else
+            {
+              debug("vulkan: injected extension %s", currentExtension);
+              usedDeviceExtension.push_back(currentExtension);
+            }
+          }
         }
 
         dci.enabledExtensionCount = usedDeviceExtension.size();
+        return allInjected;
       };
       if (initCallback)
         injectExtensions(initCallback->desiredRendererDeviceExtensions());
+
+#if !USE_STREAMLINE_FOR_DLSS
+      for (auto &ext : Globals::dlss.getRequiredDeviceExtensions(Globals::VK::inst.get(), Globals::VK::phy.device))
+        injectExtensions(ext.c_str());
+#endif
 
       eastl::string lateOsSpecificExts = os_get_additional_ext_requirements(set->device, set->extensions);
       if (!lateOsSpecificExts.empty())
@@ -435,6 +465,8 @@ struct InitCtx
       disableExtensionsByDataBlock(extensionCfg, "global config");
       disableExtensionsByDataBlock(Globals::cfg.getPerDriverPropertyBlock("extensions"), "per driver config");
       // re-init extensions on set to update features supported
+      if (inReset)
+        set->processExtendedFeaturesQueryResult();
       set->initExt(Globals::VK::inst);
     }
 
@@ -504,7 +536,8 @@ struct InitCtx
       if (Globals::VK::phy.memoryBudgetInfoAvailable)
         Globals::Mem::pool.applyBudget(Globals::VK::phy.memoryBudgetInfo);
 #endif
-      Globals::Mem::res.init(Globals::VK::phy);
+      if (!inReset)
+        Globals::Mem::res.init(Globals::VK::phy);
     }
 
     void initCfg()
@@ -562,10 +595,10 @@ struct InitCtx
 
     bool initDeviceWithReducedFeatures()
     {
-      if (!Globals::VK::dev.init(&Globals::VK::inst, Globals::VK::phy.device, dci))
+      if (!Globals::VK::dev.init(Globals::VK::phy.device, dci))
         return false;
-      logerr("vulkan: created device without some features, while expected to be working AS-IS!!! workaround this driver bug via "
-             "config!!!");
+      D3D_ERROR("vulkan: created device without some features, while expected to be working AS-IS!!! workaround this driver bug via "
+                "config!!!");
       return true;
     }
 
@@ -582,6 +615,7 @@ struct InitCtx
     // some devices provide invalid support of features, try to disable features till device are able to be created
     bool initDeviceWithFeatureDowngrade()
     {
+      logwarn("vulkan: retrying init with iterative feature downgrade");
       for (;;)
       {
         if (!featureDowngradeStep())
@@ -593,6 +627,20 @@ struct InitCtx
       return false;
     }
 
+
+    bool initDeviceWithoutStreamline()
+    {
+#if USE_STREAMLINE_FOR_DLSS
+      if (Globals::VK::loader.streamlineAdapter)
+      {
+        logwarn("vulkan: retrying init without nv streamline");
+        Globals::VK::loader.streamlineAdapter.reset();
+        return Globals::VK::dev.init(Globals::VK::phy.device, dci);
+      }
+#endif
+      return false;
+    }
+
 #if VK_KHR_global_priority
     bool initDeviceWithoutQueuePriority()
     {
@@ -601,7 +649,7 @@ struct InitCtx
       logwarn("vulkan: retrying init without queue priority");
       for (VkDeviceQueueCreateInfo &i : qci)
         i.pNext = nullptr;
-      return Globals::VK::dev.init(&Globals::VK::inst, Globals::VK::phy.device, dci);
+      return Globals::VK::dev.init(Globals::VK::phy.device, dci);
     }
 #else
     bool initDeviceWithoutQueuePriority() { return false; }
@@ -611,39 +659,50 @@ struct InitCtx
     {
       // may be modified with extension disable logic, so need to update it
       Globals::VK::phy = *set;
-      if (!Globals::VK::dev.init(&Globals::VK::inst, Globals::VK::phy.device, dci)) //-V1051
+      if (!Globals::VK::dev.init(Globals::VK::phy.device, dci)) //-V1051
       {
-        if (!initDeviceWithoutQueuePriority())
-        {
-          if (d3d::get_last_error_code() == (uint32_t)VK_ERROR_FEATURE_NOT_PRESENT)
-          {
-            logwarn("vulkan: retrying init with iterative feature downgrade");
-            if (!initDeviceWithFeatureDowngrade())
-              return reject("create or proc addr getting failed at non present feature but feature downgrade did not helped");
-          }
-          else
-            return reject("create or proc addr getting failed");
-        }
+        bool retryOk = initDeviceWithoutStreamline();
+        if (!retryOk)
+          retryOk = initDeviceWithoutQueuePriority();
+        if (!retryOk)
+          retryOk = initDeviceWithFeatureDowngrade();
+        if (!retryOk)
+          return reject("create or proc addr getting failed, retry methods did not helped");
       }
       dumpDeviceExtensions();
       if (!device_has_all_required_extensions(Globals::VK::dev,
             [](const char *name) { logwarn("vulkan: Missing device extension %s", name); }))
         return reject("some required extensions where not loaded (broken driver)");
-      Globals::VK::queue = DeviceQueueGroup(Globals::VK::dev, queueGroupInfo);
+
+      // if we did not found queue on which sparse binding is supported, disable this feature
+      if (!queueGroupInfo.supportsSparseBind && Globals::VK::phy.features.sparseBinding)
+      {
+        debug("vulkan: queue with sparse binding support not found, sparse binding disabled");
+        Globals::VK::phy.features.sparseBinding = 0;
+      }
+      Globals::VK::queue = DeviceQueueGroup(queueGroupInfo);
       initCfg();
       initMemory();
+      if (!Frontend::swapchain.init())
+        return reject("unable to init swapchain");
 
-      SwapchainMode swapchainMode;
-      swapchainMode.recreateRequest = 0;
-      swapchainMode.surface = surface;
-      swapchainMode.enableSrgb = false;
-      swapchainMode.extent.width = Globals::window.settings.resolutionX;
-      swapchainMode.extent.height = Globals::window.settings.resolutionY;
-      swapchainMode.setPresentModeFromConfig();
-      swapchainMode.fullscreen =
-        dgs_get_window_mode() == WindowMode::WINDOWED_NO_BORDER || dgs_get_window_mode() == WindowMode::WINDOWED_FULLSCREEN;
-      if (!Globals::swapchain.init(swapchainMode))
-        return reject("unable to create swapchain");
+#if !USE_STREAMLINE_FOR_DLSS
+      Globals::dlss.Initialize(Globals::VK::inst.get(), Globals::VK::phy.device, Globals::VK::dev.get());
+#endif
+
+      if (!inReset)
+      {
+        SwapchainMode swapchainMode{};
+        swapchainMode.surface = surface;
+        swapchainMode.enableSrgb = false;
+        swapchainMode.extent.width = Globals::window.settings.resolutionX;
+        swapchainMode.extent.height = Globals::window.settings.resolutionY;
+        swapchainMode.setPresentModeFromConfig();
+        swapchainMode.fullscreen = dgs_get_window_mode() == WindowMode::WINDOWED_NO_BORDER ||
+                                   dgs_get_window_mode() == WindowMode::WINDOWED_FULLSCREEN ||
+                                   dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE;
+        Frontend::swapchain.setMode(swapchainMode);
+      }
     }
   };
   DeviceCreateCache dcc = {};
@@ -710,15 +769,9 @@ void shutdown_device()
   if (!Globals::VK::dev.isValid())
     return;
 
-  // shutdown surface if we exited prior window destruction
-  SwapchainMode newMode(Globals::swapchain.getMode());
-  newMode.surface = VulkanNullHandle();
-  Globals::swapchain.setMode(newMode);
-
   if (Globals::cfg.bits.commandMarkers)
     Globals::gpuExecMarkers.shutdown();
   Globals::dummyResources.shutdown(Globals::ctx);
-  Globals::rtScratchBuffer.shutdown();
   Globals::surveys.shutdownDataBuffers();
   Globals::ctx.shutdown();
 
@@ -726,18 +779,27 @@ void shutdown_device()
   if (VULKAN_FAIL(res))
     D3D_ERROR("vulkan: Device::shutdown vkDeviceWaitIdle failed with %08lX", res);
 
+  GpuLatency::teardown();
+#if USE_STREAMLINE_FOR_DLSS
+  Globals::VK::loader.streamlineAdapter.reset();
+#else
+  Globals::dlss.Teardown(Globals::VK::dev.get());
+#endif
+
   Globals::samplers.shutdown();
   Globals::timelines.shutdown();
-  Globals::pipelines.unloadAll(Globals::VK::dev);
+  Globals::pipelines.unloadAll();
   Globals::pipeCache.shutdown();
-  Globals::passes.unloadAll(Globals::VK::dev);
-  Globals::fences.resetAll(Globals::VK::dev);
+  Globals::passes.unloadAll();
+  Globals::fences.resetAll();
   Globals::Mem::res.shutdown();
   Globals::rtSizeQueryPool.shutdownPools();
   Globals::surveys.shutdownPools();
   Globals::timestamps.shutdown();
+  Globals::occlusionQueries.shutdown();
   BuiltinPipelineBarrierCache::clear();
   Backend::cb.shutdown();
+  Globals::VK::queue.shutdown();
   Globals::VK::dev.shutdown();
   Globals::VK::bufAlign.shutdown();
 }
@@ -748,7 +810,7 @@ bool d3d::init_driver()
 {
   if (d3d::is_inited())
   {
-    D3D_ERROR("Driver is already created");
+    D3D_CONTRACT_ERROR("Driver is already created");
     return false;
   }
   isInitialized = true;
@@ -757,12 +819,16 @@ bool d3d::init_driver()
 
 void d3d::release_driver()
 {
+  Globals::lock.acquire();
   TEXQL_SHUTDOWN_TEX();
   tql::termTexStubs();
   isInitialized = false;
 
   if (!initVideoDone)
+  {
+    Globals::lock.release();
     return;
+  }
 
   debug("vulkan: releaseAll");
 
@@ -770,6 +836,7 @@ void d3d::release_driver()
   PipelineState &pipeState = Frontend::State::pipe;
   pipeState.reset();
   pipeState.makeDirty();
+  Frontend::swapchain.shutdown();
 
   Globals::Res::buf.freeWithLeakCheck(
     [](GenericBufferInterface *i) { debug("vulkan: generic buffer %p %s leaked", i, i->getBufName()); });
@@ -788,6 +855,7 @@ void d3d::release_driver()
   Globals::shaderProgramDatabase.shutdown();
   Globals::Dbg::rdoc.shutdown();
   initVideoDone = false;
+  Globals::lock.release();
 }
 
 void dumpStateSizes()
@@ -847,7 +915,7 @@ void update_vulkan_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
 {
   auto &deviceProps = Globals::VK::phy;
 
-  gpu_driver_config.primaryVendor = deviceProps.vendorId;
+  gpu_driver_config.primaryVendor = deviceProps.vendor;
   gpu_driver_config.deviceId = deviceProps.properties.deviceID;
   gpu_driver_config.integrated = deviceProps.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
   for (int i = 0; i < 4; ++i)
@@ -868,7 +936,8 @@ void update_vulkan_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
 bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd, void *hicon,
   const char *title, Driver3dInitCallback *cb)
 {
-  G_ASSERTF(!initVideoDone, "vulkan: trying to call init_video when already inited");
+  Globals::lock.acquire();
+  D3D_CONTRACT_ASSERTF(!initVideoDone, "vulkan: trying to call init_video when already inited");
   // on some systems we attach to existing window and must wait for it to be available
   waitForAppWindow();
   initCallback = cb;
@@ -890,9 +959,13 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   ERR_CHECK(ictx.verifyDeviceCreated());
   ictx.initDeviceIndependentSystems();
   ictx.initBufferRelatedSystems();
+  Globals::samplers.init();
   Globals::dummyResources.init();
+  Frontend::readbacks.init();
   // load the driver pipeline cache from disk
   ictx.loadPrimaryPipeCache();
+  // readed indirectly to allow safely change merge mode at runtime
+  Backend::interop.barrierMergeMode = Globals::cfg.barrierMergeMode;
 
   Globals::cfg.fillExternalCaps(Globals::desc);
   // must be after caps fill
@@ -901,6 +974,16 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (Globals::cfg.bits.enableRenderDocLayer)
     Globals::Dbg::rdoc.init();
   initVideoDone = true;
+  Frontend::swapchain.nextFrame();
+
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter)
+  {
+    Globals::VK::loader.streamlineAdapter->setVulkan();
+    Globals::ctx.initializeStreamlineDlss(Frontend::swapchain.getMode().extent.width, Frontend::swapchain.getMode().extent.height);
+  }
+#endif
+  GpuLatency::create(Globals::VK::phy.vendor);
 
   // external engine stuff
 
@@ -919,15 +1002,187 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   }
 
   debug("vulkan: init_video done");
+  Globals::lock.release();
   return true;
 }
+
+namespace
+{
+
+template <typename ResType>
+void onDeviceResetResCb(ResType *res)
+{
+  ResourceAlgorithm<ResType> alg(*res);
+  alg.onDeviceReset();
+}
+
+template <typename ResType>
+void afterDeviceResetResCb(ResType *res)
+{
+  ResourceAlgorithm<ResType> alg(*res);
+  alg.afterDeviceReset();
+}
+
+void delete_all_device_resources()
+{
+  TIME_PROFILE(vulkan_dev_reset_delete_res);
+
+  Frontend::State::pipe.reset();
+  Frontend::State::pipe.makeDirty();
+  Frontend::swapchain.shutdown();
+
+  {
+    WinAutoLock lk(Globals::Mem::mutex);
+    Globals::Res::tex.iterateAllocated([&](TextureInterfaceBase *tex) { tex->onDeviceReset(); });
+    Globals::Res::buf.iterateAllocated([&](GenericBufferInterface *buff) { buff->onDeviceReset(); });
+  }
+
+  Globals::dummyResources.shutdown(Globals::ctx);
+  Globals::ctx.processAllPendingWork();
+
+  Frontend::frameMemBuffers.purge();
+  // shaders will be reset by engine logic (ShadersReset proc), so all we need is to clear existing ones
+  Backend::pipelineCompiler.shutdown();
+  Globals::shaderProgramDatabase.clear(Globals::ctx);
+  Globals::ctx.processAllPendingWork();
+
+
+  WinAutoLock lk(Globals::Mem::mutex);
+
+  Globals::Mem::res.iterateAllocated<MemoryHeapResource>(onDeviceResetResCb<MemoryHeapResource>);
+  Globals::Mem::res.iterateAllocated<Image>(onDeviceResetResCb<Image>);
+  Globals::Mem::res.iterateAllocated<Buffer>(onDeviceResetResCb<Buffer>);
+
+  Globals::Mem::res.iterateAllocated<RenderPassResource>(onDeviceResetResCb<RenderPassResource>);
+#if VULKAN_HAS_RAYTRACING
+  Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(onDeviceResetResCb<RaytraceAccelerationStructure>);
+#endif
+  Globals::Mem::res.iterateAllocated<SamplerResource>(onDeviceResetResCb<SamplerResource>);
+
+  // temp buffers
+  Globals::passes.unloadAll();
+  Globals::bindless.onDeviceReset();
+  Globals::Mem::res.onDeviceReset();
+
+  Backend::gpuJob.end();
+  Frontend::replay.end();
+  Globals::timelines.shutdown();
+
+  Globals::pipelines.unloadAll();
+  Globals::pipeCache.onDeviceReset();
+  Globals::fences.resetAll();
+  Globals::rtSizeQueryPool.shutdownPools();
+  Globals::timestamps.shutdown();
+  Globals::occlusionQueries.shutdown();
+  Globals::surveys.onDeviceReset();
+
+  GpuLatency::teardown();
+#if USE_STREAMLINE_FOR_DLSS
+  Globals::VK::loader.streamlineAdapter.reset();
+#else
+  Globals::dlss.Teardown(Globals::VK::dev.get());
+#endif
+}
+
+void restore_all_device_resources()
+{
+  TIME_PROFILE(vulkan_dev_reset_restore_res);
+  ictx.loadPrimaryPipeCache();
+  Globals::timelines.init();
+  Frontend::replay.start();
+  Backend::gpuJob.start();
+
+  Globals::surveys.afterDeviceReset();
+
+  Backend::pipelineCompiler.init();
+  Globals::shaderProgramDatabase.init(Globals::desc.caps.hasBindless, Globals::ctx);
+  Globals::Mem::res.afterDeviceReset();
+  Globals::bindless.afterDeviceReset();
+  // temp buffers
+
+  Globals::Mem::res.iterateAllocated<SamplerResource>(afterDeviceResetResCb<SamplerResource>);
+#if VULKAN_HAS_RAYTRACING
+  Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(afterDeviceResetResCb<RaytraceAccelerationStructure>);
+#endif
+  Globals::Mem::res.iterateAllocated<RenderPassResource>(afterDeviceResetResCb<RenderPassResource>);
+  Globals::Mem::res.iterateAllocated<Buffer>(afterDeviceResetResCb<Buffer>);
+  Globals::Mem::res.iterateAllocated<Image>(afterDeviceResetResCb<Image>);
+  Globals::Mem::res.iterateAllocated<MemoryHeapResource>(afterDeviceResetResCb<MemoryHeapResource>);
+
+  Globals::dummyResources.init();
+
+  Frontend::resUploadLimit.setNoFailOnThread(true);
+
+  {
+    WinAutoLock lk(Globals::Mem::mutex);
+
+    // Textures
+    Globals::Res::tex.iterateAllocated([&](TextureInterfaceBase *tex) { tex->afterDeviceReset(); });
+
+    // Buffers
+    Globals::Res::buf.iterateAllocated([&](GenericBufferInterface *buf) { buf->afterDeviceReset(); });
+  }
+
+  Frontend::resUploadLimit.setNoFailOnThread(false);
+
+  SwapchainMode newMode(Frontend::swapchain.getMode());
+  newMode.surface = surface;
+  Frontend::swapchain.setMode(newMode);
+
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter)
+  {
+    Globals::VK::loader.streamlineAdapter->setVulkan();
+    Globals::ctx.initializeStreamlineDlss(Frontend::swapchain.getMode().extent.width, Frontend::swapchain.getMode().extent.height);
+  }
+#endif
+  GpuLatency::create(Globals::VK::phy.vendor);
+}
+
+bool recreate_device()
+{
+  TIME_PROFILE(vulkan_dev_reset_recreate);
+  // if we miss something, validator should complain here
+  Globals::VK::queue.shutdown();
+  Globals::VK::dev.shutdown();
+
+#if USE_STREAMLINE_FOR_DLSS
+  // must be inited before device creation
+  Globals::VK::loader.initStreamlineAdapter();
+#endif
+  // use already configured init context
+  ictx.dcc.inReset = true;
+  ictx.initConfigs();
+  ERR_CHECK(ictx.initSurface());
+  ictx.tryInitDeviceLoop();
+  ERR_CHECK(ictx.verifyDeviceCreated());
+  ictx.dcc.inReset = false;
+  return true;
+}
+
+void full_device_reset()
+{
+  TIME_PROFILE(vulkan_dev_reset);
+  bool usingWorker = Globals::ctx.isWorkerRunning();
+  if (usingWorker)
+    Globals::ctx.toggleWorkerThread();
+  delete_all_device_resources();
+  recreate_device();
+  restore_all_device_resources();
+  if (usingWorker)
+    Globals::ctx.toggleWorkerThread();
+}
+
+} // namespace
 
 extern bool dagor_d3d_force_driver_mode_reset;
 bool d3d::device_lost(bool *can_reset_now)
 {
+  const bool deviceLost = dagor_d3d_force_driver_reset || dagor_d3d_force_driver_mode_reset;
+
   if (can_reset_now)
-    *can_reset_now = dagor_d3d_force_driver_mode_reset;
-  return dagor_d3d_force_driver_mode_reset;
+    *can_reset_now = deviceLost;
+  return deviceLost;
 }
 static bool device_is_being_reset = false;
 bool d3d::is_in_device_reset_now() { return /*device_is_lost != S_OK || */ device_is_being_reset; }
@@ -957,31 +1212,38 @@ bool d3d::reset_device()
   if (!Globals::window.setRenderWindowParams())
     return false;
 
-  SwapchainMode newMode(Globals::swapchain.getMode());
+  if (dagor_d3d_force_driver_reset)
+    full_device_reset();
+
+  SwapchainMode newMode(Frontend::swapchain.getMode());
 
   VkExtent2D cext;
   cext.width = Globals::window.settings.resolutionX;
   cext.height = Globals::window.settings.resolutionY;
   newMode.extent = cext;
   newMode.setPresentModeFromConfig();
-
-  // linux returns pointer to static object field
-  // treat this as always changed instead as always same
-#if !_TARGET_PC_LINUX
-  // reset changed window, we need to update surface
-  if (oldWindow != Globals::window.getMainWindow())
+#if _TARGET_ANDROID
+  // android may send some resize/redraw window commands that do not trigger mode change
+  // yet after this commands swapchain is broken if not recreated
+  // so recreate always
+  newMode.modifySource = "android reset device";
 #endif
+
+  // reset changed window, we need to update surface
+  if (oldWindow != Globals::window.getMainWindow() || is_null(newMode.surface))
   {
     newMode.surface = init_window_surface(Globals::VK::inst);
   }
 
   // empty mode change will be filtered automatically
-  Globals::swapchain.setMode(newMode);
+  Frontend::swapchain.setMode(newMode);
+  Frontend::swapchain.nextFrame();
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
     os_set_display_mode(Globals::window.settings.resolutionX, Globals::window.settings.resolutionY);
 
   dagor_d3d_force_driver_mode_reset = false;
+  dagor_d3d_force_driver_reset = false;
   return true;
 }
 
@@ -997,10 +1259,31 @@ void d3d::window_destroyed(void *handle)
     if (handle == Globals::window.getMainWindow())
     {
       Globals::window.closeWindow();
-      SwapchainMode newMode(Globals::swapchain.getMode());
+      SwapchainMode newMode(Frontend::swapchain.getMode());
       newMode.surface = VulkanNullHandle();
-      Globals::swapchain.setMode(newMode);
+      Frontend::swapchain.setMode(newMode);
     }
     Globals::lock.release();
   }
+}
+
+bool is_vulkan_supported()
+{
+  if (d3d::is_inited())
+    return true;
+
+  ictx.initConfigs();
+  ictx.loadVkLib();
+  if (ictx.error == nullptr)
+    ictx.initInstance();
+
+  bool result = (ictx.error == nullptr);
+  ictx.error = nullptr;
+
+  if (Globals::VK::inst.isValid())
+    Globals::VK::inst.shutdown();
+  if (Globals::VK::loader.isValid())
+    Globals::VK::loader.unload();
+
+  return result;
 }

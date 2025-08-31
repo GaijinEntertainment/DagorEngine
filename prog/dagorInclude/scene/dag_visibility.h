@@ -47,6 +47,7 @@ public:
 
   const Frustum &getFrustum() const { return frustum; }
   void setFrustum(const Frustum &f) { frustum = f; }
+  void setViewerPos(vec3f v) { viewerPos = v; }
   const Occlusion *getOcclusion() const { return occlusion; }
   vec3f getViewerPos() const { return viewerPos; }
 

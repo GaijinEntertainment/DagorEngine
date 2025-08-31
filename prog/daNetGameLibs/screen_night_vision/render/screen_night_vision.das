@@ -5,7 +5,7 @@ require danetlibs.renderer.includes.render_events
 require DagorMath
 require DagorShaders
 require DagorSystem
-require daBfg.resource_slot_ecs
+require daFrameGraph.resource_slot_ecs
 
 [es(tag=render, on_appear, track=screen_night_vision__preset)]
 def on_appear_screen_night_vision(evt : Event;
@@ -39,8 +39,8 @@ def set_night_vision_preset_value(eid : EntityId;
 def set_night_vision_preset_vehicle_parameters_es(evt : Event;
                                                   eid : EntityId;
                                                   vehicle__night_vision : bool)
-  let value = vehicle__night_vision;
-  set_night_vision_preset_value(eid, value);
+  let value = vehicle__night_vision
+  set_night_vision_preset_value(eid, value)
 
 [es(tag=render, REQUIRE=night_vision__isPreset, on_disappear)]
 def night_vision_preset_remove_es(evt : Event)
@@ -70,20 +70,20 @@ def screen_night_vision_attach(var screenNightVision : NodeHandleWithSlotsAccess
     screenNightVision |> reset
     return
 
-  screenNightVision <- root() |> registerAccess("screen_night_vision", [[SlotActions update <- [{Update slot="postfx_input_slot", resource="screen_night_vision_tex", priority=100 }] ]]) <| @(slots_state; var registry : Registry)
+  screenNightVision <- root() |> registerAccess("screen_night_vision", SlotActions(update <- [Update(slot="postfx_input_slot", resource="screen_night_vision_tex", priority=100)])) <| @(slots_state; var registry : Registry)
 
-    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot"), History No) |> texture(
-      [[Texture2dCreateInfo()
+    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot"), History.No) |> texture(
+      Texture2dCreateInfo(
         creationFlags = TEXFMT_R11G11B10F | TEXCF_RTARGET,
-        resolution = [[TextureResolution2 autoRes=registry |> getResolution`2("post_fx")]],
-      ]]
+        resolution = TextureResolution2(autoRes = registry |> getResolution`2("post_fx"))
+      )
     )
 
-    registry |> requestRenderPass |> color([[auto[] slots_state |> resourceToCreateFor("postfx_input_slot")]])
+    registry |> requestRenderPass |> color(fixed_array(slots_state |> resourceToCreateFor("postfx_input_slot")))
 
-    registry |> read(slots_state |> resourceToReadFrom("postfx_input_slot")) |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("frame_tex")
+    registry |> read(slots_state |> resourceToReadFrom("postfx_input_slot")) |> texture |> atStage(Stage.POST_RASTER) |> bindToShaderVar("frame_tex")
 
-    registry |> read("depth_after_transparency") |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("depth_gbuf")
+    registry |> read("depth_after_transparency") |> texture |> atStage(Stage.POST_RASTER) |> bindToShaderVar("depth_gbuf")
 
     return <- @ <|
       query() <| $ [es] (screen_night_vision__shader : PostFxRenderer)

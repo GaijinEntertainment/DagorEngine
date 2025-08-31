@@ -103,7 +103,7 @@ struct HumanControlState //-V730
     QUICK_RELOAD_MASK = (1 << QUICK_RELOAD_BITS) - 1,
     EXT_BITS = LEAN_BITS + TS_BITS + DEVICE_BITS + ALT_ATTACK_BITS + DODGE_BITS + QUICK_RELOAD_BITS,
   };
-  G_STATIC_ASSERT((HCT_NUM + EWS_BITS + /*PS_HAS_EXT_STATE*/ 1) <= sizeof(decltype(packedState)) * CHAR_BIT);
+  G_STATIC_ASSERT(((int)HCT_NUM + (int)EWS_BITS + /*PS_HAS_EXT_STATE*/ 1) <= sizeof(decltype(packedState)) * CHAR_BIT);
   G_STATIC_ASSERT(EXT_BITS <= sizeof(decltype(extendedState)) * CHAR_BIT);
   uint16_t walkPacked = 0;
   enum

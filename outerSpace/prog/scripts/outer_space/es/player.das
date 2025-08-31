@@ -54,9 +54,9 @@ def on_client_connected_server(evt : EventOnClientConnected)
   var conn : net::IConnection? = get_client_connection(evt.connid)
   if conn != null && plrEid != INVALID_ENTITY_ID
     verify(*conn |> setEntityInScopeAlways(plrEid))
-    send_net_event(plrEid, [[SetLocalPlayerMsg]], target_entity_conn(plrEid))
-    broadcastEvent([[EventStartCountDown]])
-    broadcastEvent([[PlayerStartQuitGameTimer]])
+    send_net_event(plrEid, SetLocalPlayerMsg(), target_entity_conn(plrEid))
+    broadcastEvent(EventStartCountDown())
+    broadcastEvent(PlayerStartQuitGameTimer())
 
 def has_connected_players() : bool
   return find_query() <| $ [es(REQUIRE=player)] (connid : int; is_local : bool)
@@ -84,7 +84,7 @@ def set_session_times(evt : EventStartCountDown; session_duration_sec : float; v
     time_to_start_countdown_msec = int(get_sync_time() * 1000.0)
   if session_duration_sec > 0.0 && time_to_end_session_msec < 0
     time_to_end_session_msec = time_to_start_session_msec + int(session_duration_sec * 1000.0)
-  broadcastEvent([[EventSetMissionTimer mission_end_time_sec=float(time_to_end_session_msec) / 1000.0]])
+  broadcastEvent(EventSetMissionTimer(mission_end_time_sec = float(time_to_end_session_msec) / 1000.0))
 
 def set_input_enabled(enabled : bool)
   query() <| $ [es(REQUIRE=hero)] (var input__enabled : bool&)
@@ -115,7 +115,7 @@ def set_session_quit_timer(evt : EventSetMissionTimer)
 [es(tag=server)]
 def end_session_on_time(info : UpdateStageInfoAct; time_to_end_session_msec : int)
   if time_to_end_session_msec <= int(get_sync_time() * 1000.0) && time_to_end_session_msec > 0
-    broadcast_net_event([[EventSessionFinishedOnTimeout]])
+    broadcast_net_event(EventSessionFinishedOnTimeout())
 
 [es(tag=server)]
 def check_to_exit_on_no_players(evt : PlayerStartQuitGameTimer; timeout_on_all_players_left_sec : float; var server_no_players_timer__handle : uint64&)
@@ -141,7 +141,7 @@ def on_client_disconnected_server(evt : EventOnClientDisconnected)
       destroyEntity(eid)
       return true
     return false
-  broadcastEvent([[PlayerStartQuitGameTimer]])
+  broadcastEvent(PlayerStartQuitGameTimer())
 
 def spawn_player_entity(possessed_by_player : EntityId)
   var spawnTms : array<float3x4>
@@ -179,7 +179,7 @@ def spawn_player_entity(possessed_by_player : EntityId)
     init |> set("possessedByPlr", possessed_by_player)
     init |> set("spaceship__use_stabilization", has_gravity)
 
-[es(tag=server, on_appear, REQUIRE=player)]
+[es(tag=not_inside_tools, tag=server, on_appear, REQUIRE=player)]
 def on_player_created_server(evt : Event; eid : EntityId; connid : int = -1; canBeLocal : bool = true)
   var conn : IConnection? = get_client_connection(connid)
   if conn != null
@@ -191,8 +191,8 @@ def on_player_created_server(evt : Event; eid : EntityId; connid : int = -1; can
     if canBeLocal && get_local_player_eid() == INVALID_ENTITY_ID
       set_local_player_eid(eid)
   spawn_player_entity(eid)
-  broadcastEvent([[EventStartCountDown]])
-  broadcastEvent([[PlayerStartQuitGameTimer]])
+  broadcastEvent(EventStartCountDown())
+  broadcastEvent(PlayerStartQuitGameTimer())
 
 [es(tag=gameClient, on_appear, REQUIRE=player)]
 def on_player_created_client(evt : Event; var replication : NetObject&)
@@ -207,7 +207,7 @@ def on_player_destroyed(evt : Event; eid : EntityId; connid : int)
   var conn : IConnection? = get_client_connection(connid)
   if conn != null
     *conn |> connection_setUserEid(INVALID_ENTITY_ID)
-  broadcastEvent([[PlayerStartQuitGameTimer]])
+  broadcastEvent(PlayerStartQuitGameTimer())
 
 [es(on_event=SetLocalPlayerMsg, tag=gameClient, REQUIRE=player)]
 def set_local_player(evt : Event; eid : EntityId)
@@ -224,7 +224,7 @@ def finalize_possesion_server(evt : Event; eid, possessedByPlr : EntityId; var r
     var clientConn : net::IConnection? = get_client_connection(connid)
     if clientConn != null
       replication |> net_object_setControlledBy(connid)
-      clientNetFlags |= int(ClientNetFlags CNF_REPLICATE_PHYS_ACTORS)
+      clientNetFlags |= int(ClientNetFlags.CNF_REPLICATE_PHYS_ACTORS)
       var actor : BasePhysActor? = get_phys_actor(possessedEid)
       if actor != null
-        *actor |> base_phys_actor_setRoleAndTickrateType(NetRole ROLE_REMOTELY_CONTROLLED_AUTHORITY, PhysTickRateType Normal)
+        *actor |> base_phys_actor_setRoleAndTickrateType(NetRole.ROLE_REMOTELY_CONTROLLED_AUTHORITY, PhysTickRateType.Normal)

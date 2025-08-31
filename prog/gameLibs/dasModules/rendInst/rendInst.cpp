@@ -17,6 +17,7 @@ struct RendInstDescAnnotation final : das::ManagedStructureAnnotation<rendinst::
     addField<DAS_BIND_MANAGED_FIELD(layer)>("layer");
     addProperty<DAS_BIND_MANAGED_PROP(isValid)>("isValid");
     addProperty<DAS_BIND_MANAGED_PROP(isRiExtra)>("isRiExtra");
+    addProperty<DAS_BIND_MANAGED_PROP(isDynamicRiExtra)>("isDynamicRiExtra");
     addProperty<DAS_BIND_MANAGED_PROP(getRiExtraHandle)>("riExtraHandle", "getRiExtraHandle");
   }
   bool isLocal() const override { return true; } // force isLocal, because ctor is non trivial
@@ -29,6 +30,7 @@ struct RiExtraComponentAnnotation : das::ManagedStructureAnnotation<RiExtraCompo
   {
     cppName = " ::RiExtraComponent";
     addField<DAS_BIND_MANAGED_FIELD(handle)>("handle");
+    addProperty<DAS_BIND_MANAGED_PROP(valid)>("valid");
   }
 };
 
@@ -82,6 +84,7 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addAnnotation(das::make_smart<RendInstDescAnnotation>(lib));
     addEnumeration(das::make_smart<EnumerationDrawCollisionsFlags>());
+    addEnumeration(das::make_smart<EnumerationGatherRiTypeFlags>());
     addAnnotation(das::make_smart<CollisionInfoAnnotation>(lib));
     das::addUsing<rendinst::CollisionInfo>(*this, lib, " ::rendinst::CollisionInfo");
 
@@ -109,8 +112,8 @@ public:
       das::SideEffects::accessExternal, "rendinst::riex_get_lbb");
     das::addExtern<DAS_BIND_FUN(get_rigen_extra_res_idx)>(*this, lib, "get_rigen_extra_res_idx", das::SideEffects::accessExternal,
       "bind_dascript::get_rigen_extra_res_idx");
-    das::addExtern<DAS_BIND_FUN(get_rigen_extra_matrix)>(*this, lib, "get_rigen_extra_matrix", das::SideEffects::accessExternal,
-      "bind_dascript::get_rigen_extra_matrix");
+    das::addExtern<DAS_BIND_FUN(get_rigen_extra_matrix)>(*this, lib, "get_rigen_extra_matrix",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::get_rigen_extra_matrix");
     das::addExtern<DAS_BIND_FUN(rendinst::handle_to_ri_type)>(*this, lib, "handle_to_ri_type", das::SideEffects::accessExternal,
       "rendinst::handle_to_ri_type");
     das::addExtern<DAS_BIND_FUN(rendinst::handle_to_ri_inst)>(*this, lib, "handle_to_ri_inst", das::SideEffects::accessExternal,
@@ -130,10 +133,14 @@ public:
       das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable");
     das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable_in_transformed_box)>(*this, lib, "gather_ri_gen_extra_collidable",
       das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable_in_transformed_box");
+    das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable_max)>(*this, lib, "gather_ri_gen_extra_collidable_max",
+      das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable_max");
     das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_instances)>(*this, lib, "get_ri_gen_extra_instances",
       das::SideEffects::accessExternal, "bind_dascript::get_ri_gen_extra_instances");
     das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_instances_by_box)>(*this, lib, "getRiGenExtraInstances",
       das::SideEffects::accessExternal, "bind_dascript::get_ri_gen_extra_instances_by_box");
+    das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_instances_by_sphere)>(*this, lib, "getRiGenExtraInstances",
+      das::SideEffects::accessExternal, "bind_dascript::get_ri_gen_extra_instances_by_sphere");
     das::addExtern<DAS_BIND_FUN(bind_dascript::getRiGenDestrInfo)>(*this, lib, "getRiGenDestrInfo", das::SideEffects::modifyArgument,
       "bind_dascript::getRiGenDestrInfo");
     das::addExtern<DAS_BIND_FUN(rendinst::setRiGenExtraHp)>(*this, lib, "riex_set_hp", das::SideEffects::modifyExternal,
@@ -165,6 +172,8 @@ public:
       "rendinst::isRIGenExtraImmortal");
     das::addExtern<DAS_BIND_FUN(rendinst::isRIGenExtraWalls)>(*this, lib, "riex_isWalls", das::SideEffects::accessExternal,
       "rendinst::isRIGenExtraWalls");
+    das::addExtern<DAS_BIND_FUN(rendinst::getRIGenBSphere)>(*this, lib, "getRIGenBSphere", das::SideEffects::accessExternal,
+      "rendinst::getRIGenBSphere");
     das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_bsphere)>(*this, lib, "getRIGenExtraBSphere", das::SideEffects::accessExternal,
       "bind_dascript::get_ri_gen_extra_bsphere");
     das::addExtern<DAS_BIND_FUN(rendinst::getRIGenExtraBSphereByTM)>(*this, lib, "getRIGenExtraBSphereByTM",
@@ -215,12 +224,18 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::rendinst_cloneRIGenExtraResIdx");
     das::addExtern<DAS_BIND_FUN(rendinst::delRIGenExtra)>(*this, lib, "rendinst_delRIGenExtra", das::SideEffects::modifyExternal,
       "rendinst::delRIGenExtra");
-    das::addExtern<DAS_BIND_FUN(rendinst_foreachRIGenInBox)>(*this, lib, "rendinst_foreachRIGenInBox",
-      das::SideEffects::accessExternal, "bind_dascript::rendinst_foreachRIGenInBox");
+    das::addExtern<DAS_BIND_FUN(rendinst_foreachInBox)>(*this, lib, "rendinst_foreachInBox", das::SideEffects::accessExternal,
+      "bind_dascript::rendinst_foreachInBox");
     das::addExtern<DAS_BIND_FUN(rendinst::setMaxNumRiCollisionCb)>(*this, lib, "setMaxNumRiCollisionCb",
       das::SideEffects::modifyExternal, "rendinst::setMaxNumRiCollisionCb");
     das::addExtern<DAS_BIND_FUN(rendinst::moveToOriginalScene)>(*this, lib, "rendinst_moveToOriginalScene",
       das::SideEffects::modifyExternal, "rendinst::moveToOriginalScene");
+    das::addExtern<DAS_BIND_FUN(rendinst::removeFromTiledScene)>(*this, lib, "rendinst_removeFromTiledScene",
+      das::SideEffects::modifyExternal, "rendinst::removeFromTiledScene");
+    das::addExtern<DAS_BIND_FUN(rendinst::removeRIGenExtraFromGrid)>(*this, lib, "rendinst_removeRIGenExtraFromGrid",
+      das::SideEffects::modifyExternal, "rendinst::removeRIGenExtraFromGrid");
+    das::addExtern<DAS_BIND_FUN(rendinst::restoreRIGenExtraInGrid)>(*this, lib, "rendinst_restoreRIGenExtraInGrid",
+      das::SideEffects::modifyExternal, "rendinst::restoreRIGenExtraInGrid");
     das::addExtern<DAS_BIND_FUN(rendinst::applyTiledScenesUpdateForRIGenExtra)>(*this, lib, "applyTiledScenesUpdateForRIGenExtra",
       das::SideEffects::modifyExternal, "rendinst::applyTiledScenesUpdateForRIGenExtra");
     das::addExtern<DAS_BIND_FUN(rendinst_foreachTreeInBox)>(*this, lib, "rendinst_foreachTreeInBox", das::SideEffects::accessExternal,

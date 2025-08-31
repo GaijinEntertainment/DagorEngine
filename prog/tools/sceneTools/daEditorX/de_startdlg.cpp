@@ -44,9 +44,14 @@ static int sortPlugins(const PluginPtr *a, const PluginPtr *b)
 
 
 //==============================================================================
-StartupDlg::StartupDlg(const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp) :
+StartupDlg::StartupDlg(const char *caption, DeWorkspace &wsp, const char *wsp_blk, const char *select_wsp,
+  bool project_file_set_from_command_line) :
 
-  EditorStartDialog(caption, wsp, wsp_blk, select_wsp), exporters(tmpmem), mPanel(NULL), mSelected(-1)
+  EditorStartDialog(caption, wsp, wsp_blk, select_wsp),
+  exporters(tmpmem),
+  mPanel(NULL),
+  mSelected(-1),
+  projectFileSetFromCommandLine(project_file_set_from_command_line)
 {
   mPanel = getPanel();
   G_ASSERT(mPanel && "StartupDlg::StartupDlg: NO PANEL FOUND");
@@ -97,7 +102,7 @@ void StartupDlg::onChangeWorkspace(const char *name)
   int recentCnt = (recent.size() > VISIBLE_RECENT_COUNT) ? VISIBLE_RECENT_COUNT : recent.size();
 
   int selIdx = mPanel->getInt(ID_GROUP);
-  if (selIdx == PropPanel::RADIO_SELECT_NONE)
+  if (selIdx == PropPanel::RADIO_SELECT_NONE || selIdx == ID_OPEN_FROM_COMMAND_LINE)
     selIdx = 2;
   else
     selIdx -= ID_CREATE_NEW;
@@ -114,7 +119,16 @@ void StartupDlg::onChangeWorkspace(const char *name)
   _group->clear();
 
   //_group->createRadio(ID_CREATE_NEW, "Create new project...");
-  _group->createRadio(ID_OPEN_PROJECT, "Open project...");
+
+  if (stricmp(name, getStartWorkspace()) == 0 && projectFileSetFromCommandLine)
+  {
+    _group->createRadio(ID_OPEN_FROM_COMMAND_LINE, "Open project set from command line...");
+    selIdx = ID_OPEN_FROM_COMMAND_LINE - ID_CREATE_NEW;
+  }
+  else
+  {
+    _group->createRadio(ID_OPEN_PROJECT, "Open project...");
+  }
 
   for (int i = 0; i < recentCnt; ++i)
   {
@@ -123,6 +137,9 @@ void StartupDlg::onChangeWorkspace(const char *name)
   }
 
   mPanel->setInt(ID_GROUP, selIdx + ID_CREATE_NEW);
+
+  if (isVisible())
+    autoSize();
 }
 
 //==============================================================================

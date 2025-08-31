@@ -104,7 +104,7 @@ static int getCornerHeight(int x, int y, int i, int dir,
 }
 
 static void walkContour(int x, int y, int i,
-						rcCompactHeightfield& chf,
+						const rcCompactHeightfield& chf,
 						unsigned char* flags, rcIntArray& points)
 {
 	// Choose the first non-connected edge
@@ -402,7 +402,7 @@ static void simplifyContour(rcIntArray& points, rcIntArray& simplified,
 				if (dx*dx + dz*dz > maxEdgeLen*maxEdgeLen)
 				{
 					// Round based on the segments in lexilogical order so that the
-					// max tesselation is consistent regardles in which direction
+					// max tesselation is consistent regardless in which direction
 					// segments are traversed.
 					const int n = bi < ai ? (bi+pn - ai) : (bi - ai);
 					if (n > 1)
@@ -515,7 +515,7 @@ static bool intersectProp(const int* a, const int* b, const int* c, const int* d
 }
 
 // Returns T iff (a,b,c) are collinear and point c lies
-// on the closed segement ab.
+// on the closed segment ab.
 static bool between(const int* a, const int* b, const int* c)
 {
 	if (!collinear(a, b, c))
@@ -544,7 +544,7 @@ static bool vequal(const int* a, const int* b)
 	return a[0] == b[0] && a[2] == b[2];
 }
 
-static bool intersectSegCountour(const int* d0, const int* d1, int i, int n, const int* verts)
+static bool intersectSegContour(const int* d0, const int* d1, int i, int n, const int* verts)
 {
 	// For each edge (k,k+1) of P
 	for (int k = 0; k < n; k++)
@@ -752,7 +752,7 @@ static void mergeRegionHoles(rcContext* ctx, rcContourRegion& region)
 		for (int iter = 0; iter < hole->nverts; iter++)
 		{
 			// Find potential diagonals.
-			// The 'best' vertex must be in the cone described by 3 cosequtive vertices of the outline.
+			// The 'best' vertex must be in the cone described by 3 consecutive vertices of the outline.
 			// ..o j-1
 			//   |
 			//   |   * best
@@ -780,9 +780,9 @@ static void mergeRegionHoles(rcContext* ctx, rcContourRegion& region)
 			for (int j = 0; j < ndiags; j++)
 			{
 				const int* pt = &outline->verts[diags[j].vert*4];
-				bool intersect = intersectSegCountour(pt, corner, diags[i].vert, outline->nverts, outline->verts);
+				bool intersect = intersectSegContour(pt, corner, diags[i].vert, outline->nverts, outline->verts);
 				for (int k = i; k < region.nholes && !intersect; k++)
-					intersect |= intersectSegCountour(pt, corner, -1, region.holes[k].contour->nverts, region.holes[k].contour->verts);
+					intersect |= intersectSegContour(pt, corner, -1, region.holes[k].contour->nverts, region.holes[k].contour->verts);
 				if (!intersect)
 				{
 					index = diags[j].vert;
@@ -823,7 +823,7 @@ static void mergeRegionHoles(rcContext* ctx, rcContourRegion& region)
 /// See the #rcConfig documentation for more information on the configuration parameters.
 ///
 /// @see rcAllocContourSet, rcCompactHeightfield, rcContourSet, rcConfig
-bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
+bool rcBuildContours(rcContext* ctx, const rcCompactHeightfield& chf,
 					 const float maxError, const int maxEdgeLen,
 					 rcContourSet& cset, const int buildFlags)
 {
@@ -923,8 +923,8 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				const unsigned char area = chf.areas[i];
 				
-				verts.resize(0);
-				simplified.resize(0);
+				verts.clear();
+				simplified.clear();
 				
 				ctx->startTimer(RC_TIMER_BUILD_CONTOURS_TRACE);
 				walkContour(x, y, i, chf, flags, verts);
@@ -1011,7 +1011,7 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 	if (cset.nconts > 0)
 	{
 		// Calculate winding of all polygons.
-		rcScopedDelete<char> winding((char*)rcAlloc(sizeof(char)*cset.nconts, RC_ALLOC_TEMP));
+		rcScopedDelete<signed char> winding((signed char*)rcAlloc(sizeof(signed char)*cset.nconts, RC_ALLOC_TEMP));
 		if (!winding)
 		{
 			ctx->log(RC_LOG_ERROR, "rcBuildContours: Out of memory 'hole' (%d).", cset.nconts);

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "underwaterPostfxES.cpp.inl"
 ECS_DEF_PULL_VAR(underwaterPostfx);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc underwater_update_shadervars_es_comps[] =
 {

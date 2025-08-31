@@ -18,7 +18,8 @@ class SatelliteRenderer
 public:
   using LandmeshHeightGetterCb = eastl::function<bool(const Point2 &pos2d, float &height)>;
   using RenderWaterCb = eastl::function<void(Texture *color_target, const TMatrix &itm, Texture *depth)>;
-  using RenderLandmeshCb = eastl::function<void(mat44f_cref globtm, const Frustum &frustum, const Point3 &view_pos)>;
+  using RenderLandmeshCb =
+    eastl::function<void(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, const Point3 &view_pos)>;
   using ClipmapGetLastUpdatedTileCountCb = eastl::function<int()>;
 
   struct CallbackParams

@@ -12,8 +12,8 @@ namespace darg
 
 void SceneStatus::reset()
 {
-  renderErrorFlag = false;
-  sceneIsBroken = false;
+  isShowingError = false;
+  isShowingFullErrorDetails = false;
   errorCount = 0;
   errorBeginRenderTimeMsec = 0;
   errorMsg.clear();
@@ -23,7 +23,7 @@ void SceneStatus::reset()
 
 void SceneStatus::appendErrorText(const char *msg)
 {
-  renderErrorFlag = true;
+  isShowingError = true;
 
   if (msg && errorCount < 50)
   {
@@ -47,11 +47,11 @@ void SceneStatus::appendErrorText(const char *msg)
 
 
   if (errorRenderMode == SEI_STOP_AND_SHOW_FULL_INFO)
-    sceneIsBroken = true;
+    isShowingFullErrorDetails = true;
 }
 
 
-void SceneStatus::dismissShownError() { renderErrorFlag = false; }
+void SceneStatus::dismissShownError() { isShowingError = false; }
 
 
 void SceneStatus::toggleShowDetails()
@@ -59,12 +59,12 @@ void SceneStatus::toggleShowDetails()
   if (errorRenderMode != SEI_STOP_AND_SHOW_FULL_INFO)
   {
     visuallog::clear();
-    sceneIsBroken = true;
+    isShowingFullErrorDetails = true;
     setSceneErrorRenderMode(SEI_STOP_AND_SHOW_FULL_INFO);
   }
   else
   {
-    sceneIsBroken = false;
+    isShowingFullErrorDetails = false;
     setSceneErrorRenderMode(minimalErrorRenderMode);
   }
 }

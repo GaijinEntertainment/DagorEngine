@@ -9,14 +9,16 @@
 #include <EditorCore/ec_interface.h>
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
-#include <sepGui/wndMenuInterface.h>
+#include <propPanel/control/menu.h>
 
 class CompositeEditorTree;
 class CompositeEditorPanel;
 class DagorAsset;
 class IEntityViewPluginInterface;
 
-class CompositeEditor : public PropPanel::ControlEventHandler, public IMenuEventHandler, public PropPanel::ITreeViewEventHandler
+class CompositeEditor : public PropPanel::ControlEventHandler,
+                        public PropPanel::IMenuEventHandler,
+                        public PropPanel::ITreeViewEventHandler
 {
 public:
   bool begin(DagorAsset *asset, IObjEntity *entity);
@@ -65,15 +67,15 @@ private:
   };
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IMenuEventHandler
-  virtual int onMenuItemClick(unsigned id) override;
+  int onMenuItemClick(unsigned id) override;
 
   // ITreeViewEventHandler
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+  void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
+  bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
   void fillCompositeTreeInternal(bool keepExpansionState);
   void fillCompositePropPanel();

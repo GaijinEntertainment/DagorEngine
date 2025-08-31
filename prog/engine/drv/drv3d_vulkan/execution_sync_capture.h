@@ -16,7 +16,7 @@ struct ExecutionSyncCapture
     uint32_t visNode;
     uint32_t visBufPin;
     uint32_t visOpsPin;
-    ExecutionSyncTracker::OpCaller caller;
+    SyncOpCaller caller;
     uint32_t dstBuffer;
     uint32_t dstQueue;
     uint32_t idx;
@@ -40,7 +40,7 @@ struct ExecutionSyncCapture
     uint32_t localIdx;
     LogicAddress laddr;
     Resource *res;
-    ExecutionSyncTracker::OpCaller caller;
+    SyncOpCaller caller;
     String resName;
     uint32_t noLink;
   };
@@ -73,13 +73,13 @@ struct ExecutionSyncCapture
   };
 #if EXECUTION_SYNC_DEBUG_CAPTURE > 0
   void addSyncStep();
-  void addOp(ExecutionSyncTracker::OpUid uid, LogicAddress laddr, Resource *res, ExecutionSyncTracker::OpCaller caller);
-  void addOpPrevStep(ExecutionSyncTracker::OpUid uid, LogicAddress laddr, Resource *res, ExecutionSyncTracker::OpCaller caller)
+  void addOp(SyncOpUid uid, LogicAddress laddr, Resource *res, SyncOpCaller caller);
+  void addOpPrevStep(SyncOpUid uid, LogicAddress laddr, Resource *res, SyncOpCaller caller)
   {
     addOp(uid, laddr, res, caller);
     --ops.back().step;
   }
-  void addLink(ExecutionSyncTracker::OpUid src_op_uid, ExecutionSyncTracker::OpUid dst_op_uid);
+  void addLink(SyncOpUid src_op_uid, SyncOpUid dst_op_uid);
   void reset();
 
   Tab<SyncOp> ops;
@@ -94,9 +94,9 @@ struct ExecutionSyncCapture
   uint32_t currentVisPin = 1;
 #else
   void addSyncStep() {}
-  void addOp(ExecutionSyncTracker::OpUid, LogicAddress, Resource *, ExecutionSyncTracker::OpCaller) {}
-  void addOpPrevStep(ExecutionSyncTracker::OpUid, LogicAddress, Resource *, ExecutionSyncTracker::OpCaller) {}
-  void addLink(ExecutionSyncTracker::OpUid, ExecutionSyncTracker::OpUid) {}
+  void addOp(SyncOpUid, LogicAddress, Resource *, SyncOpCaller) {}
+  void addOpPrevStep(SyncOpUid, LogicAddress, Resource *, SyncOpCaller) {}
+  void addLink(SyncOpUid, SyncOpUid) {}
   void reset() {}
 #endif
 };

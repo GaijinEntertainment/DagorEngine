@@ -20,26 +20,26 @@ Sources =
   joltPhysRagdoll.cpp
   joltPhysSysInst.cpp
   joltDbgRender.cpp
+  joltRayCar.cpp
   shapes/HeightField16Shape.cpp
 ;
 
 UseProgLibs =
   engine/phys/physCommon
   3rdPartyLibs/phys/joltPhysics
-  gameLibs/render/dynmodelRenderer # FIXME_BROKEN_DEP
   engine/heightMapLand
 ;
 
 CPPopt = -DUSE_JOLT_PHYSICS ;
 
-if $(Platform) = linux || $(PlatformSpec) = clang {
-  if $(Platform) in windows xboxOne scarlett {
-    CPPopt += -fp:fast ;
-    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
-  } else {
-    CPPopt += -fno-unsafe-math-optimizations ;
-  }
-} else if $(SSEVersion) = 0 { CPPopt += /arch:SSE2 ; } # msvc windows-x86 implied
+if $(PlatformSpec) in gcc clang {
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
+}
 
 include $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

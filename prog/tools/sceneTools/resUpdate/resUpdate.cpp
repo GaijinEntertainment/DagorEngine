@@ -70,7 +70,7 @@ int DagorWinMain(bool debugmode)
     Pbar() : pb(create_con_progressbar()) { pb->setTotal(1000); }
     ~Pbar() { pb->destroy(); }
 
-    virtual void setStage(int stage)
+    void setStage(int stage) override
     {
       switch (stage)
       {
@@ -80,8 +80,8 @@ int DagorWinMain(bool debugmode)
         case 3: pb->setActionDesc("Finishing patch"); break;
       }
     }
-    virtual void setPromilleDone(int promille) { pb->setDone(promille); }
-    virtual bool isCancelled() { return ctrl_c_pressed; }
+    void setPromilleDone(int promille) override { pb->setDone(promille); }
+    bool isCancelled() override { return ctrl_c_pressed; }
   } pbar;
 
   for (int i = 2; i + 1 < dgs_argc; i += 2)

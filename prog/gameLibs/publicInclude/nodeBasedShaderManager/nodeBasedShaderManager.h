@@ -10,6 +10,8 @@
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 #include <math/dag_Point4.h>
+#include <math/integer/dag_IPoint4.h>
+#include <math/dag_TMatrix4.h>
 #include <ioSys/dag_dataBlock.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
@@ -52,9 +54,10 @@ private:
   uint32_t lastShaderSourceHash = 0;
   bool lastCompileIsSuccess = false;
   String lastErrors;
-  eastl::unique_ptr<DataBlock> currentIntParametersBlk, currentFloatParametersBlk, currentFloat4ParametersBlk, currentTextures2dBlk,
-    currentTextures3dBlk, currentTextures2dShdArrayBlk, currentTextures2dNoSamplerBlk, currentTextures3dNoSamplerBlk,
-    currentBuffersBlk, metadataBlk;
+  eastl::unique_ptr<DataBlock> currentIntParametersBlk, currentInt4ParametersBlk, currentFloatParametersBlk,
+    currentFloat4ParametersBlk, currentFloat4x4ParametersBlk, currentTextures2dBlk, currentTextures3dBlk, currentTextures2dArrayBlk,
+    currentTextures2dShdArrayBlk, currentTextures2dNoSamplerBlk, currentTextures3dNoSamplerBlk, currentBuffersBlk, currentCBuffersBlk,
+    metadataBlk;
 
   template <class T>
   struct CachedVariable
@@ -67,13 +70,17 @@ private:
   };
 
   typedef CachedVariable<int> CachedInt;
+  typedef CachedVariable<IPoint4> CachedInt4;
   typedef CachedVariable<float> CachedFloat;
   typedef CachedVariable<Point4> CachedFloat4;
+  typedef CachedVariable<Matrix44> CachedFloat4x4;
 
   uint32_t cachedVariableGeneration = ~0u;
   eastl::vector<CachedInt> currentIntVariables;
+  eastl::vector<CachedInt4> currentInt4Variables;
   eastl::vector<CachedFloat> currentFloatVariables;
   eastl::vector<CachedFloat4> currentFloat4Variables;
+  eastl::vector<CachedFloat4x4> currentFloat4x4Variables;
   String shaderName, shaderFileSuffix;
   eastl::vector<String> optionalGraphNames;
   eastl::vector<ArrayValue> arrayValues;
@@ -97,6 +104,7 @@ private:
 
   dag::Vector<NodeBasedTexture> nodeBasedTextures;
   dag::Vector<NodeBasedBuffer> nodeBasedBuffers;
+  dag::Vector<NodeBasedBuffer> nodeBasedCBuffers;
   dag::Vector<D3DRESID> resIdsToRelease;
   bool isDirty = true;
 
@@ -104,12 +112,12 @@ private:
   void updateBlkDataConstBuffer(const DataBlock &shader_blk);
   void updateBlkDataTextures(const DataBlock &shader_blk);
   void updateBlkDataBuffers(const DataBlock &shader_blk);
-  void updateBlkDataMetadata(const DataBlock &shader_blk);
   void updateBlkDataResources(const DataBlock &shader_blk);
   void precacheVariables();
 
-  void setConstantBuffer();
-  void setTextures(dag::Vector<NodeBasedTexture> &node_based_textures, int &offset) const;
+  void setBaseConstantBuffer();
+  void setSubConstantBuffers() const;
+  void setTextures(int &offset) const;
   void setBuffers(int &offset) const;
 
   void loadShaderFromStream(uint32_t idx, uint32_t platform_id, InPlaceMemLoadCB &load_stream, uint32_t variant_id);
@@ -118,9 +126,8 @@ private:
 
   bool invalidateCachedResources();
 
-  void fillTextureCache(dag::Vector<NodeBasedTexture> &node_based_textures, const DataBlock &src_block, int offset, bool &has_loaded,
-    bool has_sampler);
-  void fillBufferCache(const DataBlock &src_block, int offset, bool &has_loaded);
+  void fillTextureCache(const DataBlock &src_block, int offset, bool &has_loaded, bool has_sampler);
+  void fillBufferCache(const DataBlock &src_block, dag::Vector<NodeBasedBuffer> &bufferCache, int offset, bool &has_loaded);
 
   eastl::array<ShaderBinVariants, PLATFORM::COUNT> shaderBin;
   eastl::vector<DataBlock> permParameters;
@@ -152,8 +159,8 @@ public:
 
   const ShaderBinPermutations &getPermutationShadersBin(uint32_t variant_id) const;
   uint32_t getCurrentPermutationIdx() const { return permutationId; }
-  const DataBlock &getMetadata() const;
   void setConstants();
+  void resetSubCbuffers();
 
   static void getPlatformList(Tab<String> &out_platforms, PLATFORM platform_id);
 

@@ -1,3 +1,8 @@
+FmodGdkVer        ?= $(GdkVer) ;
+FmodPS4SdkVer     ?= $(PS4SdkVer) ;
+FmodPS5SdkVer     ?= $(PS5SdkVer) ;
+FmodNSwitchSdkVer ?= $(NSwitchSdkVer) ;
+
 if $(FmodStudio) = none { return ; }
 FmodStudioSoSuffix = [ MATCH "([0-9]+)\.([0-9]+|xx)\.0*([0-9]+|xx)" : $(FmodStudio) ] ;
 switch $(FmodStudioSoSuffix[1]).$(FmodStudioSoSuffix[2]) {
@@ -38,11 +43,11 @@ FmodPluginResonanceAudioPath = $(FmodStudioRoot)/plugins/$(platform_suffix)/reso
 if ! [ GLOB $(FmodStudioLowLibPath) : * ] {
   local sdk_suffix ;
   switch $(Platform) {
-    case ps4 :      sdk_suffix = sdk$(PS4SdkVer) ;
-    case ps5 :      sdk_suffix = sdk$(PS5SdkVer) ;
-    case xboxOne :  sdk_suffix = gdk$(GdkVer) ;
-    case scarlett : sdk_suffix = gdk$(GdkVer) ;
-    case nswitch :  sdk_suffix = sdk$(NSwitchSdkVer) ;
+    case ps4 :      sdk_suffix = sdk$(FmodPS4SdkVer) ;
+    case ps5 :      sdk_suffix = sdk$(FmodPS5SdkVer) ;
+    case xboxOne :  sdk_suffix = gdk$(FmodGdkVer) ;
+    case scarlett : sdk_suffix = gdk$(FmodGdkVer) ;
+    case nswitch :  sdk_suffix = sdk$(FmodNSwitchSdkVer) ;
   }
   if $(sdk_suffix) && [ GLOB $(FmodStudioLowLibPath).$(sdk_suffix) : * ] {
     FmodStudioLowLibPath = $(FmodStudioLowLibPath).$(sdk_suffix) ;

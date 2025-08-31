@@ -182,9 +182,9 @@ class MaxCameraElem : public CCameraElem
 public:
   MaxCameraElem() : CCameraElem(MAX_CAMERA) {}
 
-  virtual void handleKeyboardInput(unsigned viewport_id) override {}
+  void handleKeyboardInput(unsigned) override {}
 
-  virtual void handleMouseWheel(int delta) override
+  void handleMouseWheel(int) override
   {
     // For the Max camera the mouse wheel is handled in ViewportWindow::processCameraControl.
     // This function will not be called at all, so the empty override is not really necessary.
@@ -199,13 +199,13 @@ class FpsCameraElem : public CCameraElem
 public:
   FpsCameraElem();
 
-  virtual void actInternal();
-  virtual void render() {}
-  virtual void clear();
-  virtual void handleKeyboardInput(unsigned viewport_id) override;
-  virtual void moveForward(real deltaZ, bool multiplySencetive, IGenViewportWnd *wnd);
-  virtual void strife(real dx, real dy, bool multiply_sencetive, bool config_sencetive);
-  virtual void moveOn(const Point3 &dpos);
+  void actInternal() override;
+  void render() override {}
+  void clear() override;
+  void handleKeyboardInput(unsigned viewport_id) override;
+  void moveForward(real deltaZ, bool multiplySencetive, IGenViewportWnd *wnd) override;
+  void strife(real dx, real dy, bool multiply_sencetive, bool config_sencetive) override;
+  void moveOn(const Point3 &dpos);
 
 protected:
   Point3 pos, prevPos, speed, accelerate;
@@ -222,16 +222,16 @@ public:
   TpsCameraElem();
   TpsCameraElem(int cam_type);
 
-  virtual void actInternal();
-  virtual void render();
-  virtual void clear();
-  virtual void handleKeyboardInput(unsigned viewport_id) override;
-  virtual void rotate(real dX, real dY, bool multiplySencetive, bool aroundSelection);
-  virtual void moveForward(real deltaZ, bool multiply_sensitive, IGenViewportWnd *wnd);
-  virtual void strife(real dx, real dy, bool multiply_sensitive, bool config_sensitive);
-  virtual void moveOn(const Point3 &dpos);
+  void actInternal() override;
+  void render() override;
+  void clear() override;
+  void handleKeyboardInput(unsigned viewport_id) override;
+  void rotate(real dX, real dY, bool multiplySencetive, bool aroundSelection) override;
+  void moveForward(real deltaZ, bool multiply_sensitive, IGenViewportWnd *wnd) override;
+  void strife(real dx, real dy, bool multiply_sensitive, bool config_sensitive) override;
+  void moveOn(const Point3 &dpos);
 
-  virtual void handleMouseWheel(int dz) override;
+  void handleMouseWheel(int dz) override;
 
 protected:
   struct Target
@@ -260,15 +260,15 @@ class CarCameraElem : public TpsCameraElem
 {
 public:
   CarCameraElem();
-  virtual ~CarCameraElem();
+  ~CarCameraElem() override;
 
-  virtual bool begin();
-  virtual void end();
+  bool begin();
+  void end();
 
-  virtual void actInternal();
-  virtual void render();
+  void actInternal() override;
+  void render() override;
   virtual void externalRender();
-  virtual void handleMouseWheel(int dz) override;
+  void handleMouseWheel(int dz) override;
 
 protected:
   float zoom;

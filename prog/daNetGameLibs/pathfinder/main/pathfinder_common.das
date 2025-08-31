@@ -53,9 +53,9 @@ def find_nav_point_around(start_pos, center : float3; radius : float; tries : in
       let extents = float3(0.5, FLT_MAX, 0.5)
       using(start_pos, pos, extents) <| $(var inp : CorridorInput#)
         inp.targetPoly = endRef
-        inp.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
+        inp.includeFlags |= int(PolyFlag.POLYFLAG_JUMP)
         let pathRes = set_path_corridor(path_corridor, inp, null)
-        if pathRes != FindPathResult FPR_FAILED && (accept_partial || pathRes != FindPathResult FPR_PARTIAL)
+        if pathRes != FindPathResult.FPR_FAILED && (accept_partial || pathRes != FindPathResult.FPR_PARTIAL)
           res = MaybePos(pos)
       if res is pos
         break
@@ -64,11 +64,11 @@ def find_nav_point_around(start_pos, center : float3; radius : float; tries : in
 
 
 def get_triangle_by_pos(pos : float3; hor_dist : float; var result : NavMeshTriangle&; max_vert_dist : float = FLT_MAX) : bool
-  return get_triangle_by_pos(pos, result, hor_dist, int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_OBSTACLE), 0, null, max_vert_dist)
+  return get_triangle_by_pos(pos, result, hor_dist, int(PolyFlag.POLYFLAG_GROUND) | int(PolyFlag.POLYFLAG_OBSTACLE), 0, null, max_vert_dist)
 
 
 def get_triangle_by_pos_ex(nav_mesh_idx : int; pos : float3; hor_dist : float; var result : NavMeshTriangle&; max_vert_dist : float = FLT_MAX) : bool
-  return get_triangle_by_pos_ex(nav_mesh_idx, pos, result, hor_dist, int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_OBSTACLE), 0, null, max_vert_dist)
+  return get_triangle_by_pos_ex(nav_mesh_idx, pos, result, hor_dist, int(PolyFlag.POLYFLAG_GROUND) | int(PolyFlag.POLYFLAG_OBSTACLE), 0, null, max_vert_dist)
 
 
 def get_surface_normal_by_pos(pos : float3; poly : dtPolyRef)
@@ -110,12 +110,12 @@ def trace_single_ri_against_path(ri_eid : EntityId;
       let quat = dir_to_quat(traceDir)
       agentYOffset = quat * agentYOffset
 
-      let traceFrom = [[float3[]
-        start + agentYOffset + traceRight;
-        start + agentYOffset - traceRight;
-        start + agentYOffset * 0.5 + traceRight;
+      let traceFrom = fixed_array(
+        start + agentYOffset + traceRight,
+        start + agentYOffset - traceRight,
+        start + agentYOffset * 0.5 + traceRight,
         start + agentYOffset * 0.5 - traceRight
-      ]]
+      )
       //draw_debug_box_buffered(box, transform, E3DCOLOR(0xffffffff), 700)
       for trace in traceFrom
         //draw_debug_arrow_buffered(trace, trace + traceDir * currentTraceDist, E3DCOLOR(0xff0000ff), 700)
@@ -137,7 +137,7 @@ def iterate_over_polys_recursively(start : float3; depth : int; initial_extents 
   var ref : dtPolyRef
   var p = start
   if project_to_nearest_navmesh_point(p, initial_extents, ref)
-    frontier |> emplace([[auto ref, depth]])
+    frontier |> emplace((ref, depth))
     while (length(frontier) > 0)
       advance_poly_frontier(frontier, visited)
       if invoke(action, visited[length(visited) - 1])
@@ -151,12 +151,26 @@ def private advance_poly_frontier(var frontier : array<tuple<poly : dtPolyRef; d
   visited |> push(thisPoly)
   var polyFlags = uint16(0)
   get_poly_flags(thisPoly, polyFlags)
-  if (int(polyFlags) & int(PolyFlag POLYFLAG_JUMP)) == 0
+  if (int(polyFlags) & int(PolyFlag.POLYFLAG_JUMP)) == 0
     depth--
   if depth > 0
     for_each_linked_poly(thisPoly) <| $(linkedPolyRef)
       let inFrontierIdx = find_index_if(frontier) <| $(item) { return item.poly == linkedPolyRef; }
       if find_index(visited, linkedPolyRef) == -1 && inFrontierIdx == -1
-        frontier |> emplace([[auto linkedPolyRef, depth]])
+        frontier |> emplace((linkedPolyRef, depth))
       elif inFrontierIdx != -1
         frontier[inFrontierIdx].depth = max(frontier[inFrontierIdx].depth, depth)
+
+
+def find_point_on_path_at(pos : float3; corners : Point3List; dst : float) : MaybePos
+  var dstLeft = dst
+  var prev = pos
+  for p in corners
+    let alongLegDst = distance(prev, p)
+    if alongLegDst >= dstLeft
+      let dir = normalize(p - prev)
+      return MaybePos(prev + dir * dstLeft)
+    else
+      dstLeft -= alongLegDst
+      prev = p
+  return MaybePos()

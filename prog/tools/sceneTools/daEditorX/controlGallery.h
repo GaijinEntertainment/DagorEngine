@@ -77,7 +77,7 @@ private:
     Gallery_EndControl,
   };
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == Gallery_EnabledControls)
     {
@@ -91,7 +91,7 @@ private:
     }
   }
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == Gallery_Extensible)
     {
@@ -102,7 +102,7 @@ private:
     }
   }
 
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == Gallery_EnabledControls || pcb_id == Gallery_SeparatorBetweenControls)
     {

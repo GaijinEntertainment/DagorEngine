@@ -3,13 +3,13 @@ import "dainput2" as dainput
 from "%scripts/ui/widgets/style.nut" import *
 
 let { eventbus_send_foreign } = require("eventbus")
-let {CONTROLS_SETUP_CHANGED_EVENT_ID} = require("input_generation.nut")
+let {CONTROLS_SETUP_CHANGED_EVENT_ID} = require("%scripts/ui/settings/input_generation.nut")
 let {round_by_value} = require("%sqstd/math.nut")
 let {showMsgbox} = require("%scripts/ui/widgets/msgbox.nut")
 let textButton = require("%scripts/ui/widgets/simpleComponents.nut").menuBtn
 let console = require("console")
 let { buildElems, buildDigitalBindingText, isValidDevice, eventTypeLabels,
-      textListFromAction, getSticksText } = require("formatInputBinding.nut")
+      textListFromAction, getSticksText } = require("%scripts/ui/settings/formatInputBinding.nut")
 let {platformId} = require("%dngscripts/platform.nut")
 let {format_ctrl_name} = dainput
 //let {get_action_handle} = dainput
@@ -17,12 +17,12 @@ let { BTN_pressed, BTN_pressed_long, BTN_pressed2, BTN_pressed3,
           BTN_released, BTN_released_long, BTN_released_short } = dainput
 let control = require("control")
 let DataBlock = require("DataBlock")
-let { isGamepad } = require("active_input.nut")
+let { isGamepad } = require("%scripts/ui/settings/active_input.nut")
 
 let {
   importantGroups, generation, nextGeneration, availablePresets, haveChanges, Preset,
   getActionsList, getActionTags, mkSubTagsFind
-} = require("input_state.nut")
+} = require("%scripts/ui/settings/input_state.nut")
 //let { makeVertScroll } = require("%scripts/ui/widgets/components/scrollbar.nut")
 let { mkCombo } = require("%scripts/ui/widgets/simpleComponents.nut")
 let checkbox = @(params) mkCombo(params.__update({values=[true, false]}))
@@ -43,22 +43,22 @@ function menuRowColor(sf, isOdd) {
 
 console.register_command(function(){
   let origBlk = DataBlock()
-  origBlk.setStr("preset", "content/outer_space/config/outer_space.default")
+  origBlk.setStr("preset", "config/outer_space.default")
   dainput.load_user_config(origBlk)
   control.save_config()
-  haveChanges(true)
+  haveChanges.set(true)
 }, "input.init_pc_preset")
 
 let findSelectedPreset = function(selected) {
   let defaultPreset = dainput.get_user_config_base_preset()
-  return availablePresets.value.findvalue(@(v) selected.indexof(v.preset)!=null) ??
-         availablePresets.value.findvalue(@(v) ($"{defaultPreset}~{platformId}").indexof(v.preset)!=null) ??
+  return availablePresets.get().findvalue(@(v) selected.indexof(v.preset)!=null) ??
+         availablePresets.get().findvalue(@(v) ($"{defaultPreset}~{platformId}").indexof(v.preset)!=null) ??
          Preset(defaultPreset)
 }
 let selectedPreset = Watched(findSelectedPreset(dainput.get_user_config_base_preset()))
-let currentPreset =  Watched(selectedPreset.value)
-currentPreset.subscribe(@(v) selectedPreset(findSelectedPreset(v.preset)))
-let updateCurrentPreset = @() currentPreset(findSelectedPreset(dainput.get_user_config_base_preset()))
+let currentPreset =  Watched(selectedPreset.get())
+currentPreset.subscribe(@(v) selectedPreset.set(findSelectedPreset(v.preset)))
+let updateCurrentPreset = @() currentPreset.set(findSelectedPreset(dainput.get_user_config_base_preset()))
 
 let actionRecording = Watched(null)
 let configuredAxis = Watched(null)
@@ -129,7 +129,7 @@ function startRecording(cell_data) {
     dainput.start_recording_bindings_for_single_button()
   else
     dainput.start_recording_bindings(cell_data.ah)
-  actionRecording(cell_data)
+  actionRecording.set(cell_data)
 }
 
 function makeBgToggle(initial=true) {
@@ -189,8 +189,8 @@ function loadPreviousBindingParametersTo(blk, ah, col) {
 
 function checkRecordingFinished() {
   if (dainput.is_recording_complete()) {
-    let cellData = actionRecording.value
-    actionRecording(null)
+    let cellData = actionRecording.get()
+    actionRecording.set(null)
     let ah = cellData?.ah
 
     let blk = DataBlock()
@@ -235,7 +235,7 @@ function checkRecordingFinished() {
               binding.eventType = getAllowedBindingsTypes(ah)[0]
           }
           nextGeneration()
-          haveChanges(true)
+          haveChanges.set(true)
         }
 
         let conflicts = dainput.check_bindings_conflicts(ah, checkConflictsBlk)
@@ -266,7 +266,7 @@ function checkRecordingFinished() {
 
 function cancelRecording() {
   gui_scene.clearTimer(checkRecordingFinished)
-  actionRecording(null)
+  actionRecording.set(null)
 
   let blk = DataBlock()
   dainput.finish_recording_bindings(blk)
@@ -279,7 +279,7 @@ let mediumText = @(text, params={}) dtext(text, {color = TextNormal,}.__update(b
 function recordingWindow() {
   //local text = loc("controls/recording", "Press a button (or move mouse / joystick axis) to bind action to")
   local text
-  let cellData = actionRecording.value
+  let cellData = actionRecording.get()
   let name = cellData?.name
   if (cellData) {
     let actionType = dainput.get_action_type(cellData.ah)
@@ -311,7 +311,7 @@ function recordingWindow() {
     flow = FLOW_VERTICAL
     gap = fsh(8)
     children = [
-      {size=[0, flex(3)]}
+      {size=static [0, flex(3)]}
       dtext(locActionName(name), {color = Color(100,100,100)}.__update(h2_txt))
       mediumText(text, {
         function onAttach() {
@@ -322,14 +322,14 @@ function recordingWindow() {
           gui_scene.clearTimer(checkRecordingFinished)
         }
       })
-      {size=[0, flex(5)]}
+      {size=static [0, flex(5)]}
     ]
   }
 }
 
 function saveChanges() {
   control.save_config()
-  haveChanges(false)
+  haveChanges.set(false)
 }
 
 function applyPreset(text, target=null) {
@@ -344,8 +344,8 @@ function applyPreset(text, target=null) {
 
   showMsgbox({
     text
-    children = dtext(loc("controls/preset", {
-      preset = target?.name ?? selectedPreset.value.name
+    children = dtext(loc("controls/preset", "preset: {preset}", {
+      preset = target?.name ?? selectedPreset.get().name
     }), {margin = hdpx(50)})
     buttons = [
       { text = loc("Yes"), action = doReset }
@@ -366,7 +366,7 @@ function changePreset(target) {
 }
 */
 function clearBinding(cellData){
-  haveChanges(true)
+  haveChanges.set(true)
   if (cellData.singleBtn) {
     set_single_button_analogue_binding(cellData.ah, cellData.column, cellData.actionProp, DataBlock())
   } else if (cellData.tag == "modifiers") {
@@ -381,16 +381,16 @@ function clearBinding(cellData){
 }
 
 function discardChanges() {
-  if (!haveChanges.value)
+  if (!haveChanges.get())
     return
   control.restore_saved_config()
   nextGeneration()
-  haveChanges(false)
+  haveChanges.set(false)
 }
 
 function actionButtons() {
   local children = null
-  let cellData = selectedBindingCell.value
+  let cellData = selectedBindingCell.get()
 
   if (cellData != null) {
     let actionType = dainput.get_action_type(cellData.ah)
@@ -407,13 +407,13 @@ function actionButtons() {
       if (actionTypeGroup == dainput.TYPEGRP_AXIS || actionTypeGroup == dainput.TYPEGRP_STICK) {
         children.append(
           textButton(loc("controls/axisSetup", "Axis setup"),
-            function() { configuredAxis(cellData) })
+            function() { configuredAxis.set(cellData) })
         )
       }
       else if (actionTypeGroup == dainput.TYPEGRP_DIGITAL) {
         children.append(
           textButton(loc("controls/buttonSetup", "Button setup"),
-            function() { configuredButton(cellData) })
+            function() { configuredButton.set(cellData) })
 
           textButton(loc("controls/bindBinding", "Bind"),
             function() { startRecording(cellData) })
@@ -438,7 +438,7 @@ function collectBindableColumns() {
 }
 
 function getNotBoundActions() {
-  let importantTabs = importantGroups.value
+  let importantTabs = importantGroups.get()
 
   let colRange = collectBindableColumns()
   let notBoundActions = {}
@@ -541,7 +541,7 @@ function onDiscardChanges() {
 let skipDirPadNav = { skipDirPadNav = true }
 let applyHotkeys = { hotkeys = [["^Esc"]] }
 
-let onClose = @() showControlsMenu(false)
+let onClose = @() showControlsMenu.set(false)
 
 function mkWindowButtons(width) {
   function onApply() {
@@ -577,11 +577,11 @@ function mkWindowButtons(width) {
     color = ControlBg
     children = wrap([
       textButton(loc("controls/btnResetToDefaults", "Reset to default"), resetToDefault, skipDirPadNav)
-      haveChanges.value ? textButton(loc("mainmenu/btnDiscard", "Discard changes"), onDiscardChanges, skipDirPadNav) : null
-      {size = [flex(), 0]}
+      haveChanges.get() ? textButton(loc("mainmenu/btnDiscard", "Discard changes"), onDiscardChanges, skipDirPadNav) : null
+      {size = static [flex(), 0]}
       actionButtons
       textButton(loc(haveChanges.get() ? "Apply" : "Ok"), onApply, skipDirPadNav.__merge(applyHotkeys, {hplace = ALIGN_RIGHT}))
-    ], {width, flowElemProto = {size = [flex(), SIZE_TO_CONTENT] halign = ALIGN_RIGHT, padding = fsh(0.5), gap = hdpx(10)}})
+    ], {width, flowElemProto = {size = FLEX_H halign = ALIGN_RIGHT, padding = fsh(0.5), gap = hdpx(10)}})
   }
 }
 
@@ -601,8 +601,8 @@ function mkActionRowLabel(name, group=null){
     rendObj = ROBJ_TEXT
     color = TextNormal
     text = locActionName(name)
-    margin = [0, fsh(1), 0, 0]
-    size = [flex(1.5), SIZE_TO_CONTENT]
+    margin = static [0, fsh(1), 0, 0]
+    size = static [flex(1.5), SIZE_TO_CONTENT]
     halign = ALIGN_RIGHT
     group
   }.__update(body_txt)
@@ -611,7 +611,7 @@ function mkActionRowLabel(name, group=null){
 function mkActionRowCells(label, columns){
   let children = [label].extend(columns)
   if (columns.len() < 2)
-    children.append({size=[flex(0.75), 0]})
+    children.append({size=static [flex(0.75), 0]})
   return children
 }
 
@@ -623,7 +623,7 @@ function makeActionRow(_ah, name, columns, xmbNode, showBgGen) {
   return watchElemState(@(sf) {
     xmbNode
     key = name
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     valign = ALIGN_CENTER
     behavior = Behaviors.Button
@@ -641,7 +641,7 @@ function makeActionRow(_ah, name, columns, xmbNode, showBgGen) {
 let bindingColumnCellSize = [flex(1), fontH(240)]
 
 function isCellSelected(cell_data, selection) {
-  let selected = selection.value
+  let selected = selection.get()
   return (selected!=null) && selected.column==cell_data.column && selected.ah==cell_data.ah
     && selected.actionProp==cell_data.actionProp && selected.tag==cell_data.tag
 }
@@ -682,7 +682,7 @@ function bindingCell(ah, column, action_prop, list, tag, selection, name=null, x
   return watchElemState(function(sf) {
     let hovered = (sf & S_HOVER)
     let selected = isCellSelected(cellData, selection)
-    let isBindable = isForGamepad || !isGamepad.value
+    let isBindable = isForGamepad || !isGamepad.get()
     return {
       watch = [selection, isGamepad]
       size = bindingColumnCellSize
@@ -716,15 +716,15 @@ function bindingCell(ah, column, action_prop, list, tag, selection, name=null, x
           || cellData.singleBtn || cellData.tag == "modifiers" || cellData.tag == "axis")
           startRecording(cellData)
         else
-          configuredAxis(cellData)
+          configuredAxis.set(cellData)
       }
 
-      onClick = isGamepad.value ? null : isActionDisabledToCustomize(ah) ? showDisabledMsgBox : @() selection(cellData)
-      onHover = isGamepad.value ? @(on) selection(on ? cellData : null) : null
+      onClick = isGamepad.get() ? null : isActionDisabledToCustomize(ah) ? showDisabledMsgBox : @() selection.set(cellData)
+      onHover = isGamepad.get() ? @(on) selection.set(on ? cellData : null) : null
 
       function onDetach() {
         if (isCellSelected(cellData, selection))
-          selection(null)
+          selection.set(null)
       }
     }
   })
@@ -748,7 +748,7 @@ function mkBindingsHeader(colRange){
                                                   ? loc("controls/type/pc/gamepad")
                                                   : loc("controls/type/pc/keyboard")))
   return {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     children = mkActionRowCells(mkActionRowLabel(null), cols)
     valign = ALIGN_CENTER
@@ -790,7 +790,7 @@ function bindingsPage(_section_name=null) {
     let bindingsArea = makeVertScroll({
       xmbNode = xmbRootNode
       flow = FLOW_VERTICAL
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       clipChildren = true
       children = actionRows
       scrollHandler
@@ -798,7 +798,7 @@ function bindingsPage(_section_name=null) {
 
     return {
       size = flex()
-      padding = [fsh(1), 0]
+      padding = static [fsh(1), 0]
       flow = FLOW_VERTICAL
       key = {}
       animations = pageAnim
@@ -809,7 +809,7 @@ function bindingsPage(_section_name=null) {
 
 function optionRowContainer(children, isOdd, params) {
   return watchElemState(@(sf) params.__merge({
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     valign = ALIGN_CENTER
     //behavior = Behaviors.Button
@@ -818,7 +818,7 @@ function optionRowContainer(children, isOdd, params) {
     rendObj = ROBJ_SOLID
     color = menuRowColor(sf, isOdd)
     gap = fsh(2)
-    padding = [0, fsh(2)]
+    padding = static [0, fsh(2)]
   }))
 }
 
@@ -828,7 +828,7 @@ function optionRow(labelText, comp, isOdd) {
     color = TextNormal
     text = labelText
     margin = fsh(1)
-    size = [flex(1), SIZE_TO_CONTENT]
+    size = static [flex(1), SIZE_TO_CONTENT]
     //halign = ALIGN_CENTER
     halign = ALIGN_RIGHT
   }.__update(body_txt)
@@ -877,7 +877,7 @@ function invertCheckbox(action_names, column, axis) {
     val.set(new_val)
     foreach (b in bindings)
       b[invertFields[axis]] = new_val
-    haveChanges(true)
+    haveChanges.set(true)
   }
 
   return checkbox({ var = val, setValue, xmbNode=XmbNode()})
@@ -905,10 +905,10 @@ function axisSetupSlider(action_names, column, prop, params) {
   let opt = params.__merge({
     var = val,
     function setValue(new_val) {
-      val(new_val)
+      val.set(new_val)
       foreach (b in bindings)
         b[prop] = new_val
-      haveChanges(true)
+      haveChanges.set(true)
     }
   })
   return sliderWithText(opt.__merge({morphText= params?.morphText ?? mkRounded}, group))
@@ -947,7 +947,7 @@ function deadZoneScaleSlider(val, setVal){
 */
 let isUserConfigCustomized = Watched(false)
 function checkUserConfigCustomized(){
-  isUserConfigCustomized(dainput.is_user_config_customized())
+  isUserConfigCustomized.set(dainput.is_user_config_customized())
 }
 function updateAll(...) { updateCurrentPreset(); checkUserConfigCustomized()}
 generation.subscribe(updateAll)
@@ -958,7 +958,7 @@ function sectionHeader(text) {
     rendObj = ROBJ_TEXT
     text
     color = TextNormal
-    padding = [fsh(3), fsh(1), fsh(1)]
+    padding = static [fsh(3), fsh(1), fsh(1)]
   }.__update(h2_txt), false, {
     halign = ALIGN_CENTER
   })
@@ -966,7 +966,7 @@ function sectionHeader(text) {
 
 
 function axisSetupWindow() {
-  let cellData = configuredAxis.value
+  let cellData = configuredAxis.get()
   let stickBinding = dainput.get_analog_stick_action_binding(cellData.ah, cellData.column)
   let axisBinding = dainput.get_analog_axis_action_binding(cellData.ah, cellData.column)
   let binding = stickBinding ?? axisBinding
@@ -984,25 +984,25 @@ function axisSetupWindow() {
 
   function buttons() {
     let children = []
-    if (selectedAxisCell.value)
+    if (selectedAxisCell.get())
       children.append(
         textButton(loc("controls/bindBinding", "Bind Axis"),
-          function() { startRecording(selectedAxisCell.value) })
+          function() { startRecording(selectedAxisCell.get()) })
         textButton(loc("controls/clearBinding", "Clear Binding"),
           function() {
-            clearBinding(selectedAxisCell.value)
+            clearBinding(selectedAxisCell.get())
             nextGeneration()
           })
        )
 
     children.append(textButton(loc("mainmenu/btnOk", "OK"),
-      function() { configuredAxis(null) },
+      function() { configuredAxis.set(null) },
       { hotkeys = [["^Esc"]] }))
 
     return {
       watch = selectedAxisCell
 
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       halign = ALIGN_RIGHT
       gap = hdpx(10)
@@ -1126,8 +1126,8 @@ function axisSetupWindow() {
     makeVertScroll({
       flow = FLOW_VERTICAL
       key = "axis"
-      size = [flex(), SIZE_TO_CONTENT]
-      padding = [fsh(1), 0]
+      size = FLEX_H
+      padding = static [fsh(1), 0]
       clipChildren = true
       children = rows
     })
@@ -1152,7 +1152,7 @@ function axisSetupWindow() {
     }
 
     children = {
-      size = [sw(80), sh(80)]
+      size = static [sw(80), sh(80)]
       rendObj = ROBJ_WORLD_BLUR
       color = Color(120,120,120,255)
       flow = FLOW_VERTICAL
@@ -1196,7 +1196,7 @@ function actionTypeSelect(_cell_data, watched, value) {
 }
 
 let selectEventTypeHdr = {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   rendObj = ROBJ_TEXT
   text = loc("controls/actionEventType", "Action on")
   color = TextNormal
@@ -1211,7 +1211,7 @@ function buttonSetupWindow() {
   let needShowModType = Watched(binding.modCnt > 0)
   modifierType.subscribe(function(new_val) {
     binding.unordCombo = new_val
-    haveChanges(true)
+    haveChanges.set(true)
   })
 
   let currentBinding = {
@@ -1220,7 +1220,7 @@ function buttonSetupWindow() {
   }
   eventTypeValue.subscribe(function(new_val) {
     binding.eventType = new_val
-    haveChanges(true)
+    haveChanges.set(true)
   })
 
   let actionName = dainput.get_action_name(cellData.ah)
@@ -1238,7 +1238,7 @@ function buttonSetupWindow() {
   })
 
   let buttons = {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     halign = ALIGN_RIGHT
     children = [
@@ -1251,7 +1251,7 @@ function buttonSetupWindow() {
   }
 
   let isStickyToggle = {
-    margin = [fsh(1), 0, 0, fsh(0.4)]
+    margin = static [fsh(1), 0, 0, fsh(0.4)]
     children = checkbox({var = stickyToggle, title = loc("controls/digital/mode/toggle", "toggle")})
   }
 
@@ -1261,13 +1261,13 @@ function buttonSetupWindow() {
 
   let selectEventType = @() {
     flow = FLOW_VERTICAL
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     watch = eventTypeValue
     children = eventTypesChildren
   }
 
   let triggerTypeArea = {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     valign = ALIGN_TOP
     gap = fsh(2)
@@ -1317,7 +1317,7 @@ function buttonSetupWindow() {
     }
 
     children = {
-      size = [sw(80), sh(80)]
+      size = static [sw(80), sh(80)]
       rendObj = ROBJ_WORLD_BLUR
       color = Color(120,120,120,255)
       flow = FLOW_VERTICAL
@@ -1345,7 +1345,7 @@ function controlsMenuUi() {
     children = [
       {
         size = flex()
-        padding=[hdpx(5),hdpx(10)]
+        padding=static [hdpx(5),hdpx(10)]
         children = bindingsPage()
       },
       mkWindowButtons(width)
@@ -1354,7 +1354,7 @@ function controlsMenuUi() {
 
   let root = {
     key = "controls"
-    size = [sw(100), sh(100)]
+    size = static [sw(100), sh(100)]
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     watch = [
@@ -1364,16 +1364,16 @@ function controlsMenuUi() {
 
     children = [
       {
-        size = [sw(100), sh(100)]
+        size = static [sw(100), sh(100)]
         stopHotkeys = true
         stopMouse = true
         rendObj = ROBJ_WORLD_BLUR
         color = Color(130,130,130)
       }
-      actionRecording.value==null ? menu : null
-      configuredAxis.value!=null ? axisSetupWindow : null
-      configuredButton.value!=null ? buttonSetupWindow : null
-      actionRecording.value!=null ? recordingWindow : null
+      actionRecording.get()==null ? menu : null
+      configuredAxis.get()!=null ? axisSetupWindow : null
+      configuredButton.get()!=null ? buttonSetupWindow : null
+      actionRecording.get()!=null ? recordingWindow : null
     ]
 
     transform = {

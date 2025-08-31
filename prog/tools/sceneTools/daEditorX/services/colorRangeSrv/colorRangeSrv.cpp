@@ -3,8 +3,10 @@
 #include <de3_interface.h>
 #include <de3_colorRangeService.h>
 #include <generic/dag_tab.h>
-#include <math/random/dag_random.h>
+#include <gameMath/objgenPrng.h>
 #include <debug/dag_debug.h>
+
+using namespace objgenerator; // prng
 
 class GenericColorRangeService : public IColorRangeService
 {
@@ -17,7 +19,7 @@ public:
 
   GenericColorRangeService() : map(midmem) {}
 
-  virtual unsigned addColorRange(E3DCOLOR from, E3DCOLOR to)
+  unsigned addColorRange(E3DCOLOR from, E3DCOLOR to) override
   {
     if (from.u == 0xFFFFFFFFU && to.u == 0xFFFFFFFFU)
       return IDX_WHITE;
@@ -41,9 +43,9 @@ public:
     return idx;
   }
 
-  virtual int getColorRangesNum() { return map.size(); }
+  int getColorRangesNum() override { return map.size(); }
 
-  virtual E3DCOLOR getColorFrom(unsigned range_idx)
+  E3DCOLOR getColorFrom(unsigned range_idx) override
   {
     if (range_idx < map.size())
       return map[range_idx].from;
@@ -51,7 +53,7 @@ public:
       return 0x80808080U;
     return 0xFFFFFFFFU;
   }
-  virtual E3DCOLOR getColorTo(unsigned range_idx)
+  E3DCOLOR getColorTo(unsigned range_idx) override
   {
     if (range_idx < map.size())
       return map[range_idx].to;
@@ -60,7 +62,7 @@ public:
     return 0xFFFFFFFFU;
   }
 
-  virtual E3DCOLOR generateColor(unsigned range_idx, float seed_px, float seed_py, float seed_pz)
+  E3DCOLOR generateColor(unsigned range_idx, float seed_px, float seed_py, float seed_pz) override
   {
     if (range_idx == IDX_GRAY)
       return 0xFF808080U;
@@ -70,7 +72,7 @@ public:
     const Range &rng = map[range_idx];
     int seed = int(seed_px * 10) ^ (int(seed_py * 10) << 5) ^ (int(seed_pz * 10) << 10);
     float a, r, g, b;
-    _rnd_fvec4(seed, a, r, g, b);
+    rnd_fvec4(seed, a, r, g, b);
 
     a = (a * rng.from.a + (1.f - a) * rng.to.a) / 128.f;
 

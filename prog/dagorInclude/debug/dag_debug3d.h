@@ -8,6 +8,7 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
 #include <vecmath/dag_vecMathDecl.h>
+#include <generic/dag_span.h>
 
 // froward declarations for external classes
 class GeomNodeTree;
@@ -38,13 +39,18 @@ void draw_cached_debug_line(const Point3 &p0, const Point3 &p1, E3DCOLOR color);
 void draw_cached_debug_line_twocolored(const Point3 &p0, const Point3 &p1, E3DCOLOR color_front, E3DCOLOR color_behind);
 void draw_cached_debug_line(const Point3 *p0, int nm, E3DCOLOR color);
 
+void draw_cached_matrix_axis(const TMatrix &tm, float axis_len = 1.f);
+
 void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color);
 
-void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, TMatrix tm);
+void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, const TMatrix &tm);
 
 void draw_cached_debug_box(const Point3 &p0, const Point3 &ax, const Point3 &ay, const Point3 &az, E3DCOLOR color);
 
 void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs = 24);
+
+void draw_cached_debug_sphere_outline_clipped(const Point3 &camera, const Point3 &center, const real R, const Point4 &clipPlane,
+  E3DCOLOR col, int segs = 24);
 
 void draw_cached_debug_circle(const Point3 &c, const Point3 &a1, const Point3 &a2, real rad, E3DCOLOR col, int segs = 24);
 
@@ -79,6 +85,7 @@ void draw_cached_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad,
 // draws filled quad
 void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
 void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR c);
+void draw_cached_line_strip(const TMatrix &tm, dag::ConstSpan<Point2> v, const float width, const E3DCOLOR &color);
 
 struct Frustum;
 void draw_cached_debug_quad(vec4f &p0, vec4f &p1, vec4f &p2, vec4f &p3, E3DCOLOR col);

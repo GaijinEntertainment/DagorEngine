@@ -11,6 +11,8 @@ Sources =
   heightmapTesselationData.cpp
   heightmapCulling.cpp
   heightmapHandler.cpp
+  flexGridRenderer.cpp
+  flexGridSubdivision.cpp
 ;
 
 AddIncludes = 

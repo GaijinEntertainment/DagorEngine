@@ -170,7 +170,7 @@ static SQInteger script_assert(HSQUIRRELVM v)
 
 #if DAGOR_DBGLEVEL > 0
       // Note: the string will stay in the string table forever
-      SQObjectPtr errorStr = SQString::Create(_ss(v), assertBuf.str());
+      SQObjectPtr errorStr(SQString::Create(_ss(v), assertBuf.str()));
       v->CallErrorHandler(errorStr);
 #else
       logmessage(_MAKE4C('SQRL'), "SQ: %s", assertBuf.str());

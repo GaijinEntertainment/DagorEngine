@@ -1,0 +1,266 @@
+log_lut:b= yes
+circuit:t="internal"
+
+disableRemoteNetServices:b=yes
+
+graphics{
+  anisotropy:i = 4
+  spotShadowBias:p4 = -0.00006, -0.1, 0.001, 0.005 // z, slope z, shader z, shader slope z
+  dafx:t="cpu"
+}
+
+vromList {
+  pack {
+    path:t="ui/fonts.vromfs.bin"
+    mnt:t="ui/"
+    optional:b=yes
+  }
+}
+
+
+screenshots{
+  dir:t="Screenshots"
+  hdr_screenshot:t=no //"linear", "log", "result". "linear" -  is NO tonemap, "log" - cinlog-like (no tonemap), "result" - after tonemap
+  movie_sequence:b=no
+}
+
+video {
+  resolution:t="auto"
+  mode:t="fullscreenwindowed"
+  monitor:t="auto"
+  instancing:t="geom"
+  vsync:b=no
+  maxTexCount:i=65534
+}
+
+directx{
+  debug:b=0
+}
+
+phys{
+  fixedTimeStepHz:i=30
+  maxSubSteps:i=1
+}
+
+clipmap{
+//  texelSize:r = 0.1
+}
+
+texStreamingFile:t="config/tex_streaming.settings.blk"
+
+aviWriter{
+  quality:i=100
+  folder:t="Screenshots"
+  fileLimit:i=2100000000
+  frameRate:r=60
+}
+
+tracers{
+  tail_texture:t = tracer_tail_density
+}
+
+daEditor {
+  disable:b=yes
+  input {
+    maxCamera {
+      moveSensXY:r=0.05
+      rotSensXY:r=0.005
+      moveSensZ:r=0.02
+      fineMoveScale:r=0.05
+      turboMoveScale:r=20
+    }
+  }
+}
+
+folders{
+  webcache:t="{downloads}/webcache"
+  online_storage:t="{downloads}/online_storage"
+  pubcfg:t="{downloads}/pubcfg"
+}
+
+network {
+  publicConfigsUrls{
+    //url:t="https://public-configs."
+  }
+}
+
+langAlias {
+  SChinese:t=Chinese
+  TChinese:t=Chinese
+}
+
+es_order:t=""
+entitiesPath:t="gamedata/templates/outer_space.entities.blk"
+windowTitle:t="Outer Space"
+
+playerTemplateName:t="player"
+
+addons {
+  folder:t = "content/outer_space"
+}
+
+mountPoints {
+  "%darg"      { forSource:t="../../prog/scripts/sq/daRg"; forVromfs:t="sq/daRg"; }
+  "%sqstd"     { forSource:t="../../prog/scripts/sq/std"; forVromfs:t="sq/std"; }
+  "%daeditor"  { forSource:t="../../prog/scripts/sq/daeditor"; forVromfs:t="sq/daeditor"; }
+  "%dngscripts"{ forSource:t="../../prog/daNetGame/scripts/globals/"; forVromfs:t="daNetGame/qscripts"; }
+  "%dngdas"    { forSource:t="../../prog/daNetGame/scripts/das"; forVromfs:t="das"; }
+  "%daslib"    { forSource:t="../../prog/1stPartyLibs/daScript/daslib"; forVromfs:t="daslib"; }
+  "%gameLibs"{forSource:t="../../prog/gameLibs"; forVromfs:t="gameLibs";}
+  "%dasGameLibs"{forSource:t="../../prog/gameLibs/das"; forVromfs:t="das";}
+  "%scripts"   { forSource:t="../prog/scripts"; forVromfs:t="scripts"; }
+  "%danetlibs" {forSource:t="../../prog/daNetGameLibs"; forVromfs:t="danetlibs";}
+}
+
+addonBasePath { // first-stated-first-searched
+  addon {vrom:t="ui/skin.vromfs.bin"; vromed:b=no; src:t="../develop/gui/skin";}
+  addon {vromed:b=yes; vrom:t="outer_space.vromfs.bin";
+    src:t="../prog/gameBase"
+    src:t="../prog/scripts";
+    src:t="../prog/scripts/outer_space";
+  }
+}
+
+game_das_gen_2_make_syntax:b=true
+game_das_loading_threads:i=2
+game_sq_script:t="%scripts/outer_space/start.nut"
+game_das_project:t="%scripts/project.das_project"
+game_das_script:t="%scripts/outer_space/outer_space.das"
+game_das_script_init:t="%scripts/outer_space/outer_space_init.das"
+game_das_script_thread_init:t=""
+game_das_sandbox_project:t=""
+
+ui{
+  script:t=""
+  overlay_ui_script:t="%scripts/ui/main.nut"
+}
+
+/* default settings that can be altered if needed
+input {
+  controlsConfigPrefix:t="config/controlsConfig"
+  controlsPresetBasePrefix:t="config/"
+}
+*/
+
+soundSettingsBlk:t="config/sound_settings.blk"
+sound{
+  isFixedPool:b=no
+  volume{}
+}
+
+unitedVdata.dynModel {
+  use:b=yes
+  canRebuild:b=yes
+}
+
+__allow_force_apply_all:b=no
+__allowedConfigOverrides{
+  launchCnt:i=0
+  circuit:t=yes
+  scene:t=yes
+  region:t=yes
+  masterServerUrl:t=""
+  licenseAccepted:b=true
+//  aiList:t=""
+//  scene:t=""
+  sessionLaunchParams{
+    __allow_all_params:b=yes
+  }
+  language:t=""
+  logging{
+    __allow_all_params:b=yes
+  }
+  sound {
+    volume {
+      __allow_all_params:b=yes
+    }
+  }
+  createRoom{
+    __allow_all_params:b=yes
+  }
+  last {
+    __allow_all_params:b=yes
+  }
+  screenshots{
+    __allow_all_params:b=yes
+  }
+
+  quickMatch{
+    __allow_all_params:b=yes
+  }
+
+  aviWriter {
+    __allow_all_params:b=yes
+  }
+
+  gameplay{
+    __allow_all_params:b=yes
+  //camera_fov:r=70
+  }
+  streaming {
+    __allow_all_params:b=yes
+  }
+
+  video {
+    resolution:t=""
+    staticResolutionScale:b=yes
+    temporalUpsamplingRatio:b=yes
+    dlssQuality:i=-1
+    mode:t=""
+    monitor:t=""
+    vsync:b=yes
+    fpsLimit:b=yes
+    safeArea:b=yes
+    driver:t=""
+    frameSkip:i=0
+    vsync_tearing_tolerance_percents:i=0
+    nvidia_latency:i=0
+    amd_latency:i=0
+    intel_latency:i=0
+    perfMetrics:i=1
+  }
+  graphics{
+    __allow_all_params:b=yes
+  }
+  voice {__allow_all_params:b=yes;}
+  debug{
+    watchdog{__allow_all_params:b=yes;}
+    enableRawInput:b=true
+    das_log_aot_errors:b=true
+    pollThreadDelayMsec:i=8
+  }
+  dx12 {__allow_all_params:b=yes;}
+  input {__allow_all_params:b=yes;}
+
+  tracers { tail_texture:t=""; }
+
+  daEditor {
+    __allow_all_params:b=yes
+/*
+    disable:b=no
+    input {
+      maxCamera {
+        moveSensXY:r=0
+        rotSensXY:r=0
+        moveSensZ:r=0
+        fineMoveScale:r=0
+        turboMoveScale:r=0
+      }
+    }
+*/
+  }
+  texStreaming{
+    enableStreaming:b=no
+    logLevel:i=0
+    forceGpuMemMB:i=0
+    maxQuotaOverdraftMB:i=0
+
+    win32  { enableStreaming:b=no; }
+    win64  { enableStreaming:b=no; }
+    linux64{ enableStreaming:b=no; }
+    macosx { enableStreaming:b=no; }
+    ps4    { enableStreaming:b=no; }
+    xboxOne{ enableStreaming:b=no; }
+    android{ enableStreaming:b=no; }
+  }
+}

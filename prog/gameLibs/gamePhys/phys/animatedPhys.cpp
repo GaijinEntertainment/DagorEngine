@@ -28,8 +28,8 @@ void AnimatedPhys::init(const AnimV20::AnimcharBaseComponent &anim_char, const P
   remappedVars.clear();
   pullBitmap.clear();
   remappedVars.resize(phys_vars.getVarsCount(), -1);
-  for (auto &nameId : phys_vars)
-    addRemap(animGraph->getParamId(nameId.first.c_str()), nameId.second, phys_vars.isVarPullable(nameId.second));
+  phys_vars.iter(
+    [&](const char *name, int var_id) { addRemap(animGraph->getParamId(name), var_id, phys_vars.isVarPullable(var_id)); });
 }
 
 void AnimatedPhys::appendVar(const char *var_name, const AnimV20::AnimcharBaseComponent &anim_char, const PhysVars &phys_vars)

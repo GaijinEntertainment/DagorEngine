@@ -75,7 +75,7 @@ buffer gpu_objects_bvh_instances;
 buffer gpu_objects_bvh_mappings;
 
 macro INIT_BVH_GOBJ()
-  if (gpu_objects_use_bvh == yes && (hardware.dx12 || hardware.vulkan))
+  if (gpu_objects_use_bvh == yes && (hardware.dx12 || hardware.vulkan || hardware.metal))
   {
     hlsl {
       #define GENERATE_BVH_INTANCES 1
@@ -823,6 +823,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 0) = float4(right * scale, pos.x);
       bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 1) = float4(direction * scale, pos.y);
       bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 2) = float4(front * scale, pos.z);
+      //@RiExtraTmLayout
       uint c = uint(color.x * 255) | (uint(color.y * 255) << 8) | (uint(color.z * 255) << 16) | (uint(color.w * 255) << 24);
       bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 3) = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(c), 0.0);
 
@@ -830,20 +831,25 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       bbox_max = max(bbox_max, float4(pos + bounding_radius, 0));
 
       #if GENERATE_BVH_INTANCES
-        uint bvhIndex;
-        gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
-
-        if (bvhIndex < gpu_objects_bvh_max_count)
+        GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
+        [branch]
+        if (any(bvhMapping.blas != 0))
         {
-          GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
-          RTHWInstance bvhInstance;
-          bvhInstance.transform0 = float4(right * scale, pos.x);
-          bvhInstance.transform1 = float4(direction * scale, pos.y);
-          bvhInstance.transform2 = float4(front * scale, pos.z);
-          bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
-          bvhInstance.instanceOffset_flags = 0;
-          bvhInstance.blas = bvhMapping.blas;
-          structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+          uint bvhIndex;
+          gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+
+          [branch]
+          if (bvhIndex < gpu_objects_bvh_max_count)
+          {
+            RTHWInstance bvhInstance;
+            bvhInstance.transform0 = float4(right * scale, pos.x);
+            bvhInstance.transform1 = float4(direction * scale, pos.y);
+            bvhInstance.transform2 = float4(front * scale, pos.z);
+            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+            bvhInstance.instanceOffset_flags = 0;
+            bvhInstance.blas = bvhMapping.blas;
+            structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+          }
         }
       #endif
     }
@@ -1179,12 +1185,19 @@ int gpu_objects_max_count_in_cell;
 int gpu_objects_visible_cells;
 int gpu_objects_copy_lod_no;
 
+int gpu_objects_targetBuffer_reg_no = 0;
+int gpu_objects_offsets_reg_no = 0;
+int gpu_objects_matrices_reg_no = 1;
+
 shader gpu_objects_gather_matrices_cs
 {
   ENABLE_ASSERT(cs)
   INIT_BVH_GOBJ()
   (cs) {
     copy_parameters@i4 = (gpu_objects_gather_target_offset, gpu_objects_max_count_in_cell, gpu_objects_visible_cells, gpu_objects_copy_lod_no);
+    targetBuffer@uav : register(gpu_objects_targetBuffer_reg_no) hlsl { RWBuffer<float4> targetBuffer@uav; };
+    offsets@buf : register(gpu_objects_offsets_reg_no) hlsl { Buffer<uint2> offsets@buf; };
+    matrices@buf : register(gpu_objects_matrices_reg_no) hlsl { Buffer<float4> matrices@buf; };
   }
   hlsl(cs) {
     #define target_offset copy_parameters.x
@@ -1193,9 +1206,6 @@ shader gpu_objects_gather_matrices_cs
     #define lod_no copy_parameters.w
 
     #include "gpuObjects/gpu_objects_const.hlsli"
-    RWBuffer<float4> targetBuffer : register(u0);
-    Buffer<uint2> offsets : register(t0);
-    Buffer<float4> matrices : register(t1);
 
     [numthreads(DISPATCH_WARP_SIZE_XY, DISPATCH_WARP_SIZE_XY, 1)]
     void gather_matrices(uint2 thread_id : SV_DispatchThreadID)
@@ -1213,20 +1223,25 @@ shader gpu_objects_gather_matrices_cs
       bufferAt(targetBuffer, targetOffset + 3) = bufferAt(matrices, matrixOffset + 3);
 
       #if GENERATE_BVH_INTANCES
-        uint bvhIndex;
-        gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+        GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
 
-        if (bvhIndex < gpu_objects_bvh_max_count)
+        [branch]
+        if (any(bvhMapping.blas != 0))
         {
-          GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, lod_no);
-          RTHWInstance bvhInstance;
-          bvhInstance.transform0 = matrices[matrixOffset + 0];
-          bvhInstance.transform1 = matrices[matrixOffset + 1];
-          bvhInstance.transform2 = matrices[matrixOffset + 2];
-          bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
-          bvhInstance.instanceOffset_flags = 0;
-          bvhInstance.blas = bvhMapping.blas;
-          structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+          uint bvhIndex;
+          gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+
+          if (bvhIndex < gpu_objects_bvh_max_count)
+          {
+            RTHWInstance bvhInstance;
+            bvhInstance.transform0 = matrices[matrixOffset + 0];
+            bvhInstance.transform1 = matrices[matrixOffset + 1];
+            bvhInstance.transform2 = matrices[matrixOffset + 2];
+            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+            bvhInstance.instanceOffset_flags = 0;
+            bvhInstance.blas = bvhMapping.blas;
+            structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+          }
         }
       #endif
     }

@@ -10,25 +10,36 @@
 #include <shaders/dag_shaderMatData.h>
 #include <perfMon/dag_statDrv.h>
 #include <generic/dag_enumerate.h>
+#include <generic/dag_zip.h>
 #include <atomic>
 
 #include "bvh_context.h"
+#include "bvh_ri_common.h"
+
+#include <EASTL/fixed_vector.h>
 
 namespace bvh
 {
 
 extern elem_rules_fn elem_rules;
 
-extern std::atomic_uint32_t bvh_id_gen;
+extern dag::AtomicInteger<uint32_t> bvh_id_gen;
 
 inline uint64_t make_relem_mesh_id(uint32_t res_id, uint32_t lod_id, uint32_t elem_id)
 {
   return (uint64_t(res_id) << 32) | uint64_t(lod_id << 28) | elem_id; //-V629 //-V1028
 }
 
+inline void decompose_relem_mesh_id(uint64_t object_id, uint32_t &res_id, uint32_t &lod_id, uint32_t &elem_id)
+{
+  res_id = object_id >> 32;
+  lod_id = (object_id >> 28) & ((1 << 4) - 1);
+  elem_id = object_id & ((1 << 28) - 1);
+}
+
 inline uint32_t make_dyn_elem_id(uint32_t mesh_no, uint32_t elem_id) { return mesh_no << 14 | elem_id; }
 
-inline void process_relem(ContextId context_id, const ShaderMesh::RElem &elem, uint32_t elem_ix, uint32_t bvh_id, uint32_t lod_ix,
+inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const ShaderMesh::RElem &elem,
   const BufferProcessor *vertex_processor, const Point4 &pos_mul, const Point4 &pos_add, const BSphere3 &bounding, bool is_ri,
   const RenderableInstanceLodsResource::ImpostorParams *impostor_params = nullptr,
   const RenderableInstanceLodsResource::ImpostorTextures *impostor_textures = nullptr)
@@ -37,24 +48,28 @@ inline void process_relem(ContextId context_id, const ShaderMesh::RElem &elem, u
 
   G_UNUSED(impostor_params);
 
-  auto meshId = make_relem_mesh_id(bvh_id, lod_ix, elem_ix);
+  static int use_cross_dissolveVarId = get_shader_variable_id("use_cross_dissolve", true);
+  if (int use_cross_dissolve = 0; strcmp(elem.mat->getShaderClassName(), "rendinst_baked_impostor") == 0 &&
+                                  elem.mat->getIntVariable(use_cross_dissolveVarId, use_cross_dissolve) && use_cross_dissolve)
+    return eastl::nullopt;
 
   bool hasIndices;
   if (!elem.vertexData->isRenderable(hasIndices))
-    return;
+    return eastl::nullopt;
 
   ChannelParser parser;
   if (!elem.mat->enum_channels(parser, parser.flags))
-    return;
+    return eastl::nullopt;
 
   if (parser.positionFormat == -1)
-    return;
+    return eastl::nullopt;
 
   G_ASSERT(parser.normalFormat == -1 || parser.normalFormat == VSDT_E3DCOLOR);
   G_ASSERT(parser.colorFormat == -1 || parser.colorFormat == VSDT_E3DCOLOR);
 
   bool isHeliRotor = strncmp(elem.mat->getShaderClassName(), "helicopter_rotor", 16) == 0;
   bool isTree = strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
+  bool isTreePerlinLayered = strncmp(elem.mat->getShaderClassName(), "rendinst_tree_perlin_layered", 28) == 0;
   bool isLeaves = strncmp(elem.mat->getShaderClassName(), "rendinst_facing_leaves", 22) == 0;
   bool isFlag = strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
   bool isDeformed = strcmp(elem.mat->getShaderClassName(), "dynamic_deformed") == 0;
@@ -125,13 +140,13 @@ inline void process_relem(ContextId context_id, const ShaderMesh::RElem &elem, u
   meshInfo.posMul = pos_mul;
   meshInfo.posAdd = pos_add;
   meshInfo.boundingSphere = bounding;
-  meshInfo.hasInstanceColor = isTree || impostor_params;
+  meshInfo.hasInstanceColor = (isTree && !isTreePerlinLayered) || impostor_params;
   meshInfo.isHeliRotor = isHeliRotor;
 
   if (elem_rules)
     elem_rules(elem, meshInfo, parser, impostor_params, impostor_textures);
 
-  add_mesh(context_id, meshId, MeshInfo{meshInfo});
+  return meshInfo;
 }
 
 inline void process_relems(ContextId context_id, const dag::Span<ShaderMesh::RElem> &elems, uint32_t bvh_id, uint32_t lod_ix,
@@ -139,9 +154,37 @@ inline void process_relems(ContextId context_id, const dag::Span<ShaderMesh::REl
   const RenderableInstanceLodsResource::ImpostorParams *impostor_params = nullptr,
   const RenderableInstanceLodsResource::ImpostorTextures *impostor_textures = nullptr)
 {
-  for (auto [elemIx, elem] : enumerate(elems))
-    process_relem(context_id, elem, elemIx, bvh_id, lod_ix, vertex_processor, pos_mul, pos_add, bounding, is_ri, impostor_params,
-      impostor_textures);
+  constexpr size_t MAX_RELEMS = 32;
+  eastl::fixed_vector<MeshInfo, MAX_RELEMS> meshes;
+  eastl::fixed_vector<int, MAX_RELEMS> indices;
+
+  bool isAnimated = false;
+
+  for (auto [i, elem] : enumerate(elems))
+    if (auto meshInfo =
+          process_relem(context_id, elem, vertex_processor, pos_mul, pos_add, bounding, is_ri, impostor_params, impostor_textures))
+    {
+      isAnimated = isAnimated || (meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly());
+      meshes.push_back(eastl::move(meshInfo.value()));
+      indices.push_back(i);
+    }
+
+  if (meshes.empty())
+    return;
+
+  if (isAnimated)
+  {
+    for (auto [i, info] : zip(indices, meshes))
+    {
+      const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, i);
+      add_object(context_id, meshId, {{info}, isAnimated});
+    }
+  }
+  else
+  {
+    const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, 0);
+    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, isAnimated});
+  }
 }
 
 } // namespace bvh

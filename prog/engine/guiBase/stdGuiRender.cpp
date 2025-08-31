@@ -31,6 +31,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <gui/dag_guiStartup.h>
 #include <startup/dag_globalSettings.h>
+#include <util/dag_localization.h>
 #include <EASTL/utility.h>
 #include <math/dag_polyUtils.h>
 #include <memory/dag_framemem.h>
@@ -212,6 +213,13 @@ void init_fonts(const DataBlock &blk)
   }
   Tab<const DataBlock *> aliasBlk(tmpmem);
   bool needSomeFont = false;
+  const char *lang_suffix = nullptr;
+  if (const DataBlock *bLang = binblk->getBlockByName("langSuffix"))
+  {
+    lang_suffix = bLang->getStr(get_current_language(), nullptr);
+    if (!lang_suffix)
+      lang_suffix = bLang->getStr("*", "");
+  }
   for (int i = 0; i < binblk->paramCount(); ++i)
     if (binblk->getParamType(i) == DataBlock::TYPE_STRING)
     {
@@ -233,10 +241,14 @@ void init_fonts(const DataBlock &blk)
         }
       }
       needSomeFont = true;
-      String dyn_font_fn(0, "%s.dynFont.blk", binblk->getStr(i));
+      String dyn_font_fn(0, "%s%s.dynFont.blk", binblk->getStr(i), lang_suffix ? lang_suffix : "");
+      if (lang_suffix && !dd_file_exists(dyn_font_fn) && *lang_suffix)
+        dyn_font_fn.printf(0, "%s.dynFont.blk", binblk->getStr(i));
+
       if (dd_file_exists(dyn_font_fn))
       {
         DataBlock fblk(dyn_font_fn);
+        debug("loading font: %s", dyn_font_fn);
         DagorFontBinDump::loadDynFonts(rfont, fblk, screenHeight);
       }
       else
@@ -290,9 +302,23 @@ void load_dynamic_font(const DataBlock &font_description, int screen_height)
   int fontCount = rfont.size();
   DagorFontBinDump::loadDynFonts(rfont, font_description, screen_height);
 
-  for (int i = fontCount; i < rfont.size(); i++)
-    if (font_names.addStrId(rfont[i].name, i) != i)
-      logerr("duplicate font name \"%s\": id=%d and id=%d(used)", rfont[i].name, i, font_names.getStrId(rfont[i].name));
+  // algorithm to remove duplicates:
+  int lastId = rfont.size() - 1;
+  for (int i = fontCount; i < lastId + 1; i++)
+  {
+    int oldId = font_names.addStrId(rfont[i].name, i);
+    if (oldId != i)
+    {
+      // put new font from i-th to oldId-th position. Old font now is in i-th position
+      eastl::swap(rfont[oldId], rfont[i]);
+      // put old font to the last position
+      // if this font is new - it can be added to font_names
+      eastl::swap(rfont[i], rfont[lastId]);
+      lastId--;
+      i--; // recheck this index
+    }
+  }
+  rfont.resize(lastId + 1);
 }
 
 // close fonts
@@ -820,6 +846,7 @@ static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), mask
   linearSourceVarId("linearSource", true),
 
   fontFxTypeId("fontFxType"), fontFxOfsId("fontFxOfs"), fontFxColId("fontFxColor"), fontFxScaleId("fontFxScale"),
+  fontFxExtentId("fontFxExtent"),
 
   fontTex2Id("fontTex2"), fontTex2SamplerId("fontTex2_samplerstate"), fontTex2ofsId("fontTex2ofs"),
   fontTex2rotCCSmSId("fontTex2rotCCSmS"),
@@ -944,6 +971,7 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
 #endif
     ShaderGlobal::set_int(fontFxTypeId, params.ff.type);
     ShaderGlobal::set_real(fontFxScaleId, params.ff.factor_x32 / 32.0);
+    ShaderGlobal::set_real(fontFxExtentId, float((params.ff.factor_x32 + 31) / 32));
     ShaderGlobal::set_color4(fontFxColId, color4(params.ff.col));
     ShaderGlobal::set_color4(fontFxOfsId, Color4(params.ff.ofsX, params.ff.ofsY, 1.0 / lastFontFxTW, 1.0 / lastFontFxTH));
   }
@@ -1041,6 +1069,9 @@ void close_render()
 
 struct RecorderCallback
 {
+  static constexpr uint16_t QNUM_BITS = 14;
+  static constexpr uint16_t QNUM_MASK = 0xFFFFu >> (16 - QNUM_BITS);
+  static constexpr uint32_t MAX_TEX_IDX = 1u << (32 - QNUM_BITS);
   SmallTab<GuiVertex> &qv;
   SmallTab<uint16_t> &texQCnt;
   SmallTab<d3d::SamplerHandle> &texSamplers;
@@ -1062,13 +1093,15 @@ struct RecorderCallback
     texQCnt.back()++;
     return &qv[idx];
   }
+  static uint32_t getQCount(const uint16_t *p) { return p[1] & QNUM_MASK; }
+  static uint32_t getTexIndex(const uint16_t *p) { return uint32_t(p[0]) | (uint32_t(p[1] & ~QNUM_MASK) << (16 - QNUM_BITS)); }
   void setTex(TEXTUREID tex_id, d3d::SamplerHandle smp)
   {
-    if (texQCnt.size() < 2 || texQCnt[texQCnt.size() - 2] != tex_id.index())
+    if (texQCnt.size() < 2 || getTexIndex(&texQCnt[texQCnt.size() - 2]) != tex_id.index())
     {
-      G_ASSERTF(tex_id != BAD_TEXTUREID && tex_id.index() < 0x10000, "tex_idx=0x%x", tex_id);
-      texQCnt.push_back(tex_id.index());
-      texQCnt.push_back(0);
+      G_ASSERTF(tex_id != BAD_TEXTUREID && tex_id.index() < MAX_TEX_IDX, "idx=%d tex_id=0x%x", tex_id.index(), tex_id);
+      texQCnt.push_back(tex_id.index() & 0xFFFF);
+      texQCnt.push_back(((tex_id.index() >> 16) << QNUM_BITS) | 0);
       texSamplers.push_back(smp);
     }
   }
@@ -3558,6 +3591,15 @@ static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, d3d::Sampler
 {
   ctx.set_textures(tex_id, smp_id, tex_id2, smp_id2, true);
 
+  bool hasFontEffect = ctx.guiState.params.ff.type != FFT_NONE;
+  if (hasFontEffect)
+  {
+    int fontFxExtent = (ctx.guiState.params.ff.factor_x32 + 31) / 32;
+    int fontFxOfsX = ctx.guiState.params.ff.ofsX, fontFxOfsY = ctx.guiState.params.ff.ofsY;
+    lt += Point2(min(-fontFxExtent + fontFxOfsX, 0), min(-fontFxExtent + fontFxOfsY, 0));
+    rb += Point2(max(fontFxExtent + fontFxOfsX, 0), max(fontFxExtent + fontFxOfsY, 0));
+  }
+
   if (halftexel_expansion)
   {
     g_u0 -= ctx.halfFontTexelX;
@@ -3586,7 +3628,7 @@ static inline void enqueue_glyph(GuiContext &ctx, TEXTUREID tex_id, d3d::Sampler
 
 #undef MAKEDATA
 
-  if (ctx.guiState.params.ff.type != FFT_NONE)
+  if (hasFontEffect)
   {
     qv[0].tc1u = ltgw;
     qv[0].tc1v = ltgh;
@@ -3791,30 +3833,26 @@ bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uin
   GuiVertex v0 = {0};
   char prev_m[sizeof(vertexTransform.vtm)];
   Point2 prev_curPos = currentPos;
-  if (!(dsb_flags & DSBFLAG_abs))
-  {
-    memcpy(prev_m, vertexTransform.vtm, sizeof(prev_m));
-    vertexTransform.resetViewTm();
-    if (cb.checkVis)
-      v0.setPos(vertexTransform, currentPos.x, currentPos.y);
-    else
-      currentPos.x = currentPos.y = 0;
-  }
+
+  memcpy(prev_m, vertexTransform.vtm, sizeof(prev_m));
+  vertexTransform.resetViewTm();
+  if (cb.checkVis)
+    v0.setPos(vertexTransform, currentPos.x, currentPos.y);
+  else
+    currentPos.x = currentPos.y = 0;
 
   out_tex_qcnt.push_back(dyn_font_atlas_reset_generation);
   recCb = &cb;
   draw_str_scaled_u(scale, str, len);
   recCb = NULL;
 
-  if (!(dsb_flags & DSBFLAG_abs) && (v0.px | v0.py))
+  if (v0.px | v0.py)
     for (int j = 0; j < out_qv.size(); j++)
       out_qv[j].px -= v0.px, out_qv[j].py -= v0.py;
-  if (!(dsb_flags & DSBFLAG_abs))
-  {
-    memcpy(vertexTransform.vtm, prev_m, sizeof(prev_m));
-    if (!cb.checkVis)
-      currentPos += prev_curPos;
-  }
+
+  memcpy(vertexTransform.vtm, prev_m, sizeof(prev_m));
+  if (!cb.checkVis)
+    currentPos += prev_curPos;
 
   return cb.missingGlyphs == 0;
 }
@@ -3826,29 +3864,21 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
   G_ASSERT(tex_qcnt.size() % 2 == 1);
 
   IBBox2 view_bb, quad_bb;
-  if (dsb_flags & DSBFLAG_abs)
-  {
-    // use final viewport
-    view_bb[0].set(viewX * int(GUI_POS_SCALE), viewY * int(GUI_POS_SCALE));
-    view_bb[1].set((viewX + viewW) * int(GUI_POS_SCALE), (viewY + viewH) * int(GUI_POS_SCALE));
-  }
-  else
-  {
-    if (preTransformViewport.isempty())
-      return;
-    // use pre-transform viewport (shifted back to compensate currentPos)
-    view_bb[0].set_xy((preTransformViewport[0] - currentPos) * GUI_POS_SCALE);
-    view_bb[1].set_xy((preTransformViewport[1] - currentPos) * GUI_POS_SCALE);
-  }
+
+  if (preTransformViewport.isempty())
+    return;
+  // use pre-transform viewport (shifted back to compensate currentPos)
+  view_bb[0].set_xy((preTransformViewport[0] - currentPos) * GUI_POS_SCALE);
+  view_bb[1].set_xy((preTransformViewport[1] - currentPos) * GUI_POS_SCALE);
 
   const GuiVertex *cur_qv = buf_qv.data();
   const d3d::SamplerHandle *cur_smp = samplers.data();
   for (const uint16_t *tq = &tex_qcnt[1], *tq_end = tex_qcnt.data() + tex_qcnt.size(); tq < tq_end; tq += 2, cur_smp++)
   {
-    int full_qnum = tq[1];
+    int full_qnum = RecorderCallback::getQCount(tq);
     if (!full_qnum)
       continue;
-    TEXTUREID font_tid = D3DRESID::fromIndex(tq[0]);
+    TEXTUREID font_tid = D3DRESID::fromIndex(RecorderCallback::getTexIndex(tq));
     d3d::SamplerHandle font_smp = *cur_smp;
     update_font_fx_tex(*this, font_tid, font_smp);
     set_textures(font_tid, font_smp, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, true);
@@ -3856,29 +3886,16 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
     {
       int qnum = full_qnum < qCacheCapacity() ? full_qnum : qCacheCapacity(), qunused = 0;
       GuiVertex *qv = qCacheAllocT<GuiVertex>(qnum);
-      if ((dsb_flags & (DSBFLAG_abs | DSBFLAG_checkVis)) == DSBFLAG_abs)
-        memcpy(qv, cur_qv, 4 * qnum * elem_size(buf_qv));
-      else if (dsb_flags & DSBFLAG_checkVis)
+      if (dsb_flags & DSBFLAG_checkVis)
       {
         for (const GuiVertex *sqv = cur_qv, *sqv_e = sqv + 4 * qnum; sqv < sqv_e; sqv += 4)
         {
           memcpy(qv, sqv, 4 * elem_size(buf_qv));
-          if (dsb_flags & DSBFLAG_abs)
-          {
-            // quads in abs coords may be transformed, so we calc full bbox
-            quad_bb[0].x = min(min((qv + 0)->px, (qv + 1)->px), min((qv + 2)->px, (qv + 3)->px));
-            quad_bb[1].x = max(max((qv + 0)->px, (qv + 1)->px), max((qv + 2)->px, (qv + 3)->px));
-            quad_bb[0].y = min(min((qv + 0)->py, (qv + 1)->py), min((qv + 2)->py, (qv + 3)->py));
-            quad_bb[1].y = max(max((qv + 0)->py, (qv + 1)->py), max((qv + 2)->py, (qv + 3)->py));
-          }
-          else
-          {
-            // quads in rel coords are not transformed, so get point 0 and 2 as bbox extents
-            quad_bb[0].set((qv + 0)->px, (qv + 0)->py);
-            quad_bb[1].set((qv + 2)->px, (qv + 2)->py);
-            for (GuiVertex *v = qv, *v_e = v + 4; v < v_e; v++)
-              v->setPos(vertexTransform, v->px * GUI_POS_SCALE_INV + currentPos.x, v->py * GUI_POS_SCALE_INV + currentPos.y);
-          }
+
+          quad_bb[0].set((qv + 0)->px, (qv + 0)->py);
+          quad_bb[1].set((qv + 2)->px, (qv + 2)->py);
+          for (GuiVertex *v = qv, *v_e = v + 4; v < v_e; v++)
+            v->setPos(vertexTransform, v->px * GUI_POS_SCALE_INV + currentPos.x, v->py * GUI_POS_SCALE_INV + currentPos.y);
 
           if (quad_bb & view_bb)
             qv += 4;
@@ -3888,7 +3905,7 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
         qv -= 4 * (qnum - qunused);
         qCacheReturnUnused(qunused);
       }
-      else // DSBFLAG_rel && DSBFLAG_allQuads
+      else
       {
         memcpy(qv, cur_qv, 4 * qnum * elem_size(buf_qv));
         for (GuiVertex *qv_e = qv + 4 * qnum; qv < qv_e; qv++)

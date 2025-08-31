@@ -2,7 +2,6 @@
 #pragma once
 
 #include <drv/3d/dag_consts.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "driver.h"
 
@@ -98,15 +97,13 @@ struct ComputeProgram : ProgramIDWrapper<program_type_compute>, BaseProgram
 {
   struct CreationInfo
   {
-    const Tab<spirv::ChunkHeader> &chunks;
-    const Tab<uint8_t> &chunk_data;
-
-    CreationInfo() = delete;
+    const ShaderModuleHeader &smh;
+    const ShaderModuleBlob &smb;
 
     uint32_t getHash32() const { return 0; }
   };
 
-  ComputeProgram(const CreationInfo &){};
+  ComputeProgram(const CreationInfo &) {}
   static constexpr bool alwaysUnique() { return true; }
   bool isSame(const CreationInfo &) { return false; }
   bool release() { return true; }

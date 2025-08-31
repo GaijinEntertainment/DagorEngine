@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/converters/dag2blk ;
-UsingStaticCore = yes ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

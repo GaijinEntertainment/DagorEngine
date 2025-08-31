@@ -1,19 +1,22 @@
 include "psh_tangent.dshl"
 include "rendinst_trans_inc.dshl"
 include "emissive.dshl"
+include "rt_glass_apply.dshl"
 include "glass.dshl"
 include "indoor_light_probes.dshl"
 include "gbuffer_to_temperature.dshl"
 include "csm.dshl"
+include "camera_in_camera.dshl"
 
 shader rendinst_simple_glass, rendinst_refraction
 {
   assume instancing_type = tm_vb;
-  ENABLE_MULTI_DRAW(false)
   if (in_editor_assume == no)
   {
+    IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
     USE_BRUNETON_FOG()
   }
+  ENABLE_MULTI_DRAW(false)
   if (shader == rendinst_simple_glass)
   {
     INIT_CSM_SHADOW(ps)
@@ -26,10 +29,12 @@ shader rendinst_simple_glass, rendinst_refraction
       }
     }
 
+    INIT_GLASS_BACKFACE_SPECULAR_LIGHT(ps)
     INIT_SIMPLE_GLASS()
     static float emission = 0;
     (ps) { emission@f1 = (emission); }
     INIT_GLASS_NIGHT_EMISSION()
+    INIT_GLASS_HOLE_MASK(ps)
   } else
   {
     INIT_REFRACTION_GLASS()
@@ -87,5 +92,6 @@ shader rendinst_simple_glass, rendinst_refraction
   }
   compile("target_vs", "glass_vs");
 
+  RT_GLASS_APPLY(ps)
   GLASS_PS()
 }

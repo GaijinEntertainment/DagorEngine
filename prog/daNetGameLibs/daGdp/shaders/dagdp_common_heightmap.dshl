@@ -5,7 +5,7 @@ include "rendinst_heightmap_ofs.dshl"
 include "deform_hmap_common.dshl"
 include "dagdp_common_placer.dshl"
 
-macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
+macro USE_DAGDP_COMMON_HEIGHTMAP(isStage1)
   hlsl(cs) {
     #include "dagdp_heightmap.hlsli"
 
@@ -20,7 +20,7 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
 
   USE_DAGDP_COMMON()
   USE_DAGDP_COMMON_PLACER()
-  USE_DAGDP_COMMON_PLACER_THREADGROUP(TILE_INSTANCE_COUNT, g_storage, g_cond, !isDynamic)
+  USE_DAGDP_COMMON_PLACER_THREADGROUP(TILE_INSTANCE_COUNT, g_storage, g_cond)
 
   INIT_WORLD_HEIGHTMAP(cs)
   USE_HEIGHTMAP_COMMON(cs)
@@ -49,42 +49,122 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
       float topY;
     };
 
-    void initPlacementDetails(float2 instancePosXZ, out PlacementDetails result)
+    // equilateral triangle centered at origin
+    static const float2 sample_offsets[3] =
     {
-      float3 instancePos;
-      instancePos.xz = instancePosXZ;
+      float2(0, 1),
+      float2(+0.866, -0.5),
+      float2(-0.866, -0.5),
+    };
 
-      const float3 surfaceNormal = getWorldNormal(instancePos);
-      const float3 displacement = surfaceNormal * get_hmap_ofs_no_vignette(instancePos.xz);
-      instancePos.xz += displacement.xz;
+    void sampleThreePoints(float2 posXZ, float radius, out float3 surfacePos, out float3 surfaceNormal,
+      out float deformHeight, out float originalY, out float topY)
+    {
+      float3 pos[3];
+      uint i;
 
-      // TODO: Performance: getWorldHeight, getWorldNormal, isInsideHeightmap
-      // have redundant computations inside, some of which can be eliminated.
-      instancePos.y = getWorldHeight(instancePos.xz) + displacement.y;
-
-      float originalY = instancePos.y;
-      float topY = instancePos.y;
-      apply_renderinst_hmap_ofs(instancePos.xz, topY); // topY >= originalY
-      // TODO: apply_renderinst_hmap_ofs can lead to incorrect getWorldNormal.
-
-      float deformHeight = 0;
-      if (topY == originalY)
+      // initial heightmap to estimate normal for displacement
+      UNROLL
+      for (i = 0; i < 3; i++)
       {
-        deformHeight = getDeformHeight(instancePos, world_to_hmap_tex_ofs.z);
-        instancePos.y += deformHeight;
-        originalY = instancePos.y;
-        topY = instancePos.y;
+        // TODO: sample_offsets could be randomly rotated
+        pos[i].xz = posXZ + sample_offsets[i] * radius;
+        pos[i].y = getWorldHeight(pos[i].xz);
       }
 
-      result.position = instancePos;
-      result.surfaceNormal = surfaceNormal;
-      result.deformHeight = deformHeight;
-      result.originalY = originalY;
-      result.topY = topY;
+      surfaceNormal = normalize(cross(pos[1] - pos[0], pos[2] - pos[0]));
+
+      // add offset
+      UNROLL
+      for (i = 0; i < 3; i++)
+        pos[i] += surfaceNormal * get_hmap_ofs_no_vignette(pos[i].xz);
+
+      // add deform
+      deformHeight = 0;
+      UNROLL
+      for (i = 0; i < 3; i++)
+      {
+        float dh = getDeformHeight(pos[i], world_to_hmap_tex_ofs.z);
+        deformHeight += dh;
+        pos[i].y += dh;
+      }
+      deformHeight *= 1.0/3;
+
+      originalY = (pos[0] + pos[1] + pos[2]).y / 3;
+
+      // apply patches
+##if hmap_patches_tex != NULL
+      UNROLL
+      for (i = 0; i < 3; i++)
+        apply_height_patches(pos[i].xz, pos[i].y);
+##endif
+
+      // apply rendinst hmap
+      UNROLL
+      for (i = 0; i < 3; i++)
+        apply_renderinst_hmap_ofs(pos[i].xz, pos[i].y);
+
+      surfaceNormal = normalize(cross(pos[1] - pos[0], pos[2] - pos[0]));
+      surfacePos = (pos[0] + pos[1] + pos[2]) / 3;
+      topY = surfacePos.y;
+
+      if (topY != originalY)
+        deformHeight = 0;
+
+      if (lower_level)
+        surfacePos.y = originalY;
+    }
+
+    void initPlacementDetails(float2 instancePosXZ, out PlacementDetails result, float sampleRange)
+    {
+      BRANCH
+      if (sampleRange > 0)
+      {
+        sampleThreePoints(instancePosXZ, sampleRange, result.position, result.surfaceNormal,
+          result.deformHeight, result.originalY, result.topY);
+      }
+      else
+      {
+        float3 instancePos;
+        instancePos.xz = instancePosXZ;
+
+        const float3 surfaceNormal = getWorldNormal(instancePos);
+        const float3 displacement = surfaceNormal * get_hmap_ofs_with_vignette_no_extras(instancePos.xz);
+        instancePos.xz += displacement.xz;
+
+        // TODO: Performance: getWorldHeight, getWorldNormal, isInsideHeightmap
+        // have redundant computations inside, some of which can be eliminated.
+        instancePos.y = getWorldHeight(instancePos.xz) + displacement.y;
+
+        ##if hmap_patches_tex != NULL
+          apply_height_patches(instancePos.xz, instancePos.y);
+        ##endif
+
+        float originalY = instancePos.y;
+        float topY = instancePos.y;
+        apply_renderinst_hmap_ofs(instancePos.xz, topY); // topY >= originalY
+        // TODO: apply_renderinst_hmap_ofs can lead to incorrect getWorldNormal.
+
+        float deformHeight = 0;
+        if (topY == originalY)
+        {
+          deformHeight = getDeformHeight(instancePos, world_to_hmap_tex_ofs.z);
+          instancePos.y += deformHeight;
+          originalY = instancePos.y;
+          topY = instancePos.y;
+        }
+
+        result.position = instancePos;
+        result.surfaceNormal = surfaceNormal;
+        result.deformHeight = deformHeight;
+        result.originalY = originalY;
+        result.topY = topY;
+      }
     }
 
     // May change placeableIndex to ~0u, and adjust pd.position.
-    void adjustPlacement(inout uint placeableIndex, const PlaceableGpuData placeable, int2 stablePos, inout PlacementDetails pd)
+    void adjustPlacement(inout uint placeableIndex, const PlaceableGpuData placeable, int2 stablePos, inout PlacementDetails pd,
+      float3 axis = float3(0, 1, 0), uint volumeFlags = 0)
     {
       FLATTEN
       if (placeableIndex != ~0u)
@@ -106,9 +186,11 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
             (pd.position.y == pd.topY) ^ lower_level;
         }
 
-        const bool isSlopeOk = checkSlope(placeable.slopeFactor, placeable.flags, pd.surfaceNormal, stableRand(stablePos, prng_seed_slope));
+        const bool isSlopeOk = checkSlope(placeable.slopeSinMin, placeable.slopeSinMax,
+          placeable.flags | volumeFlags, dot(pd.surfaceNormal, axis), stableRand(stablePos, prng_seed_slope));
+        const bool isOcclusionOk = checkOcclusion(placeable.occlusionRange, placeable.occlusionMin, placeable.occlusionMax, pd.position, pd.surfaceNormal, stableRand(stablePos, prng_seed_occlusion));
         const bool deletedByHmapDeform = !(placeable.flags & PERSIST_ON_HEIGHTMAP_DEFORM_BIT) && pd.deformHeight < -0.01;
-        const bool isPlacementOk = (placeable.flags & WATER_PLACEMENT_BIT) || (isSlopeOk && !deletedByHmapDeform);
+        const bool isPlacementOk = (placeable.flags & WATER_PLACEMENT_BIT) || (isSlopeOk && isOcclusionOk && !deletedByHmapDeform);
 
         FLATTEN
         if (!isPlacementOk || !isYOk)
@@ -125,9 +207,11 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
         placeableIndex = ~0u;
     }
 
-    void finishPlacement(uint tId, int2 stablePos, const PlacementDetails pd, uint placeableIndex, const PlaceableGpuData placeable, const VariantGpuData variant)
+    void finishPlacement(uint tId, int2 stablePos, const PlacementDetails pd, uint placeableIndex,
+      const PlaceableGpuData placeable, const VariantGpuData variant, float scaleFactor = 1,
+      float3 extra = float3(0, 0, 0))
     {
-      const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
+      const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale)) * scaleFactor;
       uint renderableIndex = getRenderableIndex(variant, placeableIndex, pd.position, viewport_pos, randScale);
       const SamePlaceableInfo pInfo = getSamePlaceableInfo(placeableIndex, tId);
 
@@ -142,12 +226,10 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
       const SameRenderableInfo rInfo = getSameRenderableInfo(renderableIndex, tId);
       const uint counterIndex = getCounterIndex(renderableIndex, viewport_index, num_renderables);
 
-      ##if isDynamic
-        DynAlloc allocRegion;
-        FLATTEN
-        if (isPlaced)
-          allocRegion = structuredBufferAt(dyn_allocs, counterIndex);
-      ##endif
+      DynAlloc allocRegion;
+      FLATTEN
+      if (isPlaced)
+        allocRegion = structuredBufferAt(dyn_allocs, counterIndex);
 
       BRANCH
       if (isPlaced && (rInfo.baseThreadId == tId))
@@ -155,24 +237,19 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
         ##assert(rInfo.offset == 0, "must be zero for base thread");
         uint baseInstanceOffset;
 
-        ##if isDynamic
-          InterlockedAdd(structuredBufferAt(dyn_counters, counterIndex + DYN_COUNTERS_PREFIX), rInfo.count, baseInstanceOffset);
-          g_storage[tId] = baseInstanceOffset;
+        InterlockedAdd(structuredBufferAt(dyn_counters, counterIndex + DYN_COUNTERS_PREFIX), rInfo.count, baseInstanceOffset);
+        g_storage[tId] = baseInstanceOffset;
 
-          if (baseInstanceOffset + rInfo.count > allocRegion.capacity)
-          {
-            ##if isStage1
-              ##assert(false, "Placement overflowed: %d < %d + %d", allocRegion.capacity, baseInstanceOffset, rInfo.count);
-            ##endif
-            // Placement overflowed, set a flag and don't write out instance data.
-            g_storage[tId] = ~0u;
-            uint _ignore;
-            InterlockedCompareExchange(structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG), 0u, ~0u, _ignore);
-          }
-        ##else
-          InterlockedAdd(structuredBufferAt(counters, counterIndex), rInfo.count, baseInstanceOffset);
-          g_storage[tId] = baseInstanceOffset;
-        ##endif
+        if (baseInstanceOffset + rInfo.count > allocRegion.capacity)
+        {
+          ##if isStage1
+            ##assert(false, "Placement overflowed: %d < %d + %d", allocRegion.capacity, baseInstanceOffset, rInfo.count);
+          ##endif
+          // Placement overflowed, set a flag and don't write out instance data.
+          g_storage[tId] = ~0u;
+          uint _ignore;
+          InterlockedCompareExchange(structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG), 0u, ~0u, _ignore);
+        }
       }
 
       GroupMemoryBarrierWithGroupSync();
@@ -181,16 +258,10 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isDynamic, isStage1)
       BRANCH
       if (isPlaced && baseInstanceOffset != ~0u)
       {
-        ##if isDynamic
-          uint instanceElementOffset = 4 * (allocRegion.instanceBaseIndex + baseInstanceOffset + rInfo.offset); // TODO: float4, float4x3
-          ##assert(allocRegion.capacity > baseInstanceOffset + rInfo.offset, "capacity %d must be greater than offset %d + %d. (count = %d)", allocRegion.capacity, baseInstanceOffset, rInfo.offset, rInfo.count);
-        ##else
-          uint2 instanceRegion = structuredBufferAt(instance_regions, renderableIndex);
-          uint instanceElementOffset = 4 * (viewport_instance_offset + instanceRegion.x + baseInstanceOffset + rInfo.offset); // TODO: float4, float4x3
-          ##assert(baseInstanceOffset + rInfo.offset < instanceRegion.y, "Instance region out of bounds: %d + %d < %d", baseInstanceOffset, rInfo.offset, instanceRegion.y);
-        ##endif
+        uint instanceElementOffset = 4 * (allocRegion.instanceBaseIndex + baseInstanceOffset + rInfo.offset); // TODO: float4, float4x3
+        ##assert(allocRegion.capacity > baseInstanceOffset + rInfo.offset, "capacity %d must be greater than offset %d + %d. (count = %d)", allocRegion.capacity, baseInstanceOffset, rInfo.offset, rInfo.count);
 
-        writeInstance(placeable, pd.position, pd.surfaceNormal, stablePos, randScale, instanceElementOffset);
+        writeInstance(placeable, pd.position, pd.surfaceNormal, stablePos, randScale, instanceElementOffset, extra);
       }
     }
   }

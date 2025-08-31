@@ -19,8 +19,9 @@ hero_cockpit_renderer{
   _tags:t="render"
   render_hero_cockpit_into_early_prepass:b=no
   "hero_cockpit_entities:list<eid>"{}
-  "prepare_hero_cockpit_node:dabfg::NodeHandle"{}
-  "hero_cockpit_early_prepass_node:dabfg::NodeHandle"{}
-  "hero_cockpit_late_prepass_node:dabfg::NodeHandle"{}
-  "hero_cockpit_colorpass_node:dabfg::NodeHandle"{}
+  "prepare_hero_cockpit_node:dafg::NodeHandle"{}
+  "hero_cockpit_early_prepass_node:dafg::NodeHandle"{}
+  "hero_cockpit_late_prepass_node:dafg::NodeHandle"{}
+  "hero_cockpit_colorpass_node:dafg::NodeHandle"{}
+  is_hero_crawling:b=no
 }

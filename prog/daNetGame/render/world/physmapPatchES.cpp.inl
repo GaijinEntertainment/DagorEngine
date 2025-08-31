@@ -51,7 +51,6 @@ static void init_physmap_patch_es_event_handler(
 
   physmap_patch_tex.close();
   physmap_patch_tex = dag::create_tex(nullptr, physmap_patch_tex_size, physmap_patch_tex_size, TEXFMT_R8UI, 1, "physmap_patch_tex");
-  physmap_patch_tex->disableSampler();
   physmap_patch_invscale = physMap->invScale;
 
   toroidal_helper.texSize = physmap_patch_tex_size;
@@ -70,10 +69,10 @@ static struct GatherPhysmapPatchUpdatedRegionsJob final : public cpujobs::IJob
   Point2 patchOrigin;
   bool patchNeedsUpdate = false;
 
+  const char *getJobName(bool &) const override { return "gather_physmap_patch_updated_regions"; }
+
   void doJob() override
   {
-    TIME_PROFILE(gather_physmap_patch_updated_regions);
-
     IPoint2 newOriginInPhysmapCoords = ipoint2(floor((camPosXZ - physMap->worldOffset) * physMap->invScale));
 
     regionsToUpdate.clear();

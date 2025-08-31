@@ -2,8 +2,9 @@ outline_renderer{
   outline_blur_width:r=1.5
   outline_brightness:r=5
   "outline_renderer:OutlineRenderer"{ }
-  "outline_prepare_node:dabfg::NodeHandle"{ }
-  "outline_apply_node:dabfg::NodeHandle"{ }
+  "outline_ctxs:OutlineContexts"{ }
+  "outline_prepare_node:dafg::NodeHandle"{ }
+  "outline_apply_node:dafg::NodeHandle"{ }
   _singleton:b=yes
   _tags:t="render"
 }

@@ -1,11 +1,4 @@
-//include "shader_global.dshl"
-include "land_block_inc.dshl"
-include "bc_compression_inc.dshl"
-include "etc2_compression_inc.dshl"
-
-texture cache_buffer_tex_0;
-texture cache_buffer_tex_1;
-texture cache_buffer_tex_2;
+include "clipmap_compression_common.dshl"
 
 int uncompressed_clipmap_buffer_srgb_mode = 0;
 interval uncompressed_clipmap_buffer_srgb_mode : native < 1, software;
@@ -15,46 +8,8 @@ shader direct_cache_bypass
   cull_mode = none;
   z_test = false;
   supports global_frame;
-  supports land_mesh_prepare_clipmap;
-  hlsl {
-    struct VsOutput
-    {
-      VS_OUT_POSITION(pos)
-      float4 texcoord : TEXCOORD0;
-    };
-  }
-  hlsl(vs) {
-    float4 rel_queue_page_sz__rel_cache_page_sz:register(c50);
-    #define rel_queue_page_sz (rel_queue_page_sz__rel_cache_page_sz.xy)
-    #define rel_cache_page_sz (rel_queue_page_sz__rel_cache_page_sz.zw)
-    float mip:register(c51);
-    //no reason to allocate more than COMPRESS_QUEUE_SIZE
-    //otherwise it is possible OOB read from const buffer, which
-    //bugs out on Adreno 660 devices (either hw specific prefetch bug in driver or bug in general)
-    #define MAX_QUADS 4
-    float4 quads[MAX_QUADS]:register(c52);
-##if !hardware.metal
-    #if !SHADER_COMPILER_DXC
-    //next register that is not used
-    float4 last:register(c56);
-    #endif
-##endif
-    VsOutput bypass_vs(uint vertexId : SV_VertexID)
-    {
-      uint quadId = vertexId/6;
-      uint subvertexId = vertexId%6;
-      float2 localPos = float2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
-      float4 quad = quads[quadId];
-      VsOutput output;
-      float mipExp = exp2(mip);
-      float2 srcTc = localPos.xy*rel_queue_page_sz + quad.zw;
-      output.pos = float4((quad.xy+localPos)*rel_cache_page_sz*2-1, 0, 1);
-      output.pos.y = -output.pos.y;
-      output.texcoord.xy = srcTc;
-      output.texcoord.zw = mip;
-      return output;
-    }
-  }
+
+  DIRECT_CACHE_BYPASS_VS()
 
   (ps) {
     cache_buffer_tex_0@smp2d = cache_buffer_tex_0;
@@ -169,9 +124,17 @@ shader cache0_compressor, cache1_compressor, cache2_compressor
           texels[i].x = ao_emission.x;
           texels[i].w = texels[i].z;
           texels[i].z = ao_emission.y;
+          texels[i].rgb = saturate(texels[i].rgb - float3(4./255., 2./255., 4./255.)); // Mimic the error of a fixed BC3 encoder bug for which artists have adapted.
         }
-        find_base_colors( texels, min_color, max_color );
-        refine_rgb_base_colors( texels, min_color, max_color );
+
+        ##if find_base_colors_with_pca
+          find_base_colors_pca_rgb( texels, min_color, max_color );
+          inset_rgb_base_colors( min_color, max_color );
+        ##else
+          find_base_colors( texels, min_color, max_color );
+          correlate_rgb_base_colors( texels, min_color, max_color );
+          inset_rgb_base_colors( min_color, max_color );
+        ##endif
         return pack_bc3_block( texels, min_color, max_color );
       ##elif shader == cache0_compressor
         //##if hardware.dx11 || hardware.vulkan || hardware.metal
@@ -196,9 +159,17 @@ shader cache0_compressor, cache1_compressor, cache2_compressor
         gatherTexels(Blue, w, src_smoothness_tex);
       ##endif
 
-        find_base_colors( texels, min_color, max_color );
-        refine_rgb_base_colors( texels, min_color, max_color );
+        UNROLL
+        for (int i = 0; i < 16; ++i)
+          texels[i].rgb = saturate(texels[i].rgb - float3(4./255., 2./255., 4./255.)); // Mimic the error of a fixed BC3 encoder bug for which artists have adapted.
 
+        ##if find_base_colors_with_pca
+          find_base_colors_pca_rgb( texels, min_color, max_color );
+        ##else
+          find_base_colors( texels, min_color, max_color );
+          correlate_rgb_base_colors( texels, min_color, max_color );
+        ##endif
+        inset_rgb_base_colors( min_color, max_color );
         return pack_bc3_block( texels, min_color, max_color );
       ##endif
     }

@@ -82,6 +82,7 @@ enum class Drv3dCommand
 
   FLUSH_STATES, // flush all states, except buffer. will resolve msaa, generate mips, etc - if supported!
   D3D_FLUSH,    // ID3D11DeviceContext::Flush or IDirect3DQuery9::GetData(D3DGETDATA_FLUSH).
+  GPU_BARRIER_WAIT_ALL_COMMANDS,
 
   //! flush pipeline states to compile pipeline
   // par1: uintptr_t that stores ShaderStage
@@ -179,13 +180,15 @@ enum class Drv3dCommand
   // Saves current pipeline cache on FS.
   SAVE_PIPELINE_CACHE,
 
-  // Get pointer to the DLSS object
-  // par1: DLSS**
-  GET_DLSS,
+  // Get pointer to the Streamline object
+  // par1: Streamline**
+  GET_STREAMLINE,
 
-  // Get pointer to the Reflex object
-  // par1: Reflex**
-  GET_REFLEX,
+  // Get pointer to the DLSS object. Only used on Linux, where there is no streamline
+  // and we use DLSS directly.
+  // Note that it is also implemented on Win64 with Vulkan for development purposes.
+  // par1: nv::DLSS**
+  GET_DLSS,
 
   // Returns XeSS state as a XessState struct casted to int. No parameters required
   GET_XESS_STATE,
@@ -204,6 +207,12 @@ enum class Drv3dCommand
   // par1: char *version
   // par2: size_t versionSize
   GET_XESS_VERSION,
+
+  // Executes DLSS without streamline. Only used on Linux, where there is no streamline
+  // and we use DLSS directly.
+  // Note that it is also implemented on Win64 with Vulkan for development purposes.
+  // par1: DlssParams *
+  EXECUTE_DLSS_NO_STREAMLINE,
 
   // Executes DLSS
   // par1: DlssParams *
@@ -224,9 +233,37 @@ enum class Drv3dCommand
   // par2: float *y
   SET_XESS_VELOCITY_SCALE,
 
+  // Gets the number of frames XeSS can generate.
+  // par1: int* frames
+  GET_XESS_SUPPORTED_GEN_FRAMES,
+
+  // Gets the number of frames XeSS was presented since the last real frame
+  // par1: int* presented_frames
+  GET_XESS_PRESENTED_FRAME_COUNT,
+
+  // Tells if XeSS frame generation is enabled
+  // par1: bool* enabled
+  GET_XESS_FG_ENABLED,
+
+  // Enable or disable XeSS frame generation
+  // par1: bool* enable
+  XESS_ENABLE_FG,
+
+  // Suppress or continue XeSS frame generation. Suppressing doesn't free up GPU resources.
+  // par1: bool* suppress
+  XESS_SUPPRESS_FG,
+
+  // Schedule the generation of a frame with the given arguments
+  // par1: XessFgParams *
+  XESS_SCHEDULE_GEN_FRAME,
+
   // Execute FSR
   // par1: amd::FSR::UpscalingArgs *
   EXECUTE_FSR,
+
+  // Execute FSR
+  // par1: amd::FSR::FrameGenArgs *
+  EXECUTE_FSR_FG,
 
   // Execute FSR2
   // par1: Fsr2Params *
@@ -307,9 +344,6 @@ enum class Drv3dCommand
   // that no drawing will be performed due to app being hidden/inactive/minimized
   PROCESS_APP_INACTIVE_UPDATE,
 
-  // Starts special BB rotate transform pass
-  PRE_ROTATE_PASS,
-
   // Indicates generic render pass start for validation
   BEGIN_GENERIC_RENDER_PASS_CHECKS,
 
@@ -384,8 +418,10 @@ enum class Drv3dCommand
   REMOVE_DEBUG_BREAK_STRING_SEARCH,
 
   IS_DEFRAG_REQUESTED,
-  // returns true if defragmentation was done
+  // returns true if defragmentation was done. Non-null par1 forces defragmentation
   PROCESS_PENDING_DEFRAG_REQUESTS,
+
+  CONVERT_TLAS_INSTANCES, // par1: dst buffer address, par2: HwInstance*, par3: count
 
   // par1: CompilePipelineSet*
   COMPILE_PIPELINE_SET,
@@ -418,6 +454,15 @@ enum class Drv3dCommand
   // par1: pointer to a Tab<ResourceDumpInfo> object
   GET_RESOURCE_STATISTICS,
 
+  // par1: RaytraceBottomAccelerationStructure *
+  // par2: uint32_t * - place where AS size after compaction will be stored
+  GET_PS5_COMPACTED_BLAS_SIZE,
+
+  // Returns a vendor specific implementation of the GpuLatency interface
+  // par1: Pointer to the vendor id
+  // par2: Pointer to a pointer, reciving the interface
+  CREATE_GPU_LATENCY,
+
   // helper for low level APIs (vulkan) to improve barrier tracking on batched workloads
   // delay disables barrier generation till continue is called
   // when continue is called, recorded work is analyzed to place barriers at point of time when delay was called
@@ -446,6 +491,13 @@ enum class Drv3dCommand
 
   // Returns whether PIX Capturer is loaded
   IS_PIX_CAPTURE_LOADED,
+
+  SET_RT_VALIDATION_CALLBACK,
+
+  // Driver attempts to create a GPU page fault deliberately.
+  // A page fault on the GPU will cause it to halt and be reset by the OS.
+  // Drivers should only implement this command for development and debug builds.
+  CAUSE_GPU_PAGE_FAULT,
 
   USER = 1000,
 };
@@ -510,7 +562,7 @@ struct CompilePipelineSet
   const DataBlock *graphicsPixelOverrideSet;
 };
 
-enum ResourceBarrier : int;
+enum ResourceBarrier : uint64_t;
 
 struct Drv3dMakeTextureParams
 {

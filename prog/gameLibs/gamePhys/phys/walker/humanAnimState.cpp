@@ -4,6 +4,9 @@
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlendCtrl.h>
 
+// Legacy code only used in WT. In DNG was moved to scripts.
+// TODO: move to scripts, remove from cpp.
+
 void HumanAnimState::init(const AnimV20::AnimcharBaseComponent &anim_char)
 {
   const AnimV20::AnimationGraph *animGraph = anim_char.getAnimGraph();
@@ -79,7 +82,7 @@ void HumanAnimState::updateState(AnimV20::AnimcharBaseComponent &anim_char, Huma
 }
 
 
-#define HST_FLAG(x, f) (((x)&HumanAnimStateFlags::f) != HumanAnimStateFlags::None)
+#define HST_FLAG(x, f) (((x) & HumanAnimStateFlags::f) != HumanAnimStateFlags::None)
 HumanAnimState::StateResult HumanAnimState::updateState(HumanStatePos state_pos, HumanStateMove state_move, StateJump state_jump,
   HumanStateUpperBody state_upper_body, HumanAnimStateFlags state_flags)
 {

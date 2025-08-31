@@ -9,6 +9,7 @@
 #include <drv/3d/dag_variableRateShading.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_streamOutput.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_dispatch.h>
 #include <drv/3d/dag_dispatchMesh.h>
@@ -33,8 +34,8 @@ static void na_func() { DAG_FATAL("D3DI function not implemented"); }
 
 #define FILL_ENTRY(X)     d3dit.X = d3d::X
 #define FILL_ENTRY2(X, Y) d3dit.X = d3d::Y
-#if _TARGET_PC_WIN
-#define FILL_ENTRY_PC(X) d3dit.X = d3d::pcwin32::X
+#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
+#define FILL_ENTRY_PC(X) d3dit.X = d3d::pcwin::X
 #else
 #define FILL_ENTRY_PC(X)
 #endif
@@ -119,8 +120,7 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(request_sampler);
   FILL_ENTRY(set_sampler);
-  FILL_ENTRY2(register_bindless_sampler_0, register_bindless_sampler);
-  FILL_ENTRY2(register_bindless_sampler_1, register_bindless_sampler);
+  FILL_ENTRY(register_bindless_sampler);
 
   FILL_ENTRY(allocate_bindless_resource_range);
   FILL_ENTRY(resize_bindless_resource_range);
@@ -132,10 +132,11 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(set_rwtex);
   FILL_ENTRY(clear_rwtexi);
   FILL_ENTRY(clear_rwtexf);
-  FILL_ENTRY(clear_rwbufi);
-  FILL_ENTRY(clear_rwbuff);
+  FILL_ENTRY(zero_rwbufi);
 
   FILL_ENTRY(clear_rt);
+
+  FILL_ENTRY(discard_tex);
 
   FILL_ENTRY(set_buffer);
   FILL_ENTRY(set_rwbuffer);
@@ -156,6 +157,7 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(get_render_target_size);
   FILL_ENTRY(set_variable_rate_shading);
   FILL_ENTRY(set_variable_rate_shading_texture);
+  FILL_ENTRY(set_stream_output_buffer);
 
   FILL_ENTRY2(settm_0, settm);
   FILL_ENTRY2(settm_1, settm);
@@ -190,7 +192,11 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(update_screen);
   FILL_ENTRY(wait_for_async_present);
-  FILL_ENTRY(gpu_latency_wait);
+  FILL_ENTRY(begin_frame);
+  FILL_ENTRY(mark_simulation_start);
+  FILL_ENTRY(mark_simulation_end);
+  FILL_ENTRY(mark_render_start);
+  FILL_ENTRY(mark_render_end);
 
   FILL_ENTRY(setvsrc_ex);
   FILL_ENTRY(setind);
@@ -284,6 +290,13 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(copy_raytrace_acceleration_structure);
 
   FILL_NAMESPACE_ENTRY(raytrace, check_vertex_format_support_for_acceleration_structure_build);
+  FILL_NAMESPACE_ENTRY(raytrace, create_acceleration_structure_pool);
+  FILL_NAMESPACE_ENTRY(raytrace, destroy_acceleration_structure_pool);
+  FILL_NAMESPACE_ENTRY(raytrace, get_pool_base_address);
+  FILL_NAMESPACE_ENTRY(raytrace, calculate_acceleration_structure_sizes);
+  FILL_NAMESPACE_ENTRY(raytrace, create_acceleration_structure);
+  FILL_NAMESPACE_ENTRY(raytrace, destroy_acceleration_structure);
+  FILL_NAMESPACE_ENTRY(raytrace, build_acceleration_structure);
   FILL_NAMESPACE_ENTRY(raytrace, create_pipeline);
   FILL_NAMESPACE_ENTRY(raytrace, expand_pipeline);
   FILL_NAMESPACE_ENTRY(raytrace, destroy_pipeline);
@@ -333,6 +346,10 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(stop_capture);
 
   FILL_ENTRY_PC(set_present_wnd);
+
+  FILL_ENTRY_PC(can_render_to_window);
+  FILL_ENTRY_PC(get_swapchain_for_window);
+  FILL_ENTRY_PC(present_to_window);
 
   FILL_ENTRY_PC(set_capture_full_frame_buffer);
   FILL_ENTRY_PC(get_texture_format);

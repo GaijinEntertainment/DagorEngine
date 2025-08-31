@@ -124,6 +124,9 @@ static bool verify_signature(const char *data, int size, const char *sign, const
 jsonutils::DecodeJwtResult jsonutils::decode_jwt(const char *token, const char *publicKey, rapidjson::Document &headerJson,
   rapidjson::Document &payloadJson)
 {
+  if (token == nullptr)
+    return DecodeJwtResult::INVALID_TOKEN;
+
   const char *payload = strchr(token, '.');
   if (!payload)
     return DecodeJwtResult::INVALID_TOKEN;

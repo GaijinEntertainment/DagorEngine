@@ -1,5 +1,6 @@
 file:t = "daGdp/shaders/dagdp_dynamic.dshl"
 file:t = "daGdp/shaders/dagdp_heightmap.dshl"
+file:t = "daGdp/shaders/dagdp_grass.dshl"
 file:t = "daGdp/shaders/dagdp_volume.dshl"
 file:t = "daGdp/shaders/dagdp_volume_terrain.dshl"
 file:t = "daGdp/shaders/dagdp_riex.dshl"

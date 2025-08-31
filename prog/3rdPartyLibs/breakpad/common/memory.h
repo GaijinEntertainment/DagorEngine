@@ -161,8 +161,12 @@ class PageAllocator {
 // Wrapper to use with STL containers
 template <typename T>
 struct PageStdAllocator : public std::allocator<T> {
-  typedef typename std::allocator<T>::pointer pointer;
   typedef typename std::allocator<T>::size_type size_type;
+#if __cplusplus >= 201703L
+  typedef typename std::allocator_traits<std::allocator<T>>::pointer pointer;
+#else
+  typedef typename std::allocator<T>::pointer pointer;
+#endif
 
   explicit PageStdAllocator(PageAllocator& allocator): allocator_(allocator) {}
   template <class Other> PageStdAllocator(const PageStdAllocator<Other>& other)

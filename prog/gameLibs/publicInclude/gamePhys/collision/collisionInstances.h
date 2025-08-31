@@ -5,7 +5,8 @@
 #pragma once
 
 #include <math/dag_TMatrix.h>
-#include <rendInst/rendInstGen.h>
+#include <vecmath/dag_vecMathDecl.h>
+#include <rendInst/rendInstDesc.h>
 #include <gamePhys/collision/collisionObject.h>
 #include <dag/dag_vector.h>
 
@@ -36,7 +37,7 @@ struct ScaledBulletInstance
   Point3 scale;
   CollisionObjectUserData userData;
 
-  ScaledBulletInstance(CICollisionObject original_obj, const Point3 &scl, const rendinst::RendInstDesc &in_desc, float time_of_death);
+  ScaledBulletInstance(CICollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc, float time_of_death);
 
 public:
   ScaledBulletInstance(const ScaledBulletInstance &) = delete;
@@ -85,7 +86,7 @@ public:
   APEX_VIRTUAL bool update(float dt); // Return false if empty
 
 private:
-  const ScaledBulletInstance *getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale, bool &out_created);
+  ScaledBulletInstance *getScaledInstance(const rendinst::RendInstDesc &desc, vec3f scl, bool &out_created);
 
 protected:
   // We can probably get away with 16 bit indexes but there is no padding in this struct so there is no point

@@ -11,7 +11,6 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_gpuConfig.h>
-#include "uuidgen.h"
 
 
 #if USE_CPU_FEATURES
@@ -442,6 +441,8 @@ bool get_cpu_info(String &cpu, String &cpuFreq, String &cpuVendor, String &cpu_s
   cores_count = num_cores;
   return true;
 }
+
+bool get_soc_info(String &) { return false; }
 
 bool get_video_info(String &desktopResolution, String &videoCard, String &videoVendor)
 {
@@ -1121,6 +1122,8 @@ bool get_cpu_info(String &cpu, String & /*cpuFreq*/, String &cpuVendor, String &
   return true;
 }
 
+bool get_soc_info(String &) { return false; }
+
 bool get_physical_memory_free(int &res)
 {
   res = ios_get_available_memory() >> 20;
@@ -1288,6 +1291,17 @@ bool get_cpu_info(String &cpu, String & /*cpuFreq*/, String &cpuVendor, String &
   return true;
 }
 
+bool get_soc_info(String &soc)
+{
+  char manufacturer[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.soc.manufacturer", manufacturer);
+  char model[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.soc.model", model);
+  soc = String(0, "%s %s", manufacturer, model);
+
+  return true;
+}
+
 bool get_video_info(String &desktopResolution, String &videoCard, String &videoVendor)
 {
   // todo get desktop resolution
@@ -1396,6 +1410,7 @@ bool get_mac(String &, String &) { return false; }
 bool get_proc_mem_info(ProcMemInfo & /*mem_info*/) { return false; }
 bool get_cpu_times(CpuTimes & /*cpu_times*/) { return false; }
 bool get_cpu_info(String &, String &, String &, String &, int &) { return false; }
+bool get_soc_info(String &) { return false; }
 bool get_video_info(String &, String &, String &) { return false; }
 bool get_system_location_2char_code(String &location) { return false; }
 ThermalStatus get_thermal_state() { return ThermalStatus::Normal; }
@@ -1406,7 +1421,6 @@ int get_is_charging() { return -1; };
 int get_gpu_freq() { return 0; }
 
 #endif
-
 
 #if _TARGET_64BIT
 bool is_64bit_os() { return true; }
@@ -1423,186 +1437,6 @@ bool is_64bit_os() { return false; }
 
 void init() { private_init(); }
 
-
-void dump_sysinfo()
-{
-  String os;
-  get_os_common_name(os);
-
-  String cpu, cpuFreq, cpuVendor, cpuSeries;
-  int cpuCores = 0;
-  get_cpu_info(cpu, cpuFreq, cpuVendor, cpuSeries, cpuCores);
-
-  String cpuArch, cpuUarch;
-  Tab<String> cpuFeatures;
-  get_cpu_features(cpuArch, cpuUarch, cpuFeatures);
-
-  int freeVirtualMemMb = 0;
-  get_virtual_memory_free(freeVirtualMemMb);
-
-  const GpuUserConfig &gpuCfg = d3d_get_gpu_cfg();
-  DagorDateTime gpuDriverDate = d3d::get_gpu_driver_date(gpuCfg.primaryVendor);
-
-  debug("SYSINFO: \"%s\",\"%s\",\"%s\",\"%d/%02d/%02d %d.%d.%d.%d\",\"%s\",\"%s\",%d,%lld", get_platform_string_id(), os.str(),
-    d3d::get_device_name(), gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day, gpuCfg.driverVersion[0],
-    gpuCfg.driverVersion[1], gpuCfg.driverVersion[2], gpuCfg.driverVersion[3], d3d::get_driver_name(), cpu.str(), cpuCores,
-    freeVirtualMemMb);
-  debug("SYSINFO_PLATFORM: %s", get_platform_string_id());
-  debug("SYSINFO_OS: %s", os.str());
-  debug("SYSINFO_GPU_NAME: \"%s\"", d3d::get_device_name());
-  debug("SYSINFO_GPU_VENDOR: %s", d3d_get_vendor_name(gpuCfg.primaryVendor));
-  debug("SYSINFO_GPU_DRIVER: %d/%02d/%02d %d.%d.%d.%d", gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day,
-    gpuCfg.driverVersion[0], gpuCfg.driverVersion[1], gpuCfg.driverVersion[2], gpuCfg.driverVersion[3]);
-  debug("SYSINFO_GPU_API: \"%s\"", d3d::get_driver_name());
-  debug("SYSINFO_CPU_INFO: \"%s\", freq=%s", cpu.str(), cpuFreq, cpuCores);
-  debug("SYSINFO_CPU_VENDOR: \"%s\"", cpuVendor);
-  if (!cpuArch.empty())
-  {
-    debug("SYSINFO_CPU_ARCHITECTURE: \"%s\"", cpuArch);
-  }
-  if (!cpuUarch.empty())
-  {
-    debug("SYSINFO_CPU_MICROARCHITECTURE: \"%s\"", cpuUarch);
-  }
-  if (!cpuFeatures.empty())
-  {
-    String cpuFeaturesList = cpuFeatures[0];
-    for (int i = 1; i < cpuFeatures.size(); i++)
-    {
-      cpuFeaturesList += " ";
-      cpuFeaturesList += cpuFeatures[i];
-    }
-    debug("SYSINFO_CPU_FEATURES: \"%s\"", cpuFeaturesList);
-  }
-  debug("SYSINFO_CPU_CORES: %d", cpuCores);
-  debug("SYSINFO_MEM_FREE: %lldMb", freeVirtualMemMb);
-}
-
-void dump_dll_names()
-{
-#if _TARGET_PC_WIN
-  DWORD numBytesNeeded;
-  HMODULE dllHandles[1024];
-  HANDLE currentProcessHandle = GetCurrentProcess();
-  if (!EnumProcessModules(currentProcessHandle, dllHandles, sizeof(dllHandles), &numBytesNeeded))
-    return;
-  for (unsigned int i = 0; i < (numBytesNeeded / sizeof(HMODULE)); i++)
-  {
-    TCHAR dllName[MAX_PATH];
-    if (!GetModuleFileName(dllHandles[i], dllName, sizeof(dllName) / sizeof(TCHAR)))
-      continue;
-    MODULEINFO info;
-    if (!GetModuleInformation(currentProcessHandle, dllHandles[i], &info, sizeof(info)))
-      continue;
-
-    // retrieve version
-    DWORD versionHandle = 0;
-    int major(0), minor(0), revision(0), build(0);
-    DWORD size = 0;
-
-    // Nvidia distributed broken detoured.dll with 372.54 drivers.
-    // Version info in the dll causes buffer owerrun exception in GetFileVersionInfoSize on
-    // Windows 7. The dll is used on Optimus enabled notebooks.
-    if (!strstr(dllName, "detoured.dll"))
-      size = GetFileVersionInfoSize(dllName, &versionHandle);
-
-    if (size > 0)
-    {
-      BYTE *versionInfo = new BYTE[size];
-      VS_FIXEDFILEINFO *vsfi = NULL;
-      UINT len = 0;
-      if (GetFileVersionInfo(dllName, versionHandle, size, versionInfo) && VerQueryValueW(versionInfo, L"\\", (void **)&vsfi, &len) &&
-          vsfi)
-      {
-        // only for 32 bit build
-        major = HIWORD(vsfi->dwProductVersionMS);
-        minor = LOWORD(vsfi->dwProductVersionMS);
-        revision = HIWORD(vsfi->dwProductVersionLS);
-        build = LOWORD(vsfi->dwProductVersionLS);
-      }
-
-      delete[] versionInfo;
-    }
-
-    // retrieve the last-write time
-    FILETIME fileTimeWrite;
-    SYSTEMTIME date;
-    HANDLE dllFileHandle = CreateFile(dllName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    if (dllFileHandle == INVALID_HANDLE_VALUE)
-      continue;
-    if (!GetFileTime(dllFileHandle, NULL, NULL, &fileTimeWrite))
-    {
-      CloseHandle(dllFileHandle);
-      continue;
-    }
-    CloseHandle(dllFileHandle);
-    // convert to display-friendly format
-    FileTimeToSystemTime(&fileTimeWrite, &date);
-
-    // print the module's load base address, creation date, version and name
-    debug(" 0x%08X %d/%02d/%02d %d.%d.%d.%d %s ", info.lpBaseOfDll, date.wYear, date.wMonth, date.wDay, major, minor, revision, build,
-      dllName);
-  }
-#endif
-}
-
-bool get_inline_raytracing_available() { return d3d::get_driver_desc().caps.hasRayQuery; }
-
-
-#if _TARGET_IOS
-String get_model_by_cpu(const char *cpu)
-{
-  static eastl::optional<String> loadedModel = eastl::nullopt;
-  if (loadedModel)
-    return *loadedModel;
-
-  const auto storeAndReturn = [&](const char *val) {
-    loadedModel = String(val);
-    return *loadedModel;
-  };
-
-  const auto returnDefault = [&](const char *errMsg) {
-    logerr(errMsg);
-    return storeAndReturn(cpu);
-  };
-
-  DataBlock modelsBlk{"ios-devices.blk"};
-  if (modelsBlk.isEmpty())
-  {
-    return returnDefault("Unable to load iOS device list");
-  }
-
-  for (int blockNo = 0; blockNo < modelsBlk.blockCount(); blockNo++)
-  {
-    const DataBlock *deviceBlk = modelsBlk.getBlock(blockNo);
-    for (int paramNo = 0; paramNo < deviceBlk->paramCount(); paramNo++)
-    {
-      const char *codename = deviceBlk->getStr(paramNo);
-      if (!strcmp(cpu, codename))
-      {
-        const char *modelName = deviceBlk->getBlockName();
-        return storeAndReturn(modelName);
-      }
-    }
-  }
-  return returnDefault("Unknown iOS device");
-}
-
-int get_network_connection_type()
-{
-  // -1 -- Unknown
-  // 0 -- Not connected
-  // 1 -- Cellular
-  // 2 -- Wi-Fi
-  return ios_get_network_connection_type();
-}
-
-#else
-String get_model_by_cpu(const char *cpu) { return String(cpu); }
-int get_network_connection_type() { return -1; }
-
-#endif
-
 #if _TARGET_ANDROID
 int is_tablet()
 {
@@ -1616,19 +1450,4 @@ int is_tablet() { return ios_is_ipad(); }
 int is_tablet() { return -1; }
 #endif
 
-const char *to_string(ThermalStatus status)
-{
-  switch (status)
-  {
-    case ThermalStatus::NotSupported: return "NotSupported";
-    case ThermalStatus::Normal: return "Normal";
-    case ThermalStatus::Light: return "Light";
-    case ThermalStatus::Moderate: return "Moderate";
-    case ThermalStatus::Severe: return "Severe";
-    case ThermalStatus::Critical: return "Critical";
-    case ThermalStatus::Emergency: return "Emergency";
-    case ThermalStatus::Shutdown: return "Shutdown";
-    default: return "Unknown";
-  }
-}
 } // namespace systeminfo

@@ -1,5 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <supp/dag_math.h>
+#if _TARGET_C1 | _TARGET_C2
+
+#elif defined(_MSC_VER) && !defined(__clang__)
+#pragma fp_contract(off)
+#endif
+
 #include <gamePhys/collision/collisionLib.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_genIo.h>
@@ -41,7 +48,7 @@ static Tab<PhysBody *> frtObj(midmem);
 static PhysBody *sphere_cast_shape = nullptr;
 static PhysBody *box_cast_shape = nullptr;
 static bool debugDrawerForced = false, debugDrawerInited = false;
-static DeserializedStaticSceneRayTracer *scene_ray_tracer = NULL;
+static const StaticSceneRayTracer *scene_ray_tracer = NULL;
 static BuildableStaticSceneRayTracer *water_ray_tracer = NULL;
 static SmallTab<unsigned char, MidmemAlloc> pmid;
 static bool scene_ray_owned = false;
@@ -79,7 +86,7 @@ void dacoll::init_collision_world(dacoll::InitFlags flags, float collapse_contac
   term_collision_world();
 
   init_physics_engine((flags & InitFlags::SingleThreaded) != InitFlags::None);
-  phys_world = new PhysWorld(0.9f, 0.7f, 0.4f, 1.f);
+  phys_world = new PhysWorld();
   const DataBlock &physBlk = *dgs_get_settings()->getBlockByNameEx("phys");
   phys_world->setMaxSubSteps(physBlk.getInt("maxSubSteps", 3));
   phys_world->setFixedTimeStep(1.f / physBlk.getInt("fixedTimeStepHz", 60));
@@ -189,14 +196,27 @@ void dacoll::set_lmesh_phys_map(PhysMap *phys_map_)
 const PhysMap *dacoll::get_lmesh_phys_map() { return phys_map; }
 
 
-DeserializedStaticSceneRayTracer *dacoll::get_frt() { return scene_ray_tracer; }
+const StaticSceneRayTracer *dacoll::get_frt() { return scene_ray_tracer; }
 
 BuildableStaticSceneRayTracer *dacoll::get_water_tracer() { return water_ray_tracer; }
 
 dag::ConstSpan<unsigned char> dacoll::get_pmid() { return pmid; }
 
+void dacoll::init_phys_materials()
+{
+  PhysWorld *physWorld = dacoll::get_phys_world();
+  if (physWorld)
+  {
+    for (int n = 0; n < PhysMat::physMatCount(); n++)
+    {
+      const PhysMat::MaterialData &pm = PhysMat::getMaterial(n);
+      int materialId = physWorld->createNewMaterialId(pm.physStaticFriction, pm.physStaticFriction, pm.physRestitution, 1.0f);
+      PhysMat::setPhysBodyMaterial(n, materialId);
+    }
+  }
+}
 
-void dacoll::add_static_collision_frt(DeserializedStaticSceneRayTracer *frt, const char *name, dag::ConstSpan<unsigned char> *in_pmid)
+void dacoll::add_static_collision_frt(const StaticSceneRayTracer *frt, const char *name, dag::ConstSpan<unsigned char> *in_pmid)
 {
   scene_ray_tracer = frt;
   scene_ray_owned = false;
@@ -213,6 +233,7 @@ void dacoll::add_static_collision_frt(DeserializedStaticSceneRayTracer *frt, con
   debug("frt: %p,%d  %p,%d", &frt->verts(0), frt->getVertsCount(), frt->faces(0).v, frt->getFacesCount() * 3);
   PhysTriMeshCollision shape(make_span_const(&frt->verts(0), frt->getVertsCount()),
     make_span_const(frt->faces(0).v, frt->getFacesCount() * 3));
+  shape.setDebugNamePtr("frt");
 
   PhysBodyCreationData pbcd;
   pbcd.useMotionState = false;
@@ -365,7 +386,7 @@ void dacoll::add_collision_landmesh(LandMeshManager *land, const char *name, flo
   pbcd.restitution = restitution;
   pbcd.autoMask = false;
   pbcd.group = EPL_STATIC, pbcd.mask = EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC);
-
+  char debugShapeName[] = "lmesh_????";
   for (int i = 0; i < lray->getCellCount(); i++)
   {
     // debug("landmesh: cell[%d] %p,%d  %p,%d", i, lray->getCellVerts(i).data(), lray->getCellVerts(i).size(),
@@ -375,6 +396,10 @@ void dacoll::add_collision_landmesh(LandMeshManager *land, const char *name, flo
       const float *ofs = lray->getCellPackOffsetF(i);
       tm.setcol(3, Point3(ofs[0], ofs[1], ofs[2]));
       PhysTriMeshCollision shape(lray->getCellVerts(i), lray->getCellFaces(i), lray->getCellPackScaleF(i), true);
+#if DAGOR_DBGLEVEL > 0 || _TARGET_PC
+      snprintf(debugShapeName + sizeof("lmesh_") - 1, sizeof("????"), "%04d", i);
+#endif
+      shape.setDebugNamePtr(debugShapeName);
       lmeshObj[i] = new PhysBody(dacoll::get_phys_world(), 0.f, &shape, tm, pbcd);
     }
     else
@@ -415,10 +440,10 @@ void dacoll::set_enable_apex(bool flag) { enable_apex = flag; }
 bool dacoll::is_apex_enabled() { return enable_apex; }
 
 CollisionObject dacoll::create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world,
-  bool auto_mask, int group_filter, int mask, const TMatrix *wtm)
+  bool auto_mask, int group_filter, int mask, const TMatrix *wtm, int physMatId)
 {
   PhysBodyCreationData pbcd;
-  pbcd.materialId = -1;
+  pbcd.materialId = physMatId;
   pbcd.useMotionState = false;
   pbcd.addToWorld = add_to_world;
   pbcd.autoMask = auto_mask;
@@ -718,12 +743,14 @@ CollisionObject dacoll::build_dynamic_collision_from_coll_resource(const Collisi
 }
 
 CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
-  void *user_ptr, int flags, int phys_layer, int mask, const TMatrix *wtm)
+  void *user_ptr, int flags, int phys_layer, int mask, const TMatrix *wtm, const char *debug_name, const TMatrix *ptr_inv_parent_tm)
 {
   if (!phys_world || !phys_world->getScene() || !coll_resource ||
       (!coll_resource->meshNodesHead && !coll_resource->boxNodesHead && !coll_resource->sphereNodesHead &&
         !coll_resource->capsuleNodesHead))
     return CollisionObject();
+
+#define APPLY_PARENT_ITM(v) ptr_inv_parent_tm ? *ptr_inv_parent_tm *(v) : (v)
 
 #if ENABLE_APEX == 1
   physx::PxRigidActor *pxObj = NULL;
@@ -751,7 +778,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
       {
         convexVerts.reserve(meshNode->vertices.size());
         for (const Point3_vec4 &vert : meshNode->vertices)
-          convexVerts.push_back(meshNode->tm * vert); // TODO: vectorize
+          convexVerts.push_back(APPLY_PARENT_ITM(meshNode->tm * vert)); // TODO: vectorize
       }
       haveNonConvex |= meshNode->type != COLLISION_NODE_TYPE_CONVEX;
     }
@@ -772,6 +799,9 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
     }
   }
 
+#if DAGOR_DBGLEVEL > 0
+  dag::RelocatableFixedVector<String, 4, true, framemem_allocator> meshDebugNames;
+#endif
   for (const CollisionNode *meshNode = coll_resource->meshNodesHead; meshNode; meshNode = meshNode->nextNode)
   {
     if (!meshNode->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
@@ -797,7 +827,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
         TMatrix tm = meshNode->tm;
         tm.setcol(3, tm * meshNode->modelBBox.center());
         Point3 width = meshNode->modelBBox.width();
-        shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), tm);
+        shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), APPLY_PARENT_ITM(tm));
       }
       break;
 
@@ -807,8 +837,13 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
           "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", meshNode->vertices.size(),
           meshNode->indices.size() / 3);
         auto trim = new PhysTriMeshCollision(meshNode->vertices, meshNode->indices, nullptr, false, false /*reverse normals*/);
-        trim->setDebugName(meshNode->name.c_str());
-        shape.addChildCollision(trim, meshNode->tm);
+#if DAGOR_DBGLEVEL > 0
+        meshDebugNames.emplace_back(framemem_ptr()).printf(0, "%s/%s", debug_name, meshNode->name.c_str());
+        trim->setDebugNamePtr(meshDebugNames.back().c_str());
+#else
+        trim->setDebugNamePtr(debug_name);
+#endif
+        shape.addChildCollision(trim, APPLY_PARENT_ITM(meshNode->tm));
       }
       break;
 
@@ -817,7 +852,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
         Tab<Point3> &vertices = vertices_stor.push_back();
         dag::set_allocator(vertices, dag::get_allocator(vertices_stor));
         for (const Point3 &vert : meshNode->vertices)
-          vertices.push_back(meshNode->tm * vert);
+          vertices.push_back(APPLY_PARENT_ITM(meshNode->tm * vert));
         shape.addChildCollision(new PhysConvexHullCollision(vertices, false), TMatrix::IDENT);
       }
       break;
@@ -835,7 +870,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
     TMatrix tm = TMatrix::IDENT;
     tm.setcol(3, boxNode->modelBBox.center());
     Point3 width = boxNode->modelBBox.width();
-    shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), tm);
+    shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), APPLY_PARENT_ITM(tm));
   }
 
   for (const CollisionNode *sphereNode = coll_resource->sphereNodesHead; sphereNode; sphereNode = sphereNode->nextNode)
@@ -846,7 +881,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
       continue;
     TMatrix tm = TMatrix::IDENT;
     tm.setcol(3, sphereNode->boundingSphere.c);
-    shape.addChildCollision(new PhysSphereCollision(sphereNode->boundingSphere.r), tm);
+    shape.addChildCollision(new PhysSphereCollision(sphereNode->boundingSphere.r), APPLY_PARENT_ITM(tm));
   }
 
   for (const CollisionNode *capNode = coll_resource->capsuleNodesHead; capNode; capNode = capNode->nextNode)
@@ -872,7 +907,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
       ax = 1 /*Y*/;
     else
       ax = 2 /*Z*/;
-    shape.addChildCollision(new PhysCapsuleCollision(capRad, capHt + capRad * 2, ax), tm);
+    shape.addChildCollision(new PhysCapsuleCollision(capRad, capHt + capRad * 2, ax), APPLY_PARENT_ITM(tm));
   }
 
   if (props)
@@ -884,7 +919,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
         Point4 sph = customCollPropsBlk->getPoint4(i);
         TMatrix tm = TMatrix::IDENT;
         tm.setcol(3, Point3(sph.x, sph.y, sph.z));
-        shape.addChildCollision(new PhysSphereCollision(sph.w), tm);
+        shape.addChildCollision(new PhysSphereCollision(sph.w), APPLY_PARENT_ITM(tm));
       }
     }
     if (const DataBlock *customCollPropsBlk = props->getBlockByNameEx("customBoxCollisions", nullptr))
@@ -900,11 +935,13 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
           BBox3 box(min(firstPoint, secondPoint), max(firstPoint, secondPoint));
           TMatrix tm = TMatrix::IDENT;
           tm.setcol(3, box.center());
-          shape.addChildCollision(new PhysBoxCollision(box.width().x, box.width().y, box.width().z), tm);
+          shape.addChildCollision(new PhysBoxCollision(box.width().x, box.width().y, box.width().z), APPLY_PARENT_ITM(tm));
         }
       }
     }
   }
+
+#undef APPLY_PARENT_ITM
 
   if (!shape.getChildrenCount())
     return CollisionObject();
@@ -957,10 +994,10 @@ CollisionObject dacoll::add_dynamic_collision_convex_from_coll_resource(dag::Con
   }
   if (convexVerts.size() >= 3) // can't create convex with less then 3 vertexes
   {
-    PhysConvexHullCollision convexShape(convexVerts, true);
-    CollisionObject result =
-      dacoll::create_coll_obj_from_shape(convexShape, user_ptr, kinematic, add_to_world, /* auto mask */ false, phys_layer, mask, wtm);
-    return result;
+    static constexpr float hullTolerance = 2.5e-3f; // Empirically this seems to be enough
+    PhysConvexHullCollision convexShape(convexVerts, /*build*/ true, hullTolerance);
+    static constexpr bool auto_mask = false;
+    return create_coll_obj_from_shape(convexShape, user_ptr, kinematic, add_to_world, auto_mask, phys_layer, mask, wtm);
   }
   else
     return CollisionObject();
@@ -1068,6 +1105,31 @@ void dacoll::set_collision_object_tm(const CollisionObject &co, const TMatrix &t
   co.body->setTmInstant(tm, true);
 }
 
+TMatrix dacoll::make_precise_tm(const TMatrix &tm)
+{
+  mat44f tm4;
+  v_mat44_make_from_43cu_unsafe(tm4, tm.array);
+  v_mat44_orthonormalize33(tm4, tm4);
+  TMatrix rtm;
+  v_mat_43cu_from_mat44(rtm.array, tm4);
+#ifdef USE_JOLT_PHYSICS
+  for (int i = 0; i < 2; ++i)
+  {
+    alignas(vec4f) Quat q;
+    v_st(&q.x, to_jQuat(rtm).mValue.mValue);
+    rtm.makeTM(q);
+  }
+#endif
+  vec3f lsq = v_perm_xzac(v_perm_xycd(v_length3_sq(v_ldu(&tm.getcol(0).x)), v_length3_sq(v_ldu(&tm.getcol(1).x))),
+    v_length3_sq(v_ldu(&tm.getcol(2).x)));
+  vec3f ls = v_mul(v_round(v_mul(v_sqrt(lsq), v_splats(1e5f))), v_splats(1e-5f));
+  rtm.setcol(0, rtm.getcol(0) * v_extract_x(ls));
+  rtm.setcol(1, rtm.getcol(1) * v_extract_y(ls));
+  rtm.setcol(2, rtm.getcol(2) * v_extract_z(ls));
+  rtm.setcol(3, tm.getcol(3));
+  return rtm;
+}
+
 void dacoll::set_vert_capsule_shape_size(const CollisionObject &co, float cap_rad, float cap_cyl_ht)
 {
   phys_world->fetchSimRes(true);
@@ -1167,6 +1229,20 @@ bool dacoll::test_box_collision_world(const TMatrix &tm, int mat_id, Tab<gamephy
   }
   dacoll::set_collision_object_tm(box_collision, tm);
   return dacoll::test_collision_world(box_collision, out_contacts, mat_id, group, mask);
+}
+
+bool dacoll::test_capsule_collision_world(const TMatrix &tm, float radius, float height, int mat_id,
+  Tab<gamephys::CollisionContactData> &out_contacts, dacoll::PhysLayer group, int mask)
+{
+  if (!capsule_collision.isValid())
+  {
+    capsule_collision = add_dynamic_capsule_collision(TMatrix::IDENT, radius, height, nullptr, /*add_to_world*/ false);
+    if (!sphere_collision.isValid())
+      return false;
+  }
+  dacoll::set_collision_object_tm(capsule_collision, tm);
+  capsule_collision.body->setVertCapsuleShapeSize(radius, height);
+  return dacoll::test_collision_world(capsule_collision, out_contacts, mat_id, group, mask);
 }
 
 bool dacoll::test_collision_lmesh(const CollisionObject &co, const TMatrix &tm, float max_rad, int def_mat_id,
@@ -1522,12 +1598,12 @@ void dacoll::force_debug_draw(bool flag)
     physdbg::setBufferedForcedDraw(phys_world, debugDrawerForced = flag);
 }
 
-void dacoll::draw_phys_body(const PhysBody *body)
+void dacoll::draw_phys_body(const PhysBody *body, unsigned col)
 {
   if (!debugDrawerInited)
     return;
   ScopeSetForceDraw flagGuard(true);
-  physdbg::renderOneBody(phys_world, body);
+  physdbg::renderOneBody(phys_world, body, physdbg::body_dbg_flags(), col);
 }
 
 void dacoll::draw_collision_object(const CollisionObject &obj)
@@ -1554,9 +1630,9 @@ void dacoll::set_obj_motion(CollisionObject obj, const TMatrix &tm, const Point3
     physx_set_obj_motion(obj.physxObject, tm, vel, omega);
 #endif
 
+  obj.body->setTm(tm);
   obj.body->setVelocity(vel);
   obj.body->setAngularVelocity(tm % omega);
-  obj.body->setTm(tm);
   if (lengthSq(vel) > 1e-5f || lengthSq(omega) > 1e-10f)
     obj.body->wakeUp();
 #if defined(USE_BULLET_PHYSICS)

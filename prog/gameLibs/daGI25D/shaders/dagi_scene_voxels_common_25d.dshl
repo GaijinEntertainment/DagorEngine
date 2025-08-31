@@ -33,7 +33,8 @@ macro SAMPLE_VOXELS_25D(code)
     }
     uint getRawVoxel25dBufDataAlpha4(uint address)
     {
-      return address < VOXEL_25D_MAX_ALPHA_ADDRESS ? getRawVoxel25dBufDataAlpha4Unsafe(min(address, VOXEL_25D_MAX_ALPHA_ADDRESS - 1 )) : 0;
+      const uint MAX_ALIGNED_ADDRESS = (VOXEL_25D_MAX_ALPHA_ADDRESS - 1) & ~3; // align to 4 bytes for BAB fetching, also avoid OOB, but keep FLATTEN
+      return address < VOXEL_25D_MAX_ALPHA_ADDRESS ? getRawVoxel25dBufDataAlpha4Unsafe(min(address, MAX_ALIGNED_ADDRESS)) : 0;
     }
     uint getRawVoxel25dBufDataAlpha(uint3 dtId)
     {

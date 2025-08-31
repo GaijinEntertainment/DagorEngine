@@ -12,7 +12,7 @@ struct GrassLayersVS
   float4 grassScales;
 };
 
-struct GrassLayersPS
+struct GrassLayersColor
 {
   float4 rStart;
   float4 rEnd;

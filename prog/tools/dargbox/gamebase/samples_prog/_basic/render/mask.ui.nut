@@ -12,7 +12,7 @@ return {
   valign = ALIGN_CENTER
 
   children = {
-     size = [sh(50), sh(50)]
+     size = sh(50)
      rendObj = ROBJ_MASK
      //rendObj = ROBJ_IMAGE
      //image = Picture("!ui/non_premul.tga")
@@ -22,7 +22,7 @@ return {
      valign = ALIGN_CENTER
 
      children = {
-       size = [SIZE_TO_CONTENT, sh(50)]
+       size = static [SIZE_TO_CONTENT, sh(50)]
        rendObj = ROBJ_IMAGE
        image = Picture("ui/loading.jpg")
      }

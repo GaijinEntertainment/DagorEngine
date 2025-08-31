@@ -1,0 +1,28 @@
+rule CorrectTargetNameBasedOnIsDedicatedAndTargetType
+{
+  if $(1) = yes {
+    if $(2) = dll {
+      return $(Game)-ded-embed ;
+    }
+    else {
+      return $(Game)-ded ;
+    }
+  }
+  return $(Game) ;
+}
+
+rule InternalHostedServerName
+{
+  return [ CorrectTargetNameBasedOnIsDedicatedAndTargetType yes : dll ] ;
+}
+
+rule CorrectTargetName
+{
+  return [ CorrectTargetNameBasedOnIsDedicatedAndTargetType $(Dedicated) : $(TargetType) ] ;
+}
+
+rule FormInternalHostedServerName
+{
+  return [ AutoCompleteTargetName [ MangleTargetName [ InternalHostedServerName ] ] : dll ] ;
+}
+

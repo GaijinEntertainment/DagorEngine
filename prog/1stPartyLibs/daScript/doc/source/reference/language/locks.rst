@@ -38,15 +38,17 @@ Consider the following example::
 
     var a : array < array<int> >
     ...
-    for b in a[0]
+    for ( b in a[0] ) {
         a |> resize(100500)
+    }
 
 The `resize` operation on the `a` array will cause `panic` because `a[0]` is locked during the iteration.
 This test, however, can only happen in runtime. The compiler generates custom `resize` code, which verifies locks::
 
-    def private builtin`resize ( var Arr:array<array<int> aka numT> explicit; newSize:int const )
+    def private builtin`resize ( var Arr:array<array<int> aka numT> explicit; newSize:int const ) {
         _builtin_verify_locks(Arr)
         __builtin_array_resize(Arr,newSize,24,__context__)
+    }
 
 The `_builtin_verify_locks` iterates over provided data, and for each `Array` or `Table` makes sure it does not lock.
 If its locked `panic` occurs.

@@ -38,6 +38,8 @@ struct RenderStateBits //-V730
   uint32_t independentBlendEnabled : 1; ///< Enable independent blending in simultaneous render targets.
   uint32_t alphaToCoverage : 1;         ///< Specifies whether to use alpha-to-coverage.
   uint32_t viewInstanceCount : 2;       ///< Specifies the number of used views.
+  uint32_t blendFactorUsed : 1;         ///< Signifies that blendFactor should be applied when setting the state
+  uint32_t dualSourceBlendEnabled : 1;  ///< Enable dual source blending of two pixel shader outputs to one rt
   uint32_t colorWr = 0xFFFFFFFF;        ///< Specifies mask which is used for color write.
   float zBias = 0;                      ///< Specifies depth value added to a given pixel.
   float slopeZBias = 0;                 ///< Specifies scalar on a given pixel's slope.
@@ -74,11 +76,40 @@ struct RenderState : public RenderStateBits
     uint8_t sepablend : 1;   ///< Enables separate alpha blending.
   };
 
-  BlendParams blendParams[NumIndependentBlendParameters];
+  /**
+   * @brief Description of blending parameters for dual source blending.
+   */
+  struct DualSourceBlendParams
+  {
+    struct
+    {
+      uint8_t src;
+      uint8_t dst;
+    } ablendFactors, sepablendFactors; ///< Configures blend factors -- allow for extended enum values.
+
+    uint8_t blendOp : 3;     ///< Specifies #BLENDOP operation for alpha blending.
+    uint8_t sepablendOp : 3; ///< Specifies #BLENDOP operation for separate alpha blending.
+    uint8_t ablend : 1;      ///< Enables alpha blending.
+    uint8_t sepablend : 1;   ///< Enables separate alpha blending.
+  };
+
+  union
+  {
+    BlendParams blendParams[NumIndependentBlendParameters];
+    struct
+    {
+      DualSourceBlendParams params;
+      uint8_t pad_[sizeof(blendParams) - sizeof(params)];
+    } dualSourceBlend;
+  };
+
+  E3DCOLOR blendFactor;
 
   // ensure that no padding occured
   static_assert(sizeof(BlendParams) == 3);
+  static_assert(sizeof(DualSourceBlendParams) == 5);
   static_assert(sizeof(blendParams) == NumIndependentBlendParameters * sizeof(BlendParams));
+  static_assert(sizeof(dualSourceBlend) == sizeof(blendParams));
 
   RenderState()
   {
@@ -108,6 +139,8 @@ struct RenderState : public RenderStateBits
     zClip = 1;
     alphaToCoverage = 0;
     independentBlendEnabled = 0;
+    blendFactorUsed = 0;
+    dualSourceBlendEnabled = 0;
   }
 
   bool operator==(const RenderState &s) const
@@ -117,8 +150,10 @@ struct RenderState : public RenderStateBits
         r != 0)
       return false;
 
-    size_t blendParamBytesToCompare = independentBlendEnabled ? sizeof(blendParams) : sizeof(BlendParams);
-    return memcmp(blendParams, s.blendParams, blendParamBytesToCompare) == 0;
+    bool blendFactorsMatch = !blendFactorUsed || blendFactor == s.blendFactor;
+    const size_t blendParamBytesToCompare =
+      independentBlendEnabled ? sizeof(blendParams) : (dualSourceBlendEnabled ? sizeof(DualSourceBlendParams) : sizeof(BlendParams));
+    return blendFactorsMatch && memcmp(blendParams, s.blendParams, blendParamBytesToCompare) == 0;
   }
   bool operator!=(const RenderState &s) const { return !(*this == s); }
 };

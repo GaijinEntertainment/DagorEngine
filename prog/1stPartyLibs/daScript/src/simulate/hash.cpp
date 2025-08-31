@@ -15,12 +15,20 @@ namespace das
             context = &ctx;
         }
     // data types
+        virtual void Null ( TypeInfo * ti ) override    { update(ti->hash); }
         virtual void Bool ( bool & t ) override         { update(t); }
+        virtual void Int8 ( int8_t & t ) override       { update(t); }
+        virtual void UInt8 ( uint8_t & t ) override     { update(t); }
+        virtual void Int16 ( int16_t & t ) override     { update(t); }
+        virtual void UInt16 ( uint16_t & t ) override   { update(t); }
         virtual void Int64 ( int64_t & t ) override     { update(t); }
         virtual void UInt64 ( uint64_t & t ) override   { update(t); }
+        virtual void String ( char * & t ) override     { updateString(t); }
+        virtual void Double ( double & t ) override     { update(t); }
         virtual void Float ( float & t ) override       { update(t); }
         virtual void Int ( int32_t & t ) override       { update(t); }
         virtual void UInt ( uint32_t & t ) override     { update(t); }
+        virtual void Bitfield ( uint32_t & t, TypeInfo * ti ) override { update(t); update(ti->hash); }
         virtual void Int2 ( int2 & t ) override         { update(t); }
         virtual void Int3 ( int3 & t ) override         { update(t); }
         virtual void Int4 ( int4 & t ) override         { update(t); }
@@ -34,7 +42,13 @@ namespace das
         virtual void URange ( urange & t ) override     { update(t); }
         virtual void Range64 ( range64 & t ) override   { update(t); }
         virtual void URange64 ( urange64 & t ) override { update(t); }
-        virtual void String ( char * & t ) override     { updateString(t); }
+        virtual void VoidPtr ( void * & p ) override    { update(uint64_t(intptr_t(p))); }
+        // WalkBlock
+        virtual void WalkFunction ( Func * fn ) override { if ( fn && fn->PTR ) update(fn->PTR->mangledNameHash); }
+        virtual void WalkEnumeration ( int32_t & t, EnumInfo * en ) override   { update(t); update(en->hash); }
+        virtual void WalkEnumeration8  ( int8_t & t, EnumInfo * en ) override  { update(t); update(en->hash); }
+        virtual void WalkEnumeration16 ( int16_t & t, EnumInfo * en ) override { update(t); update(en->hash); }
+        virtual void WalkEnumeration64 ( int64_t & t, EnumInfo * en ) override { update(t); update(en->hash); }
     // unsupported
         virtual void beforeIterator ( Sequence *, TypeInfo * ) override { error("HASH, not expecting iterator"); }
         virtual void WalkBlock ( Block * ) override                     { error("HASH, not expecting block"); }

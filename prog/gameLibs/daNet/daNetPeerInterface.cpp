@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <memory/dag_framemem.h>
 #include <enet/enet.h>
+#include "ucr.h"
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 
@@ -33,7 +34,7 @@
 #define UPD_RESPONSIVENESS_TIMEOUT_MS   600U
 
 #define GET_PEER(idx)  (((idx) < host->peerCount) ? &host->peers[idx] : NULL)
-#define PEER2IDX(peer) ((peer)-host->peers)
+#define PEER2IDX(peer) ((peer) - host->peers)
 #define IS_CLIENT_MODE ((host)->peerCount == 1)
 
 static int enet_packet_payload_size(ENetPeer *peer, int mtu)
@@ -58,7 +59,9 @@ static DaNetTime get_ping_timeout()
 
 #define debug(...) logmessage(_MAKE4C('DNET'), __VA_ARGS__)
 
-eastl::optional<ENetAddress> get_enet_address(const char *new_host)
+extern ENetHost *ucr_host;
+
+ENetAddress get_enet_address(const char *new_host) // Return zero .host on fail
 {
   ENetAddress addr{0, 0};
   if (new_host)
@@ -73,7 +76,7 @@ eastl::optional<ENetAddress> get_enet_address(const char *new_host)
       new_host = tmpbuf; //-V507
     }
     if (!inet_pton(AF_INET, new_host, &addr.host) && enet_address_set_host(&addr, new_host) != 0)
-      return eastl::nullopt;
+      return {0, 0};
     if (pcol) // parse port
     {
       char *ep = NULL;
@@ -205,7 +208,7 @@ static ENetPeer *get_peer_by_addr(const ENetHost *host, const SystemAddress &a)
   return NULL;
 }
 
-DaNetPeerInterface::DaNetPeerInterface(_ENetHost *ehost) :
+DaNetPeerInterface::DaNetPeerInterface(_ENetHost *ehost, bool is_threaded) :
   host(ehost),
   // Note: overcommit thread stack because unknown third-party software (e.g. "smart" net drivers) might hook socket functions
   DaThread("danet_thread", 128 << 10),
@@ -215,7 +218,8 @@ DaNetPeerInterface::DaNetPeerInterface(_ENetHost *ehost) :
   sleep_time(0),
   maximumIncomingConnections(0),
   responsivenessUpdateStamp(0U),
-  echoManager(get_ping_timeout())
+  echoManager(get_ping_timeout()),
+  is_threaded(is_threaded)
 {
   receivedPackets.reserve(64);
   packetsToSend.reserve(64);
@@ -299,6 +303,7 @@ bool DaNetPeerInterface::Startup(uint16_t maxCon, int st, const SocketDescriptor
   }
   else
     host = ehost;
+  ucr_host = host;
 
   if (sd && sd->type == SocketDescriptor::SOCKET) // replace created socket with passed one
   {
@@ -320,7 +325,7 @@ bool DaNetPeerInterface::Startup(uint16_t maxCon, int st, const SocketDescriptor
 
   echoManager.setHost(host); // doing this strictly before the network thread is started for concurrency reasons
 
-  if (sd)
+  if (sd && !is_threaded)
     DaThread::start();
 
   return true;
@@ -338,7 +343,8 @@ void DaNetPeerInterface::Stop(DaNetTime block_duration, DisconnectionCause cause
 {
   if (host)
   {
-    DaThread::terminate(true, -1, &packetsEvent);
+    if (!is_threaded)
+      DaThread::terminate(true, -1, &packetsEvent);
 
     enet_host_flush(host);
 
@@ -367,6 +373,7 @@ void DaNetPeerInterface::Stop(DaNetTime block_duration, DisconnectionCause cause
             case ENET_EVENT_TYPE_RECEIVE: enet_packet_destroy(event.packet); break;
             case ENET_EVENT_TYPE_CONNECT: enet_peer_disconnect_now(event.peer, cause); break;
             case ENET_EVENT_TYPE_DISCONNECT: erase_item_by_value(peers_to_disconnect, event.peer); break;
+            case ENET_EVENT_TYPE_INTERCEPTED: /*this should never really happen but neither does it break anything*/ break;
             case ENET_EVENT_TYPE_NONE: break;
           }
       } while (peers_to_disconnect.size() && danet::GetTime() <= deadlineTime);
@@ -386,6 +393,7 @@ void DaNetPeerInterface::Shutdown(DaNetTime block_duration)
     if ((char *)host != (char *)(this + 1))
       enet_free(host);
     host = NULL;
+    ucr_host = nullptr;
   }
 
   for (int i = 0; i < receivedPackets.size(); ++i)
@@ -404,6 +412,8 @@ void DaNetPeerInterface::Shutdown(DaNetTime block_duration)
   clear_and_shrink(packetsToSend);
 
   clear_and_shrink(disconnectCommands);
+
+  relayPeerIdx = UNASSIGNED_SYSTEM_INDEX;
 }
 
 danet::PeerQoSStat DaNetPeerInterface::GetPeerQoSStat(SystemIndex peerIdx) const
@@ -463,6 +473,7 @@ void DaNetPeerInterface::SetupPeerTimeouts(SystemIndex idx, uint32_t max_timeout
   if (peer)
     enet_peer_timeout(peer, min_timeout_limit, min_timeout_ms, max_timeout_ms);
 }
+
 
 bool DaNetPeerInterface::IsPeerResponsive(SystemIndex sys_idx) const
 {
@@ -682,7 +693,7 @@ void DaNetPeerInterface::updateEnet(DaNetTime cur_time)
 
         DisconnectionCause dc;
         if (IS_CLIENT_MODE && host->totalReceivedPackets == 0)
-          dc = DC_CONNECTTION_ATTEMPT_FAILED;
+          dc = DC_CONNECTION_ATTEMPT_FAILED;
         else if (event.data < DC_NUM)
           dc = (DisconnectionCause)event.data;
         else
@@ -701,35 +712,47 @@ void DaNetPeerInterface::updateEnet(DaNetTime cur_time)
   } while (packetsToSend.empty()); // ...while outgoing queue is empty
 }
 
+DaNetPeerExecutionContext::DaNetPeerExecutionContext()
+{
+  curTime = enet_time_get();
+  prevTime = DaNetTime();
+  packetsTmp = Tab<PacketToSend *>();
+}
+
 void DaNetPeerInterface::execute() // thread func
 {
+  G_ASSERT(!is_threaded);
   if (IS_CLIENT_MODE)
     DaThread::applyThisThreadAffinity(WORKER_THREADS_AFFINITY_USE);
   G_ASSERT(host);
-  Tab<PacketToSend *> packetsTmp;
-  DaNetTime curTime = enet_time_get(), prevTime;
+  DaNetPeerExecutionContext context = DaNetPeerExecutionContext();
   while (!isThreadTerminating())
   {
-    int sendQSize = (int)packetsToSend.size();
-    G_UNUSED(sendQSize);
-    {
-      sendPacketsInQueue(packetsTmp, curTime);
-      echoManager.process();
-      processDisconnectCommands();
-      updateEnet(curTime);
-      if (forcedHostAddr.host) // we have to rewrite it every cycle as it's might get overridden within enet on receives from prev host
-      {
-        host->peers[0].address.host = forcedHostAddr.host;
-        if (forcedHostAddr.port)
-          host->peers[0].address.port = forcedHostAddr.port;
-      }
-      updatePeerResponsiveness(curTime);
-    }
-    prevTime = curTime, curTime = enet_time_get();
-    if ((curTime - prevTime) > DANET_LAG_MS)
-      debug("danet_thread lag %d > %d (before/after enet update %d/%d) ms, sendq size=%d", (curTime - prevTime),
-        host->serviceTime - prevTime, curTime - host->serviceTime, DANET_LAG_MS, sendQSize);
+    ExecuteSingleUpdate(context);
   }
+}
+
+void DaNetPeerInterface::ExecuteSingleUpdate(DaNetPeerExecutionContext &context)
+{
+  int sendQSize = (int)packetsToSend.size();
+  G_UNUSED(sendQSize);
+  {
+    sendPacketsInQueue(context.packetsTmp, context.curTime);
+    echoManager.process();
+    processDisconnectCommands();
+    updateEnet(context.curTime);
+    if (forcedHostAddr.host) // we have to rewrite it every cycle as it's might get overridden within enet on receives from prev host
+    {
+      host->peers[0].address.host = forcedHostAddr.host;
+      if (forcedHostAddr.port)
+        host->peers[0].address.port = forcedHostAddr.port;
+    }
+    updatePeerResponsiveness(context.curTime);
+  }
+  context.prevTime = context.curTime, context.curTime = enet_time_get();
+  if ((context.curTime - context.prevTime) > DANET_LAG_MS)
+    debug("danet_thread lag %d > %d (before/after enet update %d/%d) ms, sendq size=%d", (context.curTime - context.prevTime),
+      host->serviceTime - context.prevTime, context.curTime - host->serviceTime, DANET_LAG_MS, sendQSize);
 }
 
 eastl::optional<danet::EchoResponse> DaNetPeerInterface::ReceiveEchoResponse() { return echoManager.receive(); }
@@ -842,7 +865,7 @@ void DaNetPeerInterface::CloseConnection(SystemIndex idx, DisconnectionCause cau
   }
 }
 
-bool DaNetPeerInterface::Connect(const char *hosta, uint16_t port, uint32_t connect_data)
+bool DaNetPeerInterface::Connect(const char *hosta, uint16_t port, uint32_t connect_data, bool is_relay_connection)
 {
   G_ASSERT(host);
   G_ASSERT(hosta);
@@ -853,14 +876,22 @@ bool DaNetPeerInterface::Connect(const char *hosta, uint16_t port, uint32_t conn
     return false;
   }
   addr.port = port;
-
-  if (ENetPeer *hostpeer = enet_host_connect(host, &addr, DANET_MAX_CHANNELS, connect_data))
+  ENetPeer *hostpeer = nullptr;
+  if (is_relay_connection)
+    hostpeer = enet_host_connect_peer_from_the_end(host, &addr, DANET_MAX_CHANNELS, connect_data);
+  else
+    hostpeer = enet_host_connect(host, &addr, DANET_MAX_CHANNELS, connect_data);
+  if (hostpeer)
   {
+    ucr_send_hello(host->socket, &addr);
     hostpeer->timeoutMaximum = DANET_CONNECT_REQUEST_TIMEOUT_MS;
     if ((char *)host == (char *)(this + 1))
       host->intercept = client_update_last_server_receive_time_cb;
     host->totalReceivedPackets = host->totalReceivedData = 0;
-    DaThread::start();
+    if (is_relay_connection)
+      relayPeerIdx = PEER2IDX(hostpeer);
+    if (!is_threaded)
+      DaThread::start();
     return true;
   }
   else
@@ -885,7 +916,7 @@ SystemAddress DaNetPeerInterface::GetPeerSystemAddress(SystemIndex sys_idx) cons
 {
   const ENetPeer *peer = GET_PEER(sys_idx);
   if (peer && peer->state == ENET_PEER_STATE_CONNECTED)
-    return *(const SystemAddress *)&peer->address;
+    return SystemAddress(peer->address.host, peer->address.port);
   else
     return UNASSIGNED_SYSTEM_ADDRESS;
 }
@@ -894,10 +925,10 @@ bool DaNetPeerInterface::IsPeerConnected(const SystemAddress &sa) const { return
 
 bool DaNetPeerInterface::ChangeHostAddress(const char *new_host)
 {
-  if (eastl::optional<ENetAddress> addr = get_enet_address(new_host))
+  if (auto addr = get_enet_address(new_host); addr.host)
   {
-    forcedHostAddr.host = addr->host;
-    forcedHostAddr.port = addr->port;
+    forcedHostAddr.host = addr.host;
+    forcedHostAddr.port = addr.port;
     return true;
   }
   return false;

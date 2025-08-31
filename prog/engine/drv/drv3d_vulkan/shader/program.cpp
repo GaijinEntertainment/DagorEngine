@@ -54,17 +54,9 @@ void GraphicsProgram::addToContext(DeviceContext &ctx, ProgramID prog, const Cre
 
 void ComputeProgram::addToContext(DeviceContext &ctx, ProgramID prog, const CreationInfo &info)
 {
-  auto smb = eastl::make_unique<ShaderModuleBlob>(spirv_extractor::getBlob(info.chunks, info.chunk_data, 0));
+  auto smb = eastl::make_unique<ShaderModuleBlob>(info.smb);
   if (smb->blob.empty())
     DAG_FATAL("Shader has no byte code blob");
 
-  auto header = spirv_extractor::getHeader(VK_SHADER_STAGE_COMPUTE_BIT, info.chunks, info.chunk_data, 0);
-  if (!header)
-    DAG_FATAL("Shader has no header");
-
-  ctx.addComputeProgram(prog, eastl::move(smb), *header);
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  ctx.attachComputeProgramDebugInfo(prog,
-    eastl::make_unique<ShaderDebugInfo>(spirv_extractor::getDebugInfo(info.chunks, info.chunk_data, 0)));
-#endif
+  ctx.addComputeProgram(prog, eastl::move(smb), info.smh);
 }

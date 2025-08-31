@@ -3,6 +3,7 @@
 
 #include <assetsGui/av_client.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
+#include <propPanel/propPanel.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <EASTL/unique_ptr.h>
@@ -46,6 +47,7 @@ public:
   void saveTreeData(DataBlock &blk);
   void getTreeNodesExpand(Tab<bool> &exps);
   void setTreeNodesExpand(dag::ConstSpan<bool> exps);
+  void expandNodesFromSelectionTillRoot();
 
   inline bool checkFiltersEq(dag::ConstSpan<int> types) { return types.size() == filter.size() && mem_eq(types, filter.data()); }
   void setFilterStr(const char *str);
@@ -59,9 +61,9 @@ public:
 
   // ITreeViewEventHandler
 
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
-  virtual void onTvDClick(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle node) override;
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+  void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
+  void onTvDClick(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle node) override;
+  bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
   // If control_height is 0 then it will use the entire available height.
   void updateImgui(float control_height = 0.0f);
@@ -92,10 +94,10 @@ private:
 
   String textToSearch;
   String selectionBuffer;
-  ImTextureID closeIcon = nullptr;
-  ImTextureID searchIcon = nullptr;
-  ImTextureID settingsIcon = nullptr;
-  ImTextureID settingsOpenIcon = nullptr;
+  PropPanel::IconId closeIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsOpenIcon = PropPanel::IconId::Invalid;
   const bool searchInputFocusId = false; // Only the address of this member is used.
   bool settingsPanelOpen = false;
 };

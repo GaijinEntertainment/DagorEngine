@@ -26,6 +26,7 @@
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_globalMutex.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_string.h>
 #include <stdlib.h>
@@ -51,10 +52,10 @@ static bool dryRun = false;
 class SimpleQuietLogWriter : public ILogWriter
 {
 public:
-  virtual void addMessageFmt(MessageType, const char *, const DagorSafeArg *arg, int anum) {}
-  virtual bool hasErrors() const { return false; }
-  virtual void startLog() {}
-  virtual void endLog() {}
+  void addMessageFmt(MessageType, const char *, const DagorSafeArg *arg, int anum) override {}
+  bool hasErrors() const override { return false; }
+  void startLog() override {}
+  void endLog() override {}
 };
 static SimpleQuietLogWriter qCon;
 
@@ -105,27 +106,32 @@ static IDagorAssetExporter *loadSingleExporterPlugin(const DataBlock &appblk, Da
   return NULL;
 }
 
-static Tab<void *> build_mutexes(inimem);
-static Tab<SimpleString> build_mutex_names(inimem);
+namespace texconvcache
+{
+struct NamedBuildMutex
+{
+  void *m;
+  SimpleString nm;
+};
+static Tab<NamedBuildMutex> build_mutexes(inimem);
+static OSSpinlock build_mutexes_sl;
 static void __cdecl release_build_mutexes()
 {
+  OSSpinlockScopedLock lock(build_mutexes_sl);
   debug("atexit: release_build_mutexes(%d)", build_mutexes.size());
   while (build_mutexes.size())
   {
-    void *m = build_mutexes.back();
-    SimpleString nm(build_mutex_names.back());
+    NamedBuildMutex bm = build_mutexes.back();
     build_mutexes.pop_back();
-    build_mutex_names.pop_back();
 
-    debug("rel %p %s", m, nm);
-    global_mutex_leave(m);
-    global_mutex_destroy(m, nm);
+    debug("rel %p %s", bm.m, bm.nm);
+    global_mutex_leave(bm.m);
+    global_mutex_destroy(bm.m, bm.nm);
   }
 }
-namespace texconvcache
-{
 struct BuildMutexAutoAcquire
 {
+  void *m = nullptr;
   BuildMutexAutoAcquire(const char *ddsx_c4_bin)
   {
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
@@ -134,29 +140,33 @@ struct BuildMutexAutoAcquire
       *p = (*p == ':' || *p == '/' || *p == '\\') ? '_' : *p;
     ddsx_c4_bin = name_stor.str();
 #endif
-    void *m = dryRun ? NULL : global_mutex_create(ddsx_c4_bin);
-    if (!dryRun)
-      global_mutex_enter(m);
-    build_mutexes.push_back(m);
-    build_mutex_names.push_back() = ddsx_c4_bin;
+    if ((m = dryRun ? nullptr : global_mutex_create(ddsx_c4_bin)) == nullptr)
+      return;
+
+    global_mutex_enter(m);
+    OSSpinlockScopedLock lock(build_mutexes_sl);
+    build_mutexes.push_back({m, SimpleString(ddsx_c4_bin)});
     // debug("acq %p %s (cnt=%d)", m, ddsx_c4_bin, build_mutexes.size());
   }
   ~BuildMutexAutoAcquire()
   {
-    if (!build_mutexes.size())
+    if (!m)
       return;
 
-    void *m = build_mutexes.back();
-    SimpleString nm(build_mutex_names.back());
-    build_mutexes.pop_back();
-    build_mutex_names.pop_back();
-
-    // debug("rel %p %s (cnt=%d)", m, nm, build_mutexes.size());
-    if (m)
+    SimpleString nm;
     {
-      global_mutex_leave(m);
-      global_mutex_destroy(m, nm);
+      OSSpinlockScopedLock lock(build_mutexes_sl);
+      for (int i = build_mutexes.size() - 1; i >= 0; i--)
+        if (build_mutexes[i].m == m)
+        {
+          nm = eastl::move(build_mutexes[i].nm);
+          erase_items(build_mutexes, i, 1);
+          break;
+        }
     }
+    global_mutex_leave(m);
+    global_mutex_destroy(m, nm);
+    // debug("rel %p %s (cnt=%d)", m, nm, build_mutexes.size());
   }
 };
 } // namespace texconvcache
@@ -203,7 +213,6 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
     return false;
 #else
     // no dabuild available, so load tex exporter manually
-    alefind_t ff;
     const char *common_dir = "plugins/dabuild";
 #if _TARGET_PC_WIN
     const String mask(260, "%s/%s/tex*" DAGOR_OS_DLL_SUFFIX, startdir, common_dir);
@@ -212,14 +221,12 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
 #endif
     String fname;
 
-    if (::dd_find_first(mask, DA_FILE, &ff))
-      do
-      {
-        fname.printf(260, "%s/%s/%s", startdir, common_dir, ff.name);
-        texExp = loadSingleExporterPlugin(appblk, mgr, fname, texActype);
-      } while (!texExp && ::dd_find_next(&ff));
+    for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
+    {
+      fname.printf(260, "%s/%s/%s", startdir, common_dir, ff.name);
+      texExp = loadSingleExporterPlugin(appblk, mgr, fname, texActype);
+    }
 
-    dd_find_close(&ff);
     if (!texExp)
     {
       checkIfMsvcrDllExists();
@@ -259,6 +266,11 @@ void texconvcache::term()
 }
 
 bool texconvcache::is_tex_asset_convertible(DagorAsset &a) { return a.getType() == texActype && a.props.getBool("convert", false); }
+
+bool texconvcache::get_convertible_tex_asset_header(DagorAsset &a, ddsx::Header &dest_hdr, unsigned &dest_lev_desc)
+{
+  return texExp ? texExp->makeTexDDSxHeader(a, dest_hdr, dest_lev_desc) : false;
+}
 
 static bool checkCacheChanged(AssetExportCache &c4, DagorAsset &a, const DataBlock &eff_props, IDagorAssetExporter *exp, bool enum_all)
 {
@@ -336,24 +348,16 @@ static bool build_tex(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const 
 {
   G_ASSERT(texconvcache::is_tex_asset_convertible(a));
 
-  const char *targetStr = mkbindump::get_target_str(target);
+  uint64_t tc_storage = 0;
+  const char *targetStr = mkbindump::get_target_str(target, tc_storage);
   mkbindump::BinDumpSaveCB tex_cwr(1 << 20, target, false);
-  DataBlock old_props;
   if (fast)
-  {
-    old_props = a.props;
-    a.props.setStr("quality", "fastest");
-    a.props.setStr("downscaleFilter", "filterBox");
-  }
+    tex_cwr.setFastBuildFlag(true);
   if (!texExp->exportAsset(a, tex_cwr, log))
   {
-    if (fast)
-      a.props = old_props;
     log.addMessage(ILogWriter::ERROR, "Can't export(convert) tex asset: %s", a.getName());
     return false;
   }
-  if (fast)
-    a.props = old_props;
 
   SmallTab<char, TmpmemAlloc> buf;
   {
@@ -454,7 +458,8 @@ static bool get_tex_asset_built_ddsx_internal(DagorAsset &a, ddsx::Buffer &dest,
   if (!log)
     log = &qCon;
 
-  String eff_target(a.resolveEffProfileTargetStr(mkbindump::get_target_str(target), profile));
+  uint64_t tc_storage = 0;
+  String eff_target(a.resolveEffProfileTargetStr(mkbindump::get_target_str(target, tc_storage), profile));
   String cacheFname(260, "%s/%s.ddsx.%s.c4.bin", cacheBase.str(), a.getName(), eff_target);
 
   AssetExportCache c4;
@@ -569,24 +574,31 @@ after_build:
   return true;
 }
 
-bool texconvcache::is_tex_built_fast(DagorAsset &a, unsigned target, const char *profile)
+bool texconvcache::is_tex_built_and_actual(DagorAsset &a, unsigned target, const char *profile, bool &is_prod_ready)
 {
+  is_prod_ready = false;
   if (!texExp)
     return false;
   if (!texconvcache::is_tex_asset_convertible(a))
     return false;
 
-  String cacheFname(260, "%s/%s.ddsx.%s.c4.bin", cacheBase.str(), a.getName(),
-    a.resolveEffProfileTargetStr(mkbindump::get_target_str(target), profile));
+  uint64_t tc_storage = 0;
+  const char *tc_str = mkbindump::get_target_str(target, tc_storage);
+  String cacheFname(260, "%s/%s.ddsx.%s.c4.bin", cacheBase.str(), a.getName(), a.resolveEffProfileTargetStr(tc_str, profile));
 
   AssetExportCache c4;
   const DataBlock &eff_props = a.getProfileTargetProps(target, profile);
 
   BuildMutexAutoAcquire bmaa(cacheFname);
   if (c4.load(cacheFname, a.getMgr(), NULL) && !checkCacheChanged(c4, a, eff_props, texExp, false))
+  {
+    is_prod_ready = true;
+    return true;
+  }
+  if (!reqFastConv)
     return false;
-  cacheFname.printf(0, "%s/%s.ddsx.%s.c4.bin", cache2Base.str(), a.getName(),
-    a.resolveEffProfileTargetStr(mkbindump::get_target_str(target), profile));
+
+  cacheFname.printf(0, "%s/%s.ddsx.%s.c4.bin", cache2Base.str(), a.getName(), a.resolveEffProfileTargetStr(tc_str, profile));
   if (c4.load(cacheFname, a.getMgr(), NULL) && !checkCacheChanged(c4, a, eff_props, texExp, false))
     return true;
   return false;
@@ -598,7 +610,8 @@ int texconvcache::validate_tex_asset_cache(DagorAsset &a, unsigned target, const
     return -1;
   G_ASSERT(texconvcache::is_tex_asset_convertible(a));
 
-  String eff_target(a.resolveEffProfileTargetStr(mkbindump::get_target_str(target), profile));
+  uint64_t tc_storage = 0;
+  String eff_target(a.resolveEffProfileTargetStr(mkbindump::get_target_str(target, tc_storage), profile));
   String cacheFname(260, "%s/%s.ddsx.%s.c4.bin", cacheBase.str(), a.getName(), eff_target);
 
   AssetExportCache c4;
@@ -933,7 +946,7 @@ int __stdcall texconvcache::write_built_dds_final(IGenSave &cwr, DagorAsset &a, 
 #undef GET_PROP
 }
 
-int texconvcache::get_tex_size(DagorAsset &a, unsigned target, const char *profile)
+int texconvcache::get_tex_size(DagorAsset &a, unsigned target, const char *profile, int tex_q)
 {
   if (a.getType() != texActype)
     return -1;
@@ -943,8 +956,8 @@ int texconvcache::get_tex_size(DagorAsset &a, unsigned target, const char *profi
     ddsx::Buffer dest;
     if (get_tex_asset_built_ddsx_internal(a, dest, target, profile, NULL, true))
     {
-      ddsx::Header *hdr = (ddsx::Header *)dest.ptr;
-      int memSz = mkbindump::le2be32_cond(hdr->memSz, dagor_target_code_be(target));
+      ddsx::Header hdr = *(ddsx::Header *)dest.ptr;
+      int memSz = mkbindump::le2be32_cond(hdr.memSz, dagor_target_code_be(target));
       dest.free();
 
       if (DagorAsset *hq_tex = a.getMgr().findAsset(String(0, "%s$hq", a.getName(), a.getType())))
@@ -952,9 +965,35 @@ int texconvcache::get_tex_size(DagorAsset &a, unsigned target, const char *profi
         G_ASSERT(texconvcache::is_tex_asset_convertible(*hq_tex));
         if (get_tex_asset_built_ddsx_internal(*hq_tex, dest, target, profile, NULL, true))
         {
-          ddsx::Header *hdr = (ddsx::Header *)dest.ptr;
-          memSz += mkbindump::le2be32_cond(hdr->memSz, dagor_target_code_be(target));
+          ddsx::Header *hq_hdr = (ddsx::Header *)dest.ptr;
+          if (unsigned hq_memsz = mkbindump::le2be32_cond(hq_hdr->memSz, dagor_target_code_be(target)))
+          {
+            memSz += hq_memsz;
+            hdr.w = hq_hdr->w;
+            hdr.h = hq_hdr->h;
+            hdr.depth = hq_hdr->depth;
+            hdr.levels += hq_hdr->levels;
+            hdr.flags |= hq_hdr->flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER);
+          }
           dest.free();
+        }
+      }
+
+      unsigned start_mip = (tex_q == 1) ? hdr.mQmip : (tex_q == 2) ? hdr.lQmip : 0;
+      if ((hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER)) || start_mip > 0)
+      {
+        G_ASSERTF(!dagor_target_code_be(target), "target=%c%c%c%c", _DUMP4C(target));
+        // recompute full tex size for GENMIP since memSz was only mip0.size
+        memSz = 0;
+        for (int level = start_mip; level < hdr.levels; level++)
+        {
+          int d = max(hdr.depth >> level, 1);
+          if (hdr.flags & hdr.FLG_VOLTEX)
+            memSz += hdr.getSurfaceSz(level) * d;
+          else if (hdr.flags & hdr.FLG_CUBTEX)
+            memSz += hdr.getSurfaceSz(level) * 6;
+          else
+            memSz += hdr.getSurfaceSz(level);
         }
       }
       return memSz;
@@ -1143,7 +1182,8 @@ bool texconvcache::get_tex_asset_built_raw_dds_by_name(const char *texname, IGen
 bool texconvcache::convert_dds(ddsx::Buffer &b, const char *tex_path, const DagorAsset *a, unsigned target,
   const ddsx::ConvertParams &_cp)
 {
-  const char *targetStr = mkbindump::get_target_str(target);
+  uint64_t tc_storage = 0;
+  const char *targetStr = mkbindump::get_target_str(target, tc_storage);
   String cacheFname(260, "%s/%s.ddsx.%s.ct.bin", cacheBase.str(), a->getName(), targetStr);
 
   AssetExportCache c4;

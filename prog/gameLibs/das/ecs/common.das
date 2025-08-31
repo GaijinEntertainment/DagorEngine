@@ -1,3 +1,4 @@
+options indenting = 2
 module common shared
 require ecs
 require DagorMathUtils

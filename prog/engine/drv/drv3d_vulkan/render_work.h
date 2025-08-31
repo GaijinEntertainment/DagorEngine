@@ -6,17 +6,18 @@
 #include <EASTL/array.h>
 #include <EASTL/stack.h>
 #include <EASTL/string.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 #include <fsr_args.h>
 
 #include "query_pools.h"
-#include "timestamp_queries.h"
+#include "queries.h"
 #include "device_context_cmd.h"
 #include "util/variant_vector.h"
 #include "cleanup_queue.h"
 #include "util/fault_report.h"
 #include "globals.h"
 #include "driver_config.h"
+#include "copy_info.h"
+#include "resource_readbacks.h"
 
 namespace drv3d_vulkan
 {
@@ -31,52 +32,107 @@ struct ReorderedBufferCopy
   uint32_t pass;
 };
 
-struct BufferFlushInfo
+struct BindlessTexSwap
 {
-  Buffer *buffer = nullptr;
-  uint32_t offset = 0;
-  uint32_t range = 0;
-};
-
-struct BufferCopyInfo
-{
-  Buffer *src;
-  Buffer *dst;
-  uint32_t copyIndex;
-  uint32_t copyCount;
-
-  static void optimizeBufferCopies(eastl::vector<BufferCopyInfo> &info, eastl::vector<VkBufferCopy> &copies);
-};
-
-struct ImageCopyInfo
-{
-  Image *image;
-  Buffer *buffer;
-  uint32_t copyIndex;
-  uint32_t copyCount;
-
-  static void deduplicate(eastl::vector<ImageCopyInfo> &info, eastl::vector<VkBufferImageCopy> &copies);
-};
-
-struct BindlessTexUpdateInfo
-{
-  uint32_t index;
-  uint32_t count;
-  Image *img;
+  Image *src;
+  Image *dst;
   ImageViewState viewState;
 };
 
-struct BindlessBufUpdateInfo
+enum BindlessUpdateType
 {
+  RES,
+  COPY
+};
+
+// constructor is not implicitly called - intended logic
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4582)
+#endif
+
+struct BindlessTexUpdateInfo
+{
+  BindlessTexUpdateInfo(uint32_t _index, Image *img, ImageViewState view, bool is_stub, bool is_stub_swap) :
+    index(_index), count(1), type(BindlessUpdateType::RES), stub(is_stub), stubSwap(is_stub_swap)
+  {
+    variant.res = {img, view};
+  }
+  BindlessTexUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) :
+    index(dst), count(_count), type(BindlessUpdateType::COPY), stub(false), stubSwap(false)
+  {
+    variant.copy.src = src;
+  }
+  BindlessTexUpdateInfo(uint32_t _index, uint32_t _count) :
+    index(_index), count(_count), type(BindlessUpdateType::RES), stub(false), stubSwap(false)
+  {
+    variant.res = {nullptr, {}};
+  }
+
   uint32_t index;
   uint32_t count;
-  BufferRef bref;
+  BindlessUpdateType type;
+  bool stub : 1;
+  bool stubSwap : 1;
+  union Variants
+  {
+    struct
+    {
+      Image *img;
+      ImageViewState viewState;
+    } res;
+    struct
+    {
+      uint32_t src;
+    } copy;
+
+    Variants() {}
+  } variant;
 };
+
+
+struct BindlessBufUpdateInfo
+{
+  BindlessBufUpdateInfo(uint32_t _index, const BufferRef &bref) : index(_index), count(1), type(BindlessUpdateType::RES)
+  {
+    variant.res.bref = bref;
+  }
+  BindlessBufUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) : index(dst), count(_count), type(BindlessUpdateType::COPY)
+  {
+    variant.copy.src = src;
+  }
+  BindlessBufUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count), type(BindlessUpdateType::RES)
+  {
+    variant.res.bref = {};
+  }
+
+  uint32_t index;
+  uint32_t count;
+  BindlessUpdateType type;
+  union Variants
+  {
+    struct
+    {
+      BufferRef bref;
+    } res;
+    struct
+    {
+      uint32_t src;
+    } copy;
+
+    Variants() {}
+  } variant;
+};
+
+#ifdef _MSC_VER
+// C4582 off
+#pragma warning(pop)
+#endif
 
 struct BindlessSamplerUpdateInfo
 {
   uint32_t index;
-  SamplerState sampler;
+  const SamplerResource *sampler;
 };
 
 struct RaytraceBLASBufferRefs
@@ -93,7 +149,7 @@ struct RaytraceBLASBufferRefs
   uint32_t transformOffset;
 };
 
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query) || 1
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query) || 1
 struct RaytraceStructureBuildData
 {
   VkAccelerationStructureTypeKHR type;
@@ -123,47 +179,49 @@ struct RenderWork
 {
   static bool cleanUpMemoryEveryWorkItem;
 
-  CleanupQueue cleanups;
-
   size_t id = 0;
   uint32_t frontFrameIndex = 0;
   uint32_t userSignalCount = 0;
 
-  eastl::vector<BufferCopyInfo> bufferUploads;
-  eastl::vector<VkBufferCopy> bufferUploadCopies;
+  dag::Vector<BufferCopyInfo> bufferUploads;
+  dag::Vector<VkBufferCopy> bufferUploadCopies;
 
-  eastl::vector<BufferCopyInfo> orderedBufferUploads;
-  eastl::vector<VkBufferCopy> orderedBufferUploadCopies;
-  eastl::vector<ReorderedBufferCopy> reorderedBufferCopies;
+  dag::Vector<BufferCopyInfo> orderedBufferUploads;
+  dag::Vector<VkBufferCopy> orderedBufferUploadCopies;
+  dag::Vector<ReorderedBufferCopy> reorderedBufferCopies;
 
-  eastl::vector<BufferCopyInfo> bufferDownloads;
-  eastl::vector<VkBufferCopy> bufferDownloadCopies;
-  eastl::vector<BufferFlushInfo> bufferToHostFlushes;
   // flushed into a separate cmd buffer executed before the graphics/compute cmd buffer
-  eastl::vector<ImageCopyInfo> imageUploads;
-  eastl::vector<VkBufferImageCopy> imageUploadCopies;
-  eastl::vector<ImageCopyInfo> imageDownloads;
-  eastl::vector<VkBufferImageCopy> imageDownloadCopies;
-  eastl::vector<char> charStore;
-  eastl::vector<VkImageCopy> imageCopyInfos;
-  eastl::vector<CmdCopyImage> unorderedImageCopies;
-  eastl::vector<CmdClearColorTexture> unorderedImageColorClears;
-  eastl::vector<CmdClearDepthStencilTexture> unorderedImageDepthStencilClears;
-  eastl::vector<BindlessTexUpdateInfo> bindlessTexUpdates;
-  eastl::vector<BindlessBufUpdateInfo> bindlessBufUpdates;
-  eastl::vector<BindlessSamplerUpdateInfo> bindlessSamplerUpdates;
-  eastl::vector<uint32_t> nativeRPDrawCounter;
+  dag::Vector<ImageCopyInfo> imageUploads;
+  dag::Vector<VkBufferImageCopy> imageUploadCopies;
+  dag::Vector<char> charStore;
+  dag::Vector<VkImageCopy> imageCopyInfos;
+  dag::Vector<CmdCopyImage> unorderedImageCopies;
+  dag::Vector<CmdClearColorTexture> unorderedImageColorClears;
+  dag::Vector<CmdClearDepthStencilTexture> unorderedImageDepthStencilClears;
+  dag::Vector<BindlessTexUpdateInfo> bindlessTexUpdates;
+  dag::Vector<BindlessTexSwap> bindlessTexSwaps;
+  dag::Vector<BindlessBufUpdateInfo> bindlessBufUpdates;
+  dag::Vector<BindlessSamplerUpdateInfo> bindlessSamplerUpdates;
+  dag::Vector<uint32_t> nativeRPDrawCounter;
+  dag::Vector<VkSparseMemoryBind> sparseMemoryBinds;
+  dag::Vector<VkSparseImageMemoryBind> sparseImageMemoryBinds;
+  dag::Vector<VkSparseImageOpaqueMemoryBindInfo> sparseImageOpaqueBinds;
+  dag::Vector<VkSparseImageMemoryBindInfo> sparseImageBinds;
 
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
-  eastl::vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
-  eastl::vector<VkAccelerationStructureGeometryKHR> raytraceGeometryKHRStore;
-  eastl::vector<RaytraceBLASBufferRefs> raytraceBLASBufferRefsStore;
-  eastl::vector<RaytraceStructureBuildData> raytraceStructureBuildStore;
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+  dag::Vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
+  dag::Vector<VkAccelerationStructureGeometryKHR> raytraceGeometryKHRStore;
+  dag::Vector<RaytraceBLASBufferRefs> raytraceBLASBufferRefsStore;
+  dag::Vector<RaytraceStructureBuildData> raytraceStructureBuildStore;
 #endif
-  eastl::vector<ShaderModuleUse> shaderModuleUses;
+  dag::Vector<ShaderModuleUse> shaderModuleUses;
   AnyCommandStore commandStream;
 
-  TimestampQueryBlock *timestampQueryBlock = nullptr;
+  QueryBlock *timestampQueryBlock = nullptr;
+  QueryBlock *occlusionQueryBlock = nullptr;
+  BatchedReadbacks *readbacks = nullptr;
+  BatchedReadbacks *nextReadbacks = nullptr;
+  BatchedReadbacks *prevReadbacks = nullptr;
 
   bool generateFaultReport = false;
 
@@ -175,24 +233,24 @@ struct RenderWork
     size += CALC_VEC_BYTES(bufferUploadCopies);
     size += CALC_VEC_BYTES(orderedBufferUploads);
     size += CALC_VEC_BYTES(orderedBufferUploadCopies);
-    size += CALC_VEC_BYTES(bufferDownloads);
-    size += CALC_VEC_BYTES(bufferDownloadCopies);
-    size += CALC_VEC_BYTES(bufferToHostFlushes);
     size += CALC_VEC_BYTES(imageUploads);
     size += CALC_VEC_BYTES(imageUploadCopies);
-    size += CALC_VEC_BYTES(imageDownloads);
-    size += CALC_VEC_BYTES(imageDownloadCopies);
     size += CALC_VEC_BYTES(charStore);
     size += CALC_VEC_BYTES(imageCopyInfos);
     size += CALC_VEC_BYTES(unorderedImageCopies);
     size += CALC_VEC_BYTES(unorderedImageColorClears);
     size += CALC_VEC_BYTES(unorderedImageDepthStencilClears);
     size += CALC_VEC_BYTES(bindlessTexUpdates);
+    size += CALC_VEC_BYTES(bindlessTexSwaps);
     size += CALC_VEC_BYTES(bindlessBufUpdates);
     size += CALC_VEC_BYTES(bindlessSamplerUpdates);
     size += CALC_VEC_BYTES(nativeRPDrawCounter);
     size += CALC_VEC_BYTES(reorderedBufferCopies);
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+    size += CALC_VEC_BYTES(sparseMemoryBinds);
+    size += CALC_VEC_BYTES(sparseImageMemoryBinds);
+    size += CALC_VEC_BYTES(sparseImageOpaqueBinds);
+    size += CALC_VEC_BYTES(sparseImageBinds);
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);
     size += CALC_VEC_BYTES(raytraceBLASBufferRefsStore);
@@ -201,7 +259,6 @@ struct RenderWork
     size += CALC_VEC_BYTES(shaderModuleUses);
 #undef CALC_VEC_BYTES
     size += commandStream.capacity();
-    size += cleanups.capacity();
     return size;
   }
 
@@ -213,7 +270,7 @@ struct RenderWork
   }
 
 #if DAGOR_DBGLEVEL > 0
-  eastl::vector<uint64_t> commandCallers;
+  dag::Vector<uint64_t> commandCallers;
   void recordCommandCaller()
   {
     if (Globals::cfg.bits.recordCommandCaller)

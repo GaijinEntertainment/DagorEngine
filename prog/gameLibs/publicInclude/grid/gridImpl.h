@@ -16,8 +16,12 @@ enum extend_by_bounding : bool
   NO = false
 };
 
-template <typename Object, typename Holder, typename Predicate>
-__forceinline auto grid_find_in_box_by_pos_impl(const Holder &grid_holder, bbox3f bbox, const Predicate &pred)
+template <typename Object>
+static inline auto grid_default_filter = [](Object, vec4f /*wbsph*/) { return true; };
+
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
+__forceinline auto grid_find_in_box_by_pos_impl(const Holder &grid_holder, bbox3f bbox, const Predicate &pred,
+  const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -28,13 +32,15 @@ __forceinline auto grid_find_in_box_by_pos_impl(const Holder &grid_holder, bbox3
       return DAGOR_UNLIKELY(v_bbox3_test_pt_inside(query_bbox, wbsph));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
   };
 
-  return grid_holder.getBoxIterator(bbox, extend_by_bounding::NO).foreach(ObjectsIterator{pred});
+  return grid_holder.getBoxIterator(bbox, extend_by_bounding::NO).foreach(ObjectsIterator{pred, filter});
 }
 
-template <typename Object, typename Holder, typename Predicate>
-__forceinline auto grid_find_in_box_by_bounding_impl(const Holder &grid_holder, bbox3f bbox, const Predicate &pred)
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
+__forceinline auto grid_find_in_box_by_bounding_impl(const Holder &grid_holder, bbox3f bbox, const Predicate &pred,
+  const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -46,14 +52,15 @@ __forceinline auto grid_find_in_box_by_bounding_impl(const Holder &grid_holder, 
       return DAGOR_UNLIKELY(v_bbox3_test_sph_intersect(query_bbox, wbsph, v_mul_x(objRad, objRad)));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
   };
 
-  return grid_holder.getBoxIterator(bbox, extend_by_bounding::YES).foreach(ObjectsIterator{pred});
+  return grid_holder.getBoxIterator(bbox, extend_by_bounding::YES).foreach(ObjectsIterator{pred, filter});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_sphere_by_pos_impl(const Holder &grid_holder, const Point3 &center, float radius,
-  const Predicate &pred)
+  const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -71,6 +78,7 @@ __forceinline auto grid_find_in_sphere_by_pos_impl(const Holder &grid_holder, co
       return DAGOR_UNLIKELY(v_test_vec_x_le(distSq, v_set_x(sphRadSq)));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
     vec3f sphPos;
     float sphRadSq;
   };
@@ -79,12 +87,12 @@ __forceinline auto grid_find_in_sphere_by_pos_impl(const Holder &grid_holder, co
   vec3f sphPos = v_ldu(&center.x);
   vec4f sphRad = v_splats(radius);
   v_bbox3_init_by_bsph(bbox, sphPos, sphRad);
-  return grid_holder.getBoxIterator(bbox, extend_by_bounding::NO).foreach(ObjectsIterator{pred, sphPos, sqr(radius)});
+  return grid_holder.getBoxIterator(bbox, extend_by_bounding::NO).foreach(ObjectsIterator{pred, filter, sphPos, sqr(radius)});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_sphere_by_bounding_impl(const Holder &grid_holder, const Point3 &center, float radius,
-  const Predicate &pred)
+  const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -104,6 +112,7 @@ __forceinline auto grid_find_in_sphere_by_bounding_impl(const Holder &grid_holde
       return DAGOR_UNLIKELY(v_test_vec_x_le(distSq, v_mul_x(maxDist, maxDist)));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
     vec3f sphPos;
     float sphRad;
   };
@@ -112,12 +121,12 @@ __forceinline auto grid_find_in_sphere_by_bounding_impl(const Holder &grid_holde
   vec3f sphPos = v_ldu(&center.x);
   vec4f sphRad = v_splats(radius);
   v_bbox3_init_by_bsph(bbox, sphPos, sphRad);
-  return grid_holder.getBoxIterator(bbox, extend_by_bounding::YES).foreach(ObjectsIterator{pred, sphPos, radius});
+  return grid_holder.getBoxIterator(bbox, extend_by_bounding::YES).foreach(ObjectsIterator{pred, filter, sphPos, radius});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, vec3f from, vec3f dir, const vec4f &len,
-  const vec4f &radius, const Predicate &pred)
+  const vec4f &radius, const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -158,14 +167,15 @@ __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, v
       return v_signmask(v_cmp_le(distSq, v_sqr(radius)));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
   };
 
-  return grid_holder.getRayIterator(from, dir, len, radius, extend_by_bounding::NO).foreach(ObjectsIterator{pred});
+  return grid_holder.getRayIterator(from, dir, len, radius, extend_by_bounding::NO).foreach(ObjectsIterator{pred, filter});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_holder, vec3f from, vec3f dir, const vec4f &len,
-  const vec4f &radius, const Predicate &pred)
+  const vec4f &radius, const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -208,14 +218,15 @@ __forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_hold
       return v_signmask(v_cmp_le(distSq, v_sqr(v_add(objMat.col3, radius))));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
   };
 
-  return grid_holder.getRayIterator(from, dir, len, radius, extend_by_bounding::YES).foreach(ObjectsIterator{pred});
+  return grid_holder.getRayIterator(from, dir, len, radius, extend_by_bounding::YES).foreach(ObjectsIterator{pred, filter});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_transformed_box_by_pos_impl(const Holder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
-  const Predicate &pred)
+  const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -239,22 +250,23 @@ __forceinline auto grid_find_in_transformed_box_by_pos_impl(const Holder &grid_h
       return false;
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
     bbox3f lbbox;
     mutable mat44f mat44;
-    mutable bool itm = false;
-    ObjectsIterator(const ObjectsIterator &) = delete; // we have changeable flag
+    mutable bool itm;
   };
 
   mat44f mat44;
   bbox3f wsbbox, lbbox = v_ldu_bbox3(bbox);
   v_mat44_make_from_43cu_unsafe(mat44, tm.array);
   v_bbox3_init(wsbbox, mat44, lbbox);
-  return grid_holder.getBoxIterator(wsbbox, extend_by_bounding::NO).foreach(ObjectsIterator{pred, lbbox, mat44});
+  return grid_holder.getBoxIterator(wsbbox, extend_by_bounding::NO)
+    .foreach(ObjectsIterator{pred, filter, lbbox, mat44, /*itm*/ false});
 }
 
-template <typename Object, typename Holder, typename Predicate>
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
 __forceinline auto grid_find_in_transformed_box_by_bounding_impl(const Holder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
-  const Predicate &pred)
+  const Predicate &pred, const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -280,21 +292,23 @@ __forceinline auto grid_find_in_transformed_box_by_bounding_impl(const Holder &g
       return false;
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
     bbox3f lbbox;
     mutable mat44f mat44;
-    mutable bool itm = false;
-    ObjectsIterator(const ObjectsIterator &) = delete; // we have changeable flag
+    mutable bool itm;
   };
 
   mat44f mat44;
   bbox3f wsbbox, lbbox = v_ldu_bbox3(bbox);
   v_mat44_make_from_43cu_unsafe(mat44, tm.array);
   v_bbox3_init(wsbbox, mat44, lbbox);
-  return grid_holder.getBoxIterator(wsbbox, extend_by_bounding::YES).foreach(ObjectsIterator{pred, lbbox, mat44});
+  return grid_holder.getBoxIterator(wsbbox, extend_by_bounding::YES)
+    .foreach(ObjectsIterator{pred, filter, lbbox, mat44, /*itm*/ false});
 }
 
-template <typename Object, typename Holder, typename Predicate>
-__forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, vec3f from, vec3f dir, vec4f len, const Predicate &pred)
+template <typename Object, typename Holder, typename Predicate, typename Filter = decltype(grid_default_filter<Object>)>
+__forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, vec3f from, vec3f dir, vec4f len, const Predicate &pred,
+  const Filter &filter = grid_default_filter<Object>)
 {
   struct ObjectsIterator
   {
@@ -334,7 +348,8 @@ __forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, v
       return v_signmask(v_cmp_le(distSq, v_sqr(objMat.col3)));
     }
     const Predicate &predFunc;
+    const Filter &filterFunc;
   };
 
-  return grid_holder.getRayIterator(from, dir, len, v_zero(), extend_by_bounding::YES).foreach(ObjectsIterator{pred});
+  return grid_holder.getRayIterator(from, dir, len, v_zero(), extend_by_bounding::YES).foreach(ObjectsIterator{pred, filter});
 }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "maindedES.cpp.inl"
 ECS_DEF_PULL_VAR(mainded);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc dedicated_init_on_appstart_es_comps[] ={};
 static void dedicated_init_on_appstart_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

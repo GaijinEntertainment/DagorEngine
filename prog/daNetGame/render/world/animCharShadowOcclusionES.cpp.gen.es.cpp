@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animCharShadowOcclusionES.cpp.inl"
 ECS_DEF_PULL_VAR(animCharShadowOcclusion);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc animchar_shadow_occlusion_manager_ecs_query_comps[] =
 {
@@ -34,8 +36,8 @@ static constexpr ecs::ComponentDesc expand_bbox_by_attach_ecs_query_comps[] =
 {
 //start of 4 ro components at [0]
   {ECS_HASH("animchar_shadow_cull_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
-  {ECS_HASH("slot_attach__attachedTo"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
+  {ECS_HASH("animchar_attach__attachedTo"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static ecs::CompileTimeQueryDesc expand_bbox_by_attach_ecs_query_desc
@@ -57,8 +59,8 @@ inline void expand_bbox_by_attach_ecs_query(ecs::EntityId eid, Callable function
             return;
           function(
               ECS_RO_COMP(expand_bbox_by_attach_ecs_query_comps, "animchar_shadow_cull_bbox", bbox3f)
-            , ECS_RO_COMP(expand_bbox_by_attach_ecs_query_comps, "animchar_visbits", uint8_t)
-            , ECS_RO_COMP(expand_bbox_by_attach_ecs_query_comps, "slot_attach__attachedTo", ecs::EntityId)
+            , ECS_RO_COMP(expand_bbox_by_attach_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RO_COMP(expand_bbox_by_attach_ecs_query_comps, "animchar_attach__attachedTo", ecs::EntityId)
             );
 
         }
@@ -104,7 +106,7 @@ static constexpr ecs::ComponentDesc gather_soldier_bboxes_to_cull_ecs_query_comp
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
   {ECS_HASH("animchar_shadow_cull_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("attaches_list"), ecs::ComponentTypeInfo<ecs::EidList>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
 //start of 1 rq components at [7]
@@ -132,7 +134,7 @@ inline void gather_soldier_bboxes_to_cull_ecs_query(Callable function)
             , ECS_RO_COMP(gather_soldier_bboxes_to_cull_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
             , ECS_RO_COMP(gather_soldier_bboxes_to_cull_ecs_query_comps, "animchar_bsph", vec4f)
             , ECS_RO_COMP(gather_soldier_bboxes_to_cull_ecs_query_comps, "animchar_shadow_cull_bbox", bbox3f)
-            , ECS_RO_COMP(gather_soldier_bboxes_to_cull_ecs_query_comps, "animchar_visbits", uint8_t)
+            , ECS_RO_COMP(gather_soldier_bboxes_to_cull_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP_PTR(gather_soldier_bboxes_to_cull_ecs_query_comps, "attaches_list", ecs::EidList)
             );
 

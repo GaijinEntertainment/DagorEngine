@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <osApiWrappers/dag_rwSpinLock.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResHooks.h>
@@ -67,15 +68,12 @@ static inline GameResource *cast(Ptr<T> &r)
   return cast(r.get());
 }
 } // namespace stubgameres
-namespace gamereshooks
-{
-extern void (*on_load_res_packs_from_list_complete)(const char *pack_list_blk_fname, bool load_grp, bool load_tex);
-}
 
-static constexpr int STUB_RESID_BASE = 128 << 10;
+static constexpr int STUB_RESID_BASE = 1 << 24;
 static FastIntList stub_types;
-static OAHashNameMap<false> resMap;
-static Tab<unsigned> resTypes;
+static SpinLockReadWriteLock stubResLock;
+static OAHashNameMap<false> DAG_TS_GUARDED_BY(stubResLock) resMap;
+static Tab<unsigned> DAG_TS_GUARDED_BY(stubResLock) resTypes;
 static Tab<GameResourceFactory *> stub_gameres_factories;
 
 static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id);
@@ -86,7 +84,9 @@ static int stub_resolve_res_id(int res_id)
 
   String nm;
   get_game_resource_name(res_id, nm);
+  stubResLock.lockRead();
   int id = resMap.getNameId(nm);
+  stubResLock.unlockRead();
   return id < 0 ? res_id : id + STUB_RESID_BASE;
 }
 
@@ -226,7 +226,9 @@ struct StubGameResArrayFactory : public GameResourceFactory
   T *findRes(int res_id, bool can_add)
   {
     res_id = stub_resolve_res_id(res_id);
+    stubResLock.lockRead();
     const char *res_name = resMap.getName(res_id - STUB_RESID_BASE);
+    stubResLock.unlockRead();
     if (!res_name)
       return NULL;
     const DataBlock *b = desc.getBlockByName(res_name);
@@ -283,17 +285,21 @@ static GameResourceFactory *findFactory(dag::Span<GameResourceFactory *> f, unsi
 
 static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id)
 {
+  stubResLock.lockRead();
   if (class_id == 0)
   {
     int id = resMap.getNameId((const char *)rh);
+    stubResLock.unlockRead();
     if (id < 0)
       return false;
     out_res_id = id + STUB_RESID_BASE;
     return true;
   }
+  stubResLock.unlockRead();
   if (!stub_types.hasInt(class_id))
     return false;
 
+  stubResLock.lockWrite();
   out_res_id = resMap.addNameId((const char *)rh);
   if (out_res_id >= resTypes.size())
   {
@@ -301,8 +307,10 @@ static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &ou
     resTypes.push_back(class_id);
     // debug("add %s %08X as %d+STUB_RESID_BASE", (const char*)rh, class_id, out_res_id);
   }
+  const unsigned resType = resTypes[out_res_id];
+  stubResLock.unlockWrite();
 
-  if (resTypes[out_res_id] != class_id)
+  if (resType != class_id)
     return false;
 
   out_res_id += STUB_RESID_BASE;
@@ -323,7 +331,9 @@ static bool stub_get_game_res_class_id(int res_id, unsigned &out_class_id)
   if (res_id < STUB_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  stubResLock.lockRead();
   out_class_id = resTypes[res_id - STUB_RESID_BASE];
+  stubResLock.unlockRead();
   return true;
 }
 static bool stub_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
@@ -332,13 +342,16 @@ static bool stub_get_game_resource(int res_id, dag::Span<GameResourceFactory *> 
   if (res_id < STUB_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  stubResLock.lockRead();
   GameResourceFactory *fac = findFactory(f, resTypes[res_id - STUB_RESID_BASE]);
   if (!fac)
   {
     logerr("no factory (classid=%p) to load asset %s", resTypes[res_id - STUB_RESID_BASE], resMap.getName(res_id - STUB_RESID_BASE));
     out_res = NULL;
+    stubResLock.unlockRead();
     return true;
   }
+  stubResLock.unlockRead();
 
   out_res = fac->getGameResource(res_id);
   return true;
@@ -417,6 +430,8 @@ void terminate_stub_gameres_factories()
 
   clear_all_ptr_items_and_shrink(stub_gameres_factories);
   stub_types.reset(true);
+  stubResLock.lockWrite();
   resMap.reset(true);
   clear_and_shrink(resTypes);
+  stubResLock.unlockWrite();
 }

@@ -6,7 +6,6 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_tiledResource.h>
-#include <drv/3d/dag_heap.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_bindless.h>
@@ -46,8 +45,6 @@ bool get_metal_settings_resolution(int &width, int &height, bool &is_retina, int
 {
   return get_settings_resolution(width, height, is_retina, def_width, def_height, out_is_auto);
 }
-
-int get_retina_mode() { return dgs_get_settings()->getBlockByNameEx("video")->getInt("retina_mode", 0); }
 
 bool get_allow_intel4000() { return dgs_get_settings()->getBlockByNameEx("video")->getBool("intel4000", false); }
 
@@ -91,8 +88,6 @@ TexPixel32 *d3d::capture_screen(int &w, int &h, int &stride_bytes) { return 0; }
 /// release buffer used to capture screen
 void d3d::release_capture_buffer() {}
 
-bool d3d::setwire(bool in) { return false; }
-
 //! conditional rendering.
 //! conditional rendering is used to skip rendering of triangles completelyon GPU.
 //! the only commands, that would be ignored, if survey fails are DIPs
@@ -116,52 +111,21 @@ void d3d::end_conditional_render(int id) {}
 
 bool d3d::set_depth_bounds(float zmin, float zmax) { return false; }
 
-Texture *d3d::get_backbuffer_tex() { return nullptr; }
 Texture *d3d::get_secondary_backbuffer_tex() { return nullptr; }
+
+#if _TARGET_PC_MACOSX
+bool d3d::pcwin::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
+void d3d::pcwin::set_present_wnd(void *) {}
+unsigned d3d::pcwin::get_texture_format(const BaseTexture *) { return 0; }
+const char *d3d::pcwin::get_texture_format_str(const BaseTexture *) { return "n/a"; }
+void *d3d::pcwin::get_native_surface(BaseTexture *) { return nullptr; }
+#endif
 
 // Immediate constant buffers - valid within min(driver acquire, frame)
 // to unbind, use NULL, 0 params
 // if slot = 0 is empty (PS/VS stages), buffered constants are used
 bool d3d::set_const_buffer(unsigned stage, unsigned slot, const float *data, unsigned num_regs) { return false; }
 
-ResourceAllocationProperties d3d::get_resource_allocation_properties(const ResourceDescription &desc)
-{
-  G_UNUSED(desc);
-  return {};
-}
-ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
-{
-  G_UNUSED(heap_group);
-  G_UNUSED(size);
-  G_UNUSED(flags);
-  return nullptr;
-}
-void d3d::destroy_resource_heap(ResourceHeap *heap) { G_UNUSED(heap); }
-Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
-  const ResourceAllocationProperties &alloc_info, const char *name)
-{
-  G_UNUSED(heap);
-  G_UNUSED(desc);
-  G_UNUSED(offset);
-  G_UNUSED(alloc_info);
-  G_UNUSED(name);
-  return nullptr;
-}
-BaseTexture *d3d::place_texture_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
-  const ResourceAllocationProperties &alloc_info, const char *name)
-{
-  G_UNUSED(heap);
-  G_UNUSED(desc);
-  G_UNUSED(offset);
-  G_UNUSED(alloc_info);
-  G_UNUSED(name);
-  return nullptr;
-}
-ResourceHeapGroupProperties d3d::get_resource_heap_group_properties(ResourceHeapGroup *heap_group)
-{
-  G_UNUSED(heap_group);
-  return {};
-}
 void d3d::map_tile_to_resource(BaseTexture *tex, ResourceHeap *heap, const TileMapping *mapping, size_t mapping_count)
 {
   G_UNUSED(tex);
@@ -184,9 +148,13 @@ void d3d::destroy_shader_library(ShaderLibrary) {}
 
 void d3d::wait_for_async_present(bool force) { G_UNUSED(force); }
 
-void d3d::gpu_latency_wait() {}
+void d3d::begin_frame(uint32_t, bool) {}
+
+void d3d::mark_simulation_start(uint32_t) {}
+void d3d::mark_simulation_end(uint32_t) {}
+void d3d::mark_render_start(uint32_t) {}
+void d3d::mark_render_end(uint32_t) {}
 
 IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC();
-IMPLEMENT_D3D_RUB_API_USING_GENERIC()
 
 #include <legacyCaptureImpl.cpp.inl>

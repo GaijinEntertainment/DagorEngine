@@ -9,6 +9,7 @@ sphinx-copybutton==0.5.2
 sphinx_design==0.6.1
 sphinx-hoverxref==1.4.2
 sphinx-markdown-tables==0.0.17
+sphinx-tags==0.4
 sphinx-version-warning==1.1.2
 sphinxcontrib-video==0.3.1
 

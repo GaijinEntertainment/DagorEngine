@@ -58,7 +58,7 @@ function server_msg_sink(evt, connids=null) {
   server_send_event(_get_msg_sink_eid(), evt, connids)
 }
 
-return ecs.__update({
+return freeze(ecs.__merge({
   client_msg_sink
   client_send_event
   client_broadcast_event
@@ -68,4 +68,4 @@ return ecs.__update({
   server_broadcast_event
 
   update_component
-})
+}))

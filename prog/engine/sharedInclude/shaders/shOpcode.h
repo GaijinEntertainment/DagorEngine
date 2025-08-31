@@ -29,12 +29,12 @@ enum
   SHCOD_G_TM,         // 2p_8_16 | set 4xVEC4 const for GM/PM/VPM      | p1=type (8 bits)  p2=ind
   SHCOD_GLOB_SAMPLER, // 3p      | set sampler from global var         | p1=stage p2=ind p3=varId
 
-  SHCOD_MUL_REAL, // 3p      | REAL: dest# = left# * right#        | p1=dest# p2=left# p3=right#
-  SHCOD_DIV_REAL, // 3p      | REAL: dest# = left# / right#        | p1=dest# p2=left# p3=right#
-  SHCOD_ADD_REAL, // 3p      | REAL: dest# = left# + right#        | p1=dest# p2=left# p3=right#
-  SHCOD_SUB_REAL, // 3p      | REAL: dest# = left# - right#        | p1=dest# p2=left# p3=right#
-  SHCOD_NOP,
-  SHCOD_COPY_REAL, // 2p      | REAL: #dest = #src                  | p1=dest#  p2=src#
+  SHCOD_MUL_REAL,   // 3p      | REAL: dest# = left# * right#        | p1=dest# p2=left# p3=right#
+  SHCOD_DIV_REAL,   // 3p      | REAL: dest# = left# / right#        | p1=dest# p2=left# p3=right#
+  SHCOD_ADD_REAL,   // 3p      | REAL: dest# = left# + right#        | p1=dest# p2=left# p3=right#
+  SHCOD_SUB_REAL,   // 3p      | REAL: dest# = left# - right#        | p1=dest# p2=left# p3=right#
+  SHCOD_INT_TOREAL, // 2p     | REAL: #dest = real(#src)           | p1=dest#  p2=src#
+  SHCOD_COPY_REAL,  // 2p      | REAL: #dest = #src                  | p1=dest#  p2=src#
 
   SHCOD_MUL_VEC,  // 3p      | VEC4: dest# = left# * right# (CW)   | p1=dest# p2=left# p3=right#
   SHCOD_DIV_VEC,  // 3p      | VEC4: dest# = left# / right# (CW)   | p1=dest# p2=left# p3=right#
@@ -47,7 +47,7 @@ enum
   SHCOD_TMWORLD, // 2p      | load world M44.col to VEC4 reg      | p1=reg#  p2=col
   SHCOD_SAMPLER, // 3p      | set sampler from local var          | p1=stage p2=ind p3=varId
   SHCOD_NOP,
-  SHCOD_NOP,
+  SHCOD_IVEC_TOREAL, // 2p  | VEC4: #dest = real(#src)            | p1=dest#  p2=src#
 
   SHCOD_CALL_FUNCTION, // 3p + *d | call function                       | p1=func_id p2=dest# p3=param count d*=data
 
@@ -73,24 +73,24 @@ enum
   SHCOD_NOP,
   SHCOD_RWBUF, // 2p      | set r/w buffer (UAV)                | p1=ind p2=reg#
 
-  SHCOD_STATIC_BLOCK,  // 3p + 1d | static state block params           | p1=tex_cnt p2=vs_cnt p3=ps_cnt p4=tex_base p5=vs_base
-                       // p6=ps_base
-  SHCOD_BLK_ICODE_LEN, // 1p      | size of next perm block code        | p1=opcode_cnt
+  SHCOD_STATIC_BLOCK, // 3p + 1d | static state block params           | p1=tex_cnt p2=vs_cnt p3=ps_cnt p4=tex_base p5=vs_base
+                      // p6=ps_base
+  SHCOD_NOP,
 
   SHCOD_DIFFUSE,  // 0p      |                                     |
   SHCOD_EMISSIVE, // 0p      |                                     |
   SHCOD_SPECULAR, // 0p      |                                     |
   SHCOD_AMBIENT,  // 0p      |                                     |
 
-  SHCOD_RWTEX,         // 2p      | set r/w texture (UAV)               | p1=ind p2=reg#
-  SHCOD_CS_CONST,      // 2p      | set CS const[ind] from VEC4 reg     | p1=ind p2=reg#
-  SHCOD_TEXTURE_VS,    // 2p      | set VS texture                      | p1=ind p2=reg#
-  SHCOD_BUFFER,        // 3psso   | set buffer                          | p1=stage,p2=slot p3=reg#
-  SHCOD_CONST_BUFFER,  // 3psso   | set const buffer                    | p1=stage,p2=slot p3=reg#
-  SHCOD_GET_GBUF,      // 2p      | load global buf to reg              | p1=reg#  p2=varId
-  SHCOD_GET_GMAT44,    // 2p      | load global var to FLOAT4x4 reg     | p1=reg#  p2=varId
-  SHCOD_REG_BINDLESS,  // 2p      | register bindless tex from reg and store its id to consts[ind] | p1=ind p2=reg#
-  SHCOD_PACK_MATERIALS // 0p      | cbufs for stcode with this flag will be stored in one buffer |
+  SHCOD_RWTEX,                 // 2p      | set r/w texture (UAV)               | p1=ind p2=reg#
+  SHCOD_CS_CONST,              // 2p      | set CS const[ind] from VEC4 reg     | p1=ind p2=reg#
+  SHCOD_TEXTURE_VS,            // 2p      | set VS texture                      | p1=ind p2=reg#
+  SHCOD_BUFFER,                // 3psso   | set buffer                          | p1=stage,p2=slot p3=reg#
+  SHCOD_CONST_BUFFER,          // 3psso   | set const buffer                    | p1=stage,p2=slot p3=reg#
+  SHCOD_GET_GBUF,              // 2p      | load global buf to reg              | p1=reg#  p2=varId
+  SHCOD_GET_GMAT44,            // 2p      | load global var to FLOAT4x4 reg     | p1=reg#  p2=varId
+  SHCOD_REG_BINDLESS,          // 2p      | register bindless tex from reg and store its id to consts[ind] | p1=ind p2=reg#
+  SHCOD_STATIC_MULTIDRAW_BLOCK // 0p      | cbufs for stcode with this flag will be stored in one buffer |
 };
 enum
 {

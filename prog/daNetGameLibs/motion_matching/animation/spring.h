@@ -64,18 +64,6 @@ static inline quat4f damper_exact_q(quat4f x, quat4f g, float halflife, float dt
   return v_quat_qslerp(t, x, g);
 }
 
-static inline vec3f damp_adjustment_exact_v3(vec3f x, float halflife, float dt, float eps = 1e-5f)
-{
-  float t = expf(-(LN2f * dt) / (halflife + eps));
-  return v_mul(x, v_splats(t));
-}
-
-static inline quat4f damp_adjustment_exact_q(quat4f x, float halflife, float dt, float eps = 1e-5f)
-{
-  float t = expf(-(LN2f * dt) / (halflife + eps));
-  return v_quat_qslerp(t, V_C_UNIT_0001, x); // V_C_UNIT_0001 is quat()
-}
-
 //--------------------------------------
 
 static inline float halflife_to_damping(float halflife, float eps = 1e-5f) { return (4.0f * LN2f) / (halflife + eps); }

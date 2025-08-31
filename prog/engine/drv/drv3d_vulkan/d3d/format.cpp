@@ -88,18 +88,18 @@ bool d3d::check_voltexformat(int cflg)
     VkSampleCountFlagBits(get_sample_count(cflg)));
 }
 
-unsigned d3d::get_texformat_usage(int cflg, int restype)
+unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
   VkFormatFeatureFlags features = Globals::VK::fmt.features(fmt.asVkFormat());
 
   unsigned result = 0;
-  switch (restype)
+  switch (type)
   {
-    case RES3D_TEX:
-    case RES3D_CUBETEX:
-    case RES3D_ARRTEX:
-    case RES3D_VOLTEX:
+    case D3DResourceType::TEX:
+    case D3DResourceType::CUBETEX:
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::VOLTEX:
       if (features & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
       {
         result |= USAGE_RTARGET;
@@ -122,7 +122,8 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
       if (features & (VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
         result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
       break;
-    case RES3D_SBUF: break;
+    case D3DResourceType::CUBEARRTEX: break;
+    case D3DResourceType::SBUF: break;
   }
   return result | USAGE_PIXREADWRITE;
 }

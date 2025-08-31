@@ -5,6 +5,7 @@
 #include <daECS/core/sharedComponent.h>
 
 #include <util/dag_console.h>
+#include <ecs/weather/skiesSettings.h>
 #include <render/cinematicMode.h>
 #include <render/renderEvent.h>
 #include <render/resolution.h>
@@ -19,8 +20,8 @@ wchar_t *utf8_to_wcs(const char *utf8_str, wchar_t *wcs_buf, int wcs_buf_len);
 
 ECS_REGISTER_RELOCATABLE_TYPE(CinematicMode, nullptr);
 
-template <typename C>
-static void get_cinematic_mode_manager_ecs_query(C);
+template <typename Callable>
+static void get_cinematic_mode_manager_ecs_query(Callable);
 
 
 CinematicMode *get_cinematic_mode()
@@ -38,6 +39,7 @@ void process_video_encoder(BaseTexture *final_render_target)
 {
   if (auto *cinematicMode = get_cinematic_mode())
   {
+    TIME_D3D_PROFILE(videoEncoder_process);
     if (!cinematicMode->getVideoEncoder().process(final_render_target))
     {
       logerr("Can't write video sample. Stopping video record.");
@@ -167,7 +169,7 @@ static void cinematic_mode_change_time_es_event_handler(const ecs::Event &, cons
   }
 }
 
-ECS_ON_EVENT(on_appear, SkiesLoaded)
+ECS_ON_EVENT(on_appear, EventSkiesLoaded)
 static void cinematic_mode_set_weather_es_event_handler(const ecs::Event &,
   bool &cinematic_mode__rain,
   bool &cinematic_mode__snow,

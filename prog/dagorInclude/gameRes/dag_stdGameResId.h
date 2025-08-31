@@ -19,12 +19,12 @@ static constexpr unsigned FastPhysDataGameResClassId = 0x855A1BE6u; // FastPhysD
 static constexpr unsigned Anim2DataGameResClassId = 0x40C586F9u;    // Anim2Data
 static constexpr unsigned PhysSysGameResClassId = 0xDBBCB7D2u;      // PhysSys
 static constexpr unsigned PhysObjGameResClassId = 0xD543E771u;      // PhysObj
+static constexpr unsigned CollisionGameResClassId = 0xACE50000u;    // CollisionResource
 static constexpr unsigned RagdollGameResClassId = 0xD403C21Cu;      // Ragdoll
 static constexpr unsigned EffectGameResClassId = 0x88B7A117u;       // Effect
 static constexpr unsigned IslLightGameResClassId = 0x64EA5C39u;     // IslLight
 static constexpr unsigned CloudGameResClassId = 0xE3F1FCE6u;        // Cloud
 static constexpr unsigned MaterialGameResClassId = 0x39b5b09eu;     // Material
 static constexpr unsigned LShaderGameResClassId = 0xCD5B9736u;      // LShader
-
-static constexpr unsigned AnimBnlGameResClassId = 0x8F2A7018u;  // AnimChar
-static constexpr unsigned AnimCharGameResClassId = 0x8F2A701Au; // AnimChar
+static constexpr unsigned AnimBnlGameResClassId = 0x8F2A7018u;      // AnimChar
+static constexpr unsigned AnimCharGameResClassId = 0x8F2A701Au;     // AnimChar

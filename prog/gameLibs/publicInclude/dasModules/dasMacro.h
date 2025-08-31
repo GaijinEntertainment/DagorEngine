@@ -59,7 +59,7 @@ struct BakeHashFunctionAnnotation : das::TransformFunctionAnnotation
 
 __forceinline void fast_component_aot_prefix(das::TextWriter &tw, const das::string &arg_name, das::string type_name)
 {
-  auto program = das::daScriptEnvironment::bound->g_Program;
+  auto program = (*das::daScriptEnvironment::bound)->g_Program;
   tw << "#ifndef _component_" << arg_name << program->thisNamespace << "\n";
   tw << "#define _component_" << arg_name << program->thisNamespace << "\n";
   tw << "namespace __components {\n";

@@ -18,11 +18,14 @@
 #include <de3_baseInterfaces.h>
 #include <obsolete/dag_cfg.h>
 
+#include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_gridobject.h>
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_outliner.h>
 
+#include <osApiWrappers/dag_direct.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
@@ -32,6 +35,7 @@
 #include <debug/dag_debug.h>
 #include <physMap/physMap.h>
 
+using editorcore_extapi::dagInput;
 using hdpi::_pxScaled;
 
 #define MAX_TRACE_DIST 10000
@@ -101,42 +105,20 @@ void HmapLandObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
 {
   ObjectEditor::registerViewportAccelerators(wndManager);
 
-  wndManager.addViewportAccelerator(CM_SPLINE_REGEN, wingw::V_F1);
-  wndManager.addViewportAccelerator(CM_SPLINE_REGEN_CTRL, wingw::V_F1, true);
-  wndManager.addViewportAccelerator(CM_REBUILD_SPLINES_BITMASK, wingw::V_F2);
-  wndManager.addViewportAccelerator(CM_SELECT_PT, '1', true);
-  wndManager.addViewportAccelerator(CM_SELECT_SPLINES, '2', true);
-  wndManager.addViewportAccelerator(CM_SELECT_ENT, '3', true);
-  wndManager.addViewportAccelerator(CM_SELECT_LT, '4', true);
-  wndManager.addViewportAccelerator(CM_SELECT_SNOW, '5', true);
-  wndManager.addViewportAccelerator(CM_SELECT_NONE, '6', true);
-  wndManager.addViewportAccelerator(CM_SELECT_SPL_ENT, '7', true);
-  wndManager.addViewportAccelerator(CM_HIDE_SPLINES, '0', true);
-  wndManager.addViewportAccelerator(CM_USE_PIXEL_PERFECT_SELECTION, 'Q', true);
+  wndManager.addViewportAccelerator(CM_SPLINE_REGEN, ImGuiKey_F1);
+  wndManager.addViewportAccelerator(CM_SPLINE_REGEN_CTRL, ImGuiMod_Ctrl | ImGuiKey_F1);
+  wndManager.addViewportAccelerator(CM_REBUILD_SPLINES_BITMASK, ImGuiKey_F2);
+  wndManager.addViewportAccelerator(CM_SELECT_PT, ImGuiMod_Ctrl | ImGuiKey_1);
+  wndManager.addViewportAccelerator(CM_SELECT_SPLINES, ImGuiMod_Ctrl | ImGuiKey_2);
+  wndManager.addViewportAccelerator(CM_SELECT_ENT, ImGuiMod_Ctrl | ImGuiKey_3);
+  wndManager.addViewportAccelerator(CM_SELECT_LT, ImGuiMod_Ctrl | ImGuiKey_4);
+  wndManager.addViewportAccelerator(CM_SELECT_SNOW, ImGuiMod_Ctrl | ImGuiKey_5);
+  wndManager.addViewportAccelerator(CM_SELECT_NONE, ImGuiMod_Ctrl | ImGuiKey_6);
+  wndManager.addViewportAccelerator(CM_SELECT_SPL_ENT, ImGuiMod_Ctrl | ImGuiKey_7);
+  wndManager.addViewportAccelerator(CM_HIDE_SPLINES, ImGuiMod_Ctrl | ImGuiKey_0);
+  wndManager.addViewportAccelerator(CM_USE_PIXEL_PERFECT_SELECTION, ImGuiMod_Ctrl | ImGuiKey_Q);
 }
 
-
-void HmapLandObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (is_creating_entity_mode(getEditMode()) && wingw::is_key_pressed(wingw::V_ALT))
-  {
-    newObj->setPlaceOnCollision(true);
-    wnd->invalidateCache();
-    return;
-  }
-  return ObjectEditor::handleKeyPress(wnd, vk, modif);
-}
-
-void HmapLandObjectEditor::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (is_creating_entity_mode(getEditMode()) && !wingw::is_key_pressed(wingw::V_ALT))
-  {
-    newObj->setPlaceOnCollision(false);
-    wnd->invalidateCache();
-    return;
-  }
-  return ObjectEditor::handleKeyRelease(wnd, vk, modif);
-}
 
 bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
@@ -148,7 +130,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
     Point3 pos;
     if (getEditMode() == CM_CREATE_SPLINE || getEditMode() == CM_CREATE_POLYGON)
     {
-      const bool placeOnRiCollision = static_cast<bool>(wingw::get_modif() & wingw::M_SHIFT);
+      const bool placeOnRiCollision = dagInput->isShiftKeyDown();
       if (curPt && findTargetPos(wnd, x, y, pos, placeOnRiCollision))
       {
         if (DAGORED2->getGrid().getMoveSnap())
@@ -157,7 +139,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
         curPt->setPos(pos);
 
         bool is = false;
-        if (wingw::is_key_pressed(wingw::V_CONTROL))
+        if (dagInput->isCtrlKeyDown())
           for (int i = 0; i < splines.size(); i++)
           {
             for (int j = 0; j < splines[i]->points.size(); j++)
@@ -224,6 +206,9 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
       bool is = false;
       for (int i = 0; i < splines.size(); i++)
       {
+        if (EditLayerProps::layerProps[splines[i]->getEditLayerIdx()].lock)
+          continue;
+
         Point3 p;
         real refT;
         int segId;
@@ -249,7 +234,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
     }
     else if (is_creating_entity_mode(getEditMode()))
     {
-      newObj->setPlaceOnCollision(wingw::is_key_pressed(wingw::V_ALT));
+      newObj->setPlaceOnCollision(dagInput->isAltKeyDown());
       return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
     }
     else if (getEditMode() == CM_SPLIT_POLY)
@@ -425,7 +410,7 @@ bool HmapLandObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y
           pointsCnt = 1;
           curSpline = new SplineObject(getEditMode() == CM_CREATE_POLYGON);
           curSpline->setEditLayerIdx(EditLayerProps::activeLayerIdx[curSpline->lpIndex()]);
-          if (wingw::is_key_pressed(wingw::V_SHIFT))
+          if (dagInput->isShiftKeyDown())
             curSpline->setCornerType(-1);
           curSpline->selectObject();
           splines.push_back(curSpline);
@@ -572,7 +557,7 @@ bool HmapLandObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y
     }
     else if (getEditMode() == CM_REFINE_SPLINE)
     {
-      if (curPt->visible && refSpline)
+      if (curPt->visible && refSpline && !EditLayerProps::layerProps[refSpline->getEditLayerIdx()].lock)
       {
         real refT;
         int segId;
@@ -636,6 +621,46 @@ bool HmapLandObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y
   return true;
 }
 
+bool HmapLandObjectEditor::stopSplineCreation()
+{
+  if (getEditMode() != CM_CREATE_SPLINE && getEditMode() != CM_CREATE_POLYGON)
+    return false;
+
+  if (pointsCnt > 0)
+  {
+    if ((getEditMode() == CM_CREATE_POLYGON && pointsCnt < 3) || (getEditMode() == CM_CREATE_SPLINE && pointsCnt < 2))
+    {
+      if (getUndoSystem()->is_holding())
+        getUndoSystem()->cancel();
+      curSpline = NULL;
+    }
+    else if (startPt && curSpline)
+    {
+      for (int i = 0; i < curSpline->points.size(); i++)
+        if (curSpline->points[i] == curPt)
+        {
+          curSpline->onPointRemove(i);
+          break;
+        }
+
+      getUndoSystem()->accept(curSpline->isPoly() ? "Create polygon" : "Create spline");
+    }
+  }
+
+  memset(catmul, 0, sizeof(catmul));
+  curPt->spline = NULL;
+
+  if (curSpline)
+    curSpline->onCreated();
+
+  startPt = NULL;
+
+  setButton(CM_CREATE_SPLINE, false);
+  setButton(CM_CREATE_POLYGON, false);
+
+  return true;
+}
+
 bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
   if (objCreator)
@@ -644,42 +669,10 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
   bool l_result = false;
 
   const int prevEditMode = getEditMode();
-  if (getEditMode() == CM_CREATE_SPLINE || getEditMode() == CM_CREATE_POLYGON)
+  if (stopSplineCreation())
   {
-    if (pointsCnt > 0)
-    {
-      if ((getEditMode() == CM_CREATE_POLYGON && pointsCnt < 3) || (getEditMode() == CM_CREATE_SPLINE && pointsCnt < 2))
-      {
-        getUndoSystem()->cancel();
-        curSpline = NULL;
-      }
-      else if (startPt && curSpline)
-      {
-        for (int i = 0; i < curSpline->points.size(); i++)
-          if (curSpline->points[i] == curPt)
-          {
-            curSpline->onPointRemove(i);
-            break;
-          }
-
-        getUndoSystem()->accept(curSpline->isPoly() ? "Create polygon" : "Create spline");
-      }
-    }
-
-    memset(catmul, 0, sizeof(catmul));
-    curPt->spline = NULL;
-
-    if (curSpline)
-      curSpline->onCreated();
-
-    startPt = NULL;
-
     setEditMode(CM_OBJED_MODE_SELECT);
-
-    setButton(CM_CREATE_SPLINE, false);
-    setButton(CM_CREATE_POLYGON, false);
     wnd->invalidateCache();
-
     l_result = true;
   }
   else if (getEditMode() == CM_SPLIT_SPLINE)
@@ -688,7 +681,7 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
   }
   else if (is_creating_entity_mode(getEditMode()))
   {
-    if (buttons & 1) // This is actually MK_LBUTTON.
+    if (buttons & EC_MK_LBUTTON)
       return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
     setCreateBySampleMode(NULL);
     selectNewObjEntity(NULL);
@@ -892,8 +885,8 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
 
     case CM_CREATE_SPLINE:
     case CM_CREATE_POLYGON:
-      pointsCnt = 0;
       setEditMode(pcb_id);
+      pointsCnt = 0;
       curPt = new SplinePointObject;
       unselectAll();
 
@@ -1247,7 +1240,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
         if (!o)
           continue;
 
-        if (o->isAffectingHmap())
+        if (o->isAffectingHmap() || o->isHeightBake())
           spls.push_back(o);
       }
 
@@ -1263,7 +1256,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
           HmapLandPlugin::self->copyFinalHmapToInitial();
       }
       else
-        wingw::message_box(wingw::MBS_EXCL, "Warning", "No splines selected for collapse!");
+        wingw::message_box(wingw::MBS_EXCL, "Warning", "No selected splines or polygons affect the heightmap.");
 
       break;
     }
@@ -1691,13 +1684,7 @@ void HmapLandObjectEditor::showOutlinerWindow(bool show)
   if (show == isOutlinerWindowOpen())
     return;
 
-  if (isOutlinerWindowOpen())
-  {
-    outlinerWindow->saveOutlinerSettings(outlinerSettings);
-    outlinerWindow.reset();
-    outlinerInterface.reset();
-  }
-  else
+  if (!outlinerWindow)
   {
     outlinerWindow.reset(DAEDITOR3.createOutlinerWindow());
 
@@ -1710,9 +1697,14 @@ void HmapLandObjectEditor::showOutlinerWindow(bool show)
 
     for (int i = 0; i < objects.size(); ++i)
       outlinerWindow->onAddObject(*objects[i]);
+
+    DataBlock outlinerLocalStateBlk;
+    outlinerLocalStateBlk.load(DAGORED2->getPluginFilePath(HmapLandPlugin::self, ".local/outlinerState.blk"));
+    outlinerWindow->loadOutlinerState(outlinerLocalStateBlk);
   }
 
-  setButton(CM_OBJED_SELECT_BY_NAME, outlinerWindow.get() != nullptr);
+  outlinerWindowOpen = show;
+  setButton(CM_OBJED_SELECT_BY_NAME, outlinerWindowOpen);
 }
 
 void HmapLandObjectEditor::loadOutlinerSettings(const DataBlock &settings)
@@ -1729,6 +1721,17 @@ void HmapLandObjectEditor::saveOutlinerSettings(DataBlock &settings)
   settings.setFrom(&outlinerSettings);
 }
 
+void HmapLandObjectEditor::saveOutlinerState()
+{
+  if (outlinerWindow)
+  {
+    DataBlock outlinerLocalStateBlk;
+    outlinerWindow->saveOutlinerState(outlinerLocalStateBlk);
+    dd_mkdir(DAGORED2->getPluginFilePath(HmapLandPlugin::self, ".local"));
+    outlinerLocalStateBlk.saveToTextFile(DAGORED2->getPluginFilePath(HmapLandPlugin::self, ".local/outlinerState.blk"));
+  }
+}
+
 RenderableEditableObject &HmapLandObjectEditor::getMainObjectForOutliner(RenderableEditableObject &object)
 {
   SplinePointObject *splinePoint = RTTI_cast<SplinePointObject>(&object);
@@ -1742,7 +1745,7 @@ void HmapLandObjectEditor::updateImgui()
 {
   ObjectEditor::updateImgui();
 
-  if (!outlinerWindow.get())
+  if (!isOutlinerWindowOpen())
     return;
 
   bool open = true;

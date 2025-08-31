@@ -19,7 +19,8 @@ struct RaytraceBottomAccelerationStructure;
  * It allows one function to handle multiple input data layouts.
  * Inputs can be simple single values, arrays of values, pointers to values, and initializer lists of values.
  * To interpret the stored values, use the provided enumerate functions to get the buffer and texture barriers.
- * For more details on resource barriers, see https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers
+ * For more details on resource barriers, see
+ * https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html
  */
 class ResourceBarrierDesc
 {
@@ -39,6 +40,11 @@ class ResourceBarrierDesc
   {
     RaytraceBottomAccelerationStructure *blas;
     RaytraceBottomAccelerationStructure *const *blases;
+  };
+  union
+  {
+    raytrace::AccelerationStructurePool pool;
+    raytrace::AccelerationStructurePool const *pools;
   };
   union
   {
@@ -63,6 +69,7 @@ class ResourceBarrierDesc
   unsigned bufferCount = 0;
   unsigned textureCount = 0;
   unsigned blasCount = 0;
+  unsigned asPoolCount = 0;
 
 public:
   /**
@@ -72,6 +79,7 @@ public:
     buffer{nullptr},
     texture{nullptr},
     blas{nullptr},
+    pool{raytrace::InvalidAccelerationStructurePool},
     bufferStates{nullptr},
     textureStates{nullptr},
     textureSubResIndices{nullptr},
@@ -217,6 +225,44 @@ public:
   {}
 
   /**
+   * @brief Constructor for ResourceBarrierDesc with a single ray trace acceleration structure pool.
+   * This barrier will flush all pending writes (eg builds) to this pool. This is more efficient than
+   * submitting multiple barriers for individual BLASes.
+   * @param pool The ray trace acceleration structure pool.
+   */
+  ResourceBarrierDesc(raytrace::AccelerationStructurePool pool) : pool{pool}, asPoolCount{single_element_count} {}
+
+  /**
+   * @brief Constructor for ResourceBarrierDesc with an array of ray trace acceleration structure pools.
+   * This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than
+   * submitting multiple barriers for individual BLASes.
+   * @param pools The array of ray trace acceleration structure pools.
+   * @param count The number of ray trace acceleration structure pools.
+   */
+  ResourceBarrierDesc(raytrace::AccelerationStructurePool const *pools, unsigned count) : pools{pools}, asPoolCount{count} {}
+
+  /**
+   * @brief Constructor for ResourceBarrierDesc with an array of ray trace acceleration structure pools.
+   * This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than
+   * submitting multiple barriers for individual BLASes.
+   * @tparam N The size of the fixed-size array.
+   * @param pools The fixed size array of ray trace acceleration structure pools.
+   */
+  template <unsigned N>
+  ResourceBarrierDesc(raytrace::AccelerationStructurePool (&pools)[N]) : pools{pools}, asPoolCount{N}
+  {}
+
+  /**
+   * @brief Constructor for ResourceBarrierDesc with a initializer list of ray trace acceleration structure pools.
+   * This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than
+   * submitting multiple barriers for individual BLASes.
+   * @param pools The initializer list of ray trace acceleration structure pools.
+   */
+  ResourceBarrierDesc(std::initializer_list<raytrace::AccelerationStructurePool> pools) :
+    pools{pools.begin()}, asPoolCount{static_cast<unsigned>(pools.size())}
+  {}
+
+  /**
    * @brief Constructor for ResourceBarrierDesc with arrays of buffers, resource barriers, textures, resource barriers, sub-resource
    * indices, and sub-resource ranges.
    * @param bufs The array of buffers.
@@ -351,7 +397,7 @@ public:
    * @param clb The callback function that takes a buffer and a resource barrier as arguments.
    */
   template <typename T>
-  void enumerateBufferBarriers(T clb)
+  void enumerateBufferBarriers(T clb) const
   {
     if (single_element_count == bufferCount)
     {
@@ -373,7 +419,7 @@ public:
    * arguments.
    */
   template <typename T>
-  void enumerateTextureBarriers(T clb)
+  void enumerateTextureBarriers(T clb) const
   {
     if (single_element_count == textureCount)
     {
@@ -395,7 +441,7 @@ public:
    * @param clb The callback function that takes a bottom level acceleration structure as argument.
    */
   template <typename T>
-  void enumerateBlasBarriers(T clb)
+  void enumerateBlasBarriers(T clb) const
   {
     if (single_element_count == blasCount)
     {
@@ -406,6 +452,28 @@ public:
       for (unsigned i = 0; i < blasCount; ++i)
       {
         clb(blases[i]);
+      }
+    }
+  }
+
+  /**
+   * @brief Enumerates the ray trace acceleration structure pool barriers and calls the provided callback function for each ray trace
+   * acceleration structure pool barrier.
+   * @tparam T The type of the callback function.
+   * @param clb The callback function that takes a ray trace acceleration structure pool as argument.
+   */
+  template <typename T>
+  void enumerateAccelerationStructurePoolBarriers(T clb) const
+  {
+    if (single_element_count == asPoolCount)
+    {
+      clb(pool);
+    }
+    else
+    {
+      for (unsigned i = 0; i < asPoolCount; ++i)
+      {
+        clb(pools[i]);
       }
     }
   }

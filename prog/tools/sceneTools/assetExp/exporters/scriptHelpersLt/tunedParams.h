@@ -78,18 +78,18 @@ public:
         subElem[i] = subElem[i]->cloneElem();
   }
 
-  ~TunedGroup()
+  ~TunedGroup() override
   {
     for (int i = 0; i < subElem.size(); ++i)
       if (subElem[i])
         delete subElem[i];
   }
 
-  virtual TunedElement *cloneElem() { return new TunedGroup(*this); }
+  TunedElement *cloneElem() override { return new TunedGroup(*this); }
 
-  virtual int subElemCount() const { return subElem.size(); }
+  int subElemCount() const override { return subElem.size(); }
 
-  virtual TunedElement *getSubElem(int index) const
+  TunedElement *getSubElem(int index) const override
   {
     G_ASSERT(index >= 0 && index < subElem.size());
     return subElem[index];
@@ -102,7 +102,7 @@ public:
     subElem.push_back(e);
   }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     cwr.writeInt32e(version);
 
@@ -114,7 +114,7 @@ public:
     }
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     blk.setInt("version", version);
 
@@ -128,7 +128,7 @@ public:
     }
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     int blkVer = blk.getInt("version", 0);
     //== TODO: handle old versions

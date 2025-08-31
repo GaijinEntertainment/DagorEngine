@@ -1,0 +1,3 @@
+ModulePrefix = gameLibs ;
+
+include $(Root)/prog/_jBuild/build_module.jam ;

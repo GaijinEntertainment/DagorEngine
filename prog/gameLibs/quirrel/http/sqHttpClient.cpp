@@ -73,7 +73,7 @@ static SQRESULT is_url_allowed(HSQUIRRELVM vm, const char *url)
   return SQ_OK;
 }
 
-/**@module dagor.http
+/* qdox @module dagor.http
 @function requestHttp
 
 @kwarged

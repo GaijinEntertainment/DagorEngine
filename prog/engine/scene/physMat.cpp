@@ -224,8 +224,12 @@ static void loadMaterial(MaterialData &mat, const MaterialData &def, const DataB
   mat.soundMaterial = matBlk->getStr("sndMat", def.soundMaterial);
   mat.isSolid = matBlk->getBool("is_solid", def.isSolid);
   mat.tankTracksTexId = matBlk->getInt("tankTracksTexId", def.tankTracksTexId);
-  mat.heightmapDeformation = matBlk->getPoint2("heightmapDeformation", def.heightmapDeformation);
+  mat.vehicleHeightmapDeformation = matBlk->getPoint2("vehicleHeightmapDeformation", def.vehicleHeightmapDeformation);
+  mat.humanHeightmapDeformation = matBlk->getReal("humanHeightmapDeformation", def.humanHeightmapDeformation);
   mat.trailDetailStrength = matBlk->getReal("trailDetailStrength", def.trailDetailStrength);
+
+  mat.physStaticFriction = matBlk->getReal("physStaticFriction", def.physStaticFriction);
+  mat.physRestitution = matBlk->getReal("physRestitution", def.physRestitution);
 }
 
 // init manager
@@ -277,8 +281,11 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
   def.noTransparentThickness = 0.f;
   def.isSolid = false;
   def.tankTracksTexId = 0;
-  def.heightmapDeformation = Point2(0.f, 0.f);
+  def.vehicleHeightmapDeformation = Point2(0.f, 0.f);
+  def.humanHeightmapDeformation = 0.f;
   def.trailDetailStrength = 0.f;
+  def.physStaticFriction = 0.9f;
+  def.physRestitution = 0.2f;
 
   if (!loadedBlk && !phys_blk.load(filename))
   {

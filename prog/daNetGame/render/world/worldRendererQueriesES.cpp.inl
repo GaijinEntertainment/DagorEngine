@@ -8,6 +8,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <scene/dag_tiledScene.h>
+#include <render/occlusion/parallelOcclusionRasterizer.h>
 #include <render/omniLight.h>
 #include <gameRes/dag_gameResources.h>
 #include <ecs/anim/anim.h>
@@ -32,12 +33,11 @@
 #include "render/renderEvent.h"
 #define INSIDE_RENDERER 1
 #include "render/world/private_worldRenderer.h"
-#include "render/world/parallelOcclusionRasterizer.h"
 #include "render/world/worldRendererQueries.h"
 #include <ecs/render/updateStageRender.h>
 #include <render/indoorProbeManager.h>
 #include <render/indoorProbeScenes.h>
-#include <shaders/indoor_probes_const.hlsli>
+#include <render/indoor_probes_const.hlsli>
 
 CONSOLE_BOOL_VAL("render", spam_animchars_to_raster, false);
 CONSOLE_BOOL_VAL("clipmap", invalidate_under_camera_once, false);
@@ -47,6 +47,7 @@ ECS_AUTO_REGISTER_COMPONENT(mat44f, "close_geometry_prev_to_curr_frame_transform
 ECS_AUTO_REGISTER_COMPONENT(mat44f, "close_geometry_prev_transform", nullptr, 0);
 
 extern const char *const EMPTY_LEVEL_NAME;
+extern const char *const DEFAULT_WR_LEVEL_NAME;
 
 static __forceinline WorldRenderer *get_renderer() { return ((WorldRenderer *)get_world_renderer()); }
 
@@ -79,77 +80,6 @@ float get_camera_fov()
   get_camera_fov_ecs_query(get_cur_cam_entity(), [&FoV](float fov) { FoV = fov; });
   return FoV;
 }
-
-template <typename Callable>
-static void volfog_optional_graphs_ecs_query(Callable c);
-
-void add_volfog_optional_graphs()
-{
-  if (!get_renderer())
-    return;
-  volfog_optional_graphs_ecs_query(
-    [](const ecs::string &volfog) { get_renderer()->enableVolumeFogOptionalShader(String(volfog.c_str()), true); });
-}
-
-ECS_ON_EVENT(on_appear, on_disappear)
-static void add_volfog_optional_graph_es_event_handler(const ecs::Event &evt, const ecs::string &volfog)
-{
-  if (!get_renderer())
-    return;
-  bool dest = evt.is<ecs::EventEntityDestroyed>() || evt.is<ecs::EventComponentsDisappear>();
-  get_renderer()->enableVolumeFogOptionalShader(String(volfog.c_str()), !dest);
-}
-
-struct VolfogShaderPreload
-{
-  static void requestResources(const char *, const ecs::resource_request_cb_t &res_cb)
-  {
-    // Note: currently we can't just add resources to level component since it will change level entity
-    // creation order in regard of other entities that implicitly depend on level being loaded (e.g. phys actors)
-    // hence add manual pre-load job that executes before level load job
-    const ecs::string &levelBlkPath = res_cb.get<ecs::string>(ECS_HASH("level__blk"));
-    DataBlock levelBlk;
-    if (levelBlkPath == EMPTY_LEVEL_NAME || !dblk::load(levelBlk, levelBlkPath.c_str(), dblk::ReadFlag::ROBUST_IN_REL))
-      return;
-    if (levelBlk.getBool("disableVolfogPreload", false))
-      return;
-    if (const char *shader_graph = levelBlk.getBlockByNameEx("volFog")->getStr("rootFogGraph", nullptr))
-    {
-      eastl::string fullName = node_based_shader_get_resource_name(shader_graph);
-      if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-      {
-        struct LoadNodeBasedShaderJob final : public cpujobs::IJob
-        {
-          eastl::string resName;
-          DataBlock levelBlk;
-          LoadNodeBasedShaderJob(eastl::string &&name, DataBlock &&lblk) : resName(eastl::move(name)), levelBlk(eastl::move(lblk)) {}
-          void doJob() override
-          {
-            if (auto res = get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(resName.c_str()), LShaderGameResClassId))
-              release_game_resource(res);
-          }
-          void releaseJob() override
-          {
-            if (auto wr = static_cast<WorldRenderer *>(get_world_renderer()))
-              wr->loadFogNodes(levelBlk);
-            delete this;
-          }
-        };
-        auto job = new LoadNodeBasedShaderJob(eastl::move(fullName), eastl::move(levelBlk));
-        G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-        return;
-      }
-    }
-
-    // Note: world level might be not yet created since level isn't created either
-    static_cast<WorldRenderer *>(create_world_renderer())->loadFogNodes(levelBlk);
-  }
-};
-
-ECS_DECLARE_RELOCATABLE_TYPE(VolfogShaderPreload);
-ECS_REGISTER_RELOCATABLE_TYPE(VolfogShaderPreload, nullptr);
-ECS_AUTO_REGISTER_COMPONENT(VolfogShaderPreload, "level__node_based_fog_shader_preload", nullptr, 0);
-
 
 ECS_TAG(render)
 static void move_indoor_light_probes_to_render_es_event_handler(const EventGameObjectsOptimize &, GameObjects &game_objects)
@@ -190,7 +120,7 @@ void gather_animchars_for_occlusion_rasterization(
   eastl::array<float, MAX_OBJECTS_TO_RASTERIZE> tanAngleQuarts;
   uint32_t objectsToRasterize = 0;
   gather_closest_occluders_ecs_query(
-    [&](const CollisionResource &collres, const TMatrix &transform, uint8_t animchar_visbits, const vec4f &animchar_bsph) {
+    [&](const CollisionResource &collres, const TMatrix &transform, animchar_visbits_t animchar_visbits, const vec4f &animchar_bsph) {
       // We reuse visibility from the previous frame for simplicity. If an animchar was visible on the previous frame,
       // it could be visible on the current frame too.
       if (!(animchar_visbits & (VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE)))
@@ -232,6 +162,14 @@ void gather_animchars_for_occlusion_rasterization(
     debug("%d animchars prepared for SW rasterization.", objectsToRasterize);
 }
 
+ECS_TAG(render)
+ECS_BEFORE(after_camera_sync)
+ECS_AFTER(bvh_out_of_scope_riex_dist_es)
+static void camera_update_lods_scaling_es(const ecs::UpdateStageInfoAct &)
+{
+  if (auto wr = get_renderer())
+    wr->updateLodsScaling();
+}
 
 ECS_TAG(render)
 ECS_BEFORE(animchar_before_render_es) // Before to start exec jobs right after p-for jobs of `animchar_before_render_es`
@@ -282,15 +220,23 @@ bool can_change_altitude_unexpectedly()
 
 template <typename Callable>
 ECS_REQUIRE(ecs::Tag customSkyRenderer)
-static ecs::QueryCbResult find_custom_sky_renderer_ecs_query(Callable c);
+static ecs::QueryCbResult try_render_custom_sky_ecs_query(Callable c);
 
-bool has_custom_sky_render(CustomSkyRequest request)
+bool try_render_custom_sky(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp)
 {
-  return find_custom_sky_renderer_ecs_query([request](ecs::EntityId eid) {
-    if (request == CustomSkyRequest::RENDER_IF_EXISTS)
-      g_entity_mgr->sendEventImmediate(eid, CustomSkyRender());
+  return try_render_custom_sky_ecs_query([&view_tm, &proj_tm, &persp](ecs::EntityId eid) {
+    g_entity_mgr->sendEventImmediate(eid, CustomSkyRender(view_tm, proj_tm, persp));
     return ecs::QueryCbResult::Stop;
   }) == ecs::QueryCbResult::Stop;
+}
+
+template <typename Callable>
+ECS_REQUIRE(ecs::Tag customSkyRenderer)
+static ecs::QueryCbResult find_custom_sky_ecs_query(Callable c);
+
+bool has_custom_sky()
+{
+  return find_custom_sky_ecs_query([]() { return ecs::QueryCbResult::Stop; }) == ecs::QueryCbResult::Stop;
 }
 
 template <typename Callable>
@@ -383,8 +329,8 @@ static void reset_occlusion_data_es(const UpdateStageInfoBeforeRender &,
   occlusion_available = false;
 }
 
-template <typename T>
-static inline void gather_occlusion_data_ecs_query(T cb);
+template <typename Callable>
+static inline void gather_occlusion_data_ecs_query(Callable function);
 OcclusionData gather_occlusion_data()
 {
   OcclusionData occlusionData{};
@@ -397,8 +343,8 @@ OcclusionData gather_occlusion_data()
   return occlusionData;
 }
 
-template <typename T>
-static inline void gather_underground_zones_ecs_query(T cb);
+template <typename Callable>
+static inline void gather_underground_zones_ecs_query(Callable function);
 
 void get_underground_zones_data(Tab<Point3_vec4> &bboxes)
 {

@@ -13,7 +13,7 @@
 #include <shaders/dag_shaderVar.h>
 
 #include <render/world/cameraParams.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/rendererFeatures.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 
@@ -27,29 +27,28 @@ static void reset_fom_shadows()
 FomShadowsManager::FomShadowsManager(int size, float z_distance, float xy_distance, float height) :
   shadowMapSize(size), zDistance(z_distance), xyViewBoxSize(xy_distance), zViewBoxSize(height)
 {
-  fomRenderingNode = dabfg::register_node("particle_shadow_pass_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+  fomRenderingNode = dafg::register_node("particle_shadow_pass_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
     const bool isForward = renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING);
     registry.orderMeAfter(isForward ? "transparent_effects_setup_mobile" : "acesfx_update_node");
 
-    const dabfg::Texture2dCreateInfo texCreateInfo = {TEXCF_RTARGET | TEXFMT_A16B16G16R16F, IPoint2(shadowMapSize, shadowMapSize)};
-    registry.create("fom_shadows_cos", dabfg::History::No)
+    const dafg::Texture2dCreateInfo texCreateInfo = {TEXCF_RTARGET | TEXFMT_A16B16G16R16F, IPoint2(shadowMapSize, shadowMapSize)};
+    registry.create("fom_shadows_cos", dafg::History::No)
       .texture(texCreateInfo)
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::COLOR_ATTACHMENT);
-    registry.create("fom_shadows_sin", dabfg::History::No)
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT)
+      .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+    registry.create("fom_shadows_sin", dafg::History::No)
       .texture(texCreateInfo)
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::COLOR_ATTACHMENT);
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT)
+      .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
       smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-      registry.create("fom_shadows_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("fom_shadows_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
     }
-    registry.requestRenderPass()
-      .color({"fom_shadows_cos", "fom_shadows_sin"})
-      .clear("fom_shadows_cos", make_clear_value(0.f, 0.f, 0.f, 0.f))
-      .clear("fom_shadows_sin", make_clear_value(0.f, 0.f, 0.f, 0.f));
+    registry.requestRenderPass().color({"fom_shadows_cos", "fom_shadows_sin"});
     registry.requestState().setFrameBlock("global_frame");
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();

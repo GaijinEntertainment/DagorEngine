@@ -4,39 +4,38 @@
 //
 #pragma once
 
-#include <util/dag_string.h>
+#include <cstdint>
+
+enum class D3DResourceType : uint8_t
+{
+  TEX,
+  CUBETEX,
+  VOLTEX,
+  ARRTEX,
+  CUBEARRTEX,
+  SBUF
+};
 
 class D3dResource
 {
 public:
   virtual void destroy() = 0;
-  virtual int restype() const = 0;
-  virtual int ressize() const = 0;
-  const char *getResName() const { return statName.c_str(); }
-  void setResName(const char *name) { statName = name; }
-  void setResName(const char *name, int size) { statName.setStr(name, size); }
-  // WARNING: This might allocate. Avoid calling it every frame.
-  virtual void setResApiName(const char * /*name*/) const {}
 
+  virtual D3DResourceType getType() const = 0;
+  virtual uint32_t getSize() const = 0;
+
+  virtual const char *getName() const = 0;
+  virtual void setName(const char *name) = 0;
+  virtual void setName(const char *name, int size) = 0;
+
+  // WARNING: This might allocate. Avoid calling it every frame.
+  virtual void setApiName([[maybe_unused]] const char *name) const {}
+
+protected:
   D3dResource() = default;
   D3dResource(D3dResource &&) = default;
   D3dResource &operator=(D3dResource &&) = default;
-
-protected:
-  virtual ~D3dResource(){};
-
-private:
-  String statName;
-};
-
-enum
-{
-  RES3D_TEX,
-  RES3D_CUBETEX,
-  RES3D_VOLTEX,
-  RES3D_ARRTEX,
-  RES3D_CUBEARRTEX,
-  RES3D_SBUF
+  ~D3dResource() = default;
 };
 
 inline void destroy_d3dres(D3dResource *res)

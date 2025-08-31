@@ -1,0 +1,8 @@
+float cloth_wind_velocity_multiplier = 1;
+
+macro CLOTH_WIND_COMMON()
+  (vs)
+  {
+    cloth_wind_velocity_multiplier@f1 = cloth_wind_velocity_multiplier;
+  }
+endmacro

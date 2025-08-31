@@ -96,6 +96,7 @@ void add_variant(
     auto &item = init.objectGroupsFmem.push_back();
     item.info = objectGroup.info;
     item.weightFactor = (1.0 - placeableWeightEmpty) * (objectGroup.effectiveDensity / density);
+    item.densityMaskChannelWeights = objectGroup.densityMaskChannelWeights;
   }
 
   // TODO: rename placeableWeightEmpty.
@@ -110,6 +111,22 @@ void add_variant(
   gpuData.drawRangeEndIndex = init.drawRangesFmem.size();
 
   init.numPlaceables += numVariantPlaceables;
+}
+
+// The shader compares the values we pass with normal's y component (range -1 to +1).
+// We want to use values outside of this range, for example, to make all this range 100% density,
+// or to make it fade from 50% to 100% in the range.
+// For this goal, we convert angles outside of the normal -90..+90 range to
+// values that extend beyound -1 and +1 respectively.
+// The exact behavior doesn't matter, as long as it's monotonic, and connects to +1 and -1.
+static float sin_extra(float deg)
+{
+  float rad = DegToRad(deg);
+  if (rad >= HALFPI)
+    return rad + 1.0f - HALFPI;
+  if (rad <= -HALFPI)
+    return rad - 1.0f + HALFPI;
+  return sinf(rad);
 }
 
 bool init_common_placer_buffers(const CommonPlacerBufferInit &init, eastl::string_view buffer_name_prefix, CommonPlacerBuffers &output)
@@ -186,7 +203,12 @@ bool init_common_placer_buffers(const CommonPlacerBufferInit &init, eastl::strin
         item.scaleMin = md_min(params.scaleMidDev);
         item.scaleMax = md_max(params.scaleMidDev);
         item.maxBaseDrawDistance = placeable.ranges.back().baseDrawDistance;
-        item.slopeFactor = params.slopeFactor;
+        item.slopeSinMin = sin_extra(params.slopeMin);
+        item.slopeSinMax = sin_extra(params.slopeMax);
+        item.occlusionMin = params.occlusionMin;
+        item.occlusionMax =
+          (fabsf(params.occlusionMax - params.occlusionMin) < 1e-6f ? params.occlusionMin + 1e-6f : params.occlusionMax);
+        item.occlusionRange = params.occlusionRange;
         item.flags = params.flags;
         item.riPoolOffset = params.riPoolOffset;
       }

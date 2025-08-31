@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "loadShaders.h"
+#include "shCompiler.h"
 #include "linkShaders.h"
+#include "shTargetContext.h"
+#include "shCompiler.h"
 #include "shLog.h"
+#include "cppStcode.h"
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_chainedMemIo.h>
@@ -18,18 +22,11 @@
 #include "namedConst.h"
 #include "samplers.h"
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_renderStates.h>
 
-namespace loadedshaders
-{
-Tab<TabFsh> fsh(midmem_ptr());
-Tab<TabVpr> vpr(midmem_ptr());
-Tab<TabStcode> stCode(midmem_ptr());
-Tab<shaders::RenderState> render_state(midmem_ptr());
-Tab<ShaderClass *> shClass(midmem_ptr());
-} // namespace loadedshaders
 
 bool get_file_time64(const char *fn, int64_t &ft)
 {
@@ -42,7 +39,8 @@ bool get_file_time64(const char *fn, int64_t &ft)
   return false;
 }
 
-CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps)
+CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const ShCompilationInfo &comp,
+  bool check_cppstcode)
 {
   bindump::FileReader reader(filename);
   if (!reader)
@@ -85,6 +83,25 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
   {
     sh_debug(SHLOG_WARNING, "Cannot detect cache file time");
     return CompilerAction::COMPILE_AND_LINK;
+  }
+
+  if (header.last_blk_hash != comp.targetBlkHash())
+  {
+    sh_debug(SHLOG_NORMAL, "[INFO] Outdated blk hash '%s' in header of obj file '%s'", blk_hash_string(header.last_blk_hash).c_str(),
+      dd_get_fname(filename));
+    return CompilerAction::COMPILE_AND_LINK;
+  }
+
+  if (check_cppstcode)
+  {
+    auto cppstcodeStatMaybe = get_gencpp_files_stat(filename, comp);
+    if (!cppstcodeStatMaybe || cppstcodeStatMaybe->savedBlkHash != comp.targetBlkHash())
+    {
+      sh_debug(SHLOG_NORMAL, "[INFO] Cppstcode files for '%s' are out of sync", dd_get_fname(filename));
+      return CompilerAction::COMPILE_AND_LINK;
+    }
+
+    srcFt = min(srcFt, cppstcodeStatMaybe->mtime);
   }
 
   if (!current_deps.empty())
@@ -143,54 +160,51 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
   return CompilerAction::NOTHING;
 }
 
-bool load_scripted_shaders(const char *filename, bool check_dep)
+bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetContext &out_ctx)
 {
-  VarMap::clear();
-
   ShadersBindump shaders;
   bindump::FileReader reader(filename);
-  if (!load_shaders_bindump(shaders, reader))
-    DAG_FATAL("corrupted OBJ file: %s", filename);
+  if (!load_shaders_bindump(shaders, reader, out_ctx))
+    sh_debug(SHLOG_FATAL, "corrupted OBJ file: %s", filename);
 
-  loadedshaders::render_state = eastl::move(shaders.render_states);
-  loadedshaders::fsh = eastl::move(shaders.shaders_fsh);
-  loadedshaders::vpr = eastl::move(shaders.shaders_vpr);
-  loadedshaders::stCode = eastl::move(shaders.shaders_stcode);
-  loadedshaders::shClass = eastl::move(shaders.shader_classes);
-  g_sampler_table = SamplerTable{eastl::move(shaders.static_samplers)};
+  ShaderTargetStorage &stor = out_ctx.storage();
 
-  ShaderGlobal::getMutableVariableList() = eastl::move(shaders.variable_list);
-  ShaderGlobal::getMutableIntervalList() = eastl::move(shaders.intervals);
+  stor.renderStates = eastl::move(shaders.renderStates);
+  stor.ldShFsh = eastl::move(shaders.shadersFsh);
+  stor.ldShVpr = eastl::move(shaders.shadersVpr);
+  stor.shadersStcode = eastl::move(shaders.shadersStcode);
+  stor.stcodeConstValidationMasks = eastl::move(shaders.stcodeConstMasks);
+  stor.shaderClass = eastl::move(shaders.shaderClasses);
 
-  ShaderStateBlock::link(shaders.state_blocks, {});
+  out_ctx.globVars().getMutableVariableList() = eastl::move(shaders.variable_list);
+  out_ctx.globVars().getMutableIntervalList() = eastl::move(shaders.intervals);
 
-  for (auto cl : loadedshaders::shClass)
+  out_ctx.samplers().emplaceSamplers(eastl::move(shaders.static_samplers));
+
+  out_ctx.blocks().link(shaders.state_blocks, {}, {});
+
+  out_ctx.cppStcode().dynamicRoutineHashes = eastl::move(shaders.dynamicCppcodeHashes);
+  out_ctx.cppStcode().staticRoutineHashes = eastl::move(shaders.staticCppcodeHashes);
+  out_ctx.cppStcode().dynamicRoutineNames = eastl::move(shaders.dynamicCppcodeRoutineNames);
+  out_ctx.cppStcode().staticRoutineNames = eastl::move(shaders.staticCppcodeRoutineNames);
+
+  out_ctx.cppStcode().regTable.offsets = eastl::move(shaders.cppcodeRegisterTableOffsets);
+
+  out_ctx.cppStcode().regTable.combinedTable.reserve(shaders.cppcodeRegisterTables.size());
+  for (auto &&table : shaders.cppcodeRegisterTables)
+    out_ctx.cppStcode().regTable.combinedTable.emplace_back(eastl::move(table));
+
+  for (auto cl : stor.shaderClass)
   {
+    cl->staticVariants.setContextRef(out_ctx);
     cl->staticVariants.linkIntervalList();
     for (auto code : cl->code)
     {
-      code->link();
+      code->link(out_ctx);
+      code->dynVariants.setContextRef(out_ctx);
       code->dynVariants.linkIntervalList();
     }
   }
 
   return true;
-}
-
-void unload_scripted_shaders()
-{
-  using loadedshaders::shClass;
-
-  ShaderGlobal::clear();
-  VarMap::clear();
-  g_sampler_table = SamplerTable{};
-
-  clear_and_shrink(loadedshaders::fsh);
-  clear_and_shrink(loadedshaders::vpr);
-  clear_and_shrink(loadedshaders::stCode);
-  clear_and_shrink(loadedshaders::render_state);
-
-  for (int i = 0; i < shClass.size(); i++)
-    del_it(shClass[i]);
-  clear_and_shrink(shClass);
 }

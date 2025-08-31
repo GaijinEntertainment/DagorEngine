@@ -31,4 +31,4 @@ float calc_friction_mult(float cur_spd, float thres_spd, float friction_k, float
 Point3 apply_friction(const Point3 &cur_vel, float thres_spd, float friction_k, float dt);
 Point3 apply_omni_friction(const Point3 &cur_vel, float thres_spd, float friction_k, float dt); // friction in all directions,
                                                                                                 // including vertical
-};                                                                                              // namespace gamephys
+}; // namespace gamephys

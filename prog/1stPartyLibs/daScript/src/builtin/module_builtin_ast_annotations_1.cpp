@@ -128,6 +128,7 @@ namespace das {
             addProperty<DAS_BIND_MANAGED_PROP(canInitWithZero)>("canInitWithZero","canInitWithZero");
             addProperty<DAS_BIND_MANAGED_PROP(getRangeBaseType)>("rangeBaseType","getRangeBaseType");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::unsafeInit>("unsafeInit","unsafeInit");
+            addProperty<DAS_BIND_MANAGED_PROP(getMangledNameHash)>("get_mnh","getMangledNameHash");
         }
     };
 
@@ -142,6 +143,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(module)>("_module","module");
             addField<DAS_BIND_MANAGED_FIELD(parent)>("parent");
             addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
+            addProperty<DAS_BIND_MANAGED_PROP(getSizeOf)>("sizeOf", "getSizeOf");
             addFieldEx ( "flags", "flags", offsetof(Structure, flags), makeStructureFlags() );
         }
     };
@@ -167,6 +169,7 @@ namespace das {
         }
         void init () {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
+            addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
             addField<DAS_BIND_MANAGED_FIELD(value)>("value");
             addField<DAS_BIND_MANAGED_FIELD(at)>("at");
         }
@@ -189,39 +192,60 @@ namespace das {
         }
     };
 
-    struct AstFunctionAnnotation : ManagedStructureAnnotation<Function> {
-        AstFunctionAnnotation(ModuleLibrary & ml)
-            : ManagedStructureAnnotation ("Function", ml) {
+    template <typename FUNC>
+    struct AstFunctionAnnotation : public ManagedStructureAnnotation<FUNC> {
+        using ManagedType = FUNC;
+        AstFunctionAnnotation(const char *name, ModuleLibrary & ml)
+            : ManagedStructureAnnotation<FUNC> (name, ml) {
         }
         void init () {
-            addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
-            addField<DAS_BIND_MANAGED_FIELD(name)>("name");
-            addField<DAS_BIND_MANAGED_FIELD(arguments)>("arguments");
-            addField<DAS_BIND_MANAGED_FIELD(result)>("result");
-            addField<DAS_BIND_MANAGED_FIELD(body)>("body");
-            addField<DAS_BIND_MANAGED_FIELD(index)>("index");
-            addField<DAS_BIND_MANAGED_FIELD(totalStackSize)>("totalStackSize");
-            addField<DAS_BIND_MANAGED_FIELD(totalGenLabel)>("totalGenLabel");
-            addField<DAS_BIND_MANAGED_FIELD(at)>("at");
-            addField<DAS_BIND_MANAGED_FIELD(atDecl)>("atDecl");
-            addField<DAS_BIND_MANAGED_FIELD(module)>("_module", "module");
+            this->template addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
+            this->template addField<DAS_BIND_MANAGED_FIELD(name)>("name");
+            this->template addField<DAS_BIND_MANAGED_FIELD(arguments)>("arguments");
+            this->template addField<DAS_BIND_MANAGED_FIELD(result)>("result");
+            this->template addField<DAS_BIND_MANAGED_FIELD(body)>("body");
+            this->template addField<DAS_BIND_MANAGED_FIELD(index)>("index");
+            this->template addField<DAS_BIND_MANAGED_FIELD(totalStackSize)>("totalStackSize");
+            this->template addField<DAS_BIND_MANAGED_FIELD(totalGenLabel)>("totalGenLabel");
+            this->template addField<DAS_BIND_MANAGED_FIELD(at)>("at");
+            this->template addField<DAS_BIND_MANAGED_FIELD(atDecl)>("atDecl");
+            this->template addField<DAS_BIND_MANAGED_FIELD(module)>("_module", "module");
             // addField<DAS_BIND_MANAGED_FIELD(useFunctions)>("useFunctions");
             // addField<DAS_BIND_MANAGED_FIELD(useGlobalVariables)>("useGlobalVariables");
-            addField<DAS_BIND_MANAGED_FIELD(classParent)>("classParent", "classParent");
+            this->template addField<DAS_BIND_MANAGED_FIELD(classParent)>("classParent", "classParent");
             // use global v
-            addFieldEx ( "flags", "flags",
+            this->addFieldEx ( "flags", "flags",
                 offsetof(Function, flags), makeFunctionFlags() );
-            addFieldEx ( "moreFlags", "moreFlags",
+            this->addFieldEx ( "moreFlags", "moreFlags",
                 offsetof(Function, moreFlags), makeMoreFunctionFlags() );
-            addFieldEx ( "sideEffectFlags", "sideEffectFlags",
+            this->addFieldEx ( "sideEffectFlags", "sideEffectFlags",
                 offsetof(Function, sideEffectFlags), makeFunctionSideEffectFlags() );
-            addField<DAS_BIND_MANAGED_FIELD(inferStack)>("inferStack");
-            addField<DAS_BIND_MANAGED_FIELD(fromGeneric)>("fromGeneric");
-            addField<DAS_BIND_MANAGED_FIELD(hash)>("hash");
-            addField<DAS_BIND_MANAGED_FIELD(aotHash)>("aotHash");
+            this->template addField<DAS_BIND_MANAGED_FIELD(inferStack)>("inferStack");
+            this->template addField<DAS_BIND_MANAGED_FIELD(fromGeneric)>("fromGeneric");
+            this->template addField<DAS_BIND_MANAGED_FIELD(hash)>("hash");
+            this->template addField<DAS_BIND_MANAGED_FIELD(aotHash)>("aotHash");
             // properties
-            addProperty<DAS_BIND_MANAGED_PROP(getOriginPtr)>("origin","getOriginPtr");
-            addProperty<DAS_BIND_MANAGED_PROP(isGeneric)>("isGeneric","isGeneric");
+            this->template addProperty<DAS_BIND_MANAGED_PROP(getOriginPtr)>("origin","getOriginPtr");
+            this->template addProperty<DAS_BIND_MANAGED_PROP(getMangledNameHash)>("getMangledNameHash");
+            this->template addProperty<DAS_BIND_MANAGED_PROP(isGeneric)>("isGeneric","isGeneric");
+        }
+    };
+
+    struct AstBuiltInFunctionAnnotation : AstFunctionAnnotation<BuiltInFunction> {
+        AstBuiltInFunctionAnnotation(ModuleLibrary &ml)
+            : AstFunctionAnnotation("BuiltInFunction", ml) {
+            this->template addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
+
+            from("Function");
+        }
+    };
+
+    struct AstExternalFnBaseAnnotation : AstFunctionAnnotation<ExternalFnBase> {
+        AstExternalFnBaseAnnotation(ModuleLibrary &ml)
+            : AstFunctionAnnotation("ExternalFnBase", ml) {
+            this->template addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
+
+            from("Function");
         }
     };
 
@@ -258,6 +282,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(annotation)>("annotation");
             // properties
             addProperty<DAS_BIND_MANAGED_PROP(isAccessUnused)>("isAccessUnused","isAccessUnused");
+            addProperty<DAS_BIND_MANAGED_PROP(getMangledNameHash)>("getMangledNameHash");
         }
     };
 
@@ -287,6 +312,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
             addField<DAS_BIND_MANAGED_FIELD(annotationData)>("annotationData");
             addField<DAS_BIND_MANAGED_FIELD(annotationDataSid)>("annotationDataSid");
+            addField<DAS_BIND_MANAGED_FIELD(inFunction)>("inFunction");
             addFieldEx ( "blockFlags", "blockFlags", offsetof(ExprBlock, blockFlags), makeExprBlockFlags() );
         }
     };
@@ -320,8 +346,12 @@ namespace das {
         addAnnotation(ene);
         auto ena = make_smart<AstEnumerationAnnotation>(lib);
         addAnnotation(ena);
-        auto fna = make_smart<AstFunctionAnnotation>(lib);
+        auto fna = make_smart<AstFunctionAnnotation<Function>>("Function", lib);
         addAnnotation(fna);
+        auto bfn = make_smart<AstBuiltInFunctionAnnotation>(lib);
+        addAnnotation(bfn);
+        auto extfn = make_smart<AstExternalFnBaseAnnotation>(lib);
+        addAnnotation(extfn);
         auto iha = make_smart<AstInferHistoryAnnotation>(lib);
         addAnnotation(iha);
         auto vaa = make_smart<AstVariableAnnotation>(lib);
@@ -333,6 +363,8 @@ namespace das {
         initRecAnnotation(ena, lib);
         initRecAnnotation(exa, lib);
         initRecAnnotation(fna, lib);
+        initRecAnnotation(bfn, lib);
+        initRecAnnotation(extfn, lib);
         initRecAnnotation(iha, lib);
         initRecAnnotation(vaa, lib);
         // misc

@@ -1,13 +1,14 @@
-include "gbuffer.dshl"
 include "random_color.dshl"
 include "rotation_palette_inc.dshl"
-include "paint_details_inc.dshl"
+include "riextra_per_instance.dshl"
+include "optional_puddle_access.dshl"
+include "rendinst_global_inc.dshl"
+include "clipmap.dshl"
+
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 hlsl { #define RENDINST_FLOAT_POS 1 } // for debug switching between floats and halfs
 hlsl { #include "rendinst.hlsli" }
-
-int rendinst_use_cell_sbuffer = 0 always_referenced;
-interval rendinst_use_cell_sbuffer: off < 1, on;
 
 int instancing_type = 0;
 interval instancing_type : tm_vb < 1, pos_vb < 2,  pos_cb;
@@ -15,38 +16,12 @@ interval instancing_type : tm_vb < 1, pos_vb < 2,  pos_cb;
 int is_render_by_cells = 0;
 interval is_render_by_cells : no < 1, yes;
 
-int rendinst_render_type = 0;
-interval rendinst_render_type : mixed < 1, ri_ex_only;
-
 int useBboxInCbuffer = 1 always_referenced;
 
-int rendinst_perinst_buff_no = 6 always_referenced;
-int rendinst_instance_buff_no = 5 always_referenced;
-int per_instance_data_no = 14;
 int ri_additional_instance_offsets_data_no = 15;
-int ri_vertex_data_no = 12 always_referenced;
+int ri_vertex_data_no = 17 always_referenced;
 
-buffer impostor_data_buffer;
-buffer ri_gen_multidraw_perDrawArgsBuffer;
 buffer ri_vertex_data;
-
-float lods_shift_dist_mul = 1.0;
-
-float4 impostor_shadow_x = (0,0,0,0);
-float4 impostor_shadow_y = (0,0,0,0);
-float4 impostor_shadow_z = (0,0,0,0);
-texture impostor_shadow;
-buffer perDrawInstanceData;
-
-float4 camera_base_offset = (0, 0, 0, 0);
-
-macro INIT_RENDINST_IMPOSTOR_SHADOW()
-  (ps) {
-    impostor_shadow_x@f4 = impostor_shadow_x;
-    impostor_shadow_y@f4 = impostor_shadow_y;
-    impostor_shadow_z@f4 = impostor_shadow_z;
-  }
-endmacro
 
 macro RENDINST_SW_VERTEX_FETCH(stage)
   (stage) {
@@ -86,31 +61,35 @@ macro RENDINST_INSTANCING()
   // instance offset
   (vs) {immediate_dword_count = 2;}
   USE_ROTATION_PALETTE_ENCODING()
-  //changed per_instance_data buffer to use explicit @buf to not overlap with named resources
-  if (instancing_type != pos_cb)
+
+  // changed per_instance_data buffer to use explicit @buf to not overlap with named resources
+  //
+  // @NOTE: even though when instancing_type == pos_cb this buffer is not used, we set it once for a range of
+  // calls, some of which have instancing_type == pos_cb, so we leave it in to reserve the register and save
+  // state changes.
+
+  //per cell render uses half4 data, sampling buffer is needed
+  if (((small_sampled_buffers == no) || (is_render_by_cells == yes)) && (rendinst_use_cell_sbuffer == off))
   {
-    //per cell render uses half4 data, sampling buffer is needed
-    if (((small_sampled_buffers == no) || (is_render_by_cells == yes)) && (rendinst_use_cell_sbuffer == off))
-    {
-      (vs) {
-        per_instance_data@buf : register(per_instance_data_no)
-        hlsl {
-          #define INSTANCING_BUFFERS\
-            Buffer<float4> per_instance_data@buf;
-        }
-      }
-    }
-    else
-    {
-      (vs) {
-        per_instance_data@buf : register(per_instance_data_no)
-        hlsl {
-          #define INSTANCING_BUFFERS\
-            StructuredBuffer<float4> per_instance_data@buf;
-        }
+    (vs) {
+      per_instance_data@buf : register(per_instance_data_no)
+      hlsl {
+        #define INSTANCING_BUFFERS\
+          Buffer<float4> per_instance_data@buf;
       }
     }
   }
+  else
+  {
+    (vs) {
+      per_instance_data@buf : register(per_instance_data_no)
+      hlsl {
+        #define INSTANCING_BUFFERS\
+          StructuredBuffer<float4> per_instance_data@buf;
+      }
+    }
+  }
+
   hlsl(vs) {
 
     #ifndef INST_OFFSET_GETTER
@@ -262,6 +241,22 @@ macro RENDINST_INSTANCING()
     #define RENDINST_APPLY_CELL_RESCALE(a) a.xyz = a.xyz*cell_bbox_xyz_size+cell_bbox_xyz_min
     #endif
 
+    #if RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
+      #define GET_RIEXTRA_PER_INSTANCE_RENDER_DATA_OFFSET \
+        uint perInstanceRenderDataOffset = 0; \
+        uint perInstanceRenderDataFlags = 0; \
+        if (inst_offset2.y > 3) {\
+          uint flags_offset = asuint(per_instance_data[vbInd + 3].y);\
+          perInstanceRenderDataOffset = flags_offset&RIEXTRA_PER_INSTANCE_RENDER_OFFSET_MASK; \
+          perInstanceRenderDataFlags = (flags_offset&RIEXTRA_PER_INSTANCE_RENDER_DATA_FLAG_MASK)>>RIEXTRA_PER_INSTANCE_RENDER_DATA_FLAG_BIT_OFFSET; \
+        }
+    #else
+      #define GET_RIEXTRA_PER_INSTANCE_RENDER_DATA_OFFSET \
+        uint perInstanceRenderDataOffset = 0; \
+        uint perInstanceRenderDataFlags = 0;
+      float4 LOAD_RIEXTRA_PID(uint idx, uint data_flag, float4 def) { return def; }
+    #endif
+
     ##if instancing_type == pos_vb || instancing_type == pos_cb
 
     #define VB_PERFORM_POS_INSTANCING_BASE\
@@ -285,9 +280,11 @@ macro RENDINST_INSTANCING()
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
         HW_INSTANCE_OFFSET(inst_offset2);\
-        float4 pos_and_scale = per_instance_data[instNo*inst_offset2.y+inst_offset2.x];\
+        uint vbInd = instNo*inst_offset2.y+inst_offset2.x;\
+        float4 pos_and_scale = per_instance_data[vbInd];\
         uint paletteId = unpack_palette_id(pos_and_scale.w);\
         pos_and_scale.w = unpack_scale(pos_and_scale.w);\
+        GET_RIEXTRA_PER_INSTANCE_RENDER_DATA_OFFSET\
         VB_PERFORM_POS_INSTANCING_BASE
       ##else
       #define VB_PERFORM_INSTANCING\
@@ -299,11 +296,13 @@ macro RENDINST_INSTANCING()
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
         HW_INSTANCE_OFFSET(inst_offset2);\
-        float4 pos_and_scale = per_instance_data[instNo*inst_offset2.y+inst_offset2.x];\
+        uint vbInd = instNo*inst_offset2.y+inst_offset2.x;\
+        float4 pos_and_scale = per_instance_data[vbInd];\
         RENDINST_APPLY_CELL_RESCALE(pos_and_scale.xyz);\
         RENDINST_APPLY_RESCALE(pos_and_scale.w);\
         uint paletteId = unpack_palette_id(pos_and_scale.w);\
         pos_and_scale.w = unpack_scale(pos_and_scale.w);\
+        GET_RIEXTRA_PER_INSTANCE_RENDER_DATA_OFFSET\
         VB_PERFORM_POS_INSTANCING_BASE
      ##endif
     ##else
@@ -316,9 +315,10 @@ macro RENDINST_INSTANCING()
       FILL_PER_DRAW_DATA \
       uint3 inst_offset2 = inst_offset;\
       HW_INSTANCE_OFFSET(inst_offset2);\
-      float4 tm_line_0 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+0];\
-      float4 tm_line_1 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+1];\
-      float4 tm_line_2 = per_instance_data[instNo*inst_offset2.y+inst_offset2.x+2];\
+      uint vbInd = instNo*inst_offset2.y+inst_offset2.x;\
+      float4 tm_line_0 = per_instance_data[vbInd+0];\
+      float4 tm_line_1 = per_instance_data[vbInd+1];\
+      float4 tm_line_2 = per_instance_data[vbInd+2];\
       float3 worldLocalX = float3(tm_line_0.x, tm_line_1.x, tm_line_2.x);\
       float3 worldLocalY = float3(tm_line_0.y, tm_line_1.y, tm_line_2.y);\
       float3 worldLocalZ = float3(tm_line_0.z, tm_line_1.z, tm_line_2.z);\
@@ -330,37 +330,26 @@ macro RENDINST_INSTANCING()
       float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;\
       float3 worldNormal = normalize(localNormal.x * worldLocalX + localNormal.y * worldLocalY + localNormal.z * worldLocalZ);\
       float3 physBbox = rendinst_bbox.xyz;\
-      uint paletteId = 0;
+      uint paletteId = 0;\
+      GET_RIEXTRA_PER_INSTANCE_RENDER_DATA_OFFSET
 
-      ##if in_editor_assume == yes && (is_render_by_cells == yes && rendinst_use_cell_sbuffer == off)
-        #define VB_PERFORM_INSTANCING\
-          VB_PERFORM_INSTANCING_BASE\
-          uint hashVal = 0;\
-          uint is_dynamic = 0;\
-          BRANCH if (inst_offset2.y>3) \
-            hashVal = asuint(per_instance_data[instNo*inst_offset2.y+inst_offset2.x+3].z);
-      ##else
-        #define VB_PERFORM_INSTANCING\
-          VB_PERFORM_INSTANCING_BASE\
-          uint hashVal = 0;\
-          uint is_dynamic = 0;\
-          BRANCH if (inst_offset2.y>3) {\
-            uint2 hash_dynamicBit = asuint(per_instance_data[instNo*inst_offset2.y+inst_offset2.x+3].zx);\
-            hashVal = hash_dynamicBit.x;\
-            is_dynamic = !!(hash_dynamicBit.y & (1<<31));\
-          }
-      ##endif
+      #define VB_PERFORM_INSTANCING\
+        VB_PERFORM_INSTANCING_BASE\
+        uint hashVal = 0;\
+        uint is_dynamic = 0;\
+        BRANCH if (inst_offset2.z & 2) {\
+          uint2 hash_dynamicBit = asuint(per_instance_data[vbInd+3].zx);\
+          hashVal = hash_dynamicBit.x;\
+          is_dynamic = !!(hash_dynamicBit.y & (1<<31));\
+        }
 
     ##endif
+
+    #define INSTANCING_HASH_VAL // in wt using hashVal is optional, turned on by this macro (in dng it's always on)
   }
 endmacro
 
-texture paint_details_tex;
 texture perlin_noise3d;
-float tree_wind_branch_amp = 0.5;
-float tree_wind_detail_amp = 0.5;
-float tree_wind_speed = 0.1;
-float tess_quality = 75;
 float4 cliff_color_overlay_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
 
 buffer obstacle_indices_buf;
@@ -402,6 +391,7 @@ macro RENDINST_SCENE_COMMON()
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
       Buffer<float4> impostor_data_buffer@buf;
     };
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
 
     if (hardware.dx11 || hardware.dx12)
     {
@@ -427,6 +417,9 @@ macro RENDINST_SCENE_COMMON()
     }
   }
   INIT_ZNZFAR()
+  INIT_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  INIT_PUDDLE_WITHOUT_SAMPLER(ps, tex_hmap_low_samplerstate)
+  INIT_RAW_RENDERING_FEEDBACK()
 endmacro
 
 macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
@@ -555,27 +548,6 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
   {
     hlsl {
       #define VSOUT_DRAW_ID
-    }
-  }
-endmacro
-
-macro USE_TRANSITION_CROSS_DISSOLVE()
-  static int use_cross_dissolve = 0;
-  interval use_cross_dissolve : off < 1, on;
-
-  if (use_cross_dissolve == on)
-  {
-    static float cross_dissolve_mul = 0;
-    static float cross_dissolve_add = 0;
-    (vs) { cross_dissolve_mul_add@f2 = (cross_dissolve_mul, cross_dissolve_add, 0, 0); }
-
-    hlsl(vs)
-    {
-      float get_transition_lod_cross_dissolve_opacity(float distance, float dist_shift)
-      {
-        float2 mul_add = get_cross_dissolve_mul_add();
-        return saturate(distance * dist_shift * mul_add.x + mul_add.y);
-      }
     }
   }
 endmacro

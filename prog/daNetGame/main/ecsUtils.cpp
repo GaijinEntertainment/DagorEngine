@@ -26,11 +26,15 @@
 #include <jsonUtils/decodeJwt.h>
 #include "ui/uiShared.h"
 #include <util/dag_console.h>
+#include "gameProjConfig.h"
 
-static bool load_templates_blk(
-  ecs::TemplateRefs &trefs, const char *path, const char *ugm, ecs::service_datablock_cb cb = ecs::service_datablock_cb())
+static bool load_templates_blk(ecs::EntityManager &mgr,
+  ecs::TemplateRefs &trefs,
+  const char *path,
+  const char *ugm,
+  ecs::service_datablock_cb cb = ecs::service_datablock_cb())
 {
-  DataBlock templatesBlk;
+  DataBlock templatesBlk(framemem_ptr());
   if (!dblk::load(templatesBlk, path, dblk::ReadFlag::ROBUST_IN_REL))
     return false;
   if (ugm && ugm[0])
@@ -38,20 +42,50 @@ static bool load_templates_blk(
     debug("load_ecs_templates: appending %s", ugm);
     templatesBlk.addStr("import", ugm);
   }
-  ecs::load_templates_blk_file(*g_entity_mgr, path, templatesBlk, trefs, &g_entity_mgr->getMutableTemplateDBInfo(), cb);
+  ecs::load_templates_blk_file(mgr, path, templatesBlk, trefs, &mgr.getMutableTemplateDBInfo(), cb);
   return true;
 }
 
 static eastl::string last_user_game_mode_import_fn, last_loaded_templates;
 static constexpr uint32_t default_templates_tag = 0x1; // why not 1, but can be hash of path if we load several
 
-void load_ecs_templates(const char *user_game_mode_import_fn)
+static void setup_components_and_types_ignores(const DataBlock &ecs_blk,
+  ecs::TemplateRefs &trefs,
+  ecs::TemplateRefs::NameMap &ignoreTypeNm,
+  ecs::TemplateRefs::NameMap &ignoreCompNm)
 {
-  G_ASSERT(g_entity_mgr.get());
+  bool ignore_all_bad_types = ecs_blk.getBool("ignoreAllBadComponentTypes", false);
+  bool ignore_all_bad_comps = ecs_blk.getBool("ignoreAllBadComponents", false);
+  if (const DataBlock *ignore_types_blk = ignore_all_bad_types ? nullptr : ecs_blk.getBlockByName("ignoreComponentTypes"))
+    dblk::iterate_params_by_name_and_type(*ignore_types_blk, "type", DataBlock::TYPE_STRING,
+      [ignore_types_blk, &ignoreTypeNm](int idx) { ignoreTypeNm.addNameId(ignore_types_blk->getStr(idx)); });
+  if (const DataBlock *ignore_comps_blk = ignore_all_bad_comps ? nullptr : ecs_blk.getBlockByName("ignoreComponents"))
+    dblk::iterate_params_by_name_and_type(*ignore_comps_blk, "comp", DataBlock::TYPE_STRING,
+      [ignore_comps_blk, &ignoreCompNm](int idx) { ignoreCompNm.addNameId(ignore_comps_blk->getStr(idx)); });
+  trefs.setIgnoreNames((ignore_all_bad_types || ignoreTypeNm.nameCount()) ? &ignoreTypeNm : nullptr,
+    (ignore_all_bad_comps || ignoreCompNm.nameCount()) ? &ignoreCompNm : nullptr);
+
+  if (ignore_all_bad_types)
+    debug("ecs will ignore all unknown types");
+  else if (ignoreTypeNm.nameCount())
+    debug("ecs will ignore %d types specified in %s", ignoreTypeNm.nameCount(), "application.blk");
+  if (ignore_all_bad_comps)
+    debug("ecs will ignore all components with unknown type");
+  else if (ignoreCompNm.nameCount())
+    debug("ecs will ignore %d component names specified in %s", ignoreCompNm.nameCount(), "application.blk");
+}
+
+void load_ecs_templates(ecs::EntityManager &mgr, const char *user_game_mode_import_fn)
+{
   ComponentToFilterAndPath netFilters, modifyBlackList;
-  const char *tpath = dgs_get_settings()->getStr("entitiesPath", "content/common/gamedata/templates/entities.blk");
-  ecs::TemplateRefs trefs(*g_entity_mgr);
-  if (load_templates_blk(trefs, tpath, user_game_mode_import_fn, [&](const DataBlock &blk) {
+  const char *tpath = dgs_get_settings()->getStr("entitiesPath", "gamedata/templates/entities.blk");
+  ecs::TemplateRefs trefs(mgr);
+  ecs::TemplateRefs::NameMap ignoreTypeNm, ignoreCompNm;
+
+  if (const DataBlock *ecs_blk = dgs_get_settings()->getBlockByName("ecs"))
+    setup_components_and_types_ignores(*ecs_blk, trefs, ignoreTypeNm, ignoreCompNm);
+
+  if (load_templates_blk(mgr, trefs, tpath, user_game_mode_import_fn, [&](const DataBlock &blk) {
         if (!has_network())
           return;
         const char *name = blk.getBlockName();
@@ -63,7 +97,7 @@ void load_ecs_templates(const char *user_game_mode_import_fn)
 #if DAGOR_DBGLEVEL > 0
         else if (strcmp(name, "_replicatedComponentClientModifyBlacklist") == 0)
         {
-          if (!is_server() && g_entity_mgr->getTemplateDB().info().filterTags.count(ECS_HASH("dev").hash))
+          if (!is_server() && mgr.getTemplateDB().info().filterTags.count(ECS_HASH("dev").hash))
             read_replicated_component_client_modify_blacklist(blk, modifyBlackList);
         }
 #endif
@@ -71,26 +105,26 @@ void load_ecs_templates(const char *user_game_mode_import_fn)
   {
     last_loaded_templates = tpath;
     last_user_game_mode_import_fn = user_game_mode_import_fn ? user_game_mode_import_fn : "";
-    g_entity_mgr->addTemplates(trefs, default_templates_tag);
-    apply_component_filters(netFilters);
-    apply_replicated_component_client_modify_blacklist(modifyBlackList);
+    mgr.addTemplates(trefs, default_templates_tag);
+    apply_component_filters(mgr, netFilters);
+    apply_replicated_component_client_modify_blacklist(mgr, modifyBlackList);
   }
 }
 
 
-bool reload_ecs_templates(eastl::function<void(const char *, ecs::EntityManager::UpdateTemplateResult)> cb)
+bool reload_ecs_templates(ecs::EntityManager &mgr, eastl::function<void(const char *, ecs::EntityManager::UpdateTemplateResult)> cb)
 {
   const bool update_template_values_bool = true;
 
-  ecs::TemplateRefs trefs(*g_entity_mgr);
-  g_entity_mgr->getMutableTemplateDBInfo().resetMetaInfo();
-  if (!load_templates_blk(trefs, last_loaded_templates.c_str(), last_user_game_mode_import_fn.c_str()))
+  ecs::TemplateRefs trefs(mgr);
+  mgr.getMutableTemplateDBInfo().resetMetaInfo();
+  if (!load_templates_blk(mgr, trefs, last_loaded_templates.c_str(), last_user_game_mode_import_fn.c_str()))
   {
     logerr("Can't load %s", last_loaded_templates.c_str());
     return false;
   }
 
-  return g_entity_mgr->updateTemplates(trefs, update_template_values_bool, default_templates_tag, cb);
+  return mgr.updateTemplates(trefs, update_template_values_bool, default_templates_tag, cb);
 }
 
 
@@ -100,18 +134,19 @@ static bool reload_templates_console_handler(const char *argv[], int argc)
     return false;
   if (!g_entity_mgr)
     return false;
+  ecs::EntityManager &mgr = *g_entity_mgr;
   int found = 0;
   CONSOLE_CHECK_NAME("ecs", "reload_templates", 1, 2)
   {
-    ecs::TemplateRefs trefs(*g_entity_mgr);
+    ecs::TemplateRefs trefs(mgr);
     const bool update_template_values_bool = argc > 1 ? console::to_bool(argv[1]) : true;
-    g_entity_mgr->getMutableTemplateDBInfo().resetMetaInfo();
-    if (!load_templates_blk(trefs, last_loaded_templates.c_str(), last_user_game_mode_import_fn.c_str()))
+    mgr.getMutableTemplateDBInfo().resetMetaInfo();
+    if (!load_templates_blk(mgr, trefs, last_loaded_templates.c_str(), last_user_game_mode_import_fn.c_str()))
       console::print_d("Can't load %s. ecs.reload_templates [update_template_values_bool=on].", last_loaded_templates.c_str());
     else
     {
       uint32_t same = 0, added = 0, updated = 0, removed = 0, invalidNames = 0, wrongParents = 0, cantRemove = 0, diffTag = 0;
-      const bool ret = g_entity_mgr->updateTemplates(trefs, update_template_values_bool, default_templates_tag,
+      const bool ret = mgr.updateTemplates(trefs, update_template_values_bool, default_templates_tag,
         [&](const char *n, ecs::EntityManager::UpdateTemplateResult r) {
           switch (r)
           {
@@ -160,9 +195,9 @@ static bool reload_templates_console_handler(const char *argv[], int argc)
 
 REGISTER_CONSOLE_HANDLER(reload_templates_console_handler);
 
-ecs::EntityId create_simple_entity(const char *templ_name, ecs::ComponentsInitializer &&amap)
+ecs::EntityId create_simple_entity(ecs::EntityManager &mgr, const char *templ_name, ecs::ComponentsInitializer &&amap)
 {
-  ecs::EntityId eid = g_entity_mgr->createEntitySync(templ_name, eastl::move(amap));
+  ecs::EntityId eid = mgr.createEntitySync(templ_name, eastl::move(amap));
   G_ASSERTF(eid != ecs::INVALID_ENTITY_ID, "Can't create entity for template '%s'. Perhaps you need update your data files.",
     templ_name);
   return eid;
@@ -174,7 +209,7 @@ Tab<const char *> ecs_get_global_tags_context()
   if (has_network())
     globalTags.push_back("net");
   globalTags.push_back(is_server() ? "server" : "netClient"); // Note: currently is_server() might return false only within network
-  if (have_glob_input()) // Warning: don't mind this condition, this can be implemented differently (e.g. with stubs) with same outcome
+  if (!dedicated::is_dedicated())
     globalTags.push_back("gameClient"); // i.e. client or local server
   if (sndsys::is_inited())
     globalTags.push_back("sound");
@@ -205,8 +240,10 @@ Tab<const char *> ecs_get_global_tags_context()
 #endif
 #endif
 
-  // allow custom tags from command line only in debug builds for security
-  bool allowCustomTags = app_profile::get().devMode;
+  // allow custom tags from command line only in debug builds or on dedicated (which is under our control) for security
+  // also allow that in devMode (special mode for players that creates Mods. They should not play online or login,
+  // but they can mess things around and use debug features
+  bool allowCustomTags = app_profile::get().devMode || dedicated::is_dedicated();
 #if DAGOR_DBGLEVEL > 0
   allowCustomTags = true;
 #endif
@@ -215,37 +252,44 @@ Tab<const char *> ecs_get_global_tags_context()
     int iterator = 0;
     while (const char *config_tag = ::dgs_get_argv("es_tag", iterator))
       globalTags.push_back(config_tag);
+
+    if (auto *config = dgs_get_settings())
+      dblk::iterate_params_by_name_and_type(*config, "esTag", DataBlock::TYPE_STRING,
+        [config, &globalTags](int idx) { globalTags.push_back(config->getStr(idx)); });
   }
+
+  if (eastl::find_if(globalTags.begin(), globalTags.end(), [](const char *tag) { return !strcmp(tag, "inside_tools"); }) ==
+      globalTags.end())
+    globalTags.push_back("not_inside_tools");
+
   return globalTags;
 }
 
 static void load_es_order(
-  Tab<SimpleString> &out_es_order, Tab<SimpleString> &out_es_skip, dag::ConstSpan<const char *> tags, const char *game_name)
+  ecs::EntityManager &mgr, Tab<SimpleString> &out_es_order, Tab<SimpleString> &out_es_skip, dag::ConstSpan<const char *> tags)
 {
   DataBlock blk(framemem_ptr());
-  char path[DAGOR_MAX_PATH];
-  SNPRINTF(path, sizeof(path), "content/%s/gamedata/es_order.blk", game_name);
-  if (!dblk::load(blk, path, dblk::ReadFlag::ROBUST))
-    if (!dblk::load(blk, "content/common/gamedata/es_order.blk", dblk::ReadFlag::ROBUST))
-      debug("no es_order specified");
-  ecs::load_es_order(*g_entity_mgr, blk, out_es_order, out_es_skip, tags);
+  const char *game_es_order_path = dgs_get_settings()->getStr("es_order", gameproj::es_order_fpath());
+  if (game_es_order_path && *game_es_order_path && !dblk::load(blk, game_es_order_path, dblk::ReadFlag::ROBUST))
+    debug("cannot read es_order from %s", game_es_order_path);
+  ecs::load_es_order(mgr, blk, out_es_order, out_es_skip, tags);
 }
 
-void ecs_set_global_tags_context(const char *game_name, const char *user_game_mode_es_order_fn)
+void ecs_set_global_tags_context(ecs::EntityManager &mgr, const char *user_game_mode_es_order_fn)
 {
   Tab<const char *> globalTags = ecs_get_global_tags_context();
-  g_entity_mgr->setFilterTags(globalTags);
+  mgr.setFilterTags(globalTags);
   Tab<SimpleString> esOrder(framemem_ptr()), esSkip(framemem_ptr());
-  load_es_order(esOrder, esSkip, globalTags, game_name);
+  load_es_order(mgr, esOrder, esSkip, globalTags);
   if (user_game_mode_es_order_fn)
   {
     debug("ecs_set_global_tags_context: appending %s", user_game_mode_es_order_fn);
     DataBlock blk(framemem_ptr());
     if (dblk::load(blk, user_game_mode_es_order_fn, dblk::ReadFlag::ROBUST))
-      ecs::load_es_order(*g_entity_mgr, blk, esOrder, esSkip, globalTags);
+      ecs::load_es_order(mgr, blk, esOrder, esSkip, globalTags);
     else
       logerr("ecs_set_global_tags_context: failed to load  %s", user_game_mode_es_order_fn);
   }
-  g_entity_mgr->setEsOrder(dag::Span<const char *>((const char **)esOrder.data(), esOrder.size()),
+  mgr.setEsOrder(dag::Span<const char *>((const char **)esOrder.data(), esOrder.size()),
     dag::Span<const char *>((const char **)esSkip.data(), esSkip.size()));
 }

@@ -84,6 +84,11 @@ inline unsigned int dagor_frame_no() { return interlocked_relaxed_load(dagor_fra
 inline void dagor_frame_no_increment() { interlocked_increment(dagor_frame_no_int); }
 inline void dagor_frame_no_add(int x) { interlocked_add(dagor_frame_no_int, x); }
 
+//! returns current global frame id
+//! This is the frame id that is used for rendering and simulation.
+extern KRNLIMP uint32_t dagor_global_frame_id;
+inline uint32_t dagor_get_global_frame_id() { return interlocked_relaxed_load(dagor_global_frame_id); }
+
 /*      mode
 _______/__   \
 FULLSCREEN    \

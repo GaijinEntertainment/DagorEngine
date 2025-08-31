@@ -3,6 +3,8 @@
 #include "collision.h"
 #include <assets/asset.h>
 #include <assets/assetExporter.h>
+#include <de3_interface.h>
+#include <de3_objEntity.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_collisionResource.h>
 #include <generic/dag_sort.h>
@@ -15,6 +17,7 @@
 #include <osApiWrappers/dag_clipboard.h>
 #include <scene/dag_physMat.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/strUtil.h>
 #include <EASTL/optional.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <render/debug3dSolid.h>
@@ -24,7 +27,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 #include "../av_appwnd.h"
 #include "../av_viewportWindow.h"
-#include "../entity/assetStatsFiller.h"
+#include "../Entity/assetStatsFiller.h"
 #include "../../sceneTools/assetExp/exporters/getSkeleton.h"
 #include "propPanelPids.h"
 #include "collisionUtils.h"
@@ -86,6 +89,26 @@ static inline CollisionNodeVisibility getNodeVisibility(const CollisionNode &nod
     return CollisionNodeVisibility::SHOW_AS_USUAL;
 }
 
+static const DagorAsset *get_model_asset_from_collision_asset(const DagorAsset &collision_asset)
+{
+  if (const char *name = collision_asset.props.getStr("ref_model", nullptr))
+    if (const DagorAsset *modelAsset = DAEDITOR3.getAssetByName(name))
+      return modelAsset;
+
+  // Try common names as fallback.
+  String name(collision_asset.getName());
+  remove_trailing_string(name, "_collision");
+  const DagorAsset *modelAsset = DAEDITOR3.getAssetByName(name);
+  if (!modelAsset)
+  {
+    modelAsset = DAEDITOR3.getAssetByName(name + "_char");
+    if (!modelAsset)
+      modelAsset = DAEDITOR3.getAssetByName(name + "_dynmodel");
+  }
+
+  return modelAsset;
+}
+
 CollisionPlugin::CollisionPlugin()
 {
   self = this;
@@ -124,6 +147,10 @@ bool CollisionPlugin::begin(DagorAsset *asset)
   {
     InitCollisionResource(*asset, &collisionRes, &nodeTree);
     nodesProcessing.init(asset, collisionRes, this);
+
+    if (const DagorAsset *modelAsset = get_model_asset_from_collision_asset(*asset))
+      modelAssetName = modelAsset->getNameTypified();
+    updateModel();
   }
 
   return true;
@@ -142,6 +169,8 @@ bool CollisionPlugin::end()
 
   clearAssetStats();
   ReleaseCollisionResource(&collisionRes, &nodeTree);
+  destroy_it(modelEntity);
+  modelAssetName.clear();
   return true;
 }
 
@@ -189,6 +218,8 @@ void CollisionPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
     panel.createCheckBox(PID_SHOW_FACE_ORIENTATION, "Show face orientation", showFaceOrientation, isSolidMatValid);
     panel.setTooltipId(PID_SHOW_FACE_ORIENTATION, "The front side of triangles is filled by blue color, and back side is red.");
   }
+  panel.createCheckBox(PID_SHOW_MODEL, "Show model", showModel && !modelAssetName.empty(), !modelAssetName.empty());
+  panel.setTooltipId(PID_SHOW_MODEL, modelAssetName);
 
   nodesProcessing.setPropPanel(&panel);
   nodesProcessing.fillCollisionInfoPanel();
@@ -226,6 +257,12 @@ void CollisionPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
 
     case PID_SHOW_FACE_ORIENTATION:
       showFaceOrientation = panel->getBool(pcb_id);
+      repaintView();
+      break;
+
+    case PID_SHOW_MODEL:
+      showModel = panel->getBool(pcb_id);
+      updateModel();
       repaintView();
       break;
 
@@ -312,6 +349,7 @@ bool CollisionPlugin::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, b
 bool CollisionPlugin::onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
   PropPanel::ITreeInterface &tree_interface)
 {
+  using PropPanel::ROOT_MENU_ITEM;
   PropPanel::TLeafHandle selection = tree.getSelLeaf();
   PropPanel::TLeafHandle parent = tree.getParentLeaf(selection);
   // We want check only top level nodes
@@ -605,6 +643,20 @@ int CollisionPlugin::getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropP
         return &n - collisionRes->getAllNodes().data();
   }
   return -1;
+}
+
+void CollisionPlugin::updateModel()
+{
+  destroy_it(modelEntity);
+  if (!showModel || modelAssetName.empty())
+    return;
+
+  if (DagorAsset *modelAsset = DAEDITOR3.getAssetByName(modelAssetName))
+  {
+    modelEntity = DAEDITOR3.createEntity(*modelAsset);
+    if (modelEntity)
+      modelEntity->setTm(TMatrix::IDENT);
+  }
 }
 
 static void reset_nodes_tm(CollisionResource *collision_res, GeomNodeTree *node_tree)

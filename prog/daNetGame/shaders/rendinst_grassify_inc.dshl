@@ -28,8 +28,6 @@ macro RI_GRASSIFY()
 endmacro
 
 macro COMPILE_GRASSIFY_PS()
-  INIT_HEIGHTMAP_OFS(ps)
-  USE_GRASS_TC(ps)
   INIT_GRASS_GENERATE(ps)
   USE_GRASS_GENERATE(ps)
   USE_GRASS_PUSH_INSTANCE(ps)
@@ -112,7 +110,7 @@ macro COMPILE_GRASSIFY_PS()
       #define GRASS_MASK_COMPRESSED 1
 
       float2 bilW = frac(grass_mask_tc * grass_mask_islands_size - 0.5f);
-      float4 red = grass_mask_islands_tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
+      float4 red = grass_mask_islands_tex.GatherRed(grass_mask_islands_tex_samplerstate, grass_mask_tc);
       float2 redX = bilW.y>0.5 ? red.xy : red.wz;
       float redChannel = bilW.x>0.5 ? redX.x : redX.y;
       uint grassChannel = redChannel*255;
@@ -171,6 +169,7 @@ macro COMPILE_GRASSIFY_PS()
       inst.rotation = getGrassRotation(is_horizontal, worldCameraPos.xz, random4_high.z);
       inst.opacity = 0.5+pow2(1-lod_dist_scale)*0.5;
       inst.worldYOrientation = false;
+      inst.porosity = grass_types_cb.grass_type_params[grassType].porosity;
 
       pushGrassInstance(inst);
     }

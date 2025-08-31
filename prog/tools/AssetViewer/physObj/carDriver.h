@@ -2,25 +2,20 @@
 #pragma once
 
 #include <vehiclePhys/physCar.h>
-#include <winGuiWrapper/wgw_input.h>
+#include <EditorCore/ec_input.h>
 
 
 class TestDriver : public ICarDriver, public ICarController
 {
 public:
   // ICarDriver
-  virtual bool isSubOf(unsigned int class_id) { return false; }
-  virtual ICarController *getController() { return this; }
-  virtual void onDamage(IPhysCar *by_who, real damage) {}
+  ICarController *getController() override { return this; }
 
   // ICarController
-  virtual real getSteeringAngle() { return steer / 180 * PI; }
-  virtual real getGasFactor() { return gas; }
-  virtual real getBrakeFactor() { return brake; }
-  virtual float getHandbrakeState() { return handbrk ? 1.0 : -1.0; }
-  virtual void disable(bool set) {}
-  virtual bool isAutoReverseEnabled() { return true; }
-  virtual bool getManualReverse() { return false; }
+  real getSteeringAngle() override { return steer / 180 * PI; }
+  real getGasFactor() override { return gas; }
+  real getBrakeFactor() override { return brake; }
+  float getHandbrakeState() override { return handbrk ? 1.0 : -1.0; }
 
 public:
   unsigned left : 1, right : 1, up : 1, down : 1, rear : 1, handbrk : 1;
@@ -54,7 +49,7 @@ public:
     brake = 0;
   }
 
-  virtual void update(IPhysCar *car, real dt)
+  void update(IPhysCar *car, real dt) override
   {
     const float wheel_ret_v = 180;
     const float wheel_v = 20;
@@ -62,20 +57,20 @@ public:
     const float gas_v = maxGas / 0.5;
     const float brake_v = maxBrake / 0.3;
 
-    left = wingw::is_key_pressed(wingw::V_NUMPAD4) || wingw::is_key_pressed(wingw::V_LEFT) || wingw::is_key_pressed('A');
+    left = ec_is_key_down(ImGuiKey_Keypad4) || ec_is_key_down(ImGuiKey_LeftArrow) || ec_is_key_down(ImGuiKey_A);
 
-    right = wingw::is_key_pressed(wingw::V_NUMPAD6) || wingw::is_key_pressed(wingw::V_RIGHT) || wingw::is_key_pressed('D');
+    right = ec_is_key_down(ImGuiKey_Keypad6) || ec_is_key_down(ImGuiKey_RightArrow) || ec_is_key_down(ImGuiKey_D);
 
-    up = wingw::is_key_pressed(wingw::V_NUMPAD8) || wingw::is_key_pressed(wingw::V_UP) || wingw::is_key_pressed('W');
+    up = ec_is_key_down(ImGuiKey_Keypad8) || ec_is_key_down(ImGuiKey_UpArrow) || ec_is_key_down(ImGuiKey_W);
 
-    down = wingw::is_key_pressed(wingw::V_NUMPAD5) || wingw::is_key_pressed(wingw::V_DOWN) || wingw::is_key_pressed('S');
+    down = ec_is_key_down(ImGuiKey_Keypad5) || ec_is_key_down(ImGuiKey_DownArrow) || ec_is_key_down(ImGuiKey_S);
 
-    handbrk = wingw::is_key_pressed(wingw::V_LCONTROL);
+    handbrk = ec_is_key_down(ImGuiKey_LeftCtrl);
 
-    rear = wingw::is_key_pressed('R');
+    rear = ec_is_key_down(ImGuiKey_R);
 
 
-    if (wingw::is_key_pressed(wingw::V_BACK))
+    if (ec_is_key_down(ImGuiKey_Backspace))
     {
       if (!flagBackPressed)
       {

@@ -125,7 +125,7 @@ static inline constexpr uint64_t _wyr3(const uint8_t *p, size_t k) { return (((u
 static inline constexpr uint64_t _wyr3(const char *p, size_t k) { return (((uint64_t)p[0])<<16)|(((uint64_t)p[k>>1])<<8)|p[k-1];}
 
 //the default secret parameters
-static constexpr uint64_t _wyp[4] = {0xa0761d6478bd642full, 0xe7037ed1a0b428dbull, 0x8ebc6af09c88c6e3ull, 0x589965cc75374cc3ull};
+static constexpr uint64_t _wyp[4] = {UINT64_C(0xa0761d6478bd642f), UINT64_C(0xe7037ed1a0b428db), UINT64_C(0x8ebc6af09c88c6e3), UINT64_C(0x589965cc75374cc3)};
 
 //wyhash main function
 static inline uint64_t wyhash(const void *key, size_t len, uint64_t seed, const uint64_t *secret=_wyp){
@@ -155,16 +155,16 @@ static inline uint64_t wyhash(const void *key, size_t len, uint64_t seed, const 
 }
 
 //a useful 64bit-64bit mix function to produce deterministic pseudo random numbers that can pass BigCrush and PractRand
-static inline uint64_t wyhash64(uint64_t A, uint64_t B){ A^=0xa0761d6478bd642full; B^=0xe7037ed1a0b428dbull; _wymum(&A,&B); return _wymix(A^0xa0761d6478bd642full,B^0xe7037ed1a0b428dbull);}
+static inline uint64_t wyhash64(uint64_t A, uint64_t B){ A^=UINT64_C(0xa0761d6478bd642f); B^=UINT64_C(0xe7037ed1a0b428db); _wymum(&A,&B); return _wymix(A^UINT64_C(0xa0761d6478bd642f),B^UINT64_C(0xe7037ed1a0b428db));}
 
 //The wyrand PRNG that pass BigCrush and PractRand
-static inline uint64_t wyrand(uint64_t *seed){ *seed+=0xa0761d6478bd642full; return _wymix(*seed,*seed^0xe7037ed1a0b428dbull);}
+static inline uint64_t wyrand(uint64_t *seed){ *seed+=UINT64_C(0xa0761d6478bd642f); return _wymix(*seed,*seed^UINT64_C(0xe7037ed1a0b428db));}
 
 //convert any 64 bit pseudo random numbers to uniform distribution [0,1). It can be combined with wyrand, wyhash64 or wyhash.
-static inline constexpr double wy2u01(uint64_t r){ const double _wynorm=1.0/(1ull<<52); return (r>>12)*_wynorm;}
+static inline constexpr double wy2u01(uint64_t r){ const double _wynorm=1.0/(UINT64_C(1)<<52); return (r>>12)*_wynorm;}
 
 //convert any 64 bit pseudo random numbers to APPROXIMATE Gaussian distribution. It can be combined with wyrand, wyhash64 or wyhash.
-static inline constexpr double wy2gau(uint64_t r){ const double _wynorm=1.0/(1ull<<20); return ((r&0x1fffff)+((r>>21)&0x1fffff)+((r>>42)&0x1fffff))*_wynorm-3.0;}
+static inline constexpr double wy2gau(uint64_t r){ const double _wynorm=1.0/(UINT64_C(1)<<20); return ((r&0x1fffff)+((r>>21)&0x1fffff)+((r>>42)&0x1fffff))*_wynorm-3.0;}
 
 #ifdef	WYTRNG
 #include <sys/time.h>
@@ -282,7 +282,7 @@ static inline constexpr uint64_t wyhash_const(const char *p, uint64_t seed, cons
 }
 
 //a useful 64bit-64bit mix function to produce deterministic pseudo random numbers that can pass BigCrush and PractRand
-static inline uint64_t wyhash64_const(uint64_t A, uint64_t B){ A^=0xa0761d6478bd642full; B^=0xe7037ed1a0b428dbull; _wymum_const(&A,&B); return _wymix_const(A^0xa0761d6478bd642full,B^0xe7037ed1a0b428dbull);}
+static inline uint64_t wyhash64_const(uint64_t A, uint64_t B){ A^=UINT64_C(0xa0761d6478bd642f); B^=UINT64_C(0xe7037ed1a0b428db); _wymum_const(&A,&B); return _wymix_const(A^UINT64_C(0xa0761d6478bd642f),B^UINT64_C(0xe7037ed1a0b428db));}
 
 #endif
 

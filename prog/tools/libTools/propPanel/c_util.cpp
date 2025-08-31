@@ -11,6 +11,7 @@ namespace PropPanel
 namespace p2util
 {
 static SimpleString icon_path_buffer;
+static SimpleString icon_fallback_path_buffer;
 static void *hwnd_main_window = 0;
 
 
@@ -18,6 +19,12 @@ const char *get_icon_path() { return icon_path_buffer.str(); }
 
 
 void set_icon_path(const char *value) { icon_path_buffer = value; }
+
+
+const char *get_icon_fallback_path() { return icon_fallback_path_buffer.str(); }
+
+
+void set_icon_fallback_path(const char *value) { icon_fallback_path_buffer = value; }
 
 
 void *get_main_parent_handle() { return hwnd_main_window; }

@@ -1,34 +1,10 @@
 int4 world_sdf_res;
 int4 world_sdf_res_np2;
-int4 world_sdf_coord_lt_0;
-int4 world_sdf_coord_lt_1;
-int4 world_sdf_coord_lt_2;
-int4 world_sdf_coord_lt_3;
-int4 world_sdf_coord_lt_4;
-int4 world_sdf_coord_lt_5;
-int4 world_sdf_coord_lt_6;
-int4 world_sdf_coord_lt_7;
-float4 world_sdf_lt_0;
-float4 world_sdf_lt_1;
-float4 world_sdf_lt_2;
-float4 world_sdf_lt_3;
-float4 world_sdf_lt_4;
-float4 world_sdf_lt_5;
-float4 world_sdf_lt_6;
-float4 world_sdf_lt_7;
-float4 world_sdf_lt_invalid;
-float4 world_sdf_inv_size;
-float4 world_sdf_to_tc_add_0;
-float4 world_sdf_to_tc_add_1;
-float4 world_sdf_to_tc_add_2;
-float4 world_sdf_to_tc_add_3;
-float4 world_sdf_to_tc_add_4;
-float4 world_sdf_to_tc_add_5;
-float4 world_sdf_to_tc_add_6;
-float4 world_sdf_to_tc_add_7;
-float4 world_sdf_to_tc_add_invalid;
+float4 world_sdf_to_atlas_decode__gradient_offset;
 
 texture world_sdf_clipmap;
+buffer world_sdf_coord_lt_buf;
+buffer world_sdf_params;
 
 macro WORLD_SDF_RES_MATH(code)
   (code) {
@@ -36,7 +12,6 @@ macro WORLD_SDF_RES_MATH(code)
   }
   hlsl(code) {
     uint3 world_sdf_get_res() {return world_sdf_res.xxy;}
-    uint world_sdf_num_cascades() {return world_sdf_res.w;}
     uint3 get_world_sdf_coord_cascade_offset(uint cascade)
     {
       return uint3(0,0, 1 + uint(world_sdf_res.z)*cascade);
@@ -46,14 +21,16 @@ endmacro
 
 macro READ_WORLD_SDF_MATH_INIT(code)
   (code) {
-    world_sdf_lt@f4[] = {world_sdf_lt_0, world_sdf_lt_1, world_sdf_lt_2, world_sdf_lt_3, world_sdf_lt_4, world_sdf_lt_5, world_sdf_lt_6, world_sdf_lt_7, world_sdf_lt_invalid};
-
-    world_sdf_to_atlas_decode@f3 = (world_sdf_inv_size.w, world_sdf_inv_size.w*world_sdf_inv_size.y*(1./max(world_sdf_inv_size.y,0.00000001) + 2), world_sdf_inv_size.z, 0 );
-
-    world_sdf_gradient_offset@f2 = (0.5*world_sdf_inv_size.x, 0.5*world_sdf_inv_size.z,0,0);
-
-    //world_sdf_z_tc_decode_encode@f4 = (1./world_sdf_inv_size.y, -0.5, world_sdf_inv_size.y, 0.5*world_sdf_inv_size.y);
-    world_sdf_to_tc_add@f4[] = {world_sdf_to_tc_add_0, world_sdf_to_tc_add_1, world_sdf_to_tc_add_2, world_sdf_to_tc_add_3, world_sdf_to_tc_add_4, world_sdf_to_tc_add_5, world_sdf_to_tc_add_6, world_sdf_to_tc_add_7, world_sdf_to_tc_add_invalid};
+    world_sdf_params@cbuf = world_sdf_params hlsl {
+      #include <world_sdf.hlsli>
+      cbuffer world_sdf_params@cbuf
+      {
+        #include <world_sdf.hlsli>
+        CBUFF_STRUCTURE_world_sdf_params
+      };
+    };
+    world_sdf_to_atlas_decode@f3 = world_sdf_to_atlas_decode__gradient_offset; // w is only for grad offset
+    world_sdf_gradient_offset@f2 = (0.5 * world_sdf_to_atlas_decode__gradient_offset.w, 0.5 * world_sdf_to_atlas_decode__gradient_offset.z)
   }
 endmacro
 macro READ_WORLD_SDF_MATH_USE(code)
@@ -73,41 +50,10 @@ macro READ_WORLD_SDF_MATH_USE(code)
       ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'world_sdf_to_tc_add' has size 9, but access to (%.f)", file, ln, clip);
       return world_sdf_to_tc_add[clip];
     }
-    float2 get_decode_world_sdf_distance(uint clip)
-    {
-      return float2(2,-1)*(sample_world_sdf_lt(clip).w*MAX_WORLD_SDF_VOXELS_BAND);
-    }
-    float world_sdf_voxel_size(uint clip) {return sample_world_sdf_lt(clip).w;}
-    float decode_world_sdf_distance(uint clip, float a)
-    {
-      float2 dec = get_decode_world_sdf_distance(clip);
-      return a*dec.x + dec.y;
-    }
-    float3 world_pos_to_world_sdf_tc(uint clip, float3 worldPos)
-    {
-      return worldPos.xzy*sample_world_sdf_to_tc_add(clip).xyz;
-      //float invVoxelSize = world_sdf_to_tc_add[clip].w;
-      //return (worldPos.xzy/float3(world_sdf_res.xyz))*invVoxelSize + 0.5;
-    }
-    float3 world_sdf_clip_tc_to_atlas_tc_decoded(float2 decode, float3 tc)
-    {
-      float ftcZ = frac(tc.z);
-      return float3(tc.xy, ftcZ*decode.x + decode.y);
-    }
-    float2 world_sdf_clip_tc_to_atlas_tc_decoder(uint clip)
-    {
-      return float2(world_sdf_to_atlas_decode.x, clip*world_sdf_to_atlas_decode.y + world_sdf_to_atlas_decode.z);
-    }
-    float3 world_sdf_clip_tc_to_atlas_tc(uint clip, float3 tc)
-    {
-      return world_sdf_clip_tc_to_atlas_tc_decoded(world_sdf_clip_tc_to_atlas_tc_decoder(clip), tc);
-    }
-    bool world_sdf_is_inside_clip(uint i, float3 worldPos, float voxelAround = 0)
-    {
-      float3 b0 = sample_world_sdf_lt(i).xyz + voxelAround*sample_world_sdf_lt(i).w,
-             b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx-voxelAround);
-      return all(and(worldPos > b0, worldPos < b1));
-    }
+
+    // Some logic have been moved to hlsl to allow use in NBS
+    #include "world_sdf_math.hlsl"
+
     uint world_sdf_find_clip(float3 worldPos, float voxelAround = 1, uint startClip = 0)
     {
       uint i = startClip;
@@ -150,14 +96,9 @@ endmacro
 
 macro READ_WORLD_SDF_USE(code)
   hlsl(code) {
-    float sample_world_sdf_value_atlas_tc(float3 tc)
-    {
-      return tex3Dlod(world_sdf_clipmap, float4(tc, 0)).x;
-    }
-    float sample_world_sdf_value_clip_tc(uint clip, float3 tc)
-    {
-      return sample_world_sdf_value_atlas_tc(world_sdf_clip_tc_to_atlas_tc(clip, tc));
-    }
+    // Some logic have been moved to hlsl to allow use in NBS
+    #include "world_sdf_use.hlsl"
+
     float sample_world_sdf_distance_atlas_tc(float3 tc, float2 decode)
     {
       return sample_world_sdf_value_atlas_tc(tc).x*decode.x + decode.y;
@@ -169,10 +110,6 @@ macro READ_WORLD_SDF_USE(code)
     float sample_world_sdf_distance(uint clip, float3 worldPos)
     {
       return sample_world_sdf_distance_clip_tc(clip, world_pos_to_world_sdf_tc(clip, worldPos), get_decode_world_sdf_distance(clip));
-    }
-    float sample_world_sdf_value(uint clip, float3 worldPos)
-    {
-      return sample_world_sdf_value_clip_tc(clip, world_pos_to_world_sdf_tc(clip, worldPos));
     }
     float3 world_sdf_sample_gradient_with_atlas_tc(float3 tc)
     {
@@ -444,7 +381,7 @@ macro READ_WORLD_SDF_USE(code)
     }
 
     //find if we are in close enough proximity
-    bool world_sdf_closer_to_nearest_surface_than_threshold(float3 worldPos, float threshold_distance, uint start_clip = 0, float voxelsAround = 0.5)
+    bool world_sdf_closer_to_nearest_surface_than_threshold(inout float valueMeters, float3 worldPos, float threshold_distance, uint start_clip = 0, float voxelsAround = 0.5)
     {
       uint i = start_clip;
       bool ret = false;
@@ -456,7 +393,7 @@ macro READ_WORLD_SDF_USE(code)
         if (all(and(worldPos > b0, worldPos < b1)))//otherwise distance is clamped
         {
           float value = sample_world_sdf_value(i, worldPos);
-          float valueMeters = (2*MAX_WORLD_SDF_VOXELS_BAND * value - MAX_WORLD_SDF_VOXELS_BAND)*voxelSize;
+          valueMeters = (2*MAX_WORLD_SDF_VOXELS_BAND * value - MAX_WORLD_SDF_VOXELS_BAND)*voxelSize;
           if (value < 1.0f && valueMeters <= threshold_distance)//otherwise distance is unknown!
           {
             ret = true;
@@ -468,6 +405,12 @@ macro READ_WORLD_SDF_USE(code)
         ++i;// moving that to while () causes invalid sahder compilation on dx11
       } while (i < world_sdf_num_cascades());
       return ret;
+    }
+
+    bool world_sdf_closer_to_nearest_surface_than_threshold(float3 worldPos, float threshold_distance, uint start_clip = 0, float voxelsAround = 0.5)
+    {
+      float valueMeters;
+      return world_sdf_closer_to_nearest_surface_than_threshold(valueMeters, worldPos, threshold_distance, start_clip, voxelsAround);
     }
 
     //https://iquilezles.org/articles/rmshadows/

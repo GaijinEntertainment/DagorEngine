@@ -14,17 +14,17 @@ let hvrCl = Color(0,0,0)
 let nrmClr = Color(180,180,180)
 
 let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null, viewOpt = @(v) v.tostring(), multiselect=null, size=null){
-  multiselect = multiselect ?? (type(selected.value)=="array")
+  multiselect = multiselect ?? (type(selected.get())=="array")
   let filterOptionsStr = Watched("")
   options = ("value" in options) ? options : Watched(options)
   let scrollHandler = ScrollHandler()
 
   let filteredOptions = Computed( function() {
-    let fltr = (filterOptionsStr.value ?? "")
+    let fltr = (filterOptionsStr.get() ?? "")
     if (fltr=="")
-      return options.value
+      return options.get()
     else
-     return options.value.filter(@(v) v.contains(fltr))
+     return options.get().filter(@(v) v.contains(fltr))
   })
 
   let closeSelectMenu = @() removeModalWindow(SELECT_UID)
@@ -32,9 +32,9 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
     let name = viewOpt(opt)
     function onClick() {
       if (multiselect) {
-        let idx = selected.value?.findindex(@(v) v==opt)
+        let idx = selected.get()?.findindex(@(v) v==opt)
         if (idx!=null)
-          selected(selected.value.filter(@(v) v!=opt))
+          selected(selected.get().filter(@(v) v!=opt))
         else
           selected.mutate(@(v) v.append(opt))
       }
@@ -50,15 +50,15 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
         behavior = [Behaviors.Marquee]
         scrollOnHover = true
         padding = [hdpx(2), hdpx(8)]
-        children = dtext(name, {color = sf & S_HOVER ? hvrCl : (selected.value == opt ? Color(255,255,255) : nrmClr)})
+        children = dtext(name, {color = sf & S_HOVER ? hvrCl : (selected.get() == opt ? Color(255,255,255) : nrmClr)})
         rendObj = ROBJ_BOX
         fillColor = sf & S_HOVER
           ? nrmClr
-          : selected.value == opt || (multiselect && selected.value?.contains(opt))
+          : selected.get() == opt || (multiselect && selected.get()?.contains(opt))
             ? Color(60,60,60,60)
             : 0
         borderColor = Color(250, 200, 100)
-        borderWidth = selected.value == opt || (multiselect && selected.value?.contains(opt)) ? hdpx(1) : 0
+        borderWidth = selected.get() == opt || (multiselect && selected.get()?.contains(opt)) ? hdpx(1) : 0
         size = size ?? [sh(35), SIZE_TO_CONTENT]
       }
     })
@@ -77,7 +77,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
     behavior = Behaviors.Button
     onClick = @() set_kb_focus(null)
     flow = FLOW_HORIZONTAL
-    children = chunk(filteredOptions.value, filteredOptions.value.len()/4 + 1).map(mkColumn)
+    children = chunk(filteredOptions.get(), filteredOptions.get().len()/4 + 1).map(mkColumn)
   }
 
   let optionsScrolled = makeVertScroll(optionsContainer, {scrollHandler})
@@ -112,7 +112,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
   }
 
   let openSelect = function() {
-    filterOptionsStr("")
+    filterOptionsStr.set("")
     addModalWindow({
       size = flex()
       key = SELECT_UID

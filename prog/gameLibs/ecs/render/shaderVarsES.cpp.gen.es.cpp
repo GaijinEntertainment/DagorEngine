@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "shaderVarsES.cpp.inl"
 ECS_DEF_PULL_VAR(shaderVars);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc shader_vars_es_event_handler_comps[] =
 {

@@ -5,38 +5,6 @@
 #include <render/toroidal_update.h>
 #include <math/dag_bounds2.h>
 #include <shaders/dag_overrideStates.h>
-/*class MyGrassTranlucencyCB : public GrassTranlucencyCB
-{
-public:
-  int omode;
-  uint32_t oldflags;
-  void start(const BBox3 &box)
-  {
-    if (::grs_draw_wire)
-      d3d::setwire(0);
-    oldflags = LandMeshRenderer::lmesh_render_flags; omode = set_lmesh_rendering_mode(RENDERING_CLIPMAP);
-    ::app->getCurrentScene()->lmeshRenderer->setRenderInBBox(box);
-  }
-  void renderTranslucencyColor()
-  {
-    LandMeshRenderer::lmesh_render_flags &= ~(LandMeshRenderer::RENDER_DECALS|LandMeshRenderer::RENDER_COMBINED);
-    set_lmesh_rendering_mode(RENDERING_CLIPMAP);
-    ::app->getCurrentScene()->lmeshRenderer->render(*::app->getCurrentScene()->lmeshMgr,
-      LandMeshRenderer::RENDER_CLIPMAP);
-  }
-  void renderTranslucencyMask()
-  {
-    LandMeshRenderer::lmesh_render_flags = oldflags;
-    set_lmesh_rendering_mode(GRASS_MASK);
-    ::app->getCurrentScene()->lmeshRenderer->render(*::app->getCurrentScene()->lmeshMgr,
-      LandMeshRenderer::RENDER_GRASS_MASK);
-  }
-  void finish()
-  {
-    LandMeshRenderer::lmesh_render_flags = oldflags; set_lmesh_rendering_mode(omode);
-    ::app->getCurrentScene()->lmeshRenderer->setRenderInBBox(BBox3());
-  }
-}*/
 
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_viewScissor.h>
@@ -84,14 +52,17 @@ void GrassTranslucency::recreateTex(int sz)
   grass_mask_tex.close();
   grass_color_tex.set(d3d::create_tex(NULL, sz, sz, TEXCF_SRGBWRITE | TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "grass_color_tex"),
     "grass_color_tex");
+  ShaderGlobal::set_sampler(get_shader_variable_id("grass_color_tex_samplerstate", true), d3d::request_sampler({}));
 
   if (sz > 1)
   {
-    uint32_t l8fmt = TEXFMT_L8;
-    if (!(d3d::get_texformat_usage(l8fmt) & d3d::USAGE_RTARGET))
-      l8fmt = 0;
-    grass_mask_tex.set(d3d::create_tex(NULL, sz, sz, l8fmt | TEXCF_RTARGET, 1, "grass_mask_tex"), "grass_mask_tex");
-    grass_mask_tex.getTex2D()->texfilter(TEXFILTER_POINT);
+    uint32_t r8fmt = TEXFMT_R8;
+    if (!(d3d::get_texformat_usage(r8fmt) & d3d::USAGE_RTARGET))
+      r8fmt = 0;
+    grass_mask_tex.set(d3d::create_tex(NULL, sz, sz, r8fmt | TEXCF_RTARGET, 1, "grass_mask_tex"), "grass_mask_tex");
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate", true), d3d::request_sampler(smpInfo));
   }
 
   torHelper.texSize = sz;

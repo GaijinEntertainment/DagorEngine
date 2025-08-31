@@ -4,7 +4,7 @@
 #include <scriptHelpers/scriptPanel.h>
 #include "scriptHelpersPanelUserData.h"
 
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <propPanel/control/container.h>
 #include <propPanel/control/container.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
@@ -61,13 +61,13 @@ public:
   }
 
 
-  ~ScriptHelpersPropPanelBar() { del_it(mPanel); }
+  ~ScriptHelpersPropPanelBar() override { del_it(mPanel); }
 
 
   PropPanel::ContainerPropertyControl *getPanelWindow() { return mPanel; }
 
 
-  virtual void rebuildTreeList() { shouldRebuild = true; }
+  void rebuildTreeList() override { shouldRebuild = true; }
 
   void updateArrayItemCaption(int pcb_id, PropPanel::ContainerPropertyControl &panel)
   {
@@ -99,7 +99,7 @@ public:
       arrayItemGroup->setCaptionValue(caption);
   }
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     TunedElement *elem = NULL;
 
@@ -122,7 +122,7 @@ public:
   }
 
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     shouldRebuild = false;
 
@@ -136,7 +136,7 @@ public:
   }
 
 
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     rebuild_tree_list();
     on_param_change();
@@ -153,7 +153,7 @@ public:
   }
 
 
-  virtual void fillPanel()
+  void fillPanel()
   {
     G_ASSERT(mPanel && "ScriptHelpersPropPanelBar: There is no panel found!");
     PropPanel::ContainerPropertyControl *_pp = mPanel->getContainer();
@@ -195,7 +195,7 @@ void set_param_change_cb(ParamChangeCB *cb) { param_change_cb = cb; }
 class ScriptHelpers::ParamsTreeCB : public PropPanel::ITreeViewEventHandler
 {
 public:
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override
+  void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override
   {
     selected_elem = (TunedElement *)tree.getItemData(new_sel);
 
@@ -203,9 +203,9 @@ public:
       prop_bar->fillPanel();
   }
 
-  virtual void onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) override {}
+  void onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) override {}
 
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override { return false; }
+  bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override { return false; }
 };
 
 

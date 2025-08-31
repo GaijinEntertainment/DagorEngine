@@ -21,20 +21,20 @@ static const char *TYPE = "animChar";
 class AnimCharExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "character exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "character exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return CharacterGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 4; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return CharacterGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 4; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override { files.clear(); }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     bool use_char_dep = a.props.getBool("useCharDep", false);
     if (const DataBlock *b = a.props.getBlockByName("charData"))
@@ -180,16 +180,15 @@ public:
 class AnimCharRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "character refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "character refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
     static int dm_atype = -2;
     static int gn_atype = -2;
     static int at_atype = -2;
@@ -206,14 +205,14 @@ public:
     if (po_atype == -2)
       po_atype = a.getMgr().getAssetTypeId("physObj");
 
-    tmpRefs.clear();
+    refs.clear();
     if (dm_atype < 0)
-      return tmpRefs;
+      return;
 
     const char *dm_name = a.props.getStr("dynModel", "");
     DagorAsset *dm_a = a.getMgr().findAsset(dm_name, dm_atype);
     {
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
       if (!dm_a)
         r.setBrokenRef(String(64, "%s:dynModel", dm_name));
@@ -224,7 +223,7 @@ public:
     const char *gn_name = a.props.getStr("skeleton", "");
     DagorAsset *gn_a = a.getMgr().findAsset(gn_name, gn_atype);
     {
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
       if (!gn_a)
         r.setBrokenRef(String(64, "%s:skeleton", gn_name));
@@ -237,7 +236,7 @@ public:
     if (sg_name)
     {
       DagorAsset *sg_a = a.getMgr().findAsset(sg_name, sg_atype);
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
       if (!sg_a)
         r.setBrokenRef(String(64, "%s:stateGraph", sg_name));
@@ -247,7 +246,7 @@ public:
     else if (at_name)
     {
       DagorAsset *at_a = a.getMgr().findAsset(at_name, at_atype);
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
       if (!at_a)
         r.setBrokenRef(String(64, "%s:animTree", at_name));
@@ -256,7 +255,7 @@ public:
     }
     else
     {
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL | RFLG_OPTIONAL;
       r.refAsset = NULL;
     }
@@ -265,7 +264,7 @@ public:
     if (po_name)
     {
       DagorAsset *po_a = a.getMgr().findAsset(po_name, po_atype);
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL | RFLG_OPTIONAL;
       if (!po_a)
         r.setBrokenRef(String(64, "%s:physObj", po_name));
@@ -274,7 +273,7 @@ public:
     }
     else
     {
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL | RFLG_OPTIONAL;
       r.refAsset = NULL;
     }
@@ -286,7 +285,7 @@ public:
       {
         gn_a = a.getMgr().findAsset(gn_name, gn_atype);
         {
-          IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+          IDagorAssetRefProvider::Ref &r = refs.push_back();
           r.flags = 0;
           if (!gn_a)
             r.setBrokenRef(String(64, "%s:skeleton", gn_name));
@@ -295,8 +294,6 @@ public:
         }
       }
     }
-
-    return tmpRefs;
   }
 };
 END_DABUILD_PLUGIN_NAMESPACE(animChar)

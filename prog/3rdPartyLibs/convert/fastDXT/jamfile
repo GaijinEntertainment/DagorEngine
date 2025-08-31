@@ -12,7 +12,7 @@ Sources =
 ;
 
 if $(PlatformArch) in x86 x86_64 e2k {
-  CPPopt += -DDXT_INTR=1 ;
+  CPPopt += -DDXT_INTR ;
 }
 
 

@@ -26,7 +26,7 @@ function box(isSelected, sf) {
 }
 
 let label = @(text, sf) {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   rendObj = ROBJ_TEXT
   color = calcColor(sf)
   text = text
@@ -35,13 +35,13 @@ let label = @(text, sf) {
 function optionCtor(option, isSelected, onClick) {
   let stateFlags = Watched(0)
   return function() {
-    let sf = stateFlags.value
+    let sf = stateFlags.get()
 
     return {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       watch = stateFlags
       behavior = Behaviors.Button
-      onElemState = @(s) stateFlags(s)
+      onElemState = @(s) stateFlags.set(s)
       onClick
       stopHover = true
       flow = FLOW_HORIZONTAL
@@ -57,7 +57,7 @@ function optionCtor(option, isSelected, onClick) {
 
 let baseStyle = {
   root = {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_VERTICAL
     gap = hdpx(5)
   }
@@ -66,10 +66,10 @@ let baseStyle = {
 
 let mkMultiselect = @(selected /*Watched({ <key> = true })*/, options /*[{ key, text }, ...]*/, minOptions = 0, maxOptions = 0, rootOverride = {}, style = baseStyle)
   function() {
-    let numSelected = Computed(@() selected.value.filter(@(v) v).len())
+    let numSelected = Computed(@() selected.get().filter(@(v) v).len())
     let mkOnClick = @(option) function() {
-      let curVal = selected.value?[option.key] ?? false
-      let resultNum = numSelected.value + (curVal ? -1 : 1)
+      let curVal = selected.get()?[option.key] ?? false
+      let resultNum = numSelected.get() + (curVal ? -1 : 1)
       if ((minOptions == 0 || resultNum >= minOptions) //result num would
           && (maxOptions==0 || resultNum <= maxOptions))
         selected.mutate(function(s) { s[option.key] <- !curVal })
@@ -77,7 +77,7 @@ let mkMultiselect = @(selected /*Watched({ <key> = true })*/, options /*[{ key, 
     }
     return style.root.__merge({
       watch = selected
-      children = options.map(@(option) style.optionCtor(option, selected.value?[option.key] ?? false, mkOnClick(option)))
+      children = options.map(@(option) style.optionCtor(option, selected.get()?[option.key] ?? false, mkOnClick(option)))
     })
     .__merge(rootOverride)
  }

@@ -53,7 +53,7 @@ public:
   char portBuf[128], adrBuf[128], portBufUDP[128];
   char hostName[NI_MAXHOST];
   int family, socketType;
-  char *port, *portUdp, *ServerAddress;
+  const char *port, *portUdp, *ServerAddress;
 
   ADDRINFO hints, *addrInfo, *AI;
   SOCKET connSock, connSockUdp;
@@ -951,7 +951,7 @@ public:
   volatile bool answered;
   NetServerInfo *info;
 
-  char *getUserFriendlyName() { return "Server Enumerator"; }
+  const char *getUserFriendlyName() { return "Server Enumerator"; }
 
   void destroy() {}
   void attach() { answered = false; }

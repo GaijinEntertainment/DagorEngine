@@ -6,6 +6,7 @@
 
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_statDrv.h>
+#include <util/dag_string.h>
 
 #include <daRg/dag_element.h>
 #include <daRg/dag_renderObject.h>

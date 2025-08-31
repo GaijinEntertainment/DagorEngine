@@ -1,14 +1,19 @@
 include "rendinst_simple_inc.dshl"
 include "simple_painted_inc.dshl"
 include "simple_inc.dshl"
+include "riextra_per_instance.dshl"
 
 shader rendinst_simple_painted
 {
   ENABLE_ASSERT(ps)
 
+  NO_DYNSTCODE()
+
   RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_simple_painted, get_paint_palette_row_index().x)
 
-  COMMON_RENDINST_SIMPLE_INIT()
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  COMMON_RENDINST_SIMPLE_INIT(true)
+  INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
 
   INIT_SIMPLE_PAINTED()
   COMMON_RENDINST_INIT_PAINT(false)

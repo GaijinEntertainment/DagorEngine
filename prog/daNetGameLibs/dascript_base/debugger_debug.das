@@ -2,7 +2,6 @@ options no_aot
 options persistent_heap
 
 require ecs
-require app
 require daslib/debug
 require debugapi
 require strings
@@ -20,8 +19,6 @@ def relative_path(file, prefix, replace : string; var res : string&) : bool
 
 def relative_path(file : string) : string
   var res : string
-  if relative_path(file, get_game_name(), "..", res)
-    return res
   if relative_path(file, "daNetGameLibs", "../../prog/daNetGameLibs", res)
     return res
   return file

@@ -20,7 +20,7 @@ shader etc2_compressor
 
   hlsl(cs)
   {
-    [numthreads( 4, 4, 1 )]
+    [numthreads( 8, 8, 1 )]
     void bc_compressor_cs(uint3 dtId : SV_DispatchThreadID)
     {
     ##if compress_rgba == yes
@@ -31,7 +31,7 @@ shader etc2_compressor
 
       uint mip_diff_scale = exp2(src_delta_mip.y);
       uint2 uv = dtId.xy*4;
-      const float4 texels[16] = {
+      const half4 texels[16] = {
         GET_TEXEL(0, 0), GET_TEXEL(1, 0), GET_TEXEL(2, 0), GET_TEXEL(3, 0),
         GET_TEXEL(0, 1), GET_TEXEL(1, 1), GET_TEXEL(2, 1), GET_TEXEL(3, 1),
         GET_TEXEL(0, 2), GET_TEXEL(1, 2), GET_TEXEL(2, 2), GET_TEXEL(3, 2),
@@ -48,5 +48,5 @@ shader etc2_compressor
     }
   }
 
-  compile( "target_cs", "bc_compressor_cs" );
+  compile( "target_cs_half", "bc_compressor_cs" );
 }

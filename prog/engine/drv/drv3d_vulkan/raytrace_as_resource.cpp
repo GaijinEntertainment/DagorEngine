@@ -1,25 +1,35 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "globals.h"
-#include "raytrace_scratch_buffer.h"
 #include "resource_manager.h"
 #include "buffer.h"
 #include "debug_naming.h"
 #include "driver_config.h"
+#include "backend.h"
+#include "pipeline_state.h"
+#include "pipeline_state_pending_references.h"
 
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
 
 namespace drv3d_vulkan
 {
 
 template <>
-void RaytraceAccelerationStructure::onDelayedCleanupFinish<RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>()
+void RaytraceAccelerationStructure::onDelayedCleanupFinish<CleanupTag::DESTROY_TOP>()
 {
+  markDead();
+
+  if (Backend::State::pipe.isReferenced(this))
+  {
+    Backend::State::pendingCleanups.removeReferenced(this);
+    destroyPrimaryVulkanObject();
+    return;
+  }
   Globals::Mem::res.free(this);
 }
 
 template <>
-void RaytraceAccelerationStructure::onDelayedCleanupFinish<RaytraceAccelerationStructure::CLEANUP_DESTROY_BOTTOM>()
+void RaytraceAccelerationStructure::onDelayedCleanupFinish<CleanupTag::DESTROY_BOTTOM>()
 {
   Globals::Mem::res.free(this);
 }
@@ -106,12 +116,22 @@ VkAccelerationStructureGeometryKHR drv3d_vulkan::RaytraceGeometryDescriptionToVk
   return def;
 }
 
+void RaytraceAccelerationStructure::destroyPrimaryVulkanObject()
+{
+  if (!is_null(getHandle()))
+  {
+    VulkanDevice &dev = Globals::VK::dev;
+    VULKAN_LOG_CALL(dev.vkDestroyAccelerationStructureKHR(dev.get(), getHandle(), VKALLOC(acceleration_structure)));
+    setHandle(generalize(Handle()));
+  }
+}
+
 void RaytraceAccelerationStructure::destroyVulkanObject()
 {
   VulkanDevice &dev = Globals::VK::dev;
-  VULKAN_LOG_CALL(dev.vkDestroyBuffer(dev.get(), bufHandle, NULL));
-  VULKAN_LOG_CALL(dev.vkDestroyAccelerationStructureKHR(dev.get(), getHandle(), NULL));
-  setHandle(generalize(Handle()));
+  destroyPrimaryVulkanObject();
+  VULKAN_LOG_CALL(dev.vkDestroyBuffer(dev.get(), bufHandle, VKALLOC(buffer)));
+  reportToTQL(false);
 }
 
 void RaytraceAccelerationStructure::createVulkanObject()
@@ -125,13 +145,13 @@ void RaytraceAccelerationStructure::createVulkanObject()
     bci.pNext = NULL;
     bci.flags = 0;
     bci.size = desc.size;
-    bci.usage = Buffer::getUsage(dev, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER);
+    bci.usage = Buffer::getUsage(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER);
     bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bci.queueFamilyIndexCount = 0;
     bci.pQueueFamilyIndices = NULL;
 
     VulkanBufferHandle ret{};
-    VULKAN_EXIT_ON_FAIL(dev.vkCreateBuffer(dev.get(), &bci, NULL, ptr(ret)));
+    VULKAN_EXIT_ON_FAIL(dev.vkCreateBuffer(dev.get(), &bci, VKALLOC(buffer), ptr(ret)));
 
     bufHandle = ret;
   }
@@ -139,7 +159,7 @@ void RaytraceAccelerationStructure::createVulkanObject()
   { // Allocate memory for a buffer
     AllocationDesc alloc_desc = {*this};
     alloc_desc.memClass = DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
-    alloc_desc.reqs = get_memory_requirements(dev, bufHandle);
+    alloc_desc.reqs = get_memory_requirements(bufHandle);
 
     if (!tryAllocMemory(alloc_desc))
       return;
@@ -160,12 +180,14 @@ void RaytraceAccelerationStructure::createVulkanObject()
   asci.size = desc.size;
 
   Handle ret;
-  VULKAN_EXIT_ON_FAIL(dev.vkCreateAccelerationStructureKHR(dev.get(), &asci, nullptr, ptr(ret)));
+  VULKAN_EXIT_ON_FAIL(dev.vkCreateAccelerationStructureKHR(dev.get(), &asci, VKALLOC(acceleration_structure), ptr(ret)));
   setHandle(generalize(ret));
 
   if (Globals::cfg.debugLevel)
     Globals::Dbg::naming.setAccelerationStructureName(this,
       String(64, "RTAS %s from %s", desc.isTopLevel ? "top" : "bottom", backtrace::get_stack()));
+
+  reportToTQL(true);
 }
 
 MemoryRequirementInfo RaytraceAccelerationStructure::getMemoryReq()
@@ -196,6 +218,9 @@ bool RaytraceAccelerationStructure::nonResidentCreation() { return false; }
 
 void RaytraceAccelerationStructure::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
+void RaytraceAccelerationStructure::onDeviceReset() {}
+void RaytraceAccelerationStructure::afterDeviceReset() {}
+
 bool RaytraceAccelerationStructure::isEvictable() { return false; }
 
 void RaytraceAccelerationStructure::shutdown()
@@ -204,12 +229,12 @@ void RaytraceAccelerationStructure::shutdown()
 }
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-VkDeviceAddress RaytraceAccelerationStructure::getDeviceAddress(VulkanDevice &device)
+VkDeviceAddress RaytraceAccelerationStructure::getDeviceAddress()
 {
   VkAccelerationStructureDeviceAddressInfoKHR info = //
     {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
   info.accelerationStructure = getHandle();
-  return device.vkGetAccelerationStructureDeviceAddressKHR(device.get(), &info);
+  return Globals::VK::dev.vkGetAccelerationStructureDeviceAddressKHR(Globals::VK::dev.get(), &info);
 }
 #endif
 
@@ -236,4 +261,4 @@ RaytraceAccelerationStructure *RaytraceAccelerationStructure::create(bool top_le
 #endif
 }
 
-#endif // D3D_HAS_RAY_TRACING
+#endif // VULKAN_HAS_RAYTRACING

@@ -27,7 +27,6 @@ void BackBufferHolder::init()
     backBuffer = d3d::create_tex(NULL, backBufferWidth, backBufferHeight, TEXCF_RTARGET, 1, "srgb_frame");
     TEXTUREID texId = register_managed_tex("srgb_frame", backBuffer);
     srgbFrame = TextureIDPair(backBuffer, texId);
-    srgbFrame.getTex2D()->texaddr(TEXADDR_CLAMP);
   }
 }
 
@@ -78,7 +77,6 @@ const TextureIDPair BackBufferHolder::getTex()
     G_ASSERT(holder->srgbFrame.getId() == BAD_TEXTUREID && !holder->srgbFrame.getTex2D());
     Texture *backBuffer = d3d::get_backbuffer_tex();
     G_ASSERT(backBuffer);
-    backBuffer->texaddr(TEXADDR_CLAMP);
     TEXTUREID texId = register_managed_tex("\x7f\x7f\x7f_tmp_backbuffer", backBuffer);
     holder->srgbFrame = TextureIDPair(backBuffer, texId);
   }

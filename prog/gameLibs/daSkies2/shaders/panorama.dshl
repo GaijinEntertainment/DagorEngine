@@ -1,4 +1,3 @@
-//include "clouds_vars.dshl"
 
 float4 panoramaTC = (0,0,1,1);
 texture clouds_alpha_panorama_tex;
@@ -14,52 +13,69 @@ float skies_panorama_sun_opposite_tc_x = 0;
 
 float rgbm_panorama_scale_factor = 1;
 
-hlsl {
-  #define PANORAMA_VIEW_THRESHOLD_TC 0.04
-  #define PANORAMA_VIEW_THRESHOLD skies_panorama_mu_horizon
-  #define PANORAMA_VIEW_THRESHOLD_INV_SCALE (1-PANORAMA_VIEW_THRESHOLD)
-  #define PANORAMA_VIEW_THRESHOLD_SCALE (1.0/PANORAMA_VIEW_THRESHOLD_INV_SCALE)
-  #define PANORAMA_PATCH_THRESHOLD 0.2
-  #define PANORAMA_PATCH_LERP_AMOUNT 0.99
-  #define PANORAMA_TC_FROM_VIEW(viewY) \
-   (PANORAMA_VIEW_THRESHOLD_TC + \
-    (viewY<PANORAMA_VIEW_THRESHOLD ? \
-      (viewY*(1./(1.+PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD/(1.+PANORAMA_VIEW_THRESHOLD))*PANORAMA_VIEW_THRESHOLD_TC \
-     : \
-      (viewY*(1./(1.-PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD*(1./(1-PANORAMA_VIEW_THRESHOLD)))*(1-PANORAMA_VIEW_THRESHOLD_TC))\
-   )
 
-
-  #define PANORAMA_VIEW_FROM_TC(texcoordY) \
-  { \
-    float tcY = (texcoordY) - PANORAMA_VIEW_THRESHOLD_TC; \
-    tcY = tcY * (tcY < 0 ? ((1./PANORAMA_VIEW_THRESHOLD_TC)*(1+PANORAMA_VIEW_THRESHOLD)) : \
-                     ((1./(1-PANORAMA_VIEW_THRESHOLD_TC)*(1-PANORAMA_VIEW_THRESHOLD)))) + PANORAMA_VIEW_THRESHOLD;\
-    viewVect.y = tcY;\
+macro INIT_AND_USE_PANORAMA_VIEW_VECT(code)
+  (code) {
+    skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);
   }
+  hlsl(code)
+  {
+    #define PANORAMA_VIEW_THRESHOLD_TC 0.04
+    #define PANORAMA_VIEW_THRESHOLD skies_panorama_mu_horizon
+    #define PANORAMA_PATCH_THRESHOLD 0.2
+    #define PANORAMA_PATCH_LERP_AMOUNT 0.99
 
-  #define GENERATE_PANORAMA_VIEWVECT(texcoord)\
-    float3 viewVect;\
-    float theta = (texcoord).x*(2*PI)-PI;\
-    PANORAMA_VIEW_FROM_TC((texcoord).y)\
-    float cosPhi = sqrt(1-viewVect.y*viewVect.y);\
-    sincos(theta, viewVect.x, viewVect.z);\
-    viewVect.xz *= cosPhi;
+    float get_panorama_view_from_tc_y(float texcoordY)
+    {
+      float tcY = (texcoordY) - PANORAMA_VIEW_THRESHOLD_TC;
+      tcY = tcY * (tcY < 0 ? ((1./PANORAMA_VIEW_THRESHOLD_TC)*(1+PANORAMA_VIEW_THRESHOLD)) :
+                       ((1./(1-PANORAMA_VIEW_THRESHOLD_TC)*(1-PANORAMA_VIEW_THRESHOLD)))) + PANORAMA_VIEW_THRESHOLD;
+      return tcY;
+    }
 
-  #define GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)\
-    float3 patchView;\
-    patchView.xz = (texcoord)*(2*PANORAMA_PATCH_THRESHOLD) - PANORAMA_PATCH_THRESHOLD;\
-    patchView.y = sqrt(1 - dot(patchView.xz,patchView.xz));
-}
+    float3 get_panorama_viewvect(float2 texcoord)
+    {
+      float3 viewVect;
+      float theta = (texcoord).x*(2*PI)-PI;
+      viewVect.y = get_panorama_view_from_tc_y(texcoord.y);
+      float cosPhi = sqrt(1-viewVect.y*viewVect.y);
+      sincos(theta, viewVect.x, viewVect.z);
+      viewVect.xz *= cosPhi;
+      return viewVect;
+    }
 
+    float3 get_panorama_patch_viewvect(float2 texcoord)
+    {
+      float3 patchView;
+      patchView.xz = (texcoord)*(2*PANORAMA_PATCH_THRESHOLD) - PANORAMA_PATCH_THRESHOLD;
+      patchView.y = sqrt(1 - dot(patchView.xz,patchView.xz));
+      return patchView;
+    }
+
+    float2 get_panorama_tc_from_view(float3 view)
+    {
+      float theta = atan2( view.x, view.z );
+      float offsetY = view.y < PANORAMA_VIEW_THRESHOLD ?
+        (view.y*(1./(1.+PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD/(1.+PANORAMA_VIEW_THRESHOLD))*PANORAMA_VIEW_THRESHOLD_TC :
+        (view.y*(1./(1.-PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD*(1./(1-PANORAMA_VIEW_THRESHOLD)))*(1-PANORAMA_VIEW_THRESHOLD_TC);
+      return float2(theta * (0.5 / PI) + 0.5, PANORAMA_VIEW_THRESHOLD_TC + offsetY);
+    }
+
+    half4 lerp_panorama(half4 panorama, half4 patch, float patch_vignette)
+    {
+      return lerp(panorama, patch, (half)saturate((-1.f/(1-PANORAMA_PATCH_LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*PANORAMA_PATCH_LERP_AMOUNT/(1-PANORAMA_PATCH_LERP_AMOUNT) ));
+    }
+  }
+endmacro
 
 float4 cloudsAlphaPanoramaWorldPos;
+
 macro INIT_PANORAMA_CLOUDS_DIST_BASE(code)
   local float clouds_layer = (skies_planet_radius+min(1000, clouds_start_altitude2+clouds_thickness2*0.5));
   (code) {
     clouds_params@f3 = (clouds_layer, clouds_layer*clouds_layer, skies_planet_radius,0);
-    skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);
   }
+  INIT_AND_USE_PANORAMA_VIEW_VECT(code)
 endmacro
 
 macro INIT_PANORAMA_CLOUDS_DIST()
@@ -95,9 +111,7 @@ macro USE_CLOUDS_PANORAMA_UV_BASE(code)
     float2 get_panorama_uv(float3 origin, float3 view)
     {
       float3 currentViewDirection = get_panorama_reprojected_view(origin, view, cloudsAlphaPanoramaWorldPos.xyz, cloudsAlphaPanoramaWorldPos.w, clouds_params.x, clouds_params.y, clouds_params.z);
-      float theta = atan2( currentViewDirection.x, currentViewDirection.z );
-      float2 sky_uv = float2(theta * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(currentViewDirection.y));
-      return sky_uv;
+      return get_panorama_tc_from_view(currentViewDirection);
     }
 
     float3 get_panorama_inv_reprojection(float3 origin, float3 inv_view)

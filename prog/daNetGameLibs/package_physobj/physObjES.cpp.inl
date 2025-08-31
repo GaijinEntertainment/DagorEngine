@@ -72,7 +72,7 @@ static void phys_obj_apply_snapshot_cache_on_creation_es_event_handler(
   }
 }
 
-ECS_BEFORE(after_net_phys_sync, human_phys_es)
+ECS_BEFORE(after_net_phys_sync)
 ECS_AFTER(before_net_phys_sync)
 ECS_REQUIRE_NOT(ecs::Tag disableUpdate)
 static inline void phys_obj_phys_es(const UpdatePhysEvent &info,

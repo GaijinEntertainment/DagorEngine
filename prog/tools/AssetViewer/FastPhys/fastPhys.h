@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 #include "../av_plugin.h"
 
 #include "fastPhysEd.h"
@@ -20,16 +20,16 @@ class FastPhysPlugin : public IGenEditorPlugin, public IWndManagerWindowHandler
 {
 public:
   FastPhysPlugin();
-  ~FastPhysPlugin();
+  ~FastPhysPlugin() override;
 
-  virtual const char *getInternalName() const { return "FastPhysViewer"; }
-  virtual bool supportAssetType(const DagorAsset &asset) const;
+  const char *getInternalName() const override { return "FastPhysViewer"; }
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool havePropPanel() { return true; }
-  virtual bool haveToolPanel() { return true; }
+  bool havePropPanel() override { return true; }
+  bool haveToolPanel() override { return true; }
 
   void refillActionTree();
   void clearTree();
@@ -40,35 +40,37 @@ public:
   DagorAsset *getAsset() { return mAsset; }
 
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void registerMenuAccelerators() override;
+  void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override;
 
-  virtual bool getSelectionBox(BBox3 &box) const;
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual void actObjects(float dt) { mFastPhysEditor.update(dt); }
-  virtual void beforeRenderObjects() { mFastPhysEditor.beforeRender(); }
-  virtual void renderObjects() { mFastPhysEditor.render(); }
-  virtual void renderTransObjects() { mFastPhysEditor.renderTrans(); }
-  virtual void renderGeometry(Stage stage) { mFastPhysEditor.renderGeometry(stage); }
-  virtual void updateImgui() override;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void postFillPropPanel() {}
+  void actObjects(float dt) override { mFastPhysEditor.update(dt); }
+  void beforeRenderObjects() override { mFastPhysEditor.beforeRender(); }
+  void renderObjects() override { mFastPhysEditor.render(); }
+  void renderTransObjects() override { mFastPhysEditor.renderTrans(); }
+  void renderGeometry(Stage stage) override { mFastPhysEditor.renderGeometry(stage); }
+  void updateImgui() override;
 
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
+
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   // IWndManagerWindowHandler
-  virtual void *onWmCreateWindow(int type) override;
-  virtual bool onWmDestroyWindow(void *window) override;
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
 
 protected:
   void addTreeAction(PropPanel::TLeafHandle parent, FpdAction *action);
@@ -79,6 +81,12 @@ private:
   FastPhysEditor mFastPhysEditor;
   FPPanel *propPanel;
 
+public:
+  Point3 mWindVel;
+  float mWindPower, mWindTurb;
+  bool mRespondsToWind;
+
+private:
   PropPanel::TreeBaseWindow *mActionTree;
   ActionsTreeCB *mActionTreeCB;
 };

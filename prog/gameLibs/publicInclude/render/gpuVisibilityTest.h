@@ -45,11 +45,21 @@ public:
 
   void addObjectGroupToTest(dag::ConstSpan<TestObjectData> objects, const ViewTransformData &view_transform);
   int getAvailableSpace() const;
+  void reserveSpaceForObjectsGroup(int expected_objects_count)
+  {
+    G_ASSERT(reservedSpaceForTestObjects == 0 && getAvailableSpace() >= expected_objects_count);
+    reservedSpaceForTestObjects = expected_objects_count;
+  }
+  void clearReservedSpace() { reservedSpaceForTestObjects = 0; }
 
   // The following methods should be called every frame.
   // If there aren't any objects in the queue, just nothing will happen.
   void getVisibilityTestResults(const eastl::function<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/)> &tested_fn);
-  void doTests(Texture *tex);
+  // Caller is responsible for saving,restoring Render Target, Viewport, Globtm states
+  void doTestsOnGpu(Texture *tex);
+  // Remove groups with objects that can't be tested by current depth tex
+  void removeOutdatedObjectGroups(
+    const eastl::fixed_function<sizeof(void *) * 2, bool(const ViewTransformData & /*group_view*/)> &is_group_outdated);
 
   // Clears all objects added for testing, including already issued.
   void clearObjectsToTest();
@@ -82,6 +92,7 @@ protected:
   eastl::deque<GroupInfo> objectGroups;
   int curObjectToTestId = 0;
   int curGroupId = 0;
+  int reservedSpaceForTestObjects = 0;
   eastl::deque<TestInfo> curTestsIssued;
 
   bool deviceIsResetting = false;

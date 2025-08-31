@@ -1,7 +1,5 @@
   // This list is a common for ALL shaders builds
   include "../../../gameLibs/daSkies2/shaders/daSkiesList.blk"
-  file:t = "../rendinst_vegetation.dshl"
-  file:t = "../rendinst_tree_perlin_layered.dshl"
   file:t = "../computeFullTonemapLUT.dshl"
   file:t = "../debug_tri_count.dshl"
   file:t = "../debug_gbuffer_sphere.dshl"
@@ -29,7 +27,7 @@
   file:t = "../shadows_downsample.dshl"
   file:t = "../antialiasing.dshl"
   file:t = "../grass_generate.dshl"
-  file:t = "../rendinst_impostor.dshl"
+  file:t = "fast_grass.dshl"
   file:t = "../generate_imp_mipmaps.dshl"
   file:t = "../rendinst_layered.dshl"
   file:t = "../rendinst_simple.dshl"
@@ -47,6 +45,7 @@
   file:t = "../water_3d_depth.dshl"
   file:t = "../water_3d_distant.dshl"
   file:t = "../water_3d_ssr.dshl"
+  file:t = "../water_3d_rt.dshl"
   file:t = "../distortion_postfx.dshl"
   file:t = "../postfx.dshl"
   file:t = "../static_upsample.dshl"
@@ -55,6 +54,7 @@
   file:t = "downsampleDepth.dshl"
   file:t = "../ssao.dshl"
   file:t = "../heightmap.dshl"
+  file:t = "../heightmap_query.dshl"
   file:t = "../deform_hmap.dshl"
   file:t = "../copy_tex.dshl"
   file:t = "prefilter_gf.dshl"
@@ -73,9 +73,7 @@
   file:t = "../yuv.dshl"        //for movie player (FMV and GUI)
 
   file:t = "../apply_lowres_fx.dshl"
-  file:t = "../dafx_lib.dshl"
-  file:t = "../2dparts.dshl"
-  file:t = "../distance_field.dshl"
+  file:t = "distance_field.dshl"
 
   file:t = "depth_above_copy.dshl"
   file:t = "depth_above_blur.dshl"//for debug only
@@ -88,7 +86,7 @@
   file:t = "bc6h_compression.dshl"
   file:t = "../bc6h_high_quality_cs.dshl"
   file:t = "../node_based_shader_vars.dshl"
-  file:t = "../light_probes_clusterization.dshl"
+  file:t = "light_probes_clusterization.dshl"
   file:t = "video360.dshl"
   file:t = "texture_util.dshl"
   file:t = "gpu_objects_placer.dshl"
@@ -96,6 +94,15 @@
   file:t = "dafx_modfx.dshl"
   file:t = "dafx_frame_boundary.dshl"
   file:t = "modfx_bboard_render.dshl"
+  file:t = "modfx_bboard_render_xray.dshl"
+  file:t = "modfx_bboard_distortion.dshl"
+  file:t = "modfx_bboard_fom.dshl"
+  file:t = "modfx_bboard_rain.dshl"
+  file:t = "modfx_bboard_ribbon.dshl"
+  file:t = "modfx_bboard_thermal.dshl"
+  file:t = "modfx_bboard_volshape.dshl"
+  file:t = "modfx_bboard_volfog.dshl"
+  file:t = "modfx_bvh.dshl"
   file:t = "tiledLights.dshl"
   file:t = "find_max_depth_2d.dshl"
 
@@ -105,8 +112,8 @@
   file:t = "hudprim/gui_aces.dshl"
   file:t = "../rendinst_clipmap.dshl"
   file:t = "../heightmap_patches.dshl"
-  file:t = "../heightmap_holes.dshl"
-  file:t = "../motion_vectors_resolve.dshl"
+  file:t = "../../../gameLibs/groundHolesCore/render/shaders/heightmap_holes.dshl"
+  file:t = "../motion_vec_resolve_and_envi_cover.dshl"
   file:t = "../bbox_occlusion.dshl"
   file:t = "scrollShadow.dshl"
   file:t = "../../../engine/imgui/imgui.dshl"
@@ -119,11 +126,14 @@
   file:t = "compress_panorama.dshl"
   file:t = "water_heightmap_lowres.dshl"
   file:t = "../ies_generator.dshl"
-  file:t = "../indoor_probe_culling.dshl"
+  file:t = "indoor_probe_culling.dshl"
   file:t = "tonemap.dshl"
   file:t = "split_planes.dshl"
   file:t = "../../../gameLibs/GIWindows/shaders/fill_windows.dshl"
   file:t = "../../../gameLibs/render/texDebug/texDebug.dshl"
+  file:t = "bc1_compression.dshl"
+  file:t = "ray_reconstruction.dshl"
 
   include fftWaterList.blk
   include renderLibsList.blk
+  include rendinstImpostorbakeableShadersList.blk

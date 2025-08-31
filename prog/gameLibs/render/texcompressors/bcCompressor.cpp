@@ -17,19 +17,20 @@
 #include <shaders/dag_computeShaders.h>
 #include <3d/dag_lockTexture.h>
 
-static int src_faceVarId = -1;
+#define GLOBAL_VARS_LIST          \
+  VAR(src_tex)                    \
+  VAR(src_tex_samplerstate)       \
+  VAR(src_mip)                    \
+  VAR(dst_mip)                    \
+  VAR(dbg_sampleTex)              \
+  VAR(dbg_sampleTex_samplerstate) \
+  VAR(dbg_src_texelSize_uvOffset) \
+  VAR(compress_rgba)              \
+  VAR(src_face)
 
-const char shader_var_src_tex[] = "src_tex";
-const char shader_var_src_mip[] = "src_mip";
-const char shader_var_dst_mip[] = "dst_mip";
-
-int BcCompressor::srcTexVarId = -1;
-int BcCompressor::srcTexSamplerVarId = -1;
-int BcCompressor::srcMipVarId = -1;
-int BcCompressor::dstMipVarId = -1;
-int BcCompressor::etc2RGBAVarId = -1;
-int BcCompressor::dbgSampleTexVarId = -1;
-int BcCompressor::dbgSrcTexelSizeUvOffsetVarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_LIST
+#undef VAR
 
 bool BcCompressor::isAvailable(ECompressionType format)
 {
@@ -50,6 +51,7 @@ BcCompressor::ECompressionType get_texture_compression_type(uint32_t fmt)
     case TEXFMT_BC6H: return BcCompressor::COMPRESSION_BC6H;
     case TEXFMT_ETC2_RG: return BcCompressor::COMPRESSION_ETC2_RG;
     case TEXFMT_ETC2_RGBA: return BcCompressor::COMPRESSION_ETC2_RGBA;
+    case TEXFMT_ASTC4: return BcCompressor::COMPRESSION_ASTC4;
     default: return BcCompressor::COMPRESSION_ERR;
   }
 }
@@ -65,6 +67,7 @@ uint32_t get_texture_compressed_format(BcCompressor::ECompressionType type)
     case BcCompressor::COMPRESSION_BC6H: return TEXFMT_BC6H;
     case BcCompressor::COMPRESSION_ETC2_RG: return TEXFMT_ETC2_RG;
     case BcCompressor::COMPRESSION_ETC2_RGBA: return TEXFMT_ETC2_RGBA;
+    case BcCompressor::COMPRESSION_ASTC4: return TEXFMT_ASTC4;
     default: return 0;
   }
 }
@@ -82,7 +85,8 @@ BcCompressor::ECompressionType get_texture_compression_type(Texture *tex)
 
 static bool isMobileFormat(BcCompressor::ECompressionType type)
 {
-  return type == BcCompressor::ECompressionType::COMPRESSION_ETC2_RG || type == BcCompressor::ECompressionType::COMPRESSION_ETC2_RGBA;
+  return type == BcCompressor::ECompressionType::COMPRESSION_ETC2_RG ||
+         type == BcCompressor::ECompressionType::COMPRESSION_ETC2_RGBA || type == BcCompressor::ECompressionType::COMPRESSION_ASTC4;
 }
 
 BcCompressor::BcCompressor(ECompressionType compr_type, unsigned int buffer_mips, unsigned int buffer_width,
@@ -90,15 +94,13 @@ BcCompressor::BcCompressor(ECompressionType compr_type, unsigned int buffer_mips
   bufferMips(0), bufferWidth(0), bufferHeight(0), compressionType(compr_type), vbFiller(verts)
 {
   G_ASSERT(isValid());
-  srcTexVarId = ::get_shader_variable_id(shader_var_src_tex, true);
-  srcTexSamplerVarId = ::get_shader_variable_id("src_tex_samplerstate", true);
-  srcMipVarId = ::get_shader_variable_id(shader_var_src_mip, true);
-  dstMipVarId = ::get_shader_variable_id(shader_var_dst_mip, true);
-  dbgSampleTexVarId = ::get_shader_variable_id("dbg_sampleTex", true);
-  dbgSrcTexelSizeUvOffsetVarId = ::get_shader_variable_id("dbg_src_texelSize_uvOffset", true);
-  src_faceVarId = ::get_shader_variable_id("src_face", true);
-  etc2RGBAVarId = ::get_shader_variable_id("compress_rgba", true);
-  ShaderGlobal::set_sampler(srcTexSamplerVarId, d3d::request_sampler({}));
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+    ShaderGlobal::set_sampler(dbg_sampleTex_samplerstateVarId, d3d::request_sampler(smpInfo));
+  }
 
   if (d3d::device_lost(NULL))
   {
@@ -234,9 +236,6 @@ bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned i
   if (!bufferTex)
     return false;
 
-  bufferTex->texmipmap(TEXMIPMAP_NONE);
-  bufferTex->texfilter(TEXFILTER_POINT);
-
   clear_and_resize(verts, 3 + (htiles - 1) * 4);
   verts[0] = Vertex(-1, +1, bufferWidth, bufferHeight);
   verts[1] = Vertex(-1, -3, bufferWidth, bufferHeight);
@@ -269,21 +268,27 @@ void BcCompressor::releaseBuffer()
   vb.close();
 }
 
-void BcCompressor::update(TEXTUREID src_id, int tiles) { updateFromMip(src_id, 0, 0, tiles); }
+void BcCompressor::update(TEXTUREID src_id, d3d::SamplerHandle sampler, int tiles) { updateFromMip(src_id, sampler, 0, 0, tiles); }
 
-void BcCompressor::updateFromMip(TEXTUREID src_id, int src_mip, int dst_mip, int tiles)
+void BcCompressor::updateFromMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_mip, int dst_mip, int tiles)
 {
-  updateFromFaceMip(src_id, -1, src_mip, dst_mip, tiles);
+  updateFromFaceMip(src_id, sampler, -1, src_mip, dst_mip, tiles);
 }
 
-void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int tiles)
+void BcCompressor::updateFromFaceMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_face, int src_mip, int dst_mip, int tiles)
 {
-  G_ASSERT(isValid());
+  G_ASSERT_RETURN(isValid(), );
   G_ASSERT(src_id != BAD_TEXTUREID);
   G_ASSERT(dst_mip >= src_mip);
   // render to buffer
   Driver3dRenderTarget prevTarget;
   d3d::get_render_target(prevTarget);
+
+  ShaderGlobal::set_real(src_mipVarId, src_mip);
+  ShaderGlobal::set_real(dst_mipVarId, dst_mip);
+  ShaderGlobal::set_int(src_faceVarId, src_face);
+  ShaderGlobal::set_texture(src_texVarId, src_id);
+  ShaderGlobal::set_sampler(src_tex_samplerstateVarId, sampler);
 
   if (isMobileFormat(compressionType))
   {
@@ -292,16 +297,13 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
     auto groupSizes = compressElemCompute->getThreadGroupSizes();
     G_ASSERT(((tiledWidth & (groupSizes[0] - 1)) == 0) && ((bufferHeight & (groupSizes[1] - 1)) == 0));
 #endif
-    ShaderGlobal::set_real(srcMipVarId, src_mip);
-    ShaderGlobal::set_real(dstMipVarId, dst_mip);
-    ShaderGlobal::set_texture(srcTexVarId, src_id);
-    ShaderGlobal::set_int(etc2RGBAVarId, compressionType == ECompressionType::COMPRESSION_ETC2_RGBA);
+    ShaderGlobal::set_int(compress_rgbaVarId, compressionType == ECompressionType::COMPRESSION_ETC2_RGBA);
     compressElemCompute->setStates();
     d3d::set_rwtex(STAGE_CS, 2, bufferTex.getTex2D(), 0, dst_mip);
 
     float cs_data[4] = {1.f / (bufferWidth >> src_mip), 1.f / (bufferHeight >> src_mip), (float)src_mip, 0.0f};
     d3d::set_cs_const(51, cs_data, 1);
-    compressElemCompute->dispatchThreads(tiledWidth, bufferHeight, 1);
+    compressElemCompute->dispatchThreads(tiledWidth >> 2, bufferHeight >> 2, 1);
     d3d::resource_barrier({bufferTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
     d3d::set_rwtex(STAGE_CS, 0, bufferTex.getTex2D(), 0, 0);
   }
@@ -310,11 +312,6 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
     d3d::set_render_target();
     d3d::set_render_target(0, bufferTex.getTex2D(), dst_mip);
     d3d::allow_render_pass_target_load();
-
-    ShaderGlobal::set_real(srcMipVarId, src_mip);
-    ShaderGlobal::set_real(dstMipVarId, dst_mip);
-    ShaderGlobal::set_int(src_faceVarId, src_face);
-    ShaderGlobal::set_texture(srcTexVarId, src_id);
 
     compressElem->setStates(0, true);
     if (tiles <= 0 || tiles > ((verts.size() - 3) >> 2))
@@ -340,7 +337,7 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
     d3d::resource_barrier({bufferTex.getTex2D(), RB_RO_SRV | RB_RO_COPY_SOURCE, (unsigned)dst_mip, 1});
   }
 
-  ShaderGlobal::set_texture(srcTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(src_texVarId, BAD_TEXTUREID);
 
   d3d::set_render_target(prevTarget);
 }
@@ -353,7 +350,7 @@ void BcCompressor::copyTo(Texture *dest_tex, int dest_x, int dest_y, int src_x, 
 void BcCompressor::copyToMip(Texture *dest_tex, int dest_mip, int dest_x, int dest_y, int src_mip, int src_x, int src_y, int width,
   int height)
 {
-  G_ASSERT(isValid());
+  G_ASSERT_RETURN(isValid(), );
   G_ASSERT(dest_tex && compressionType == get_texture_compression_type(dest_tex));
   // copy to target
   width = width < 0 ? (bufferWidth >> src_mip) : width;
@@ -393,12 +390,12 @@ BcCompressor::ErrorStats BcCompressor::getErrorStats(TEXTUREID src_id, int src_f
 
   SCOPE_RENDER_TARGET;
 
-  ShaderGlobal::set_real(srcMipVarId, src_mip);
-  ShaderGlobal::set_real(dstMipVarId, dst_mip);
+  ShaderGlobal::set_real(src_mipVarId, src_mip);
+  ShaderGlobal::set_real(dst_mipVarId, dst_mip);
   ShaderGlobal::set_int(src_faceVarId, src_face);
-  ShaderGlobal::set_texture(srcTexVarId, src_id);
-  ShaderGlobal::set_texture(dbgSampleTexVarId, dbgSampleTex.getTexId());
-  ShaderGlobal::set_color4(dbgSrcTexelSizeUvOffsetVarId,
+  ShaderGlobal::set_texture(src_texVarId, src_id);
+  ShaderGlobal::set_texture(dbg_sampleTexVarId, dbgSampleTex.getTexId());
+  ShaderGlobal::set_color4(dbg_src_texelSize_uvOffsetVarId,
     Point4(1.f / float(bufferWidth), 1.f / float(bufferHeight), float(tile) / float(totalTiles), 0));
 
   d3d::set_render_target({}, DepthAccess::RW, {{errorTex.getTex2D(), (uint32_t)dst_mip}});
@@ -430,11 +427,10 @@ void BcCompressor::initErrorStats()
   eastl::string dbgSampleTexName(eastl::string::CtorSprintf{}, "bcCompressor_dbgSampletex_%p", this);
   dbgSampleTex = dag::create_tex(NULL, tileWidth, bufferHeight,
     get_texture_compressed_format(compressionType) | TEXCF_UPDATE_DESTINATION, bufferMips, dbgSampleTexName.c_str());
-  dbgSampleTex.getTex2D()->texfilter(TEXFILTER_POINT);
 
   eastl::string errorTexName(eastl::string::CtorSprintf{}, "bcCompressor_MSEtex_%p", this);
-  errorTex = dag::create_tex(NULL, tileWidth / 4, bufferHeight / 4, TEXCF_RTARGET | TEXFMT_A32B32G32R32F | TEXCF_MAYBELOST, bufferMips,
-    errorTexName.c_str());
+  errorTex =
+    dag::create_tex(NULL, tileWidth / 4, bufferHeight / 4, TEXCF_RTARGET | TEXFMT_A32B32G32R32F, bufferMips, errorTexName.c_str());
 
   computeMSE.init(errorShaderName.c_str());
 }
@@ -445,3 +441,4 @@ void BcCompressor::closeErrorStats()
   errorTex.close();
   computeMSE.clear();
 }
+#undef GLOBAL_VARS_LIST

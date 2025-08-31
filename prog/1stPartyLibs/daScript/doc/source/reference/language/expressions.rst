@@ -139,14 +139,16 @@ If the value is not null, then dereferences the field 'key' for struct, otherwis
 
 ::
 
-    struct TestObjectFooNative
+    struct TestObjectFooNative {
         fooData : int
+    }
 
-    struct TestObjectBarNative
+    struct TestObjectBarNative {
         fooPtr: TestObjectFooNative?
         barData: float
+    }
 
-    def test
+    def test {
         var a: TestObjectFooNative?
         var b: TestObjectBarNative?
         var idummy: int
@@ -165,10 +167,11 @@ If the value is not null, then dereferences the field 'key' for struct, otherwis
         b.fooPtr <- a
         b?.fooPtr?.fooData ?? idummy = 4 // will return reference to b.fooPtr.fooData
         assert(b.fooPtr.fooData == 4 & idummy == 3)
+    }
 
 Additionally, null propagation of index ?[ can be used with tables::
 
-	var tab <- {{ "one"=>1; "two"=> 2 }}
+	var tab <- { "one"=>1, "two"=> 2 }
 	let i = tab?["three"] ?? 3
 	print("i = {i}\n")
 
@@ -271,30 +274,35 @@ Daslang supports pipe operators. Pipe operators are similar to 'call' expression
 
 ::
 
-    def addX(a, b)
+    def addX(a, b) {
         assert(b == 2 || b == 3)
         return a + b
-    def test
+    }
+    def test {
         let t = 12 |> addX(2) |> addX(3)
         assert(t == 17)
         return true
+    }
 
 ::
 
-    def addOne(a)
+    def addOne(a) {
         return a + 1
+    }
 
-    def test
+    def test {
         let t =  addOne() <| 2
         assert(t == 3)
+    }
 
 The ``lpipe`` macro allows piping to the previous line::
 
     require daslib/lpipe
 
-    def main
+    def main {
         print()
         lpipe() <| "this is string constant"
+    }
 
 In the example above, the string constant will be piped to the print expression on the previous line.
 This allows piping of multiple blocks while still using significant whitespace syntax.
@@ -355,34 +363,33 @@ Array Initializer
 -----------------
 
 .. index::
-    single: Array Initializer
+    single: Fixed Array Initializer
 
 ::
 
-    exp := '[['type[] [explist] ']]'
+    exp := fixed_array '(' [explist] ')'
+    exp := fixed_array '<' type '>' '(' [explist] ')'
 
 Creates a new fixed size array::
 
-    let a = [[int[] 1; 2]]     // creates array of two elements
-    let a = [[int[2] 1; 2]]    // creates array of two elements
-    var a = [[auto 1; 2]]      // creates which fully infers its own type
-    let a = [[int[2] 1; 2; 3]] // error, too many initializers
-    var a = [[auto 1]]         // int
-    var a = [[auto[] 1]]       // int[1]
+    let a = fixed_array<int>(1, 2)     // creates array of two elements
+    var a = fixed_array(1,2)           // creates which fully infers its own type
 
-Arrays can be also created with array comprehensions::
+.. index::
+    single: Dynamic Array Initializer
 
-    let q <- [[ for x in range(0, 10); x * x ]]
+::
 
-Similar syntax can be used to initialize dynamic arrays::
+    exp := array '(' [explist] ')'
+    exp := array '<' type '>' '(' [explist] ')'
+    exp := '[' [explist] ']'
 
-    let a <- [{int[3] 1;2;3 }]                      // creates and initializes array<int>
-    let q <- [{ for x in range(0, 10); x * x }]     // comprehension which initializes array<int>
+For example::
 
-Only dynamic multi-dimensional arrays can be initialized (for now)::
-
-    var a <- [[auto [{int 1;2;3}]; [{int 4;5}]]]    // array<int>[2]
-    var a <- [{auto [{int 1;2;3}]; [{int 4;5}]}]    // array<array<int>>
+    let a <- [1,2,3]                                // creates and initializes array of inferred type (int)
+    let a <- array(1,2,3)                           // same as previous line
+    let a <- array<int>(1,2,3)                      // same, but explicitly typed
+    let q <- [for x in range(0, 10); x * x]         // comprehension which initializes array<int>
 
 (see :ref:`Arrays <arrays>`, :ref:`Comprehensions <comprehensions>`).
 
@@ -397,20 +404,17 @@ Struct, Class, and Handled Type Initializer
 
 ::
 
-    struct Foo
+    struct Foo {
       x: int = 1
       y: int = 2
+    }
 
-    let fExplicit = [[Foo x = 13, y = 11]]              // x = 13, y = 11
-    let fPartial  = [[Foo x = 13]]                      // x = 13, y = 0
-    let fComplete = [[Foo() x = 13]]                    // x = 13, y = 2 with 'construct' syntax
-    let aArray    = [[Foo() x=11,y=22; x=33; y=44]]     // array of Foo with 'construct' syntax
+    let fExplicit = Foo(x = 13, y = 11)                             // x = 13, y = 11
+    let fPartial  = Foo(x = 13)                                     // x = 13, y = 2
+    let fComplete = Foo(uninitialized x = 13)                       // x = 13, y = 2 with 'construct' syntax
+    let aArray    <- array struct<Foo>((x=11,y=22),(x=33),(y=44))    // dynamic array of Foo with 'construct' syntax
 
-Initialization also supports optional inline block::
-
-    var c = [[ Foo x=1, y=2 where $ ( var foo ) { print("{foo}"); } ]]
-
-Classes and handled (external) types can also be initialized using structure initialization syntax. Classes and handled types always require constructor syntax, i.e. ().
+Classes and handled (external) types can also be initialized using structure initialization syntax. Classes and handled types can't be uninitialized.
 
 (see :ref:`Structs <structs>`, :ref:`Classes <classes>`, :ref:`Handles <handles>` ).
 
@@ -425,9 +429,9 @@ Tuple Initializer
 
 Create new tuple::
 
-    let a = [[tuple<int;float;string> 1, 2.0, "3"]]     // creates typed tuple
-    let b = [[auto 1, 2.0, "3"]]                        // infers tuple type
-    let c = [[auto 1, 2.0, "3"; 2, 3.0, "4"]]           // creates array of tuples
+    let a = tuple<a:int;b:float;c:string>(a=1, b=2.0, c="3")    // creates typed tuple with named fields
+    let b = tuple(1, 2.0, "3")                                  // infers tuple type
+    let c = (1, 2.0, "3")                                       // creates tuple of inferred type
 
 (see :ref:`Tuples <tuples>`).
 
@@ -440,14 +444,18 @@ Variant Initializer
 
 Variants are created with a syntax similar to that of a structure::
 
-    variant Foo
+    variant Foo {
         i : int
         f : float
+    }
 
-    let x = [[Foo i = 3]]
-    let y = [[Foo f = 4.0]]
-    let a = [[Foo[2] i=3; f=4.0]]   // array of variants
-    let z = [[Foo i = 3, f = 4.0]]  // syntax error, only one initializer
+    let x = Foo(i = 3)
+    let y = Foo(f = 4.0)
+    let a = array variant<i:int;f:float>(i=3, f=4.0)    // array of nameless
+
+Variant is a weak type, so it can also be declared as alias::
+
+    typedef Foo = variant<i:int;f:float>    // same as structure-like declaration
 
 (see :ref:`Variants <variants>`).
 
@@ -458,9 +466,9 @@ Table Initializer
 .. index::
     single: Table Initializer
 
-Tables are created by specifying key => value pairs separated by semicolon::
+Tables are created by specifying key => value pairs separated by colon::
 
-    var a <- {{ 1=>"one"; 2=>"two" }}
-    var a <- {{ 1=>"one"; 2=>2 }}       // error, type mismatch
+    var a <- { 1=>"one", 2=>"two" }
+    var a <- { 1=>"one", 2=>2 }       // error, type mismatch
 
 (see :ref:`Tables <tables>`).

@@ -1,0 +1,8 @@
+texture glass_hole_mask;
+
+macro INIT_GLASS_HOLE_MASK(stage)
+(stage) {
+  glass_hole_mask@tex2d = glass_hole_mask;
+  glass_hole_exists@i1 = exists_tex(glass_hole_mask);
+}
+endmacro

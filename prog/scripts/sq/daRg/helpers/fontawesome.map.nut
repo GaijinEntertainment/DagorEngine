@@ -1,4 +1,4 @@
-return {
+return freeze({
   ["500px"] = "\xef\x89\xae",
   ["address-book"] = "\xef\x8a\xb9",
   ["address-book-o"] = "\xef\x8a\xba",
@@ -785,4 +785,4 @@ return {
   ["youtube"] = "\xef\x85\xa7",
   ["youtube-play"] = "\xef\x85\xaa",
   ["youtube-square"] = "\xef\x85\xa6",
-}
+})

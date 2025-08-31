@@ -1,3 +1,4 @@
+options indenting = 2
 module ecs_quirrel shared public
 
 require ecs public
@@ -25,9 +26,9 @@ def pop_class_value_slow(var vm : SQVM?; idx : int64; baseTypeName : string; cb 
         cb |> invoke(**unsafe(reinterpret<T ??> res))
         return true
     else
-      to_log(LOG_ERROR, "Type mismatch: expected {baseTypeName}, got {actualType.className}")
+      error("Type mismatch: expected {baseTypeName}, got {actualType.className}")
   else
-    to_log(LOG_ERROR, "Unable to read instance type tag (sq_gettypetag)")
+    error("Unable to read instance type tag (sq_gettypetag)")
   return false
 
 [constant_expression(baseTypeName)]
@@ -48,9 +49,9 @@ def pop_class_value_rw_slow(var vm : SQVM?; idx : int64; baseTypeName : string; 
         cb |> invoke(**unsafe(reinterpret<T# ??> res))
         return true
     else
-      to_log(LOG_ERROR, "Type mismatch: expected {baseTypeName}, got {actualType.className}")
+      error("Type mismatch: expected {baseTypeName}, got {actualType.className}")
   else
-    to_log(LOG_ERROR, "Unable to read instance type tag (sq_gettypetag)")
+    error("Unable to read instance type tag (sq_gettypetag)")
   return false
 
 
@@ -758,7 +759,7 @@ def push_class_value_slow(var vm : SQVM?; baseTypeName : string; val) : void
       return true
     return false
   if !found
-    to_log(LOG_ERROR, "Unable to push instance with type '{baseTypeName}'")
+    error("Unable to push instance with type '{baseTypeName}'")
     sq_pushnull(vm)
 
 

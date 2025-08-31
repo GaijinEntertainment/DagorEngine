@@ -15,7 +15,7 @@ public:
 
   inline ShVarBool(const ShVarBool &other) { operator=(other); }
 
-  inline explicit ShVarBool(const bool b, bool is_cost) : isConst(is_cost), value(b) {}
+  inline explicit ShVarBool(const bool b, bool is_const) : isConst(is_const), value(b) {}
 
   inline ShVarBool &operator=(const ShVarBool &other)
   {

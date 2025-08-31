@@ -14,9 +14,10 @@
 
 namespace light_probe
 {
-#define GLOBAL_VARS_LIST \
-  VAR(num_probe_mips)    \
-  VAR(integrate_face)    \
+#define GLOBAL_VARS_LIST       \
+  VAR(num_probe_mips)          \
+  VAR(integrate_face)          \
+  VAR(dynamic_cube_tex_reg_no) \
   VAR(relight_mip)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -102,14 +103,16 @@ public:
           d3d::set_render_target(i, tex.getCubeTex(), face_start + faceNo + i, mip);
         if (cubTex == tex.getCubeTex())
           cubTex->texmiplevel(0, 0);
-        d3d::settex(7, cubTex);
+        d3d::settex(dynamic_cube_tex_reg_noVarId.get_int(), cubTex);
+        d3d::set_sampler(STAGE_PS, dynamic_cube_tex_reg_noVarId.get_int(),
+          d3d::request_sampler({.address_mode_u = d3d::AddressMode::Clamp, .address_mode_v = d3d::AddressMode::Clamp}));
         d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
         shader.render();
         for (int i = 0; i < (integrate_one_face ? 1 : 6); ++i)
           d3d::set_render_target(i, nullptr, 0);
       }
     }
-    d3d::settex(7, nullptr);
+    d3d::settex(dynamic_cube_tex_reg_noVarId.get_int(), nullptr);
     if (cubTex == tex.getCubeTex())
       cubTex->texmiplevel(-1, -1);
   }

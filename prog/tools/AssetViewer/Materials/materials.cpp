@@ -13,7 +13,7 @@
 #include "../av_util.h"
 #include <de3_interface.h>
 
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <generic/dag_sort.h>
 #include <libTools/util/strUtil.h>
@@ -116,6 +116,7 @@ void MaterialsPlugin::renderGeometry(Stage stage)
     case STG_RENDER_STATIC_OPAQUE:
     case STG_RENDER_SHADOWS: previewGeom->render(); break;
     case STG_RENDER_STATIC_TRANS: previewGeom->renderTrans(); break;
+    default: break;
   }
 }
 
@@ -295,6 +296,8 @@ MatParam &MaterialsPlugin::findMatParam(const char *name)
       if (!stricmp(desc->getName(), "two_sided"))
         parameter = new (tmpmem) Mat2Sided(*desc);
       break;
+
+    default: break;
   }
 
   G_ASSERT(parameter);

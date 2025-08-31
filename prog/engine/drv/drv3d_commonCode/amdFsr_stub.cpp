@@ -11,6 +11,9 @@ FSR::UpscalingMode FSR::getUpscalingMode(const DataBlock &) { return UpscalingMo
 
 bool FSR::isSupported() { return false; }
 
+int FSR::getMaximumNumberOfGeneratedFrames() { return 0; }
+
 void FSR::applyUpscaling(const UpscalingArgs &) {}
+void FSR::scheduleGeneratedFrames(const FrameGenArgs &) {}
 
 } // namespace amd

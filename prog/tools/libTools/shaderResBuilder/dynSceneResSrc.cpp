@@ -21,11 +21,12 @@
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <startup/dag_restart.h>
 #include <util/dag_bitArray.h>
-#include <math/random/dag_random.h>
 #include <sceneRay/dag_sceneRay.h>
 #include "collapseData.h"
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
+#include <EASTL/vector_set.h>
+#include <EASTL/string.h>
 
 // 0 - means no AO
 #define RAYS_PER_VERTEX_AMBIENT_OCCLUSION 8
@@ -79,6 +80,7 @@ bool (*DynamicRenderableSceneLodsResSrc::process_scene)(const char *fn, int lod_
   const DataBlock &props) = NULL;
 DataBlock *DynamicRenderableSceneLodsResSrc::buildResultsBlk = NULL;
 bool DynamicRenderableSceneLodsResSrc::sepMatToBuildResultsBlk = false;
+const DataBlock *DynamicRenderableSceneLodsResSrc::warnTwoSided = nullptr;
 
 
 static DagorMatShaderSubstitute matSubst;
@@ -1264,6 +1266,45 @@ bool DynamicRenderableSceneLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const
     matSaver.writeMatVdata(cwr, texSaver);
   }
 
+  if (warnTwoSided && warnTwoSided->getBool("enabled", false))
+  {
+    auto allowedForShader = [&](const char *className) {
+      bool allowed = false;
+      dblk::iterate_params_by_name(*warnTwoSided, "allowForShaders",
+        [&allowed, &warnTwoSided = warnTwoSided, &className](int idx, auto, auto) {
+          allowed |= strcmp(warnTwoSided->getStr(idx), className) == 0;
+        });
+      return allowed;
+    };
+    for (int lodIdx = 0; lodIdx < lods.size(); lodIdx++)
+    {
+      DynamicRenderableSceneLodsResSrc::Lod &lod = lods[lodIdx];
+      eastl::vector_set<eastl::string> listedMaterials;
+      auto checkTwoSided = [&](ShaderMaterial *mat) {
+        if (mat->get_flags() & SHFLG_2SIDED)
+        {
+          const char *className = mat->getShaderClassName();
+          if (!allowedForShader(className) && (listedMaterials.find(eastl::string(className)) == listedMaterials.end()))
+          {
+            log_writer.addMessage(ILogWriter::WARNING,
+              "twosided enabled for LOD \"%s\" <%s> (warnTwoSided set in project configuration)", lod.fileName.c_str(), className);
+            listedMaterials.insert(eastl::string(className));
+          }
+        }
+      };
+      for (DynamicRenderableSceneLodsResSrc::RigidObj &rigid : lod.rigids)
+        for (ShaderMeshData::RElem &elem : rigid.meshData.elems)
+          checkTwoSided(elem.mat);
+      for (DynamicRenderableSceneLodsResSrc::SkinnedObj &skined : lod.skins)
+        for (ShaderSkinnedMeshData *skinnedMeshData : skined.meshData)
+        {
+          ShaderMeshData &meshData = skinnedMeshData->getShaderMeshData();
+          for (ShaderMeshData::RElem &elem : meshData.elems)
+            checkTwoSided(elem.mat);
+        }
+    }
+  }
+
   {
     for (int lodIdx = 0; lodIdx < lods.size(); lodIdx++)
     {
@@ -1376,7 +1417,7 @@ bool DynamicRenderableSceneLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const
       }
 
       {
-        mkbindump::BinDumpSaveCB cwr_s(1 << 20, cwr.getTarget(), cwr.WRITE_BE);
+        mkbindump::BinDumpSaveCB cwr_s(1 << 20, cwr);
 
         for (int i = 0; i < lods.size(); ++i)
           lods[i].saveSkins(cwr_s, j, matSaverSkins[j]);

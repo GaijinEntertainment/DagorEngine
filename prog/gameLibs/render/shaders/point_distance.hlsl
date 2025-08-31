@@ -10,6 +10,12 @@
     return dot(distSq, distSq);
   }
 
+  float distancePointBoxSigned(float3 bmin, float3 bmax, float3 p)
+  {
+    float3 q = max(bmin - p.xyz, p.xyz - bmax);
+    return min(max3(q.x, q.y, q.z), 0) + length(max(q, 0));
+  }
+
   float sqDistanceBoxBox(float3 centerA, float3 extentA, float3 centerB, float3 extentB)
   {
     float3 axisDistances = max(abs(centerB - centerA) - (extentA + extentB), 0);

@@ -87,6 +87,41 @@ public:
   uint64_t calculateOffset(const ResourceMemory &sub) const { return sub.heap - heap; }
 
   HeapID getHeapID() const { return heapID; }
+
+  operator ResourceMemoryRange() const { return {.range = make_value_range(heap, size())}; }
+
+  operator ResourceMemoryLocation() const { return {.location = heap}; }
+};
+
+struct ResourceMemoryWithGPUAndCPUAddress
+{
+  union
+  {
+    uint8_t *heap = nullptr;
+    D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
+    uint8_t *cpuAddress;
+  };
+  uint64_t size = 0;
+  HeapID heapID;
+
+  void initializeFrom(const ResourceMemory &memory, ID3D12Resource *, bool)
+  {
+    heap = memory.asPointer();
+    size = memory.size();
+    heapID = memory.getHeapID();
+  }
+
+  explicit operator bool() const { return heap != nullptr; }
+
+  operator ResourceMemoryRange() const { return {.range = make_value_range(heap, size)}; }
+  operator ResourceMemoryLocation() const { return {.location = heap}; }
+  operator ResourceMemory() const { return {heap, size, heapID}; }
+  operator ResourceMemoryLocationWithGPUAndCPUAddress() const
+  {
+    return {
+      .location = heap,
+    };
+  }
 };
 #else
 class ResourceMemory
@@ -154,7 +189,79 @@ public:
   uint64_t calculateOffset(const ResourceMemory &sub) const { return sub.range.start - range.start; }
 
   HeapID getHeapID() const { return heapID; }
+
+  operator ResourceMemoryRange() const
+  {
+    return {
+      .heap = heap,
+      .range = range,
+    };
+  }
+
+  operator ResourceMemoryLocation() const
+  {
+    return {
+      .heap = heap,
+      .offset = range.front(),
+    };
+  }
 };
+
+struct ResourceMemoryWithGPUAndCPUAddress
+{
+  ID3D12Heap *heap = nullptr;
+  uint64_t offset = 0;
+  uint64_t size = 0;
+  HeapID heapID;
+  D3D12_GPU_VIRTUAL_ADDRESS gpuAddress{};
+  uint8_t *cpuAddress = nullptr;
+
+  explicit operator bool() const { return heap != nullptr; }
+
+  void initializeFrom(const ResourceMemory &memory, ID3D12Resource *res, bool can_map)
+  {
+    heap = memory.getHeap();
+    offset = memory.getOffset();
+    size = memory.size();
+    heapID = memory.getHeapID();
+    gpuAddress = res->GetGPUVirtualAddress();
+    cpuAddress = nullptr;
+    if (can_map)
+    {
+      D3D12_RANGE emptyRange{};
+      res->Map(0, &emptyRange, reinterpret_cast<void **>(&cpuAddress));
+    }
+  }
+
+  operator ResourceMemoryRange() const
+  {
+    return {
+      .heap = heap,
+      .range = make_value_range(offset, size),
+    };
+  }
+
+  operator ResourceMemoryLocation() const
+  {
+    return {
+      .heap = heap,
+      .offset = offset,
+    };
+  }
+
+  operator ResourceMemory() const { return {heap, make_value_range(offset, size), heapID}; }
+
+  operator ResourceMemoryLocationWithGPUAndCPUAddress() const
+  {
+    return {
+      .heap = heap,
+      .offset = offset,
+      .gpuAddress = gpuAddress,
+      .cpuAddress = cpuAddress,
+    };
+  }
+};
+
 #endif
 
 } // namespace drv3d_dx12

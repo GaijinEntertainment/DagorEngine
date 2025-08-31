@@ -23,7 +23,7 @@ AddIncludes =
 
 Sources =
   hmlExportHmap.cpp
-  hmlClipping.cpp
+  hmlCollision.cpp
   hmlExport.cpp
   hmlObject.cpp
   hmlLayers.cpp
@@ -53,7 +53,7 @@ Sources =
   hmlHoleObject.cpp
   hmlOutliner.cpp
   hmlSnow.cpp
-  LandClassSlotsMgr.cpp
+  landClassSlotsMgr.cpp
   entityCopyDlg.cpp
   materialMgr.cpp
   buildRoad.cpp
@@ -84,7 +84,7 @@ UseProgLibs =
   tools/libTools/staticGeom
   tools/libTools/dagFileRW
   gameLibs/landMesh
-  engine/SceneRay
+  engine/sceneRay
   engine/image
   engine/perfMon/daProfilerStub
 
@@ -109,7 +109,10 @@ ImportProgLibs =
 ;
 
 
-LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
-
+if $(Platform) = windows {
+  LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+} else if $(Platform) = linux {
+  LINKopt += -L$(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch) ; # to be able to find daKernel-dev.so
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

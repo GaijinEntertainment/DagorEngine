@@ -22,7 +22,7 @@ void TileMapperAccel::beginTileMapping(ID3D12Resource *tex_in, ID3D12Heap *heap_
   offsets.reserve(mapping_count);
   counts.reserve(mapping_count);
 
-  rangeFlags.resize(mapping_count, heap ? D3D12_TILE_RANGE_FLAG_NONE : D3D12_TILE_RANGE_FLAG_NULL);
+  rangeFlags.resize(mapping_count, heap_in ? D3D12_TILE_RANGE_FLAG_NONE : D3D12_TILE_RANGE_FLAG_NULL);
 
   tex = tex_in;
   heap = heap_in;
@@ -40,7 +40,7 @@ void TileMapperAccel::addTileMappings(const TileMapping *mapping, size_t mapping
     trc.Subresource = map.texSubresource;
 
     D3D12_TILE_REGION_SIZE &trs = trss.emplace_back();
-    trs.UseBox = (map.heapTileSpan == 1) ? TRUE : FALSE;
+    trs.UseBox = (map.heapTileSpan == 1 && !map.isPacked) ? TRUE : FALSE;
     trs.Width = map.heapTileSpan;
     trs.Height = 1;
     trs.Depth = 1;
@@ -74,7 +74,7 @@ void TileMapperAccel::clear()
 
 TileMapperAccel DeviceQueue::tileMapperAccel;
 
-bool DeviceQueueGroup::init(ID3D12Device *device, bool give_names)
+bool DeviceQueueGroup::init(ID3D12Device *device, debug::DeviceState &debug)
 {
   ComPtr<ID3D12CommandQueue> graphicsQueue, computeQueue, uploadQueue, readBackQueue;
 #if _TARGET_PC
@@ -104,30 +104,35 @@ bool DeviceQueueGroup::init(ID3D12Device *device, bool give_names)
   {
     return false;
   }
+
 #else
   if (!xbox_create_queues(device, graphicsQueue, computeQueue, uploadQueue, readBackQueue))
     return false;
 #endif
 
-  if (!uploadProgress.reset(device, give_names ? L"UploadProgress" : nullptr))
+  debug.nameObject(graphicsQueue.Get(), L"GraphicsQueue");
+  debug.nameObject(computeQueue.Get(), L"ComputeQueue");
+  if (uploadQueue.Get() != readBackQueue.Get())
   {
-    return false;
+    debug.nameObject(uploadQueue.Get(), L"UploadQueue");
+    debug.nameObject(readBackQueue.Get(), L"ReadBackQueue");
   }
-  if (!graphicsProgress.reset(device, give_names ? L"GraphicsProgress" : nullptr))
+  else
   {
-    return false;
-  }
-  if (!frameProgress.reset(device, give_names ? L"FrameProgress" : nullptr))
-  {
-    return false;
+    debug.nameObject(uploadQueue.Get(), L"Shared Upload/ReadBack-Queue");
   }
 
-  if (give_names)
+  if (!uploadProgress.reset(device, debug, L"UploadProgress"))
   {
-    DX12_SET_DEBUG_OBJ_NAME(uploadQueue, L"UploadQueue");
-    DX12_SET_DEBUG_OBJ_NAME(readBackQueue, L"ReadBackQueue");
-    DX12_SET_DEBUG_OBJ_NAME(computeQueue, L"ComputeQueue");
-    DX12_SET_DEBUG_OBJ_NAME(graphicsQueue, L"GraphicsQueue");
+    return false;
+  }
+  if (!graphicsProgress.reset(device, debug, L"GraphicsProgress"))
+  {
+    return false;
+  }
+  if (!frameProgress.reset(device, debug, L"FrameProgress"))
+  {
+    return false;
   }
 
   group[static_cast<uint32_t>(DeviceQueueType::GRAPHICS)] = DeviceQueue(eastl::move(graphicsQueue));
@@ -149,6 +154,36 @@ void DeviceQueueGroup::shutdown()
 
 DeviceQueue::~DeviceQueue() {}
 
+#if _TARGET_PC_WIN
+namespace
+{
+bool should_trigger_timeout_error(int msGpuWaitingTime)
+{
+  constexpr int MAX_WAIT_TIME_MS = 5000; // 5 seconds
+
+  if (msGpuWaitingTime < MAX_WAIT_TIME_MS)
+    return false;
+
+  if (get_device().isInErrorState())
+    return false;
+
+  if (get_device().isAnyCapturerLoaded())
+  {
+    logdbg("DX12: GPU capturer is active, timeout reached but continuing to wait (%d ms)", msGpuWaitingTime);
+    return false;
+  }
+
+  if (get_device().isGpuBasedValidationEnabled())
+  {
+    logdbg("DX12: GPU validation is enabled, timeout reached but continuing to wait (%d ms)", msGpuWaitingTime);
+    return false;
+  }
+
+  return true;
+}
+} // namespace
+#endif
+
 bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what)
 {
 #if LOCK_PROFILER_ENABLED
@@ -163,19 +198,33 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
   }
 
   auto result = WaitForSingleObject(event, MAX_WAIT_OBJECT_TIMEOUT_MS);
+  int msGpuWaitingTime = 0;
   while (result == WAIT_TIMEOUT)
   {
+    const uint64_t cpuFrameProgress = qs.lastFrameProgress();
+#if _TARGET_PC_WIN
+    if (should_trigger_timeout_error(msGpuWaitingTime))
+    {
+      logerr("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
+             "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT for too long (%d ms), giving up",
+        progress, qs.checkFrameProgress(), cpuFrameProgress, what, event, msGpuWaitingTime);
+      get_device().getDevice()->RemoveDevice();
+      get_device().signalDeviceErrorNoDebugInfo();
+    }
+#endif
     if (get_device().isInErrorState())
     {
-      logdbg("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, MAX_WAIT_OBJECT_TIMEOUT_MS) returned "
-             "WAIT_TIMEOUT, but device is in error state, return false to avoid infinite loops",
-        progress, what, event);
+      logdbg("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
+             "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT, but device is in error state, return false to avoid infinite loops",
+        progress, qs.checkFrameProgress(), cpuFrameProgress, what, event);
       return false;
     }
-    logdbg("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, MAX_WAIT_OBJECT_TIMEOUT_MS) returned "
-           "WAIT_TIMEOUT, continue",
-      progress, what, event);
+    logdbg("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
+           "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT (GPU waiting time %u ms), continue",
+      progress, qs.checkFrameProgress(), cpuFrameProgress, what, event, msGpuWaitingTime);
     result = WaitForSingleObject(event, MAX_WAIT_OBJECT_TIMEOUT_MS);
+    if (cpuFrameProgress >= progress) // Hangs on the CPU side must be handled by the watchdog
+      msGpuWaitingTime += MAX_WAIT_OBJECT_TIMEOUT_MS;
   }
 
   if (WAIT_OBJECT_0 == result)

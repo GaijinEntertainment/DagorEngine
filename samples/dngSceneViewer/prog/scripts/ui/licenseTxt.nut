@@ -1,8 +1,9 @@
 from "%darg/ui_imports.nut" import *
-from "widgets/simpleComponents.nut" import menuBtn
+from "%scripts/ui/widgets/simpleComponents.nut" import menuBtn
 from "dagor.fs" import read_text_from_file_on_disk
 
-let {makeVertScroll} = require("widgets/scrollbar.nut")
+let {makeVertScroll} = require("%scripts/ui/widgets/scrollbar.nut")
+let {dgs_get_settings} = require("dagor.system")
 
 let rstTagsFormat = {
   h1 = {
@@ -56,7 +57,8 @@ function formatLicenseTxt(text){
   return "\n".join(ret)
 }
 
-let showLicense = mkWatched(persist, "showLicense", true)
+let showLicense_def = !(dgs_get_settings()?["disableMenu"] ?? false) || !(dgs_get_settings()?["licenseAccepted"] ?? false)
+let showLicense = mkWatched(persist, "showLicense", showLicense_def)
 
 const licenseTxtFname = "LICENSE.txt"
 const acceptKey = "Accept"

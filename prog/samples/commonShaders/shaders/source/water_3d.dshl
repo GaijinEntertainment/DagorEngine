@@ -1,7 +1,7 @@
 include "sky_shader_global.dshl"
 include "normaldetail.dshl"
 include "psh_derivate.dshl"
-include "vsm.dshl"
+include "vsm_stub.dshl"
 include "viewVecVS.dshl"
 include "underwater_fog.dshl"
 include "wake.dshl"
@@ -73,7 +73,6 @@ float4 world_to_foam_w1;
 float4 world_to_foam_x2;
 float4 world_to_foam_y2;
 float4 world_to_foam_w2;
-//texture heightmap_tex;
 
 macro GET_WATER_COLOR()
 hlsl(ps) {
@@ -129,15 +128,14 @@ block(frame) water3d_block
       water_refraction_tex@smp2d = water_refraction_tex;
       foam_tex@smp2d = foam_tex;//fixme: remove in compatibility
       foam_time@f1 = (foam_time);//time_phase(3.14, 0)*3.14
-      water_heightmap_min_max@f4 = water_heightmap_min_max;
+      shore_heightmap_min_max@f4 = shore_heightmap_min_max;
       object_reflection_distortion@f2 = (object_reflection_distortion, 3*(PI*2)*time_phase(fake_distortion_period, 1), 0, 0);
-      //heightmap_tex@smp2d = heightmap_tex;
     }
 
     (vs)
     {
       foam_time@f1 = (foam_time);
-      water_heightmap_min_max@f4 = water_heightmap_min_max;
+      shore_heightmap_min_max@f4 = shore_heightmap_min_max;
     }
 
   }
@@ -190,11 +188,11 @@ shader water_nv2
   DECL_POSTFX_TC_VS_RT()//fixme: should depend on where we render
   USE_VSM()
   GET_WATER_COLOR()
-  INIT_SKY_UP_DIFFUSE()
+  INIT_SKY_UP_DIFFUSE(ps)
   USE_SKY_UP_DIFFUSE()
   USE_SUN_DISK_SPECULAR()
 
-  INIT_UNDERWATER_FOG()
+  INIT_UNDERWATER_FOG(ps)
   GET_UNDERWATER_FOG()
   //USE_SNOISE()
 
@@ -267,7 +265,7 @@ shader water_nv2
           if (sdf.w>0)
           {
             float3 normal; float breaker, foamTrail, riversMultiplier;
-            GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
+            GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(shore_heightmap_min_max.z, shore_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
                                      worldPos.xzy, shoreWavesDisplacement, normal, breaker, foamTrail,
                                           shoreWavesMultiplier, oceanWavesMultiplier, riversMultiplier, sdf);
           } else
@@ -407,7 +405,7 @@ shader water_nv2
     {
       //return pack_hdr(length((sdf.yz*2.0-1.0)));
       float3 offset;
-      GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
+      GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(shore_heightmap_min_max.z, shore_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
                                 In.pos_world_undisplaced, offset, gerstner_normal, gerstner_breaker, gerstnerFoamFactor, shoreWavesMultiplier, oceanWavesMultiplier, riverMultiplier, sdf);
     } else
     {
@@ -721,7 +719,7 @@ shader water_nv2
 
     //scatterFactor *= 1-saturate(sdf.x*heightmap_min_max.z+heightmap_min_max.w-worldPos.y+2);
     ##if shader != water3d_compatibility
-    scatterFactor *= 1-saturate(land_height*water_heightmap_min_max.z+water_heightmap_min_max.w-water_level_max_wave_height.x);
+    scatterFactor *= 1-saturate(land_height*shore_heightmap_min_max.z+shore_heightmap_min_max.w-water_level_max_wave_height.x);
     ##endif
     ##else
     half scatterFactor = 0;

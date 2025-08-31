@@ -7,7 +7,7 @@
 #include <hashUtils/hashUtils.h>
 #include <vromfsHash/vromfsHash.h>
 
-struct VromHasher : GenericHasher<SHA_DIGEST_LENGTH>
+struct VromHasher : GenericHasher<SHA1_DIGEST_LENGTH>
 {
   using SHA1VromHashCalculator = VromfsHashCalculator<SHA1Hasher>;
   using Blake3ShortVromHashCalculator = VromfsHashCalculator<Blake3Hasher<Length>>;

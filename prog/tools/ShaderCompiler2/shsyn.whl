@@ -1,7 +1,7 @@
 // syntax analizer: dagor shaders 2
 
 //----- Settings -------------------------------------------------
-lexical_analyzer_class = ShaderLexParser;
+lexical_analyzer_class = GeneratedLexer;
 lexical_analyzer_file = "shlex.h";
 generate_tokens       = true;
 tokens_file           = shsyntok;
@@ -9,7 +9,7 @@ tokens_namespace      = SHADER_TOKENS;
 
 method=SLR1;
 reuse_iterators=true;
-whale_class            = ShaderSyntaxParser;
+whale_class            = GeneratedParser;
 whale_namespace        = ShaderTerminal;
 dump_conflicts_to_file = false;
 dump_grammar_to_file   = false;
@@ -50,6 +50,7 @@ terminal
          ">"  (SHTOK_greater),
          "<=" (SHTOK_smallereq),
          ">=" (SHTOK_greatereq),
+         "##" (SHTOK_macro_concat),
          "always_referenced" (SHTOK_always_referenced),
          "no_warnings" (SHTOK_no_warnings),
          "undefined_value" (SHTOK_undefined_value),
@@ -60,6 +61,7 @@ terminal
          "blend_dst" (SHTOK_blend_dst),
          "blend_op" (SHTOK_blend_op),
          "blend_aop" (SHTOK_blend_aop),
+         "blend_factor" (SHTOK_blend_factor),
          "channel" (SHTOK_channel),
          "int4" (SHTOK_int4),
          "float4x4" (SHTOK_float4x4),
@@ -122,6 +124,7 @@ terminal
          "pos" (SHTOK_pos),
          "no_dynstcode" (SHTOK_no_dynstcode),
          "assume" (SHTOK_assume),
+         "assume_if_not_assumed" (SHTOK_assume_if_not_assumed),
          "shader" (SHTOK_shader),
          "block" (SHTOK_block),
          "supports" (SHTOK_supports),
@@ -184,8 +187,7 @@ terminal
          "half2" (SHTOK_half2),
          "half4" (SHTOK_half4),
          "udec3" (SHTOK_udec3),
-         "dec3n" (SHTOK_dec3n),
-         "optional" (SHTOK_optional);
+         "dec3n" (SHTOK_dec3n);
 
 nonterminal S(NonterminalS);
 
@@ -200,12 +202,13 @@ code_in_class          = {
     virtual void add_sampler(sampler_decl *d) {}
     virtual void add_global_interval(interval &i) {}
     virtual void add_global_assume(assume_stat &a) {}
+    virtual void add_global_assume_if_not_assumed(assume_if_not_assumed_stat &a) {}
     virtual void add_global_bool(bool_decl &d) {}
     virtual void add_hlsl(hlsl_global_decl_class &d) {}
   public:
     bool success() const { return !were_errors; }
 
-    ShaderLexParser& get_lex_parser() {return lexical_analyzer;}
+    GeneratedLexer& get_lexer() {return lexical_analyzer;}
 };
 
 code_in_constructor    = {
@@ -246,6 +249,7 @@ declaration(declaration) ->
   (interval-decl=inteval_decl {add_global_interval(*(n->inteval_decl));}) |
   hlsl-global-decl |
   (assume-stat=global_assume {add_global_assume(*(n->global_assume));}) |
+  (assume-if-not-assumed-stat=global_assume_if_not_assumed {add_global_assume_if_not_assumed(*(n->global_assume_if_not_assumed));}) |
   (bool-decl=global_bool_decl {add_global_bool(*(n->global_bool_decl));}) |
   error=nothing {were_errors=true;};
 
@@ -268,6 +272,7 @@ shader-stat(shader_stat) ->
   supports-stat=supports |
   render-stage-stat=render_stage |
   assume-stat=assume |
+  assume-if-not-assumed-stat=assume_if_not_assumed |
   error-stat=error |
   channel-decl=channel | shader-directive=dir |
   static-decl=static_decl | interval-decl=interval_decl |
@@ -275,11 +280,11 @@ shader-stat(shader_stat) ->
   hlsl-local-decl=hlsl_decl_var |
   hlsl-compile=hlsl_compile_var |
   (error=error_val [";"=nothing])
-  {sh_report_error(n, *this);};
+  {sh_report_error_cb(n, *this);};
 
 block-stat(block_stat) ->
-  block-if-stat=if_stat | local-decl=local_decl |
-  state-stat=state | immediate-const-block = imm_const_block |
+  block-if-stat=if_stat | local-decl=local_decl | bool-decl=boolean_decl |
+  immediate-const-block = imm_const_block |
   external-state-block=external_block | supports-stat=supports;
 
 
@@ -356,7 +361,7 @@ interval-var-decl(interval_var) ->
   ident=name "<"=nothing signed-real=val ","=nothing;
 
 interval-decl(interval)->
-  ["optional"=is_optional] "interval"=nothing ident=name ":"=nothing
+  "interval"=nothing ident=name ":"=nothing
   (interval-var-decl=var_decl)+
    ident=last_var_name
   ";"=nothing;
@@ -468,13 +473,17 @@ channel-decl(channel_decl) ->
   [("signed_pack"|"unsigned_pack"|"mul_1k"|"mul_2k"|"mul_4k"|"mul_8k"|"mul_16k"|"mul_32767"|"bounding_pack")=modifier]
   ";"=nothing;
 
-state-value(state_value) -> (
+state-plain-value(state_plain_value) -> (
   ident|"none"|"true"|"false"|int-number|real-number
 )=value;
 
+state-value(state_value) -> (
+  state-plain-value=plain_value|arithmetic-color=color_value
+);
+
 state-var(state_var) ->
-  ("blend_src"|"blend_dst"|"blend_asrc"|"blend_adst"|"blend_op"|"blend_aop"|"cull_mode"|"alpha_to_coverage"|"view_instances"
-  |"stencil"|"stencil_func"|"stencil_ref"|"stencil_pass"|"stencil_fail"|"stencil_zfail"
+  ("blend_src"|"blend_dst"|"blend_asrc"|"blend_adst"|"blend_op"|"blend_aop"|"blend_factor"|"cull_mode"|"alpha_to_coverage"|
+  "view_instances"|"stencil"|"stencil_func"|"stencil_ref"|"stencil_pass"|"stencil_fail"|"stencil_zfail"
   |"color_write"|"z_write"|"z_test"|"z_func"
   )=var;
 
@@ -550,6 +559,9 @@ render-stage-stat(render_stage_stat) ->
 
 assume-stat(assume_stat) ->
   "assume"=nothing ident=interval "="=nothing ident=value ";"=nothing ;
+
+assume-if-not-assumed-stat(assume_if_not_assumed_stat) ->
+  "assume_if_not_assumed"=nothing ident=interval "="=nothing ident=value ";"=nothing ;
 
 error-stat(error_stat) ->
   "error"=nothing "("=nothing string=message ")"=nothing ";"=nothing;

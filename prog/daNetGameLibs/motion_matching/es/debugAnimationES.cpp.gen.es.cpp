@@ -1,30 +1,37 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t motion_matching__dataBaseTemplateName_get_type();
 static ecs::LTComponentList motion_matching__dataBaseTemplateName_component(ECS_HASH("motion_matching__dataBaseTemplateName"), motion_matching__dataBaseTemplateName_get_type(), "prog/daNetGameLibs/motion_matching/es/debugAnimationES.cpp.inl", "enable_mm_on_player_ecs_query", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "debugAnimationES.cpp.inl"
 ECS_DEF_PULL_VAR(debugAnimation);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc debug_motion_matching_skeleton_es_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
-//start of 2 ro components at [1]
-  {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
-  {ECS_HASH("motion_matching__enabled"), ecs::ComponentTypeInfo<bool>()}
+//start of 2 rw components at [0]
+  {ECS_HASH("mm_visualization__skeletonNodeWpos"), ecs::ComponentTypeInfo<ecs::Point3List>()},
+  {ECS_HASH("mm_visualization__skeletonNodeFilter"), ecs::ComponentTypeInfo<ecs::IntList>()},
+//start of 5 ro components at [2]
+  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("mm_visualization_show_skeleton"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("mm_visualization_show_skeleton_original"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
 };
 static void debug_motion_matching_skeleton_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
-  {
-    if ( !(ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "motion_matching__enabled", bool)) )
-      continue;
-    debug_motion_matching_skeleton_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
-    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "motion_matching__controller", MotionMatchingController)
-    , ECS_RW_COMP(debug_motion_matching_skeleton_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    debug_motion_matching_skeleton_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "mm_imguiAnimcharEid", ecs::EntityId)
+    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization_show_skeleton", bool)
+    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization_show_skeleton_original", bool)
+    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization__selectedClipIdx", int)
+    , ECS_RO_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization__selectedFrameIdx", int)
+    , ECS_RW_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization__skeletonNodeWpos", ecs::Point3List)
+    , ECS_RW_COMP(debug_motion_matching_skeleton_es_comps, "mm_visualization__skeletonNodeFilter", ecs::IntList)
     );
-  }
   while (++comp != compE);
 }
 static ecs::EntitySystemDesc debug_motion_matching_skeleton_es_es_desc
@@ -32,149 +39,40 @@ static ecs::EntitySystemDesc debug_motion_matching_skeleton_es_es_desc
   "debug_motion_matching_skeleton_es",
   "prog/daNetGameLibs/motion_matching/es/debugAnimationES.cpp.inl",
   ecs::EntitySystemOps(debug_motion_matching_skeleton_es_all),
-  make_span(debug_motion_matching_skeleton_es_comps+0, 1)/*rw*/,
-  make_span(debug_motion_matching_skeleton_es_comps+1, 2)/*ro*/,
+  make_span(debug_motion_matching_skeleton_es_comps+0, 2)/*rw*/,
+  make_span(debug_motion_matching_skeleton_es_comps+2, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
+  (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc debug_motion_matching_es_comps[] =
-{
-//start of 7 ro components at [0]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
-  {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
-  {ECS_HASH("mm_trajectory__featurePositions"), ecs::ComponentTypeInfo<ecs::Point3List>()},
-  {ECS_HASH("mm_trajectory__featureDirections"), ecs::ComponentTypeInfo<ecs::Point3List>()},
-  {ECS_HASH("motion_matching__goalFeature"), ecs::ComponentTypeInfo<FrameFeatures>()},
-  {ECS_HASH("motion_matching__enabled"), ecs::ComponentTypeInfo<bool>()}
-};
-static void debug_motion_matching_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-  {
-    if ( !(ECS_RO_COMP(debug_motion_matching_es_comps, "motion_matching__enabled", bool)) )
-      continue;
-    debug_motion_matching_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "eid", ecs::EntityId)
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "motion_matching__controller", MotionMatchingController)
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "mm_trajectory__featurePositions", ecs::Point3List)
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "mm_trajectory__featureDirections", ecs::Point3List)
-    , ECS_RO_COMP(debug_motion_matching_es_comps, "motion_matching__goalFeature", FrameFeatures)
-    );
-  }
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc debug_motion_matching_es_es_desc
-(
-  "debug_motion_matching_es",
-  "prog/daNetGameLibs/motion_matching/es/debugAnimationES.cpp.inl",
-  ecs::EntitySystemOps(debug_motion_matching_es_all),
-  empty_span(),
-  make_span(debug_motion_matching_es_comps+0, 7)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
-,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc imgui_visualization_skeleton_ecs_query_comps[] =
-{
-//start of 5 ro components at [0]
-  {ECS_HASH("mm_visualization_show_skeleton"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("mm_visualization_show_skeleton_original"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("mm_visualization_show_skeleton_node_labels"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
-};
-static ecs::CompileTimeQueryDesc imgui_visualization_skeleton_ecs_query_desc
-(
-  "imgui_visualization_skeleton_ecs_query",
-  empty_span(),
-  make_span(imgui_visualization_skeleton_ecs_query_comps+0, 5)/*ro*/,
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void imgui_visualization_skeleton_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, imgui_visualization_skeleton_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton", bool)
-            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton_original", bool)
-            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton_node_labels", bool)
-            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization__selectedClipIdx", int)
-            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization__selectedFrameIdx", int)
-            );
-
-        }while (++comp != compE);
-    }
-  );
-}
-static constexpr ecs::ComponentDesc imgui_visualization_debug_features_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc imgui_prepare_skeleton_visualization_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
-  {ECS_HASH("mm_visualization_show_feature_nodes"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("mm_visualization_show_trajectory"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
+  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()}
 };
-static ecs::CompileTimeQueryDesc imgui_visualization_debug_features_ecs_query_desc
+static ecs::CompileTimeQueryDesc imgui_prepare_skeleton_visualization_ecs_query_desc
 (
-  "imgui_visualization_debug_features_ecs_query",
+  "imgui_prepare_skeleton_visualization_ecs_query",
   empty_span(),
-  make_span(imgui_visualization_debug_features_ecs_query_comps+0, 2)/*ro*/,
+  make_span(imgui_prepare_skeleton_visualization_ecs_query_comps+0, 2)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void imgui_visualization_debug_features_ecs_query(Callable function)
+inline void imgui_prepare_skeleton_visualization_ecs_query(ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, imgui_visualization_debug_features_ecs_query_desc.getHandle(),
+  perform_query(g_entity_mgr, eid, imgui_prepare_skeleton_visualization_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        constexpr size_t comp = 0;
         {
           function(
-              ECS_RO_COMP(imgui_visualization_debug_features_ecs_query_comps, "mm_visualization_show_feature_nodes", bool)
-            , ECS_RO_COMP(imgui_visualization_debug_features_ecs_query_comps, "mm_visualization_show_trajectory", bool)
+              ECS_RO_COMP(imgui_prepare_skeleton_visualization_ecs_query_comps, "motion_matching__controller", MotionMatchingController)
+            , ECS_RO_COMP(imgui_prepare_skeleton_visualization_ecs_query_comps, "animchar", AnimV20::AnimcharBaseComponent)
             );
 
-        }while (++comp != compE);
-    }
-  );
-}
-static constexpr ecs::ComponentDesc get_clip_for_debug_trajectory_ecs_query_comps[] =
-{
-//start of 3 ro components at [0]
-  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
-};
-static ecs::CompileTimeQueryDesc get_clip_for_debug_trajectory_ecs_query_desc
-(
-  "get_clip_for_debug_trajectory_ecs_query",
-  empty_span(),
-  make_span(get_clip_for_debug_trajectory_ecs_query_comps+0, 3)/*ro*/,
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void get_clip_for_debug_trajectory_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, get_clip_for_debug_trajectory_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_imguiAnimcharEid", ecs::EntityId)
-            , ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedClipIdx", int)
-            , ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedFrameIdx", int)
-            );
-
-        }while (++comp != compE);
+        }
     }
   );
 }
@@ -241,14 +139,16 @@ inline void enable_mm_on_player_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc get_current_imgui_character_ecs_query_comps[] =
 {
-//start of 1 ro components at [0]
-  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+//start of 3 ro components at [0]
+  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("mm_visualization__prevTransitionClipIdx"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("mm_visualization__prevTransitionFrameIdx"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc get_current_imgui_character_ecs_query_desc
 (
   "get_current_imgui_character_ecs_query",
   empty_span(),
-  make_span(get_current_imgui_character_ecs_query_comps+0, 1)/*ro*/,
+  make_span(get_current_imgui_character_ecs_query_comps+0, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -261,6 +161,8 @@ inline void get_current_imgui_character_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(get_current_imgui_character_ecs_query_comps, "mm_imguiAnimcharEid", ecs::EntityId)
+            , ECS_RO_COMP(get_current_imgui_character_ecs_query_comps, "mm_visualization__prevTransitionClipIdx", int)
+            , ECS_RO_COMP(get_current_imgui_character_ecs_query_comps, "mm_visualization__prevTransitionFrameIdx", int)
             );
 
         }while (++comp != compE);

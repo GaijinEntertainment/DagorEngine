@@ -38,7 +38,7 @@ function textarea(txt, params={}) {
 }
 
 let textAreaFrameState = Watched({
-  size = [sw(40), 60]
+  size = static [sw(40), 60]
   pos  = [0, 0]
 })
 
@@ -52,20 +52,20 @@ function textAreaContainer(txt, params={}) {
     ellipsisSepLine = true
     text = txt
     behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
-    size = [flex(), flex()]
+    size = flex()
   }
   return @(){
     rendObj = ROBJ_FRAME
     color = Color(200,100,100)
     children = ta
     padding = hdpx(10)
-    size = textAreaFrameState.value.size
+    size = textAreaFrameState.get().size
     valign = ALIGN_BOTTOM
     behavior = Behaviors.MoveResize
     moveResizeCursors = cursors.moveResizeCursors
     watch = textAreaFrameState
     onMoveResize = function(dx, dy, dw, dh) {
-      let w = textAreaFrameState.value
+      let w = textAreaFrameState.get()
       w.pos = [w.pos[0]+dx, w.pos[1]+dy]
       w.size = [max(5, w.size[0]+dw), max(20, w.size[1]+dh)]
       return w
@@ -88,11 +88,11 @@ return {
       flow = FLOW_VERTICAL
       halign = ALIGN_LEFT
       valign = ALIGN_CENTER
-      size = [flex(4),sh(80)]
+      size = static [flex(4),sh(80)]
       gap = 10
       children = [
         sText("Color tags and custom tags in textarea")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = {
              size = flex() rendObj = ROBJ_TEXTAREA text = colored_text
              tagsTable = {
@@ -108,25 +108,25 @@ return {
           }
         }
         sText("Default+scrollable by wheel text area")
-        {rendObj = ROBJ_FRAME size = [hdpx(507),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(507),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] }
         }
 
         sText("Scrollable text area, with lineSpacing=2px, parSpacing = 10, indent on new paragraph = 10")
-        {rendObj = ROBJ_FRAME size = [hdpx(450),hdpx(97)]  padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(450),hdpx(97)]  padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] lineSpacing=2, parSpacing=10, indent=10 }
         }
 
         sText("Scrollable text area, with halign=ALIGN_CENTER")
-        {rendObj = ROBJ_FRAME size = [hdpx(250),hdpx(100)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(250),hdpx(100)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] halign=ALIGN_CENTER }
         }
-        textarea("Text area with valign=ALIGN_CENTER",{size=[flex(),SIZE_TO_CONTENT]})
-        {rendObj = ROBJ_FRAME size = [hdpx(250),hdpx(70)] padding=hdpx(5)
+        textarea("Text area with valign=ALIGN_CENTER",{size=static [flex(),SIZE_TO_CONTENT]})
+        {rendObj = ROBJ_FRAME size = static [hdpx(250),hdpx(70)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = "small text" behavior = [Behaviors.TextArea] valign=ALIGN_CENTER}
         }
         sText("Scrollable by wheel text area with split by line")
-        {rendObj = ROBJ_FRAME size = [hdpx(707),hdpx(90)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(707),hdpx(90)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflowY = TOVERFLOW_CLIP ellipsis = true textOverflowX= TOVERFLOW_CHAR }
         }
         sText("Resizable and Scrollable by wheel text area with split by line")
@@ -151,7 +151,7 @@ return {
           - parSpacing  //spacing between paragraphs
           - indent //indent on new lines
           - color //color
-          - padding //padding of textarea. Can be padding = 100 | sh(2), padding=[10,10,10,10] - [top, right, bottom, left]
+          - padding //padding of textarea. Can be padding = 100 | sh(2), padding=10 - [top, right, bottom, left]
           - monoWidth //monowidth output. can be character or size monWidth='W' or monowidth=20
 
           <color=#ff5555>known issues </color>:
@@ -167,7 +167,7 @@ return {
           halign = ALIGN_CENTER
           flow = FLOW_VERTICAL
           padding = 2
-          gap = { size = [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 }
+          gap = { size = static [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 }
           children = [
             {
               rendObj = ROBJ_TEXTAREA
@@ -192,13 +192,13 @@ return {
               text = "text area without size limits but a bit long."
             }
             {
-              size = [hdpx(200), SIZE_TO_CONTENT]
+              size = static [hdpx(200), SIZE_TO_CONTENT]
               rendObj = ROBJ_TEXTAREA
               behavior = Behaviors.TextArea
               text = "text area with fixed width = hdpx(200)"
             }
             {
-              size = [pw(50), SIZE_TO_CONTENT]
+              size = static [pw(50), SIZE_TO_CONTENT]
               rendObj = ROBJ_TEXTAREA
               behavior = Behaviors.TextArea
               text = "text area with width = pw(50)"

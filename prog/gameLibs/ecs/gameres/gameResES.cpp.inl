@@ -61,6 +61,7 @@ struct LoadGameResJob final : public cpujobs::IJob
   eastl::vector<EntityId> entities;
   bool failed = false;
   bool loaded = false;
+  const char *getJobName(bool &) const override { return "LoadGameResJob"; }
   void doJob() override
   {
     failed = !load_gameres_list(reslist);

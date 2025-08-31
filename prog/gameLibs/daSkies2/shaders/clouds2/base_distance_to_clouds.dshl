@@ -2,7 +2,16 @@ include "clouds_alt_fraction.dshl"
 texture cloud_layers_altitudes_tex;
 
 hlsl {
-  #define MAX_CLOUDS_DIST ((((1U<<5)-1)*32 + (1U<<5))*256.)
+  #define CALC_PREV_LAYER_CLOUD_TRACE_DIST(_max_sequence_index, _steps_per_sequence, _start_step_size) \
+    ((((1U<<(_max_sequence_index))-1)*_steps_per_sequence)*_start_step_size)
+
+  #define CALC_CLOUD_TRACE_DIST(_max_sequence_index, _steps_per_sequence, _start_step_size) \
+    (CALC_PREV_LAYER_CLOUD_TRACE_DIST(_max_sequence_index, _steps_per_sequence, _start_step_size) + \
+    ((1U<<(_max_sequence_index)))*_start_step_size)
+
+  // these params alone are not max parameters, but it is a good approximation together
+  #define MAX_CLOUDS_DIST CALC_CLOUD_TRACE_DIST(5, 32, 256)
+
   #define MAX_CLOUDS_DIST_KM (MAX_CLOUDS_DIST*0.001)
   #define INFINITE_TRACE_DIST (MAX_CLOUDS_DIST+1)
   #define TRACE_DIST MAX_CLOUDS_DIST

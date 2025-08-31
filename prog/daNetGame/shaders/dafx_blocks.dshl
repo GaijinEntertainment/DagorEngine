@@ -28,7 +28,7 @@ block(scene) dynamic_scene_trans
   INIT_BRUNETON_FOG(vs)
   FOG_PS_STCODE()
   INIT_VOLUMETRIC_LIGHT_TRANSPARENT_VS_PS()
-  INIT_STATIC_SHADOW_VS_ONE_CASCADE() // not enough vsmp for both cascades
+  INIT_STATIC_SHADOW_VS_PS_ONE_CASCADE() // not enough vsmp for both cascades
   INIT_FOM_SHADOWS(vs)
   SQ_INIT_CLOUDS_SHADOW(vs)
   INIT_VOLUMETRIC_GI_AND_SKYVIS(vs)

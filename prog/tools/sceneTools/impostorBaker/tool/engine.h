@@ -66,6 +66,7 @@ public:
 
   bool registerService(IEditorService *srv) override { DUMMY_IMPL_0; }
   bool unregisterService(IEditorService *srv) override { DUMMY_IMPL_0; }
+  IEditorService *findService(const char *) const override { DUMMY_IMPL_0; }
 
   bool registerEntityMgr(IObjEntityMgr *oemgr) override { DUMMY_IMPL_0; }
   bool unregisterEntityMgr(IObjEntityMgr *oemgr) override { DUMMY_IMPL_0; }
@@ -133,7 +134,7 @@ public:
   void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
   void imguiEnd() override {}
 
-  virtual Outliner::OutlinerWindow *createOutlinerWindow() override
+  Outliner::OutlinerWindow *createOutlinerWindow() override
   {
     G_ASSERT(false);
     return nullptr;

@@ -110,9 +110,8 @@ void FastPhysSystem::update(real dt, vec3f skeleton_wofs)
     for (FastPhysSystem::Point &pt : points)
       pt.pos += as_point3(&deltaWtmOfs);
 
-  if (useOwnerTm)
-    windVel = inverse(ownerTm) % windVel;
-  windPos += windVel * dt;
+  Point3 windVelocity = useOwnerTm ? inverse(ownerTm) % windVel : windVel;
+  windPos += windVelocity * dt;
   const real MAX_WIND = 1000;
   if (windPos.x > MAX_WIND || windPos.x < -MAX_WIND)
     windPos.x = 0;
@@ -194,6 +193,15 @@ public:
       return;
     }
 
+    Point3 gravityDirection = sys.gravityDirection;
+    Point3 windVelocity = sys.windVel;
+    if (sys.useOwnerTm)
+    {
+      TMatrix itm = inverse(sys.ownerTm);
+      gravityDirection = itm % sys.gravityDirection;
+      windVelocity = itm % sys.windVel;
+    }
+
     for (int i = firstPoint; i < endPoint; ++i)
     {
       FastPhysSystem::Point &pt = sys.points[i];
@@ -203,14 +211,14 @@ public:
         vk = 0;
 
       Point3 acc = pt.acc;
-      acc += sys.gravityDirection * pt.gravity;
+      acc += gravityDirection * pt.gravity;
       float wind = sys.windPower * pt.windK;
       if (float_nonzero(wind))
       {
         Point3 p = (sys.windPos + pt.pos) * sys.windScale;
-        acc += (sys.windVel + Point3(perlin_noise::noise3(p), perlin_noise::noise3(p + Point3(0, 1, 0)),
-                                perlin_noise::noise3(p + Point3(0, 0, 1))) *
-                                sys.windTurb) *
+        acc += (windVelocity + Point3(perlin_noise::noise3(p), perlin_noise::noise3(p + Point3(0, 1, 0)),
+                                 perlin_noise::noise3(p + Point3(0, 0, 1))) *
+                                 sys.windTurb) *
                wind;
       }
 
@@ -1259,6 +1267,124 @@ public:
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
 
+class FastPhysHingeConstraintAction : public FastPhysAction
+{
+public:
+  int p1Index, p2Index;
+  mat44f *nodeWtm = nullptr;
+  const mat44f *nodeParentWtm = nullptr;
+  Point3 hingeAxis;
+  Point3 referenceDir;
+  real boneLength;
+  real damping;
+  real limitCos, limitSin;
+
+  String nodeName;
+
+  FastPhysHingeConstraintAction(IGenLoad &cb) : boneLength(0.05f)
+  {
+    cb.readInt(p1Index);
+    cb.readInt(p2Index);
+    cb.readReal(damping);
+    cb.read(&hingeAxis, sizeof(hingeAxis));
+    cb.readReal(limitCos);
+    limitSin = sqrtf(1.0f - limitCos * limitCos);
+    cb.readString(nodeName);
+  }
+
+  virtual void init(FastPhysSystem &sys, GeomNodeTree &nodeTree)
+  {
+    boneLength = length(sys.points[p2Index].pos - sys.points[p1Index].pos);
+    referenceDir = normalize(sys.points[p2Index].pos - sys.points[p1Index].pos);
+    nodeWtm = resolve_node_wtm(nodeTree, nodeName, &nodeParentWtm);
+  }
+
+  virtual void perform(FastPhysSystem &sys)
+  {
+    FastPhysSystem::Point &pt1 = sys.points[p1Index];
+    FastPhysSystem::Point &pt2 = sys.points[p2Index];
+
+    Point3 dir = pt2.pos - pt1.pos;
+    real lenSq = lengthSq(dir);
+    real len = sqrtf(lenSq);
+    if (!float_nonzero(len))
+      return;
+
+    Point3_vec4 axis = hingeAxis;
+    Point3_vec4 ref = referenceDir;
+    if (nodeWtm && nodeParentWtm)
+      v_st(&axis, v_norm3(v_mat44_mul_vec3v(*nodeParentWtm, v_ldu(&hingeAxis.x))));
+
+    // enforce hinge
+    Point3 nd = dir / len;
+    Point3 perpd = normalize(nd - axis * (axis * nd));
+
+    // clamp rotation around hinge
+    if (limitCos < 1.0f)
+    {
+      real d = clamp(ref * perpd, -1.0f, 1.0f);
+      if (d < limitCos)
+      {
+        real sign = cross(ref, perpd) * axis >= 0.0f ? 1.0f : -1.0f;
+        Point3 perpRef = normalize(cross(axis, ref));
+        perpd = normalize(ref * limitCos + perpRef * (sign * limitSin));
+      }
+    }
+
+    // apply constraints
+    pt2.pos = pt1.pos + perpd * boneLength;
+
+    Point3 rv = pt2.vel - pt1.vel;
+    // recompute direction after correction
+    dir = pt2.pos - pt1.pos;
+    lenSq = lengthSq(dir);
+    len = sqrtf(lenSq);
+    Point3 n2 = dir * (1.0f / len);
+    Point3 dv = n2 * (n2 * rv);
+    pt2.vel -= dv;
+
+    // apply damping
+    Point3 tv = rv - dv;
+    real k = damping * sys.deltaTime;
+    if (k > 1)
+      k = 1;
+    pt2.vel -= tv * k;
+  }
+
+  virtual void reset(FastPhysSystem &sys) {}
+
+  virtual void debugRender()
+  {
+    if (!nodeWtm || !nodeParentWtm)
+      return;
+
+    E3DCOLOR axisColor(0, 255, 0);
+    E3DCOLOR refDirColor(255, 255, 0);
+    E3DCOLOR limitColor(255, 0, 0);
+
+    Point3 pos = as_point3(&nodeWtm->col3);
+    Point3 refDir = referenceDir;
+    Point3_vec4 worldAxis;
+    v_st(&worldAxis, v_norm3(v_mat44_mul_vec3v(*nodeParentWtm, v_ldu(&hingeAxis.x))));
+
+    float length = boneLength;
+    draw_cached_debug_line(pos, pos + worldAxis * length, axisColor);
+    draw_cached_debug_line(pos, pos + refDir * length, refDirColor);
+
+    if (limitCos < 1.0f)
+    {
+      Point3 perpDir = normalize(cross(worldAxis, refDir));
+      Point3 limitDir1 = normalize(refDir * limitCos + perpDir * limitSin);
+      Point3 limitDir2 = normalize(refDir * limitCos - perpDir * limitSin);
+      draw_cached_debug_line(pos, pos + limitDir1 * length, limitColor);
+      draw_cached_debug_line(pos, pos + limitDir2 * length, limitColor);
+    }
+  }
+};
+
+
+// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
+
 FastPhysAction *FastPhysSystem::loadAction(IGenLoad &cb)
 {
   int id = cb.readInt();
@@ -1286,6 +1412,8 @@ FastPhysAction *FastPhysSystem::loadAction(IGenLoad &cb)
     case FastPhys::AID_ANGULAR_SPRING: return new FastPhysAngularSpringAction(cb);
 
     case FastPhys::AID_LOOK_AT_BONE_CTRL: return new FastPhysLookAtBoneCtrlAction(cb);
+
+    case FastPhys::AID_HINGE_CONSTRAINT: return new FastPhysHingeConstraintAction(cb);
   }
 
   // DEBUG_CTX("unknown action %d", id);

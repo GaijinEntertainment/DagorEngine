@@ -8,6 +8,7 @@
 #include <drv/3d/dag_tex3d.h>
 #include <render/resolution.h>
 #include <render/world/cameraParams.h>
+#include <render/world/cameraViewVisibilityManager.h>
 
 
 class Point3;
@@ -17,6 +18,7 @@ DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(UpdateStageInfoRender::RenderPass, RenderPass
 DAS_BIND_ENUM_CAST_98(FeatureRenderFlags)
 
 MAKE_TYPE_FACTORY(CameraParams, CameraParams)
+MAKE_TYPE_FACTORY(CameraViewVisibilityMgr, CameraViewVisibilityMgr)
 
 namespace bind_dascript
 {
@@ -24,10 +26,12 @@ void toggleFeature(FeatureRenderFlags flag, bool enable);
 bool worldRenderer_getWorldBBox3(BBox3 &bbox);
 void worldRenderer_shadowsInvalidate(const BBox3 &bbox);
 void worldRenderer_invalidateAllShadows();
-void worldRenderer_renderDebug();
+void worldRenderer_renderDebug(const CameraParams &camera);
 int worldRenderer_getDynamicResolutionTargetFps();
+void worldRenderer_setDaGdpRangeScale(float scale);
 bool does_world_renderer_exist();
 } // namespace bind_dascript
 
 void erase_grass(const Point3 &world_pos, float radius);
 void invalidate_after_heightmap_change(const BBox3 &box);
+void invalidate_ssr_history(int frames);

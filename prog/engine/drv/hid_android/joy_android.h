@@ -8,7 +8,7 @@ namespace HumanInput
 class IAndroidJoystick : public IGenJoystick
 {
 public:
-  virtual ~IAndroidJoystick(){};
+  virtual ~IAndroidJoystick() {}
   virtual bool updateState() = 0;
 };
 } // namespace HumanInput

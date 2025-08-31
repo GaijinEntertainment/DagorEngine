@@ -125,6 +125,7 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::decodeDX12(const DataBlock &blk
   target.enableDepthBounds = blk.getBool("enableDepthBounds", target.enableDepthBounds);
   target.enableStencil = blk.getBool("enableStencil", target.enableStencil);
   target.enableIndependentBlend = blk.getBool("enableIndependentBlend", target.enableIndependentBlend);
+  target.enableDualSourceBlending = blk.getBool("enableDualSourceBlending", target.enableDualSourceBlending);
   target.enableAlphaToCoverage = blk.getBool("enableAlphaToCoverage", target.enableAlphaToCoverage);
   target.depthFunc = blk.getInt("depthFunc", target.depthFunc);
   target.forcedSampleCountShift = blk.getInt("forcedSampleCountShift", target.forcedSampleCountShift);
@@ -150,17 +151,23 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::decodeDX12(const DataBlock &blk
       {
         continue;
       }
-      auto &param = target.blendParams[bbi];
 
-      param.blendFactors.Source = blendBlk->getInt("blendFactorsSource", param.blendFactors.Source);
-      param.blendFactors.Destination = blendBlk->getInt("blendFactorsDestination", param.blendFactors.Destination);
+      auto fillParam = [blendBlk](auto &param) {
+        param.blendFactors.Source = blendBlk->getInt("blendFactorsSource", param.blendFactors.Source);
+        param.blendFactors.Destination = blendBlk->getInt("blendFactorsDestination", param.blendFactors.Destination);
 
-      param.blendAlphaFactors.Source = blendBlk->getInt("blendAlphaFactorsSource", param.blendAlphaFactors.Source);
-      param.blendAlphaFactors.Destination = blendBlk->getInt("blendAlphaFactorsDestination", param.blendAlphaFactors.Destination);
+        param.blendAlphaFactors.Source = blendBlk->getInt("blendAlphaFactorsSource", param.blendAlphaFactors.Source);
+        param.blendAlphaFactors.Destination = blendBlk->getInt("blendAlphaFactorsDestination", param.blendAlphaFactors.Destination);
 
-      param.blendFunction = blendBlk->getInt("blendFunction", param.blendFunction);
-      param.blendAlphaFunction = blendBlk->getInt("blendAlphaFunction", param.blendAlphaFunction);
-      param.enableBlending = blendBlk->getBool("enableBlending", param.enableBlending);
+        param.blendFunction = blendBlk->getInt("blendFunction", param.blendFunction);
+        param.blendAlphaFunction = blendBlk->getInt("blendAlphaFunction", param.blendAlphaFunction);
+        param.enableBlending = blendBlk->getBool("enableBlending", param.enableBlending);
+      };
+
+      if (target.enableDualSourceBlending)
+        fillParam(target.dualSourceBlend.params);
+      else
+        fillParam(target.blendParams[bbi]);
     }
   }
 
@@ -255,6 +262,7 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::encode(DataBlock &blk, const Re
   blk.setBool("enableDepthBounds", source.enableDepthBounds);
   blk.setBool("enableStencil", source.enableStencil);
   blk.setBool("enableIndependentBlend", source.enableIndependentBlend);
+  blk.setBool("enableDualSourceBlending", source.enableDualSourceBlending);
   blk.setBool("enableAlphaToCoverage", source.enableAlphaToCoverage);
   blk.setInt("depthFunc", source.depthFunc);
   blk.setInt("forcedSampleCountShift", source.forcedSampleCountShift);
@@ -280,17 +288,23 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::encode(DataBlock &blk, const Re
     {
       return false;
     }
-    auto &param = source.blendParams[bbi];
 
-    blendBlk->setInt("blendFactorsSource", param.blendFactors.Source);
-    blendBlk->setInt("blendFactorsDestination", param.blendFactors.Destination);
+    auto writeParamOut = [blendBlk](const auto &param) {
+      blendBlk->setInt("blendFactorsSource", param.blendFactors.Source);
+      blendBlk->setInt("blendFactorsDestination", param.blendFactors.Destination);
 
-    blendBlk->setInt("blendAlphaFactorsSource", param.blendAlphaFactors.Source);
-    blendBlk->setInt("blendAlphaFactorsDestination", param.blendAlphaFactors.Destination);
+      blendBlk->setInt("blendAlphaFactorsSource", param.blendAlphaFactors.Source);
+      blendBlk->setInt("blendAlphaFactorsDestination", param.blendAlphaFactors.Destination);
 
-    blendBlk->setInt("blendFunction", param.blendFunction);
-    blendBlk->setInt("blendAlphaFunction", param.blendAlphaFunction);
-    blendBlk->setBool("enableBlending", param.enableBlending);
+      blendBlk->setInt("blendFunction", param.blendFunction);
+      blendBlk->setInt("blendAlphaFunction", param.blendAlphaFunction);
+      blendBlk->setBool("enableBlending", param.enableBlending);
+    };
+
+    if (source.enableDualSourceBlending)
+      writeParamOut(source.dualSourceBlend.params);
+    else
+      writeParamOut(source.blendParams[bbi]);
   }
   return true;
 }

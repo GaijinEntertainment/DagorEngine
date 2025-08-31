@@ -44,6 +44,15 @@ const char *app_command_to_string(int32_t cmd)
   return "unknown";
 }
 
+jint attach_current_thread(JavaVM *vm, JNIEnv **env, void *args)
+{
+  char prevName[16] = {0};
+  pthread_getname_np(pthread_self(), prevName, sizeof(prevName));
+  jint res = vm->AttachCurrentThread(env, args);
+  pthread_setname_np(pthread_self(), prevName);
+  return res;
+}
+
 static int find_input_callback(OnInputCallback callback)
 {
   for (int i = 0; i < MAX_INPUT_CALLBACK_NUM; i++)

@@ -26,6 +26,44 @@ static int tiff_nullMapProc(thandle_t, void **, toff_t *) { return 0; }
 static void tiff_nullUnmapProc(thandle_t, void *, toff_t) {}
 
 
+bool read_tiff32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha)
+{
+  FullFileLoadCB crd(fn);
+  if (!crd.fileHandle)
+    return false;
+
+  uint32_t width, height;
+  uint16_t bps, spp;
+  TIFF *tif = TIFFClientOpen(crd.getTargetName(), "r", reinterpret_cast<thandle_t>(&crd), &tiff_ReadProc, &tiff_WriteProc,
+    &tiff_SeekProc, &tiff_CloseProc, &tiff_SizeProc, &tiff_nullMapProc, &tiff_nullUnmapProc);
+
+  if (!tif)
+    return false;
+
+  bool ret = false;
+  if (TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width) == 0)
+    goto end;
+  if (TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height) == 0)
+    goto end;
+  if (TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bps) == 0)
+    goto end;
+  if (bps != 1 && bps != 2 && bps != 4 && bps != 8 && bps != 16 && bps != 32)
+    goto end;
+  if (TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &spp) == 0)
+    goto end;
+  if (spp != 1 && spp != 2 && spp != 3 && spp != 4)
+    goto end;
+
+  out_w = width;
+  out_h = height;
+  out_may_have_alpha = spp >= 4;
+  ret = /* spp <= 4 && */ bps <= 8;
+
+end:
+  TIFFClose(tif);
+  return ret;
+}
+
 TexImage32 *load_tiff32(const char *fn, IMemAlloc *mem, bool *out_used_alpha)
 {
   FullFileLoadCB crd(fn);

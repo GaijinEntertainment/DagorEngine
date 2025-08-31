@@ -16,6 +16,7 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_rwResource.h>
 #include <3d/dag_render.h>
+#include <3d/dag_texStreamingContext.h>
 #include <ecs/render/shaders.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_overrideStates.h>
@@ -23,6 +24,8 @@
 #include <ecs/render/compute_shader.h>
 
 extern bool grs_draw_wire;
+
+MAKE_TYPE_FACTORY(TexStreamingContext, TexStreamingContext)
 
 MAKE_TYPE_FACTORY(Driver3dPerspective, Driver3dPerspective);
 MAKE_TYPE_FACTORY(ShadersECS, ShadersECS);

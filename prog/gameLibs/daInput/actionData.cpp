@@ -21,6 +21,11 @@ int dainput::configVer = 0;
 unsigned dainput::colActiveMask = 0xFFFFFFFFu;
 bool dainput::actionset_logs = false, dainput::event_logs = false;
 void (*dainput::logscreen)(const char *s) = nullptr;
+#if !(_TARGET_C1 | _TARGET_C2 | _TARGET_XBOX)
+unsigned dainput::devReportMask = DEV_USED_gamepad | DEV_USED_mouse | DEV_USED_kbd | DEV_USED_touch;
+#else
+unsigned dainput::devReportMask = DEV_USED_gamepad;
+#endif
 
 HumanInput::IGenKeyboard *dainput::dev1_kbd = nullptr;
 HumanInput::IGenPointing *dainput::dev2_pnt = nullptr;
@@ -301,6 +306,14 @@ void dainput::activate_action_set_immediate(action_set_handle_t set, bool activa
       activate ? "TRUE" : "false", actionSetStack.size(), find_value_idx(actionSetStack, set), actionSets[set].ordPriority));
 }
 
+
+void dainput::enable_reports_for_devices(bool enable, unsigned dev_used_mask)
+{
+  if (enable)
+    dainput::devReportMask |= dev_used_mask;
+  else
+    dainput::devReportMask &= ~dev_used_mask;
+}
 
 void dainput::reset_devices()
 {

@@ -11,7 +11,8 @@ bool getAdditionalScreenProbesCount(UseByteAddressBuffer pos_buffer, uint screen
   return count;
 }
 uint sp_loadEncodedProbe(UseByteAddressBuffer pos_buffer, uint probe_index) {return loadBuffer(pos_buffer, probe_index*4);}
-uint sp_loadEncodedProbeNormalCoord(UseByteAddressBuffer pos_buffer, uint probe_index, uint total_probes) {return loadBuffer(pos_buffer, (probe_index + total_probes)*4);}
+uint sp_loadEncodedProbeNormalCoord(UseByteAddressBuffer pos_buffer, uint probe_index, uint total_probes) {return loadBuffer(pos_buffer, (probe_index*2 + total_probes)*4);}
+uint2 sp_loadEncodedProbeNormalAndColorCoord(UseByteAddressBuffer pos_buffer, uint probe_index, uint total_probes) {return loadBuffer2(pos_buffer, (probe_index*2 + total_probes)*4);}
 
 DecodedProbe getScreenProbeUnsafe(UseByteAddressBuffer pos_buffer, uint probe_index)
 {

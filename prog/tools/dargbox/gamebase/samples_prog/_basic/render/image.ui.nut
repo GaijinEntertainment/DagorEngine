@@ -18,7 +18,7 @@ return {
     {
       halign = ALIGN_CENTER
       valign = ALIGN_CENTER
-      size = [sh(20), sh(20)]
+      size = sh(20)
       rendObj = ROBJ_IMAGE
       image=picture
     }

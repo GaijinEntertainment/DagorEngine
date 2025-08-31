@@ -24,6 +24,7 @@ dot_suffix = "__"
 event_handler_suffix = "_event_handler"
 generic_event_type = "ecs::Event"
 ecs_query_suffix = "_ecs_query"
+ecs_query_id_suffix = "_ecs_query_id"
 global_input_file_name = ""
 reserved_components_name = {"_worker_id_" : "components.getWorkerId()", "manager" : "components.manager()"}
 reserved_components_types = {"_worker_id_" : "int", "manager" : "ecs::EntityManager"}
@@ -70,6 +71,7 @@ class ESFunction:
     self.breakable = False
     self.params_array = {'ro': {}, 'rw': {}, 'rq': {}, 'no': {}}
     self.eventList = []
+    self.isStatic = False
 
 
 def remove_const_from_type(type_name):
@@ -118,6 +120,9 @@ def es_function_from_parsed_function(fun):
     esFun = ESFunction(fun.funcName)
     esFun.stage_param = fun.call_params[0]
     firstCallParam = 1
+  elif (fun.funcName.endswith(ecs_query_id_suffix)):
+    esFun = ESFunction(fun.funcName)
+    esFun.isStatic = fun.isStatic
   elif (fun.funcName.endswith(ecs_query_suffix)):
     esFun = ESFunction(fun.funcName)
     esFun.breakable = fun.cb_result_type == "ecs::QueryCbResult"
@@ -570,6 +575,13 @@ def gen_ecs_query_desc(esFunction, rw_params_str, ro_params_str, rq_params_str, 
   return genCode
 
 
+def gen_ecs_query_id_getter(esFunction) :
+  funcName = esFunction.fullFuncName
+  queryDescName = funcName.removeprefix("get_").removesuffix("_id")
+  static = "static " if esFunction.isStatic else ""
+  return f"{static}ecs::QueryId {funcName}() {{ return {queryDescName}_desc.getHandle(); }}"
+
+
 def gen_ecs_query_simd(esFunction):
   funcName = esFunction.funcName
   fullFuncName = esFunction.fullFuncName
@@ -586,6 +598,8 @@ def gen_ecs_query_simd(esFunction):
   loop_expr = 'auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do' if not esFunction.is_eid_query else 'constexpr size_t comp = 0;'
   end_loop_expr = 'while (++comp != compE);' if not esFunction.is_eid_query else ''
   parallelForCode = '  , nullptr, {funcName}_desc.getQuant()'.format(**locals()) if def_quant_code != '' and not esFunction.is_eid_query else ''
+  query_type_start = 'ecs::stoppable_query_cb_t(' if esFunction.breakable else ''
+  query_type_end = ')' if esFunction.breakable else ''
   if len(esFunction.condition):
     condition = gen_condition(esFunction, esFunction.condition)
     func_call = 'function(\n{call_}'.format(**locals())
@@ -625,8 +639,8 @@ def gen_ecs_query_simd(esFunction):
 inline {result_type} {fullFuncName}({first_arg}{second_arg}Callable function)
 {{
   {return_statement}perform_query({manager_name},{eid_pass} {funcName}_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {{{callCode}}}
+    {query_type_start}[&function](const ecs::QueryView& __restrict components)
+    {{{callCode}}}{query_type_end}
   {parallelForCode});
 }}
 '''.format(result_type=esFunction.result_type, return_statement='' if esFunction.result_type == 'void' else 'return ', **locals())
@@ -840,11 +854,12 @@ def get_es_desc(esFunction, ret):
 allESFunctions = []
 allEventFunctions = []
 allQueryFunctions = []
+allQueryIdFunctions = []
 
 
 def gen_es(allParsedFunctions, event_suffix, input_file_name):
   global event_handler_suffix
-  global allESFunctions, allEventFunctions, allQueryFunctions
+  global allESFunctions, allEventFunctions, allQueryFunctions, allQueryIdFunctions
   global global_input_file_name
   global_input_file_name = input_file_name
   event_handler_suffix = event_suffix
@@ -857,6 +872,9 @@ def gen_es(allParsedFunctions, event_suffix, input_file_name):
         allEventFunctions.append(esFun)
       else:
         allESFunctions.append(esFun)
+    elif allParsedFunctions[i].funcName.endswith(ecs_query_id_suffix):
+      esFun = es_function_from_parsed_function(allParsedFunctions[i])
+      allQueryIdFunctions.append(esFun)
     elif (allParsedFunctions[i].funcName.endswith(ecs_query_suffix)):
       found = False
       for j in range(0, len(allQueryFunctions)):
@@ -974,5 +992,8 @@ def gen_es(allParsedFunctions, event_suffix, input_file_name):
     # resultCode += gen_query_simd(allQueryFunctions[i])
     resultCode += gen_ecs_query_desc(allQueryFunctions[i], ro_rw_desc['rw_params_str'], ro_rw_desc['ro_params_str'], ro_rw_desc['rq_params_str'], ro_rw_desc['no_params_str'])
     resultCode += gen_ecs_query_simd(allQueryFunctions[i])
+
+  for i in range(0, len(allQueryIdFunctions)):
+    resultCode += gen_ecs_query_id_getter(allQueryIdFunctions[i])
 
   return resultCode

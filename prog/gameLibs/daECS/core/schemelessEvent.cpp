@@ -32,7 +32,7 @@ SchemelessEvent::SchemelessEvent(ecs::event_type_t tp, ecs::event_flags_t flags_
 #endif
 }
 
-void SchemelessEvent::destroy(Event &e)
+void SchemelessEvent::destroy(ecs::EntityManager &, Event &e)
 {
 #if DAGOR_DBGLEVEL > 0
   G_ASSERT_RETURN(ecs::is_schemeless_event(e), );
@@ -40,7 +40,7 @@ void SchemelessEvent::destroy(Event &e)
   static_cast<SchemelessEvent &>(e).~SchemelessEvent();
 }
 
-void SchemelessEvent::move_out(void *__restrict allocateAt, Event &&from)
+void SchemelessEvent::move_out(ecs::EntityManager &, void *__restrict allocateAt, Event &&from)
 {
 #if DAGOR_DBGLEVEL > 0
   if (!ecs::is_schemeless_event(from))

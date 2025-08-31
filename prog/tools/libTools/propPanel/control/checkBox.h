@@ -15,24 +15,24 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setBoolValue(bool value) override { controlValue = value; }
-  virtual bool getBoolValue() const override { return controlValue; }
+  void setBoolValue(bool value) override { controlValue = value; }
+  bool getBoolValue() const override { return controlValue; }
 
-  virtual void reset() override
+  void reset() override
   {
     setBoolValue(false);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

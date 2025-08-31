@@ -12,13 +12,25 @@ String get_template_text_src_fog(uint32_t variant_id)
 
   clear_and_shrink(templateNames);
 
+  templateNames.push_back(String("fogDefines.hlsli"));
+  templateNames.push_back(String("../../../daSDF/shaders/world_sdf.hlsli")); // Needs to be before globalHlsl
+  templateNames.push_back(String("../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"));
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
+  templateNames.push_back(String("../../../publicInclude/render/light_consts.hlsli"));
+  templateNames.push_back(String("../../../render/shaders/camera_in_camera.hlsl"));
   templateNames.push_back(String("../../../render/shaders/pcg_hash.hlsl"));
   templateNames.push_back(String("../../../publicInclude/render/volumetricLights/heightFogNode.hlsli"));
   templateNames.push_back(String("../../../render/shaders/phase_functions.hlsl"));
   templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common_def.hlsli"));
+  templateNames.push_back(String("../../../render/shaders/depth_above.hlsl"));
   templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common.hlsl"));
   templateNames.push_back(String("../../../render/shaders/wind/sample_wind_common.hlsl"));
+  templateNames.push_back(String("../../../fftWater/shaders/water_heigtmap.hlsl"));
+  templateNames.push_back(String("nbsSDF.hlsl"));
+  templateNames.push_back(String("../../../render/shaders/gravity_zones_funcs.hlsl"));
+  templateNames.push_back(String("../../../daSDF/shaders/world_sdf_math.hlsl"));
+  templateNames.push_back(String("../../../daSDF/shaders/world_sdf_use.hlsl"));
+
 
   switch (static_cast<NodeBasedShaderFogVariant>(variant_id))
   {

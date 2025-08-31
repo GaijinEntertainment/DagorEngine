@@ -10,9 +10,10 @@ class EntityFilterService : public IEditorService, public IObjEntityFilter
 {
 public:
   EntityFilterService(const char *subtype_str, const char *_name, const char *user_name, bool f_coll = true, bool f_export = true,
-    bool f_render = true)
+    bool f_render = true, bool visible_by_default = true) :
+    visibleByDefault(visible_by_default)
   {
-    visible = true;
+    visible = visible_by_default;
     fRender = f_render;
     fExport = f_export;
     fCollision = f_coll;
@@ -20,13 +21,16 @@ public:
     userName = user_name;
     bit = IObjEntity::registerSubTypeId(subtype_str);
     bit = (bit > 31) ? 0 : (1 << bit);
+
+    if (!visible_by_default)
+      setServiceVisible(false);
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return name; }
-  virtual const char *getServiceFriendlyName() const { return userName; }
+  const char *getServiceName() const override { return name; }
+  const char *getServiceFriendlyName() const override { return userName; }
 
-  virtual void setServiceVisible(bool vis)
+  void setServiceVisible(bool vis) override
   {
     if (fRender)
     {
@@ -34,21 +38,31 @@ public:
       applyFiltering(STMASK_TYPE_RENDER, visible);
     }
   }
-  virtual bool getServiceVisible() const { return visible; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService() {}
-  virtual void renderTransService() {}
-  virtual void onBeforeReset3dDevice() {}
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override {}
+  void renderTransService() override {}
+  void onBeforeReset3dDevice() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void clearServiceData() override
+  {
+    if (allowFiltering(STMASK_TYPE_RENDER))
+      applyFiltering(STMASK_TYPE_RENDER, visibleByDefault);
+    if (allowFiltering(STMASK_TYPE_COLLISION))
+      applyFiltering(STMASK_TYPE_COLLISION, true);
+    if (allowFiltering(STMASK_TYPE_EXPORT))
+      applyFiltering(STMASK_TYPE_EXPORT, true);
+  }
+
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityFilter);
     return NULL;
   }
 
-  virtual bool allowFiltering(int mask_type)
+  bool allowFiltering(int mask_type) override
   {
     switch (mask_type)
     {
@@ -58,7 +72,7 @@ public:
     }
     return false;
   }
-  virtual void applyFiltering(int mask_type, bool use)
+  void applyFiltering(int mask_type, bool use) override
   {
     int mask = IObjEntityFilter::getSubTypeMask(mask_type);
     if (use)
@@ -68,9 +82,10 @@ public:
 
     IObjEntityFilter::setSubTypeMask(mask_type, mask);
   }
-  virtual bool isFilteringActive(int mask_type) { return (IObjEntityFilter::getSubTypeMask(mask_type) & bit) ? true : false; }
+  bool isFilteringActive(int mask_type) override { return (IObjEntityFilter::getSubTypeMask(mask_type) & bit) ? true : false; }
 
 protected:
+  const bool visibleByDefault;
   bool visible;
   bool fRender, fExport, fCollision;
   unsigned bit;
@@ -117,9 +132,6 @@ void init_entity_filter_service()
     new (inimem) EntityFilterService("snow_obj", "_rend_snow_obj", "(filter) Snow sources", false, true, true));
   IDaEditor3Engine::get().registerService(
     new (inimem) EntityFilterService("navmesh", "_navmesh", "(filter) Show navigation mesh", false, false, true));
-
-  EntityFilterService *groundObjFilterSrv =
-    new (inimem) EntityFilterService("ground_obj", "_rend_ground_obj", "(filter) Show ground objects", false, false, true);
-  groundObjFilterSrv->setServiceVisible(false); // not visible by default
-  IDaEditor3Engine::get().registerService(groundObjFilterSrv);
+  IDaEditor3Engine::get().registerService(
+    new (inimem) EntityFilterService("ground_obj", "_rend_ground_obj", "(filter) Show ground objects", false, false, true, false));
 }

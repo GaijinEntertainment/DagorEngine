@@ -1,0 +1,457 @@
+texture fast_grass_tex_a;
+texture fast_grass_tex_n;
+
+texture noise_64_tex;
+
+const_buffer fast_grass_types_buf;
+const_buffer fast_grass_clip_rects;
+int fast_grass_num_clips = 1;
+
+float fast_grass_aspect_ratio = 1;
+float fast_grass_slice_step = 0.5;
+int fast_grass_num_samples = 4;
+int fast_grass_max_samples = 64;
+float fast_grass_fade_start = 2;
+float fast_grass_fade_range = 0.25;
+float fast_grass_step_scale = 50;
+float fast_grass_height_variance_scale = 2;
+
+float fast_grass_porosity = 0.7;
+float fast_grass_smoothness_fade_start = 1.0;
+float fast_grass_smoothness_fade_end = 30.0;
+float fast_grass_normal_fade_start = 30;
+float fast_grass_normal_fade_end = 100;
+float fast_grass_ao_max = 0.0;
+float fast_grass_ao_curve = 2;
+
+texture fast_grass_pre_hmap;
+texture fast_grass_pre_gmap;
+texture fast_grass_pre_cmap;
+
+int fast_grass_debug = 0;
+interval fast_grass_debug: off < 1, biomes < 2, density < 3, range;
+
+macro USE_FAST_GRASS()
+  (vs) {
+    fast_grass_fade_start@f1 = fast_grass_fade_start;
+    fast_grass_fade_speed@f1 = 1 / fast_grass_fade_range;
+    fast_grass_slice_step@f1 = fast_grass_slice_step;
+    fast_grass_step_speed@f1 = 1 / fast_grass_step_scale;
+    VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer VSGrassTypes@cbuf
+      {
+        FastGrassType fast_grass_types[GRASS_MAX_CHANNELS];
+      };
+    };
+  }
+
+  (ps) {
+    noise_64_tex@smp2d = noise_64_tex;
+    fast_grass_fade_start@f1 = fast_grass_fade_start;
+    fast_grass_fade_speed@f1 = 1 / fast_grass_fade_range;
+    fast_grass_slice_step@f1 = fast_grass_slice_step;
+    fast_grass_step_speed@f1 = 1 / fast_grass_step_scale;
+    fast_grass_aspect_ratio@f1 = fast_grass_aspect_ratio;
+    fast_grass_height_variance_freq@f1 = 1.0 / 64 / fast_grass_height_variance_scale;
+    fast_grass_num_samples@i1 = fast_grass_num_samples;
+    fast_grass_max_samples@i1 = fast_grass_max_samples;
+    noise_screen_scale@f2 = screen_pos_to_texcoord * 64.0 * (1, 0.02);
+    VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer VSGrassTypes@cbuf
+      {
+        FastGrassType fast_grass_types[GRASS_MAX_CHANNELS];
+      };
+    };
+
+    globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
+    fast_grass_tex_a@smpArray = fast_grass_tex_a;
+    fast_grass_tex_n@smpArray = fast_grass_tex_n;
+
+    grass_porosity@f1 = fast_grass_porosity;
+    smoothnessfadeParams@f2 = (fast_grass_smoothness_fade_start, 1.0 / max(fast_grass_smoothness_fade_end - fast_grass_smoothness_fade_start, 0.001) );
+    normalFadeParams@f2 = (fast_grass_normal_fade_start, 1.0 / max(fast_grass_normal_fade_end - fast_grass_normal_fade_start, 0.001) );
+    grass_ao_max@f1 = fast_grass_ao_max;
+    grass_ao_curve@f1 = fast_grass_ao_curve;
+
+    // Texture LoD: we want to compute how many texels of full-size texture we see per screen pixel.
+    // Then we can take log2() of that and that's the LoD value (unclamped).
+
+    // Let's consider Y screen axis only, for simplicity, and as the most important for the grass.
+    // Let's also assume that W is constant in screen space, which is also desired for the grass.
+    // Points are projected like Ys = Y(p) / W(p), where Y(p) and W(p) come from the globtm transformation.
+    // Distances are scaled like derivative:
+    //   dYs/dp = d[Y(p) / W(p)] / dp = [(dY(p)/dp)*W(p) - Y(p)*(dW(p)/dp)] / W(p)^2
+    // With constant W we get dW/dp = 0, and we can divide by W(p):
+    //   dYs/dp = (1/W(p)) * dY(p)/dp
+    // From the matrix we get:
+    //   W(p) = dot(globtm_psf_3, float4(p.xyz, 1))
+    //   dY(p)/dp.xyz = globtm_psf_1.xyz
+    // We don't care about direction, just general scale, so let's take the length of dY/dp.xyz:
+    //   dY/dl = length(globtm_psf_1.xyz)
+
+    // Now we have:
+    //   dYs/dl = length(globtm_psf_1.xyz) / W(p)
+    // This value decreases with increasing distance from the camera (things get smaller),
+    // so it's reverse of the value we seek (more texels fit in a pixel farther away):
+    //   LoD = log2(lod_factor)
+    //   lod_factor = 2^lod_bias * pixel_texel_ratio / (dYs/dl)
+    //   lod_factor = 2^lod_bias * pixel_texel_ratio * W(p) / length(globtm_psf_1.xyz)
+
+    // Pixel/texel ratio comes from screen and texture sizes:
+    //   pixel_texel_ratio = tex_size.y / (screen_size.y * 0.5)
+    // 0.5 is here because we map Ys from -1..+1 to 0..screen_size.y
+
+    // So now we have (with screen_pos_to_texcoord.xy = 1 / screen_size.xy):
+    //   lod_factor = 2^lod_bias * 2 * W(p) * tex_size.y * screen_pos_to_texcoord.y / length(globtm_psf_1.xyz)
+
+    // Using lod_bias = -1, and accounting for p = worldPos + camera_base_offset, we get the final formula:
+    tex_lod_factor@f4 = (globtm_psf_3.xyz, globtm_psf_3.w
+      + globtm_psf_3.x*camera_base_offset.x
+      + globtm_psf_3.y*camera_base_offset.y
+      + globtm_psf_3.z*camera_base_offset.z
+      + globtm_psf_3.w*camera_base_offset.w)
+        * get_dimensions(fast_grass_tex_a, 0).y * screen_pos_to_texcoord.y
+        / sqrt(globtm_psf_1.x*globtm_psf_1.x + globtm_psf_1.y*globtm_psf_1.y + globtm_psf_1.z*globtm_psf_1.z);
+  }
+
+  hlsl {
+    #define OVERLAP_FACTOR 0.5
+    #define MAX_HEIGHT_SCALE 2.0
+    #define HEIGHT_SCALE_FACTOR 0.5
+
+    float getHeightAdd(uint grassChannel)
+    {
+      return float(fast_grass_types[min(grassChannel, GRASS_MAX_CHANNELS)].w_to_height_add__height_var & 0xffff) / 0xffff;
+    }
+
+    float getHeightVariance(uint grassChannel)
+    {
+      return float((fast_grass_types[min(grassChannel, GRASS_MAX_CHANNELS)].w_to_height_add__height_var >> 16) & 0xffff) / 0xffff;
+    }
+  }
+
+  hlsl(vs) {
+    VsOutput grass_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    {
+      DECODE_VERTEXID_POSXZ
+
+      float3 worldPos;
+      worldPos.xz = decodeWorldPosXZ(posXZ USED_INSTANCE_ID);
+      worldPos.y = 0;
+
+      float cellSize = heightmap_scale_offset[instance_id.x].x;
+      uint grassChannel = GRASS_MAX_CHANNELS;
+      float grassWeight = 0;
+
+      VsOutput output;
+
+      // expecting to get: grassChannel, grassWeight, worldPos.y, output.land_normal
+      // worldPos.xz and cellSize can be used to cull based on grass presence, holes, etc.
+      if (!sampleGrassVS(worldPos, cellSize, grassChannel, grassWeight, output.land_normal))
+      {
+        output.pos = NaN;
+        return output;
+      }
+
+      float grassHeight = fast_grass_types[grassChannel].height * lerp(getHeightAdd(grassChannel), 1, grassWeight);
+      float fade = distance(worldPos, world_view_pos) - fast_grass_fade_start + cellSize;
+
+      bool visible = grassHeight > 0 && grassWeight > 0.01 && fade > 0;
+
+      float cameraEffect = saturate(lengthSq(worldPos.xz - world_view_pos.xz) * 0.25 / pow2(cellSize));
+      float cameraY = world_view_pos.y - 0.1;
+      float worldY = worldPos.y + (visible ? grassHeight : -1);
+
+      if (visible)
+      {
+        float3 p2e = world_view_pos - float3(worldPos.xz, worldY).xzy;
+        float rawStepFactor = length(p2e.xz) * fast_grass_step_speed;
+        float slopeSin = dot(normalize(p2e), output.land_normal);
+        float slopeTan = slopeSin * rsqrt(max(1 - slopeSin * slopeSin, 1e-6));
+        float slopeSF = OVERLAP_FACTOR * grassHeight / max(slopeTan * fast_grass_slice_step, 1e-6);
+        const float heightScale = clamp((rawStepFactor - slopeSF) * HEIGHT_SCALE_FACTOR, 0, MAX_HEIGHT_SCALE - 1) + 1;
+        worldY = worldPos.y + grassHeight * heightScale;
+      }
+
+      worldPos.y = lerp(min(worldY, cameraY), worldY, cameraEffect);
+
+      output.p2e_gy.xyz = world_view_pos - worldPos.xyz;
+      output.p2e_gy.w = grassHeight;
+
+      FAST_GRASS_VS_END
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    #include <pcg_hash.hlsl>
+    #include <hsv_rgb_conversion.hlsl>
+
+    static const float2 dirTable[4] =
+    {
+      float2( 0.92387, -0.38268),
+      float2( 0.92387,  0.38268),
+      float2( 0.38268,  0.92387),
+      float2(-0.38268,  0.92387),
+    };
+
+    void fastGrassPixelShader(float4 screenpos, VsOutput input,
+      out float3 worldPos,
+      out half3 worldNormal,
+      out half3 grassAlbedo,
+      out half smoothness,
+      out half reflectance,
+      out half translucency,
+      out half ao,
+      out half shadow)
+    {
+      float3 p2e = input.p2e_gy.xyz;
+      float startHeight = input.p2e_gy.w;
+      worldPos = world_view_pos.xyz - p2e;
+      float3 landNormal = normalize(input.land_normal);
+
+      float3 orgWorldPos = worldPos;
+      int numSamples = fast_grass_num_samples;
+
+      float4 random4_view = tex2Dlod(noise_64_tex, float4(screenpos.xy*noise_screen_scale.xy, 0, 0));
+
+      // NOTE: tried new transition noise, but it looked more noticeable to me than the simple screen-space one above
+      // float4 random4_view = tex2Dlod(noise_64_tex, float4(
+      //   dot(worldPos.xz, normalize(p2e.zx)*float2(-1, 1)) * 0.1,
+      //   normalize(p2e).y * 1,
+      //   0, 0));
+
+      float rawStepFactor = length(p2e.xz) * fast_grass_step_speed;
+      float slopeSin = dot(normalize(p2e), landNormal);
+      float slopeTan = slopeSin * rsqrt(max(1 - slopeSin * slopeSin, 1e-6));
+      float slopeSF = OVERLAP_FACTOR * startHeight / max(slopeTan * fast_grass_slice_step, 1e-6);
+      const float heightScale = clamp((rawStepFactor - slopeSF) * HEIGHT_SCALE_FACTOR, 0, MAX_HEIGHT_SCALE - 1) + 1;
+      slopeSF *= heightScale;
+      startHeight *= heightScale;
+      rawStepFactor = min(rawStepFactor, slopeSF);
+      rawStepFactor += (random4_view.y-0.5) * 0.5;
+      const int stepFactor = clamp(int(floor(rawStepFactor)), 1, 16);
+      const float startSliceStep = fast_grass_slice_step * stepFactor;
+
+      const float viewSlope = abs(p2e.y) / length(p2e.xz);
+      const float belowFactor = startHeight > 0 ? viewSlope * startSliceStep / startHeight : 0;
+      const float bendFactor = saturate(belowFactor * 2 - 0.8);
+
+      float2 viewDir = p2e.xz;
+      if (viewDir.x + viewDir.y < 0) viewDir = -viewDir;
+      float viewAzimuth;
+      BRANCH
+      if (abs(viewDir.x) > abs(viewDir.y))
+        viewAzimuth = viewDir.y *  0.25 / viewDir.x + 0.25;
+      else
+        viewAzimuth = viewDir.x * -0.25 / viewDir.y + 0.75;
+
+      float4 random4_below = tex2Dlod(noise_64_tex, float4(worldPos.xz / 131 / startSliceStep, 0, 0));
+
+      viewAzimuth += (random4_view.x-0.5) * 0.03;
+      float dirMixFactor = saturate(belowFactor * 1 - 0.6);
+      viewAzimuth += (random4_below.x-0.5) * dirMixFactor;
+      uint di = uint(frac(viewAzimuth) * 4) & (4-1);
+      float2 sliceNorm = dirTable[di];
+
+      float2 sliceTang = float2(-sliceNorm.y, sliceNorm.x);
+
+      float startSliceCoord = dot(worldPos.xz, sliceNorm) / startSliceStep;
+      int startSliceInt = int(dot(p2e.xz, sliceNorm) < 0 ? ceil(startSliceCoord) : floor(startSliceCoord)) * stepFactor;
+      float firstStep = abs(startSliceInt - startSliceCoord * stepFactor);
+
+      const bool bendOn = bendFactor > 0.01;
+      BRANCH
+      if (bendOn)
+      {
+        firstStep -= stepFactor*2;
+        startSliceInt -= (dot(p2e.xz, sliceNorm) < 0 ? stepFactor : -stepFactor)*2;
+      }
+
+      worldNormal = 0;
+      float dp = 60000;
+
+      float3 curPos = worldPos;
+
+      const float3 posStep = p2e * (-fast_grass_slice_step / abs(dot(p2e.xz, sliceNorm)));
+
+      curPos += posStep * firstStep;
+
+      float baseFade = 1;
+      half3 albedo = 0;
+      half hitV = 0;
+      half hitGrassHeight = 0;
+      half2 hitRandom = 0;
+      uint hitChannel = GRASS_MAX_CHANNELS;
+      int hitSlice = -1;
+      bool hit = false;
+
+      int wStep = dot(posStep.xz, sliceNorm) > 0 ? 1 : -1;
+
+      float3 sliceEyeRay = normalize(p2e);
+      sliceEyeRay *= -abs(dot(sliceEyeRay.xz, sliceNorm));
+
+      FAST_GRASS_PS_DECL
+
+      int slice = 0;
+
+      ##if fast_grass_debug != off
+        curPos = orgWorldPos;
+        FAST_GRASS_PS_SAMPLE
+
+        ##if fast_grass_debug == biomes
+          grassAlbedo = hsv_to_rgb(float3((pcg_hash(grassChannel) & 255) / 255.0,
+            1.0,
+            grassChannel < GRASS_MAX_CHANNELS ? (isDecal ? 1.0 : 0.5) : 0.1));
+        ##elif fast_grass_debug == density
+          grassAlbedo = hsv_to_rgb(float3((1-maskScale)*5/6.0, 1, maskScale));
+        ##elif fast_grass_debug == range
+          grassAlbedo = half3(0, 1, isFarLod ? 1:0);
+          float d = length(p2e.xz);
+          if (frac(d/50) < (frac(d/100) < 0.5 ? 0.05:0.02)) grassAlbedo = 0;
+        ##else
+          grassAlbedo = 0.5;
+        ##endif
+
+        worldPos = orgWorldPos;
+        worldNormal = float3(0, 1, 0);
+        smoothness = 0;
+        reflectance = 0;
+        translucency = 0;
+        ao = 1;
+        shadow = 1;
+        return;
+      ##endif
+
+      if (startHeight > 0 && !bendOn)
+      {
+        // walk while we're above the expected grass slice
+        LOOP
+        for (int step = 0; step < numSamples; step++, slice += stepFactor, curPos += posStep * stepFactor)
+        {
+          float surfaceY = sampleHeight(curPos);
+          float v = (surfaceY - curPos.y) / startHeight + 1;
+          if (v >= 0) break;
+        }
+      }
+
+      // sample slices
+      int step = 0;
+      LOOP
+      for (; step < numSamples;
+        step++,
+        slice += stepFactor,
+        curPos += posStep * stepFactor
+        )
+      {
+        FAST_GRASS_PS_SAMPLE
+
+        half4 random4_top = tex2Dlod(noise_64_tex, float4(curPos.xz*fast_grass_height_variance_freq, 0, 0));
+
+        grassChannel = min(grassChannel, GRASS_MAX_CHANNELS);
+        float sliceHeight = fast_grass_types[grassChannel].height;
+        float grassHeight = lerp(getHeightAdd(grassChannel), 1, maskScale)
+          * (1 - random4_top.x * getHeightVariance(grassChannel)) * sliceHeight * heightScale;
+        float ti = fast_grass_types[grassChannel].texIndex;
+        float stiffness = fast_grass_types[grassChannel].stiffness;
+
+        if (grassHeight >= 0.01 && maskScale >= 0.01 && baseFade >= 0.01)
+        {
+          const float sliceTileRcp = rcp(sliceHeight * fast_grass_aspect_ratio);
+          const float grassHeightRcp = rcp(grassHeight);
+
+          float surfaceY = sampleHeight(curPos);
+
+          float stepY = posStep.y * stepFactor;
+          float bentStep = (curPos.y - surfaceY) / (grassHeight / (bendFactor * 2) - stepY);
+          // bentStep = 0; //== uncomment to disable grass bending for debugging
+          float3 hitPos = curPos + posStep * (stepFactor * bentStep);
+
+          float fade = baseFade * saturate((length(world_view_pos - hitPos) - fast_grass_fade_start) * fast_grass_fade_speed);
+
+          if (slice == 0) // fade edge
+            fade *= saturate(distance(hitPos, orgWorldPos) * 2 / startSliceStep);
+
+          float u = dot(hitPos.xz, sliceTang) * sliceTileRcp;
+          uint hash = pcg_hash(startSliceInt + slice * wStep);
+          u += (hash & 0xffff) / float(1<<16);
+          float v = (surfaceY - hitPos.y) * grassHeightRcp + 1;
+          if (v > 1) break; // underground
+
+          float3 wind = getFastGrassWind(u, v, hitPos, grassHeight, stiffness);
+          u -= dot(wind.xz, sliceTang) * sliceTileRcp;
+          v -= wind.y * grassHeightRcp;
+
+          float lod = log2(dot(tex_lod_factor, float4(hitPos, 1)) * grassHeightRcp);
+
+          half4 packedA = tex3Dlod(fast_grass_tex_a, float4(u, v, ti, lod));
+          half4 packedN = tex3Dlod(fast_grass_tex_n, float4(u, v, ti, lod));
+          packedA.a = packedA.a < 4.5/255.0 ? 0 : packedA.a; // cut off for BC7 compression artefacts
+
+          float sliceDepth = (1 - packedA.a) / (packedA.a + 1e-8);
+          float sd = sliceDepth * sliceHeight * 0.5 - fast_grass_slice_step;
+          float d = sd + slice * fast_grass_slice_step;
+          if (d < dp && sliceDepth <= 4 * fade)
+          {
+            hit = true;
+            dp = d;
+            hitChannel = grassChannel;
+            hitRandom = random4_top.yz;
+            worldPos = hitPos + sliceEyeRay * sd;
+            albedo = packedA.rgb * packedA.rgb;
+            hitV = v;
+            hitGrassHeight = grassHeight;
+            worldNormal = restore_normal(packedN.ga);
+            translucency = packedN.r;
+            smoothness = 1 - packedN.b;
+            hitSlice = slice;
+
+            FAST_GRASS_PS_HIT
+          }
+        }
+
+        if (!hit && step + 1 >= numSamples)
+          numSamples = min(numSamples*2, fast_grass_max_samples);
+      }
+
+      if (!hit) discard;
+
+      worldNormal = normalize(worldNormal);
+
+      float2 norm = normalize(p2e.xz);
+      float2 tang = float2(-norm.y, norm.x);
+
+      float3 normX = float3(tang, 0).xzy;
+      float3 normZ = normalize(p2e);
+      float3 normY = normalize(cross(normX, normZ));
+      normX = cross(normZ, normY);
+
+      worldNormal = normalize(normX * worldNormal.x + normY * worldNormal.y + normZ * worldNormal.z);
+
+      shadow = 1;
+      FAST_GRASS_PS_POST
+
+      ao = lerp(ao, 1, bendFactor);
+
+      //this is filtering reflectance and smoothness based on distance
+      //can be done in mipmap chain (so much faster, using Hardware).
+      //but will require separate reflectance in texture
+      float dist = distance(worldPos, world_view_pos);
+      float smoothnessfade = 1.0 - saturate((dist - smoothnessfadeParams.x) * smoothnessfadeParams.y);
+      float normalfade = 1.0 - saturate((dist - normalFadeParams.x) * normalFadeParams.y);
+      smoothness *= smoothnessfade;
+      reflectance *= smoothnessfade;
+      ao = lerp(1, ao, smoothnessfade);
+      worldNormal = normalize(lerp(landNormal, worldNormal, lerp(normalfade, 1, 0.1)));
+      grassAlbedo = lerp(landColor, grassAlbedo, normalfade);
+      translucency *= normalfade;
+
+      // if (bendFactor>0) grassAlbedo = half3(bendFactor, 0, 1-bendFactor); //== for debugging bending range / transition
+      // if (dirMixFactor>0) grassAlbedo = half3(dirMixFactor, 0, 1-dirMixFactor); //== for debugging direction mixing below camera
+      // grassAlbedo = saturate(half3(di&1, di&2, 1)) * 0.3; //== for debugging direction transitions
+      // grassAlbedo = half3(hitSlice==0 || hitSlice>2, hitSlice==1 || hitSlice>2, hitSlice>=2); //== for debugging slices
+    }
+  }
+endmacro

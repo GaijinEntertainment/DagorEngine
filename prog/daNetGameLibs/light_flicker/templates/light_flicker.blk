@@ -110,3 +110,25 @@ light_flicker_updater_mesh
     }
   }
 }
+
+light_flicker_3state{
+  light_flicker__name:t="undefined"
+  light_flicker__brightnesses:p3=1.0, 0.4, 0.01
+  light_flicker__timings:p3=0.1, 0.6, 1.5
+  light_flicker__timingMul:r=1
+  light_flicker__seed:i=0
+  light_flicker__brigtnessDeviation:r=0.3
+  light_flicker__timeDeviation:r=0.3
+  light_flicker__noiseToFlatRatio:r=0.5
+  light_flicker__brightness:r=0.0
+  light_flicker__fullBrightness:r=1.0
+  light_flicker__noisePhase:r=0
+  light_flicker__noiseVelocity:r=10
+  light_flicker__changeAt:r=0
+  light_flicker__currentBase:r=0
+
+  _group{
+    _tags:t="render"
+    "light_flicker__lightEids:list<eid>"{}
+  }
+}

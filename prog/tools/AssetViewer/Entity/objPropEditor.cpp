@@ -68,15 +68,15 @@ void ObjectPropertyEditor::onClick()
   Tab<String> nodes, props;
   getData(nodes, props);
   ObjPropDialog dlg("Object properties", hdpi::_pxScaled(300), hdpi::_pxScaled(450), nodes, props);
-  int dialogResult = PropPanel::DIALOG_ID_CANCEL;
-  while (dialogResult == PropPanel::DIALOG_ID_CANCEL)
+  int dialogResult = wingw::MB_ID_CANCEL;
+  while (dialogResult == wingw::MB_ID_CANCEL)
   {
     if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
     {
       dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Object properties",
         "You have changed Object properties. Do you want to save the "
         "changes to the physical DAGs?");
-      if (dialogResult == PropPanel::DIALOG_ID_YES)
+      if (dialogResult == wingw::MB_ID_YES)
         saveChanges(dlg.getScripts());
     }
     else

@@ -47,8 +47,9 @@ class RoadData;
 enum
 {
   MODIF_NONE = 0,
-  MODIF_SPLINE,
-  MODIF_HMAP,
+  MODIF_SPLINE = 1,
+  MODIF_HMAP = 2,
+  MODIF_HEIGHTBAKE = 3,
 
   LAYER_ORDER_MAX = 16
 };
@@ -62,7 +63,7 @@ public:
   bool splineInactive = false;
 
 protected:
-  ~SplineObject();
+  ~SplineObject() override;
 
 public:
   enum
@@ -104,26 +105,27 @@ public:
 
   SplineObject(bool make_poly);
 
-  virtual void update(real dt) {}
-  virtual void beforeRender() {}
-  virtual void render() {}
-  virtual void renderTrans() {}
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool getWorldBox(BBox3 &box) const;
-  virtual void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
-    dag::ConstSpan<RenderableEditableObject *> objects);
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects);
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects);
-  virtual bool setName(const char *nm) override;
-  virtual void moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis);
-  virtual void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis);
-  virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis);
-  virtual void putMoveUndo();
-  virtual void onRemove(ObjectEditor *);
-  virtual void onAdd(ObjectEditor *objEditor);
-  virtual Point3 getPos() const { return splineCenter(); }
+  void update(real dt) override {}
+  void beforeRender() override {}
+  void render() override {}
+  void renderTrans() override {}
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool getWorldBox(BBox3 &box) const override;
+  void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
+  bool setName(const char *nm) override;
+  void moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis) override;
+  void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override;
+  void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override;
+  void putMoveUndo() override;
+  void onRemove(ObjectEditor *) override;
+  void onAdd(ObjectEditor *objEditor) override;
+  Point3 getPos() const override { return splineCenter(); }
 
   EO_IMPLEMENT_RTTI(CID_HMapSplineObject);
 
@@ -177,13 +179,13 @@ public:
 
   void putObjTransformUndo();
 
-  void prepareSplineClassInPoints();
+  void prepareSplineClassInPoints(bool report_missing_splcls = false);
 
   void pointChanged(int pt_idx);
   void markModifChanged();
   void markModifChangedWhenUsed()
   {
-    if (isAffectingHmap())
+    if (isAffectingHmap() || isHeightBake())
       markModifChanged();
   }
   void markAssetChanged(int start_pt_idx);
@@ -231,9 +233,11 @@ public:
   inline Point2 getPolyObjOffs() { return props.poly.objOffs; }
   inline bool isExportable() { return props.exportable; }
   inline bool isAffectingHmap() { return isPoly() ? isPolyHmapAlign() : getModifType() == MODIF_HMAP; }
+  inline bool isHeightBake() { return !isPoly() && getModifType() == MODIF_HEIGHTBAKE; }
 
   inline void setPolyHmapAlign(bool a) { props.poly.hmapAlign = a; }
   inline void setModifType(int t) { props.modifType = t; }
+  inline void setModifWidth(real w) { props.modifParams.width = w; }
   inline void setBlkGenName(const char *n) { props.blkGenName = n; }
   inline void setPolyObjRot(real rot) { props.poly.objRot = rot; }
   inline void setPolyObjOffs(Point2 offs) { props.poly.objOffs = offs; }

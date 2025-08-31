@@ -13,7 +13,7 @@
 #include <frustumCulling/frustumPlanes.h>
 #include <render/debugMesh.h>
 #include <render/deferredRenderer.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/renderEvent.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/viewVecs.h>
@@ -34,10 +34,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 
-extern int globalFrameBlockId;
 extern ConVarT<bool, false> async_animchars_main;
-
-void start_async_animchar_main_render(const Frustum &fr, uint32_t hints, TexStreamingContext texCtx);
 
 #if DAGOR_DBGLEVEL > 0
 
@@ -287,8 +284,8 @@ struct TileRenderAreaDebugger
 
 struct TileRenderAreaDebugger
 {
-  void overrideRpArea(RenderPassArea, const TMatrix &, const TMatrix4 &){};
-  static void imgui_window(){};
+  void overrideRpArea(RenderPassArea, const TMatrix &, const TMatrix4 &) {}
+  static void imgui_window() {}
 };
 
 #endif
@@ -299,9 +296,9 @@ TileRenderAreaDebugger tileRenderAreaDebugger;
 void TileRenderAreaDebugger::imgui_window() { tileRenderAreaDebugger.imguiWindow(); }
 #endif
 
-dabfg::NodeHandle mk_opaque_setup_mobile_node()
+dafg::NodeHandle mk_opaque_setup_mobile_node()
 {
-  return dabfg::register_node("opaque_setup_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("opaque_setup_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("panorama_prepare_mobile");
 
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
@@ -311,12 +308,12 @@ dabfg::NodeHandle mk_opaque_setup_mobile_node()
 
     const auto gbufferResolution = registry.getResolution<2>("main_view");
     for (size_t i = 0; i < gbufCount; ++i)
-      registry.create(gbufNames[i], dabfg::History::No).texture({formats[i], gbufferResolution});
+      registry.create(gbufNames[i], dafg::History::No).texture({formats[i], gbufferResolution});
 
-    registry.create("target_for_resolve", dabfg::History::No)
+    registry.create("target_for_resolve", dafg::History::No)
       .texture({get_frame_render_target_format() | TEXCF_RTARGET, gbufferResolution});
 
-    registry.create("gbuf_depth_for_opaque", dabfg::History::No)
+    registry.create("gbuf_depth_for_opaque", dafg::History::No)
       .texture({get_gbuffer_depth_format() | TEXCF_RTARGET, gbufferResolution});
 
     registry.requestState().setFrameBlock("global_frame");
@@ -343,19 +340,19 @@ dabfg::NodeHandle mk_opaque_setup_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_opaque_begin_rp_node()
+dafg::NodeHandle mk_opaque_begin_rp_node()
 {
-  return dabfg::register_node("opaque_begin_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("opaque_begin_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
     const size_t gbufCount = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT : MOBILE_GBUFFER_RT_COUNT;
     const auto *gbufNames = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_NAMES.data() : MOBILE_GBUFFER_RT_NAMES.data();
     bool lensRendererEnabledGlobally = lens_renderer_enabled_globally();
 
-    dag::Vector<dabfg::VirtualResourceHandle<BaseTexture, true, false>> renderPassTex;
+    dag::Vector<dafg::VirtualResourceHandle<BaseTexture, true, false>> renderPassTex;
 
     auto addToRenderPass = [&renderPassTex, &registry](const char *tex_name) {
       renderPassTex.push_back(
-        registry.modify(tex_name).texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle());
+        registry.modify(tex_name).texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT).handle());
     };
 
     for (size_t i = 0; i < gbufCount; ++i)
@@ -392,21 +389,21 @@ dabfg::NodeHandle mk_opaque_begin_rp_node()
   });
 }
 
-dabfg::NodeHandle mk_opaque_mobile_node()
+dafg::NodeHandle mk_opaque_mobile_node()
 {
-  return dabfg::register_node("opaque_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("opaque_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
     const size_t gbufCount = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT : MOBILE_GBUFFER_RT_COUNT;
     const auto *gbufNames = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_NAMES.data() : MOBILE_GBUFFER_RT_NAMES.data();
     bool lensRendererEnabledGlobally = lens_renderer_enabled_globally();
 
     for (size_t i = 0; i < gbufCount; ++i)
-      registry.modify(gbufNames[i]).texture().atStage(dabfg::Stage::UNKNOWN).useAs(dabfg::Usage::UNKNOWN);
+      registry.modify(gbufNames[i]).texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN);
 
-    registry.rename("gbuf_depth_for_opaque", "gbuf_depth_for_decals", dabfg::History::No)
+    registry.rename("gbuf_depth_for_opaque", "gbuf_depth_for_decals", dafg::History::No)
       .texture()
-      .atStage(dabfg::Stage::UNKNOWN)
-      .useAs(dabfg::Usage::UNKNOWN);
+      .atStage(dafg::Stage::UNKNOWN)
+      .useAs(dafg::Usage::UNKNOWN);
 
     registry.requestState().setFrameBlock("global_frame").allowWireframe();
 
@@ -426,34 +423,34 @@ dabfg::NodeHandle mk_opaque_mobile_node()
       {
         uint8_t mainHints =
           UpdateStageInfoRender::RENDER_COLOR | UpdateStageInfoRender::RENDER_DEPTH | UpdateStageInfoRender::RENDER_MAIN;
-        start_async_animchar_main_render(camera.noJitterFrustum, mainHints, texCtxHndl.ref());
+        camera.jobsMgr->startAsyncAnimcharMainRender(camera.noJitterFrustum, mainHints, texCtxHndl.ref());
       }
 
-      wr.renderStaticOpaqueForward(camera.viewItm);
+      wr.renderStaticOpaqueForward(camera.jobsMgr->getLandMeshCullingData(), camera.viewItm);
       wr.renderDynamicOpaqueForward(camera.viewItm);
     };
   });
 }
 
-dabfg::NodeHandle mk_opaque_resolve_mobile_node()
+dafg::NodeHandle mk_opaque_resolve_mobile_node()
 {
-  return dabfg::register_node("opaque_resolve", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("opaque_resolve", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
     const size_t gbufCount = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT : MOBILE_GBUFFER_RT_COUNT;
     const auto *gbufNames = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_NAMES.data() : MOBILE_GBUFFER_RT_NAMES.data();
 
     for (size_t i = 0; i < gbufCount; ++i)
-      registry.read(gbufNames[i]).texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::UNKNOWN);
+      registry.read(gbufNames[i]).texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::UNKNOWN);
 
-    registry.rename("target_for_resolve", "target_after_resolve", dabfg::History::No)
+    registry.rename("target_for_resolve", "target_after_resolve", dafg::History::No)
       .texture()
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::COLOR_ATTACHMENT);
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT);
 
-    registry.rename("gbuf_depth_for_resolve", "depth_after_opaque", dabfg::History::No)
+    registry.rename("gbuf_depth_for_resolve", "depth_after_opaque", dafg::History::No)
       .texture()
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::DEPTH_ATTACHMENT);
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::DEPTH_ATTACHMENT);
 
     registry.requestState().setFrameBlock("global_frame");
 
@@ -465,18 +462,18 @@ dabfg::NodeHandle mk_opaque_resolve_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_opaque_end_rp_mobile_node()
+dafg::NodeHandle mk_opaque_end_rp_mobile_node()
 {
-  return dabfg::register_node("native_rp_end_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto depthHndl = registry.rename("depth_after_opaque", "depth_for_transparency_setup", dabfg::History::No)
+  return dafg::register_node("native_rp_end_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto depthHndl = registry.rename("depth_after_opaque", "depth_for_transparency_setup", dafg::History::No)
                        .texture()
-                       .atStage(dabfg::Stage::PS)
-                       .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                       .atStage(dafg::Stage::PS)
+                       .useAs(dafg::Usage::DEPTH_ATTACHMENT)
                        .handle();
-    auto colorHndl = registry.rename("target_after_water", "target_for_transparency_setup", dabfg::History::No)
+    auto colorHndl = registry.rename("target_after_water", "target_for_transparency_setup", dafg::History::No)
                        .texture()
-                       .atStage(dabfg::Stage::PS)
-                       .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                       .atStage(dafg::Stage::PS)
+                       .useAs(dafg::Usage::COLOR_ATTACHMENT)
                        .handle();
     return [depthHndl, colorHndl] {
       d3d::end_render_pass();
@@ -489,25 +486,25 @@ dabfg::NodeHandle mk_opaque_end_rp_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_opaque_setup_forward_node()
+dafg::NodeHandle mk_opaque_setup_forward_node()
 {
-  return dabfg::register_node("opaque_setup_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("opaque_setup_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("panorama_prepare_mobile");
 
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
     const uint32_t depthFlags = get_gbuffer_depth_format() | TEXCF_RTARGET | (wr.isMSAAEnabled() ? wr.msaaQuality : 0);
 
-    auto depthHndl = registry.create("depth_for_opaque", dabfg::History::No)
+    auto depthHndl = registry.create("depth_for_opaque", dafg::History::No)
                        .texture({depthFlags, registry.getResolution<2>("main_view")})
-                       .atStage(dabfg::Stage::PS)
-                       .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                       .atStage(dafg::Stage::PS)
+                       .useAs(dafg::Usage::DEPTH_ATTACHMENT)
                        .handle();
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto targetHndl =
       registry
-        .registerTexture2d("target_for_opaque",
-          [](const dabfg::multiplexing::Index &) {
+        .registerTexture("target_for_opaque",
+          [](const dafg::multiplexing::Index &) {
             ManagedTexView target;
 
             auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -538,8 +535,8 @@ dabfg::NodeHandle mk_opaque_setup_forward_node()
 
             return target;
           })
-        .atStage(dabfg::Stage::PS)
-        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+        .atStage(dafg::Stage::PS)
+        .useAs(dafg::Usage::COLOR_ATTACHMENT)
         .handle();
     use_jitter_frustum_plane_shader_vars(registry);
     return [targetHndl, depthHndl, cameraHndl] {
@@ -584,51 +581,57 @@ dabfg::NodeHandle mk_opaque_setup_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_rename_depth_opaque_forward_node()
+dafg::NodeHandle mk_rename_depth_opaque_forward_node()
 {
-  return dabfg::register_node("rename_depth_opaque_forward", DABFG_PP_NODE_SRC,
-    [](dabfg::Registry registry) { registry.renameTexture("depth_for_opaque", "depth_opaque_static", dabfg::History::No); });
+  return dafg::register_node("rename_depth_opaque_forward", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.renameTexture("depth_for_opaque", "depth_opaque_static", dafg::History::No); });
 }
 
-dabfg::NodeHandle mk_static_opaque_forward_node()
+dafg::NodeHandle mk_static_opaque_forward_node()
 {
-  return dabfg::register_node("static_opaque_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("static_opaque_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass()
-      .color({registry.renameTexture("target_for_opaque", "target_opaque_static", dabfg::History::No)})
+      .color({registry.renameTexture("target_for_opaque", "target_opaque_static", dafg::History::No)})
       .depthRw("depth_opaque_static");
 
     auto depthHndl =
-      registry.modifyTexture("depth_opaque_static").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+      registry.modifyTexture("depth_opaque_static").atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto cameraHndlHistory = registry.readBlob<CameraParams>("current_camera").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
     use_jitter_frustum_plane_shader_vars(registry);
 
-    return [cameraHndl, strmCtxHndl, depthHndl] {
+    return [cameraHndl, cameraHndlHistory, strmCtxHndl, depthHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       const auto &camera = cameraHndl.ref();
+      const auto &prevCamera = cameraHndlHistory.ref();
 
       if (async_animchars_main.get())
       {
         uint8_t mainHints =
           UpdateStageInfoRender::RENDER_COLOR | UpdateStageInfoRender::RENDER_DEPTH | UpdateStageInfoRender::RENDER_MAIN;
-        start_async_animchar_main_render(camera.jitterFrustum, mainHints, strmCtxHndl.ref());
+        camera.jobsMgr->startAsyncAnimcharMainRender(camera.jitterFrustum, mainHints, strmCtxHndl.ref());
       }
 
-      wr.renderStaticOpaqueForward(camera.viewItm);
-      wr.renderStaticDecalsForward(depthHndl.view(), camera.viewTm, camera.jitterProjTm, camera.cameraWorldPos);
+      TMatrix4_vec4 prevProjCurrentJitter = prevCamera.noJitterProjTm;
+      matrix_perspective_add_jitter(prevProjCurrentJitter, camera.jitterPersp.ox, camera.jitterPersp.oy);
+
+      wr.renderStaticOpaqueForward(camera.jobsMgr->getLandMeshCullingData(), camera.viewItm);
+      wr.renderStaticDecalsForward(depthHndl.view(), camera, strmCtxHndl.ref(), camera.jobsMgr->getRiMainVisibility(),
+        prevCamera.viewTm, prevProjCurrentJitter);
     };
   });
 }
 
-dabfg::NodeHandle mk_dynamic_opaque_forward_node()
+dafg::NodeHandle mk_dynamic_opaque_forward_node()
 {
-  return dabfg::register_node("dynamic_opaque_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("dynamic_opaque_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass()
-      .color({registry.renameTexture("target_opaque_static", "target_opaque_dynamic", dabfg::History::No)})
-      .depthRw(registry.renameTexture("depth_opaque_static", "depth_opaque_dynamic", dabfg::History::No));
+      .color({registry.renameTexture("target_opaque_static", "target_opaque_dynamic", dafg::History::No)})
+      .depthRw(registry.renameTexture("depth_opaque_static", "depth_opaque_dynamic", dafg::History::No));
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     use_jitter_frustum_plane_shader_vars(registry);
@@ -640,17 +643,22 @@ dabfg::NodeHandle mk_dynamic_opaque_forward_node()
   });
 }
 
-dabfg::NodeHandle mk_decals_on_dynamic_forward_node()
+dafg::NodeHandle mk_decals_on_dynamic_forward_node()
 {
-  return dabfg::register_node("decals_on_dynamic_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("decals_on_dynamic_forward", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().depthRoAndBindToShaderVars("depth_opaque_dynamic", {"depth_gbuf"});
     registry.orderMeBefore("panorama_apply_mobile");
 
-    return []() {
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto texCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+
+    return [cameraHndl, texCtxHndl]() {
       if (!renderer_has_feature(FeatureRenderFlags::DECALS))
         return;
-      g_entity_mgr->broadcastEventImmediate(RenderDecalsOnDynamic());
+      const CameraParams &camera = cameraHndl.ref();
+      g_entity_mgr->broadcastEventImmediate(RenderDecalsOnDynamic(camera.viewTm, camera.cameraWorldPos, camera.jitterFrustum,
+        camera.jobsMgr->getOcclusion(), texCtxHndl.ref()));
     };
   });
 }

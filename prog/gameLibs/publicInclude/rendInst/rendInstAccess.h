@@ -18,6 +18,11 @@ class RenderableInstanceLodsResource;
 struct RendInstGenData;
 struct RiGenVisibility;
 
+namespace rendinstdestr
+{
+struct BranchDestr;
+}
+
 namespace rendinst
 {
 struct AutoLockReadPrimary
@@ -25,12 +30,23 @@ struct AutoLockReadPrimary
   AutoLockReadPrimary();
   ~AutoLockReadPrimary();
 };
+struct AutoLockWritePrimary
+{
+  AutoLockWritePrimary();
+  ~AutoLockWritePrimary();
+};
 
 struct AutoLockReadPrimaryAndExtra
 {
   AutoLockReadPrimary primaryLock;
   AutoLockReadPrimaryAndExtra();
   ~AutoLockReadPrimaryAndExtra();
+};
+struct AutoLockWritePrimaryAndExtra
+{
+  AutoLockWritePrimary primaryLock;
+  AutoLockWritePrimaryAndExtra();
+  ~AutoLockWritePrimaryAndExtra();
 };
 
 int getRIGenMaterialId(const RendInstDesc &desc, bool need_lock = true);
@@ -55,6 +71,7 @@ bool isRIGenDestr(const RendInstDesc &desc);
 
 int getRIGenStrideRaw(int layer_idx, int pool_id);
 int getRIGenStride(int layer_idx, int cell_id, int pool_id);
+Point4 getRIGenBSphere(const RendInstDesc &desc);
 BBox3 getRIGenBBox(const RendInstDesc &desc);
 BBox3 getRIGenFullBBox(const RendInstDesc &desc);
 
@@ -62,15 +79,18 @@ int get_debris_fx_type_id(RendInstGenData *rgl, const rendinst::RendInstDesc &ri
 
 struct RiDestrData
 {
-  float collisionHeightScale;
-  bool bushBehaviour;
+  bool bushBehaviour = false;
+  bool canopyTriangle = false;
+  float cutInHalfDamageThreshold = -1.0f;
+  float collisionHeightScale = 1.0f;
+  const rendinstdestr::BranchDestr *branchDestr = nullptr;
 
-  int fxType;
-  float fxScale;
-  const char *fxTemplate;
+  int fxType = -1;
+  float fxScale = 1.0f;
+  const char *fxTemplate = "";
 };
 
-RiDestrData gather_ri_destr_data(const RendInstDesc &ri_desc);
+RiDestrData gather_ri_destr_data(const RendInstDesc &ri_desc, bool destroyedByDamage);
 bool ri_gen_has_collision(const RendInstDesc &ri_desc);
 
 RendInstDesc get_restorable_desc(const RendInstDesc &ri_desc);
@@ -82,7 +102,7 @@ RenderableInstanceLodsResource *getRIGenRes(int layer_ix, int pool_ix);
 using RiGenIterator = void (*)(int layer_ix, int pool_ix, int lod_ix, int last_lod_ix, bool impostor, mat44f_cref tm,
   const E3DCOLOR *colors, uint32_t bvh_id, void *user_data);
 void foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data, const dag::Vector<uint32_t> &accel1,
-  const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2);
+  const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2, bool simplified_impostor_matrix);
 void build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vector<uint32_t> &accel1, dag::Vector<uint64_t> &accel2);
 
 } // namespace rendinst

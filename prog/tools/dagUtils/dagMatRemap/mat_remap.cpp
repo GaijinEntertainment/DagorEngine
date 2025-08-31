@@ -94,7 +94,7 @@ int _cdecl main(int argc, char **argv)
 
   if (!::dd_file_exist(inFile))
   {
-    printf("FATAL: file \"%s\" not exists", inFile);
+    printf("FATAL: file \"%s\" not exists\n", inFile);
     return 1;
   }
 

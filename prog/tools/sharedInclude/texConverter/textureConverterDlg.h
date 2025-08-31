@@ -46,11 +46,11 @@ protected:
     ID_BROWSE_SOURCE,
   };
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
-  virtual void findSources();
-  virtual void fileSelected();
+  void findSources();
+  void fileSelected();
   void updateDstFilename();
 
   ddstexture::Converter options;

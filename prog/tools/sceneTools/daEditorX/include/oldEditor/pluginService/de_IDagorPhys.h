@@ -29,9 +29,9 @@ public:
 
   virtual FastRtDump *getFastRtDump() const = 0;
 
-  virtual void initClippingBinary(StaticSceneRayTracer *rt) const = 0;
+  virtual void initCollisionBinary(StaticSceneRayTracer *rt) const = 0;
 
-  virtual void closeClipping() const = 0;
+  virtual void closeCollision() const = 0;
 
   virtual BBox3 getBoundingBox() const = 0;
 };

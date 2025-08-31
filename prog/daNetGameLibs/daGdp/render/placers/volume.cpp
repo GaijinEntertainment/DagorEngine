@@ -4,8 +4,9 @@
 #include <generic/dag_enumerate.h>
 #include <generic/dag_span.h>
 #include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderResUnitedData.h>
@@ -32,6 +33,7 @@ static ShaderVariableInfo tile_start_index("dagdp_volume__tile_start_index");
 
 static ShaderVariableInfo prng_seed_placeable("dagdp_volume__prng_seed_placeable");
 static ShaderVariableInfo prng_seed_slope("dagdp_volume__prng_seed_slope");
+static ShaderVariableInfo prng_seed_occlusion("dagdp_volume__prng_seed_occlusion");
 static ShaderVariableInfo prng_seed_scale("dagdp_volume__prng_seed_scale");
 static ShaderVariableInfo prng_seed_yaw("dagdp_volume__prng_seed_yaw");
 static ShaderVariableInfo prng_seed_pitch("dagdp_volume__prng_seed_pitch");
@@ -45,8 +47,8 @@ static ShaderVariableInfo viewport_pos("dagdp_volume__viewport_pos");
 static ShaderVariableInfo viewport_max_distance("dagdp_volume__viewport_max_distance");
 static ShaderVariableInfo viewport_index("dagdp_volume__viewport_index");
 
-static ShaderVariableInfo mesh_index("dagdp_volume__mesh_index");
 static ShaderVariableInfo num_dispatches("dagdp_volume__num_dispatches");
+static ShaderVariableInfo dispatch_index("dagdp_volume__dispatch_index");
 
 static ShaderVariableInfo mesh_params("dagdp_volume__mesh_params");
 static ShaderVariableInfo areas_start_offset("dagdp_volume__areas_start_offset");
@@ -59,6 +61,7 @@ static ShaderVariableInfo counts("dagdp_volume__counts");
 
 static ShaderVariableInfo volumes("dagdp_volume__volumes");
 static ShaderVariableInfo meshes("dagdp_volume__meshes");
+static ShaderVariableInfo dispatches("dagdp_volume__dispatches");
 static ShaderVariableInfo tiles("dagdp_volume__tiles");
 } // namespace var
 
@@ -66,11 +69,6 @@ using TmpName = eastl::fixed_string<char, 128>;
 
 namespace dagdp
 {
-
-static constexpr uint32_t MAX_TRIANGLES = 1 << 20;
-static constexpr uint32_t MAX_MESHES = 1 << 10;
-static constexpr uint32_t MAX_TILES = 1 << 10;
-static constexpr uint32_t MAX_VOLUMES = 1 << 6;
 
 static constexpr uint32_t ESTIMATED_PREFIX_SUM_LEVELS = 4;
 static inline uint32_t divUp(uint32_t size, uint32_t stride) { return (size + stride - 1) / stride; }
@@ -84,6 +82,13 @@ struct VolumeConstants
   uint32_t numPlaceables;
   uint32_t prngSeed;
   uint32_t totalCounters;
+  uint32_t maxObjects;
+  uint32_t maxTriangles;
+  uint32_t maxMeshes;
+  uint32_t maxDispatches;
+  uint32_t maxTiles;
+  uint32_t maxVolumes;
+  int targetMeshLod;
   VolumeMapping mapping;
 };
 
@@ -103,6 +108,7 @@ struct VolumePersistentData
   UniqueBuf volumeVariantsBuffer;
   UniqueBuf volumesBuffer;
   UniqueBuf meshesBuffer;
+  UniqueBuf dispatchesBuffer;
   UniqueBuf tilesBuffer;
   UniqueBuf terrainTileCountsBuffer;
 
@@ -114,13 +120,14 @@ struct GatheredInfo
 {
   struct PerViewport
   {
-    uint32_t meshStartIndex;
-    uint32_t meshEndIndex;
     uint32_t tileStartIndex;
     uint32_t tileEndIndex;
+    uint32_t dispatchStartIndex;
+    uint32_t dispatchEndIndex;
   };
 
   dag::RelocatableFixedVector<PerViewport, DAGDP_MAX_VIEWPORTS> perViewport;
+  dag::RelocatableFixedVector<uint32_t, MAX_VB_INDICES> dispatches;
   RelevantMeshes relevantMeshes;
   RelevantTiles relevantTiles;
   RelevantVolumes relevantVolumes;
@@ -136,14 +143,20 @@ template <typename T>
 using PerProcessedMesh = dag::RelocatableFixedVector<T, ESTIMATED_PROCESSED_MESHES_PER_FRAME, true, framemem_allocator>;
 
 template <typename T>
-bool updateWithDiscard(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_size, const char *what)
+bool updateFrameMem(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_size, const char *what)
 {
   if (items.size() == 0)
+  {
+    // frame mem buffers must be updated every frame if shader specifies binding,
+    // regardless of logic inside of shader
+    T dummyItem = {};
+    buffer->updateData(0, sizeof(T), &dummyItem, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
     return true;
+  }
 
   if (items.size() > max_size)
   {
-    logerr("daGdp: volume placement exceeded max. number of %s.", what);
+    logerr("daGdp: volume placement exceeded max. number of %s (%u > %u).", what, items.size(), max_size);
     return false;
   }
 
@@ -156,8 +169,11 @@ bool updateWithDiscard(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_si
   return true;
 }
 
-void create_volume_nodes(
-  const ViewInfo &view_info, const ViewBuilder &view_builder, const VolumeManager &volume_manager, NodeInserter node_inserter)
+void create_volume_nodes(const ViewInfo &view_info,
+  const ViewBuilder &view_builder,
+  const VolumeManager &volume_manager,
+  NodeInserter node_inserter,
+  const RulesBuilder &rules_builder)
 {
   FRAMEMEM_REGION;
 
@@ -180,6 +196,13 @@ void create_volume_nodes(
   constants.numPlaceables = commonBufferInit.numPlaceables;
   constants.prngSeed = 0; // Not implemented for now.
   constants.totalCounters = constants.viewInfo.maxViewports * constants.numRenderables;
+  constants.maxObjects = rules_builder.maxObjects;
+  constants.maxTriangles = rules_builder.maxTriangles;
+  constants.maxMeshes = rules_builder.maxMeshes;
+  constants.maxDispatches = (rules_builder.maxMeshes + MAX_DISPATCH_MESHES - 1) / MAX_DISPATCH_MESHES + MAX_VB_INDICES + 1;
+  constants.maxTiles = rules_builder.maxTiles;
+  constants.maxVolumes = rules_builder.maxVolumes;
+  constants.targetMeshLod = rules_builder.targetMeshLod;
 
   constants.maxPlaceableBoundingRadius = 0.0f;
   for (const auto &variant : builder.variants)
@@ -193,7 +216,7 @@ void create_volume_nodes(
   {
     TmpName bufferName(TmpName::CtorSprintf(), "%s_areas", bufferNamePrefix.c_str());
     persistentData->areasBuffer =
-      dag::buffers::create_ua_sr_structured(sizeof(float), MAX_TRIANGLES, bufferName.c_str(), d3d::buffers::Init::Zero);
+      dag::buffers::create_ua_sr_structured(sizeof(float), constants.maxTriangles, bufferName.c_str(), d3d::buffers::Init::Zero);
   }
 
   {
@@ -209,6 +232,11 @@ void create_volume_nodes(
       auto &gpuData = variantsGpuDataFmem[i];
       gpuData.density = variant.density;
       gpuData.minTriangleArea2 = 2.0f * variant.minTriangleArea;
+      gpuData.distBasedScale = variant.distBasedScale;
+      gpuData.distBasedCenter = variant.distBasedCenter;
+      gpuData.distBasedInvRange = 1.0f / max(variant.distBasedRange, 1e-6f);
+      gpuData.sampleRange = variant.sampleRange;
+      gpuData.flags = (variant.axisAbs ? VOLUME_AXIS_ABS_BIT : 0);
     }
 
     bool updated = persistentData->volumeVariantsBuffer->updateData(0, data_size(variantsGpuDataFmem), variantsGpuDataFmem.data(),
@@ -224,19 +252,25 @@ void create_volume_nodes(
   {
     TmpName bufferName(TmpName::CtorSprintf(), "%s_volumes", bufferNamePrefix.c_str());
     persistentData->volumesBuffer =
-      dag::buffers::create_one_frame_sr_structured(sizeof(VolumeGpuData), MAX_VOLUMES, bufferName.c_str());
+      dag::buffers::create_one_frame_sr_structured(sizeof(VolumeGpuData), constants.maxVolumes, bufferName.c_str());
   }
 
   {
     TmpName bufferName(TmpName::CtorSprintf(), "%s_meshes", bufferNamePrefix.c_str());
     persistentData->meshesBuffer =
-      dag::buffers::create_one_frame_sr_structured(sizeof(MeshIntersection), MAX_MESHES, bufferName.c_str());
+      dag::buffers::create_one_frame_sr_structured(sizeof(MeshIntersection), constants.maxMeshes, bufferName.c_str());
+  }
+
+  {
+    TmpName bufferName(TmpName::CtorSprintf(), "%s_dispatches", bufferNamePrefix.c_str());
+    persistentData->dispatchesBuffer =
+      dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), constants.maxDispatches, bufferName.c_str());
   }
 
   {
     TmpName bufferName(TmpName::CtorSprintf(), "%s_tiles", bufferNamePrefix.c_str());
     persistentData->tilesBuffer =
-      dag::buffers::create_one_frame_sr_structured(sizeof(VolumeTerrainTile), MAX_TILES, bufferName.c_str());
+      dag::buffers::create_one_frame_sr_structured(sizeof(VolumeTerrainTile), constants.maxTiles, bufferName.c_str());
   }
 
   {
@@ -245,18 +279,18 @@ void create_volume_nodes(
       dag::buffers::create_one_frame_cb(dag::buffers::cb_array_reg_count<uint4>(DAGDP_MAX_VIEWPORTS), bufferName.c_str());
   }
 
-  const dabfg::NameSpace ns = dabfg::root() / "dagdp" / view_info.uniqueName.c_str() / "volume";
+  const dafg::NameSpace ns = dafg::root() / "dagdp" / view_info.uniqueName.c_str() / "volume";
 
-  dabfg::NodeHandle gatherNode = ns.registerNode("gather", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle gatherNode = ns.registerNode("gather", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
 
     registry.registerBuffer("areas", [persistentData](auto) { return ManagedBufView(persistentData->areasBuffer); })
-      .atStage(dabfg::Stage::COMPUTE)
-      .useAs(dabfg::Usage::SHADER_RESOURCE);
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
 
     const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
-    const auto gatheredInfoHandle = registry.createBlob<GatheredInfo>("gatheredInfo", dabfg::History::No).handle();
+    const auto gatheredInfoHandle = registry.createBlob<GatheredInfo>("gatheredInfo", dafg::History::No).handle();
     return [persistentData, viewHandle, gatheredInfoHandle] {
       const auto &constants = persistentData->constants;
       auto &gatheredInfo = gatheredInfoHandle.ref();
@@ -265,21 +299,66 @@ void create_volume_nodes(
 
       persistentData->mutables.riexProcessor.resetCurrent();
 
+      gatheredInfo.dispatches.push_back(0);
+      RelevantMeshes meshes;
       for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
       {
         const uint32_t meshStartIndex = gatheredInfo.relevantMeshes.size();
         const uint32_t tileStartIndex = gatheredInfo.relevantTiles.size();
+        const uint32_t dispatchStartIndex = gatheredInfo.dispatches.size() - 1;
         const auto &viewport = view.viewports[viewportIndex];
         gather(persistentData->constants.mapping, constants.viewInfo, viewport, constants.maxPlaceableBoundingRadius,
-          persistentData->mutables.riexProcessor, gatheredInfo.relevantMeshes, gatheredInfo.relevantTiles,
+          constants.targetMeshLod, persistentData->mutables.riexProcessor, meshes, gatheredInfo.relevantTiles,
           gatheredInfo.relevantVolumes);
 
         auto &item = gatheredInfo.perViewport.push_back();
-        item.meshStartIndex = meshStartIndex;
-        item.meshEndIndex = gatheredInfo.relevantMeshes.size();
         item.tileStartIndex = tileStartIndex;
         item.tileEndIndex = gatheredInfo.relevantTiles.size();
+
+        // sort meshes by vbIndex
+        const uint32_t numMeshes = meshes.size();
+
+        uint32_t buckets[MAX_VB_INDICES + 1];
+        memset(buckets, 0, sizeof(buckets));
+
+        // count items per bucket
+        for (uint32_t meshIndex = 0; meshIndex < numMeshes; meshIndex++)
+        {
+          const uint32_t vbIndex = meshes[meshIndex].vbIndex;
+          G_ASSERT(vbIndex < MAX_VB_INDICES);
+          buckets[vbIndex + 1]++;
+        }
+
+        // prefix-sum counts to array offsets
+        for (uint32_t i = 0, s = meshStartIndex; i <= MAX_VB_INDICES; i++)
+        {
+          uint32_t n = buckets[i];
+          uint32_t s0 = s;
+          s += n;
+          buckets[i] = s;
+          while (s0 < s)
+          {
+            s0 += min<uint32_t>(s - s0, MAX_DISPATCH_MESHES);
+            gatheredInfo.dispatches.push_back(s0);
+          }
+        }
+        G_ASSERT(buckets[MAX_VB_INDICES] == meshStartIndex + numMeshes);
+
+        // put meshes in the sorted order
+        gatheredInfo.relevantMeshes.resize(meshStartIndex + numMeshes);
+        for (uint32_t meshIndex = 0; meshIndex < numMeshes; meshIndex++)
+        {
+          const auto &mesh = meshes[meshIndex];
+          const uint32_t newIndex = buckets[mesh.vbIndex]++;
+          gatheredInfo.relevantMeshes[newIndex] = mesh;
+        }
+
+        item.dispatchStartIndex = dispatchStartIndex;
+        item.dispatchEndIndex = gatheredInfo.dispatches.size() - 1;
+
+        meshes.clear();
       }
+      meshes.shrink_to_fit();
 
       if (const auto *nextToProcess = persistentData->mutables.riexProcessor.current(); nextToProcess != nullptr)
       {
@@ -297,24 +376,29 @@ void create_volume_nodes(
         }
       }
 
-      if (
-        !updateWithDiscard(make_span_const(gatheredInfo.relevantMeshes), persistentData->meshesBuffer.getBuf(), MAX_MESHES, "meshes"))
+      if (!updateFrameMem(make_span_const(gatheredInfo.relevantMeshes), persistentData->meshesBuffer.getBuf(),
+            persistentData->constants.maxMeshes, "meshes"))
         return;
 
-      if (!updateWithDiscard(make_span_const(gatheredInfo.relevantTiles), persistentData->tilesBuffer.getBuf(), MAX_TILES, "tiles"))
+      if (!updateFrameMem(make_span_const(gatheredInfo.dispatches), persistentData->dispatchesBuffer.getBuf(),
+            persistentData->constants.maxDispatches, "dispatches"))
         return;
 
-      if (!updateWithDiscard(make_span_const(gatheredInfo.relevantVolumes), persistentData->volumesBuffer.getBuf(), MAX_VOLUMES,
-            "volumes"))
+      if (!updateFrameMem(make_span_const(gatheredInfo.relevantTiles), persistentData->tilesBuffer.getBuf(),
+            persistentData->constants.maxTiles, "tiles"))
+        return;
+
+      if (!updateFrameMem(make_span_const(gatheredInfo.relevantVolumes), persistentData->volumesBuffer.getBuf(),
+            persistentData->constants.maxVolumes, "volumes"))
         return;
 
       gatheredInfo.isValid = true;
     };
   });
 
-  dabfg::NodeHandle processNode = ns.registerNode("process", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle processNode = ns.registerNode("process", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
-    registry.modify("areas").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
+    registry.modify("areas").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
 
     return [persistentData, gatheredInfoHandle, shaderTri = ComputeShader("dagdp_volume_mesh_process_tri"),
              shaderUp = ComputeShader("dagdp_volume_mesh_process_up"), shaderDown = ComputeShader("dagdp_volume_mesh_process_down")] {
@@ -324,10 +408,11 @@ void create_volume_nodes(
       AreasIndices areasIndices;
       bool outOfMem = false;
 
-      const auto bumpAllocate = [&used = persistentData->mutables.areasUsed, &outOfMem](uint32_t count) {
+      const auto bumpAllocate = [&used = persistentData->mutables.areasUsed, &outOfMem,
+                                  maxTriangles = persistentData->constants.maxTriangles](uint32_t count) {
         uint32_t offset = used;
         used += count;
-        if (used > MAX_TRIANGLES)
+        if (used > maxTriangles)
           outOfMem = true;
         return offset;
       };
@@ -389,7 +474,7 @@ void create_volume_nodes(
       if (outOfMem)
       {
         logerr("daGdp: volume mesh processing ran out of memory! %" PRIu32 " > %" PRIu32, persistentData->mutables.areasUsed,
-          MAX_TRIANGLES);
+          persistentData->constants.maxTriangles);
         return;
       }
 
@@ -456,17 +541,20 @@ void create_volume_nodes(
     };
   });
 
-  dabfg::NodeHandle setArgsNode = ns.registerNode("set_args", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle setArgsNode = ns.registerNode("set_args", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
 
-    registry.create("dispatch_args", dabfg::History::No)
-      .buffer({sizeof(uint32_t), DISPATCH_INDIRECT_NUM_ARGS * MAX_MESHES,
-        SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT, 0})
-      .atStage(dabfg::Stage::COMPUTE)
+    registry.create("dispatch_args", dafg::History::No)
+      .buffer({sizeof(uint32_t), DISPATCH_INDIRECT_NUM_ARGS * constants.maxDispatches, SBCF_UA_SR_BYTE_ADDRESS | SBCF_UA_INDIRECT, 0})
+      .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_volume__dispatch_args");
+    registry.create("mesh_objects", dafg::History::No)
+      .buffer({sizeof(uint32_t), constants.maxMeshes * 2, SBCF_UA_SR_STRUCTURED, 0})
+      .atStage(dafg::Stage::COMPUTE)
+      .bindToShaderVar("dagdp_volume__mesh_objects");
 
-    registry.read("areas").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
+    registry.read("areas").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
 
     const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
 
@@ -477,13 +565,16 @@ void create_volume_nodes(
         return;
 
       STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
+      STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
+      STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
       STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
         BAD_D3DRESID);
       STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
         BAD_D3DRESID);
 
-      ShaderGlobal::set_int(var::num_dispatches, gatheredInfo.relevantMeshes.size());
-      const bool dispatchSuccess = shader.dispatchThreads(gatheredInfo.relevantMeshes.size(), 1, 1);
+      // since dispatch ranges are consecutive (end of one dispatch is the start of the next one),
+      // gatheredInfo.dispatch contains N+1 elements for N dispatches (N starting indices and one ending, or vice versa)
+      const bool dispatchSuccess = shader.dispatchGroups(gatheredInfo.dispatches.size() - 1, 1, 1);
 
       if (!dispatchSuccess)
         logerr("daGdp: volume set args dispatch failed!");
@@ -491,14 +582,15 @@ void create_volume_nodes(
   });
 
   const auto createPlaceNode = [&](bool isOptimistic) {
-    return ns.registerNode(isOptimistic ? "place_stage0" : "place_stage1", DABFG_PP_NODE_SRC,
-      [isOptimistic, persistentData](dabfg::Registry registry) {
+    return ns.registerNode(isOptimistic ? "place_stage0" : "place_stage1", DAFG_PP_NODE_SRC,
+      [isOptimistic, persistentData](dafg::Registry registry) {
         const auto &constants = persistentData->constants;
         view_multiplex(registry, constants.viewInfo.kind);
 
-        registry.read("areas").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
+        registry.read("areas").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__areas");
+        registry.read("mesh_objects").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__mesh_objects");
         const auto dispatchArgsHandle =
-          registry.read("dispatch_args").buffer().atStage(dabfg::Stage::COMPUTE).useAs(dabfg::Usage::INDIRECTION_BUFFER).handle();
+          registry.read("dispatch_args").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::INDIRECTION_BUFFER).handle();
         const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
         const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
 
@@ -506,15 +598,15 @@ void create_volume_nodes(
 
         ns.read(isOptimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
           .buffer()
-          .atStage(dabfg::Stage::COMPUTE)
+          .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_allocs");
 
         ns.modify(isOptimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
           .buffer()
-          .atStage(dabfg::Stage::COMPUTE)
+          .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_counters");
 
-        ns.modify("instance_data").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
+        ns.modify("instance_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
 
         return [persistentData, viewHandle, gatheredInfoHandle, dispatchArgsHandle, isOptimistic,
                  shader = ComputeShader(isOptimistic ? "dagdp_volume_place_stage0" : "dagdp_volume_place_stage1")] {
@@ -527,9 +619,11 @@ void create_volume_nodes(
             return;
 
           bool dispatchSuccess = true;
+          TIME_D3D_PROFILE(dagdp_mesh_placers);
 
           STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
           STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
+          STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
 
           STATE_GUARD(ShaderGlobal::set_buffer(var::draw_ranges, VALUE), persistentData->commonBuffers.drawRangesBuffer.getBufId(),
             BAD_D3DRESID);
@@ -551,6 +645,7 @@ void create_volume_nodes(
           ShaderGlobal::set_int(var::prng_seed_placeable, constants.prngSeed + 0x08C2592Cu);
           ShaderGlobal::set_int(var::prng_seed_scale, constants.prngSeed + 0xDF3069FFu);
           ShaderGlobal::set_int(var::prng_seed_slope, constants.prngSeed + 0x3C1385DBu);
+          ShaderGlobal::set_int(var::prng_seed_occlusion, constants.prngSeed + 0x93C0FB91u);
           ShaderGlobal::set_int(var::prng_seed_yaw, constants.prngSeed + 0x71F23960u);
           ShaderGlobal::set_int(var::prng_seed_pitch, constants.prngSeed + 0xDEB40CF0u);
           ShaderGlobal::set_int(var::prng_seed_roll, constants.prngSeed + 0xF6A38A81u);
@@ -560,34 +655,39 @@ void create_volume_nodes(
           Ibuffer *ib = unitedvdata::riUnitedVdata.getIB();
           d3d::set_buffer(STAGE_CS, 0, ib);
 
-          uint32_t dispatchIndex = 0;
+          if (d3d::get_driver_code().is(d3d::vulkan))
+            d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+
           for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
           {
-            const auto &info = gatheredInfo.perViewport[viewportIndex];
-            const uint32_t numMeshes = info.meshEndIndex - info.meshStartIndex;
-
             const auto &viewport = view.viewports[viewportIndex];
             ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
 
             ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
-            ShaderGlobal::set_real(var::viewport_max_distance, min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance));
+            ShaderGlobal::set_real(var::viewport_max_distance,
+              min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
             ShaderGlobal::set_int(var::viewport_index, viewportIndex);
 
-            for (uint32_t meshIndex = 0; meshIndex < numMeshes; ++meshIndex)
+            const auto &info = gatheredInfo.perViewport[viewportIndex];
+            for (uint32_t dispatchIndex = info.dispatchStartIndex, endIndex = info.dispatchEndIndex; dispatchIndex < endIndex;
+                 dispatchIndex++)
             {
-              const auto &mesh = gatheredInfo.relevantMeshes[meshIndex + info.meshStartIndex];
+              uint32_t meshIndex = gatheredInfo.dispatches[dispatchIndex];
+              const auto &mesh = gatheredInfo.relevantMeshes[meshIndex];
               Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(mesh.vbIndex);
               d3d::set_buffer(STAGE_CS, 1, vb);
-
-              ShaderGlobal::set_int(var::mesh_index, info.meshStartIndex + meshIndex);
+              ShaderGlobal::set_int(var::dispatch_index, dispatchIndex);
 
               // TODO: Performance: ideally need to merge all dispatches (regardless of viewport / vbIndex / meshIndex).
               // TODO: Performance: in the pessimistic phase, should set dispatch args to zero, based on success/failure of the
               // optimistic phase. Should be easy to do, since they are already indirect.
-              int indirectOffset = DISPATCH_INDIRECT_NUM_ARGS * sizeof(uint32_t) * dispatchIndex++;
+              int indirectOffset = DISPATCH_INDIRECT_NUM_ARGS * sizeof(uint32_t) * dispatchIndex;
               dispatchSuccess &= shader.dispatchIndirect(dispatchArgsBuffer, indirectOffset);
             }
           }
+
+          if (d3d::get_driver_code().is(d3d::vulkan))
+            d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 
           d3d::set_buffer(STAGE_CS, 0, nullptr);
           d3d::set_buffer(STAGE_CS, 1, nullptr);
@@ -598,17 +698,17 @@ void create_volume_nodes(
       });
   };
 
-  dabfg::NodeHandle terrainSetArgsNode =
-    ns.registerNode("terrain_set_args", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle terrainSetArgsNode =
+    ns.registerNode("terrain_set_args", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
       const auto &constants = persistentData->constants;
       view_multiplex(registry, constants.viewInfo.kind);
       const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
       const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
 
-      registry.create("terrain_dispatch_args", dabfg::History::No)
+      registry.create("terrain_dispatch_args", dafg::History::No)
         .buffer({sizeof(uint32_t), DISPATCH_INDIRECT_NUM_ARGS * DAGDP_MAX_VIEWPORTS,
           SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT, 0})
-        .atStage(dabfg::Stage::COMPUTE)
+        .atStage(dafg::Stage::COMPUTE)
         .bindToShaderVar("dagdp_volume__dispatch_args");
 
       return [persistentData, viewHandle, gatheredInfoHandle, shader = ComputeShader("dagdp_volume_terrain_set_args")] {
@@ -635,15 +735,15 @@ void create_volume_nodes(
     });
 
   const auto createTerrainPlaceNode = [&](bool isOptimistic) {
-    return ns.registerNode(isOptimistic ? "terrain_place_stage0" : "terrain_place_stage1", DABFG_PP_NODE_SRC,
-      [isOptimistic, persistentData](dabfg::Registry registry) {
+    return ns.registerNode(isOptimistic ? "terrain_place_stage0" : "terrain_place_stage1", DAFG_PP_NODE_SRC,
+      [isOptimistic, persistentData](dafg::Registry registry) {
         const auto &constants = persistentData->constants;
         view_multiplex(registry, constants.viewInfo.kind);
 
         const auto dispatchArgsHandle = registry.read("terrain_dispatch_args")
                                           .buffer()
-                                          .atStage(dabfg::Stage::COMPUTE)
-                                          .useAs(dabfg::Usage::INDIRECTION_BUFFER)
+                                          .atStage(dafg::Stage::COMPUTE)
+                                          .useAs(dafg::Usage::INDIRECTION_BUFFER)
                                           .handle();
         const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
         const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
@@ -652,15 +752,15 @@ void create_volume_nodes(
 
         ns.read(isOptimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
           .buffer()
-          .atStage(dabfg::Stage::COMPUTE)
+          .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_allocs");
 
         ns.modify(isOptimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
           .buffer()
-          .atStage(dabfg::Stage::COMPUTE)
+          .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_counters");
 
-        ns.modify("instance_data").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
+        ns.modify("instance_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
 
         return [persistentData, viewHandle, gatheredInfoHandle, dispatchArgsHandle, isOptimistic,
                  shader = ComputeShader(isOptimistic ? "dagdp_volume_terrain_place_stage0" : "dagdp_volume_terrain_place_stage1")] {
@@ -684,6 +784,8 @@ void create_volume_nodes(
           STATE_GUARD(ShaderGlobal::set_buffer(var::renderable_indices, VALUE),
             persistentData->commonBuffers.renderableIndicesBuffer.getBufId(), BAD_D3DRESID);
           STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
+            BAD_D3DRESID);
+          STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
             BAD_D3DRESID);
 
           ShaderGlobal::set_real(var::debug_frustum_culling_bias, get_frustum_culling_bias());
@@ -709,7 +811,8 @@ void create_volume_nodes(
             const auto &info = gatheredInfo.perViewport[viewportIndex];
 
             ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
-            ShaderGlobal::set_real(var::viewport_max_distance, min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance));
+            ShaderGlobal::set_real(var::viewport_max_distance,
+              min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
             ShaderGlobal::set_int(var::viewport_index, viewportIndex);
             ShaderGlobal::set_int(var::tile_start_index, info.tileStartIndex);
 

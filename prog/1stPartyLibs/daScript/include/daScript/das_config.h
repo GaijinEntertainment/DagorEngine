@@ -118,10 +118,6 @@ using das_safe_set = std::set<K,C>;
 #endif
 
 
-#ifndef das_to_stdout
-#define das_to_stdout(...) { fprintf(stdout, __VA_ARGS__); fflush(stdout); }
-#endif
-
-#ifndef das_to_stderr
-#define das_to_stderr(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); }
+#ifndef das_to_stdout_level_prefix_text
+#define das_to_stdout_level_prefix_text(level, prefix, text) { if (level >= LogLevel::error) { fprintf(stderr, "%s", text); fflush(stderr); } else { fprintf(stdout, "%s%s", prefix, text); fflush(stdout); } }
 #endif

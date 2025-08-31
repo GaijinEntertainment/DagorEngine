@@ -12,6 +12,8 @@ struct RiGenExtraVisibility
 {
   static constexpr int LARGE_LOD_CNT = rendinst::RiExtraPool::MAX_LODS / 2; // sort only first few lods
 
+  bool forcedLocalPoolOrder = false; // ri res order won't be overwritten by a global pool order (must-have if same visibility is used
+                                     // for multiple frames)
   int forcedExtraLod = -1;
   struct Order
   {
@@ -46,4 +48,17 @@ struct RiGenExtraVisibility
   };
   SmallTab<PerInstanceElem> sortedTransparentElems;
   uint32_t partitionedElemsCount = 0;
+
+  static constexpr uint32_t maxHideMarkedMaterialForInstances = 64;
+  struct HideMarkedMaterialForInstance
+  {
+    uint16_t poolId = -1;
+    uint16_t instanceIdx = -1;
+
+    bool operator<(const HideMarkedMaterialForInstance &rhs) const
+    {
+      return poolId < rhs.poolId || (poolId == rhs.poolId && instanceIdx < rhs.instanceIdx);
+    }
+  };
+  SmallTab<HideMarkedMaterialForInstance> hideMarkedMaterialsForInstances;
 };

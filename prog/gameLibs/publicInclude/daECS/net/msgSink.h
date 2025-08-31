@@ -15,7 +15,7 @@ typedef void (*msg_handler_t)(const IMessage *msg);
 
 ecs::EntityId get_msg_sink(); // if INVALID_ENTITY_ID then not created yet
                               //
-using msg_sink_created_cb_t = eastl::fixed_function<eastl::max(sizeof(void *) * 2, sizeof(int) * 3), void(ecs::EntityId)>;
+using msg_sink_created_cb_t = eastl::fixed_function<eastl::max(sizeof(void *) * 3, sizeof(int) * 4), void(ecs::EntityId)>;
 void set_msg_sink_created_cb(msg_sink_created_cb_t cb);
 
 }; // namespace net

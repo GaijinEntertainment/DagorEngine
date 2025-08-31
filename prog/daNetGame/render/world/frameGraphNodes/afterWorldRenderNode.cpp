@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/cinematicMode.h>
 #include <render/renderEvent.h>
+#include <render/world/frameGraphHelpers.h>
 #include <3d/dag_stereoIndex.h>
 #include <ecs/core/entityManager.h>
 
@@ -11,15 +12,15 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 
-dabfg::NodeHandle makeAfterWorldRenderNode()
+dafg::NodeHandle makeAfterWorldRenderNode()
 {
-  return dabfg::register_node("after_world_render_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.multiplex(dabfg::multiplexing::Mode::Viewport);
-    registry.executionHas(dabfg::SideEffects::External);
+  return dafg::register_node("after_world_render_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
+    registry.executionHas(dafg::SideEffects::External);
     registry.readBlob<IPoint2>("super_sub_pixels");
     auto beforeUINs = registry.root() / "before_ui";
     auto frameToPresentHndl =
-      beforeUINs.readTexture("frame_done").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
+      beforeUINs.readTexture("frame_done").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
     return [frameToPresentHndl, world_view_posVarId = ::get_shader_variable_id("world_view_pos")] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       process_video_encoder(frameToPresentHndl.view().getTex2D());

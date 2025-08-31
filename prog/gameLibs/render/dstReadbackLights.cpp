@@ -80,7 +80,7 @@ void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) 
     // Don't use shadow render extensions for distance readback.
     constexpr int NO_INDEX = -1;
 
-    render_static(globTm, viewItmS, NO_INDEX, NO_INDEX, DynamicShadowRenderGPUObjects::NO);
+    render_static(globTm, proj, viewItmS, NO_INDEX, NO_INDEX, DynamicShadowRenderGPUObjects::NO);
     lightShadows->endRenderTempShadow();
     d3d::set_render_target();
   }
@@ -99,8 +99,7 @@ void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) 
 
     ShaderGlobal::set_color4(proj_valuesVarId, Color4(1.0 / wk, 1.0 / hk, 1.0 / mzkQ, -q / mzkQ));
 
-    uint32_t zeroes[4] = {0};
-    d3d::clear_rwbufi(resultBuffer, zeroes);
+    d3d::zero_rwbufi(resultBuffer);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), resultBuffer);
     d3d::resource_barrier({resultBuffer, RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
     d3d::resource_barrier({shadowTex, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});

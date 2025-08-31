@@ -2,6 +2,7 @@
 #pragma once
 
 #include <propPanel/control/propertyControlBase.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include "../scopedImguiBeginDisabled.h"
 
@@ -18,14 +19,11 @@ public:
     selected.resize(vals.size(), false);
   }
 
-  virtual unsigned getTypeMaskForSet() const override
-  {
-    return CONTROL_DATA_STRINGS | CONTROL_DATA_SELECTION | CONTROL_DATA_TYPE_STRING;
-  }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_STRINGS | CONTROL_DATA_SELECTION | CONTROL_DATA_TYPE_STRING; }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_STRINGS | CONTROL_DATA_SELECTION | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_STRINGS | CONTROL_DATA_SELECTION | CONTROL_DATA_TYPE_INT; }
 
-  virtual void setTextValue(const char value[]) override
+  void setTextValue(const char value[]) override
   {
     Tab<int> filtered(tmpmem);
 
@@ -47,8 +45,13 @@ public:
     setSelectionValue(filtered);
   }
 
-  virtual void setStringsValue(const Tab<String> &vals) override
+  void setStringsValue(const Tab<String> &vals) override
   {
+    // If the number of items decreases ImGui's internal state could point to an invalid selection range, so schedule an
+    // update.
+    if (vals.size() < values.size())
+      updateImguiSelectionState = true;
+
     values = vals;
 
     selected.resize_noinit(vals.size());
@@ -56,7 +59,7 @@ public:
     ensureVisibleRequestedIndex = -1;
   }
 
-  virtual void setSelectionValue(const Tab<int> &sels) override
+  void setSelectionValue(const Tab<int> &sels) override
   {
     setAllSelected(false);
     ensureVisibleRequestedIndex = -1;
@@ -73,7 +76,7 @@ public:
     }
   }
 
-  virtual void reset() override
+  void reset() override
   {
     Tab<int> vals(midmem);
     setSelectionValue(vals);
@@ -81,15 +84,15 @@ public:
     PropertyControlBase::reset();
   }
 
-  virtual int getIntValue() const override { return values.size(); }
+  int getIntValue() const override { return values.size(); }
 
-  virtual int getStringsValue(Tab<String> &vals) override
+  int getStringsValue(Tab<String> &vals) override
   {
     vals = values;
     return values.size();
   }
 
-  virtual int getSelectionValue(Tab<int> &sels) override
+  int getSelectionValue(Tab<int> &sels) override
   {
     for (int i = 0; i < selected.size(); ++i)
       if (selected[i])
@@ -98,9 +101,9 @@ public:
     return 0;
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -114,9 +117,28 @@ public:
 
     if (ImGui::BeginListBox("##lb", size))
     {
-      ImGui::PushStyleColor(ImGuiCol_Header, Constants::LISTBOX_SELECTION_BACKGROUND_COLOR);
-      ImGui::PushStyleColor(ImGuiCol_HeaderActive, Constants::LISTBOX_HIGHLIGHT_BACKGROUND_COLOR);
-      ImGui::PushStyleColor(ImGuiCol_HeaderHovered, Constants::LISTBOX_HIGHLIGHT_BACKGROUND_COLOR);
+      ImGui::PushStyleColor(ImGuiCol_Header, getOverriddenColor(ColorOverride::LISTBOX_SELECTION_BACKGROUND));
+      ImGui::PushStyleColor(ImGuiCol_HeaderActive, getOverriddenColor(ColorOverride::LISTBOX_HIGHLIGHT_BACKGROUND_ACTIVE));
+      ImGui::PushStyleColor(ImGuiCol_HeaderHovered, getOverriddenColor(ColorOverride::LISTBOX_HIGHLIGHT_BACKGROUND_HOVERED));
+
+      // Because we are using indices -- and not stable IDs -- for the selection user data we have to ensure that ImGui
+      // will provide us a valid selection range. If we did not update ImGui's internal state here a range selection
+      // (for example Shift+Left Mouse Button clicking) might not do anything.
+      if (updateImguiSelectionState)
+      {
+        // We cannot use RangeSrcReset because the control is not necessarily focused, we hack in ImGui's internals...
+        const ImGuiID id = ImGui::GetCurrentWindow()->IDStack.back();
+        ImGuiMultiSelectState *mss = ImGui::GetCurrentContext()->MultiSelectStorage.GetByKey(id);
+        if (mss && mss->RangeSrcItem != ImGuiSelectionUserData_Invalid &&
+            (mss->RangeSrcItem < 0 || mss->RangeSrcItem >= selected.size()))
+        {
+          const int firstSelectedIndex = getFirstSelectedIndex();
+          mss->RangeSrcItem = firstSelectedIndex >= 0 ? firstSelectedIndex : ImGuiSelectionUserData_Invalid;
+          mss->NavIdItem = ImGuiSelectionUserData_Invalid;
+        }
+
+        updateImguiSelectionState = false;
+      }
 
       bool selectionChanged = false;
       bool doubleClicked = false;
@@ -129,7 +151,7 @@ public:
       {
         const bool wasSelected = selected[i];
         if (wasSelected)
-          ImGui::PushStyleColor(ImGuiCol_Text, Constants::LISTBOX_SELECTION_TEXT_COLOR);
+          ImGui::PushStyleColor(ImGuiCol_Text, getOverriddenColor(ColorOverride::LISTBOX_SELECTION_TEXT));
 
         ImGui::SetNextItemSelectionUserData(i);
 
@@ -166,6 +188,15 @@ public:
   }
 
 private:
+  int getFirstSelectedIndex() const
+  {
+    for (int i = 0; i < selected.size(); ++i)
+      if (selected[i])
+        return i;
+
+    return -1;
+  }
+
   void setAllSelected(bool new_value)
   {
     for (int i = 0; i < selected.size(); ++i)
@@ -191,14 +222,24 @@ private:
       }
       else if (request.Type == ImGuiSelectionRequestType_SetRange)
       {
-        G_ASSERT(request.RangeFirstItem >= 0 && request.RangeLastItem < selected.size());
-        for (int i = request.RangeFirstItem; i <= request.RangeLastItem; ++i)
+        // Ignore the entire selection request if the range is invalid. It makes it more obvious that something is wrong.
+        if (request.RangeFirstItem >= 0 && request.RangeFirstItem < selected.size() && request.RangeLastItem >= 0 &&
+            request.RangeLastItem < selected.size())
         {
-          if (selected[i] != request.Selected)
+          for (int i = request.RangeFirstItem; i <= request.RangeLastItem; ++i)
           {
-            selected[i] = request.Selected;
-            selectionChanged = true;
+            if (selected[i] != request.Selected)
+            {
+              selected[i] = request.Selected;
+              selectionChanged = true;
+            }
           }
+        }
+        else
+        {
+          logdbg("MultiSelectListBoxPropertyControl: ignoring invalid selection request: ItemCount: %d, RangeFirstItem: %d, "
+                 "RangeLastItem: %d",
+            (int)values.size(), (int)request.RangeFirstItem, (int)request.RangeLastItem);
         }
       }
     }
@@ -210,6 +251,7 @@ private:
   Tab<String> values;
   Tab<bool> selected;
   int ensureVisibleRequestedIndex = -1;
+  bool updateImguiSelectionState = false;
 };
 
 } // namespace PropPanel

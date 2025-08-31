@@ -18,7 +18,6 @@
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <daSkies2/daSkies.h>
-#include <render/dynmodelRenderer.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/viewVecs.h>
 #include <ioSys/dag_dataBlock.h>
@@ -135,8 +134,8 @@ void GlobeRenderer::renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon r
   ShaderGlobal::set_int(skySpaceModeVarId, 0);
 }
 
-void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos,
-  const TextureIDPair &low_res_tex)
+void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, DaSkies &skies,
+  RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos, const TextureIDPair &low_res_tex)
 {
   TIME_D3D_PROFILE(applyGlobeSkies);
 
@@ -147,9 +146,6 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
   static int globeUVWindowVarId = ::get_shader_variable_id("globe_uv_window");
   static int globe_tsize_wk_hkVarId = ::get_shader_glob_var_id("globe_tsize_wk_hk");
   static int sourceTexVarId = ::get_shader_glob_var_id("source_tex");
-
-  Driver3dPerspective persp;
-  d3d::getpersp(persp);
 
   {
     SCOPE_RENDER_TARGET;
@@ -195,7 +191,7 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
     ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_dir"), lightDir.x, lightDir.z, lightDir.y, 0);
     ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_color"), color4(DaScattering::getBaseSunColor(), 1.0f));
 
-    set_viewvecs_to_shader();
+    set_viewvecs_to_shader(view_tm, proj_tm);
 
     if (!low_res_tex.getTex())
       renderEnv(skies, render_sun, render_moon, persp, view_pos);

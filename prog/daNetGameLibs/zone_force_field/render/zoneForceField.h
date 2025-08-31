@@ -11,7 +11,7 @@
 #include <render/world/partitionSphere.h>
 
 // Framegraph v2
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
 struct ZoneForceFieldRenderer
 {
@@ -32,9 +32,9 @@ struct ZoneForceFieldRenderer
   ~ZoneForceFieldRenderer();
   ZoneForceFieldRenderer();
 
-  dabfg::NodeHandle createRenderingNode(const char *rendering_shader_name, uint32_t render_target_fmt);
+  dafg::NodeHandle createRenderingNode(const char *rendering_shader_name, uint32_t render_target_fmt);
 
-  dabfg::NodeHandle createApplyingNode(const char *applying_shader_name, const char *fullscreen_applying_shader_name);
+  dafg::NodeHandle createApplyingNode(const char *applying_shader_name, const char *fullscreen_applying_shader_name);
 
 
   void start() const;

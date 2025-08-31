@@ -3,9 +3,11 @@ static constexpr ecs::component_t level_spline__name_get_type();
 static ecs::LTComponentList level_spline__name_component(ECS_HASH("level_spline__name"), level_spline__name_get_type(), "prog/gameLibs/ecs/game/zones/./levelRegionsES.cpp.inl", "", 0);
 static constexpr ecs::component_t level_spline__points_get_type();
 static ecs::LTComponentList level_spline__points_component(ECS_HASH("level_spline__points"), level_spline__points_get_type(), "prog/gameLibs/ecs/game/zones/./levelRegionsES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "levelRegionsES.cpp.inl"
 ECS_DEF_PULL_VAR(levelRegions);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc level_regions_debug_es_comps[] =
 {

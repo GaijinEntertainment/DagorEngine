@@ -38,7 +38,7 @@ shader water_nv2
     INIT_CLOUDS_ALPHA_PANORAMA()
     USE_CLOUDS_ALPHA_PANORAMA()
   }
-  INIT_UNDERWATER_FOG()
+  INIT_UNDERWATER_FOG(ps)
   GET_UNDERWATER_FOG()
   USE_WATER_CASCADES_ROUGHNESS()
 
@@ -77,7 +77,6 @@ shader water_nv2
       float3 pos_world = Output.pos_world_undisplaced;
 
       Output.pos_clip = mul(float4(pos_world.xzy,1), globtm);
-      float2 half_clip_pos = Output.pos_clip.xy * float2(0.5, -0.5);
 
       return Output;
     }

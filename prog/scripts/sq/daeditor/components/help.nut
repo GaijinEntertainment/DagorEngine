@@ -49,12 +49,12 @@ let help = @(showHelp) function(){
     hplace = ALIGN_RIGHT
     size = SIZE_TO_CONTENT
     children = textButton("X", function() {
-      showHelp.update(false)
+      showHelp.set(false)
     }, {hotkeys = [["Esc"]]})
   }
 
   let caption = {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     rendObj = ROBJ_SOLID
     color = Color(50, 50, 50, 50)
 
@@ -72,7 +72,7 @@ let help = @(showHelp) function(){
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
     text = helpText
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     margin = fsh(1)
   }
 

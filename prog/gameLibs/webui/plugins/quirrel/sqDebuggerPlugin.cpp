@@ -525,7 +525,7 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
     else
     {
       sq_output.clear();
-      SQVM::CallInfo &ci = vm->_callsstack[0];
+      SQVM::CallInfo &ci = vm->_callsstack[max(int(vm->_callsstacksize) - 1, 0)];
       if (sq_type(ci._closure) == OT_CLOSURE)
       {
         SQClosure *c = _closure(ci._closure);

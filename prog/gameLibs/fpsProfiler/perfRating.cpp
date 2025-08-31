@@ -14,7 +14,7 @@
 #include <imgui/implot.h>
 #include <imgui/imgui_internal.h>
 
-// https://info.gaijin.lan/display/CRSED/Performance+rating+statistics+panel
+// https://dagor.rtd.gaijin.lan/en/latest/dagor-tools/performance-rate-stat-panel/performance_rate_stat_panel.html
 // Panel consists of NxM colored quads, where
 // N is number of FPS groups
 //(e.g. group 0: +60 fps, group 1: 60-50 fps, etc)

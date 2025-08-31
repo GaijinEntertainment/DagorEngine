@@ -1,6 +1,6 @@
-let { abs } = require("math")
-let { format, split_by_chars } = require("string")
-let {isStringInteger} = require("string.nut")
+from "math" import abs
+from "string.nut" import isStringInteger
+from "string" import format, split_by_chars
 
 const TIME_SECOND_IN_MSEC = 1000
 const TIME_SECOND_IN_MSEC_F = 1000.0
@@ -105,7 +105,7 @@ function secondsToTimeFormatString(time) {
   return " ".join(res)
 }
 
-return {
+return freeze({
   millisecondsToSeconds
   secondsToMilliseconds
   millisecondsToSecondsInt
@@ -134,4 +134,4 @@ return {
   TIME_WEEK_IN_SECONDS
   TIME_WEEK_IN_SECONDS_F
   DAYS_TO_YEAR_1970
-}
+})

@@ -15,6 +15,8 @@ float4 static_shadow_matrix_2_1 = (0, 0, 0, 0);
 float4 static_shadow_matrix_3_1 = (-1,-1,-1,0);
 float4 static_shadow_cascade_0_scale_ofs_z_tor = (0, 0, 0, 0);
 float4 static_shadow_cascade_1_scale_ofs_z_tor = (0, 0, 0, 0);
+float static_shadow_scrolled_depth_min_0 = 0;
+float static_shadow_scrolled_depth_max_0 = 1;
 
 float4 global_static_shadow_fxaa_dir;
 
@@ -51,6 +53,8 @@ macro INIT_STATIC_SHADOW_BASE_SECOND_CASCADE_STCODE(code)//each cascade needs 7 
     static_shadow_matrix_3_1@f4 = static_shadow_matrix_3_1;
     static_shadow_cascade_1_scale_ofs_z_tor@f4 = static_shadow_cascade_1_scale_ofs_z_tor;
     static_shadow_cascade_1_tor@f2 = (static_shadow_cascade_1_scale_ofs_z_tor.z,static_shadow_cascade_1_scale_ofs_z_tor.w,0,0);
+    static_shadow_scrolled_depth_min_0@f1 = static_shadow_scrolled_depth_min_0;
+    static_shadow_scrolled_depth_max_0@f1 = static_shadow_scrolled_depth_max_0;
   }
 endmacro
 
@@ -76,8 +80,19 @@ macro INIT_STATIC_SHADOW_BASE_STCODE(code)
   }
 endmacro
 
+macro SKIP_INIT_STATIC_SHADOW()
+  DEFINE(skip_init_static_shadow)
+endmacro
+macro SKIP_USE_STATIC_SHADOW()
+  DEFINE(skip_use_static_shadow)
+endmacro
+macro SKIP_INIT_AND_USE_STATIC_SHADOW()
+  SKIP_INIT_STATIC_SHADOW()
+  SKIP_USE_STATIC_SHADOW()
+endmacro
+
 macro INIT_STATIC_SHADOW_BASE(code)
-  if (use_extended_global_frame_block == no)
+  if (use_extended_global_frame_block == no && !(DEFINED(skip_init_static_shadow)))
   {
     INIT_STATIC_SHADOW_BASE_STCODE(code)
   }

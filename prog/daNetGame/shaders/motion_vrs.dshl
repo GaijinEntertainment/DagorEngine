@@ -1,0 +1,329 @@
+include "hardware_defines.dshl"
+include "shader_global.dshl"
+
+texture vrs_rate_tex;
+
+texture tile_motion_x_sum;
+texture tile_motion_y_sum;
+texture tile_luma_sum;
+texture tile_luma_squares_sum;
+texture tile_motion_sample_count;
+
+texture prev_close_depth;
+texture final_frame;
+texture downsampled_luminance;
+texture prev_downsampled_luminance;
+
+
+int has_variable_rate_shading_by_4;
+interval has_variable_rate_shading_by_4: yes < 1, no;
+int variable_rate_shading_tile_size;
+interval variable_rate_shading_tile_size: size8 < 9, size16 < 17, size32;
+
+float4x4 prev_frame_uvz_to_uvz;
+float motion_vrs_strength = 10.0;
+float motion_vrs_reduction_by_luma_variance = 2000.0;
+
+//
+// General idea. When we are rendering a frame, we are essentially sampling
+// an abstract ideal signal of the image of our scene via an elaborate multi-step
+// process. Among this steps, we sample the scene geometry while rasterizing,
+// and then sample the surface properties via the fragment shader. Usually,
+// these two sample rates are tied together, but variable rate shading (VRS)
+// allows us to decouple them and  reduce the number of surface samples in
+// some areas of the screen, BUT it does NOT allow us to reduce the number of
+// geometry samples we do, i.e. rasterization is still done at the full rate.
+//
+// Again, VRS does not reduce rasterization rate. It cannot give us staircases
+// on geometry edges or blur together foreground and background objects, unless
+// tricks with modifying depth in the fragment shader are used.
+//
+// So we obviously want to get away with sampling as little as possible
+// for perf reasons, but don't want to undersample and get aliasing (or a blurry
+// anti-aliased image). The trick is then to somehow figure out how much it is
+// permissible for us to reduce sampling in a given area (tile) of an image
+// without getting aliasing.
+//
+// Most general approach is to sample less when the tile has a lower frequency
+// signal and more when it has a higher frequency signal. But to do VRS on all
+// of the current frame, we need to estimate signal frequency solely from
+// previous frame signals.
+//
+// Current implementation does the following:
+// 1) If a tile's fragments are all uniformly moving in the same direction,
+//    a) if motion blur is on we'll blur it into oblivion and get a low-freq signal,
+//    b) even if it's off, both the monitor and the human eye will somewhat blur it and lower the frequency.
+//    So basically lets modulate the sampling rate by the predicted motion of
+//    the tile's fragments.
+// 2) If the variance of a tile's percieved luminance is high, that means that
+//    there is high-frequency color signal in that tile and we shouldn't reduce
+//    the sampling rate there.
+// 4) For now, moving scene objects' velocity is not accounted for. This can
+//    be added later to do more aggressive VRS in more scenarios. And conversely,
+//    if we are moving WITH The moving object, following it, we shouldn't be
+//    lowering the sampling rate for it, yet currently we will be. Should probably
+//    use proper motion vectors, huh.
+//
+
+
+macro VRS_DEFINES(stage)
+hlsl(stage)
+{
+  ##if variable_rate_shading_tile_size == size8
+  #define TILE_HALFRES_SIZE (8 / 2)
+  ##elif variable_rate_shading_tile_size == size16
+  #define TILE_HALFRES_SIZE (16 / 2)
+  ##elif variable_rate_shading_tile_size == size32
+  #define TILE_HALFRES_SIZE (32 / 2)
+  ##endif
+
+  // Encode x/y VRS rates into the format that a VRS rate texture expects.
+  uint encode_rate(uint rateX, uint rateY)
+  {
+    #define R(x, y) ((firstbithigh(x) << 2) | firstbithigh(y))
+    static uint lut[4][4] = {
+      { R(1, 1), R(1, 2), R(1, 2), R(1, 2) },
+      { R(2, 1), R(2, 2), R(2, 2), R(2, 4) },
+      { R(2, 1), R(2, 2), R(2, 2), R(2, 4) },
+      { R(2, 1), R(4, 2), R(4, 2), R(4, 4) },
+    };
+    #undef R
+
+    ##if has_variable_rate_shading_by_4 == yes
+    const uint clampTo = 0x3;
+    ##else
+    const uint clampTo = 0x1;
+    ##endif
+    return lut[min(rateX, clampTo)][min(rateY, clampTo)];
+  }
+
+  // Motion can be basically anything, so the choice here is arbitrary.
+  #define MOTION_FIXED_PRECISION (256 / (TILE_HALFRES_SIZE*TILE_HALFRES_SIZE))
+  // These values are in 0-1 range so basically leave enough precision
+  // to sum like 32 tiles worth of data without overflowing just in case
+  // crazy occlusion is occuring.
+  #define LUMA_FIXED_PRECISION ((1 << 26) / (TILE_HALFRES_SIZE*TILE_HALFRES_SIZE))
+}
+endmacro
+
+shader gen_downsampled_luminance
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    downsampled_luminance@uav = downsampled_luminance hlsl { RWTexture2D<float> downsampled_luminance@uav; };
+    final_frame@tex = final_frame hlsl { Texture2D<float4> final_frame@tex; };
+
+    resolution@f2 = get_dimensions(final_frame, 0);
+  }
+
+  hlsl(cs) {
+    [numthreads(16, 16, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId >= resolution))
+        return;
+
+      float luma = 0;
+      UNROLL for (int i = 0; i < 2; ++i)
+        UNROLL for (int j = 0; j < 2; ++j)
+          if (all(2*dtId + int2(i, j) < resolution))
+            luma += luminance(texelFetch(final_frame, 2*dtId + int2(i, j), 0).rgb);
+      downsampled_luminance[dtId] = luma / 4.0f;
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+shader gen_motion_statistics
+{
+  ENABLE_ASSERT(cs)
+  VRS_DEFINES(cs)
+
+  (cs) {
+    prev_close_depth@tex = prev_close_depth hlsl { Texture2D<float> prev_close_depth@tex; };
+    prev_downsampled_luminance@tex = prev_downsampled_luminance hlsl { Texture2D<float> prev_downsampled_luminance@tex; };
+    resolution@f2 = get_dimensions(prev_close_depth, 0);
+
+    tile_motion_x_sum@uav = tile_motion_x_sum hlsl { RWTexture2D<int> tile_motion_x_sum@uav; };
+    tile_motion_y_sum@uav = tile_motion_y_sum hlsl { RWTexture2D<int> tile_motion_y_sum@uav; };
+    tile_luma_sum@uav = tile_luma_sum hlsl { RWTexture2D<uint> tile_luma_sum@uav; };
+    tile_luma_squares_sum@uav = tile_luma_squares_sum hlsl { RWTexture2D<uint> tile_luma_squares_sum@uav; };
+    tile_motion_sample_count@uav = tile_motion_sample_count hlsl { RWTexture2D<uint> tile_motion_sample_count@uav; };
+
+    prev_frame_uvz_to_uvz@f44 = prev_frame_uvz_to_uvz;
+  }
+
+  hlsl(cs) {
+    float2 calc_fragment_motion(int2 pixel_coords, out float depth)
+    {
+      float prevZ = texelFetch(prev_close_depth, pixel_coords, 0).x;
+      float2 prevUv = (float2(pixel_coords) + 0.5f) / resolution;
+      float4 prevUvz = float4(prevUv, prevZ, 1.0);
+
+      float4 uvz = mul(prev_frame_uvz_to_uvz, prevUvz);
+      uvz /= uvz.w;
+
+      depth = uvz.z;
+
+      // Velocity in "pixels per frame"
+      return (uvz - prevUvz).xy * resolution;
+    }
+
+    #define GROUPSIZE 32
+    #define TILES_PER_GROUP (GROUPSIZE / TILE_HALFRES_SIZE)
+
+    groupshared int tile_motion_x_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+    groupshared int tile_motion_y_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+    groupshared uint tile_luma_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+    groupshared uint tile_luma_squares_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+    groupshared uint tile_motion_sample_count_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+
+    [numthreads(GROUPSIZE, GROUPSIZE, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID, uint2 gId : SV_GroupID, uint2 gtId : SV_GroupThreadID)
+    {
+      if (any(dtId >= resolution))
+        return;
+
+      const uint2 groupBaseTile = gId * TILES_PER_GROUP;
+
+      if (all(gtId % TILE_HALFRES_SIZE == 0))
+      {
+        const uint2 bucket = gtId / TILE_HALFRES_SIZE;
+        tile_motion_x_sum_cache[bucket.x][bucket.y] = 0;
+        tile_motion_y_sum_cache[bucket.x][bucket.y] = 0;
+        tile_luma_sum_cache[bucket.x][bucket.y] = 0;
+        tile_luma_squares_sum_cache[bucket.x][bucket.y] = 0;
+        tile_motion_sample_count_cache[bucket.x][bucket.y] = 0;
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+
+      // For each tile, aggregate per-coordinate statistics across all
+      // geometry samples that have "moved" into the tile since last frame.
+      // We assume that these samples aren't going to change much on this frame
+      // frame and so these statistics are correlated with what will be
+      // contained in the tile on the currently rendered frame.
+
+      const float luma = texelFetch(prev_downsampled_luminance, dtId, 0).x;
+
+      float depth;
+      const float2 motion = calc_fragment_motion(dtId, depth);
+      const float2 predictedPos = float2(dtId) + motion;
+      if (depth > 0 && all(predictedPos > 0 && predictedPos < resolution))
+      {
+        const uint2 targetTile = uint2(predictedPos / TILE_HALFRES_SIZE);
+
+        const int2 encodedMotion = int2(motion * MOTION_FIXED_PRECISION);
+
+        const uint encodedLuma = uint(luma * LUMA_FIXED_PRECISION);
+        const uint encodedLumaSquared = uint(luma * luma * LUMA_FIXED_PRECISION);
+
+        const int2 targetCacheBucket = int2(targetTile) - int2(groupBaseTile);
+        if (all(targetCacheBucket > 0 && targetCacheBucket <= TILES_PER_GROUP))
+        {
+          uint old;
+          InterlockedAdd(tile_motion_x_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedMotion.x);
+          InterlockedAdd(tile_motion_y_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedMotion.y);
+          InterlockedAdd(tile_luma_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedLuma);
+          InterlockedAdd(tile_luma_squares_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedLumaSquared);
+          InterlockedAdd(tile_motion_sample_count_cache[targetCacheBucket.x][targetCacheBucket.y], 1);
+        }
+        else
+        {
+          uint old;
+          InterlockedAdd(tile_motion_x_sum[targetTile], encodedMotion.x, old);
+          InterlockedAdd(tile_motion_y_sum[targetTile], encodedMotion.y, old);
+          InterlockedAdd(tile_luma_sum[targetTile], encodedLuma, old);
+          InterlockedAdd(tile_luma_squares_sum[targetTile], encodedLumaSquared, old);
+          InterlockedAdd(tile_motion_sample_count[targetTile], 1, old);
+        }
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+
+      if (all(gtId % TILE_HALFRES_SIZE == 0))
+      {
+        const uint2 bucket = gtId / TILE_HALFRES_SIZE;
+
+        const uint samples = tile_motion_sample_count_cache[bucket.x][bucket.y];
+        if (samples > 0)
+        {
+          const uint2 targetTile = groupBaseTile + bucket;
+          uint old;
+          InterlockedAdd(tile_motion_x_sum[targetTile], tile_motion_x_sum_cache[bucket.x][bucket.y], old);
+          InterlockedAdd(tile_motion_y_sum[targetTile], tile_motion_y_sum_cache[bucket.x][bucket.y], old);
+          InterlockedAdd(tile_luma_sum[targetTile], tile_luma_sum_cache[bucket.x][bucket.y], old);
+          InterlockedAdd(tile_luma_squares_sum[targetTile], tile_luma_squares_sum_cache[bucket.x][bucket.y], old);
+          InterlockedAdd(tile_motion_sample_count[targetTile], samples, old);
+        }
+      }
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+shader gen_motion_vrs
+{
+  ENABLE_ASSERT(cs)
+  VRS_DEFINES(cs)
+  INIT_ZNZFAR_STAGE(cs)
+
+  (cs) {
+    tile_motion_x_sum@tex = tile_motion_x_sum hlsl { Texture2D<int> tile_motion_x_sum@tex; };
+    tile_motion_y_sum@tex = tile_motion_y_sum hlsl { Texture2D<int> tile_motion_y_sum@tex; };
+    tile_luma_sum@tex = tile_luma_sum hlsl { Texture2D<uint> tile_luma_sum@tex; };
+    tile_luma_squares_sum@tex = tile_luma_squares_sum hlsl { Texture2D<uint> tile_luma_squares_sum@tex; };
+    tile_motion_sample_count@tex = tile_motion_sample_count hlsl { Texture2D<uint> tile_motion_sample_count@tex; };
+
+    vrs_rate_tex@uav = vrs_rate_tex hlsl { RWTexture2D<uint> vrs_rate_tex@uav; };
+    resolution@f2 = get_dimensions(vrs_rate_tex, 0);
+
+    strength@f1 = motion_vrs_strength;
+    reduction_by_luma_variance@f1 = motion_vrs_reduction_by_luma_variance;
+  }
+
+  hlsl(cs) {
+    [numthreads(16, 16, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId >= resolution))
+        return;
+
+      const uint sampleCount = texelFetch(tile_motion_sample_count, dtId, 0).r;
+
+      // Hope for best and start pre-fetching textures instead of stalling
+      // on waiting for sampleCount for early exit.
+      const int intMotionXSum = texelFetch(tile_motion_x_sum, dtId, 0).r;
+      const int intMotionYSum = texelFetch(tile_motion_y_sum, dtId, 0).r;
+      const uint intLumaSum = texelFetch(tile_luma_sum, dtId, 0).r;
+      const uint intLumaSquaredSum = texelFetch(tile_luma_squares_sum, dtId, 0).r;
+
+      if (sampleCount == 0)
+      {
+        vrs_rate_tex[dtId] = encode_rate(0, 0);
+        return;
+      }
+
+      const float2 motionMean = float2(intMotionXSum, intMotionYSum) / MOTION_FIXED_PRECISION / sampleCount;
+      const float lumaMean = float(intLumaSum) / LUMA_FIXED_PRECISION / sampleCount;
+      const float lumaSquaredMean = float(intLumaSquaredSum) / LUMA_FIXED_PRECISION / sampleCount;
+
+      const float lumaVariance = max(lumaSquaredMean - lumaMean * lumaMean, 0);
+
+      // TODO: two problems. First, motionMean is framerate-dependent.
+      // Is that acceptable, or should we scale by dt?
+      // Second, lumaVariance is scene brightness-dependent.
+      // Is that acceptable, or should we scale by max mean brightness
+      // across the screen?
+      float2 rate = abs(motionMean)
+        / (1 + reduction_by_luma_variance * lumaVariance)
+        * strength;
+      vrs_rate_tex[dtId] = encode_rate(rate.x, rate.y);
+    }
+  }
+
+  compile("target_cs", "main");
+}

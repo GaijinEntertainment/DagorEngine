@@ -3,9 +3,11 @@ static constexpr ecs::component_t bodies_cleanup_get_type();
 static ecs::LTComponentList bodies_cleanup_component(ECS_HASH("bodies_cleanup"), bodies_cleanup_get_type(), "prog/daNetGame/phys/bodiesCleanupES.cpp.inl", "update_body_cleanup_ttl_es", 0);
 static constexpr ecs::component_t canRemoveWhilePossessed_get_type();
 static ecs::LTComponentList canRemoveWhilePossessed_component(ECS_HASH("canRemoveWhilePossessed"), canRemoveWhilePossessed_get_type(), "prog/daNetGame/phys/bodiesCleanupES.cpp.inl", "bodies_cleanup_es", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "bodiesCleanupES.cpp.inl"
 ECS_DEF_PULL_VAR(bodiesCleanup);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc bodies_cleanup_es_comps[] =
 {

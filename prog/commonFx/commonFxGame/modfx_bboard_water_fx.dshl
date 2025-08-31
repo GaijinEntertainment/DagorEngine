@@ -1,0 +1,29 @@
+include "modfx_bboard_render_inc.dshl"
+
+shader dafx_modfx_bboard_water_fx
+{
+  PREPARE_MODFX_SHADER(dafx_modfx_bboard_water_fx)
+
+  hlsl(vs)
+  {
+    #define FX_VS 1
+    #include "modfx/modfx_bboard_render.hlsl"
+    #undef FX_VS
+  }
+  compile( "target_vs", "dafx_bboard_vs" );
+
+  hlsl(ps)
+  {
+    #define FX_PS 1
+    #include "modfx/modfx_bboard_water_fx_ps.hlsl"
+    #undef FX_PS
+  }
+  if (hardware.fsh_5_0)
+  {
+    compile( "ps_5_0", "dafx_bboard_water_fx_ps" );
+  }
+  else
+  {
+    compile( "target_ps", "dafx_bboard_water_fx_ps" );
+  }
+}

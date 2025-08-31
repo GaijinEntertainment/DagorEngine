@@ -20,6 +20,7 @@ struct IAllocImg
 class ILoadImageFactory
 {
 public:
+  virtual bool readImageDimensions(const char *fn, const char *fn_ext, int &out_w, int &out_h, bool &out_may_have_alpha) = 0;
   virtual TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_alpha_used = NULL) = 0;
   virtual TexImage32 *loadImage(IGenLoad & /*crd*/, IMemAlloc * /*mem*/, const char * /*fn_ext*/, bool * /*out_alpha_used*/ = NULL)
   {
@@ -34,6 +35,7 @@ public:
 void add_load_image_factory(ILoadImageFactory *lif, bool add_first = false);
 void del_load_image_factory(ILoadImageFactory *lif);
 
+bool read_image_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha, const char *fn_ext = NULL);
 TexImage32 *load_image(const char *fn, IMemAlloc *mem, bool *out_alpha_used = NULL, const char *fn_ext = NULL);
 TexImage32 *load_image(IGenLoad &crd, const char *fn_ext, IMemAlloc *mem, bool *out_alpha_used = NULL);
 void *load_image2(const char *fn, IAllocImg &a, const char *fn_ext = NULL);

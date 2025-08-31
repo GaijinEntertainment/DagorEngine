@@ -6,6 +6,7 @@
 #include "resource_manager.h"
 #include "sampler_cache.h"
 #include "device_context.h"
+#include <drv/3d/dag_buffers.h>
 
 using namespace drv3d_vulkan;
 
@@ -44,10 +45,10 @@ void DummyResources::createImages()
 void DummyResources::createBuffers()
 {
   auto bufViewFmt = FormatStore::fromCreateFlags(buf_view_fmt_flag);
-  buf.srv = Buffer::create(dummySize, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1, BufferMemoryFlags::NONE);
+  buf.srv = Buffer::create(dummySize, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1, BufferMemoryFlags::NOT_EVICTABLE);
   buf.srv->addBufferView(bufViewFmt);
 
-  buf.uav = Buffer::create(dummySize, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1, BufferMemoryFlags::NONE);
+  buf.uav = Buffer::create(dummySize, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, 1, BufferMemoryFlags::NOT_EVICTABLE);
   buf.uav->addBufferView(bufViewFmt);
 }
 
@@ -91,17 +92,17 @@ void DummyResources::uploadZeroContent()
 
   DeviceContext &ctx = Globals::ctx;
 
-  ctx.copyBufferToImage(stage, img.srv2D, 1, &region, true);
+  ctx.copyBufferToImage(stage, img.srv2D, 1, &region);
   region.imageSubresource.layerCount = 1;
-  ctx.copyBufferToImage(stage, img.srv3D, 1, &region, true);
+  ctx.copyBufferToImage(stage, img.srv3D, 1, &region);
 
   region.imageSubresource.aspectMask = img.srv2Dcompare->getFormat().getAspektFlags();
   region.imageSubresource.layerCount = tex_array_count;
-  ctx.copyBufferToImage(stage, img.srv2Dcompare, 1, &region, true);
+  ctx.copyBufferToImage(stage, img.srv2Dcompare, 1, &region);
 
   region.imageSubresource.aspectMask = img.srv3Dcompare->getFormat().getAspektFlags();
   region.imageSubresource.layerCount = 1;
-  ctx.copyBufferToImage(stage, img.srv3Dcompare, 1, &region, true);
+  ctx.copyBufferToImage(stage, img.srv3Dcompare, 1, &region);
 
   ctx.uploadBuffer(BufferRef{stage}, BufferRef{buf.srv}, 0, 0, dummySize);
   ctx.uploadBuffer(BufferRef{stage}, BufferRef{buf.uav}, 0, 0, dummySize);
@@ -142,12 +143,11 @@ void DummyResources::fillTable()
 
     // 2d
     ivs.setFormat(img.srv2D->getFormat());
-    fillTableImg(spirv::MISSING_SAMPLED_IMAGE_2D_INDEX, img.srv2D, ivs, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      sampler->colorSampler());
+    fillTableImg(spirv::MISSING_SAMPLED_IMAGE_2D_INDEX, img.srv2D, ivs, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->handle);
 
     ivs.setFormat(img.srv2Dcompare->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX, img.srv2Dcompare, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->compareSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmpSampler->handle);
 
     ivs.isUAV = 1;
     ivs.setFormat(img.uav2D->getFormat());
@@ -160,11 +160,11 @@ void DummyResources::fillTable()
     ivs.isUAV = 0;
     ivs.setFormat(img.srv2D->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_2D_ARRAY_INDEX, img.srv2D, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->colorSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->handle);
 
     ivs.setFormat(img.srv2Dcompare->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_ARRAY_INDEX, img.srv2Dcompare, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->compareSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmpSampler->handle);
 
     ivs.isUAV = 1;
     ivs.setFormat(img.uav2D->getFormat());
@@ -178,11 +178,11 @@ void DummyResources::fillTable()
     ivs.isUAV = 0;
     ivs.setFormat(img.srv2D->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_CUBE_INDEX, img.srv2D, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->colorSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->handle);
 
     ivs.setFormat(img.srv2Dcompare->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_INDEX, img.srv2Dcompare, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->compareSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmpSampler->handle);
 
     ivs.isUAV = 1;
     ivs.setFormat(img.uav2D->getFormat());
@@ -196,11 +196,11 @@ void DummyResources::fillTable()
     ivs.isUAV = 0;
     ivs.setFormat(img.srv2D->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX, img.srv2D, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->colorSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->handle);
 
     ivs.setFormat(img.srv2Dcompare->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX, img.srv2Dcompare, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->compareSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmpSampler->handle);
 
     ivs.isUAV = 1;
     ivs.setFormat(img.uav2D->getFormat());
@@ -214,11 +214,11 @@ void DummyResources::fillTable()
     ivs.isUAV = 0;
     ivs.setFormat(img.srv3D->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_3D_INDEX, img.srv3D, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->colorSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->handle);
 
     ivs.setFormat(img.srv3Dcompare->getFormat());
     fillTableImg(spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX, img.srv3Dcompare, ivs, //
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler->compareSampler());
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmpSampler->handle);
 
     ivs.isUAV = 1;
     ivs.setFormat(img.uav3D->getFormat());
@@ -243,11 +243,26 @@ void DummyResources::fillTable()
     fillTableBuf(spirv::MISSING_STORAGE_BUFFER_INDEX, buf.uav, buf.uav->getBlockSize());
     fillTableBuf(spirv::MISSING_CONST_BUFFER_INDEX, buf.srv, dummyUniformSize);
   }
+
+  // tlas
+#if VULKAN_HAS_RAYTRACING
+  if (Globals::VK::phy.hasAccelerationStructure)
+  {
+    table[spirv::MISSING_TLAS_INDEX].resource = (void *)tlas;
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+    table[spirv::MISSING_TLAS_INDEX].descriptor.raytraceAccelerationStructure = tlas->getHandle();
+#endif
+  }
+#endif
 }
 
 void DummyResources::init()
 {
-  sampler = Globals::samplers.get(SamplerState::make_default());
+  sampler = &Globals::samplers.getDefaultSampler()->samplerInfo;
+  SamplerState defCSampler = SamplerState::make_default();
+  defCSampler.setIsCompare(true);
+  cmpSampler = &Globals::samplers.getResource(defCSampler)->samplerInfo;
+  createTLAS();
   createImages();
   calcDummySize();
   createBuffers();
@@ -293,4 +308,32 @@ void DummyResources::shutdown(DeviceContext &ctx)
   ctx.destroyImage(img.srv3Dcompare);
   ctx.destroyImage(img.uav2D);
   ctx.destroyImage(img.uav3D);
+#if VULKAN_HAS_RAYTRACING
+  if (tlas)
+  {
+    d3d::delete_raytrace_top_acceleration_structure((RaytraceTopAccelerationStructure *)tlas);
+    tlas = nullptr;
+  }
+#endif
+}
+
+void DummyResources::createTLAS()
+{
+#if VULKAN_HAS_RAYTRACING
+  if (!Globals::VK::phy.hasAccelerationStructure)
+    return;
+  uint32_t scratchReq = 0;
+  RaytraceTopAccelerationStructure *externalTLAS =
+    d3d::create_raytrace_top_acceleration_structure(0, RaytraceBuildFlags::NONE, scratchReq, nullptr);
+  ::raytrace::TopAccelerationStructureBuildInfo tlasBI = {};
+  tlasBI.scratchSpaceBuffer =
+    d3d::create_sbuffer(1, scratchReq, SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE, 0, "dummyTLASscratch");
+  tlasBI.instanceBuffer = d3d::create_sbuffer(Globals::VK::phy.raytraceTopAccelerationInstanceElementSize, 1,
+    SBCF_BIND_SHADER_RES | SBCF_ZEROMEM, 0, "dummyTLASinstances");
+  tlasBI.scratchSpaceBufferSizeInBytes = scratchReq;
+  d3d::build_top_acceleration_structure(externalTLAS, tlasBI);
+  tlasBI.scratchSpaceBuffer->destroy();
+  tlasBI.instanceBuffer->destroy();
+  tlas = (RaytraceAccelerationStructure *)externalTLAS; // cast to driver internal resource
+#endif
 }

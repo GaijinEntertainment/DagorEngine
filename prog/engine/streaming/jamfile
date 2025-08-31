@@ -9,6 +9,7 @@ Sources =
   streamingCtrl.cpp
   streamingCtrlDebug.cpp
   streamingMgr.cpp
+  baseStreamingScene.cpp
 ;
 
 #AddIncludes = $(Root)/prog/engine/sharedInclude ;

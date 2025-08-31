@@ -14,6 +14,7 @@ extern int dll_pull_osapiwrappers_getRealFname;
 extern int dll_pull_osapiwrappers_localCmp;
 extern int dll_pull_osapiwrappers_cpuJobs;
 extern int dll_pull_osapiwrappers_miscApi;
+extern int dll_pull_osapiwrappers_ip2str;
 extern int dll_pull_osapiwrappers_simplifyFname;
 extern int dll_pull_osapiwrappers_progGlobals;
 extern int dll_pull_osapiwrappers_setThreadName;
@@ -45,6 +46,7 @@ extern int dll_pull_kernel_log;
 extern int dll_pull_kernel_debugDumpStack;
 extern int dll_pull_kernel_cpu_control;
 extern int dll_pull_kernel_perfTimer;
+extern int dll_pull_perfMon_daProfilerLogDump;
 
 extern int dll_pull_memory_dagmem;
 extern int dll_pull_memory_mspaceAlloc;
@@ -97,6 +99,7 @@ extern int dll_pull_baseutil_treeBitmap;
 extern int dll_pull_baseutil_lag;
 extern int dll_pull_baseutil_fnameMap;
 extern int dll_pull_baseutil_fileMd5Validate;
+extern int dll_pull_baseutil_parallel_for;
 
 extern int pull_dll_sum;
 

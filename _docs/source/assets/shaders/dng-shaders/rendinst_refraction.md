@@ -1,4 +1,4 @@
-# Shader: rendinst_refraction
+# `rendinst_refraction`
 
 ## Overview
 
@@ -116,7 +116,7 @@ more noticeable the effect becomes.
 <img src="_images/rendinst_refraction_10.jpg" width="32%" class="bg–primary">
 <img src="_images/rendinst_refraction_11.jpg" width="32%" class="bg–primary">
 
-## isShell Parameter
+## `isShell` Parameter
 
 The `isShell` parameter controls the parallax depth strength at sharper angles.
 For flat surfaces like door, glass or tabletops, set `isShell=0`. For curved
@@ -141,7 +141,7 @@ and the camera more prominent in the refraction effect.
 <img src="_images/rendinst_refraction_13.jpg" width="32%" class="bg–primary">
 <img src="_images/rendinst_refraction_14.jpg" width="32%" class="bg–primary">
 
-## is_window Parameter
+## `is_window` Parameter
 
 The `is_window` parameter is common across most glass shaders but is disabled by
 default in this shader:

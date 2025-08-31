@@ -52,9 +52,11 @@ enum
   PID_MASK_NODES_UPDATE_BTN,
   PID_MASK_NODES_UNCHECK_ALL,
   PID_MASK_NODES,
+  PID_MASK_NODES_LAST = PID_MASK_NODES + 64,
   PID_SELECT_NODES_GROUP,
   PID_SELECT_NODE0,
   PID_SELECT_NODE_LAST = PID_SELECT_NODE0 + 512,
+  PID_SELECT_NODES_TREE,
 };
 
 static inline int cmpNodesData(const SkeletonNodesData *n1, const SkeletonNodesData *n2) { return n2->z - n1->z; }
@@ -255,14 +257,13 @@ void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   rg->createRadio(FIG_TYPE_SPHERE, "[3D] sphere");
   panel.setInt(PID_DRAW_NODE_TYPE, presentationType);
 
-  PropPanel::ContainerPropertyControl &nodesFilterByMask =
-    *panel.createGroup(PID_MASK_NODES_GROUP, String(0, "Filter nodes by name mask"));
+  PropPanel::ContainerPropertyControl &nodesFilterByMask = *panel.createGroup(PID_MASK_NODES_GROUP, "Filter nodes by name mask");
 
-  nodesFilterByMask.createButton(PID_MASK_NODES_UPDATE_BTN, String(0, "Update nodes visibility"));
-  nodesFilterByMask.createButton(PID_MASK_NODES_UNCHECK_ALL, String(0, "Uncheck all"));
+  nodesFilterByMask.createButton(PID_MASK_NODES_UPDATE_BTN, "Update nodes visibility");
+  nodesFilterByMask.createButton(PID_MASK_NODES_UNCHECK_ALL, "Uncheck all");
 
   const int blockCount = nodeFilterMasksBlk.blockCount();
-  for (int i = 0; i < blockCount; ++i)
+  for (int i = 0, c = min(blockCount, PID_MASK_NODES_LAST - PID_MASK_NODES); i < c; ++i)
   {
     const DataBlock *maskBlk = nodeFilterMasksBlk.getBlock(i);
     const char *maskText = maskBlk->getStr("name", "");
@@ -279,7 +280,7 @@ void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
     *panel.createGroup(PID_SELECT_NODES_GROUP, String(0, "Nodes List (%d nodes)", nodeCount));
 
   if (nodeCount > maxNodeButtons)
-    selectNodeByName.createStatic(-1, String(0, "Too many nodes to display all"));
+    selectNodeByName.createStatic(-1, "Too many nodes to display all");
 
   FastNameMap nodeNames;
   for (unsigned i = 0, count = min(nodeCount, maxNodeButtons); i < count; ++i)
@@ -287,6 +288,35 @@ void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 
   iterate_names_in_lexical_order(nodeNames,
     [&](int i, const char *name) { selectNodeByName.createButton(PID_SELECT_NODE0 + i, name); });
+
+  nodeTreePanel =
+    panel.createMultiSelectTree(PID_SELECT_NODES_TREE, String(0, "Nodes Tree (%d nodes)", nodeCount), hdpi::_pxScaled(400));
+
+  struct TreeNodeIndexAndLeaf
+  {
+    dag::Index16 parentNode;
+    PropPanel::TLeafHandle parentLeaf;
+  };
+  Tab<TreeNodeIndexAndLeaf> nodes;
+
+  PropPanel::TLeafHandle rootHandle = nodeTreePanel->createTreeLeaf(0, "::root", "");
+  nodeTreePanel->setBool(rootHandle, true);
+  nodeTreePanel->setUserData(rootHandle, 0);
+  nodes.push_back({dag::Index16(0), rootHandle});
+
+  for (unsigned i = 0; i < nodes.size(); ++i)
+  {
+    for (unsigned j = 0, c = geomNodeTree->getChildCount(nodes[i].parentNode); j < c; ++j)
+    {
+      const dag::Index16 node = geomNodeTree->getChildNodeIdx(nodes[i].parentNode, j);
+      const char *nodeName = geomNodeTree->getNodeName(node);
+
+      PropPanel::TLeafHandle leaf = nodeTreePanel->createTreeLeaf(nodes[i].parentLeaf, nodeName, "");
+      nodeTreePanel->setBool(leaf, true);
+      nodeTreePanel->setUserData(leaf, (void *)((intptr_t)((int)node)));
+      nodes.push_back({node, leaf});
+    }
+  }
 }
 
 
@@ -310,8 +340,15 @@ void NodesPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
     radius = panel->getFloat(PID_CIRCLE_RADIUS);
   else if (pid == PID_AXIS_LEN)
     axisLen = panel->getFloat(PID_AXIS_LEN);
-  else if (pid >= PID_MASK_NODES)
+  else if (pid >= PID_MASK_NODES && pid <= PID_MASK_NODES_LAST)
     applyMask(pid - PID_MASK_NODES, panel);
+  else if (pid == PID_SELECT_NODES_TREE)
+  {
+    dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
+    nodeTreePanel->getSelectedLeafs(selectedLeafs);
+    if (selectedLeafs.size() > 0)
+      selectNode(dag::Index16((intptr_t)nodeTreePanel->getUserData(selectedLeafs.back())));
+  }
 }
 
 dag::Index16 NodesPlugin::findObject(const Point3 &p, const Point3 &dir)
@@ -494,7 +531,7 @@ void NodesPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel
   else if (pcb_id == PID_MASK_NODES_UNCHECK_ALL)
   {
     const int blockCount = nodeFilterMasksBlk.blockCount();
-    for (int i = 0; i < blockCount; ++i)
+    for (int i = 0, c = min(blockCount, PID_MASK_NODES_LAST - PID_MASK_NODES); i < c; ++i)
       panel->setBool(PID_MASK_NODES + i, false);
 
     updateAllMaskFilters(panel);

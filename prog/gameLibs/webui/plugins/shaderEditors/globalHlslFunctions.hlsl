@@ -13,13 +13,27 @@
 #define IS_DISTANT_FOG 0
 #endif
 
+#ifndef IS_ENVI_COVER
+#define IS_ENVI_COVER 0
+#endif
+
 #ifndef shadow2DArray
   #define shadow2DArray(a, uv) a.SampleCmpLevelZero(a##_cmpSampler, (uv).xyz, (uv).w)
 #endif
 
+#ifndef tex3Dlod
+  #define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
+#endif
+
+#ifndef textureLodOffset
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(a##_samplerstate, tc, lod, ofs)
+#endif
+
+#ifndef textureGather
+  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+#endif
+
 #define tex_hmap_low_samplerstate  land_heightmap_tex_samplerstate
-#define volfog_mask_tex_samplerstate  land_heightmap_tex_samplerstate
-#define prev_volfog_shadow_samplerstate  land_heightmap_tex_samplerstate
 
 #define downsampled_checkerboard_depth_tex_samplerstate  downsampled_far_depth_tex_samplerstate
 #define prev_downsampled_far_depth_tex_samplerstate     downsampled_far_depth_tex_samplerstate
@@ -35,6 +49,55 @@
 
 #define STATIC_SHADOW_SAMPLER_STATE_REF SamplerComparisonState
 #define STATIC_SHADOW_TEXTURE_REF Texture2DArray<float4>
+
+#define USE_DEPTH_ABOVE_SAMPLING 1
+#define WATER_HEIGTMAP_PAGES_DEFINED 1
+#define water_heightmap_pages_samplerstate water_heightmap_grid_samplerstate
+
+#define SDF_NBS_IMPL 1
+
+#if __HLSL_VERSION < 2021
+  float2 select(bool2 a, float2 b, float2 c) { return a ? b : c; }
+  float3 select(bool3 a, float3 b, float3 c) { return a ? b : c; }
+  float4 select(bool4 a, float4 b, float4 c) { return a ? b : c; }
+  float2 and(float2 a, float2 b) { return a && b; }
+  float3 and(float3 a, float3 b) { return a && b; }
+  float4 and(float4 a, float4 b) { return a && b; }
+  float2 or(float2 a, float2 b) { return a || b; }
+  float3 or(float3 a, float3 b) { return a || b; }
+  float4 or(float4 a, float4 b) { return a || b; }
+
+  int2 select(bool2 a, int2 b, int2 c) { return a ? b : c; }
+  int3 select(bool3 a, int3 b, int3 c) { return a ? b : c; }
+  int4 select(bool4 a, int4 b, int4 c) { return a ? b : c; }
+  int2 and(int2 a, int2 b) { return a && b; }
+  int3 and(int3 a, int3 b) { return a && b; }
+  int4 and(int4 a, int4 b) { return a && b; }
+  int2 or(int2 a, int2 b) { return a || b; }
+  int3 or(int3 a, int3 b) { return a || b; }
+  int4 or(int4 a, int4 b) { return a || b; }
+
+  uint2 select(bool2 a, uint2 b, uint2 c) { return a ? b : c; }
+  uint3 select(bool3 a, uint3 b, uint3 c) { return a ? b : c; }
+  uint4 select(bool4 a, uint4 b, uint4 c) { return a ? b : c; }
+  uint2 and(uint2 a, uint2 b) { return a && b; }
+  uint3 and(uint3 a, uint3 b) { return a && b; }
+  uint4 and(uint4 a, uint4 b) { return a && b; }
+  uint2 or(uint2 a, uint2 b) { return a || b; }
+  uint3 or(uint3 a, uint3 b) { return a || b; }
+  uint4 or(uint4 a, uint4 b) { return a || b; }
+
+  #ifndef NBS_PS_DEFINED
+    bool2 and(bool2 a, bool2 b) { return a && b; }
+    bool3 and(bool3 a, bool3 b) { return a && b; }
+    bool4 and(bool4 a, bool4 b) { return a && b; }
+    bool2 or(bool2 a, bool2 b) { return a || b; }
+    bool3 or(bool3 a, bool3 b) { return a || b; }
+    bool4 or(bool4 a, bool4 b) { return a || b; }
+  #endif
+#endif
+
+half luminance(half3 col)  { return dot(col, half3(0.299, 0.587, 0.114)); }
 
 half static_shadow_sample(float2 uv, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_cmpSampler, float layer)
 {
@@ -421,13 +484,6 @@ float get_smooth_noise3d(float3 v)
   return r0;
 }
 
-
-float sample_volfog_mask(float2 world_xz)
-{
-  float2 tc = world_xz * world_to_volfog_mask.xy + world_to_volfog_mask.zw;
-  return tex2Dlod(volfog_mask_tex, float4(tc, 0, 0)).x;
-}
-
 float sample_distant_heightmap(float2 world_xz)
 {
   float2 tc_low = world_xz * distant_world_to_hmap_low.xy + distant_world_to_hmap_low.zw;
@@ -479,18 +535,6 @@ float calcBiomeInfluence(BiomeData biome_data, int index)
   return dot(biome_data.indices == index, biome_data.weights);
 }
 
-// TODO: deprecate it (remove from levels first)
-int4 getBiomeIndices(float3 world_pos)
-{
-  return getBiomeData(world_pos).indices;
-}
-
-// TODO: deprecate it (remove from levels first)
-float getBiomeInfluence(float3 world_pos, int index)
-{
-  return calcBiomeInfluence(getBiomeData(world_pos), index);
-}
-
 float3 getWorldNormal(float3 worldPos)
 {
   float2 uvLow  = worldPos.xz * world_to_hmap_low.xy + world_to_hmap_low.zw;
@@ -512,13 +556,9 @@ float linearize_z(float rawDepth, float2 decode_depth)
   return rcp(decode_depth.x + decode_depth.y * rawDepth);
 }
 
-float decode_depth_above(float depthHt)
-{
-  return depthHt * depth_ao_heights.x + depth_ao_heights.y;
-}
 float sample_spheres_density(StructuredBuffer<float4> spheres, int spheres_count, float3 world_pos)
 {
-  if (IS_DISTANT_FOG)
+  if (IS_DISTANT_FOG && !IS_ENVI_COVER)
     return 0;
 
   float density = 0;
@@ -535,23 +575,6 @@ float sample_spheres_density(StructuredBuffer<float4> spheres, int spheres_count
   return density;
 }
 
-float2 getPrevTc(float3 world_pos, out float3 prev_clipSpace)
-{
-  // TODO: very ugly and subpotimal
-  float4x4 prev_globtm_psf;
-  prev_globtm_psf._m00_m10_m20_m30 = prev_globtm_psf_0;
-  prev_globtm_psf._m01_m11_m21_m31 = prev_globtm_psf_1;
-  prev_globtm_psf._m02_m12_m22_m32 = prev_globtm_psf_2;
-  prev_globtm_psf._m03_m13_m23_m33 = prev_globtm_psf_3;
-  float4 lastClipSpacePos = mul(float4(world_pos, 1), prev_globtm_psf);
-  prev_clipSpace = lastClipSpacePos.w < 0.0001 ? float3(2,2,2) : lastClipSpacePos.xyz/lastClipSpacePos.w;
-  return prev_clipSpace.xy*float2(0.5,-0.5) + float2(0.5,0.5);
-}
-float2 getPrevTc(float3 world_pos)
-{
-  float3 prevClip;
-  return getPrevTc(world_pos, prevClip);
-}
 bool checkOffscreenTc3d(float3 screen_tc)
 {
   return any(abs(screen_tc - 0.5) >= 0.4999);
@@ -578,3 +601,15 @@ float4 texelFetch(Texture3D<float4> a, int3 tc, int lod) { return a.Load(int4(tc
 float3 texelFetch(Texture3D<float3> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
 float2 texelFetch(Texture3D<float2> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
 float  texelFetch(Texture3D<float>  a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint4 texelFetch(Texture2D<uint4> a, int2 tc, int lod) { return a.Load(int3(tc, lod)); }
+uint3 texelFetch(Texture2D<uint3> a, int2 tc, int lod) { return a.Load(int3(tc, lod)); }
+uint2 texelFetch(Texture2D<uint2> a, int2 tc, int lod) { return a.Load(int3(tc, lod)); }
+uint  texelFetch(Texture2D<uint>  a, int2 tc, int lod) { return a.Load(int3(tc, lod)); }
+uint4 texelFetch(Texture2DArray<uint4> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint3 texelFetch(Texture2DArray<uint3> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint2 texelFetch(Texture2DArray<uint2> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint  texelFetch(Texture2DArray<uint>  a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint4 texelFetch(Texture3D<uint4> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint3 texelFetch(Texture3D<uint3> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint2 texelFetch(Texture3D<uint2> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+uint  texelFetch(Texture3D<uint>  a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }

@@ -1,8 +1,8 @@
 # Animation Export
 
-### Common Guideline
+## Common Guideline
 
-Animations are stored in the `.a2d` format. To export an animation from 3ds Max,
+Animations are stored in `.a2d` files. To export an animation from 3ds Max,
 follow these steps:
 
 1. **Ensure Visibility:** All layers containing bones, as well as the bones
@@ -28,14 +28,14 @@ follow these steps:
 
    ```{seealso}
    For more information, see
-   [.blk File Format](../../dagor-tools/blk/blk.md).
+   [BLK File Format](../../dagor-tools/blk/blk.md).
    ```
 
 4. **Bone Consistency:** The number of bones and their linking order must match
    between the target model (the one the animation will be applied to) and the
    bones exported to the `.a2d` file.
 
-### Asset Transfer Between Projects
+## Asset Transfer Between Projects
 
 When transferring assets between projects, **shader discrepancies** may occur,
 resulting in errors. To address this:
@@ -53,14 +53,14 @@ Be cautious with the syntax: **errors in syntax will not trigger warnings, and
 unsaved changes will be discarded**.
 ```
 
-### Limitations
+## Limitations
 
 - **Bone Limit:** A maximum of 200 bones per node with skin is supported. While
   theoretically extendable to 255, current shader limitations cap the limit at
   200.
 - **Triangle Limit:** A maximum of 65,534 triangles per node is allowed.
 
-### Project-Specific Custom Object Properties
+## Project-Specific Custom Object Properties
 
 Different projects may have unique requirements for **Custom Object Properties**
 to ensure proper generation of virtual assets. For example:
@@ -83,7 +83,7 @@ to ensure proper generation of virtual assets. For example:
   at {octicon}`mail;1.4em;sd-text-info` <a.vlasov@gaijin.team>.
   ```
 
-### Animation Description in `animtree.blk`
+## Animation Description in `animtree.blk`
 
 Animations must be described in the `animtree.blk` of the corresponding block.
 For War Thunder-based projects, this involves two blocks:
@@ -119,9 +119,9 @@ For War Thunder-based projects, this involves two blocks:
 Remember that the `animtree.blk` is also an exportable resource. To see it in
 the game, you must perform a `daBuild`.
 
-### Animation Export Description in `.blk`
+## Animation Export Description in `.blk`
 
-The export description for animations in `.blk` format:
+The export description for animations in `.blk` files:
 
 ```text
 file:t=some.a2d

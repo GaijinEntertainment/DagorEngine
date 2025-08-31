@@ -203,5 +203,9 @@ public:
     const RenderState &render_state) override;
 };
 
+void render_picture(StdGuiRender::GuiContext &ctx, Picture *image, Point2 pos, Point2 size, E3DCOLOR image_color, float opacity,
+  float brightness, bool flip_x, bool flip_y, float saturate_factor);
+
+void render_picture(StdGuiRender::GuiContext &ctx, Picture *image, Point2 pos, Point2 size, E3DCOLOR image_color);
 
 } // namespace darg

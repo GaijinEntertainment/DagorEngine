@@ -187,6 +187,10 @@ void ToroidalStaticShadowCascade::init(int cascade_id_, int texSize, float dista
   }
   tmpStr.printf(0, "static_shadow_cascade_%d_scale_ofs_z_tor", cascade_id);
   static_shadow_cascade_scale_ofs_z_torVarId = ::get_shader_variable_id(tmpStr.str(), true);
+  tmpStr.printf(0, "static_shadow_scrolled_depth_min_%d", cascade_id);
+  static_shadow_scrolled_depth_minVarId = get_shader_variable_id(tmpStr.str(), true);
+  tmpStr.printf(0, "static_shadow_scrolled_depth_max_%d", cascade_id);
+  static_shadow_scrolled_depth_maxVarId = get_shader_variable_id(tmpStr.str(), true);
 
   helper = ToroidalHelper();
   helper.texSize = texSize;
@@ -290,6 +294,8 @@ void ToroidalStaticShadowCascade::setShaderVars()
   const FrameData &fr = getReadFrameData();
 
   ShaderGlobal::set_color4(static_shadow_cascade_scale_ofs_z_torVarId, 1, 0, -fr.torOfs.x + 0.5, fr.torOfs.y + 0.5);
+  ShaderGlobal::set_real(static_shadow_scrolled_depth_minVarId, scrolledDepthMin);
+  ShaderGlobal::set_real(static_shadow_scrolled_depth_maxVarId, scrolledDepthMax);
 
   TMatrix wtm = getLightViewProj();
 
@@ -370,6 +376,8 @@ bool ToroidalStaticShadowCascade::changeDepth(const ManagedTex &tex, ShadowDepth
   }
   if (!s->translateDepth(tex.getBaseTex(), tex.getArrayTex() ? cascade_id : -1, scale, ofs)) // nothing has changed
     return false;
+  scrolledDepthMin = max(0.0f, scale * scrolledDepthMin + ofs);
+  scrolledDepthMax = min(1.0f, scale * scrolledDepthMax + ofs);
   // todo: add partially invalidate parts to re-render - those part of texture quad that, if clamped to worldBox, were outside
   invalidate(false); // todo: we should invalidate only parts of texture that were invalid (using worldBox)
   return true;
@@ -493,7 +501,13 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
 
   IPoint2 move = abs(helper.curOrigin - newTexelsOrigin);
   if (move.x < texelsMoveThreshold && move.y < texelsMoveThreshold && !invalidRegions.size())
-    return BeforeRenderReturned{0, false};
+  {
+    // Cascade is fully updated, the scrolled depth range is now valid again.
+    bool scrolledPreviously = scrolledDepthMin > 0 || scrolledDepthMax < 1;
+    scrolledDepthMin = 0;
+    scrolledDepthMax = 1;
+    return BeforeRenderReturned{0, scrolledPreviously};
+  }
   const int dynamicThreshold = invalidRegions.size() ? min(texelsMoveThreshold * 2, (int)helper.texSize / 2) : texelsMoveThreshold;
   // preferrably update already invalidRegions, unless we moved even more
   // so we have less invalid regions
@@ -503,7 +517,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
     return BeforeRenderReturned{0, endFrameTransition(tex)};
   }
 
-  Tab<IBBox2> regionsToDiscard;
+  Tab<IBBox2> regionsToDiscard(framemem_ptr());
   if (ret)
   {
     const float fullUpdateThreshold = optimizeBigQuadsRender ? 0.75 : 0.45; // -V547
@@ -538,6 +552,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
 
       setRenderParams(tex.getBaseTex());
       renderRegions(regions0);
+      isRenderingRegionFirstTime = true;
 
       return BeforeRenderReturned{texelsUpdated, true};
     }
@@ -615,6 +630,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
       ToroidalQuadRegion quad = getToroidalQuad(choosenRegions[id]);
       pixelsRendered += quad.wd.x * quad.wd.y;
       renderRegions(dag::ConstSpan<ToroidalQuadRegion>(&quad, 1));
+      isRenderingRegionFirstTime = notRenderedChosen;
 
       // and remove it from update list
       erase_items(choosenRegions, id, 1);
@@ -642,14 +658,19 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
 void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
 {
   if (renderData.regionsToDiscard.empty() && renderData.regionsToRender.empty())
+  {
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+    staticShadowsStatistics.completelyValidFrames++;
+#endif
     return;
+  }
 
   TIME_D3D_PROFILE(staticShadowRender);
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
   d3d_err(d3d::set_render_target(nullptr, 0));
 
-  if (renderData.target->restype() == RES3D_ARRTEX)
+  if (renderData.target->getType() == D3DResourceType::ARRTEX)
     d3d::set_depth(renderData.target, cascade_id, DepthAccess::RW);
   else
     d3d::set_depth(renderData.target, DepthAccess::RW);
@@ -663,6 +684,20 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
   }
   renderData.regionsToDiscard.clear();
 
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+  // discarded (empty) and invalidated regions can't be mixed here
+  uint32_t renderCount = renderData.regionsToRender.size();
+  if (!isValid())
+  {
+    staticShadowsStatistics.renderRegionFirstTimeFrames++;
+    staticShadowsStatistics.renderRegionFirstTimeCount += renderCount;
+  }
+  else
+  {
+    staticShadowsStatistics.invalidateRegionFrames++;
+    staticShadowsStatistics.invalidateRegionCount += renderCount;
+  }
+#endif
 
   d3d::settm(TM_VIEW, renderData.viewTm);
   cb.startRenderStaticShadow(renderData.viewTm, renderData.znzf, renderData.minHt, renderData.maxHt);
@@ -670,6 +705,14 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
   for (int i = 0; i < renderData.regionsToRender.size(); ++i)
   {
     const RenderData::RegionToRender &region = renderData.regionsToRender[i];
+    if (!cb.readyToRenderRegionWithFinalQuality(region.transform, i))
+    {
+      invalidateRenderRegion(region.transform);
+      if (!isRenderingRegionFirstTime)
+        // we already have something rendered to shadows and need to render this region again later because better lods will be loaded,
+        // so better to skip rendering for now
+        continue;
+    }
     d3d::settm(TM_PROJ, &region.projMatrix);
     d3d::setview(region.transform.x, region.transform.y, region.transform.w, region.transform.h, region.transform.minz,
       region.transform.maxz);
@@ -678,6 +721,7 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
     cb.renderStaticShadowDepth((const mat44f &)region.cullViewProj, region.transform, i);
   }
   renderData.regionsToRender.clear();
+  isRenderingRegionFirstTime = false;
 
   cb.endRenderStaticShadow();
 
@@ -685,7 +729,7 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
 
   if (copyTransitionAfterRender)
   {
-    if (transitionCopyTarget->restype() == RES3D_ARRTEX)
+    if (transitionCopyTarget->getType() == D3DResourceType::ARRTEX)
     {
       transitionCopyTarget->updateSubRegion(transitionTex.getTex2D(), 0, 0, 0, 0, helper.texSize, helper.texSize, 1, cascade_id, 0, 0,
         0);
@@ -735,6 +779,15 @@ void ToroidalStaticShadowCascade::invalidateBoxes(const BBox3 *box, uint32_t cnt
     add_non_intersected_box(invalidRegions, ibox);
 }
 
+void ToroidalStaticShadowCascade::invalidateRenderRegion(const ViewTransformData &region_view_data)
+{
+  IPoint2 viewportLT = IPoint2(region_view_data.x, helper.texSize - region_view_data.h - region_view_data.y);
+  IPoint2 regionTexelFrom = transform_viewport_point_to_world(viewportLT, helper);
+  ToroidalQuadRegion toroidalRegion(viewportLT, IPoint2(region_view_data.w, region_view_data.h), regionTexelFrom);
+  IBBox2 invalidateRegion = getRegionFromToroidalRegion(toroidalRegion);
+  add_non_intersected_box(invalidRegions, invalidateRegion);
+}
+
 IBBox2 ToroidalStaticShadowCascade::getClippedBoxRegion(const BBox3 &box) const
 {
   if (!current.isOrtho && (box[0].y > current.maxHt || box[1].y < current.minHt)) // out of our world box
@@ -757,6 +810,10 @@ ToroidalQuadRegion ToroidalStaticShadowCascade::getToroidalQuad(const IBBox2 &re
   return ToroidalQuadRegion(transform_point_to_viewport(region[0], helper), region.width() + IPoint2(1, 1), region[0]);
 }
 
+IBBox2 ToroidalStaticShadowCascade::getRegionFromToroidalRegion(const ToroidalQuadRegion &toroidal_region) const
+{
+  return IBBox2(toroidal_region.texelsFrom, toroidal_region.texelsFrom + toroidal_region.wd - IPoint2(1, 1));
+}
 
 void ToroidalStaticShadowCascade::setRenderParams(BaseTexture *target)
 {

@@ -1,3 +1,4 @@
+options indenting = 2
 module soa_template shared private
 options no_aot
 
@@ -28,7 +29,7 @@ def fn_or_block_apply(var func; body; var errors : das_string)
   var i = 0
   while i < length(func.arguments)
     assume arg = func.arguments[i]
-    if arg._type.baseType == Type tStructure && arg._type.structType.name |> ends_with("_SOA")
+    if arg._type.baseType == Type.tStructure && arg._type.structType.name |> ends_with("_SOA")
       let desc = arg._type |> describe(false, false, true)
       if usedTypes |> key_exists(desc)
         errors := "Multiple arguments with same soa type '{desc}'"
@@ -38,16 +39,16 @@ def fn_or_block_apply(var func; body; var errors : das_string)
         if true
           var inscope fieldType <- clone_type(field._type)
           if arg._type.flags.constant
-            fieldType.flags |= TypeDeclFlags constant
-          var inscope newArg <- new [[Variable() at=arg.at,
+            fieldType.flags |= TypeDeclFlags.constant
+          var inscope newArg <- new Variable(at = arg.at,
             name := field.name,
             _type <- fieldType,
             _aka := "{field.name}_SOA"
-          ]]
+          )
           for ann in field.annotation
             newArg.annotation |> add_annotation_argument(ann)
           func.arguments |> emplace(newArg)
-      toReplace |> emplace <| [[auto string(arg.name), [{ for f in arg._type.structType.fields; string(f.name) }] ]]
+      toReplace |> emplace <|  (string(arg.name), [ for f in arg._type.structType.fields; string(f.name) ])
       func.arguments |> erase(i)
     else
       i += 1
@@ -107,9 +108,24 @@ def fn_patch(var fn : smart_ptr<Function>; var astChanged : bool&)
   var i = length(fn.arguments)
   while --i >= 0
     assume arg = fn.arguments[i]
-    if !arg.access_flags.access_pass && !arg.access_flags.access_get && !arg.access_flags.access_ref && !arg.access_flags.access_init && ends_with("{arg._aka}", "_SOA")
+    let is_soa_field = ends_with("{arg._aka}", "_SOA")
+
+    // Vars for const checking taken from lint.das
+    let isNonConstSoaArg = (!arg._type.flags.constant &&
+                            !arg._type.flags.removeConstant &&
+                            !arg.access_flags.access_ref &&
+                            (arg._type.baseType != Type.tPointer || !arg.access_flags.access_pass) &&
+                            is_soa_field)
+    // Default constness is taken from base _SOA struct field.
+    // We might change only one of the fields by index,
+    // so we should add constness back to fields which are not changed.
+    if isNonConstSoaArg
       astChanged = true
-      removeArgs |> emplace([[auto "arg", [[RttiValue tInt=i]] ]])
+      arg._type.flags |= TypeDeclFlags.constant
+
+    if !arg.access_flags.access_pass && !arg.access_flags.access_get && !arg.access_flags.access_ref && !arg.access_flags.access_init && is_soa_field
+      astChanged = true
+      removeArgs |> emplace(("arg", RttiValue(tInt = i)))
 
   if length(removeArgs) > 0
     fn |> append_annotation("remove_call_args", "remove_call_args", removeArgs)
@@ -119,14 +135,28 @@ def fn_patch(var fn : smart_ptr<Function>; var astChanged : bool&)
 
 [macro_function]
 def block_patch(var blk : ExprBlock?; var astChanged : bool&)
-  var indexes : array<int>
   var i = length(blk.arguments)
   while --i >= 0
     assume arg = blk.arguments[i]
-    if !arg.access_flags.access_pass && !arg.access_flags.access_get && !arg.access_flags.access_ref && !arg.access_flags.access_init && ends_with("{arg._aka}", "_SOA")
+
+    let is_soa_field = ends_with("{arg._aka}", "_SOA")
+    // Vars for const checking taken from lint.das
+    let isNonConstSoaArg = (!arg._type.flags.constant &&
+                            !arg._type.flags.removeConstant &&
+                            arg._type.canCloneFromConst &&
+                            !arg.access_flags.access_ref &&
+                            (arg._type.baseType != Type.tPointer || !arg.access_flags.access_pass) &&
+                            is_soa_field)
+    // Default constness is taken from base _SOA struct field.
+    // We might change only one of the fields by index,
+    // so we should add constness back to fields which are not changed.
+    if isNonConstSoaArg
+      astChanged = true
+      arg._type.flags |= TypeDeclFlags.constant
+
+    if !arg.access_flags.access_pass && !arg.access_flags.access_get && !arg.access_flags.access_ref && !arg.access_flags.access_init && is_soa_field
       blk.arguments |> erase(i)
       astChanged = true
-      indexes |> push(i)
   return true
 
 
@@ -152,6 +182,18 @@ class SoaEsBlockMacro : AstBlockAnnotation
   [unused_argument(group, args)] def override apply(var blk : smart_ptr<ExprBlock>; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
     return fn_or_block_apply(blk, blk, errors)
 
+  [unused_argument(group, args, progArgs)] def override finish(var blk : smart_ptr<ExprBlock>; var group : ModuleGroup; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool
+    if blk.inFunction == null
+      errors := "block macro can only be used in function body"
+      return false
+
+    for it in blk.inFunction.annotations
+      if it.annotation.name == "soa_es" || it.annotation.name == "soa_def"
+        return true
+
+    errors := "block macro can only be used in function with [soa_es] or [soa_def] annotation"
+    return false
+
 [function_macro(name="_soa_fn")]
 class SoaFnMarkerMacro : AstFunctionAnnotation
   [unused_argument(func, group, args, errors)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
@@ -175,6 +217,7 @@ def replate_index_and_field(prefix : string; var fields : array<string>; blk : E
 class ReplaceIndexAndFieldsVisitor : AstVisitor
   it_prefix : string
   fields : array<string>
+  @do_not_delete aliases : table<string; ExprAt?>
 
   def ReplaceIndexAndFieldsVisitor(prefix : string; var fields_ : array<string>)
     it_prefix = prefix
@@ -183,17 +226,33 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
   [unused_argument(expr)] def override canVisitWithAliasSubexpression(expr : smart_ptr<ExprAssume>) : bool
     return true
 
-  def override visitExprField(var expr : smart_ptr<ExprField>) : ExpressionPtr
-    if expr.value is ExprAt
-      assume at = expr.value as ExprAt
+  def override preVisitExprAssume(var expr : smart_ptr<ExprAssume>) : void
+    if expr.subexpr is ExprAt
+      var at = expr.subexpr as ExprAt
       if (at.subexpr is ExprVar)
         if (at.subexpr as ExprVar).name == it_prefix
-          let ename = string(expr.name)
-          return <- new [[ExprAt()
-            at=expr.at,
-            subexpr <- new [[ExprVar() at=expr.at, name := ename]],
+          aliases.insert(string(expr.alias), expr.subexpr as ExprAt)
+
+  def override visitExprField(var expr : smart_ptr<ExprField>) : ExpressionPtr
+    if expr.value is ExprAt
+      var at = expr.value as ExprAt
+      if (at.subexpr is ExprVar)
+        if (at.subexpr as ExprVar).name == it_prefix
+          return <- new ExprAt(
+              at = expr.at,
+              subexpr <- new ExprVar(at = expr.at, name := expr.name),
+              index <- clone_expression(at.index)
+            )
+
+    if expr.value is ExprVar
+      var eVar = expr.value as ExprVar
+      for alName, at in keys(aliases), values(aliases)
+        if alName == eVar.name
+          return <- new ExprAt(
+            at = expr.at,
+            subexpr <- new ExprVar(at = expr.at, name := expr.name),
             index <- clone_expression(at.index)
-            ]]
+          )
     return <- expr
 
   def override visitExprCall(var expr : smart_ptr<ExprCall>) : ExpressionPtr
@@ -204,21 +263,21 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
         var inscope len <- clone_expression(expr)
         var lenCall = len as ExprCall
         lenCall.arguments[0] := null
-        lenCall.arguments[0] |> move_new() <| new [[ExprVar() at=arg.at, name := fields[0]]]
+        lenCall.arguments[0] |> move_new() <| new ExprVar(at = arg.at, name := fields[0])
         return <- len
     elif (argsNum == 3 && (expr.name == "erase")
       || (argsNum == 2 && (expr.name == "push" || expr.name == "push_clone" || expr.name == "emplace" || expr.name == "erase" || expr.name == "resize" || expr.name == "reserve"))
-      || (argsNum == 1 && expr.name == "clear"))
+      || (argsNum == 1 && (expr.name == "clear" || expr.name == "pop")))
       assume arg = expr.arguments[0]
       if (arg is ExprVar) && (arg as ExprVar).name == it_prefix
         var inscope pushExpr <- clone_expression(expr)
         var pushCall = pushExpr as ExprCall
         pushCall.arguments |> erase(0)
         for field in fields
-          pushCall.arguments |> emplace_new <| new [[ExprVar()
-            at=arg.at,
+          pushCall.arguments |> emplace_new <| new ExprVar(
+            at = arg.at,
             name := field
-          ]]
+          )
         return <- pushExpr
     else
       var hasSoaArg = false
@@ -235,10 +294,10 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
           if (arg is ExprVar) && (arg as ExprVar).name == it_prefix
             pushCall.arguments |> erase(idx)
             for field in fields
-              pushCall.arguments |> emplace_new <| new [[ExprVar()
-                at=arg.at,
+              pushCall.arguments |> emplace_new <| new ExprVar(
+                at = arg.at,
                 name := field
-              ]]
+              )
         return <- pushExpr
     return <- expr
 
@@ -268,10 +327,10 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
           newFor.iteratorsAka |> resize(si + 1)
           newFor.iteratorsAka[si] := ""
           newFor.iteratorsAt |> push(expr.iteratorsAt[soa_index])
-          var inscope nsrc <- new [[ExprVar()
-            at=expr.sources[soa_index].at,
+          var inscope nsrc <- new ExprVar(
+            at = expr.sources[soa_index].at,
             name := itn
-          ]]
+          )
           newFor.sources |> emplace(nsrc)
       newFor.iteratorVariables |> clear()
 
@@ -303,15 +362,15 @@ class SoaTemplateStructMacro : AstStructureAnnotation
       errors := "soa macro expects at least one field"
       return false
     if show_completion && is_in_completion()
-      var inscope tdef <- new [[TypeDecl()
-          at=st.at,
-          baseType = Type tArray,
+      var inscope tdef <- new TypeDecl(
+          at = st.at,
+          baseType = Type.tArray,
           alias := "{st.name}_SOA",
-          firstType <- new [[TypeDecl() at=st.at,
-              baseType = Type tStructure,
+          firstType <- new TypeDecl(at = st.at,
+              baseType = Type.tStructure,
               structType = get_ptr(st)
-          ]]
-      ]]
+          )
+      )
       compiling_module() |> add_alias(tdef)
       return true
     // soa
@@ -323,6 +382,7 @@ class SoaTemplateStructMacro : AstStructureAnnotation
       if true
         var inscope newType <- make_field_type(fld, errors)
         move(fld._type, newType)
+        fld.annotation.add_annotation_argument("safe_when_uninitialized", true)
 
     if length(errors) > 0
       return false
@@ -354,6 +414,9 @@ class SoaTemplateStructMacro : AstStructureAnnotation
     // clear
     var inscope clear_op <- make_clear(st, stype, checkSizes)
     compiling_module() |> add_function(clear_op)
+    // pop
+    var inscope pop_op <- make_pop(st, stype, checkSizes)
+    compiling_module() |> add_function(pop_op)
     // resize
     var inscope resize_op <- make_resize_reserve(st, stype, "resize", checkSizes)
     compiling_module() |> add_function(resize_op)
@@ -367,159 +430,164 @@ class SoaTemplateStructMacro : AstStructureAnnotation
   def make_field_type(fld : FieldDeclaration; var errors : das_string) : TypeDeclPtr
     if length(fld._type.dim) > 0
       errors := "{errors}\nunsupported type {describe(fld._type)}"
-      return <- [[TypeDeclPtr]]
+      return <- default<TypeDeclPtr>
 
-    if fld._type.baseType == Type tBool
-      return <- typeinfo(ast_typedecl type<ecs::BoolList>)
+    if fld._type.baseType == Type.tBool
+      return <- typeinfo ast_typedecl(type<ecs::BoolList>)
 
-    if fld._type.baseType == Type tUInt64
-      return <- typeinfo(ast_typedecl type<ecs::UInt64List>)
+    if fld._type.baseType == Type.tUInt64
+      return <- typeinfo ast_typedecl(type<ecs::UInt64List>)
 
-    if fld._type.baseType == Type tFloat
-      return <- typeinfo(ast_typedecl type<ecs::FloatList>)
+    if fld._type.baseType == Type.tFloat
+      return <- typeinfo ast_typedecl(type<ecs::FloatList>)
 
-    if fld._type.baseType == Type tInt8
-      return <- typeinfo(ast_typedecl type<ecs::Int8List>)
+    if fld._type.baseType == Type.tInt8
+      return <- typeinfo ast_typedecl(type<ecs::Int8List>)
 
-    if fld._type.baseType == Type tInt16
-      return <- typeinfo(ast_typedecl type<ecs::Int16List>)
+    if fld._type.baseType == Type.tInt16
+      return <- typeinfo ast_typedecl(type<ecs::Int16List>)
 
-    if fld._type.baseType == Type tInt
-      return <- typeinfo(ast_typedecl type<ecs::IntList>)
+    if fld._type.baseType == Type.tInt
+      return <- typeinfo ast_typedecl(type<ecs::IntList>)
 
-    if fld._type.baseType == Type tUInt
-      return <- typeinfo(ast_typedecl type<ecs::UInt32List>)
+    if fld._type.baseType == Type.tUInt
+      return <- typeinfo ast_typedecl(type<ecs::UInt32List>)
 
-    if fld._type.baseType == Type tInt64
-      return <- typeinfo(ast_typedecl type<ecs::Int64List>)
+    if fld._type.baseType == Type.tInt64
+      return <- typeinfo ast_typedecl(type<ecs::Int64List>)
 
-    if fld._type.baseType == Type tInt2
-      return <- typeinfo(ast_typedecl type<ecs::IPoint2List>)
+    if fld._type.baseType == Type.tInt2
+      return <- typeinfo ast_typedecl(type<ecs::IPoint2List>)
 
-    if fld._type.baseType == Type tInt3
-      return <- typeinfo(ast_typedecl type<ecs::IPoint3List>)
+    if fld._type.baseType == Type.tInt3
+      return <- typeinfo ast_typedecl(type<ecs::IPoint3List>)
 
-    if fld._type.baseType == Type tString
-      return <- typeinfo(ast_typedecl type<ecs::StringList>)
+    if fld._type.baseType == Type.tString
+      return <- typeinfo ast_typedecl(type<ecs::StringList>)
 
-    if fld._type.baseType == Type tFloat2
-      return <- typeinfo(ast_typedecl type<ecs::Point2List>)
+    if fld._type.baseType == Type.tFloat2
+      return <- typeinfo ast_typedecl(type<ecs::Point2List>)
 
-    if fld._type.baseType == Type tFloat3
-      return <- typeinfo(ast_typedecl type<ecs::Point3List>)
+    if fld._type.baseType == Type.tFloat3
+      return <- typeinfo ast_typedecl(type<ecs::Point3List>)
 
-    if fld._type.baseType == Type tFloat4
-      return <- typeinfo(ast_typedecl type<ecs::Point4List>)
+    if fld._type.baseType == Type.tFloat4
+      return <- typeinfo ast_typedecl(type<ecs::Point4List>)
 
-    if fld._type.baseType == Type tUInt8
-      return <- typeinfo(ast_typedecl type<ecs::UInt8List>)
+    if fld._type.baseType == Type.tUInt8
+      return <- typeinfo ast_typedecl(type<ecs::UInt8List>)
 
-    if fld._type.baseType == Type tUInt16
-      return <- typeinfo(ast_typedecl type<ecs::UInt16List>)
+    if fld._type.baseType == Type.tUInt16
+      return <- typeinfo ast_typedecl(type<ecs::UInt16List>)
 
-    if fld._type.baseType == Type tHandle
+    if fld._type.baseType == Type.tHandle
       if fld._type.annotation.name == "float3x4" && fld._type.annotation._module.name == "math"
-        return <- typeinfo(ast_typedecl type<ecs::TMatrixList>)
+        return <- typeinfo ast_typedecl(type<ecs::TMatrixList>)
 
       if fld._type.annotation.name == "E3DCOLOR" && fld._type.annotation._module.name == "DagorMath"
-        return <- typeinfo(ast_typedecl type<ecs::ColorList>)
+        return <- typeinfo ast_typedecl(type<ecs::ColorList>)
 
       if fld._type.annotation.name == "EntityId" && fld._type.annotation._module.name == "ecs"
-        return <- typeinfo(ast_typedecl type<ecs::EidList>)
+        return <- typeinfo ast_typedecl(type<ecs::EidList>)
 
     errors := "{errors}\nunsupported type {describe(fld._type)}"
-    return <- [[TypeDeclPtr]]
+    return <- default<TypeDeclPtr>
 
   def make_any_named_call(st, stype : StructurePtr; var args : array<MakeFuncArg>; fnName, callName : string; check_sizes : bool) : FunctionPtr
-    var inscope pushOp <- new [[Function() at=st.at, atDecl=st.at, name := fnName]]
-    pushOp.flags |= FunctionFlags generated
-    pushOp.result |> move_new() <| new [[TypeDecl() baseType=Type tVoid, at=st.at]]
-    var inscope pushBody <- new [[ExprBlock() at=st.at]]
+    var inscope pushOp <- new Function(at = st.at, atDecl = st.at, name := fnName)
+    pushOp.flags |= FunctionFlags.generated
+    pushOp.result |> move_new() <| new TypeDecl(baseType = Type.tVoid, at = st.at)
+    var inscope pushBody <- new ExprBlock(at = st.at)
     if check_sizes && length(st.fields) > 1
       for idx, fld in iter_range(st.fields), st.fields
         if idx > 0
-          var inscope compareLen1 <- new [[ExprCall() at=st.at, name := "length"]]
-          compareLen1.arguments |> emplace_new <| new [[ExprVar() at=st.at, name := st.fields[0].name]]
+          var inscope compareLen1 <- new ExprCall(at = st.at, name := "length")
+          compareLen1.arguments |> emplace_new <| new ExprVar(at = st.at, name := st.fields[0].name)
 
-          var inscope compareLen2 <- new [[ExprCall() at=st.at, name := "length"]]
-          compareLen2.arguments |> emplace_new <| new [[ExprVar() at=st.at, name := fld.name]]
+          var inscope compareLen2 <- new ExprCall(at = st.at, name := "length")
+          compareLen2.arguments |> emplace_new <| new ExprVar(at = st.at, name := fld.name)
 
-          var inscope compalreLens <- new [[ExprOp2()
-            at=st.at,
+          var inscope compalreLens <- new ExprOp2(
+            at = st.at,
             op := "==",
             left <- compareLen1,
             right <- compareLen2
-          ]]
+          )
 
-          var inscope pushVerify <- new [[ExprAssert() at=st.at]]
+          var inscope pushVerify <- new ExprAssert(at = st.at)
           pushVerify.arguments |> emplace <| compalreLens
-          pushVerify.arguments |> emplace_new <| new [[ExprConstString() at=st.at, value := "length(\"{st.fields[0].name}\") != length(\"{fld.name}\")"]]
+          pushVerify.arguments |> emplace_new <| new ExprConstString(at = st.at, value := "length(\"{st.fields[0].name}\") != length(\"{fld.name}\")")
           pushBody.list |> emplace(pushVerify)
 
     for fld in st.fields
       if true
-        var inscope pushCall <- new [[ExprCall() at=st.at, name := callName]]
-        pushCall.arguments |> emplace_new <| new [[ExprVar() at=st.at, name := fld.name]]
+        var inscope pushCall <- new ExprCall(at = st.at, name := callName)
+        pushCall.arguments |> emplace_new <| new ExprVar(at = st.at, name := fld.name)
         for idx, arg in iter_range(args), args
           if arg.argT == null
             continue
           if arg.argField
-            pushCall.arguments |> emplace_new <| new [[ExprField() at=st.at,
-                value <- new [[ExprVar() at=st.at, name := "arg{idx}"]],
+            pushCall.arguments |> emplace_new <| new ExprField(at = st.at,
+                value <- new ExprVar(at = st.at, name := "arg{idx}"),
                 name := fld.name,
-                fieldFlags = ExprFieldFieldFlags no_promotion
-            ]]
+                fieldFlags = ExprFieldFieldFlags.no_promotion
+            )
           else
-            pushCall.arguments |> emplace_new <| new [[ExprVar() at=st.at, name := "arg{idx}"]]
+            pushCall.arguments |> emplace_new <| new ExprVar(at = st.at, name := "arg{idx}")
         pushBody.list |> emplace(pushCall)
 
     for idx, arg in iter_range(args), args
       if arg.argT == null
         continue
-      pushOp.arguments |> emplace_new <| new [[Variable()
+      pushOp.arguments |> emplace_new <| new Variable(
         name := "arg{idx}",
-        at=st.at,
+        at = st.at,
         _type <- arg.argT
-      ]]
+      )
     for fld in stype.fields
-      pushOp.arguments |> emplace_new <| new [[Variable()
+      pushOp.arguments |> emplace_new <| new Variable(
         name := fld.name,
-        at=fld.at,
+        at = fld.at,
         _type <- clone_type(fld._type)
-      ]]
+      )
     pushOp.body |> move() <| pushBody
     return <- pushOp
 
   def make_erase(st, stype : StructurePtr; check_sizes : bool)
-    var inscope argT <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT]] }]
+    var inscope argT <- new TypeDecl(baseType = Type.tInt, at = st.at)
+    var inscope args <-  [ MakeFuncArg(argT <- argT) ]
     return <- make_any_named_call(st, stype, args, "erase", "erase", check_sizes)
 
   def make_erase2(st, stype : StructurePtr; check_sizes : bool)
-    var inscope argT <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
-    var inscope argT2 <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT]]; [[MakeFuncArg argT <- argT2]] }]
+    var inscope argT <- new TypeDecl(baseType = Type.tInt, at = st.at)
+    var inscope argT2 <- new TypeDecl(baseType = Type.tInt, at = st.at)
+    var inscope args <-  [ MakeFuncArg(argT <- argT), MakeFuncArg(argT <- argT2) ]
     return <- make_any_named_call(st, stype, args, "erase", "erase", check_sizes)
 
   def make_clear(st, stype : StructurePtr; check_sizes : bool)
     var inscope argT : TypeDeclPtr
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT]] }]
+    var inscope args <-  [ MakeFuncArg(argT <- argT) ]
     return <- make_any_named_call(st, stype, args, "clear", "clear", check_sizes)
 
+  def make_pop(st, stype : StructurePtr; check_sizes : bool)
+    var inscope argT : TypeDeclPtr
+    var inscope args <-  [ MakeFuncArg(argT <- argT) ]
+    return <- make_any_named_call(st, stype, args, "pop", "pop", check_sizes)
+
   def make_resize_reserve(st, stype : StructurePtr; name : string; check_sizes : bool)
-    var inscope argT <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT]] }]
+    var inscope argT <- new TypeDecl(baseType = Type.tInt, at = st.at)
+    var inscope args <-  [ MakeFuncArg(argT <- argT) ]
     return <- make_any_named_call(st, stype, args, name, name, check_sizes)
 
   def make_named_call(var st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
-    var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]] }]
+    var inscope argT <- new TypeDecl(baseType = Type.tStructure, at = st.at, structType = get_ptr(st), flags = isConst ? TypeDeclFlags.constant : bitfield(0))
+    var inscope args <-  [ MakeFuncArg(argT <- argT, argField=true) ]
     return <- make_any_named_call(st, stype, args, fnName, callName, check_sizes)
 
   def make_named_call2_int(var st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
-    var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
-    var inscope argT2 <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
-    var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]]; [[MakeFuncArg argT <- argT2]] }]
+    var inscope argT <- new TypeDecl(baseType = Type.tStructure, at = st.at, structType = get_ptr(st), flags = isConst ? TypeDeclFlags.constant : bitfield(0))
+    var inscope argT2 <- new TypeDecl(baseType = Type.tInt, at = st.at)
+    var inscope args <-  [ MakeFuncArg(argT <- argT, argField=true), MakeFuncArg(argT <- argT2) ]
     return <- make_any_named_call(st, stype, args, fnName, callName, check_sizes)
 
 
@@ -534,7 +602,7 @@ class CollectAndReplaceIteratorFields : AstVisitor
       if (expr.value as ExprVar).name == prefix
         let ename = string(expr.name)
         insert(names, ename)
-        return <- new [[ExprVar() at=expr.at, name := "{prefix}_{ename}"]]
+        return <- new ExprVar(at = expr.at, name := "{prefix}_{ename}")
     return <- expr
 
 

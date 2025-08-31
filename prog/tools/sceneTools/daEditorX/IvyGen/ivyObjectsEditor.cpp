@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "plugIn.h"
+#include "plugin.h"
 #include "ivyObject.h"
 
 #include "ivyObjectsEditor.h"
@@ -12,10 +12,10 @@
 #include <drv/3d/dag_driver.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_cpuFreq.h>
-#include <winGuiWrapper/wgw_input.h>
 #include <shaders/dag_overrideStates.h>
 
 using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagInput;
 using editorcore_extapi::dagRender;
 
 #define OBJECT_IVY     "Ivy"
@@ -180,7 +180,7 @@ void IvyObjectEditor::gizmoStarted()
     if (!RTTI_cast<IvyObject>(selection[i]))
       return;
 
-  if (wingw::is_key_pressed(wingw::V_SHIFT) && getEditMode() == CM_OBJED_MODE_MOVE)
+  if (dagInput->isShiftKeyDown() && getEditMode() == CM_OBJED_MODE_MOVE)
   {
     if (!cloneMode)
       cloneMode = true;

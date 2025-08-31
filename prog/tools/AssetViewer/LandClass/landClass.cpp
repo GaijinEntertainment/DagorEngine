@@ -93,15 +93,15 @@ public:
     initScriptPanelEditor("land.scheme.nut", "landClass' by scheme");
   }
 
-  ~LandClassViewPlugin() { end(); }
+  ~LandClassViewPlugin() override { end(); }
 
-  virtual const char *getInternalName() const { return "landClassViewer"; }
+  const char *getInternalName() const override { return "landClassViewer"; }
 
-  virtual void registered() {}
+  void registered() override {}
 
-  virtual void unregistered() {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     end();
 
@@ -135,7 +135,7 @@ public:
     return true;
   }
 
-  virtual bool end()
+  bool end() override
   {
     if (spEditor)
       spEditor->destroyPanel();
@@ -153,22 +153,22 @@ public:
     return true;
   }
 
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     box = bbox;
     return true;
   }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects()
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override
   {
     if (!spline)
       return;
@@ -191,7 +191,7 @@ public:
 
     ::end_draw_cached_debug_lines();
   }
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!getVisible())
       return;
@@ -209,12 +209,14 @@ public:
         rbuf.flush();
         rbuf.clearBuf();
         break;
+
+      default: break;
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "land") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "land") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &propPanel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &propPanel) override
   {
     propPanel.setEventHandler(this);
 
@@ -229,9 +231,9 @@ public:
     propPanel.setInt(PID_POLYGON_TYPE_GROUP, presentationType);
   }
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (!spline || assetName.empty())
       return;

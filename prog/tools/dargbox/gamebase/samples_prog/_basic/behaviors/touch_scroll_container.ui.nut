@@ -4,7 +4,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let button = @() watchElemState( @(sf) {
   rendObj = ROBJ_BOX
-  size = [sh(20),SIZE_TO_CONTENT]
+  size = static [sh(20),SIZE_TO_CONTENT]
   padding = sh(2)
   fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
   borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -35,7 +35,7 @@ let button = @() watchElemState( @(sf) {
 
 
 let container = {
-  size = [sh(30), sh(80)]
+  size = static [sh(30), sh(80)]
   rendObj = ROBJ_BOX
   borderWidth = hdpx(3)
   borderColor = Color(150,150,150)
@@ -45,7 +45,7 @@ let container = {
   shareMouse = true
 
   children = {
-    size = [sh(30), sh(150)]
+    size = static [sh(30), sh(150)]
     flow = FLOW_VERTICAL
     halign = ALIGN_CENTER
     padding = sh(5)
@@ -61,7 +61,7 @@ let container = {
 }
 
 let contOuter = {
-  size = [sh(30), sh(80)]
+  size = static [sh(30), sh(80)]
   clipChildren = true
   children = container
 }

@@ -39,8 +39,6 @@ MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
   {
     String name(128, "ssao_tex_%d_%d", viewCounter, i);
     ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str());
-    ssaoTex[i].getTex2D()->texbordercolor(0xFFFFFFFF);
-    ssaoTex[i].getTex2D()->texaddr(TEXADDR_CLAMP);
   }
 
   aoRenderer.reset(create_postfx_renderer(ssao_sh_name));

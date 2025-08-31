@@ -20,6 +20,9 @@ inline constexpr uint32_t DEFAULT_BUFFER_DISCARD_BASE_COUNT = 1;
 inline constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;
 inline constexpr uint32_t MAX_VERTEX_INPUT_STREAMS = 4;
 
+inline constexpr uint32_t MAX_STREAM_OUTPUT_BUFFERS = 4;
+inline constexpr uint32_t MAX_STREAM_OUTPUT_ATTRIBUTES = 32;
+
 inline constexpr uint32_t MAX_VIEW_INSTANCES = 4;
 
 inline constexpr uint32_t SHADER_REGISTER_ELEMENTS = 4;

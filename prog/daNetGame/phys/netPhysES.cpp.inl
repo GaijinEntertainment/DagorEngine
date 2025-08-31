@@ -122,6 +122,7 @@ struct ReserveOneThreadpoolWorkerJob final : public cpujobs::IJob
   os_event_t evt;
   ReserveOneThreadpoolWorkerJob() { os_event_create(&evt); }
   ~ReserveOneThreadpoolWorkerJob() { os_event_destroy(&evt); }
+  const char *getJobName(bool &) const override { return "ReserveOneThreadpoolWorkerJob"; }
   void doJob() override
   {
     threadpool::wake_up_one(); // Wake up Jolt's sim job

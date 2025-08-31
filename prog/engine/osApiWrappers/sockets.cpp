@@ -834,9 +834,9 @@ int sockets::Socket::setopt(OsSocketOption opt, intptr_t value)
   return r;
 }
 
-template int sockets::Socket::sendtoWithResetOnError<OSAF_IPV4>(const SocketAddr<OSAF_IPV4> &, const char *, int, int);
-template int sockets::Socket::sendto<OSAF_IPV4>(const SocketAddr<OSAF_IPV4> &, const char *, int, int);
-template int sockets::Socket::connect<OSAF_IPV4>(const SocketAddr<OSAF_IPV4> &);
+#include <supp/dag_define_KRNLIMP.h>
+template KRNLIMP int sockets::Socket::sendto<OSAF_IPV4>(const SocketAddr<OSAF_IPV4> &, const char *, int, int);
+template KRNLIMP int sockets::Socket::connect<OSAF_IPV4>(const SocketAddr<OSAF_IPV4> &);
 
 #define EXPORT_PULL dll_pull_osapiwrappers_sockets
 #include <supp/exportPull.h>

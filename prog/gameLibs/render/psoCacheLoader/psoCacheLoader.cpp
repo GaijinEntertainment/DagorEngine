@@ -8,6 +8,7 @@
 #include <startup/dag_globalSettings.h>
 #include <drv/3d/dag_commands.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <EASTL/string.h>
 
 
@@ -19,7 +20,18 @@ namespace
 class WaitableCallback final : public httprequests::IAsyncHTTPCallback
 {
 public:
-  WaitableCallback() : previousCacheLoadedFromDisk(dblk::load(cacheFileBlk, CACHE_PATH, dblk::ReadFlag::ROBUST)) {}
+  WaitableCallback() : previousCacheLoadedFromDisk(dblk::load(cacheFileBlk, CACHE_PATH, dblk::ReadFlag::ROBUST))
+  {
+    DagorStat localCacheStat;
+    if (::df_stat(CACHE_PATH, &localCacheStat) != -1)
+    {
+      debug("Local PSO cache file '%s' loaded, size: %lld bytes", CACHE_PATH, localCacheStat.size);
+    }
+    else
+    {
+      debug("Local PSO cache file '%s' not found", CACHE_PATH);
+    }
+  }
 
   virtual void onRequestDone(httprequests::RequestStatus status, int http_code, dag::ConstSpan<char> response,
     httprequests::StringMap const &resp_headers) override
@@ -36,6 +48,7 @@ public:
         {
           DataBlock cacheBlk;
           cacheBlk.loadText(response.data(), response.size());
+          debug("PSO cache loaded from server, size: %u bytes", response.size());
           cacheFileBlk.addNewBlock(&cacheBlk, "cache");
           const auto lastModified = resp_headers.find("Last-Modified");
           const eastl::string lastModifiedVal =
@@ -79,22 +92,26 @@ public:
 };
 } // namespace
 
-void load_pso_cache(const char *game_name, const char *game_version)
+namespace circuit
+{
+const DataBlock *get_conf();
+}
+
+void load_pso_cache(const char *game_version)
 {
   if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("pso_cache_enabled", true))
     return;
   WaitableCallback waitableCallback;
   httprequests::AsyncRequestParams request;
-  const char *defaultUrl =
-#if DAGOR_DBGLEVEL > 0
-    "https://beta.pso-cache.gaijin.net"
-#else
-    "https://pso-cache.gaijin.net"
-#endif
-    ;
-  const eastl::string url(eastl::string::CtorSprintf(), "%s/%s/%s/%s",
-    ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_download_url", defaultUrl), game_name, game_version,
-    CACHE_FILENAME);
+  const DataBlock *circuitCfg = circuit::get_conf();
+  const char *baseurl = circuitCfg ? circuitCfg->getStr("pso_cache_download_url", nullptr) : nullptr;
+  const char *appkey = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_app_key", nullptr);
+  if (!baseurl || !appkey)
+  {
+    debug("URL for pso cache has not beed setup in dx12{ pso_cache_download_url:t= }. Do not use cache.");
+    return;
+  }
+  const eastl::string url(eastl::string::CtorSprintf(), "%s/%s/%s/%s", baseurl, appkey, game_version, CACHE_FILENAME);
   request.url = url.c_str();
   request.reqType = httprequests::HTTPReq::GET;
   if (waitableCallback.previousCacheLoadedFromDisk)
@@ -132,17 +149,55 @@ void load_pso_cache(const char *game_name, const char *game_version)
     CompilePipelineSet pipelineSet;
     pipelineSet.defaultFormat = "dx12";
     pipelineSet.inputLayoutSet = cache->getBlockByName("input_layouts");
+    debug("PSO cache info. Input layouts count: %d", pipelineSet.inputLayoutSet ? pipelineSet.inputLayoutSet->blockCount() : 0);
     pipelineSet.computePipelineSet = cache->getBlockByName("compute_pipelines");
+    debug("PSO cache info. Compute pipelines count: %d",
+      pipelineSet.computePipelineSet ? pipelineSet.computePipelineSet->blockCount() : 0);
     pipelineSet.renderStateSet = cache->getBlockByName("render_states");
+    debug("PSO cache info. Render states count: %d", pipelineSet.renderStateSet ? pipelineSet.renderStateSet->blockCount() : 0);
     pipelineSet.graphicsPipelineSet = cache->getBlockByName("graphics_pipelines");
+    debug("PSO cache info. Graphics pipelines count: %d",
+      pipelineSet.graphicsPipelineSet ? pipelineSet.graphicsPipelineSet->blockCount() : 0);
     pipelineSet.featureSet = cache->getBlockByName("features");
+    debug("PSO cache info. Feature sets count: %d", pipelineSet.featureSet ? pipelineSet.featureSet->blockCount() : 0);
     pipelineSet.meshPipelineSet = cache->getBlockByName("mesh_pipelines");
+    debug("PSO cache info. Mesh pipelines count: %d", pipelineSet.meshPipelineSet ? pipelineSet.meshPipelineSet->blockCount() : 0);
     pipelineSet.outputFormatSet = cache->getBlockByName("framebuffer_layouts");
+    debug("PSO cache info. Framebuffer layouts count: %d",
+      pipelineSet.outputFormatSet ? pipelineSet.outputFormatSet->blockCount() : 0);
     pipelineSet.signature = cache->getBlockByName("signature");
+    debug("PSO cache info. Signatures count: %d", pipelineSet.signature ? pipelineSet.signature->blockCount() : 0);
     pipelineSet.computeSet = cache->getBlockByName("compute");
+    const uint32_t computeSetCount = pipelineSet.computeSet ? pipelineSet.computeSet->blockCount() : 0;
+    debug("PSO cache info. Compute set count: %d", computeSetCount);
+    auto getUsagesCount = [](const DataBlock *set) -> uint32_t {
+      if (!set)
+        return 0;
+      const uint32_t setCount = set->blockCount();
+      uint32_t usagesCount = 0;
+      for (uint32_t i = 0; i < setCount; ++i)
+      {
+        const DataBlock &variant = *set->getBlock(i);
+        const uint32_t shadersCount = variant.blockCount();
+        for (uint32_t j = 0; j < shadersCount; ++j)
+          usagesCount += variant.getBlock(j)->paramCount();
+      }
+      return usagesCount;
+    };
+    debug("PSO cache info. Compute set usages: %d", getUsagesCount(pipelineSet.computeSet));
     pipelineSet.graphicsSet = cache->getBlockByName("graphics");
+    const uint32_t graphicsSetCount = pipelineSet.graphicsSet ? pipelineSet.graphicsSet->blockCount() : 0;
+    debug("PSO cache info. Graphics set variants: %d", graphicsSetCount);
+    debug("PSO cache info. Graphics set usages: %d", getUsagesCount(pipelineSet.graphicsSet));
     pipelineSet.graphicsNullPixelOverrideSet = cache->getBlockByName("graphicsNullOverride");
+    const uint32_t graphicsNullPixelOverrideSetCount =
+      pipelineSet.graphicsNullPixelOverrideSet ? pipelineSet.graphicsNullPixelOverrideSet->blockCount() : 0;
+    debug("PSO cache info. Graphics null pixel override set count: %d", graphicsNullPixelOverrideSetCount);
+    debug("PSO cache info. Graphics null pixel override set usages: %d", getUsagesCount(pipelineSet.graphicsNullPixelOverrideSet));
     pipelineSet.graphicsPixelOverrideSet = cache->getBlockByName("graphicsPixelOverride");
+    debug("PSO cache info. Graphics pixel override set count: %d",
+      pipelineSet.graphicsPixelOverrideSet ? pipelineSet.graphicsPixelOverrideSet->blockCount() : 0);
+    debug("PSO cache info. Graphics pixel override set usages: %d", getUsagesCount(pipelineSet.graphicsPixelOverrideSet));
     d3d::driver_command(Drv3dCommand::COMPILE_PIPELINE_SET, &pipelineSet);
   }
 }

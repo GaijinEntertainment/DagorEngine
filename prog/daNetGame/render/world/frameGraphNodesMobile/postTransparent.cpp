@@ -28,29 +28,30 @@ extern ConVarT<bool, false> use_occlusion;
 extern int show_shadows;
 extern bool grs_draw_wire;
 
-dabfg::NodeHandle mk_occlusion_preparing_mobile_node()
+dafg::NodeHandle mk_occlusion_preparing_mobile_node()
 {
-  return dabfg::register_node("occlusion_preparing_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("occlusion_preparing_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const auto depthHndl =
-      registry.readTexture("depth_for_transparent_effects").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTexture("depth_for_transparent_effects").atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
     registry.requestState().allowWireframe();
 
     const auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
-    dabfg::Texture2dCreateInfo cInfo;
+    dafg::Texture2dCreateInfo cInfo;
     cInfo.creationFlags = TEXFMT_R32F | TEXCF_RTARGET | TEXCF_UNORDERED;
     cInfo.mipLevels = wr.downsampledTexturesMipCount;
     cInfo.resolution = registry.getResolution<2>("main_view", 0.5);
-    const auto tempDepthHndl = registry.createTexture2d("temporary_depth_for_occlusion", dabfg::History::No, cInfo)
-                                 .atStage(dabfg::Stage::PS)
-                                 .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+    const auto tempDepthHndl = registry.createTexture2d("temporary_depth_for_occlusion", dafg::History::No, cInfo)
+                                 .atStage(dafg::Stage::PS)
+                                 .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                  .handle();
 
     const auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
     return [depthHndl, tempDepthHndl, cameraHndl]() {
-      if (current_occlusion && use_occlusion.get())
+      Occlusion *occlusion = cameraHndl.ref().jobsMgr->getOcclusion();
+      if (occlusion && use_occlusion.get())
       {
         wait_occlusion_async_readback_gpu();
 
@@ -61,20 +62,20 @@ dabfg::NodeHandle mk_occlusion_preparing_mobile_node()
         // Otherwise (i.e. if target depth is not present), the occlusion
         // system expects the `depth` argument to contain far_downsampled_depth,
         // not just an empty temporary texture!!!
-        current_occlusion->prepareNextFrame(cameraHndl.ref().noJitterPersp.zn, cameraHndl.ref().noJitterPersp.zf,
+        occlusion->prepareNextFrame(cameraHndl.ref().noJitterPersp.zn, cameraHndl.ref().noJitterPersp.zf,
           tempDepthHndl.view().getTex2D(), depthHndl.view().getTex2D());
       }
     };
   });
 }
 
-dabfg::NodeHandle mk_postfx_target_producer_mobile_node()
+dafg::NodeHandle mk_postfx_target_producer_mobile_node()
 {
-  return dabfg::register_node("postfx_target_producer_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("postfx_target_producer_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("occlusion_preparing_mobile");
 
-    registry.renameTexture("target_after_darg_in_world_panels_trans", "postfx_input", dabfg::History::No);
-    registry.registerTexture2d("final_target", [](const dabfg::multiplexing::Index) -> ManagedTexView {
+    registry.renameTexture("target_after_darg_in_world_panels_trans", "postfx_input", dafg::History::No);
+    registry.registerTexture("final_target", [](const dafg::multiplexing::Index) -> ManagedTexView {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       return *wr.finalTargetFrame;
     });
@@ -83,15 +84,14 @@ dabfg::NodeHandle mk_postfx_target_producer_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_postfx_mobile_node()
+dafg::NodeHandle mk_postfx_mobile_node()
 {
-  return dabfg::register_node("postfx_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.readTexture("postfx_input").atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
+  return dafg::register_node("postfx_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.readTexture("postfx_input").atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
 
     postfx_bind_additional_textures_from_registry(registry);
 
-    const auto rtHndl =
-      registry.modifyTexture("final_target").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
+    const auto rtHndl = registry.modifyTexture("final_target").atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
 
     registry.requestState().allowWireframe().setFrameBlock("");
 
@@ -114,12 +114,12 @@ dabfg::NodeHandle mk_postfx_mobile_node()
 }
 
 
-dabfg::NodeHandle mk_finalize_frame_mobile_node()
+dafg::NodeHandle mk_finalize_frame_mobile_node()
 {
-  return dabfg::register_node("finalize_frame_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.renameTexture("final_target", "final_dbg_target", dabfg::History::No)
-      .atStage(dabfg::Stage::PS)
-      .useAs(dabfg::Usage::COLOR_ATTACHMENT);
+  return dafg::register_node("finalize_frame_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.renameTexture("final_target", "final_dbg_target", dafg::History::No)
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT);
 
     return []() {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -137,11 +137,11 @@ dabfg::NodeHandle mk_finalize_frame_mobile_node()
 }
 
 
-dabfg::NodeHandle mk_debug_render_mobile_node()
+dafg::NodeHandle mk_debug_render_mobile_node()
 {
-  return dabfg::register_node("debug_render_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("debug_render_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     const auto rtHndl =
-      registry.modifyTexture("final_dbg_target").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
+      registry.modifyTexture("final_dbg_target").atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
 
     const auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 

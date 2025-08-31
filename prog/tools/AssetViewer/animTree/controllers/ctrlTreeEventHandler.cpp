@@ -23,8 +23,7 @@ enum
 };
 }
 
-CtrlTreeEventHandler::CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths,
-  CtrlChildsDialog &dialog) :
+CtrlTreeEventHandler::CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths, ChildsDialog &dialog) :
   dialog(dialog), controllers(controllers), paths(paths)
 {}
 
@@ -68,7 +67,8 @@ int CtrlTreeEventHandler::onMenuItemClick(unsigned id)
       dialog.fillChildsTree(selLeaf);
       if (!dialog.isVisible())
       {
-        dialog.positionLeftToWindow("Properties", /*use_same_height*/ true);
+        if (!dialog.hasEverBeenShown())
+          dialog.positionLeftToWindow("Properties", /*use_same_height*/ true);
         dialog.show();
       }
       break;

@@ -580,7 +580,7 @@ struct ECSMessageListener : public websocket::MessageListener
     };
     ecs::QueryId qid = ecsViewerEntityManager->createQuery(desc);
 
-    ecs::perform_query(ecsViewerEntityManager, qid, [&](const ecs::QueryView &qv) {
+    ecs::perform_query(ecsViewerEntityManager, qid, ecs::query_cb_t([&](const ecs::QueryView &qv) {
       for (auto it = qv.begin(), endIt = qv.end(); it != endIt; ++it)
       {
         bson.begin(i.str());
@@ -595,8 +595,7 @@ struct ECSMessageListener : public websocket::MessageListener
 
         i.increment();
       }
-      return ecs::QueryCbResult::Continue;
-    });
+    }));
     ecsViewerEntityManager->destroyQuery(qid);
 
     bson.end(); // entities
@@ -787,7 +786,6 @@ struct ECSMessageListener : public websocket::MessageListener
       const Tab<ecs::ComponentDesc> &compsRO;
       bool hasFilter;
       ExpressionTree &filterExpr;
-      TmpState() = delete;
     };
 
     const char *filter = blk.getStr("filter", nullptr);
@@ -802,7 +800,7 @@ struct ECSMessageListener : public websocket::MessageListener
     TmpState state{i, bson, comps_ro, hasFilter, filterExpr};
 
     auto qid = ecsViewerEntityManager->createQuery(desc);
-    ecs::perform_query(ecsViewerEntityManager, qid, [&state](const ecs::QueryView &qv) {
+    ecs::perform_query(ecsViewerEntityManager, qid, ecs::stoppable_query_cb_t([&state](const ecs::QueryView &qv) {
       auto &i = state.i;
       auto &bson = state.bson;
       const auto &comps_ro = state.compsRO;
@@ -856,7 +854,7 @@ struct ECSMessageListener : public websocket::MessageListener
         i.increment();
       }
       return ecs::QueryCbResult::Continue;
-    });
+    }));
     ecsViewerEntityManager->destroyQuery(qid);
 
     bson.end(); // dynamicQueryEntities

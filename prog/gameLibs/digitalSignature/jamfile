@@ -15,6 +15,9 @@ else {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
 }
 
-Sources = digitalSignatureCheck.cpp ;
+Sources =
+  digitalSignatureCheck.cpp
+  digitalSignatureCreate.cpp
+;
 
 include $(Root)/prog/_jBuild/build.jam ;

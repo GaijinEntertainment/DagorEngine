@@ -11,13 +11,14 @@
 #include "execution_state.h"
 #include "execution_context.h"
 #include "execution_sync_capture.h"
+#include "driver_config.h"
 
 using namespace drv3d_vulkan;
 
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::PIPE_SYNC> InternalPipelineBarrier;
 
 #if EXECUTION_SYNC_DEBUG_CAPTURE > 0
-uint32_t ExecutionSyncTracker::OpUid::frame_local_next_op_uid = 0;
+uint32_t SyncOpUid::frame_local_next_op_uid = 0;
 #endif
 
 // #define PROFILE_SYNC(x) TIME_PROFILE(x)
@@ -128,7 +129,7 @@ struct OpsProcessAlgorithm
       ops.arr.push_back_uninitialized();
       // read from proper memory if vector was reallocated
       ops.arr.back() = ops.arr[srcOpIndex];
-      ops.arr.back().uid = ExecutionSyncTracker::OpUid::next();
+      ops.arr.back().uid = SyncOpUid::next();
       ops.arr.back().area = cachedArea;
       ops.arr.back().onPartialSplit();
       Backend::syncCapture.addOp(ops.arr.back().uid, ops.arr.back().laddr, ops.arr.back().obj, ops.arr.back().caller);
@@ -221,12 +222,6 @@ struct OpsProcessAlgorithm
 
     for (size_t i : scratch.dst)
       ops.arr[i].addToBarrierByTemplateDst(barrier);
-
-    // if src ops did not added any stages due to suppresion or full src-less conflicts
-    // do src less barrier as-is if synchronization2 is available
-    // otherwise do full commands barrier
-    if (!Globals::VK::phy.hasSynchronization2 && barrier.getStagesSrc() == VK_PIPELINE_STAGE_NONE)
-      barrier.addStagesSrc(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
   }
 
   void reduceLoopRanges()
@@ -304,7 +299,7 @@ bool filterReadsOnSealedObjects(size_t gpu_work_id, OpsArrayType &ops, Resource 
       // if seal removal is not silent - we must add last RO op to current uncompleted ops
       if (!obj->removeRoSealSilently(gpu_work_id))
       {
-        ops.arr.push_back();
+        ops.arr.push_back_uninitialized();
         ops.arr.back() = ops.arr[ops.lastProcessed];
         ops.removeRoSeal(obj);
         // at least track to prev sync step
@@ -325,6 +320,11 @@ bool filterReadsOnSealedObjects(size_t gpu_work_id, OpsArrayType &ops, Resource 
 template <typename OpsArrayType, typename Resource, typename AreaType, typename Optional>
 bool filterAccessTracking(size_t gpu_work_id, OpsArrayType &ops, Resource *obj, LogicAddress laddr, AreaType area, Optional opt)
 {
+  if (Globals::cfg.bits.debugGarbadgeReads)
+    obj->checkAccessAfterDeviceReset(laddr.isWrite());
+  G_ASSERTF(obj->verifyAccessAllowed(gpu_work_id),
+    "vulkan: trying to access %s %p:%s while it is disallowed on gpu work id %u caller %s", obj->resTypeString(), obj,
+    obj->getDebugName(), gpu_work_id, Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
   if (filterReadsOnSealedObjects(gpu_work_id, ops, obj, laddr, opt))
     return true;
   if (mergeToLastSyncOp(ops, obj, laddr, area, opt))
@@ -407,7 +407,7 @@ void ExecutionSyncTracker::addBufferAccess(LogicAddress laddr, Buffer *buf, Buff
     return;
   aliasCheckAndSync(buf, laddr, *this);
 
-  bufOps.arr.push_back({OpUid::next(), laddr, buf, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+  bufOps.arr.push_back(BufferSyncOp(SyncOpUid::next(), getCaller(), laddr, buf, area));
   Backend::syncCapture.addOp(bufOps.arr.back().uid, bufOps.arr.back().laddr, bufOps.arr.back().obj, bufOps.arr.back().caller);
 }
 
@@ -427,16 +427,14 @@ void ExecutionSyncTracker::addImageAccessImpl(LogicAddress laddr, Image *img, Vk
     area.mipIndex, area.mipIndex + area.mipRange, area.arrayIndex, area.arrayIndex + area.arrayRange, img->layout.mipLevels,
     img->layout.data.size() / img->layout.mipLevels);
 
-  ImageOpAdditionalParams opAddParams{layout, currentRenderSubpass};
+  ImageSyncOpAdditionalParams opAddParams{layout, currentRenderSubpass};
   if (filterAccessTracking(gpuWorkId, imgOps, img, laddr, area, opAddParams))
     return;
 
   aliasCheckAndSync(img, laddr, *this);
 
-
-  imgOps.arr.push_back({OpUid::next(), laddr, img, area, getCaller(), VK_ACCESS_NONE, layout, currentRenderSubpass, nativeRPIndex,
-    /*completed*/ false, /*dstConflict*/ false,
-    /*changesLayout*/ false, nrp_attachment, /*handledBySubpassDependency*/ false, /* discard */ discard});
+  imgOps.arr.push_back(ImageSyncOp(SyncOpUid::next(), getCaller(), laddr, img, area));
+  imgOps.arr.back().specificInit(nrp_attachment, layout, currentRenderSubpass, nativeRPIndex, discard);
   Backend::syncCapture.addOp(imgOps.arr.back().uid, imgOps.arr.back().laddr, imgOps.arr.back().obj, imgOps.arr.back().caller);
 }
 
@@ -462,7 +460,7 @@ void ExecutionSyncTracker::completeNeeded()
   if (!anyNonProcessed() || delayCompletion)
     return;
 
-  InternalPipelineBarrier barrier(0, 0);
+  InternalPipelineBarrier barrier;
 
   if (bufOps.lastProcessed != bufOps.arr.size())
   {
@@ -478,7 +476,7 @@ void ExecutionSyncTracker::completeNeeded()
     imgAlg.completeNeeded();
   }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   if (asOps.lastProcessed != asOps.arr.size())
   {
     PROFILE_SYNC(vulkan_as_sync);
@@ -499,7 +497,7 @@ void ExecutionSyncTracker::clearOps()
 {
   bufOps.clear();
   imgOps.clear();
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   asOps.clear();
 #endif
 }
@@ -509,7 +507,7 @@ void ExecutionSyncTracker::completeOnQueue(size_t gpu_work_id)
   completeNeeded();
   G_ASSERTF(!delayCompletion, "vulkan: sync delay must not be interrupted by GPU job change");
 
-  workItemEndBarrier(gpu_work_id);
+  workItemEndSync(gpu_work_id);
 }
 
 void ExecutionSyncTracker::completeAll(size_t gpu_work_id)
@@ -519,15 +517,15 @@ void ExecutionSyncTracker::completeAll(size_t gpu_work_id)
 
   // ending current block, so increment in advance
   gpuWorkId = gpu_work_id + 1;
-  OpUid::frame_end();
+  SyncOpUid::frame_end();
   Backend::syncCapture.reset();
 
-  workItemEndBarrier(gpu_work_id);
+  workItemEndSync(gpu_work_id);
 
   nativeRPIndex = 0;
 }
 
-void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
+void ExecutionSyncTracker::workItemEndSync(size_t gpu_work_id)
 {
   if (allCompleted())
   {
@@ -535,11 +533,9 @@ void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
     return;
   }
 
-  // do global memory barrier for now
-  LogicAddress srcLA = {VK_PIPELINE_STAGE_NONE, VK_ACCESS_NONE};
   for (size_t i = bufOps.lastIncompleted; i < bufOps.arr.size(); ++i)
   {
-    const BufferOp &op = bufOps.arr[i];
+    const BufferSyncOp &op = bufOps.arr[i];
     if (op.completed)
       continue;
 
@@ -551,17 +547,21 @@ void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
     // it will be auto-unsealed on next frame if someone wants to write to it
     if (!op.laddr.isWrite())
       op.obj->optionallyActivateRoSeal(gpu_work_id);
-
-    srcLA.merge(op.laddr);
   }
 
   for (size_t i = imgOps.lastIncompleted; i < imgOps.arr.size(); ++i)
   {
-    const ImageOp &op = imgOps.arr[i];
+    const ImageSyncOp &op = imgOps.arr[i];
     if (op.completed)
       continue;
 
-    if (op.laddr.isWrite() && op.obj->isUsedInBindless())
+    if (op.laddr.isWrite() &&
+        op.obj->isUsedInBindless()
+#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
+        // debug flush will always trigger this error because it can't enclose followup user barriers anyhow
+        && !Globals::cfg.bits.flushAfterEachDrawAndDispatch
+#endif
+    )
       D3D_ERROR("vulkan: sync: image: incompleted write while registered in bindless, must handle it! %s", op.format());
 
     if (!op.laddr.isWrite() && op.obj->layout.roSealTargetLayout != VK_IMAGE_LAYOUT_UNDEFINED)
@@ -576,14 +576,12 @@ void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
       if (canSeal)
         op.obj->optionallyActivateRoSeal(gpu_work_id);
     }
-
-    srcLA.merge(op.laddr);
   }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   for (size_t i = asOps.lastIncompleted; i < asOps.arr.size(); ++i)
   {
-    const AccelerationStructureOp &op = asOps.arr[i];
+    const AccelerationStructureSyncOp &op = asOps.arr[i];
     if (op.completed)
       continue;
 
@@ -591,24 +589,15 @@ void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
     // it will be auto-unsealed on next frame if someone wants to write to it
     if (!op.laddr.isWrite())
       op.obj->optionallyActivateRoSeal(gpu_work_id);
-
-    srcLA.merge(op.laddr);
   }
 #endif
-
-  InternalPipelineBarrier barrier(srcLA.stage, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-  barrier.addMemory({srcLA.access, VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT});
-  // can be empty due to native RP sync exclusion
-  if (srcLA.stage != VK_PIPELINE_STAGE_NONE)
-    barrier.submit();
-
   clearOps();
 }
 
 bool ExecutionSyncTracker::anyNonProcessed()
 {
   return bufOps.lastProcessed != bufOps.arr.size() || imgOps.lastProcessed != imgOps.arr.size()
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
          || asOps.lastProcessed != asOps.arr.size()
 #endif
     ;
@@ -617,7 +606,7 @@ bool ExecutionSyncTracker::anyNonProcessed()
 bool ExecutionSyncTracker::allCompleted()
 {
   return bufOps.lastIncompleted == bufOps.arr.size() && imgOps.lastIncompleted == imgOps.arr.size()
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
          && asOps.lastIncompleted == asOps.arr.size()
 #endif
     ;
@@ -625,17 +614,17 @@ bool ExecutionSyncTracker::allCompleted()
 
 #if EXECUTION_SYNC_TRACK_CALLER > 0
 
-ExecutionSyncTracker::OpCaller ExecutionSyncTracker::getCaller()
+SyncOpCaller ExecutionSyncTracker::getCaller()
 {
   return {backtrace::get_hash(1), Backend::State::exec.getExecutionContext().getCurrentCmdCallerHash()};
 }
 
-String ExecutionSyncTracker::OpCaller::getInternal() const { return backtrace::get_stack_by_hash(internal); }
-String ExecutionSyncTracker::OpCaller::getExternal() const { return backtrace::get_stack_by_hash(external); }
+String SyncOpCaller::getInternal() const { return backtrace::get_stack_by_hash(internal); }
+String SyncOpCaller::getExternal() const { return backtrace::get_stack_by_hash(external); }
 
 #endif
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 
 void ExecutionSyncTracker::addAccelerationStructureAccess(LogicAddress laddr, RaytraceAccelerationStructure *as)
 {
@@ -643,7 +632,7 @@ void ExecutionSyncTracker::addAccelerationStructureAccess(LogicAddress laddr, Ra
   if (filterAccessTracking(gpuWorkId, asOps, as, laddr, area, 0))
     return;
 
-  asOps.arr.push_back({OpUid::next(), laddr, as, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+  asOps.arr.push_back(AccelerationStructureSyncOp(SyncOpUid::next(), getCaller(), laddr, as, area));
   Backend::syncCapture.addOp(asOps.arr.back().uid, asOps.arr.back().laddr, asOps.arr.back().obj, asOps.arr.back().caller);
 }
 

@@ -17,6 +17,7 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
 #include <shaders/dag_shaders.h>
 #include <rendInst/riShaderConstBuffers.h>
@@ -32,6 +33,7 @@
 #include <gpuObjects/gpu_objects_const.hlsli>
 
 #include <util/dag_console.h>
+#include <util/dag_convar.h>
 
 using namespace ecs;
 
@@ -44,45 +46,50 @@ ECS_DECLARE_RELOCATABLE_TYPE(gpu_objects::riex_handles);
 ECS_REGISTER_RELOCATABLE_TYPE(gpu_objects::riex_handles, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(gpu_objects::riex_handles, "gpu_object_placer__surface_riex_handles", nullptr, 0);
 
+
+CONSOLE_BOOL_VAL("volume_placer", gpuObjectVisibility, true);
+
 namespace gpu_objects
 {
 
-#define GLOBAL_VARS_LIST                                \
-  VAR(gpu_objects_buffer_offset)                        \
-  VAR(gpu_objects_distance_emitter_buffer_offset)       \
-  VAR(gpu_objects_distance_emitter_decal_buffer_offset) \
-  VAR(gpu_objects_matrices_count)                       \
-  VAR(gpu_objects_on_rendinst_geometry_matrices_count)  \
-  VAR(gpu_objects_on_terrain_geometry_matrices_count)   \
-  VAR(gpu_objects_max_on_terrain_instance_count)        \
-  VAR(gpu_objects_bbox_y_min_max)                       \
-  VAR(gpu_objects_ri_pool_id_offset)                    \
-  VAR(gpu_objects_placer_tm)                            \
-  VAR(gpu_objects_max_triangles)                        \
-  VAR(gpu_objects_mesh_offset)                          \
-  VAR(gpu_objects_debug_color)                          \
-  VAR(gpu_objects_scale_rotate)                         \
-  VAR(gpu_objects_up_vector)                            \
-  VAR(gpu_objects_scale_radius)                         \
-  VAR(gpu_objects_min_gathered_triangle_size)           \
-  VAR(gpu_objects_sum_area_step)                        \
-  VAR(gpu_objects_distance_affect_decal)                \
-  VAR(gpu_objects_distance_to_scale_from)               \
-  VAR(gpu_objects_distance_to_scale_to)                 \
-  VAR(gpu_objects_distance_to_min_scale)                \
-  VAR(gpu_objects_distance_to_max_scale)                \
-  VAR(gpu_objects_distance_to_rotation_from)            \
-  VAR(gpu_objects_distance_to_rotation_to)              \
-  VAR(gpu_objects_distance_to_min_rotation)             \
-  VAR(gpu_objects_distance_to_max_rotation)             \
-  VAR(gpu_objects_distance_to_scale_pow)                \
-  VAR(gpu_objects_distance_to_rotation_pow)             \
-  VAR(gpu_objects_distance_out_of_range)                \
-  VAR(gpu_objects_distance_emitter__range)              \
-  VAR(gpu_objects_distance_emitter__position)           \
-  VAR(gpu_objects_remove_box_min)                       \
-  VAR(gpu_objects_remove_box_max)                       \
-  VAR(gpu_objects_cutoff_ratio)
+#define GLOBAL_VARS_LIST                               \
+  VAR(gpu_objects_buffer_offset)                       \
+  VAR(gpu_objects_distance_emitter_buffer_offset)      \
+  VAR(gpu_objects_decal_buffer_offset)                 \
+  VAR(gpu_objects_matrices_count)                      \
+  VAR(gpu_objects_on_rendinst_geometry_matrices_count) \
+  VAR(gpu_objects_on_terrain_geometry_matrices_count)  \
+  VAR(gpu_objects_max_on_terrain_instance_count)       \
+  VAR(gpu_objects_bbox_y_min_max)                      \
+  VAR(gpu_objects_ri_pool_id_offset)                   \
+  VAR(gpu_objects_placer_tm)                           \
+  VAR(gpu_objects_max_triangles)                       \
+  VAR(gpu_objects_mesh_offset)                         \
+  VAR(gpu_objects_debug_color)                         \
+  VAR(gpu_objects_scale_rotate)                        \
+  VAR(gpu_objects_up_vector)                           \
+  VAR(gpu_objects_scale_radius)                        \
+  VAR(gpu_objects_min_gathered_triangle_size)          \
+  VAR(gpu_objects_sum_area_step)                       \
+  VAR(gpu_objects_distance_affect_decal)               \
+  VAR(gpu_objects_distance_to_scale_from)              \
+  VAR(gpu_objects_distance_to_scale_to)                \
+  VAR(gpu_objects_distance_to_min_scale)               \
+  VAR(gpu_objects_distance_to_max_scale)               \
+  VAR(gpu_objects_distance_to_rotation_from)           \
+  VAR(gpu_objects_distance_to_rotation_to)             \
+  VAR(gpu_objects_distance_to_min_rotation)            \
+  VAR(gpu_objects_distance_to_max_rotation)            \
+  VAR(gpu_objects_distance_to_scale_pow)               \
+  VAR(gpu_objects_distance_to_rotation_pow)            \
+  VAR(gpu_objects_distance_out_of_range)               \
+  VAR(gpu_objects_distance_emitter__range)             \
+  VAR(gpu_objects_distance_emitter__position)          \
+  VAR(gpu_objects_remove_box_center)                   \
+  VAR(gpu_objects_remove_box_mtx)                      \
+  VAR(gpu_objects_remove_box_size)                     \
+  VAR(gpu_objects_cutoff_ratio)                        \
+  VAR(gpu_objects_spoofed_decal_size)
 
 
 #define VAR(a) static int a##VarId = -1;
@@ -123,6 +130,7 @@ VolumePlacer::VolumePlacer()
   updateMatrices.reset(new_compute_shader("gpu_objects_update_matrices_cs", true));
   counterReadbackFence.reset(d3d::create_event_query());
   objectRemover.reset(new_compute_shader("gpu_objects_remove_objects_cs", true));
+  decalMover.reset(new_compute_shader("gpu_objects_move_decals_into_placer_bbox_cs", true));
   readbackPending = false;
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
@@ -202,24 +210,29 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
 
   gpu_object_placer_fill_ecs_query(
     [&](ecs::EntityId eid, int gpu_object_placer__ri_asset_idx, float gpu_object_placer__visible_distance_squared,
-      bool gpu_object_placer__place_on_geometry, float gpu_object_placer__min_gathered_triangle_size,
+      bool gpu_object_placer__place_on_geometry, bool gpu_object_placer__use_strict_decal_placement,
+      const Point2 &gpu_object_placer__spoofed_decal_size, float gpu_object_placer__min_gathered_triangle_size,
       float gpu_object_placer__triangle_edge_length_ratio_cutoff, float &gpu_object_placer__current_distance_squared,
-      bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
-      int &gpu_object_placer__distance_emitter_decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size,
-      int &gpu_object_placer__buffer_size, int &gpu_object_placer__on_rendinst_geometry_count,
-      int &gpu_object_placer__on_terrain_geometry_count, float gpu_object_placer__object_density,
-      int gpu_object_placer__object_max_count, const Point2 &gpu_object_placer__object_scale_range,
-      const Point2 &gpu_object_placer__distance_based_scale, float gpu_object_placer__min_scale_radius,
-      const Point4 &gpu_object_placer__object_up_vector_threshold, bool &gpu_object_placer__distance_emitter_is_dirty,
-      const ecs::EntityId gpu_object_placer__distance_emitter_eid, const Point3 &gpu_object_placer__distance_to_scale_from,
-      const Point3 &gpu_object_placer__distance_to_scale_to, float gpu_object_placer__distance_to_rotation_from,
-      float gpu_object_placer__distance_to_rotation_to, const Point3 &gpu_object_placer__distance_to_scale_pow,
-      float gpu_object_placer__distance_to_rotation_pow, bool gpu_object_placer__use_distance_emitter,
-      bool gpu_object_placer__distance_affect_decals, bool gpu_object_placer__distance_out_of_range,
-      gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles, TMatrix transform,
-      const Point2 *gpu_object_placer__boxBorderX, const Point2 *gpu_object_placer__boxBorderY,
+      bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset, int &gpu_object_placer__decal_buffer_size,
+      int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__buffer_size,
+      int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
+      float gpu_object_placer__object_density, int gpu_object_placer__object_max_count,
+      const Point2 &gpu_object_placer__object_scale_range, const Point2 &gpu_object_placer__distance_based_scale,
+      float gpu_object_placer__min_scale_radius, const Point4 &gpu_object_placer__object_up_vector_threshold,
+      bool &gpu_object_placer__distance_emitter_is_dirty, const ecs::EntityId gpu_object_placer__distance_emitter_eid,
+      const Point3 &gpu_object_placer__distance_to_scale_from, const Point3 &gpu_object_placer__distance_to_scale_to,
+      float gpu_object_placer__distance_to_rotation_from, float gpu_object_placer__distance_to_rotation_to,
+      const Point3 &gpu_object_placer__distance_to_scale_pow, float gpu_object_placer__distance_to_rotation_pow,
+      bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_affect_decals,
+      bool gpu_object_placer__distance_out_of_range, gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles,
+      TMatrix transform, const Point2 *gpu_object_placer__boxBorderX, const Point2 *gpu_object_placer__boxBorderY,
+      bool gpu_object_placer__use_original_tm_for_strict_decal_placement,
       const Point2 *gpu_object_placer__boxBorderZ ECS_REQUIRE(ecs::Tag box_zone)) {
       G_ASSERT(!(gpu_object_placer__filled && gpu_object_placer__buffer_offset == -1));
+
+      // Saving original tm before its reduction.
+      TMatrix original_tm = transform;
+
       adjust_transform_to_border_offset(gpu_object_placer__boxBorderX, 0, transform);
       adjust_transform_to_border_offset(gpu_object_placer__boxBorderY, 1, transform);
       adjust_transform_to_border_offset(gpu_object_placer__boxBorderZ, 2, transform);
@@ -232,8 +245,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
         if (gpu_object_placer__buffer_offset != -1)
         {
           matricesBuffer.releaseBufferOffset(gpu_object_placer__buffer_size,
-            gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__distance_emitter_decal_buffer_size,
-            gpu_object_placer__buffer_offset);
+            gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__decal_buffer_size, gpu_object_placer__buffer_offset);
         }
         resetReadbackEntity(eid);
         gpu_object_placer__filled = false;
@@ -290,14 +302,15 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
         gpu_object_placer__use_distance_emitter && gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID
           ? gpu_object_placer__buffer_size
           : 0;
-      gpu_object_placer__distance_emitter_decal_buffer_size = gpu_object_placer__use_distance_emitter &&
-                                                                  gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID &&
-                                                                  gpu_object_placer__distance_affect_decals
-                                                                ? gpu_object_placer__buffer_size
-                                                                : 0;
 
-      if (!matricesBuffer.getBufferOffset(gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size +
-                                            gpu_object_placer__distance_emitter_decal_buffer_size,
+      gpu_object_placer__decal_buffer_size = 0;
+      if (gpu_object_placer__use_distance_emitter && gpu_object_placer__distance_emitter_eid != INVALID_ENTITY_ID &&
+            gpu_object_placer__distance_affect_decals ||
+          gpu_object_placer__use_strict_decal_placement)
+        gpu_object_placer__decal_buffer_size = gpu_object_placer__buffer_size;
+
+      if (!matricesBuffer.getBufferOffset(
+            gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__decal_buffer_size,
             gpu_object_placer__buffer_offset))
         return;
 
@@ -308,6 +321,11 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
           gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__triangle_edge_length_ratio_cutoff,
           gpu_object_placer__on_rendinst_geometry_count, gpu_object_placer__on_terrain_geometry_count,
           gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles, needGeometryGather);
+
+      TMatrix decalTm = gpu_object_placer__use_original_tm_for_strict_decal_placement ? original_tm : transform;
+      moveDecals(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx, gpu_object_placer__buffer_offset, decalTm,
+        gpu_object_placer__distance_emitter_buffer_size, gpu_object_placer__use_strict_decal_placement,
+        gpu_object_placer__decal_buffer_size, gpu_object_placer__spoofed_decal_size, gpu_object_placer__place_on_geometry);
       updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
         gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
         gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
@@ -321,7 +339,10 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
     gpu_object_placer_remove_ecs_query(
       [&](int &gpu_object_placer__buffer_offset, int &gpu_object_placer__buffer_size,
         int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
-        const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone)) {
+        const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone), bool gpu_object_placer__opaque) {
+        if (!gpu_object_placer__buffer_offset || !gpu_object_placer__opaque)
+          return;
+
         STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
         ShaderGlobal::set_int(gpu_objects_buffer_offsetVarId, gpu_object_placer__buffer_offset);
         ShaderGlobal::set_int(gpu_objects_matrices_countVarId, gpu_object_placer__buffer_size);
@@ -332,8 +353,10 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
         for (auto &box : removeBoxList)
         {
           d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-          ShaderGlobal::set_color4(gpu_objects_remove_box_minVarId, box.lim[0]);
-          ShaderGlobal::set_color4(gpu_objects_remove_box_maxVarId, box.lim[1]);
+          ShaderGlobal::set_color4(gpu_objects_remove_box_centerVarId, box.boxCenter);
+          ShaderGlobal::set_float4x4(gpu_objects_remove_box_mtxVarId, box.tm);
+          ShaderGlobal::set_color4(gpu_objects_remove_box_sizeVarId, box.boxSize);
+
           objectRemover->dispatchThreads(
             (gpu_object_placer__on_rendinst_geometry_count + gpu_object_placer__on_terrain_geometry_count), 1, 1);
         }
@@ -345,7 +368,32 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
   }
 }
 
-void VolumePlacer::addEraseBox(const Point3 &box_min, const Point3 &box_max) { removeBoxList.emplace_back(box_min, box_max); }
+VolumePlacer::EraseBox::EraseBox(const Point3 &box_min, const Point3 &box_max, const TMatrix4 &box_tm) : tm(box_tm)
+{
+  BBox3 bbox = BBox3(box_min, box_max);
+  boxCenter = bbox.center() * box_tm;
+  boxSize = bbox.lim[1] - bbox.lim[0];
+
+  tm.setrow(3, Point4::ZERO);
+  tm.setcol(3, Point4(0, 0, 0, 1));
+
+  for (int i = 0; i < 3; ++i)
+  {
+    float axisLength = tm.getcol(i).length();
+    float4 axis = tm.getcol(i);
+    if (axisLength > FLT_EPSILON)
+    {
+      axis /= axisLength;
+      boxSize[i] *= axisLength;
+    }
+    tm.setcol(i, axis);
+  }
+}
+
+void VolumePlacer::addEraseBox(const Point3 &box_min, const Point3 &box_max, const TMatrix4 &box_tm)
+{
+  removeBoxList.emplace_back(box_min, box_max, box_tm);
+}
 
 bool VolumePlacer::RingBuffer::getBufferOffset(int count, int &buf_offset)
 {
@@ -450,12 +498,12 @@ void VolumePlacer::RingBuffer::expandBuffer()
   {
     gpu_object_placer_copy_on_expand_ecs_query(
       [&](int &gpu_object_placer__buffer_offset, int gpu_object_placer__buffer_size,
-        int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__distance_emitter_decal_buffer_size) {
+        int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__decal_buffer_size) {
         if (gpu_object_placer__buffer_offset == -1)
           return;
         G_ASSERT(gpu_object_placer__buffer_size != -1);
-        int bufferSize = gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size +
-                         gpu_object_placer__distance_emitter_decal_buffer_size;
+        int bufferSize =
+          gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__decal_buffer_size;
         getBuf()->copyTo(newBuf.get(), offset * MATRIX_SIZE, gpu_object_placer__buffer_offset * MATRIX_SIZE, bufferSize * MATRIX_SIZE);
         gpu_object_placer__buffer_offset = offset;
         offset += bufferSize;
@@ -479,6 +527,29 @@ static void set_placer_transform(const TMatrix4 &transform)
 {
   TMatrix4 tm = transform.transpose();
   ShaderGlobal::set_float4x4(gpu_objects_placer_tmVarId, tm);
+}
+
+void VolumePlacer::moveDecals(int count, int ri_idx, int buf_offset, const TMatrix &transform,
+  int gpu_object_placer__distance_emitter_buffer_size, bool place_decals_strictly_in_box, int gpu_object_placer__decal_buffer_size,
+  const Point2 &spoofed_decal_size, bool on_geometry)
+{
+  if (!on_geometry || !(place_decals_strictly_in_box && gpu_object_placer__decal_buffer_size > 0))
+    return;
+
+  uint decal_offset = buf_offset + count + (gpu_object_placer__distance_emitter_buffer_size > 0 ? count : 0);
+  ShaderGlobal::set_int(gpu_objects_buffer_offsetVarId, buf_offset);
+  ShaderGlobal::set_int(gpu_objects_matrices_countVarId, count);
+  ShaderGlobal::set_int(gpu_objects_ri_pool_id_offsetVarId, ri_idx * rendinst::render::PER_DRAW_VECS_COUNT + 1);
+  ShaderGlobal::set_int(gpu_objects_decal_buffer_offsetVarId, decal_offset);
+  ShaderGlobal::set_color4(gpu_objects_spoofed_decal_sizeVarId, spoofed_decal_size);
+
+  set_placer_transform(TMatrix4(transform));
+
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
+
+  TIME_D3D_PROFILE(VolumePlacer_moveDecalsIntoBox)
+  d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  decalMover->dispatchThreads(count, 1, 1);
 }
 
 bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
@@ -659,8 +730,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
       return false;
   }
 
-  unsigned int zeros[4] = {0};
-  d3d::clear_rwbufi(counterBuffer.getBuf(), zeros);
+  d3d::zero_rwbufi(counterBuffer.getBuf());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 1, VALUE), counterBuffer.getBuf());
 
   ShaderGlobal::set_real(gpu_objects_min_gathered_triangle_sizeVarId, min_triangle_size);
@@ -800,12 +870,12 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
   gpu_object_placer_visibility_ecs_query(
     [&](ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__filled) int gpu_object_placer__ri_asset_idx,
       int gpu_object_placer__buffer_size, float gpu_object_placer__current_distance_squared, int gpu_object_placer__buffer_offset,
-      int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__distance_emitter_decal_buffer_size,
-      bool gpu_object_placer__opaque, bool gpu_object_placer__decal, bool gpu_object_placer__distorsion,
-      bool gpu_object_placer__render_into_shadows, ecs::EntityId gpu_object_placer__distance_emitter_eid, const TMatrix &transform) {
+      int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__decal_buffer_size, bool gpu_object_placer__opaque,
+      bool gpu_object_placer__decal, bool gpu_object_placer__distorsion, bool gpu_object_placer__render_into_shadows,
+      ecs::EntityId gpu_object_placer__distance_emitter_eid, const TMatrix &transform) {
       if (for_shadow == ShadowPass::YES)
         gpu_object_placer__decal = false; // Do not render decals during shadow pass
-      if (!gpu_object_placer__opaque && !gpu_object_placer__decal)
+      if (!gpuObjectVisibility || (!gpu_object_placer__opaque && !gpu_object_placer__decal))
         return;
       if (for_shadow == ShadowPass::YES && (!gpu_object_placer__opaque || !gpu_object_placer__render_into_shadows))
         return;
@@ -829,9 +899,8 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
         int offset = gpu_object_placer__buffer_offset +
                      (gpu_object_placer__distance_emitter_buffer_size > 0 ? gpu_object_placer__buffer_size : 0);
         visibilityByLod[lod][key].emplace_back(offset, gpu_object_placer__buffer_size);
-        G_ASSERT(!(gpu_object_placer__distance_emitter_buffer_size == 0 && gpu_object_placer__distance_emitter_decal_buffer_size > 0));
         int decalOffset =
-          gpu_object_placer__buffer_offset + (gpu_object_placer__distance_emitter_decal_buffer_size > 0
+          gpu_object_placer__buffer_offset + (gpu_object_placer__decal_buffer_size > 0
                                                  ? gpu_object_placer__buffer_size + gpu_object_placer__distance_emitter_buffer_size
                                                  : 0);
         visibilityByLodDecal[lod][key].emplace_back(decalOffset, gpu_object_placer__buffer_size);
@@ -849,7 +918,9 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
 void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset, int lod, int layer,
   eastl::vector<IPoint2> &offsets_and_counts, eastl::vector<uint16_t> &ri_ids)
 {
-  d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+  if (d3d::get_driver_code().is(d3d::vulkan))
+    d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+
   auto visibility = layer == Layers::LAYER_DECAL ? visibilityByLodDecal[lod] : visibilityByLod[lod];
   for (auto &pair : visibility)
   {
@@ -869,7 +940,9 @@ void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset
     ri_ids.emplace_back(riIdx);
     offsets_and_counts.emplace_back(offset * ROWS_IN_MATRIX, count);
   }
-  d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+
+  if (d3d::get_driver_code().is(d3d::vulkan))
+    d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 }
 
 void VolumePlacer::RingBuffer::invalidate()
@@ -878,11 +951,11 @@ void VolumePlacer::RingBuffer::invalidate()
   {
     gpu_object_placer_invalidate_ecs_query(
       [&](bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset, int &gpu_object_placer__distance_emitter_buffer_size,
-        int &gpu_object_placer__distance_emitter_decal_buffer_size) {
+        int &gpu_object_placer__decal_buffer_size) {
         gpu_object_placer__filled = false;
         gpu_object_placer__buffer_offset = -1;
         gpu_object_placer__distance_emitter_buffer_size = 0;
-        gpu_object_placer__distance_emitter_decal_buffer_size = 0;
+        gpu_object_placer__decal_buffer_size = 0;
       });
     releasedBufferRecords.clear();
   }
@@ -1018,7 +1091,7 @@ void VolumePlacer::updateDistanceEmitterMatrix(int gpu_object_placer__buffer_off
     ShaderGlobal::set_int(gpu_objects_buffer_offsetVarId, gpu_object_placer__buffer_offset);
     ShaderGlobal::set_int(gpu_objects_distance_emitter_buffer_offsetVarId,
       gpu_object_placer__buffer_offset + gpu_object_placer__buffer_size);
-    ShaderGlobal::set_int(gpu_objects_distance_emitter_decal_buffer_offsetVarId,
+    ShaderGlobal::set_int(gpu_objects_decal_buffer_offsetVarId,
       gpu_object_placer__buffer_offset + gpu_object_placer__buffer_size + gpu_object_placer__buffer_size);
     ShaderGlobal::set_int(gpu_objects_matrices_countVarId, gpu_object_placer__buffer_size);
     updateMatrices->dispatchThreads(gpu_object_placer__buffer_size, 1, 1);
@@ -1045,7 +1118,7 @@ ECS_TRACK(ri_gpu_object__name, gpu_object_placer__place_on_geometry, gpu_object_
 ECS_TRACK(gpu_object_placer__distance_to_rotation_from, gpu_object_placer__distance_to_rotation_to,
   gpu_object_placer__distance_to_scale_pow, gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
   gpu_object_placer__distance_out_of_range, gpu_object_placer__distance_affect_decals, gpu_object_placer__boxBorderX,
-  gpu_object_placer__boxBorderY, gpu_object_placer__boxBorderZ)
+  gpu_object_placer__boxBorderY, gpu_object_placer__boxBorderZ, gpu_object_placer__use_strict_decal_placement)
 ECS_REQUIRE(bool gpu_object_placer__place_on_geometry, int gpu_object_placer__object_max_count,
   float gpu_object_placer__object_density, float gpu_object_placer__min_gathered_triangle_size,
   Point2 gpu_object_placer__object_scale_range, Point2 gpu_object_placer__distance_based_scale,
@@ -1057,22 +1130,21 @@ ECS_REQUIRE(float gpu_object_placer__distance_to_rotation_from, float gpu_object
   Point3 gpu_object_placer__distance_to_scale_pow, float gpu_object_placer__distance_to_rotation_pow,
   bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_out_of_range,
   bool gpu_object_placer__distance_affect_decals, Point2 gpu_object_placer__boxBorderX, Point2 gpu_object_placer__boxBorderY,
-  Point2 gpu_object_placer__boxBorderZ)
+  Point2 gpu_object_placer__boxBorderZ, bool gpu_object_placer__use_strict_decal_placement)
 static __forceinline void gpu_object_placer_changed_es_event_handler(const ecs::Event &, const ecs::string &ri_gpu_object__name,
   int &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
-  int &gpu_object_placer__distance_emitter_decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size,
-  int &gpu_object_placer__buffer_size, int &gpu_object_placer__on_rendinst_geometry_count,
-  int &gpu_object_placer__on_terrain_geometry_count, Point4 &gpu_object_placer__object_up_vector_threshold,
-  ecs::EntityId &gpu_object_placer__distance_emitter_eid, bool &gpu_object_placer__distance_emitter_is_dirty, const TMatrix &transform)
+  int &gpu_object_placer__decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__buffer_size,
+  int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
+  Point4 &gpu_object_placer__object_up_vector_threshold, ecs::EntityId &gpu_object_placer__distance_emitter_eid,
+  bool &gpu_object_placer__distance_emitter_is_dirty, const TMatrix &transform)
 {
   G_ASSERT(volume_placer_mgr);
   if (gpu_object_placer__buffer_offset != -1)
     volume_placer_mgr->matricesBuffer.releaseBufferOffset(gpu_object_placer__buffer_size,
-      gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__distance_emitter_decal_buffer_size,
-      gpu_object_placer__buffer_offset);
+      gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__decal_buffer_size, gpu_object_placer__buffer_offset);
   gpu_object_placer__filled = false;
   gpu_object_placer__buffer_offset = -1;
-  gpu_object_placer__distance_emitter_decal_buffer_size = 0;
+  gpu_object_placer__decal_buffer_size = 0;
   gpu_object_placer__distance_emitter_buffer_size = 0;
   gpu_object_placer__buffer_size = -1;
   gpu_object_placer__on_rendinst_geometry_count = 0;
@@ -1095,8 +1167,8 @@ static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::E
   const ecs::string &ri_gpu_object__name, int &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled,
   int &gpu_object_placer__buffer_size, int &gpu_object_placer__on_rendinst_geometry_count,
   int &gpu_object_placer__on_terrain_geometry_count, int &gpu_object_placer__buffer_offset,
-  int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__distance_emitter_decal_buffer_size,
-  bool gpu_object_placer__opaque, bool gpu_object_placer__decal, bool gpu_object_placer__distorsion, const TMatrix &transform,
+  int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__decal_buffer_size, bool gpu_object_placer__opaque,
+  bool gpu_object_placer__decal, bool gpu_object_placer__distorsion, const TMatrix &transform,
   Point4 &gpu_object_placer__object_up_vector_threshold)
 {
 #if _TARGET_C1
@@ -1105,7 +1177,7 @@ static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::E
 #endif
   gpu_object_placer__filled = false;
   gpu_object_placer__buffer_offset = -1;
-  gpu_object_placer__distance_emitter_decal_buffer_size = 0;
+  gpu_object_placer__decal_buffer_size = 0;
   gpu_object_placer__distance_emitter_buffer_size = 0;
   gpu_object_placer__buffer_size = -1;
   gpu_object_placer__on_rendinst_geometry_count = 0;
@@ -1132,7 +1204,7 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 static __forceinline void gpu_object_placer_destroy_es_event_handler(const ecs::Event &, ecs::EntityId eid,
   int gpu_object_placer__buffer_size, int gpu_object_placer__buffer_offset, int gpu_object_placer__distance_emitter_buffer_size,
-  int gpu_object_placer__distance_emitter_decal_buffer_size)
+  int gpu_object_placer__decal_buffer_size)
 {
 #if _TARGET_C1
 
@@ -1142,8 +1214,7 @@ static __forceinline void gpu_object_placer_destroy_es_event_handler(const ecs::
   volume_placer_mgr->resetReadbackEntity(eid);
   if (gpu_object_placer__buffer_offset != -1)
     volume_placer_mgr->matricesBuffer.releaseBufferOffset(gpu_object_placer__buffer_size,
-      gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__distance_emitter_decal_buffer_size,
-      gpu_object_placer__buffer_offset);
+      gpu_object_placer__distance_emitter_buffer_size + gpu_object_placer__decal_buffer_size, gpu_object_placer__buffer_offset);
   gpu_object_placers_count--;
   if (!gpu_object_placers_count)
     close_volume_placer_mgr();
@@ -1183,10 +1254,7 @@ static __forceinline void gpu_object_placer_remove_objects_es_event_handler(cons
     const auto &bbox = evt.get<2>();
     const auto &tm = evt.get<1>();
 
-    auto min = bbox.lim[0] * tm;
-    auto max = bbox.lim[1] * tm;
-
-    gpu_objects::volume_placer_mgr->addEraseBox(min, max);
+    gpu_objects::volume_placer_mgr->addEraseBox(bbox.lim[0], bbox.lim[1], tm);
   }
 }
 
@@ -1201,8 +1269,14 @@ static bool volume_placer_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME_EX("volume_placer", "removeInBox", 7, 7, "Removes volume placer gpu objects in a box",
     "[bbox_min_x] [bbox_min_y] [bbox_min_z] [bbox_max_x] [bbox_max_y] [bbox_max_z]")
   {
-    gpu_objects::get_volume_placer_mgr()->addEraseBox(Point3(atof(argv[1]), atof(argv[2]), atof(argv[3])),
-      Point3(atof(argv[4]), atof(argv[5]), atof(argv[6])));
+    Point3 boxmin = Point3(atof(argv[1]), atof(argv[2]), atof(argv[3]));
+    Point3 boxmax = Point3(atof(argv[4]), atof(argv[5]), atof(argv[6]));
+    BBox3 box = BBox3(boxmin, boxmax);
+
+    TMatrix tm = TMatrix::IDENT;
+    tm.setcol(3, box.center());
+
+    gpu_objects::get_volume_placer_mgr()->addEraseBox(boxmin, boxmax, tm);
   }
   return found;
 }

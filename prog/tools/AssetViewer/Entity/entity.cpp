@@ -28,16 +28,16 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_globDef.h>
 #include <util/dag_texMetaData.h>
-#include <util/dag_bitarray.h>
+#include <util/dag_bitArray.h>
 #include <math/random/dag_random.h>
 #include <math/dag_geomTree.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>
 
+#include <EditorCore/ec_input.h>
 #include <propPanel/control/container.h>
 #include <propPanel/c_control_event_handler.h>
-#include <winGuiWrapper/wgw_input.h>
 #include <libTools/util/conTextOutStream.h>
 #include <libTools/util/strUtil.h>
 #include <impostorUtil/impostorBaker.h>
@@ -53,6 +53,7 @@
 #include "assetStatsFiller.h"
 #include "compositeEditor.h"
 #include "compositeEditorViewport.h"
+#include "entity_cm.h"
 #include "entityMatEditor.h"
 #include "entityViewPluginInterface.h"
 #include "objPropEditor.h"
@@ -68,10 +69,6 @@ static bool trace_ray_enabled = true;
 static float coll_plane_ht_front = 0.0, coll_plane_ht_rear = 0.05;
 static constexpr int SAVE_LAST_STATES_COUNT = 4;
 static const int auto_inst_seed0 = mem_hash_fnv1(ZERO_PTR<const char>(), 12);
-namespace texmgr_internal
-{
-extern TexQL max_allowed_q;
-}
 
 class PositionGizmoWrapper
 {
@@ -309,6 +306,8 @@ public:
     PID_ANIM_TRACE_CP_HT_R,
     PID_ANIM_TRACE_ENABLED,
     PID_PN_TRIANGULATION,
+    PID_LAYERED_BUMPMAPPING,
+    PID_GLASS_DUAL_SOURCE_BLENDING,
     PID_MASK_NODES_GROUP,
     PID_MASK_NODES_UPDATE_BTN,
     PID_MASK_NODES_UNCHECK_ALL,
@@ -419,14 +418,17 @@ public:
     showBSPH = false;
     logIrqs = false;
     rotX = rotY = 0;
-    lastAnimStateSet = -1;
     lastAnimStatesSet.clear();
     animPersCoursePid = animPersCourseDeltaPid = -1;
     lastForceAnimSet = 0;
     fpsCamViewId = PID_FPSCAM_DEF;
     fpsCamViewLastWtm.identity();
     pnTriangulation = true;
+    layeredBumpmapping = true;
+    glassDualSourceBlending = true;
     updatePnTriangulation();
+    updateLayeredBumpmapping();
+    updateGlassDualSourceBlending();
 
     ::get_app().getConsole().registerCommand("animchar.blender", this);
     ::get_app().getConsole().registerCommand("animchar.unusedBlendNodes", this);
@@ -470,29 +472,34 @@ public:
     if (forceRiExtra)
       DAEDITOR3.conNote("rendInst uses forceRiExtra");
   }
-  ~EntityViewPlugin()
+  ~EntityViewPlugin() override
   {
     destroy_it(entity);
     releaseRiExtra();
   }
 
-  virtual const char *getInternalName() const { return "entityViewer"; }
+  const char *getInternalName() const override { return "entityViewer"; }
 
-  virtual void registered() { physsimulator::init(); }
-  virtual void unregistered() { physsimulator::close(); }
+  void registered() override { physsimulator::init(); }
+  void unregistered() override { physsimulator::close(); }
 
-  virtual void loadSettings(const DataBlock &settings) override { matEditor.loadSettings(settings); }
+  void loadSettings(const DataBlock &settings) override { matEditor.loadSettings(settings); }
 
-  virtual void saveSettings(DataBlock &settings) const override { matEditor.saveSettings(settings); }
+  void saveSettings(DataBlock &settings) const override { matEditor.saveSettings(settings); }
 
-  virtual bool begin(DagorAsset *asset)
+  void enableImguiAnimtree() { currentAnimcharEid = g_entity_mgr->createEntityAsync("anim_tree_viewer", {}); }
+
+  bool begin(DagorAsset *asset) override
   {
     static int rendInstEntityClassId = DAEDITOR3.getAssetTypeId("rendInst");
+    static int dynModelEntityClassId = DAEDITOR3.getAssetTypeId("dynModel");
+    static int animCharEntityClassId = DAEDITOR3.getAssetTypeId("animChar");
+    static int compositEntityClassId = DAEDITOR3.getAssetTypeId("composit");
 
-    if (texmgr_internal::max_allowed_q != TQL_stub)
-      texmgr_internal::max_allowed_q = TQL_uhq;
+    showTexQualityOption = asset && (asset->getType() == dynModelEntityClassId || asset->getType() == animCharEntityClassId ||
+                                      asset->getType() == rendInstEntityClassId || asset->getType() == compositEntityClassId);
+
     phys_bullet_delete_ragdoll(ragdoll);
-    lastAnimStateSet = -1;
     lastAnimStatesSet.clear();
     animPersCoursePid = -1;
     animPersCourseDeltaPid = -1;
@@ -532,7 +539,7 @@ public:
         mat44f tm;
         v_mat44_ident(tm);
         tm.set33(m3);
-        riex.handle = rendinst::addRIGenExtra44(riex.resIdx, false, tm, false, -1, -1, 1, &auto_inst_seed0);
+        riex.handle = rendinst::addRIGenExtra44(riex.resIdx, tm, false /*has_collision*/, -1, -1, 1, &auto_inst_seed0);
         riex.name = asset->getName();
         if (riex.res->getOccluderBox())
         {
@@ -660,9 +667,12 @@ public:
             coll_plane_ht_rear);
       }
 
+    if (showImguiAnimTree)
+      enableImguiAnimtree();
+
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     // getCompositeEditor().end() must be called even if matEditor.end() returns with false, so this comes first.
     // Otherwise there could be an assert in the next getCompositeEditor().begin().
@@ -697,16 +707,48 @@ public:
 
     if (currentAnimcharEid)
       g_entity_mgr->destroyEntity(currentAnimcharEid);
-    if (texmgr_internal::max_allowed_q != TQL_stub)
-      texmgr_internal::max_allowed_q = TQL_high;
     return true;
   }
 
-  virtual void registerMenuAccelerators() override { compositeEditorViewport.registerMenuAccelerators(); }
-
-  virtual void handleViewportAcceleratorCommand(IGenViewportWnd &wnd, unsigned id) override
+  void registerMenuAccelerators() override
   {
-    compositeEditorViewport.handleViewportAcceleratorCommand(id, wnd, entity);
+    IWndManager &wndManager = *EDITORCORE->getWndManager();
+
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_AUTO, ImGuiKey_Backspace);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_0, ImGuiKey_0);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_1, ImGuiKey_1);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_2, ImGuiKey_2);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_3, ImGuiKey_3);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_4, ImGuiKey_4);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_5, ImGuiKey_5);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_6, ImGuiKey_6);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_7, ImGuiKey_7);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_8, ImGuiKey_8);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_9, ImGuiKey_9);
+
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_AUTO, ImGuiKey_KeypadDecimal);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_0, ImGuiKey_Keypad0);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_1, ImGuiKey_Keypad1);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_2, ImGuiKey_Keypad2);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_3, ImGuiKey_Keypad3);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_4, ImGuiKey_Keypad4);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_5, ImGuiKey_Keypad5);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_6, ImGuiKey_Keypad6);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_7, ImGuiKey_Keypad7);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_8, ImGuiKey_Keypad8);
+    wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_9, ImGuiKey_Keypad9);
+
+    compositeEditorViewport.registerMenuAccelerators();
+  }
+
+  void handleViewportAcceleratorCommand(IGenViewportWnd &wnd, unsigned id) override
+  {
+    if (id == CM_ENTITY_CHANGE_LOD_AUTO)
+      changeLod(-1);
+    else if (id >= CM_ENTITY_CHANGE_LOD_0 && id <= CM_ENTITY_CHANGE_LOD_9)
+      changeLod(id - CM_ENTITY_CHANGE_LOD_0);
+    else
+      compositeEditorViewport.handleViewportAcceleratorCommand(id, wnd, entity);
   }
 
   void changeLod(int lod)
@@ -747,23 +789,13 @@ public:
     }
   }
 
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) override
-  {
-    if (vk >= '0' && vk <= '9' && modif == 0)
-      changeLod(vk - '0');
-    else if (vk >= wingw::V_NUMPAD0 && vk <= wingw::V_NUMPAD9 && modif == 0)
-      changeLod(vk - wingw::V_NUMPAD0);
-    else if ((vk == wingw::V_BACK || vk == wingw::V_DECIMAL) && modif == 0)
-      changeLod(-1);
-  }
-
-  virtual bool reloadOnAssetChanged(const DagorAsset *changed_asset)
+  bool reloadOnAssetChanged(const DagorAsset *changed_asset) override
   {
     if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
       return animCtrl->hasReferencesTo(changed_asset);
     return false;
   }
-  virtual bool reloadAsset(DagorAsset *asset)
+  bool reloadAsset(DagorAsset *asset) override
   {
     if (!get_app().getCompositeEditor().expectingAssetReload())
       DAEDITOR3.conNote("reloading asset %s", asset->getName());
@@ -779,7 +811,22 @@ public:
     return true;
   }
 
-  virtual bool haveToolPanel() override { return true; }
+  bool haveToolPanel() override { return true; }
+
+  void addAnimStateToHistory(int state_idx)
+  {
+    // Avoid duplicates in the queue so that setting upper state and then spamming same two lower
+    // states would keep upper states in the queue.
+    for (auto it = lastAnimStatesSet.begin(); it != lastAnimStatesSet.end(); it++)
+    {
+      if (*it == state_idx)
+      {
+        lastAnimStatesSet.erase(it);
+        break;
+      }
+    }
+    lastAnimStatesSet.push_back(state_idx);
+  }
 
   void saveAnimState(DataBlock &state)
   {
@@ -800,12 +847,13 @@ public:
     });
 
     int savedStatesCount = 0;
-    for (const auto lastState : lastAnimStatesSet)
+    for (const int lastState : lastAnimStatesSet)
       for (int i = 0; i < animCtrl->getStatesCount(); i++)
         if (lastState == animCtrl->getStateIdx(animCtrl->getStateName(i)))
         {
           state.setStr(String(0, "__lastState_%d", savedStatesCount), animCtrl->getStateName(i));
           savedStatesCount += 1;
+          break; // we might have an alias and we dont want to save such states twice
         }
 
     if (int anim_p1 = getPluginPanel()->getInt(PID_ANIM_SET_NODE))
@@ -834,7 +882,7 @@ public:
       {
         int stateIdx = animCtrl->getStateIdx(nm);
         animCtrl->enqueueState(stateIdx);
-        lastAnimStatesSet.push_back(stateIdx);
+        addAnimStateToHistory(stateIdx);
       }
 
     if (const char *nm = state.getStr("__lastForceAnimNode", NULL))
@@ -862,12 +910,12 @@ public:
     }
   }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() { matEditor.saveAllChanges(); }
+  void clearObjects() override {}
+  void onSaveLibrary() override { matEditor.saveAllChanges(); }
 
-  virtual void onLoadLibrary() {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     if (compositeEditorViewport.getSelectionBox(entity, box))
       return true;
@@ -882,7 +930,7 @@ public:
     return true;
   }
 
-  virtual void actObjects(float dt)
+  void actObjects(float dt) override
   {
     if (getPluginPanel())
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
@@ -949,7 +997,7 @@ public:
         }
       }
   }
-  virtual void beforeRenderObjects()
+  void beforeRenderObjects() override
   {
     if (physsimulator::getPhysWorld())
       physsimulator::beforeRender();
@@ -1032,7 +1080,7 @@ public:
     assetStatsFiller.finalizeStats();
   }
 
-  virtual void renderObjects()
+  void renderObjects() override
   {
     IGenViewportWnd *wnd = EDITORCORE->getRenderViewport();
     if (wnd)
@@ -1041,7 +1089,7 @@ public:
     fillAssetStats();
   }
 
-  virtual void renderTransObjects()
+  void renderTransObjects() override
   {
     if (showOcclBox && (!occluderBox.isempty() || occluderQuad.size()))
     {
@@ -1238,16 +1286,16 @@ public:
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const
+  bool supportAssetType(const DagorAsset &asset) const override
   {
     return strcmp(asset.getTypeStr(), "composit") == 0 || strcmp(asset.getTypeStr(), "rendInst") == 0 ||
            (asset.getFileNameId() < 0 && strcmp(asset.getTypeStr(), "fx") == 0) || strcmp(asset.getTypeStr(), "efx") == 0 ||
            strcmp(asset.getTypeStr(), "animChar") == 0 || strcmp(asset.getTypeStr(), "gameObj") == 0 ||
            strcmp(asset.getTypeStr(), "dynModel") == 0;
   }
-  virtual bool supportEditing() const { return false; }
+  bool supportEditing() const override { return false; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setEventHandler(this);
     IObjEntity *_ent = entity ? entity : riex.vEntity;
@@ -1267,7 +1315,7 @@ public:
       PropPanel::ContainerPropertyControl *commonPanel = grpSpec->createGroup(PID_COMMON_OBJECT_PROPERTIES_GROUP, "Common");
       objPropEditor.fillPropPanel(PID_OBJECT_PROPERTIES_BUTTON, *commonPanel);
 
-      commonPanel->createCheckBox(PID_SHOW_POSITION_GIZMO, String("Show position gizmo"), positionGizmoWrapper.isVisible());
+      commonPanel->createCheckBox(PID_SHOW_POSITION_GIZMO, "Show position gizmo", positionGizmoWrapper.isVisible());
       commonPanel->createPoint3(PID_POSITION_GIZMO, "", positionGizmoWrapper.getPosition(), 3, positionGizmoWrapper.isVisible());
       commonPanel->createSeparator();
 
@@ -1275,7 +1323,9 @@ public:
       commonPanel->createTrackFloat(PID_ROTATE_Y, "Rotate around Y, deg", rotY, -180, 180, 1);
       if (entity && entity->queryInterface<IAnimCharController>())
         commonPanel->createTrackFloat(PID_FORCE_SPD, "Force speed, m/s", forceSpd, -1, 20, 0.1);
-      commonPanel->createCheckBox(PID_PN_TRIANGULATION, String(0, "PN-triangulation"), pnTriangulation);
+      commonPanel->createCheckBox(PID_PN_TRIANGULATION, "PN-triangulation", pnTriangulation);
+      commonPanel->createCheckBox(PID_LAYERED_BUMPMAPPING, "Layered Bumpmapping", layeredBumpmapping);
+      commonPanel->createCheckBox(PID_GLASS_DUAL_SOURCE_BLENDING, "Glass dual source blending", glassDualSourceBlending);
       commonPanel->createIndent();
 
       if (!_ent)
@@ -1305,10 +1355,10 @@ public:
         }
 
         commonPanel->setInt(PID_LODS_GROUP, (moreThanOne ? PID_LOD_AUTO_CHOOSE : PID_LOD_FIRST));
-        if (iLodCtrl->getTexQLCount() == 2)
+        if (showTexQualityOption)
         {
           commonPanel->createIndent();
-          commonPanel->createCheckBox(PID_SHOW_FQ_TEX, "Use full quality tex", iLodCtrl->getTexQL());
+          commonPanel->createCheckBox(PID_SHOW_FQ_TEX, "Use full quality tex", get_app().getCurrentTexQualityLimit() == TQL_uhq);
         }
       }
 
@@ -1334,11 +1384,11 @@ public:
       if (collisionResource)
       {
         commonPanel->createSeparator();
-        commonPanel->createCheckBox(PID_SHOW_COLLIDER, String("Show collider"), showCollider);
-        commonPanel->createCheckBox(PID_SHOW_COLLIDER_BBOX, String("Show bounding box"), showColliderBbox, showCollider);
-        commonPanel->createCheckBox(PID_SHOW_COLLIDER_PHYS_COLLIDABLE, String("Show phys collidable"), showColliderPhysCollidable,
+        commonPanel->createCheckBox(PID_SHOW_COLLIDER, "Show collider", showCollider);
+        commonPanel->createCheckBox(PID_SHOW_COLLIDER_BBOX, "Show bounding box", showColliderBbox, showCollider);
+        commonPanel->createCheckBox(PID_SHOW_COLLIDER_PHYS_COLLIDABLE, "Show phys collidable", showColliderPhysCollidable,
           showCollider);
-        commonPanel->createCheckBox(PID_SHOW_COLLIDER_TRACEABLE, String("Show traceable"), showColliderTraceable, showCollider);
+        commonPanel->createCheckBox(PID_SHOW_COLLIDER_TRACEABLE, "Show traceable", showColliderTraceable, showCollider);
       }
     }
     if (IAnimCharController *animCtrl = _ent->queryInterface<IAnimCharController>())
@@ -1375,7 +1425,7 @@ public:
         animPanel->createCheckBox(PID_ANIM_SHOW_SKELETON,
           String(0, "Show skeleton (%d total, %d important)", t.nodeCount(), t.importantNodeCount()), showSkeleton);
         animPanel->createCheckBox(PID_ANIM_SHOW_SKELETON_NAMES, "Show skeleton node names", showSkeletonNodeNames);
-        animPanel->createEditFloat(PID_ANIM_NODE_AXIS_LEN, String(0, "Axis len", nodeAxisLen));
+        animPanel->createEditFloat(PID_ANIM_NODE_AXIS_LEN, "Axis len", nodeAxisLen);
       }
       animPanel->createCheckBox(PID_ANIM_SHOW_EFFECTORS, "Show effectors", showEffectors);
       animPanel->createCheckBox(PID_ANIM_SHOW_IKSOL, "Show FABRIK solution", showIKSolution);
@@ -1389,7 +1439,7 @@ public:
       animPanel->createButton(PID_ANIM_DUMP_DEBUG, "Debug anim state");
       animPanel->createButton(PID_ANIM_DUMP_UNUSED_BN, "Dump unused blend nodes");
 
-      if (g_entity_mgr && g_entity_mgr->getTemplateDB().getTemplateByName("animchar_base"))
+      if (g_entity_mgr)
       {
         animPanel->createButton(PID_ANIM_TREE_IMGUI, "Anim tree imgui");
       }
@@ -1639,10 +1689,10 @@ public:
         nodeGrp.createStatic(0, String(0, "and %d helper nodes/bones", hidden_nodes));
 
       PropPanel::ContainerPropertyControl &nodesFilterByMask =
-        *grpSpec->createGroup(PID_MASK_NODES_GROUP, String(0, "Filter nodes by name mask"));
+        *grpSpec->createGroup(PID_MASK_NODES_GROUP, "Filter nodes by name mask");
 
-      nodesFilterByMask.createButton(PID_MASK_NODES_UPDATE_BTN, String(0, "Update nodes visibility"));
-      nodesFilterByMask.createButton(PID_MASK_NODES_UNCHECK_ALL, String(0, "Uncheck all"));
+      nodesFilterByMask.createButton(PID_MASK_NODES_UPDATE_BTN, "Update nodes visibility");
+      nodesFilterByMask.createButton(PID_MASK_NODES_UNCHECK_ALL, "Uncheck all");
 
       const int blockCount = nodeFilterMasksBlk.blockCount();
       for (int i = 0; i < blockCount; ++i)
@@ -1658,9 +1708,9 @@ public:
     }
   }
 
-  virtual void postFillPropPanel() { get_app().getCompositeEditor().fillCompositeTree(); }
+  void postFillPropPanel() override { get_app().getCompositeEditor().fillCompositeTree(); }
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_LODS_GROUP && (entity || riex.vEntity))
     {
@@ -1709,13 +1759,8 @@ public:
     }
     else if (pcb_id == PID_SHOW_FQ_TEX)
     {
-      if (ILodController *iLodCtrl = entity ? entity->queryInterface<ILodController>() : nullptr)
-      {
-        if (texmgr_internal::max_allowed_q != TQL_stub && texmgr_internal::max_allowed_q >= TQL_base)
-          texmgr_internal::max_allowed_q = panel->getBool(pcb_id) ? TQL_uhq : TQL_base;
-        iLodCtrl->setTexQL(panel->getBool(pcb_id) ? 1 : 0);
-        ddsx::tex_pack2_perform_delayed_data_loading();
-      }
+      get_app().setCurrentTexQualityLimit(panel->getBool(pcb_id) ? TQL_uhq : TQL_base);
+      ddsx::tex_pack2_perform_delayed_data_loading();
     }
     else if (pcb_id == PID_SHOW_OCCL_BOX)
       showOcclBox = panel->getBool(pcb_id);
@@ -1808,6 +1853,16 @@ public:
       pnTriangulation = panel->getBool(pcb_id);
       updatePnTriangulation();
     }
+    else if (pcb_id == PID_LAYERED_BUMPMAPPING)
+    {
+      layeredBumpmapping = panel->getBool(pcb_id);
+      updateLayeredBumpmapping();
+    }
+    else if (pcb_id == PID_GLASS_DUAL_SOURCE_BLENDING)
+    {
+      glassDualSourceBlending = panel->getBool(pcb_id);
+      updateGlassDualSourceBlending();
+    }
     else if (pcb_id == PID_ANIM_RAGDOLL_SPRING_FACTOR)
       physsimulator::springFactor = panel->getFloat(pcb_id);
     else if (pcb_id == PID_ANIM_RAGDOLL_DAMPER_FACTOR)
@@ -1870,7 +1925,7 @@ public:
       }
     }
   }
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_GENERATE_SEED && entity)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
@@ -1900,8 +1955,7 @@ public:
       if (tex_a->props.getBool("convert", false) || (tex_a->isVirtual() && !tex_a->getSrcFileName()))
       {
         if (wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNO, "Texture asset",
-              "Texture asset name \"%s\" is copied to clipboard.\nDo you want also export it as DDS?",
-              tex_nm) == PropPanel::DIALOG_ID_YES)
+              "Texture asset name \"%s\" is copied to clipboard.\nDo you want also export it as DDS?", tex_nm) == wingw::MB_ID_YES)
         {
           String fn(0, "%s/%s.dds", ::get_app().getWorkspace().getSdkDir(), tex_nm);
           dd_simplify_fname_c(fn);
@@ -1924,7 +1978,7 @@ public:
         animCtrl->enqueueAnimNode(NULL);
         int stateIdx = pcb_id - PID_ANIM_STATE0;
         animCtrl->enqueueState(stateIdx, forceSpd);
-        lastAnimStatesSet.push_back(stateIdx);
+        addAnimStateToHistory(stateIdx);
       }
     }
 
@@ -1962,9 +2016,9 @@ public:
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
       {
         Tab<const char *> params;
-        if (wingw::is_key_pressed(wingw::V_CONTROL))
+        if (ec_is_ctrl_key_down())
           params.push_back("no_skel");
-        if (wingw::is_key_pressed(wingw::V_SHIFT))
+        if (ec_is_shift_key_down())
           params.push_back("tm");
         DAEDITOR3.conWarning("--- animchar blend-state dump ---");
         onConsoleCommand("animchar.blender", params);
@@ -1996,17 +2050,19 @@ public:
     if (pcb_id == PID_ANIM_TREE_IMGUI)
     {
       if (currentAnimcharEid)
+      {
+        showImguiAnimTree = false;
         g_entity_mgr->destroyEntity(currentAnimcharEid);
+      }
       else
       {
-        ecs::ComponentsInitializer list;
-        list[ECS_HASH("animchar__res")] = assetName;
-        currentAnimcharEid = g_entity_mgr->createEntityAsync("animchar_base+anim_tree_viewer", eastl::move(list));
+        showImguiAnimTree = true;
+        enableImguiAnimtree();
       }
     }
   }
 
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override
   {
     if (stricmp(cmd, "animchar.blender") == 0)
     {
@@ -2080,12 +2136,12 @@ public:
         return true;
       }
 
-      eastl::hash_map<AnimV20::IAnimBlendNode *, bool> usedNodes;
+      AnimV20::IAnimBlendNode::used_blend_nodes_t usedNodes;
       graph->getUsedBlendNodes(usedNodes);
 
       for (int i = 0; i < graph->getAnimNodeCount(); i++)
         if (AnimV20::IAnimBlendNode *node = graph->getBlendNodePtr(i))
-          if (usedNodes.find(node) == usedNodes.end() && !node->isSubOf(AnimV20::AnimBlendNodeNullCID))
+          if (!usedNodes.count(node) && !node->isSubOf(AnimV20::AnimBlendNodeNullCID))
             DAEDITOR3.getCon().addMessage(ILogWriter::NOTE, "unused node: %s", graph->getBlendNodeName(node));
 
       return true;
@@ -2172,7 +2228,7 @@ public:
     }
     return false;
   }
-  virtual const char *onConsoleCommandHelp(const char *cmd)
+  const char *onConsoleCommandHelp(const char *cmd) override
   {
     if (stricmp(cmd, "animchar.blender") == 0)
       return "animchar.blender [tm] [terse] [no_skel] [no_bn]\n"
@@ -2189,7 +2245,7 @@ public:
     return NULL;
   }
 
-  virtual intptr_t irq(int type, intptr_t p1, intptr_t p2, intptr_t p3)
+  intptr_t irq(int type, intptr_t p1, intptr_t p2, intptr_t p3) override
   {
     if (logIrqs)
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
@@ -2237,12 +2293,25 @@ public:
       tm.set33(m3);
       rendinst::moveRIGenExtra44(riex.handle, tm, false, false);
     }
+    compositeEditorViewport.invalidateCache();
   }
 
   void updatePnTriangulation()
   {
     static int object_tess_factorVarId = ::get_shader_variable_id("object_tess_factor", true);
     ShaderGlobal::set_real(object_tess_factorVarId, pnTriangulation ? 1.0f : 0.0f);
+  }
+
+  void updateLayeredBumpmapping()
+  {
+    static int layered_material_detail_qualityVarId = ::get_shader_variable_id("layered_material_detail_quality", true);
+    ShaderGlobal::set_int(layered_material_detail_qualityVarId, layeredBumpmapping ? 1 : 0);
+  }
+
+  void updateGlassDualSourceBlending()
+  {
+    static int use_glass_dual_source_blendingVarId = ::get_shader_variable_id("use_glass_dual_source_blending", true);
+    ShaderGlobal::set_int(use_glass_dual_source_blendingVarId, glassDualSourceBlending ? 1 : 0);
   }
 
   void changeFpsCamView(int id)
@@ -2315,7 +2384,22 @@ public:
       coll_plane_ht_rear);
   }
 
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  AnimV20::AnimcharBaseComponent *try_get_entity_animchar_base_comp()
+  {
+    if (!entity)
+      return nullptr;
+
+    if (IAnimCharController *animCtrl = entity->queryInterface<IAnimCharController>())
+    {
+      AnimV20::IAnimCharacter2 *animChar = animCtrl->getAnimChar();
+      if (animChar)
+        return &animChar->baseComp();
+    }
+
+    return nullptr;
+  }
+
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!inside)
       return false;
@@ -2330,7 +2414,7 @@ public:
     return springConnected;
   }
 
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     positionGizmoWrapper.onDragRelease();
     if (!springConnected || !physsimulator::getPhysWorld())
@@ -2340,7 +2424,7 @@ public:
     return physsimulator::disconnectSpring();
   }
 
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (positionGizmoWrapper.onDragMove(rotX, rotY, wnd, x, y))
       getPluginPanel()->setPoint3(PID_POSITION_GIZMO, positionGizmoWrapper.getPosition());
@@ -2354,7 +2438,7 @@ public:
     return true;
   }
 
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
   {
     if (!physsimulator::getPhysWorld())
       return false;
@@ -2365,7 +2449,7 @@ public:
   }
 
   // IEntityViewPluginInterface
-  virtual bool isMouseOverSelectedCompositeSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity *main_entity) override
+  bool isMouseOverSelectedCompositeSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity *main_entity) override
   {
     if (!main_entity)
       return false;
@@ -2392,9 +2476,11 @@ private:
   bool showBSPH;
   bool logIrqs;
   bool pnTriangulation;
+  bool layeredBumpmapping;
+  bool glassDualSourceBlending;
   float rotX, rotY;
   eastl::fixed_ring_buffer<int, SAVE_LAST_STATES_COUNT> lastAnimStatesSet = {-1, -1, -1, -1};
-  int lastAnimStateSet, animPersCoursePid, animPersCourseDeltaPid;
+  int animPersCoursePid, animPersCourseDeltaPid;
   int lastForceAnimSet;
   FastNameMapEx texNames;
   DataBlock animCharVarSetts;
@@ -2409,6 +2495,7 @@ private:
   TMatrix fpsCamViewLastWtm;
   float fpsCamViewLastZn = 0.1, fpsCamViewLastZf = 1000.0;
   bool forceRiExtra;
+  bool showTexQualityOption = false;
   float forceSpd = -1.f;
   void *ragdoll = NULL;
   bool springConnected = false;
@@ -2422,10 +2509,27 @@ private:
   GeomNodeTree *collisionResourceNodeTree = NULL;
   eastl::string assetName;
   ecs::EntityId currentAnimcharEid;
+  bool showImguiAnimTree = false;
   CompositeEditorViewport compositeEditorViewport;
 };
 
 static InitOnDemand<EntityViewPlugin> plugin;
+
+AnimV20::AnimcharBaseComponent *try_get_entity_animchar_base_comp()
+{
+  if (!plugin)
+    return nullptr;
+
+  return plugin.get()->try_get_entity_animchar_base_comp();
+}
+
+void add_anim_state_to_history(int state_idx)
+{
+  if (!plugin)
+    return;
+
+  plugin.get()->addAnimStateToHistory(state_idx);
+}
 
 static void __stdcall reinit_cb_dummy(void *) {}
 

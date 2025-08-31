@@ -5,12 +5,12 @@ let cursors = require("samples_prog/_cursors.nut")
 let sliderVal = Watched(150)
 
 function slider() {
-  let fValue = sliderVal.value
+  let fValue = sliderVal.get()
   let minVal = 60
   let maxVal = 160
 
   let knob = {
-    size  = [50, flex()]
+    size  = static [50, flex()]
     rendObj = ROBJ_SOLID
     pos = [-10,0]
   }
@@ -28,7 +28,7 @@ function slider() {
     max = maxVal
     unit = 5
     orientation = O_HORIZONTAL
-    size = [flex(), sh(5)]
+    size = static [flex(), sh(5)]
     color = Color(0, 10, 20)
     flow = FLOW_HORIZONTAL
 
@@ -39,7 +39,7 @@ function slider() {
     ]
 
     onChange = function(val) {
-      sliderVal.update(val)
+      sliderVal.set(val)
     }
   }
 }
@@ -49,7 +49,7 @@ return {
   cursor = cursors.normal
 
   children = [
-    @(){rendObj = ROBJ_TEXT text = $"This is demo of Slider Behavior. Value = {sliderVal.value}" watch=sliderVal}
+    @(){rendObj = ROBJ_TEXT text = $"This is demo of Slider Behavior. Value = {sliderVal.get()}" watch=sliderVal}
     slider
   ]
   size =flex()

@@ -149,7 +149,7 @@ struct SQObjectPtr;
 #endif
 
 #define _REF_TYPE_DECL(type,_class,sym) \
-    SQObjectPtr(_class * __restrict x) \
+    explicit SQObjectPtr(_class * __restrict x) \
     { \
         SQ_OBJECT_RAWINIT() \
         _type=type; \
@@ -172,7 +172,7 @@ struct SQObjectPtr;
     }
 
 #define _SCALAR_TYPE_DECL(type,_class,sym) \
-    SQObjectPtr(_class x) \
+    explicit SQObjectPtr(_class x) \
     { \
         SQ_OBJECT_RAWINIT() \
         _type=type; \
@@ -200,7 +200,7 @@ struct SQObjectPtr : public SQObject
         memcpy(this, &o, sizeof(o));
         __AddRef(_type,_unVal);
     }
-    SQObjectPtr(const SQObject &__restrict o)
+    explicit SQObjectPtr(const SQObject &__restrict o)
     {
         memcpy(this, &o, sizeof(o));
         __AddRef(_type,_unVal);
@@ -225,7 +225,7 @@ struct SQObjectPtr : public SQObject
 
     SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len = -1);
 
-    SQObjectPtr(bool bBool)
+    explicit SQObjectPtr(bool bBool)
     {
         memset(this, 0, sizeof(SQObjectPtr));
         _type = OT_BOOL;
@@ -341,7 +341,7 @@ inline SQUnsignedInteger TranslateIndex(const SQObjectPtr &idx)
 
 typedef sqvector<SQObjectPtr> SQObjectPtrVec;
 typedef sqvector<SQInteger> SQIntVec;
-const SQChar *GetTypeName(const SQObjectPtr &obj1);
+const SQChar *GetTypeName(const SQObject &obj1);
 const SQChar *IdType2Name(SQObjectType type);
 
 

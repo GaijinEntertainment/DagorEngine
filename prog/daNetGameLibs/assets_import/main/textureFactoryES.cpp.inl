@@ -17,6 +17,7 @@
 
 #include "assetManager.h"
 #include <generic/dag_smallTab.h>
+#include <util/dag_string.h>
 #include <util/dag_texMetaData.h>
 #include <3d/ddsxTexMipOrder.h>
 #include <ioSys/dag_zlibIo.h>

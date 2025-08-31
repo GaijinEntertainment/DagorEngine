@@ -16,52 +16,52 @@ public:
 
 public:
   Plugin();
-  ~Plugin();
+  ~Plugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "ssview"; }
-  virtual const char *getMenuCommandName() const { return "Streaming Scene View"; }
-  virtual const char *getHelpUrl() const { return NULL; }
+  const char *getInternalName() const override { return "ssview"; }
+  const char *getMenuCommandName() const override { return "Streaming Scene View"; }
+  const char *getHelpUrl() const override { return NULL; }
 
-  virtual int getRenderOrder() const { return 101; }
-  virtual int getBuildOrder() const { return 0; }
+  int getRenderOrder() const override { return 101; }
+  int getBuildOrder() const override { return 0; }
 
-  virtual bool showInTabs() const { return false; }
-  virtual bool showSelectAll() const { return true; }
+  bool showInTabs() const override { return false; }
+  bool showSelectAll() const override { return true; }
 
-  virtual bool acceptSaveLoad() const { return true; }
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void registered();
-  virtual void unregistered();
-  virtual void beforeMainLoop() {}
+  void registered() override;
+  void unregistered() override;
+  void beforeMainLoop() override {}
 
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end();
-  virtual void onNewProject() {}
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override;
+  void onNewProject() override {}
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
-  virtual void setVisible(bool vis);
-  virtual bool getVisible() const { return isVisible; }
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  void setVisible(bool vis) override;
+  bool getVisible() const override { return isVisible; }
+  bool getSelectionBox(BBox3 &box) const override { return false; }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void clearObjects() override;
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  void selectAll() override {}
+  void deselectAll() override {}
 
-  virtual void actObjects(float dt);
-  virtual void beforeRenderObjects(IGenViewportWnd *vp);
-  virtual void renderObjects();
-  virtual void renderTransObjects();
+  void actObjects(float dt) override;
+  void beforeRenderObjects(IGenViewportWnd *vp) override;
+  void renderObjects() override;
+  void renderTransObjects() override;
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool onPluginMenuClick(unsigned id) { return false; }
+  bool onPluginMenuClick(unsigned id) override { return false; }
 
   // IRenderingService
-  virtual void renderGeometry(Stage stage);
+  void renderGeometry(Stage stage) override;
 
 private:
   bool isVisible;

@@ -1,9 +1,11 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t replication_get_type();
 static ecs::LTComponentList replication_component(ECS_HASH("replication"), replication_get_type(), "prog/gameLibs/daECS/net/replicationES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "replicationES.cpp.inl"
 ECS_DEF_PULL_VAR(replication);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc reset_replication_es_event_handler_comps[] ={};
 static void reset_replication_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -168,6 +170,7 @@ static void replication_destruction_logerr_es_event_handler_all_events(const ecs
     net::replication_destruction_logerr_es_event_handler(static_cast<const ecs::EventEntityDestroyed&>(evt)
         , ECS_RO_COMP(replication_destruction_logerr_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(replication_destruction_logerr_es_event_handler_comps, "replication", net::Object)
+    , components.manager()
     );
   while (++comp != compE);
 }

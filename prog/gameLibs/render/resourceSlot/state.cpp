@@ -4,9 +4,9 @@
 
 #include <detail/storage.h>
 
-resource_slot::State::State() : nameSpace(dabfg::root()), nodeId(-1), order(0), size(0) {}
+resource_slot::State::State() : nameSpace(dafg::root()), nodeId(-1), order(0), size(0) {}
 
-resource_slot::State::State(dabfg::NameSpace ns, int node_id, uint16_t order_in_chain, uint16_t size_of_chain) :
+resource_slot::State::State(dafg::NameSpace ns, int node_id, uint16_t order_in_chain, uint16_t size_of_chain) :
   nameSpace(ns), nodeId(node_id), order(order_in_chain), size(size_of_chain)
 {
   // Fits into storage bits

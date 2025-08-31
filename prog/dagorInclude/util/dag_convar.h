@@ -56,7 +56,7 @@ template <typename T, bool hasRange>
 class ConVarT : public ConVarBase
 {
 public:
-  ConVarT(const char *name, T def_val, const char *help_tip, int flags = CVF_DEFAULT) :
+  ConVarT(const char *name, T def_val, const char *help_tip = nullptr, int flags = CVF_DEFAULT) :
     ConVarBase(name, help_tip, flags), value(def_val), prevValue(def_val), defValue(def_val)
   {}
 
@@ -103,7 +103,7 @@ class ConVarT<T, true> : public ConVarT<T, false> // partial specialization for 
 public:
   using ConVarT<T, false>::operator=;
 
-  ConVarT(const char *name, T def_val, T min_value, T max_value, const char *help_tip, int flags = CVF_DEFAULT) :
+  ConVarT(const char *name, T def_val, T min_value, T max_value, const char *help_tip = nullptr, int flags = CVF_DEFAULT) :
     ConVarT<T, false>(name, def_val, help_tip, flags), minValue(min_value), maxValue(max_value)
   {
     G_ASSERT(this->defValue >= minValue);
@@ -208,15 +208,9 @@ typedef ConVarT<bool, false> ConVarB;
 typedef ConVarT<float, true> ConVarF;
 typedef ConVarT<int, true> ConVarI;
 
-#define CONSOLE_BOOL_VAL(domain, name, defVal)          ConVarT<bool, false> name(domain "." #name, defVal, nullptr)
-#define CONSOLE_BOOL_VAL_TIP(domain, name, defVal, tip) ConVarT<bool, false> name(domain "." #name, defVal, tip)
-#define CONSOLE_INT_VAL(domain, name, defVal, minVal, maxVal) \
-  ConVarT<int, true> name(domain "." #name, defVal, minVal, maxVal, nullptr)
-#define CONSOLE_INT_VAL_TIP(domain, name, defVal, minVal, maxVal, tip) \
-  ConVarT<int, true> name(domain "." #name, defVal, minVal, maxVal, tip)
-#define CONSOLE_FLOAT_VAL_MINMAX(domain, name, defVal, minVal, maxVal) \
-  ConVarT<float, true> name(domain "." #name, defVal, minVal, maxVal, nullptr)
-#define CONSOLE_FLOAT_VAL_MINMAX_TIP(domain, name, defVal, minVal, maxVal, tip) \
-  ConVarT<float, true> name(domain "." #name, defVal, minVal, maxVal, tip)
-#define CONSOLE_FLOAT_VAL(domain, name, defVal)          ConVarT<float, false> name(domain "." #name, defVal, nullptr)
-#define CONSOLE_FLOAT_VAL_TIP(domain, name, defVal, tip) ConVarT<float, false> name(domain "." #name, defVal, tip)
+#define CONSOLE_BOOL_VAL(domain, name, defVal, ...) ConVarT<bool, false> name(domain "." #name, defVal, ##__VA_ARGS__)
+#define CONSOLE_INT_VAL(domain, name, defVal, minVal, maxVal, ...) \
+  ConVarT<int, true> name(domain "." #name, defVal, minVal, maxVal, ##__VA_ARGS__)
+#define CONSOLE_FLOAT_VAL_MINMAX(domain, name, defVal, minVal, maxVal, ...) \
+  ConVarT<float, true> name(domain "." #name, defVal, minVal, maxVal, ##__VA_ARGS__)
+#define CONSOLE_FLOAT_VAL(domain, name, defVal, ...) ConVarT<float, false> name(domain "." #name, defVal, ##__VA_ARGS__)

@@ -18,6 +18,14 @@ bool FreeTypeFont::import_ttf(const char *fn, bool symb_charmap)
   error = FT_Init_FreeType(&library);
   if (error)
     return false;
+  String real_fn;
+  if (strncmp(fn, "<system>", 8) == 0)
+  {
+#if _TARGET_PC_WIN
+    real_fn.printf(0, "%s/Fonts/%s", getenv("SystemRoot"), fn + 8);
+    fn = real_fn;
+#endif
+  }
   error = FT_New_Face(library, fn, 0, &face);
   if (error)
     return false;

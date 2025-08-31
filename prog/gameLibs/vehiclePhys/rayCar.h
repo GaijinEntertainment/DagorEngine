@@ -20,6 +20,15 @@ class CarDynamicsModel;
 class DataBlock;
 class RayCarDamping;
 
+#if defined(USE_JOLT_PHYSICS)
+class IJoltPhysBodyCollisionCallback
+{
+public:
+  virtual void onCollision(PhysBody *other, const Point3 &pt, const Point3 &norm, int this_matId, int other_matId,
+    const Point3 &norm_imp, const Point3 &friction_imp, const Point3 &this_old_vel, const Point3 &other_old_vel) = 0;
+};
+#endif
+
 //======================================================================================
 //  ray car
 //======================================================================================
@@ -278,6 +287,7 @@ protected:
   void *userData;
 
   friend void IPhysCar::applyCarPhysModeChangesBullet();
+  friend void IPhysCar::applyCarPhysModeChangesJolt();
 
   // cache for get() calls
   real cachedDirectSpeed;

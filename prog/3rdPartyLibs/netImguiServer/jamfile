@@ -1,0 +1,30 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/netImguiServer ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/netImguiServer.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/netImgui
+  $(Root)/prog/3rdPartyLibs/stb
+;
+
+Sources =
+  NetImguiServer_HAL_dagor.cpp
+
+  NetImguiServer_App.cpp
+  NetImguiServer_Config.cpp
+  NetImguiServer_Network.cpp
+  NetImguiServer_RemoteClient.cpp
+  NetImguiServer_UI.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/netImgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

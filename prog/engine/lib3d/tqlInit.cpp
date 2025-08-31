@@ -53,22 +53,24 @@ void tql::initTexStubs()
     d.hdr.bitsPerPixel = 32;
   }
 
+  using enum D3DResourceType;
+
   // tex
-  opd[RES3D_TEX].hdr.memSz = 4;
+  opd[eastl::to_underlying(TEX)].hdr.memSz = 4;
 
   // cube tex
-  opd[RES3D_CUBETEX].hdr.flags |= ddsx::Header::FLG_CUBTEX;
-  opd[RES3D_CUBETEX].hdr.memSz = 4 * 6;
+  opd[eastl::to_underlying(CUBETEX)].hdr.flags |= ddsx::Header::FLG_CUBTEX;
+  opd[eastl::to_underlying(CUBETEX)].hdr.memSz = 4 * 6;
 
   // vol tex
-  opd[RES3D_VOLTEX].hdr.flags |= ddsx::Header::FLG_VOLTEX;
-  opd[RES3D_VOLTEX].hdr.depth = 1;
-  opd[RES3D_VOLTEX].hdr.memSz = 4;
+  opd[eastl::to_underlying(VOLTEX)].hdr.flags |= ddsx::Header::FLG_VOLTEX;
+  opd[eastl::to_underlying(VOLTEX)].hdr.depth = 1;
+  opd[eastl::to_underlying(VOLTEX)].hdr.memSz = 4;
 
   // arr tex
-  opd[RES3D_ARRTEX].hdr.flags |= ddsx::Header::FLG_ARRTEX;
-  opd[RES3D_ARRTEX].hdr.depth = 1;
-  opd[RES3D_ARRTEX].hdr.memSz = 4;
+  opd[eastl::to_underlying(ARRTEX)].hdr.flags |= ddsx::Header::FLG_ARRTEX;
+  opd[eastl::to_underlying(ARRTEX)].hdr.depth = 1;
+  opd[eastl::to_underlying(ARRTEX)].hdr.memSz = 4;
 
   // reserve stubs
   texStub.reserve(IMPLICIT_STUBS + b.blockCount());
@@ -78,20 +80,20 @@ void tql::initTexStubs()
   E3DCOLOR defCol;
   defCol.u = 0x00808080; // gray, transparent
   // stubIdx=0: tex, transparent
-  opd[RES3D_TEX].p[0] = b.getE3dcolor("defStubTexColor", defCol);
-  texStub[RES3D_TEX] = d3d::alloc_ddsx_tex(opd[RES3D_TEX].hdr, tex_flg, 0, 1, "texStub:tex");
+  opd[eastl::to_underlying(TEX)].p[0] = b.getE3dcolor("defStubTexColor", defCol);
+  texStub[eastl::to_underlying(TEX)] = d3d::alloc_ddsx_tex(opd[eastl::to_underlying(TEX)].hdr, tex_flg, 0, 1, "texStub:tex");
 
   // stubIdx=1: cubetex, transparent
-  opd[RES3D_CUBETEX].p[0] = b.getE3dcolor("defStubCubeTexColor", defCol);
-  texStub[RES3D_CUBETEX] = d3d::alloc_ddsx_tex(opd[RES3D_CUBETEX].hdr, tex_flg, 0, 1, "texStub:cube");
+  opd[eastl::to_underlying(CUBETEX)].p[0] = b.getE3dcolor("defStubCubeTexColor", defCol);
+  texStub[eastl::to_underlying(CUBETEX)] = d3d::alloc_ddsx_tex(opd[eastl::to_underlying(CUBETEX)].hdr, tex_flg, 0, 1, "texStub:cube");
 
   // stubIdx=2: voltex, transparent
-  opd[RES3D_VOLTEX].p[0] = b.getE3dcolor("defStubVolTexColor", defCol);
-  texStub[RES3D_VOLTEX] = d3d::alloc_ddsx_tex(opd[RES3D_VOLTEX].hdr, tex_flg, 0, 1, "texStub:vol");
+  opd[eastl::to_underlying(VOLTEX)].p[0] = b.getE3dcolor("defStubVolTexColor", defCol);
+  texStub[eastl::to_underlying(VOLTEX)] = d3d::alloc_ddsx_tex(opd[eastl::to_underlying(VOLTEX)].hdr, tex_flg, 0, 1, "texStub:vol");
 
   // stubIdx=3: arrtex, transparent
-  opd[RES3D_ARRTEX].p[0] = b.getE3dcolor("defStubArrTexColor", defCol);
-  texStub[RES3D_ARRTEX] = d3d::alloc_ddsx_tex(opd[RES3D_ARRTEX].hdr, tex_flg, 0, 1, "texStub:arr");
+  opd[eastl::to_underlying(ARRTEX)].p[0] = b.getE3dcolor("defStubArrTexColor", defCol);
+  texStub[eastl::to_underlying(ARRTEX)] = d3d::alloc_ddsx_tex(opd[eastl::to_underlying(ARRTEX)].hdr, tex_flg, 0, 1, "texStub:arr");
 
   // app-defined stubs
   for (int i = 0, nid = b.getNameId("stubTex"); i < b.blockCount(); i++)
@@ -128,13 +130,13 @@ void tql::initTexStubs()
       String name(0, "texStub%d:%s", idx - 2, ttype);
 
       if (strcmp(ttype, "tex") == 0)
-        memcpy(&opd[idx], &opd[RES3D_TEX], sizeof(OnePixDDSx));
+        memcpy(&opd[idx], &opd[eastl::to_underlying(TEX)], sizeof(OnePixDDSx));
       else if (strcmp(ttype, "cube") == 0)
-        memcpy(&opd[idx], &opd[RES3D_CUBETEX], sizeof(OnePixDDSx));
+        memcpy(&opd[idx], &opd[eastl::to_underlying(CUBETEX)], sizeof(OnePixDDSx));
       else if (strcmp(ttype, "vol") == 0)
-        memcpy(&opd[idx], &opd[RES3D_VOLTEX], sizeof(OnePixDDSx));
+        memcpy(&opd[idx], &opd[eastl::to_underlying(VOLTEX)], sizeof(OnePixDDSx));
       else if (strcmp(ttype, "arr") == 0)
-        memcpy(&opd[idx], &opd[RES3D_ARRTEX], sizeof(OnePixDDSx));
+        memcpy(&opd[idx], &opd[eastl::to_underlying(ARRTEX)], sizeof(OnePixDDSx));
       else
         continue;
 
@@ -158,7 +160,9 @@ void tql::initTexStubs()
   reload_texstubs_from_mem();
 
   // setup quota
-  int mem_reserve_kb = b.getInt("memReserveKB", 128 << 10) + b.getInt("driverReserveKB", 0);
+  int driverReserveKB =
+    max(b.getInt("driverReserveKB", 0), b.getBlockByNameEx(get_platform_string_id())->getInt("driverReserveKB", 0));
+  int mem_reserve_kb = b.getInt("memReserveKB", 128 << 10) + driverReserveKB;
   if (int mem_mb = b.getInt("forceGpuMemMB", 0))
     if (mem_mb > 0)
       gpu_mem_sz_kb = mem_mb << 10;
@@ -240,7 +244,7 @@ static void reload_texstubs_from_mem(bool full_reset)
     unsigned u = opd[i].p[0].u;
     for (auto &p : opd[i].p)
       p.u = u;
-    if (tql::texStub[i] && tql::texStub[i]->restype() == RES3D_ARRTEX)
+    if (tql::texStub[i] && tql::texStub[i]->getType() == D3DResourceType::ARRTEX)
       d3d_load_ddsx_to_slice(tql::texStub[i], 0, opd[0].hdr, mcrd, 0, 0, 0);
     else
       d3d::load_ddsx_tex_contents(tql::texStub[i], opd[i].hdr, mcrd, 0);

@@ -1,6 +1,7 @@
 EXPORTS
 	get_plugin_version
 	register_plugin
+	release_plugin
 
 SECTIONS
 	.data READ WRITE

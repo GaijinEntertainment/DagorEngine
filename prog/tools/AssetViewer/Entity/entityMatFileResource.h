@@ -35,12 +35,12 @@ class MatFileResourceDagMat : public MatFileResource
 public:
   MatFileResourceDagMat(DagData &dag_data, int dag_mat_id, DataBlock &sh_remap_blk);
 
-  virtual SimpleString getShaderClass() const override;
-  virtual dag::Vector<MatVarDesc> getVars() const override;
-  virtual eastl::array<SimpleString, MAXMATTEXNUM> getTextureNames() const override;
-  virtual DataBlock getPropertiesBlk() const override;
+  SimpleString getShaderClass() const override;
+  dag::Vector<MatVarDesc> getVars() const override;
+  eastl::array<SimpleString, MAXMATTEXNUM> getTextureNames() const override;
+  DataBlock getPropertiesBlk() const override;
 
-  virtual void setDataAndSave(const EntityMatProperties *mat_properties) override;
+  void setDataAndSave(const EntityMatProperties *mat_properties) override;
 
 private:
   DagData &dagData;
@@ -53,12 +53,12 @@ class MatFileResourceProxyMat : public MatFileResource
 public:
   MatFileResourceProxyMat(DagorAsset *proxymat_asset, DataBlock &sh_remap_blk);
 
-  virtual SimpleString getShaderClass() const override;
-  virtual dag::Vector<MatVarDesc> getVars() const override;
-  virtual eastl::array<SimpleString, MAXMATTEXNUM> getTextureNames() const override;
-  virtual DataBlock getPropertiesBlk() const override;
+  SimpleString getShaderClass() const override;
+  dag::Vector<MatVarDesc> getVars() const override;
+  eastl::array<SimpleString, MAXMATTEXNUM> getTextureNames() const override;
+  DataBlock getPropertiesBlk() const override;
 
-  virtual void setDataAndSave(const EntityMatProperties *mat_properties) override;
+  void setDataAndSave(const EntityMatProperties *mat_properties) override;
 
 private:
   DagorAsset *proxyMatAsset;

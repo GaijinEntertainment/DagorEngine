@@ -500,6 +500,7 @@ void HmapLandPlugin::rebuildWaterSurface(Tab<Point3> *p_loft_pt, Tab<Point3> *p_
     debug("p[%3d] " FMT_P3 "", i, P3D(loft_pt_cloud[i]));
   */
 
+  bool has_water_exclude = false;
   BBox3 hmap_bb;
   hmap_bb.lim[0].set(heightMapOffset.x, waterSurfaceLevel - 4000, heightMapOffset.y);
   hmap_bb.lim[1] = hmap_bb.lim[0] + Point3((getHeightmapSizeX() - 1) * gridCellSize, 16000, (getHeightmapSizeY() - 1) * gridCellSize);
@@ -903,7 +904,6 @@ void HmapLandPlugin::rebuildWaterSurface(Tab<Point3> *p_loft_pt, Tab<Point3> *p_
         1.0f / gridCellSize, getHeightmapSizeX(), getHeightmapSizeY(), 1.2);
   }
 
-  bool has_water_exclude = false;
   if (water_border_polys.size())
   {
     ClipperLib::Clipper clpr, clpr_sep;

@@ -4,6 +4,7 @@ include "upscale_use.dshl"
 
 
 texture lowres_fx_source_tex;
+texture lowres_fx_reactive_mask_tex;
 float lowres_fx_overbright = 1;
 
 shader apply_lowres_fx, fast_apply_lowres_fx
@@ -24,16 +25,21 @@ shader apply_lowres_fx, fast_apply_lowres_fx
   (ps)
   {
     lowres_fx_source_tex@smp2d = lowres_fx_source_tex;
+    lowres_fx_reactive_mask_tex@tex2d = lowres_fx_reactive_mask_tex;
     lowres_fx_overbright@f1 = (lowres_fx_overbright);
   }
 
   POSTFX_VS(1)
 
   hlsl(ps) {
+    #define lowres_fx_reactive_mask_tex_samplerstate lowres_fx_source_tex_samplerstate
+
     struct PsOutput
     {
       float4 color : SV_Target0;
-      float reactive : SV_Target1;
+      ##if lowres_fx_reactive_mask_tex != NULL
+      float4 reactive : SV_Target1;
+      ##endif
     };
 
     PsOutput apply_fx_ps(VsOutput input HW_USE_SCREEN_POS)
@@ -46,7 +52,9 @@ shader apply_lowres_fx, fast_apply_lowres_fx
 ##if shader == fast_apply_lowres_fx
       half4 lowResColorCenter = h4tex2Dlod(lowres_fx_source_tex, float4(tc, 0, 0));
       result.color = float4(lowResColorCenter.rgb * lowres_fx_overbright, lowResColorCenter.a);
-      result.reactive = 1-lowResColorCenter.a;
+      ##if lowres_fx_reactive_mask_tex != NULL
+      result.reactive = float4(tex2Dlod(lowres_fx_reactive_mask_tex, float4(tc, 0, 0)).rrr, lowResColorCenter.a);
+      ##endif
       return result;
 ##endif
 
@@ -60,7 +68,10 @@ shader apply_lowres_fx, fast_apply_lowres_fx
       float4 res = float4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
 
       result.color = float4(res.rgb * lowres_fx_overbright, res.a);
-      result.reactive = 1-res.a;
+      ##if lowres_fx_reactive_mask_tex != NULL
+      half4 lowResReactive = lowres_fx_reactive_mask_tex.GatherRed(lowres_fx_reactive_mask_tex_samplerstate, tc);
+      result.reactive = float4(dot(lowResReactive,weight).xxx, res.a);
+      ##endif
       return result;
     }
   }

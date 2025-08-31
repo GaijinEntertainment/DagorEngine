@@ -1,5 +1,5 @@
+from "math" import sqrt
 from "%darg/ui_imports.nut" import *
-let { sqrt } = require("math")
 let { mkBitmapPicture } = require("%darg/helpers/bitmap.nut")
 
 let gradSize = 64

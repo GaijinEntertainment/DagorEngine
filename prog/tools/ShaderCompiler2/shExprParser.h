@@ -11,19 +11,16 @@
 #include <dag/dag_vector.h>
 
 
-namespace ShaderTerminal
-{
-class ShaderSyntaxParser;
-};
+struct Parser;
 struct LocalVar;
 
+namespace shc
+{
+class VariantContext;
+}
 
 namespace ShaderParser
 {
-//************************************************************************
-//* forwards
-//************************************************************************
-class AssembleShaderEvalCB;
 
 /*********************************
  *
@@ -41,46 +38,31 @@ public:
   };
 
   // ctor/dtor
-  ExpressionParser();
-  ~ExpressionParser();
-
-  static ExpressionParser &getStatic();
-
-  // set owner
-  void setOwner(AssembleShaderEvalCB *init_owner);
-  void setParser(ShaderTerminal::ShaderSyntaxParser *_parser) { parser = _parser; };
-
-  // parse local variable declaration
-  LocalVar *parseLocalVarDecl(ShaderTerminal::local_var_decl &decl, bool ignoreColorDimensionMismatch = false);
+  explicit ExpressionParser(shc::VariantContext &ctx);
+  explicit ExpressionParser(Parser &parser) : variantCtx{nullptr}, parser{parser} {}
 
   // parse expression
-  bool parseExpression(ShaderTerminal::arithmetic_expr &s, ComplexExpression *e, const Context &ctx);
+  bool parseExpression(ShaderTerminal::arithmetic_expr &s, ComplexExpression *e, const Context &ctx) const;
 
   // parse expression - return true, if it's constant number
-  bool parseConstExpression(ShaderTerminal::arithmetic_expr &s, Color4 &ret_value, const Context &ctx);
-
-  // show error
-  void error(const char *msg, Symbol *t);
+  bool parseConstExpression(ShaderTerminal::arithmetic_expr &s, Color4 &ret_value, const Context &ctx) const;
 
 private:
-  AssembleShaderEvalCB *owner;
-  ShaderTerminal::ShaderSyntaxParser *parser;
+  shc::VariantContext *variantCtx = nullptr;
+  Parser &parser;
 
   // parse expression - * and / operators or single expression
-  bool parseSubExpression(ShaderTerminal::arithmetic_expr_md &s, ComplexExpression *e, const Context &ctx);
+  bool parseSubExpression(ShaderTerminal::arithmetic_expr_md &s, ComplexExpression *e, const Context &ctx) const;
 
   // parse operand
-  bool parseOperand(ShaderTerminal::arithmetic_operand &s, shexpr::OperandType op_type, ComplexExpression *e, const Context &ctx);
+  bool parseOperand(ShaderTerminal::arithmetic_operand &s, shexpr::OperandType op_type, ComplexExpression *e,
+    const Context &ctx) const;
 
   // parse color
-  bool parseColor(ShaderTerminal::arithmetic_color &s, ColorValueExpression *e, const Context &ctx);
+  bool parseColor(ShaderTerminal::arithmetic_color &s, ColorValueExpression *e, const Context &ctx) const;
 
   // parse color mask
   shexpr::ColorChannel parseColorMask(char channel) const;
-
-  void setVar(LocalVar *var, bool is_integer, ComplexExpression *rootExpr, ShaderTerminal::SHTOK_ident *decl_name);
-
-  static ExpressionParser *self;
 }; // class ExpressionParser
 //
 } // namespace ShaderParser

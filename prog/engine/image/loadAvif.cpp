@@ -68,6 +68,37 @@ static void avif_destroy(struct avifIO *io)
   avifRWDataFree(&reader->buffer);
 }
 
+bool read_avif32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha)
+{
+  FullFileLoadCB crd(fn);
+  if (!crd.fileHandle)
+    return false;
+
+  avifDecoder *decoder = avifDecoderCreate();
+  AvifGenLoadReader avifIO;
+  memset(&avifIO, 0, sizeof(avifIO));
+  avifIO.crd = &crd;
+  avifIO.io.read = &avif_read;
+  avifIO.io.destroy = &avif_destroy;
+  avifIO.io.sizeHint = (uint64_t)crd.getTargetDataSize();
+  avifIO.io.persistent = AVIF_FALSE;
+  avifRWDataRealloc(&avifIO.buffer, 1024);
+
+  avifDecoderSetIO(decoder, &avifIO.io);
+
+  bool ret = false;
+  if (avifDecoderParse(decoder) == AVIF_RESULT_OK)
+  {
+    out_w = decoder->image->width;
+    out_h = decoder->image->height;
+    out_may_have_alpha = decoder->image->imageOwnsAlphaPlane;
+    ret = true;
+  }
+
+  avifDecoderDestroy(decoder);
+  return ret;
+}
+
 TexImage32 *load_avif32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha)
 {
   TexImage32 *ret = nullptr;

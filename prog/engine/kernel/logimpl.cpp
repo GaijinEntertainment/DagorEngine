@@ -16,7 +16,12 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_threads.h>
 #include <debug/dag_logSys.h>
+
+#if _TARGET_ANDROID
+#include <android/log.h>
+#endif
 
 #if _TARGET_IOS | _TARGET_TVOS
 #include <asl.h>
@@ -203,6 +208,121 @@ static const char *xbox_get_log_fn()
 }
 #endif
 
+#include <EASTL/vector.h>
+#include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_spinlock.h>
+
+struct AndroidLogWriterThread final : public DaThread
+{
+  eastl::vector<char> writeBuffer;
+  eastl::vector<char> readBuffer;
+
+  intptr_t logFp = 0;
+  int offset = 0;
+
+  OSSpinlock bufferLock;
+  os_event_t waitEvent;
+
+
+  AndroidLogWriterThread() : DaThread("AndroidLogWriterThread", DEFAULT_STACK_SZ, -1) { os_event_create(&waitEvent); }
+
+
+  void flushLogBuffer()
+  {
+    int len = 0;
+
+    {
+      OSSpinlockScopedLock lock(bufferLock);
+      writeBuffer.swap(readBuffer);
+      len = offset;
+      offset = 0;
+    }
+
+    if (len > 0)
+      fwrite(readBuffer.data(), 1, len, (FILE *)logFp);
+
+    fflush((FILE *)logFp);
+  }
+
+
+  void execute() override
+  {
+    while (!isThreadTerminating())
+      if (os_event_wait(&waitEvent, OS_WAIT_INFINITE) == OS_WAIT_OK)
+        flushLogBuffer();
+  }
+
+
+  void initBuffers(size_t size)
+  {
+    writeBuffer.resize(size);
+    readBuffer.resize(size);
+  }
+
+
+  void writeImpl(char *data, size_t len)
+  {
+    {
+      OSSpinlockScopedLock lock(bufferLock);
+
+      if (EASTL_UNLIKELY(offset + len > writeBuffer.size()))
+        writeBuffer.resize(offset + len);
+
+      ::memcpy(writeBuffer.data() + offset, data, len);
+      offset += len;
+    }
+
+    os_event_set(&waitEvent);
+  }
+
+
+  void writeData(char *data, size_t len)
+  {
+    if (isThreadStarted())
+      writeImpl(data, len);
+    else
+    {
+      FILE *fp = (FILE *)get_debug_console_handle();
+      fwrite(data, 1, len, fp);
+      fflush(fp);
+    }
+  }
+
+
+  void writeDebugStr(char *data, size_t len)
+  {
+    if (isThreadStarted())
+    {
+      writeImpl(data, len);
+#if _TARGET_ANDROID && DAGOR_DBGLEVEL > 0
+      __android_log_write(ANDROID_LOG_DEBUG, "dagor", data);
+#endif
+    }
+    else
+      out_debug_str(data);
+  }
+
+
+  void flush()
+  {
+    if (isThreadStarted())
+      flushLogBuffer();
+  }
+};
+
+
+static AndroidLogWriterThread logWriterThread;
+
+
+void dagor_start_log_writer_thread(intptr_t fp, size_t buffer_size)
+{
+  logWriterThread.logFp = fp;
+  logWriterThread.initBuffers(buffer_size);
+
+  logWriterThread.start();
+}
+
+
 static void log_write(char *data, size_t len)
 {
 #if CRYPT_LOG_AVAILABLE
@@ -252,7 +372,7 @@ static void log_write(char *data, size_t len)
       fflush(ios_global_fp);
     }
   }
-  if (is_enabled_copy_debug_to_ios_console() || !is_debug_console_ios_file_output())
+  if (is_enabled_copy_debug_to_ios_console())
 #endif
   {
     static aslclient client = asl_open(NULL, "com.apple.console", 0);
@@ -273,16 +393,13 @@ static void log_write(char *data, size_t len)
 #elif CRYPT_LOG_AVAILABLE
   if (!cryptLog)
   {
-    out_debug_str(data);
+    logWriterThread.writeDebugStr(data, len);
     PUT_TO_TAIL_BUF(data, len);
   }
   else if (get_debug_console_handle() != invalid_console_handle)
-  {
-    fwrite(data, 1, len, (FILE *)get_debug_console_handle());
-    fflush((FILE *)get_debug_console_handle());
-  }
+    logWriterThread.writeData(data, len);
 #else
-  out_debug_str(data);
+  logWriterThread.writeDebugStr(data, len);
 #endif
 
 #if !CRYPT_LOG_AVAILABLE
@@ -635,7 +752,8 @@ void debug_allow_level_files(bool) {}
 
 #else
 
-void flush_debug_file() {}
+void flush_debug_file() { logWriterThread.flush(); }
+
 void debug_flush(bool) {}
 void force_debug_flush(bool) {}
 void close_debug_files() {}

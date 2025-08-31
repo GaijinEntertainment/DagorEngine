@@ -18,5 +18,7 @@ const char *formatPrimitiveTopology(VkPrimitiveTopology top);
 const char *formatObjectType(VkObjectType obj_type);
 const char *formatAttachmentLoadOp(const VkAttachmentLoadOp load_op);
 const char *formatAttachmentStoreOp(const VkAttachmentStoreOp store_op);
+String formatShaderStageFlags(VkShaderStageFlags flags);
+const char *formatPresentMode(VkPresentModeKHR mode);
 
 } // namespace drv3d_vulkan

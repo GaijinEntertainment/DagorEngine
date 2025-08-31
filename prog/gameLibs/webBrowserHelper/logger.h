@@ -14,6 +14,6 @@ struct Logger : public webbrowser::ILogger
   virtual void info(const char *msg) { logdbg("[BRWS] %s", msg); }
   virtual void dbg(const char *msg) { logdbg("[BRWS] %s", msg); }
   virtual void flush() {} // VOID
-};                        // class ILogger
+}; // class ILogger
 
 } // namespace webbrowser

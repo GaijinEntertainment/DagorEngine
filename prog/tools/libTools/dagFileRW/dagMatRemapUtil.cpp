@@ -69,6 +69,8 @@ DataBlock make_dag_mats_blk(const DagData &data)
 
 int remove_unused_textures(DagData &data)
 {
+  if (!data.texlist.size())
+    return 0;
   Tab<int> texturesMap(tmpmem);
   texturesMap.resize(data.texlist.size());
   mem_set_ff(texturesMap);
@@ -100,7 +102,7 @@ int remove_unused_textures(DagData &data)
   {
     DagData::Material &m = data.matlist[i];
     for (int ti = 0; ti < DAGTEXNUM; ++ti)
-      if (m.mater.texid[ti] != DAGBADMATID)
+      if (m.mater.texid[ti] != DAGBADMATID && (ti < 8 || (m.mater.flags & DAG_MF_16TEX)))
         m.mater.texid[ti] = texturesMap[m.mater.texid[ti]];
   }
   return count;
@@ -297,8 +299,8 @@ static bool load_node(MatRemapImpBlkReader &rdr, DagData::Node &node)
         DagData::Node::NodeBlock &block = append_block(node, blockTag);
         block.block.start = rdr.tell();
         block.block.tag = blockTag;
-        block.block.data = memalloc(rdr.getBlockRest(), tmpmem);
-        READ(block.block.data, rdr.getBlockRest());
+        block.block.data.reserve(rdr.getBlockRest());
+        READ(block.block.data.data(), rdr.getBlockRest());
         block.block.end = rdr.tell();
         break;
       }
@@ -391,8 +393,8 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
       append_items(data.blocks, 1);
       data.blocks.back().start = rdr.tell();
       data.blocks.back().tag = rdr.getBlockTag();
-      data.blocks.back().data = memalloc(rdr.getBlockRest(), tmpmem);
-      rdr.read(data.blocks.back().data, rdr.getBlockRest());
+      data.blocks.back().data.reserve(rdr.getBlockRest());
+      rdr.read(data.blocks.back().data.data(), rdr.getBlockRest());
       data.blocks.back().end = rdr.tell();
       append_items(data.nodes, 1);
       rdr.seekto(data.blocks.back().start);
@@ -411,8 +413,8 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
       append_items(data.blocks, 1);
       data.blocks.back().start = rdr.tell();
       data.blocks.back().tag = rdr.getBlockTag();
-      data.blocks.back().data = memalloc(rdr.getBlockRest(), tmpmem);
-      rdr.read(data.blocks.back().data, rdr.getBlockRest());
+      data.blocks.back().data.reserve(rdr.getBlockRest());
+      rdr.read(data.blocks.back().data.data(), rdr.getBlockRest());
       data.blocks.back().end = rdr.tell();
     }
     END_BLOCK;
@@ -456,7 +458,7 @@ static bool write_dag_nodes(FullFileSaveCB &dag, const DagData::Node &node)
       }
       default:
       {
-        dag.write(block.block.data, block.block.end - block.block.start);
+        dag.write(block.block.data.data(), block.block.end - block.block.start);
         break;
       }
     }
@@ -514,7 +516,7 @@ bool write_dag(const char *dest, const DagData &data)
   for (int i = 0; i < data.blocks.size(); ++i)
   {
     dag.beginTaggedBlock(data.blocks[i].tag);
-    dag.write(data.blocks[i].data, data.blocks[i].end - data.blocks[i].start);
+    dag.write(data.blocks[i].data.data(), data.blocks[i].end - data.blocks[i].start);
     dag.endBlock();
   }
 

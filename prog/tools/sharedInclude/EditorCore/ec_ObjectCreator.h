@@ -30,7 +30,7 @@ public:
   /// \n                  - if @b true, then box base will be set
   ///                           as pointed by user
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created BoxCreator.
@@ -40,7 +40,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created BoxCreator.
@@ -50,7 +50,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created BoxCreator.
@@ -60,12 +60,12 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 
   /// Render BoxCreator.
   /// Called from program code that created BoxCreator.
-  virtual void render();
+  void render() override;
 
 
   /// Index of current creator's stage
@@ -107,7 +107,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created SphereCreator.
@@ -117,7 +117,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created SphereCreator.
@@ -127,7 +127,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created SphereCreator.
@@ -137,12 +137,12 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 
   /// Render SphereCreator.
   /// Called from program code that created SphereCreator.
-  virtual void render();
+  void render() override;
 
 protected:
   unsigned int stageNo;
@@ -170,7 +170,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created PointCreator.
@@ -180,7 +180,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created PointCreator.
@@ -190,7 +190,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created PointCreator.
@@ -200,12 +200,12 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 
   /// Render PointCreator.
   /// Called from program code that created PointCreator.
-  virtual void render();
+  void render() override;
 
 protected:
   unsigned int stageNo;
@@ -236,7 +236,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created TargetCreator.
@@ -246,7 +246,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created TargetCreator.
@@ -256,7 +256,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created TargetCreator.
@@ -266,12 +266,12 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 
   /// Render TargetCreator.
   /// Called from program code that created BoxCreator.
-  void render();
+  void render() override;
 
 protected:
   unsigned int stageNo;
@@ -305,7 +305,7 @@ public:
   /// \n                  - if @b true, then plane base will be set
   ///                           as pointed by user
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created PlaneCreator.
@@ -315,7 +315,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created PlaneCreator.
@@ -325,7 +325,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created PlaneCreator.
@@ -335,12 +335,12 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 
   /// Render PlaneCreator.
   /// Called from program code that created PlaneCreator.
-  void render();
+  void render() override;
 
   inline unsigned getStageNo() const { return stageNo; }
 
@@ -358,7 +358,7 @@ protected:
 class CircleCreator : public SphereCreator
 {
 public:
-  void render();
+  void render() override;
 };
 
 class SurfaceMoveCreator : public IObjectCreator
@@ -374,7 +374,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
 
   /// Mouse left button press event handler.
   /// Called from program code that created SphereCreator.
@@ -384,7 +384,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse left button release event handler.
   /// Called from program code that created SphereCreator.
@@ -394,7 +394,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Mouse right button press event handler.
   /// Called from program code that created SphereCreator.
@@ -404,7 +404,7 @@ public:
   /// @param[in] buttons - mouse buttons state flags
   /// @param[in] key_modif - <b>shift keys</b> state (see #CtlShiftKeys)
   /// @return @b true if event handling successful, @b false in other case
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   //@}
 };
 
@@ -414,11 +414,11 @@ class CylinderCreator : public IObjectCreator
 public:
   CylinderCreator();
 
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual void render();
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void render() override;
 
 protected:
   unsigned stageNo;
@@ -429,10 +429,79 @@ protected:
   int wrapedY;
 };
 
+struct PolygoneZone
+{
+  Tab<Point3> points;
+  real topY = 0;
+
+  Tab<Point3> getRoofPoints()
+  {
+    Tab<Point3> roofPoints;
+    roofPoints.set_capacity(points.size());
+    for (Point3 p : points)
+    {
+      p.y = topY;
+      roofPoints.push_back(p);
+    }
+    return roofPoints;
+  }
+
+  real getMaxFloorY()
+  {
+    real max = MIN_REAL;
+    for (const Point3 &p : points)
+      max = eastl::max(p.y, max);
+    return max;
+  }
+
+  real getHeight() { return topY - getMaxFloorY(); }
+
+  void setHeight(real h)
+  {
+    h = eastl::max(h, 0);
+    topY = getMaxFloorY() + h;
+  }
+};
+
+class PolygoneZoneCreator : public IObjectCreator
+{
+public:
+  PolygoneZoneCreator();
+
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void render() override;
+
+  const PolygoneZone &getPolygoneZone() { return poly; }
+  void setPolygoneZone(const PolygoneZone &p) { poly = p; }
+  void setEditHeight(bool enable) { canEditHeight = enable; }
+
+protected:
+  enum class Stages
+  {
+    SetPoints,
+    SetHeight,
+  };
+
+  void switchStages();
+
+  Stages stageNo = Stages::SetPoints;
+  Point3 cursorWorldPos = Point3(0, 0, 0);
+  int nearestPointIndex = -1;
+  int secondNearestPointIndex = -1;
+  int selectedPointIndex = -1;
+  bool isMovingPoint = false;
+  bool canEditHeight = true;
+
+  PolygoneZone poly;
+};
+
 class CapsuleCreator : public CylinderCreator
 {
 public:
-  void render();
+  void render() override;
 };
 
 class PolyMeshCreator : public IObjectCreator
@@ -442,11 +511,11 @@ public:
 
   PolyMeshCreator();
 
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  void render();
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void render() override;
 
 protected:
   unsigned stageNo;
@@ -467,10 +536,10 @@ class SplineCreator : public IObjectCreator
 {
 public:
   SplineCreator();
-  virtual void render();
-  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true);
-  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  void render() override;
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate = true) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   void getPoints(Tab<Point3> &get_points, bool &closed) const
   {
     get_points = points;
@@ -495,12 +564,12 @@ private:
 class StairCreator : public BoxCreator
 {
 public:
-  virtual void render();
+  void render() override;
 };
 
 
 class SpiralStairCreator : public CylinderCreator
 {
 public:
-  virtual void render();
+  void render() override;
 };

@@ -36,7 +36,6 @@ Sources =
   createTex.cpp
   picMgr.cpp
   splashScreen.cpp
-  applyTmd.cpp
   texIdHolder.cpp
   bufIdHolder.cpp
   resizableTex.cpp
@@ -45,8 +44,8 @@ Sources =
   occlusionSystem.cpp
   quadIndexBuffer.cpp
   serialIntBuffer.cpp
-  resourcePool.cpp
   texStreamingContext.cpp
+  buildOnDemandTexFactory.cpp
 ;
 
 if $(Platform) in iOS android nswitch

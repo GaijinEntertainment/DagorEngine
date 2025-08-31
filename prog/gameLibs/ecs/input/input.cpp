@@ -216,6 +216,7 @@ static void on_action_triggered(dainput::action_handle_t action, bool term, int 
 
 void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
 {
+  debug("ecs::init_hid_drivers(poll=%dmsec, init_dev_type=0x%x)", poll_thread_interval_msec, init_dev_type);
 #if _TARGET_PC | _TARGET_IOS | _TARGET_ANDROID | _TARGET_C3
   if (init_dev_type & InitDeviceType::Pointing)
     ::dagor_init_mouse_win();

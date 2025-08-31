@@ -84,6 +84,7 @@ void AnimCommonStateHolder::term() { clear_and_shrink(val); }
 
 void AnimCommonStateHolder::reset()
 {
+  graph.resetBlendNodes(*this);
   term();
   init();
 }

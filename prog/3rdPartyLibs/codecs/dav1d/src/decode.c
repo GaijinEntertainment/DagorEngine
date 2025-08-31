@@ -149,7 +149,7 @@ static void read_tx_tree(Dav1dTaskContext *const t,
     const int txw = t_dim->lw, txh = t_dim->lh;
     int is_split;
 
-    if (depth < 2 && from > (int) TX_4X4) {
+    if (depth < 2 && (int) from > (int) TX_4X4) {
         const int cat = 2 * (TX_64X64 - t_dim->max) - depth;
         const int a = t->a->tx[bx4] < txw;
         const int l = t->l.tx[by4] < txh;

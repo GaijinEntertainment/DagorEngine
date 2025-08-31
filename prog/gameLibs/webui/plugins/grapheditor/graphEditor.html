@@ -248,6 +248,17 @@
     box-sizing: border-box;
   }
 
+  .headerSection {
+    padding: 4px;
+    flex-shrink: 0;
+  }
+
+  .scrollableSection {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
 </style>
 </head>
 <body>
@@ -309,14 +320,16 @@
   </div>
 
   <div id="openGraphDiv" class="listClass"
-    style="position:absolute; background:#444; left:0px; top:-1px; height:100%; width:200%; box-sizing:border-box; border:1px solid #eee; visibility:hidden;"
+    style="display:flex; flex-direction:column; overflow-y:hidden; position:absolute; background:#444; left:0px; top:-1px; height:100%; width:200%; box-sizing:border-box; border:1px solid #eee; visibility:hidden;"
     onclick="document.getElementById('openGraphEdit').focus();"
     >
 
-    <div style="color:#aaa; margin: 0px 0px 5px 0px;">Open Graph:</div>
-    <input id="openGraphEdit" value="value" style = "width:100%; box-sizing:border-box;" autocomplete="off"
-      onkeyup="globalOnOpenKeyPress(event)" onkeydown="globalOnOpenKeyDown(event)">
-    <div id="openGraphItems">Error</div>
+    <div class="headerSection">
+      <div style="color:#aaa; margin: 0px 0px 5px 0px;">Open Graph:</div>
+      <input id="openGraphEdit" value="value" style = "width:100%; box-sizing:border-box;" autocomplete="off"
+        onkeyup="globalOnOpenKeyPress(event)" onkeydown="globalOnOpenKeyDown(event)">
+    </div>
+    <div id="openGraphItems" class="scrollableSection">Error</div>
   </div>
 </div>
 
@@ -338,9 +351,9 @@ __SPLASH_SCREEN_TEXT__
 <script src="../colorpicker/colorPicker.js">/* direct */</script>
 <script src="../colorpicker/colorGradient.js">/* direct */</script>
 <script src="stubNodesSettings.js">/* direct */</script>
-<script src="../../../../../tools/dagor_cdk/commonData/graphEditor/builder/nodeUtils.js">/* direct */</script>
+<script src="editorScripts/nodeUtils.js">/* direct */</script>
 <script src="../editorCurves/curveEditor.js">/* direct */</script>
-<script src="../../../../../tools/dagor_cdk/commonData/graphEditor/builder/graphEditor.js">/* direct */</script>
+<script src="editorScripts/graphEditor.js">/* direct */</script>
 
 <script src="colorPicker.js">/* from plugin */</script>
 <script src="colorGradient.js">/* from plugin */</script>
@@ -504,11 +517,73 @@ function makeComponentId(component, panel, variable)
   return component + "/." + panel + "/." + variable;
 }
 
+function makeComponentIdWithIdx(component, panel, variable, idx)
+{
+  return component + "/." + panel + "/." + variable + "/." + idx.toString();
+}
+
 function makeComponentName(panel, variable)
 {
   return panel + "/." + variable;
 }
 
+function makeComponentNameWithIdx(panel, variable, idx)
+{
+  return panel + "/." + variable + "/." + idx.toString();
+}
+
+function interpretFloat(value)
+{
+  value = value.replace(",", ".").replace(" ", "");
+
+  if (value.indexOf(".") < 0 && value.indexOf("e") < 0 && value.indexOf("E") < 0)
+    value += ".0";
+
+  return value;
+}
+
+function applyFloatArray(oldValue, newValue, idx, arraySize)
+{
+  var values = oldValue.split(",");
+  var ret = "";
+  for (var i = 0; i < arraySize; i++)
+  {
+    if(i != 0)
+      ret+= ", ";
+
+    if (i == idx)
+      ret += newValue;
+    else
+      ret += values[i].trim();
+  }
+
+  return ret;
+}
+
+function updateInternalVariableWithIdx(panel, variable, newValue, index)
+{
+  var idx = parseInt(panel, 10);
+  var elem = idx >= 0 ? editor.elems[idx] : editor.graphElem;
+  if (elem)
+  {
+    var varsDesc = elem.desc.properties;
+    for (var i = 0; i < varsDesc.length; i++)
+      if (varsDesc[i].name === variable)
+      {
+        var oldValue = elem.propValues[i];
+
+        if (varsDesc[i].type === "float2" || varsDesc[i].type === "float3" || varsDesc[i].type === "float4")
+        {
+          newValue = interpretFloat(newValue);
+
+          elem.propValues[i] = applyFloatArray(oldValue, newValue, index, parseInt(varsDesc[i].type.charAt(5)));
+          elem.updatePinCaptions();
+        }
+      }
+
+    editor.onChanged();
+  }
+}
 
 function updateInternalVariable(panel, variable, newValue)
 {
@@ -522,12 +597,8 @@ function updateInternalVariable(panel, variable, newValue)
       {
         if (varsDesc[i].type === "float")
         {
-          newValue = newValue.replace(",", ".").replace(" ", "");
-
-          if (newValue.indexOf(".") < 0 && newValue.indexOf("e") < 0 && newValue.indexOf("E") < 0)
-            newValue += ".0";
+          newValue = interpretFloat(newValue);
         }
-
         if (varsDesc[i].type === "int")
         {
           var s = newValue;
@@ -575,6 +646,10 @@ function onEditChange(value, panel, variable)
   updateInternalVariable(panel, variable, value);
 }
 
+function onEditChangeWithIdx(value, panel, variable, idx)
+{
+  updateInternalVariableWithIdx(panel, variable, value, idx);
+}
 
 function onSliderChange(value, panel, variable)
 {

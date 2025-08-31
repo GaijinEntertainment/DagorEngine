@@ -5,35 +5,23 @@
 #include "driver_config.h"
 #include "physical_device_set.h"
 #include "resource_manager.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
 static constexpr size_t SAMPLERS_MAX_EXPECTED_COUNT = 128;
 
-void SamplerCache::shutdown()
+void SamplerCache::init()
 {
-  for (int i = 0; i < samplers.size(); ++i)
-  {
-    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroySampler(Globals::VK::dev.get(), samplers[i]->sampler[0], NULL));
-    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroySampler(Globals::VK::dev.get(), samplers[i]->sampler[1], NULL));
-  }
-  clear_all_ptr_items_and_shrink(samplers);
-
-  // actual sampler resources will be cleaned up in resource manager on shutdown
-  samplerResources.clear();
+  defaultSamplerState = SamplerState::make_default();
+  defaultSampler = Globals::Mem::res.alloc<SamplerResource>({SamplerDescription(defaultSamplerState)});
 }
 
-SamplerInfo *SamplerCache::get(SamplerState state)
+void SamplerCache::shutdown()
 {
-  for (int i = 0; i < samplers.size(); ++i)
-    if (samplers[i]->state == state)
-      return samplers[i];
-
-  SamplerInfo *info = new SamplerInfo;
-  *info = create(state);
-
-  samplers.push_back(info);
-  return info;
+  defaultSampler = nullptr;
+  // actual sampler resources will be cleaned up in resource manager on shutdown
+  samplerResources.clear();
 }
 
 SamplerInfo SamplerCache::create(SamplerState state)
@@ -66,18 +54,22 @@ SamplerInfo SamplerCache::create(SamplerState state)
   info.state = state;
 
   sci.mipmapMode = state.getMip();
-  sci.compareEnable = VK_FALSE;
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateSampler(Globals::VK::dev.get(), &sci, NULL, ptr(info.sampler[0])));
+  sci.compareEnable = state.isCompare ? VK_TRUE : VK_FALSE;
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateSampler(Globals::VK::dev.get(), &sci, VKALLOC(sampler), ptr(info.handle)));
 
-  sci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-  sci.compareEnable = VK_TRUE;
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateSampler(Globals::VK::dev.get(), &sci, NULL, ptr(info.sampler[1])));
+  if (Globals::cfg.debugLevel > 0)
+  {
+    Globals::Dbg::naming.setSamplerName(info.handle, String(64, "SPL %016llX", state.wrapper.value));
+  }
 
   return info;
 }
 
 SamplerResource *SamplerCache::getResource(SamplerState state)
 {
+  if (state == defaultSamplerState)
+    return defaultSampler;
+
   WinAutoLock lock(samplerResourcesMutex);
 
   for (const SamplerResourcesDescPtrPair &i : samplerResources)

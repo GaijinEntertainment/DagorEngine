@@ -20,29 +20,29 @@ public:
 
   HmapLandHoleObject();
 
-  virtual void update(real dt);
-  virtual void beforeRender();
-  virtual void render();
-  virtual void renderTrans();
+  void update(real dt) override;
+  void beforeRender() override;
+  void render() override;
+  void renderTrans() override;
 
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
-  virtual void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) {}
+  void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override {}
 
-  virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis);
+  void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override;
 
-  virtual void putRotateUndo() {}
+  void putRotateUndo() override {}
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk);
+  void load(const DataBlock &blk);
 
 
   EO_IMPLEMENT_RTTI(CID_HmapLandHoleObject)

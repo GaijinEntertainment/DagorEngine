@@ -20,6 +20,7 @@ int fontFxType = 0;
 interval fontFxType: no < 1, shadow < 2, glow < 3, outline < 4, undefined;
 float fontFxScale = 0;
 interval fontFxScale: sharp < 0.01, smooth < 1.3, extraSmooth;
+float fontFxExtent = 0;
 float4 fontFxOfs;
 float4 fontFxColor;
 
@@ -54,22 +55,22 @@ shader gui_default
     }
     if (fontFxType != no)
     {
-      (vs){ fontFxOfs@f4 = fontFxOfs; }
-      (ps)
-      {
-        fontFxOfs@f4 = fontFxOfs;
+      (vs) {
+        invFontTexSize@f2 = (fontFxOfs.z, fontFxOfs.w);
+        extentLeftTopTexels@f2 = (min(-fontFxExtent + fontFxOfs.x, 0.0), min(-fontFxExtent + fontFxOfs.y, 0.0));
+        extentRightBottomTexels@f2 = (max(fontFxExtent + fontFxOfs.x, 0.0), max(fontFxExtent + fontFxOfs.y, 0.0));
+      }
+      (ps) {
+        fontFxOfsTc@f2 = (fontFxOfs.x * fontFxOfs.z, fontFxOfs.y * fontFxOfs.w);
+        invFontTexSize@f2 = (fontFxOfs.z, fontFxOfs.w);
         fontFxColor@f4 = fontFxColor;
       }
       if (fontFxScale != sharp)
       {
-        (vs)
-        {
-          fontFxScale@f1 = (fontFxScale);
-        }
         if (fontFxType == glow) {
-          (ps){ scales@f4 = (0.6, 0.25, 0.125, fontFxScale); }
+          (ps) { scales@f4 = (0.6, 0.25, 0.125, fontFxScale); }
         } else {
-          (ps){ scales@f4 = (0.3, 0.25*0.6, 0.125*0.7, fontFxScale); }
+          (ps) { scales@f4 = (0.3, 0.25*0.6, 0.125*0.7, fontFxScale); }
         }
       }
     }
@@ -126,8 +127,7 @@ shader gui_default
 
     ##if hasTexture >= texFontL8
       ##if fontFxType != no
-        float2 tc1:TEXCOORD2;
-        float4 tc2:TEXCOORD3;
+        nointerpolation float4 glyphTcBox:TEXCOORD3;
         ##if fontTex2 != NULL
           float2 f2_tc:TEXCOORD4;
         ##endif
@@ -144,9 +144,9 @@ shader gui_default
       int2 pos: POSITION;
       float4 col: COLOR0;
     ##if hasTexture != texOff
-      int2 tc0: TEXCOORD0;
+      int2 tc: TEXCOORD0;
       ##if hasTexture >= texFontL8 && fontFxType != no
-      int2 tc1: TEXCOORD1;
+      int2 glyphSize: TEXCOORD1;
       ##endif
     ##endif
     };
@@ -156,32 +156,26 @@ shader gui_default
       VsOutput o;
       float2 fpos = float2(v.pos);
 
+    ##if hasTexture != texOff
+      float2 tc = v.tc / 4096.0;
+      o.tc = tc;
+    ##endif
+
     ##if hasTexture >= texFontL8 && fontFxType != no
-      float2 tc = v.tc0/4096.0;
-      float2 tc1 = float2(v.tc1);
+      float2 glyphSizeTexels = abs(float2(v.glyphSize)) + 1.0; // I don't know why it's encoded as glyphSize - 1. So have to add 1.
+      float2 glyphTcSize = glyphSizeTexels * invFontTexSize;
+      bool2 cornerMask = v.glyphSize > 0;
+      float2 offsetTexels = cornerMask ? extentRightBottomTexels : extentLeftTopTexels;
 
-      float2 ofs = float2(tc1.x > 0. ? 1. : 0., tc1.y > 0. ? 1. : 0.);
-      o.tc2.xy = tc - ofs * tc1 * fontFxOfs.zw;
-      o.tc2.zw = o.tc2.xy + abs(tc1.xy)*fontFxOfs.zw;
+      o.glyphTcBox.xy = tc - (cornerMask ? glyphTcSize : 0.0);
+      o.glyphTcBox.zw = o.glyphTcBox.xy + glyphTcSize;
 
-      ##if fontFxScale == sharp
-      float2 add = float2(0., 0.);
-      ##else
-      float2 add = float2(tc1.x > 0. ? 2. : -2., tc1.y > 0. ? 2. : -2.)*fontFxScale.xx;
-      ##endif
+      o.tc += offsetTexels * invFontTexSize;
+      // Vertex position is transformed on CPU side to fit the effect.
+    ##endif
 
-      o.tc = tc + (ofs*fontFxOfs.xy + add)*fontFxOfs.zw;
-      o.tc1 = tc + ((ofs-1)*fontFxOfs.xy + add)*fontFxOfs.zw;
-      o.pos = float4(((fpos+(ofs*fontFxOfs.xy + add)*4.)*viewport.xy+viewport.zw) * gui_text_depth.y, gui_text_depth.xy);
-      o.col = BGRA_SWIZZLE(v.col);
-
-    ##else
       o.pos = float4((fpos*viewport.xy+viewport.zw) * gui_text_depth.y, gui_text_depth.xy);
       o.col = BGRA_SWIZZLE(v.col);
-    ##if hasTexture != texOff
-      o.tc = v.tc0/4096.0;
-    ##endif
-    ##endif
 
     ##if hasTexture >= texFontL8 && fontTex2 != NULL
       float2 otc = fpos.xy + fontTex2ofs.zw;
@@ -253,26 +247,27 @@ shader gui_default
         {
           // float4 screenpos = GET_SCREEN_POS(v.pos);
 
-          half l_font = select(v.tc.xyxy, v.tc2, fx4tex2D(font,v.tc).r, 0);
+          half l_font = select(v.tc.xyxy, v.glyphTcBox, fx4tex2D(font,v.tc).r, 0);
           half l_shadow = 0.0;
           ##if fontFxScale != sharp
-            float2 tcScale = fontFxOfs.zw * scales.w;
-            float2 tc = v.tc1 + float2(-0.707, -0.707) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(-1, 0) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(-0.707, 0.707) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(0, 1) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(0.707, 0.707) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(1, 0) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(0.707, -0.707) * tcScale;
-            l_shadow += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1 + float2(0, -1) * tcScale;
-            l_shadow = saturate(l_shadow + select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0));
+            float2 tcScale = invFontTexSize * scales.w;
+            float2 effectTc = v.tc - fontFxOfsTc;
+            float2 tc = effectTc + float2(-0.707, -0.707) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(-1, 0) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(-0.707, 0.707) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(0, 1) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(0.707, 0.707) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(1, 0) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(0.707, -0.707) * tcScale;
+            l_shadow += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc + float2(0, -1) * tcScale;
+            l_shadow = saturate(l_shadow + select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0));
           ##endif
           ##if fontTex2 != NULL
             half4 f_col = h4tex2D(fontTex2, v.f2_tc);
@@ -294,7 +289,7 @@ shader gui_default
       ##else
         float4 font_draw_ps(VsOutput v): SV_Target
         {
-        half l_font = select(v.tc.xyxy, v.tc2, h4tex2D(font, v.tc).r, 0);
+        half l_font = select(v.tc.xyxy, v.glyphTcBox, h4tex2D(font, v.tc).r, 0);
         ##if hasTexture == texFontL8v
           if (l_font < 0.5)
             l_font = 0;
@@ -307,40 +302,40 @@ shader gui_default
             half4 f_col = v.col;
           ##endif
 
-
-          half l_shadow = select(v.tc1.xyxy, v.tc2, h4tex2D(font, v.tc1).r, 0);
+          float2 effectTc = v.tc - fontFxOfsTc;
+          half l_shadow = select(effectTc.xyxy, v.glyphTcBox, h4tex2D(font, effectTc).r, 0);
         ##if fontFxScale != sharp
           float2 tc;
-          float2 tcScale = fontFxOfs.zw*scales.w;
+          float2 tcScale = invFontTexSize * scales.w;
           half l_shadow2 = 0, l_shadow3 = 0;
           
-            tc = v.tc1+float2(-0.707, -0.707)*tcScale;
-            l_shadow2 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2( 0.707, -0.707)*tcScale;
-            l_shadow2 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2(-0.707,  0.707)*tcScale;
-            l_shadow2 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2( 0.707,  0.707)*tcScale;
-            l_shadow2 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(-0.707, -0.707)*tcScale;
+            l_shadow2 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2( 0.707, -0.707)*tcScale;
+            l_shadow2 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(-0.707,  0.707)*tcScale;
+            l_shadow2 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2( 0.707,  0.707)*tcScale;
+            l_shadow2 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
 
             ##if (fontFxScale == extraSmooth)
-            tc = v.tc1+float2(-2.0,    0)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2(   0, -2.0)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2( 2.0,    0)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2(   0,  2.0)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(-2.0,    0)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(   0, -2.0)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2( 2.0,    0)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(   0,  2.0)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
 
-            tc = v.tc1+float2(-1.41, -1.41)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2( 1.41, -1.41)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2(-1.41,  1.41)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
-            tc = v.tc1+float2( 1.41,  1.41)*tcScale;
-            l_shadow3 += select(tc.xyxy, v.tc2, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(-1.41, -1.41)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2( 1.41, -1.41)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2(-1.41,  1.41)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
+            tc = effectTc+float2( 1.41,  1.41)*tcScale;
+            l_shadow3 += select(tc.xyxy, v.glyphTcBox, h4tex2D(font, tc).r, 0);
           ##else
           l_shadow2 *= 0.5;
           ##endif
@@ -349,7 +344,7 @@ shader gui_default
         ##endif
 
         ##if fontTex2 != NULL
-          l_shadow *= h4tex2D(fontTex2, v.f2_tc+v.tc1-v.tc).a;
+          l_shadow *= h4tex2D(fontTex2, v.f2_tc - fontFxOfsTc).a;
         ##endif
 
         ##if hasTexture == texFontL8v

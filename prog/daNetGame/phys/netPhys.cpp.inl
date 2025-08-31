@@ -23,7 +23,7 @@
 #include <crypto/base64.h>
 #include <daECS/net/msgSink.h>
 #include "game/player.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "main/app.h"
 #include "main/level.h"
 #include "phys/physUtils.h"
@@ -783,14 +783,11 @@ PHYS_ACTOR::~PhysActor()
 EA_RESTORE_VC_WARNING()
 
 #define IMPLEMENT_PHYS_ACTOR_NET_RCV(MSGCLS, EID2ACTOR)                                                               \
-  TEMPLATE_PHYS_ACTOR const net::MessageClass *PHYS_ACTOR::getMsgCls()                                                \
-  {                                                                                                                   \
-    return &MSGCLS::messageClass;                                                                                     \
-  }                                                                                                                   \
+  TEMPLATE_PHYS_ACTOR const net::MessageClass *PHYS_ACTOR::getMsgCls() { return &MSGCLS::messageClass; }              \
   TEMPLATE_PHYS_ACTOR void PHYS_ACTOR::net_rcv_snapshots(const net::IMessage *msg)                                    \
   {                                                                                                                   \
     net_rcv_phys_snapshots(*msg, /*to_msg_sink*/ true, msg->cast<MSGCLS>()->get<0>(), *msg->connection, physEidsList, \
-      (phys_actor_resolve_by_eid_t)&EID2ACTOR, deserializePhysSnapshot, processSnapshotNoEntity);                     \
+      (phys_actor_resolve_by_eid_t)(&EID2ACTOR), deserializePhysSnapshot, processSnapshotNoEntity);                   \
   }
 
 static inline TMatrix &validate_phys_actor_tm(TMatrix &tm, ecs::EntityId eid)
@@ -872,10 +869,11 @@ bool PHYS_ACTOR::onLoaded(ecs::EntityManager &mgr, ecs::EntityId)
 }
 
 template <typename T>
-static inline void net_phys_apply_authority_state_es(const UpdatePhysEvent &info, T &actor)
+static inline void net_phys_apply_authority_state_es(const UpdatePhysEvent &info, T &actor, bool smooth_authority_application = true)
 {
   if (actor.getRole() == IPhysActor::ROLE_LOCALLY_CONTROLLED_SHADOW)
-    apply_authority_state_and_log_desync(&actor, actor.phys, info.curTime, false, true, false, PHYS_DEBUG_DESYNCS_BITSTREAM,
+    apply_authority_state_and_log_desync(&actor, actor.phys, info.curTime, false, smooth_authority_application, false,
+      PHYS_DEBUG_DESYNCS_BITSTREAM,
       /*update_by_controls*/ true);
 }
 
@@ -1284,13 +1282,17 @@ static void apply_phys_modifications_impl(const ecs::EntityId eid, const ecs::st
     phys_comp_name.setRoleAndTickrateType(phys_comp_name.getRole(), trt);                                                 \
   }
 
-#define PHYS_IMPLEMENT_APPLY_AUTHORITY_STATE(phys_type, phys_comp_name, phys_update_es)                                \
-  ECS_BEFORE(after_net_phys_sync, phys_update_es)                                                                      \
-  ECS_AFTER(before_net_phys_sync)                                                                                      \
-  ECS_REQUIRE_NOT(ecs::Tag disableUpdate)                                                                              \
-  static inline void phys_comp_name##_apply_authority_state_es(const UpdatePhysEvent &info, phys_type &phys_comp_name) \
-  {                                                                                                                    \
-    net_phys_apply_authority_state_es(info, phys_comp_name);                                                           \
+#define PHYS_IMPLEMENT_APPLY_AUTHORITY_STATE(phys_type, phys_comp_name, phys_update_es)                                             \
+  ECS_BEFORE(after_net_phys_sync, phys_update_es)                                                                                   \
+  ECS_AFTER(before_net_phys_sync)                                                                                                   \
+  ECS_REQUIRE_NOT(ecs::Tag disableUpdate)                                                                                           \
+  static inline void phys_comp_name##_apply_authority_state_es(const UpdatePhysEvent &info, phys_type &phys_comp_name,              \
+    const bool *net_phys__disableAuthorityStateApplication, const bool *net_phys__smoothAuthorityApplication)                       \
+  {                                                                                                                                 \
+    bool disableApplication = net_phys__disableAuthorityStateApplication != nullptr && *net_phys__disableAuthorityStateApplication; \
+    bool smoothApplication = net_phys__smoothAuthorityApplication == nullptr || *net_phys__smoothAuthorityApplication;              \
+    if (!disableApplication)                                                                                                        \
+      net_phys_apply_authority_state_es(info, phys_comp_name, smoothApplication);                                                   \
   }
 
 #define PHYS_IMPLEMENT_COMMON_ESES(phys_type, phys_comp_name, phys_update_es, coll_tag_str)                               \

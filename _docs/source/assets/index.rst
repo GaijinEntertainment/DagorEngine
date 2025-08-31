@@ -12,10 +12,8 @@ configurations.
    about-assets/index.rst
    all-about-blk/index.rst
    animations/index.rst
+   collisions/index.rst
    lighting/index.rst
    materials/index.rst
    shaders/index.rst
-
-
-
 

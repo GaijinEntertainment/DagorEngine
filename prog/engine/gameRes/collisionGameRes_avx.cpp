@@ -5,7 +5,7 @@
 
 #if defined(__AVX__) && defined(_TARGET_64BIT)
 template <bool check_bounding>
-VECTORCALL bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
   const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm)
 {
   int resultIdx = -1;
@@ -66,7 +66,7 @@ VECTORCALL bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const Col
 }
 
 template <bool check_bounding>
-VECTORCALL bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
   const vec4f &v_local_dir, float in_t)
 {
   const uint16_t *__restrict indices = node.indices.data();
@@ -117,8 +117,8 @@ VECTORCALL bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Colli
 }
 
 template <bool check_bounding>
-VECTORCALL bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-  const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_nodes_ret_t &ret_array)
+bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array)
 {
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();

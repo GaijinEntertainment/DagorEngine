@@ -4,9 +4,12 @@ include "panorama.dshl"
 include "clouds_sun_light.dshl"
 include "skies_special_vision.dshl"
 include "use_strata_clouds.dshl"
+include "camera_in_camera.dshl"
 
 shader strata_clouds//, strata_clouds_panorama
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   cull_mode=none;
   z_write=false;
   z_test=true;
@@ -29,7 +32,8 @@ shader strata_clouds//, strata_clouds_panorama
   if (shader == strata_clouds_panorama)
   {
     (vs) { tc_pos_ofs@f4 = panoramaTC; }
-    (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
+    (ps) { tc_pos_ofs@f4 = panoramaTC; }
+    INIT_AND_USE_PANORAMA_VIEW_VECT(ps)
   } else
   {
     INIT_HDR(ps)
@@ -67,12 +71,15 @@ shader strata_clouds//, strata_clouds_panorama
 
     float4 clouds_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
+      float2 tc = input.screentc.xy/input.screentc.z * float2(0.5, -0.5) + 0.5;
+      DISCARD_IF_INVALID_VIEW_AREA_PS(tc);
+
       CHECK_RENDER_STRATA_CLOUDS
 
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float3 viewVect = input.viewVect;
 
-      half4 result = get_strata_clouds(normalize(viewVect), input.screentc.xy/input.screentc.z*float2(0.5, -0.5) + 0.5);
+      half4 result = get_strata_clouds(normalize(viewVect), tc);
       clip(result.a);
       applySpecialVision(result);
       return half4(pack_hdr(result.rgb).rgb, result.a);

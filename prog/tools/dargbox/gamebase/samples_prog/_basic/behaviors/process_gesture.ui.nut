@@ -34,7 +34,7 @@ let processor = @() {
   fillColor = Color(50,150,25)
   borderWidth = 2
   borderColor = Color(255,255,255)
-  size = [pw(80), ph(80)]
+  size = static [pw(80), ph(80)]
   flow = FLOW_VERTICAL
   behavior = Behaviors.ProcessGesture
 
@@ -68,27 +68,27 @@ let processor = @() {
   }
 
   children = [
-    processorState.value.scale == null
+    processorState.get().scale == null
     ? null
     : {
       rendObj = ROBJ_TEXT
-      text=$"Gesture PINCH = {processorState.value.scale}"
+      text=$"Gesture PINCH = {processorState.get().scale}"
       fontSize=sh(4)
       padding=sh(2)
     }
-    processorState.value.rotate == null
+    processorState.get().rotate == null
     ? null
     : {
       rendObj = ROBJ_TEXT
-      text=$"Gesture ROTATE = {processorState.value.rotate}"
+      text=$"Gesture ROTATE = {processorState.get().rotate}"
       fontSize=sh(4)
       padding=sh(2)
     }
-    processorState.value.drag == null
+    processorState.get().drag == null
     ? null
     : {
       rendObj = ROBJ_TEXT
-      text=$"Gesture DRAG = {processorState.value.drag}"
+      text=$"Gesture DRAG = {processorState.get().drag}"
       fontSize=sh(4)
       padding=sh(2)
     }

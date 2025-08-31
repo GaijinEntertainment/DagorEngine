@@ -80,7 +80,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
 
 #undef REGISTER_OP1_FUSION_POINT
 #define REGISTER_OP1_FUSION_POINT(OPNAME,TYPE,CTYPE) \
-    (*g_fusionEngine)[#OPNAME].emplace_back(new Op1FusionPoint_##OPNAME##_##CTYPE());
+    (**g_fusionEngine)[#OPNAME].emplace_back(new Op1FusionPoint_##OPNAME##_##CTYPE());
 
 #include "daScript/simulate/simulate_fusion_op1_reg.h"
 
@@ -88,7 +88,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
     {
         REGISTER_OP1_WORKHORSE_FUSION_POINT(Return);
         REGISTER_OP1_NUMERIC_VEC(Return);
-        (*g_fusionEngine)["Return"].emplace_back(new Op1FusionPoint_Return_vec4f());
+        (**g_fusionEngine)["Return"].emplace_back(new Op1FusionPoint_Return_vec4f());
     }
 }
 

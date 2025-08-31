@@ -37,7 +37,7 @@ void clip_triangles_by_plane(Tab<ClipVertex> &vertices_list, unsigned int num_in
   {
     // Clip triangle by plane.
 
-#define DOT_PRODUCT_4_3(v4, v3) ((v4)*Point4((v3).x, (v3).y, (v3).z, 1.f))
+#define DOT_PRODUCT_4_3(v4, v3) ((v4) * Point4((v3).x, (v3).y, (v3).z, 1.f))
 
     bool isOnNegativeSideArray[3];
     int numNegativeVertices = 0;

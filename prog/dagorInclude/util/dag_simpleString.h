@@ -7,6 +7,7 @@
 #include <string.h>
 #include <memory/dag_mem.h>
 #include <generic/dag_span.h>
+#include <dag/dag_relocatable.h>
 
 #include <supp/dag_define_KRNLIMP.h>
 extern "C" KRNLIMP void dd_simplify_fname_c(char *fn);
@@ -123,6 +124,8 @@ private:
   void copyStr(const char *s) { string = (!s || !s[0]) ? NULL : str_dup(s, strmem); }
   void freeStr() { (string) ? strmem->free(string) : (void)0; }
 };
+
+DAG_DECLARE_RELOCATABLE(SimpleString);
 
 inline const char *simplify_fname(SimpleString &s)
 {

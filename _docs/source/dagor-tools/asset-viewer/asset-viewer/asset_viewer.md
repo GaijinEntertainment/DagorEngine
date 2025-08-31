@@ -1,3 +1,5 @@
+# Asset Viewer
+
 ## Overview
 
 The Asset Viewer is one of the two main tools for working with assets, and in
@@ -278,12 +280,14 @@ simply displaying the axes, it can also be used for quick navigation:
 
 ## Building Assets
 
-To learn more about what *building* entails and why it's necessary, refer to the
-dedicated article about [Resource
-Building](../../resource-building/resource_building.md). In short, the game
-doesn't directly handle files like `.dag` files, textures, etc.; it operates on
-binary files where these resources are compiled. To check your work in-game, you
-need to compile these resources into the binary files.
+The game doesn't directly handle files like `.dag` files, textures, etc.; it
+operates on binary files where these resources are compiled. To check your work
+in-game, you need to *build* these resources into the binary files.
+
+```{seealso}
+To learn more about what *building* entails and why it's necessary, see
+[Building Resources](../../building-resources/building_resources.md).
+```
 
 ### General Considerations
 

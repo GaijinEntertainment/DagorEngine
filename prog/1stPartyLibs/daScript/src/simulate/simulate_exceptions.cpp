@@ -29,8 +29,6 @@ namespace das {
     }
 
     void Context::throw_fatal_error ( const char * message, const LineInfo & at ) {
-        constexpr bool SHOW_ARGUMENTS = false;
-        constexpr bool SHOW_LOCAL_VARIABLES = false;
         exceptionMessage = message ? message : "";
         exceptionMessage += "\n";
         exception = exceptionMessage.c_str();
@@ -40,7 +38,7 @@ namespace das {
             to_err(&at, exception);
         }
         if ( alwaysStackWalkOnException ) {
-            stackWalkToErr(*this, at, SHOW_ARGUMENTS, SHOW_LOCAL_VARIABLES);
+            stackWalkToErr(*this, at, showArgumentsOnException, showLocalVariablesOnException);
         }
         if ( breakOnException ) breakPoint(at, "exception", exception);
         throw dasException(exception, at);
@@ -50,7 +48,7 @@ namespace das {
                 to_err(&at, exception);
             }
             if ( alwaysStackWalkOnException ) {
-                stackWalkToErr(*this, at, SHOW_ARGUMENTS, SHOW_LOCAL_VARIABLES);
+                stackWalkToErr(*this, at, showArgumentsOnException, showLocalVariablesOnException);
             }
             if ( breakOnException ) breakPoint(at, "exception", exception);
 #if defined(WIN64) || defined(_WIN64)
@@ -60,10 +58,9 @@ namespace das {
 #endif
             longjmp(*throwBuf,1);
         } else {
-            to_err(&at, "\nunhandled exception\n");
-            string msg = exceptionAt.describe() + ": " + exception;
+            string msg = "\nunhandled exception\n" + exceptionAt.describe() + ": " + exception;
             to_err(&at, msg.c_str());
-            stackWalkToErr(*this, at, SHOW_ARGUMENTS, SHOW_LOCAL_VARIABLES);
+            stackWalkToErr(*this, at, showArgumentsOnException, showLocalVariablesOnException);
             breakPoint(at, "exception", exception);
         }
 #endif
@@ -85,11 +82,11 @@ namespace das {
 
             longjmp(*throwBuf,1);
         } else {
-            to_err(nullptr, "\nunhandled exception\n");
             if ( exception ) {
-                string msg = exceptionAt.describe() + ": " + exception;
+                string msg = "\nunhandled exception\n" + exceptionAt.describe() + ": " + exception + "\n";
                 to_err(nullptr, msg.c_str());
-                to_err(nullptr, "\n");
+            } else {
+                to_err(nullptr, "\nunhandled exception\n");
             }
             stackWalk(nullptr, false, false);
             os_debug_break();

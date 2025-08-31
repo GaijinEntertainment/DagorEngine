@@ -59,6 +59,8 @@ public:
   bool contains(key_type key) const { return base_type::contains({key, {}}); }
   // This compiles faster than a variadic template but serves exactly the same purpose.
   eastl::pair<iterator, bool> emplace(key_type key, mapped_type value) { return base_type::insert({key, value}); }
+
+  friend bool operator==(const FixedVectorMap &, const FixedVectorMap &) = default;
 };
 
 } // namespace dag

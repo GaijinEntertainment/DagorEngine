@@ -201,7 +201,7 @@ public:
   {
     int resId = NULL_GAMERES_ID;
     int refCount = 0;
-    AnimCharData charData;
+    eastl::unique_ptr<AnimCharData> charData;
   };
 
   eastl::vector<ResData> resData;
@@ -231,7 +231,7 @@ public:
   int findGameRes(AnimCharData *res) const
   {
     for (int i = 0; i < gameRes.size(); ++i)
-      if (&(gameRes[i].charData) == res)
+      if (gameRes[i].charData.get() == res)
         return i;
 
     return -1;
@@ -255,7 +255,7 @@ public:
       return NULL;
 
     gameRes[id].refCount++;
-    return (GameResource *)(void *)(&gameRes[id].charData);
+    return (GameResource *)(void *)(gameRes[id].charData.get());
   }
 
 
@@ -297,7 +297,7 @@ public:
     {
       if (get_refcount_game_resource_pack_by_resid(gameRes[i].resId) > 0)
         continue;
-      if (gameRes[i].refCount > 1)
+      if (gameRes[i].refCount > 0)
       {
         if (!forced_free_unref_packs)
           continue;
@@ -411,7 +411,8 @@ public:
 
     GameRes gr;
     gr.resId = res_id;
-    gr.charData.agResName = agResName;
+    gr.charData.reset(new AnimCharData);
+    gr.charData->agResName = agResName;
 
     Tab<int> nodesWithIgnoredAnimation(tmpmem);
 
@@ -446,7 +447,7 @@ public:
           a2d_list[i] = NULL;
       }
 
-      gr.charData.graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, a2d_list, nodesWithIgnoredAnimation);
+      gr.charData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, a2d_list, nodesWithIgnoredAnimation);
 
       for (int i = 0; i < a2d_list.size(); i++)
         if (a2d_list[i])
@@ -456,21 +457,18 @@ public:
     {
       Tab<AnimV20::AnimData *> *a2d_list = (Tab<AnimV20::AnimData *> *)::get_game_resource(ref_ids[0]);
 
-      gr.charData.graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, *a2d_list, nodesWithIgnoredAnimation);
+      gr.charData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, *a2d_list, nodesWithIgnoredAnimation);
       ::release_game_resource(ref_ids[0]);
     }
-    if (gr.charData.graph)
+    if (gr.charData->graph)
     {
-      gr.charData.graph->resId = res_id;
-      gr.charData.graph->addRef();
+      gr.charData->graph->resId = res_id;
     }
 
     {
       WinAutoLock lock2(cs);
-      memcpy(&gameRes.push_back(), &gr, sizeof(gr)); //-V780
+      gameRes.push_back(eastl::move(gr));
     }
-
-    gr.charData.graph = nullptr;
   }
 
   void reset() override

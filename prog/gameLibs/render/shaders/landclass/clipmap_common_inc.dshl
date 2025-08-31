@@ -1,0 +1,131 @@
+
+macro USE_CLIPMAP_VS(VS_INPUT_M, VS_OUTPUT_M, use_worldpos_from_input)
+  hlsl(vs)
+  {
+    struct ClipmapCalcParams
+    {
+      float3 worldPos;
+      #if NEED_NORMAL
+        float3 worldNormal;
+      #endif
+      #if NEED_UP_VEC
+        float3 worldLocalY;
+      #endif
+      #if USE_VCOL_GRASSIFY_DISCARD
+        float3 objectCenterPos;
+      #endif
+    };
+
+    void calc_clipmap_vs(VS_INPUT_M input, inout VS_OUTPUT_M output, ClipmapCalcParams params)
+    {
+      float3 worldPos = params.worldPos;
+
+      #if NEED_UP_VEC
+        output.upVec = params.worldLocalY;
+      #endif
+      #if NEED_NORMAL
+        output.normal = params.worldNormal;
+      #endif
+      #if PN_TESSELATION
+        output.pos = float4(worldPos, 1);
+      #else
+        output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);
+        #if NEED_POINT_TO_EYE
+          output.pointToEye = world_view_pos.xyz - worldPos;
+        #endif
+      #endif
+
+      #if NEED_TC_WORLDPOS
+        ##if (use_worldpos_from_input)
+          float2 texcoord = input.texcoord * get_texcoord_scale_offset().xy + get_texcoord_scale_offset().zw;
+          float2 spoofedWorldPosXZ = texcoord * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+          output.tcWorldPos.xyz = float3(spoofedWorldPosXZ.x, worldPos.y, spoofedWorldPosXZ.y);
+        ##else
+          output.tcWorldPos.xyz = worldPos;
+        ##endif
+        output.tcWorldPos.w = worldPos.y;
+      #endif
+      #if !PN_TESSELATION
+        // no displacement without tessellation, it's not accurate at all if the triangle edges are long
+        #if NEED_TC_WORLDPOS
+          output.tcWorldPos.w = worldPos.y;
+        #endif
+      #endif
+
+      #if USE_VCOL_GRASSIFY_DISCARD
+        output.objectCenterPos = params.objectCenterPos;
+        output.grassifyDiscardWeight = input.vcol.r;
+      #endif
+    }
+  }
+endmacro
+
+
+macro USE_CLIPMAP_PS(VS_OUTPUT, use_worldpos_from_input)
+  hlsl(ps)
+  {
+    GLOBAL_UAV_FEEDBACK
+
+    FORCE_EARLY_DEPTH_STENCIL
+    void calc_clipmap_ps(VS_OUTPUT input, inout UnpackedGbuffer result)
+    {
+      #ifdef VOXELIZE_DISCARD_PRIM
+        VOXELIZE_DISCARD_PRIM
+      #endif
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float3 pointToEye = input.pointToEye.xyz;
+      float dist = length(pointToEye);
+      float3 realWorldPos = world_view_pos.xyz - pointToEye; //worldPos is spoofed from the texcoord in rendinst_landclass
+      float3 tcWorldPos = input.tcWorldPos.xyz;
+      ##if (use_worldpos_from_input)
+        float3 worldPos = input.tcWorldPos.xyz;
+      ##else
+        float3 worldPos = realWorldPos;
+      ##endif
+      float3 pointToEyeNorm = pointToEye * rcp(dist);
+      half3 worldNormal = normalize(input.normal);
+      float4 worldPosGradients = float4(ddx(worldPos.xz), ddy(worldPos.xz));
+      init_gbuffer(result);
+      init_normal(result, worldNormal);
+      init_isLandscape(result, 1);
+      #if !VOXELIZE_ALBEDO_PASS
+        WRITE_UAV_FEEDBACK(worldPos.xz, 0, worldPosGradients)
+      #else
+        half smooth_mip = 0;
+      #endif
+      ##if last_clip_tex != NULL
+        half2 clipNormalXY = 0;
+        DetailDesc detailNo;
+        half3 verticalNormal = worldNormal;
+        float2 htTc = calcTcLow(worldPos.xz);
+        float emission;
+        sample_clipmaps(tcWorldPos.xz, worldPosGradients, result.albedo.rgb, clipNormalXY,
+                        result.smoothness, result.ao, result.reflectance, emission, detailNo, smooth_mip);
+        half3 clipmapColor;
+        half porosity, sparkles, normalWetness;
+        float wetness;
+        calculateHeightmapDetails(result, detailNo, realWorldPos, verticalNormal, pointToEyeNorm,
+                                  clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness);
+        computeSnowSparkle(realWorldPos, world_view_pos.xyz, sparkles, result.normal, result.smoothness);
+        calculateHeightmapMicrodetails(result, detailNo, tcWorldPos, realWorldPos, verticalNormal, clipNormalXY,
+                                        porosity, normalWetness, wetness);
+        ##if shader == rendinst_landclass
+          half puddle = addLandclassPuddles(result, realWorldPos, worldPos.y, htTc, porosity, input.tcWorldPos.w);
+        ##else
+          half puddle = addPuddles(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, input.tcWorldPos.w);
+        ##endif
+      ##else
+        result.albedo.rgb = float3(0.5, 0.5, 0.5);
+      ##endif
+
+      #if VOXELIZE_ALBEDO_PASS
+        WRITE_SCENE25D_VOXEL_DATA(realWorldPos, result.albedo.rgb, 0, 0);
+      #else
+        ##if last_clip_tex != NULL
+          clipmapColor.rgb = puddle>0 ? float3(1000, 1000, 1000) : clipmapColor.rgb;
+          SET_LAND_SELFILLUM_PARAMS(clipmapColor.rgb, result, realWorldPos, emission, detailNo)
+        ##endif
+      #endif
+    }
+  }
+endmacro

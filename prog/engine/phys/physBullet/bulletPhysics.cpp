@@ -456,17 +456,23 @@ static void free_collision_shape(btCollisionShape *shape, bool root = true)
     delete shape;
 }
 
-PhysBody::~PhysBody()
+struct DestroyBodyAction final : public AfterPhysUpdateAction
 {
-  world->fetchSimRes(true, this);
-  G_ASSERT(body);
-  if (btMotionState *ms = body->getMotionState())
-    delete ms;
-  if (btCollisionShape *shape = body->getRootCollisionShape())
-    free_collision_shape(shape);
-  world->scene.removeCollisionObject(body);
-  PhysWorld::destroy_bt_collobject(body);
-}
+public:
+  using AfterPhysUpdateAction::AfterPhysUpdateAction;
+  void doAction(PhysWorld &pw, bool) override
+  {
+    G_ASSERT(body);
+    if (btMotionState *ms = body->getMotionState())
+      delete ms;
+    if (btCollisionShape *shape = body->getRootCollisionShape())
+      free_collision_shape(shape);
+    pw.getScene()->removeCollisionObject(body);
+    PhysWorld::destroy_bt_collobject(body);
+  }
+};
+
+PhysBody::~PhysBody() { exec_or_add_after_phys_action<DestroyBodyAction>(*world, body); }
 
 struct SetInteractionLayerAction final : public AfterPhysUpdateAction
 {
@@ -1039,6 +1045,11 @@ void PhysBody::setGravity(const Point3 &grav, bool activate)
   exec_or_add_after_phys_action<actCls>(*world, body, activate, to_btVector3(grav));
 }
 
+void PhysBody::setDamping(float linDamping, float angDamping)
+{
+  using actCls = SetStuffAndActivate<BT_MEMBER_FN(btRigidBody::setDamping)>;
+  exec_or_add_after_phys_action<actCls>(*world, body, true, linDamping, angDamping);
+}
 
 struct AddImpulseAction final : public AfterPhysUpdateAction
 {
@@ -1059,6 +1070,27 @@ struct AddImpulseAction final : public AfterPhysUpdateAction
 void PhysBody::addImpulse(const Point3 &p, const Point3 &force_x_dt, bool activate)
 {
   exec_or_add_after_phys_action<AddImpulseAction>(*world, body, p, force_x_dt, activate);
+}
+
+struct AddForceAction final : public AfterPhysUpdateAction
+{
+  Point3 pos;
+  Point3 force;
+  bool activate;
+
+  AddForceAction(btRigidBody *b, const Point3 &p, const Point3 &f, bool a) : AfterPhysUpdateAction(b), pos(p), force(f), activate(a) {}
+
+  void doAction(PhysWorld &pw, bool) override
+  {
+    body->applyForce(to_btVector3(force), to_btVector3(pos) - body->getCenterOfMassPosition());
+    if (activate)
+      body->activate();
+  }
+};
+
+void PhysBody::addForce(const Point3 &p, const Point3 &force, bool activate)
+{
+  exec_or_add_after_phys_action<AddForceAction>(*world, body, p, force, activate);
 }
 
 
@@ -1096,9 +1128,12 @@ PhysJoint::~PhysJoint()
   PhysBody *body1 = PhysBody::from_bt_body(&joint->getRigidBodyA());
   if (!body1)
     body1 = PhysBody::from_bt_body(&joint->getRigidBodyB());
-  G_ASSERT(body1);
-  PhysWorld *w = body1->getPhysWorld();
-  exec_or_add_after_phys_action<DestroyJointAction>(*w, joint);
+
+  if (body1)
+  {
+    PhysWorld *w = body1->getPhysWorld();
+    exec_or_add_after_phys_action<DestroyJointAction>(*w, joint);
+  }
 }
 
 void Phys6DofJoint::setParam(int num, float value, int axis)
@@ -1184,6 +1219,7 @@ PhysRayCast::PhysRayCast(const Point3 &p, const Point3 &d, real max_length, Phys
 
   PhysCounters::rayCastObjCreated++;
   hasHit = 0;
+  invalid = 0;
 }
 
 
@@ -1218,11 +1254,9 @@ void PhysRayCast::forceUpdate(PhysWorld *world)
 
 static constexpr int PHYS_WORLD_DA_RESV_CNT = 128;
 
-PhysWorld::PhysWorld(real default_static_friction, real default_dynamic_friction, real default_restitution, real default_softness) :
+PhysWorld::PhysWorld(real default_static_friction, real default_restitution) :
   scene(dispatcher, overlappingPairCache, solver, collisionConfiguration)
 {
-  G_UNREFERENCED(default_softness);
-  G_UNREFERENCED(default_dynamic_friction);
   PhysCounters::resetCounters();
 
   scene.setGravity(btVector3(0, -9.80665f, 0));
@@ -1234,7 +1268,7 @@ PhysWorld::PhysWorld(real default_static_friction, real default_dynamic_friction
 
   Material material;
   material.friction = default_static_friction;
-  material.restitution = default_restitution * 0.5;
+  material.restitution = default_restitution;
   materials.push_back(material);
 }
 
@@ -1327,7 +1361,6 @@ void PhysWorld::doJob()
   int64_t refTime = ref_time_ticks();
 #endif
   {
-    TIME_PROFILE(bullet_phys_simulate)
 #if DAGOR_DBGLEVEL > 0
     getScene()->stepSimulation(lastSimDt, max_sub_steps.get(), 1.f / fixed_time_step_hz.get());
 #else
@@ -1404,7 +1437,7 @@ int PhysWorld::createNewMaterialId(real static_friction, real /*dynamic_friction
 {
   Material material;
   material.friction = static_friction;
-  material.restitution = restitution * 0.5;
+  material.restitution = restitution;
   materials.push_back(material);
   return materials.size() - 1;
 }
@@ -1514,8 +1547,15 @@ Phys6DofJoint::Phys6DofJoint(PhysBody *body1, PhysBody *body2, const TMatrix &fr
 Phys6DofSpringJoint::Phys6DofSpringJoint(PhysBody *body1, PhysBody *body2, const TMatrix &frame1, const TMatrix &frame2) :
   PhysJoint(PJ_6DOF_SPRING)
 {
-  joint =
-    new btGeneric6DofSpringConstraint(*body1->getActor(), *body2->getActor(), to_btTransform(frame1), to_btTransform(frame2), true);
+  if (body2)
+  {
+    joint =
+      new btGeneric6DofSpringConstraint(*body1->getActor(), *body2->getActor(), to_btTransform(frame1), to_btTransform(frame2), true);
+  }
+  else
+  {
+    joint = new btGeneric6DofSpringConstraint(*body1->getActor(), to_btTransform(frame1), false);
+  }
 }
 
 Phys6DofSpringJoint::Phys6DofSpringJoint(PhysBody *body1, PhysBody *body2, const TMatrix &in_tm) : PhysJoint(PJ_6DOF_SPRING)

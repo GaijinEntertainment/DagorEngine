@@ -11,23 +11,24 @@
 // On the other side, full occlusion is best scenario to occlude, so we optimize average case
 
 template <int sizeX, int sizeY>
-class OcclusionRenderer : public OcclusionTest<sizeX, sizeY>
+class OcclusionRenderer
 {
 private:
-  static float zBufferReprojected[sizeX * sizeY];
+  OcclusionTest<sizeX, sizeY> &occlusionTest;
+  alignas(32) float zBufferReprojected[sizeX * sizeY]; //-V730_NOINIT
 
 public:
 #if DAGOR_DBGLEVEL > 0
-  static float reprojectionDebug[sizeX * sizeY];
+  alignas(32) float reprojectionDebug[sizeX * sizeY]; //-V730_NOINIT
 #endif
 
-  static float *getReprojected() { return zBufferReprojected; }
+  float *getReprojected() { return zBufferReprojected; }
 
-  OcclusionRenderer() {}
+  OcclusionRenderer(OcclusionTest<sizeX, sizeY> &occl_test) : occlusionTest(occl_test) {}
 
   ~OcclusionRenderer() {}
 
-  static void clear()
+  void clear()
   {
 #if OCCLUSION_BUFFER == OCCLUSION_WBUFFER
     vec4f *dst = (vec4f *)zBufferReprojected;
@@ -37,11 +38,11 @@ public:
 #else
     memset(zBufferReprojected, 0, sizeX * sizeY * sizeof(zBufferReprojected[0]));
 #endif
-    OcclusionTest<sizeX, sizeY>::clear();
+    occlusionTest.clear();
   }
   // toWorldHW
   // requires nonlinear depth buffer
-  static void reprojectHWDepthBuffer(mat44f_cref toWorldHW, const mat44f &viewproj, int nStartLine, int nNumLines, float *hwSrc)
+  void reprojectHWDepthBuffer(mat44f_cref toWorldHW, const mat44f &viewproj, int nStartLine, int nNumLines, float *hwSrc)
   {
     const float fWidth = (float)sizeX;
     const float fHeight = (float)sizeY;
@@ -142,7 +143,7 @@ public:
 
 
   // todo: replace with cameraspace (view separated from proj)
-  static void reprojectHWDepthBuffer(mat44f_cref toWorldHW, vec4f viewPos, float zn, float zf, const mat44f &viewproj, int nStartLine,
+  void reprojectHWDepthBuffer(mat44f_cref toWorldHW, vec4f viewPos, float zn, float zf, const mat44f &viewproj, int nStartLine,
     int nNumLines, float *hwSrc, float cockpit_distance, CockpitReprojectionMode cockpitMode, const mat44f &cockpitAnim)
   {
     const float fHeight = (float)sizeY;
@@ -175,7 +176,7 @@ public:
       v_mat44_mul(worldToScreen, clipToScreen, viewproj);
       mat44f worldToScreenCockpit;
       v_mat44_mul43(worldToScreenCockpit, worldToScreen, cockpitAnim);
-      const int widthBits = OcclusionTest<sizeX, sizeY>::bitShiftX;
+      constexpr int widthBits = OcclusionTest<sizeX, sizeY>::bitShiftX;
 
       vec4f zfar = v_splats(zf * 0.9f);
       vec4f rcp_zf = v_splats(1 / zf);
@@ -332,7 +333,7 @@ public:
           if ((uint32_t)lineAddress[i] >= (uint32_t)(sizeX * sizeY)) // Filter both notInBounds (0xFFFFFFFF) and NaNs (0x80000000).
             continue;
           uint32_t addr = lineAddress[i];
-          float *pDstZ = &OcclusionTest<sizeX, sizeY>::zBuffer[addr];
+          float *pDstZ = &occlusionTest.getZbuffer()[addr];
           float z = lineZ[i];
           // G_ASSERTF(!check_nan(*pDstZ), "%f", *pDstZ);
           // G_ASSERTF(!check_nan(lineZ[i]), "%f", lineZ[i]);
@@ -355,7 +356,8 @@ public:
 #undef DEBUG_ADDRESS
       }
     }
-    vec4f *zbuf2 = (vec4f *)OcclusionTest<sizeX, sizeY>::zBuffer, *zbuf1 = (vec4f *)zBufferReprojected;
+    vec4f *zbuf2 = (vec4f *)occlusionTest.getZbuffer();
+    vec4f *zbuf1 = (vec4f *)zBufferReprojected;
     vec4f zero = v_zero();
     for (int i = 0; i < sizeX * sizeY / 4; ++i, zbuf1++, zbuf2++)
     {
@@ -427,7 +429,7 @@ public:
 #endif
 
     vec4f *pSrc = reinterpret_cast<vec4f *>(&zBufferReprojected);
-    vec4f *pDst = reinterpret_cast<vec4f *>(&OcclusionTest<sizeX, sizeY>::zBuffer);
+    vec4f *pDst = reinterpret_cast<vec4f *>(occlusionTest.getZbuffer());
     const int pitchX = sizeX / 4;
 
     for (int y = 0; y < sizeY; y++)
@@ -571,11 +573,3 @@ public:
 #undef DEPTH_MIN
 #undef DEPTH_MAX
 };
-
-template <int sizeX, int sizeY>
-alignas(32) float OcclusionRenderer<sizeX, sizeY>::zBufferReprojected[] = {};
-
-#if DAGOR_DBGLEVEL > 0
-template <int sizeX, int sizeY>
-alignas(32) float OcclusionRenderer<sizeX, sizeY>::reprojectionDebug[] = {};
-#endif

@@ -168,7 +168,7 @@ let Top = Style({vplace = ALIGN_TOP})
 let Bottom = Style({vplace = ALIGN_BOTTOM})
 let VCenter = Style({vplace = ALIGN_CENTER})
 
-return {
+return freeze({
   Style
   comp
   vflow
@@ -183,5 +183,4 @@ return {
   BorderColr, BorderWidth, BorderRadius, FillColr,
   Bhv, ClipChildren, Button, OnClick,
   //Watch
-
-}
+})

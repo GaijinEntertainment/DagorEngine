@@ -4,7 +4,6 @@
 #include <math/dag_TMatrix.h>
 #include <lightFx_decl.h>
 #include <math/dag_color.h>
-#include <staticVisSphere.h>
 
 enum
 {
@@ -70,7 +69,7 @@ public:
     output = Color4(col.r, col.g, col.b, rad);
     output.clamp0();
 
-    if (lifetime == 0 || globalTime > (lifetime - fadeoutMax))
+    if (unsetEmitter || (lifetime > 0 && globalTime > (lifetime - fadeoutMax)))
     {
       if (fadeoutMax > 0)
       {
@@ -105,13 +104,19 @@ public:
     return o;
   }
 
-  virtual void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  virtual void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    CHECK_FX_VERSION(ptr, len, 1);
-    par.load(ptr, len, load_cb);
+    if (!loadParamsDataInternal(ptr, len, load_cb))
+      logerr("fx: failed to load LightEffect");
+  }
 
-    StaticVisSphere staticVisibilitySphere;
-    staticVisibilitySphere.load(ptr, len, load_cb);
+  bool loadParamsDataInternal(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  {
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
+    if (!par.load(ptr, len, load_cb))
+      return false;
+
+    return true;
   }
 
   void setColor4Mult(const Color4 *value) override
@@ -143,6 +148,12 @@ public:
       if (fadeoutMax == 0)
         fadeoutMax = *static_cast<float *>(value);
     }
+    else if (id == _MAKE4C('LFXU'))
+    {
+      unsetEmitter = *static_cast<bool *>(value);
+      if (unsetEmitter && (fadeoutMax == 0.0f))
+        fadeoutMax = 1.0f;
+    }
     else if (id == _MAKE4C('LFXS'))
     {
       colorScale = value ? *(float *)value : 0;
@@ -155,6 +166,10 @@ public:
     {
       par.color.allow_game_override = value ? *(bool *)value : false;
     }
+    else if (id == _MAKE4C('FXSH'))
+    {
+      par.shadow = value ? *(LightfxShadowParams *)value : LightfxShadowParams();
+    }
     else if (id == HUID_COLOR4_MULT)
     {
       setColor4Mult((Color4 *)value);
@@ -165,6 +180,7 @@ public:
       globalTime = 0;
       fadeoutCur = 0;
       fadeoutMax = 0;
+      unsetEmitter = false;
     }
   }
 
@@ -195,6 +211,12 @@ public:
       *((bool *)value) = par.cloudLight;
       return value;
     }
+    else if (id == _MAKE4C('FXSH'))
+    {
+      G_ASSERT_RETURN(value, nullptr);
+      *((LightfxShadowParams *)value) = par.shadow;
+      return value;
+    }
     else
       return NULL;
   }
@@ -211,6 +233,7 @@ private:
   Color4 overrideColor;
   Point3 position;
   LightFxParams par;
+  bool unsetEmitter = false;
 };
 
 class LighFxFactory : public BaseEffectFactory

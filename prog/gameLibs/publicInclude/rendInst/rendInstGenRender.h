@@ -10,16 +10,17 @@
 #include <3d/dag_texStreamingContext.h>
 #include <rendInst/riExtraRenderer.h>
 
-
 struct RiGenVisibility;
+struct Frustum;
 class Occlusion;
 class ShaderElement;
+struct mat44f;
 
 namespace rendinst::render
 {
 
 inline constexpr int MAX_LOD_COUNT_WITH_ALPHA = rendinst::MAX_LOD_COUNT + 1;
-inline constexpr int GPU_INSTANCING_OFSBUFFER_TEXREG = 11;
+inline constexpr int GPU_INSTANCING_OFSBUFFER_TEXREG = 15;
 
 extern bool avoidStaticShadowRecalc;
 extern bool useConditionalRendering;
@@ -49,7 +50,7 @@ void before_draw(RenderPass render_pass, const RiGenVisibility *visibility, cons
   const char *mission_name = "", const char *map_name = "", bool gpu_instancing = false);
 
 // autocomputes visibility
-void renderRIGen(RenderPass render_pass, mat44f_cref globtm, const Point3 &view_pos, const TMatrix &view_itm,
+void renderRIGen(RenderPass render_pass, const mat44f &globtm, const Point3 &view_pos, const TMatrix &view_itm,
   LayerFlags layer_flags = LayerFlag::Opaque, bool for_vsm = false, TexStreamingContext texCtx = TexStreamingContext(0));
 void renderRIGen(RenderPass render_pass, const RiGenVisibility *visibility, const TMatrix &view_itm, LayerFlags layer_flags,
   OptimizeDepthPass depth_optimized = OptimizeDepthPass::No, uint32_t instance_count_mul = 1, AtestStage atest_stage = AtestStage::All,

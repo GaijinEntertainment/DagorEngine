@@ -35,7 +35,8 @@ inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p); 
 // the same time call this function.
 CompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm, bool hlsl2021,
   bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no, const char *name,
-  Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source);
+  Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source,
+  dag::ConstSpan<::dxil::StreamOutputComponentInfo> stream_output_components);
 
 void combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
   dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, unsigned id);
@@ -51,6 +52,7 @@ struct RootSignatureStore
   bool isMesh;
   bool hasAmplificationStage;
   bool hasAccelerationStructure;
+  bool hasStreamOutput;
 };
 
 struct CompilationOptions

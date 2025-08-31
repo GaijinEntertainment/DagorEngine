@@ -18,6 +18,7 @@ namespace das
     ,   invalid_escape_sequence                 =   10008       //  blah/yblah
     ,   invalid_line_directive                  =   10009       // #row,col,"filename" is bad somehow
     ,   floating_point_constant_out_of_range    =   10010
+    ,   nested_string_constant                  =   10011       // nested string constants are not allowed
 
 // parser errors
 
@@ -127,6 +128,7 @@ namespace das
     ,   not_expecting_return_value              =   32102       // def blah:void ... return 12
     ,   invalid_return_semantics                =   32103       // return <- required
     ,   invalid_yield                           =   32104       // yield in block, yield in non generator, etc
+    ,   invalid_generator_finalizer             =   32105       // generator with unspecified finalizer
 
     ,   unsupported_read_macro                  =   33100       // #what ""
     ,   unsupported_call_macro                  =   33101       // apply failed etc
@@ -161,6 +163,7 @@ namespace das
     ,   make_local_aliasing                     =   40212       // a = [[... a.x ...]] with some form of potential cmres
     ,   in_scope_in_the_loop                    =   40213       // for ( a in b ) { let in scope ... ; }
     ,   no_init                                 =   40214       // [init] disabled via options or CodeOfPolicies
+    ,   no_writing_to_nameless                  =   40215       // writing to nameless variable, like in a().b = 5
 
     ,   duplicate_key                           =   40300       // { 1:1, ..., 1:* }
 

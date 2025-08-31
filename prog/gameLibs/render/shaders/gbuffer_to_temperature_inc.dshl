@@ -27,19 +27,19 @@ macro USE_GBUF_TO_TEMPERATURE_BASE()
       float gbufTemp = baseGbufTemp;
       gbuffer.diffuseColor = half(1.0) - gbuffer.diffuseColor;
       float baseColorDot = dot(gbuffer.diffuseColor, 0.33);
-      if (material == THERMAL_SHADING_NORMAL)
-      {
-        gbufTemp += gbuffer_temperature_base.x*baseColorDot;
-        gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
-        gbufTemp += gbuffer_temperature_add.z*gbuffer.metalness;
-        gbufTemp *= shadow;
-      }
-      else if (material == THERMAL_SHADING_LANDSCAPE)
+      if (gbuffer.isLandscape) // THERMAL_SHADING_LANDSCAPE
       {
         gbufTemp += gbuffer_temperature_base.y*baseColorDot;
         gbufTemp += gbuffer_temperature_add.x*gbuffer.linearRoughness;
         gbufTemp += gbuffer_temperature_add.y*(gbuffer.reflectance);
         gbufTemp *= (1 - 0.7*saturate(max(max(gbuffer.specularColor.r, gbuffer.specularColor.g), gbuffer.specularColor.b)));
+        gbufTemp *= shadow;
+      }
+      else if (material == THERMAL_SHADING_NORMAL)
+      {
+        gbufTemp += gbuffer_temperature_base.x*baseColorDot;
+        gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += gbuffer_temperature_add.z*gbuffer.metalness;
         gbufTemp *= shadow;
       }
       else if (material == THERMAL_SHADING_FOLIAGE)

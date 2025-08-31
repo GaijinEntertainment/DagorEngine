@@ -254,24 +254,28 @@ public:
         return *this;
     }
 
-    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod) {
+    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod, const SQChar *docstring=nullptr) {
         // getter
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->getTable); // Push table
         sq_pushstring(vm, name, -1);
         sq_newclosure(vm, getMethod, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, 1, "x")));
+        if (docstring)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
         sq_pop(vm, 1); // Pop table
 
         return *this;
     }
 
-    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod, SQFUNCTION setMethod) {
+    Class& SquirrelProp(const SQChar* name, SQFUNCTION getMethod, SQFUNCTION setMethod, const SQChar *docstring=nullptr) {
         // getter
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->getTable); // Push table
         sq_pushstring(vm, name, -1);
         sq_newclosure(vm, getMethod, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, 1, "x")));
+        if (docstring)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
         sq_pop(vm, 1); // Pop table
 
@@ -280,6 +284,8 @@ public:
         sq_pushstring(vm, name, -1);
         sq_newclosure(vm, setMethod, 0);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, 2, "x.")));
+        if (docstring)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
         sq_pop(vm, 1); // Pop table
 
@@ -324,7 +330,8 @@ public:
     /// stack and all arguments will be after that index in the order they were given to the function.
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     Class& SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr,
-                        const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) { //-V1071
+                        const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr, //-V1071
+                        FunctionPurity purity=FunctionPurity::SideEffects) {
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
         sq_pushstring(vm, name, -1);
         for (SQInteger i=0; i<nfreevars; ++i)
@@ -332,6 +339,8 @@ public:
         sq_newclosure(vm, func, nfreevars);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, nparamscheck, typemask)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosurename(vm, -1, name)));
+        if (purity == FunctionPurity::Pure)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_mark_pure_inplace(vm, -1)));
         if (docstring)
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
@@ -339,6 +348,18 @@ public:
 
         return *this;
     }
+
+    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const SQChar *function_decl,
+                                      const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
+        sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
+        for (SQInteger i=0; i<nfreevars; ++i)
+            sq_pushobject(vm, freevars[i].GetObject());
+
+        SQRAT_VERIFY(SQ_SUCCEEDED(sq_new_closure_slot_from_decl_string(vm, func, nfreevars, function_decl, docstring)));
+        sq_pop(vm,1); // pop table
+        return *this;
+    }
+
 
     /// Gets a Function from a name in the Class (returns null if failed)
     Function GetFunction(const SQChar* name) {
@@ -494,11 +515,14 @@ public:
         return BindConstructor(A::template iNew<Arg...>, sizeof...(Arg));
     }
 
-    Class& SquirrelCtor(SQFUNCTION func, SQInteger nparamscheck=0, const SQChar *typemask=nullptr) {
+    Class& SquirrelCtor(SQFUNCTION func, SQInteger nparamscheck=0, const SQChar *typemask=nullptr,
+                        const SQChar *docstring=nullptr) {
         sq_pushobject(vm, ClassType<C>::getClassData(vm)->classObj);
         sq_pushstring(vm, _SC("constructor"), 11);
         sq_newclosure(vm, func, 0);
         sq_setparamscheck(vm, nparamscheck, typemask);
+        if (docstring)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
         sq_pop(vm, 1);
         return *this;

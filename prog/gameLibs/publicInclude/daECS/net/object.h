@@ -59,7 +59,7 @@ public:
   Object(const ecs::EntityManager &mgr, ecs::EntityId eid_, const ecs::ComponentsMap &map);
   ~Object();
 
-  static Object *getByEid(ecs::EntityId);
+  static Object *getByEid(ecs::EntityManager &mgr, ecs::EntityId);
   bool meantToBeDestroyed() const { return do_not_verify_destruction | isMeantToBeDestroyed; }
   static void doNotVerifyDestruction(bool v) { do_not_verify_destruction = v; }
   static void clear_pending_destroys() { pending_destroys.clear(); }
@@ -77,19 +77,19 @@ private:
 
   friend class Connection;
   friend struct ObjectReplica;
-  friend void server_replication_cb(ecs::EntityId eid, ecs::component_index_t cidx);
+  friend void server_replication_cb(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t cidx);
   friend void client_validate_replication_cb(ecs::EntityId eid, ecs::component_index_t cidx);
   friend void replication_es_event_handler(const ecs::EventEntityRecreated &, net::Object &);
   friend void replication_validation_es_event_handler(const ecs::Event &, net::Object &);
   friend struct ComponentFiltersHelper;
 
-  typedef eastl::vector_set<ecs::EntityId, eastl::less<ecs::EntityId>, EASTLAllocatorType,
-    eastl::fixed_vector<ecs::EntityId, 32, /*bOverflow*/ true>>
-    dirty_entities_list_t;
-  static dirty_entities_list_t dirtyList; // list of objects that need to be updated
-  CompVersMap compVers;                   // versions of active (i.e. changed at least once) replicated components
-  ObjectReplica *replicasLinkList = NULL; // linked list of replicas for this object (one for each connection)
-  ecs::EntityId eid;                      // id of entity this component belongs to
+  static constexpr unsigned DIRTY_LIST_INLINE_SIZE = 32;
+  using dirty_entities_list_t = eastl::vector_set<ecs::EntityId, eastl::less<ecs::EntityId>, EASTLAllocatorType,
+    eastl::fixed_vector<ecs::EntityId, DIRTY_LIST_INLINE_SIZE, /*bOverflow*/ true>>;
+  static inline dirty_entities_list_t dirtyList; // list of objects that need to be updated
+  CompVersMap compVers;                          // versions of active (i.e. changed at least once) replicated components
+  ObjectReplica *replicasLinkList = NULL;        // linked list of replicas for this object (one for each connection)
+  ecs::EntityId eid;                             // id of entity this component belongs to
   ConnectionId controlledBy;
   uint32_t creationOrder;
   uint16_t filteredComponentsBits = 0; // up to 16 filters. can be easily extended to 32 or 64 bits

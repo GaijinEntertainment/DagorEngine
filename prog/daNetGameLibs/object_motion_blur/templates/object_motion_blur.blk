@@ -1,7 +1,7 @@
 object_motion_blur {
   _singleton:b=true
   _tags:t="render"
-  "object_motion_blur__render_node:dabfg::NodeHandle"{}
+  "object_motion_blur__render_node:dafg::NodeHandle"{}
   object_motion_blur__max_blur_px:i=32
   object_motion_blur__max_samples:i=16
   object_motion_blur__strength:r=1

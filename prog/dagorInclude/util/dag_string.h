@@ -355,6 +355,8 @@ inline String operator+(const char *p, const String &s)
   return sum;
 }
 
+DAG_DECLARE_RELOCATABLE(String);
+
 // specialize insert_items/insert_item_at/append_items for String (optimal perf)
 template <>
 inline uint32_t insert_items(String &v, uint32_t at, uint32_t n, const char *p)

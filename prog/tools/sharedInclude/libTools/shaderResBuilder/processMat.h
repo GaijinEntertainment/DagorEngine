@@ -28,7 +28,7 @@ struct GenericTexSubstProcessMaterialData : public IProcessMaterialData
   GenericTexSubstProcessMaterialData(const char *a_name, const DataBlock &props, DagorAssetMgr *mgr_allow_proxy_mat = nullptr,
     ILogWriter *l = nullptr);
   ~GenericTexSubstProcessMaterialData();
-  virtual MaterialData *processMaterial(MaterialData *mat, bool need_tex) override;
+  MaterialData *processMaterial(MaterialData *mat, bool need_tex) override;
   bool mayProcess() const { return trr.size() || mgrForProxyMat; }
 };
 

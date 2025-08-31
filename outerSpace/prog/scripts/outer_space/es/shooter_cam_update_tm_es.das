@@ -5,7 +5,7 @@ require math.base
 require level
 require Dacoll
 
-[es(tag=render, after=shooter_cam_act_es, before=after_camera_sync)]
+[es(tag=render, after=shooter_cam_act_es, before=(after_camera_sync, fx_magnification_es))]
 def shooter_cam_update_tm_es(info : UpdateStageInfoAct;
                              var fov : float&;
                              var transform : float3x4;
@@ -69,13 +69,13 @@ def shooter_cam_update_tm_es(info : UpdateStageInfoAct;
                                    camera__tauMult = 1.f)
     assert(camera__magnification > 0.0f)
 
-    var q : quat;
+    var q : quat
     euler_to_quat(spaceship__rotateView_rad.x, spaceship__rotateView_rad.y, 0.f, q)
 
     var rotTm : float3x4
     make_tm(quat(quat_mul(spaceship__rotateView_base_quat, float4(q))), rotTm)
-    let wishX = -rotTm[2];
-    let wishY = rotTm[1];
+    let wishX = -rotTm[2]
+    let wishY = rotTm[1]
 
     cameraTransform[0] = quat_get_forward(normalize(approach(dir_to_quat(cameraTransform[0]), dir_to_quat(wishX), info.dt, shooter_cam__tauInc)))
     cameraTransform[1] = quat_get_forward(normalize(approach(dir_to_quat(cameraTransform[1]), dir_to_quat(wishY), info.dt, shooter_cam__tauInc)))

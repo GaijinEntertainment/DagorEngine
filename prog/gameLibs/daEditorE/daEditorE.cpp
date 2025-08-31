@@ -28,6 +28,8 @@
 #include <perfMon/dag_statDrv.h>
 
 extern void register_da_editor4_objed_ptr(ObjectEditor **oe_ptr);
+extern void update_gizmo_basis_type_on_toolbar();
+extern void update_gizmo_center_type_on_toolbar();
 
 namespace
 {
@@ -714,8 +716,22 @@ public:
   virtual ModeType getGizmoModeType() { return gizmoEH.getGizmoType(); }
   virtual BasisType getGizmoBasisType() { return gBasis; }
   virtual CenterType getGizmoCenterType() { return gCenter; }
-  virtual void setGizmoBasisType(BasisType bt) { gBasis = bt; }
-  virtual void setGizmoCenterType(CenterType ct) { gCenter = ct; }
+  virtual void setGizmoBasisType(BasisType bt)
+  {
+    if (bt != gBasis)
+    {
+      gBasis = bt;
+      update_gizmo_basis_type_on_toolbar();
+    }
+  }
+  virtual void setGizmoCenterType(CenterType ct)
+  {
+    if (ct != gCenter)
+    {
+      gCenter = ct;
+      update_gizmo_center_type_on_toolbar();
+    }
+  }
 
   // IDaEditor4EmbeddedComponent
   virtual void setStaticTraceRay(bool (*trace_ray)(const Point3 &p0, const Point3 &dir, float &dist, Point3 *out_norm))

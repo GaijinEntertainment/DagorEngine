@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "postfxRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(postfxRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc init_dof_es_comps[] ={};
 static void init_dof_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -52,8 +54,8 @@ static constexpr ecs::ComponentDesc init_dof_params_es_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("dof"), ecs::ComponentTypeInfo<DepthOfFieldPS>()},
-  {ECS_HASH("dof__depth_for_transparency_node_handle"), ecs::ComponentTypeInfo<dabfg::NodeHandle>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("dof__downsample_depth_for_transparency_node_handle"), ecs::ComponentTypeInfo<dabfg::NodeHandle>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("dof__depth_for_transparency_node_handle"), ecs::ComponentTypeInfo<dafg::NodeHandle>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("dof__downsample_depth_for_transparency_node_handle"), ecs::ComponentTypeInfo<dafg::NodeHandle>(), ecs::CDF_OPTIONAL},
 //start of 15 ro components at [3]
   {ECS_HASH("dof__on"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dof__is_filmic"), ecs::ComponentTypeInfo<bool>()},
@@ -91,8 +93,8 @@ static void init_dof_params_es_all_events(const ecs::Event &__restrict evt, cons
     , ECS_RO_COMP(init_dof_params_es_comps, "dof__bokehShape_kernelSize", float)
     , ECS_RO_COMP(init_dof_params_es_comps, "dof__bokehShape_bladesCount", float)
     , ECS_RO_COMP(init_dof_params_es_comps, "dof__minCheckDistance", float)
-    , ECS_RW_COMP_PTR(init_dof_params_es_comps, "dof__depth_for_transparency_node_handle", dabfg::NodeHandle)
-    , ECS_RW_COMP_PTR(init_dof_params_es_comps, "dof__downsample_depth_for_transparency_node_handle", dabfg::NodeHandle)
+    , ECS_RW_COMP_PTR(init_dof_params_es_comps, "dof__depth_for_transparency_node_handle", dafg::NodeHandle)
+    , ECS_RW_COMP_PTR(init_dof_params_es_comps, "dof__downsample_depth_for_transparency_node_handle", dafg::NodeHandle)
     );
   while (++comp != compE);
 }

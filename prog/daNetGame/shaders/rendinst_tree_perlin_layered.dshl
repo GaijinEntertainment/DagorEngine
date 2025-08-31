@@ -14,12 +14,11 @@ include "pn_triangulation.dshl"
 include "tessellation_intervals_inc.dshl"
 include "perlin_layered_inc.dshl"
 include "taa_inc.dshl"
+include "tree_gradient_inc.dshl"
 
 // trees above only requires albedo and ao for gbuffer
 int gbuffer_for_treesabove = 0;
 interval gbuffer_for_treesabove : off < 1, on;
-
-float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 float4 prev_world_view_pos;
 
@@ -30,7 +29,7 @@ macro DEFINE_PIVOT_POINT_WIND_SCALE()
   hlsl(vs) { static const float AnimWindScale = 0.25; }
 endmacro
 
-shader rendinst_tree_perlin_layered
+shader rendinst_tree_perlin_layered, rendinst_tree_gradient
 {
   ENABLE_ASSERT(ps)
 
@@ -42,8 +41,8 @@ shader rendinst_tree_perlin_layered
     assume material_pn_triangulation = off;
   }
 
-  static float4 rendinst_displacement_min = (0, 0, 0, 0) no_warnings;
-  static float4 rendinst_displacement_max = (0.05, 0.05, 0.05, 0) no_warnings;
+  static float4 rendinst_displacement_min = (-0.025, -0.025, -0.025, 0) no_warnings;
+  static float4 rendinst_displacement_max = (0.025, 0.025, 0.025, 0) no_warnings;
   static float4 rendinst_displacement_lod = (0, 0, 0, 0) no_warnings;
   static float4 rendinst_displacement_mod = (1, 1, 0.75, 0.25) no_warnings; // 4 packed multipliers .x - trunc, .yzw - branches
   static float max_tessellation_factor = 10 no_warnings;
@@ -51,10 +50,11 @@ shader rendinst_tree_perlin_layered
   static float max_tessellation_distance = 12.0 no_warnings;
   static float tessellation_transition_distance = 1.0 no_warnings;
   static float tessellation_max_edge_length = 0.024 no_warnings;
+  static float shadow_tessellation_displacement_offset = 0.0 no_warnings;
 
   bool pn_triangulation_enabled =
-      (object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
-      (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth));
+      object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
+      (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth);
 
   if (rendinst_render_pass != rendinst_render_pass_impostor_shadow && rendinst_render_pass != rendinst_render_pass_impostor_color &&
      (rendinst_render_pass != rendinst_render_pass_depth || instancing_type != tm_vb) && rendinst_render_pass != rendinst_render_pass_to_shadow)
@@ -79,18 +79,40 @@ shader rendinst_tree_perlin_layered
     }
     INIT_PN_TRIANGULATION(true)
   }
+  else if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    hlsl(vs)
+    {
+      #define USE_SHADOW_DISPLACEMENT_OFFSET 1
+    }
+    (vs)
+    {
+      shadow_tessellation_displacement_offset@f1 = shadow_tessellation_displacement_offset - min(rendinst_displacement_min.x, min(rendinst_displacement_min.y, rendinst_displacement_min.z));
+    }
+  }
 
   if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render;}
   if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render;}
 
   USE_COMBINED_WIND(vs)
 
-  texture tex = material.texture.diffuse;
-  texture normal = material.texture[2];
-  texture tex1 = material.texture[3];
-  texture normal1 = material.texture[4];
-  texture tex2 = material.texture[5];
-  texture normal2 = material.texture[6];
+  if (shader == rendinst_tree_perlin_layered)
+  {
+    texture tex = material.texture.diffuse;
+    texture normal = material.texture[2];
+    texture tex1 = material.texture[3];
+    texture normal1 = material.texture[4];
+    texture tex2 = material.texture[5];
+    texture normal2 = material.texture[6];
+  }
+  else
+  {
+    texture tex = material.texture.diffuse;
+    texture normal = material.texture[2];
+    texture tex1 = material.texture[3];
+    texture normal1 = material.texture[4];
+  }
+
 
   static int is_pivoted = 0;
   interval is_pivoted : no < 1, yes;
@@ -102,9 +124,6 @@ shader rendinst_tree_perlin_layered
     if (has_motion_vectors == yes && in_editor_assume == no && rendinst_render_pass != rendinst_render_pass_impostor_color &&
         rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
     {
-      (vs) {
-        jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
-      }
 
       USE_MOTION_VEC_ENCODE(ps)
       hlsl {
@@ -123,6 +142,16 @@ shader rendinst_tree_perlin_layered
   static float4 emission_color = (0, 0, 0, -1);
   static float emission_albedo_mult = 1;
   static float constant_translucency = 0;
+
+  static int roots_coloring_enabled = 0;
+  static float roots_coloring_height = 0.3;
+  static float4 roots_coloring_color = (0.5, 0.5, 0.5, 0.5);
+  static float roots_coloring_heights_mod = 0.5;
+
+  if (shader == rendinst_tree_gradient)
+  {
+    INIT_TREE_GRADIENT_STATIC()
+  }
 
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack;
@@ -159,19 +188,40 @@ shader rendinst_tree_perlin_layered
   }
 
   macro FILL_CURRENT_GBUFFER_LAYERED()
+    if (shader == rendinst_tree_gradient)
+    {
+      USE_TREE_GRADIENT(ps)
+    }
+
     (ps){
-      diffuse_tex@static = tex;
-      normal_tex@static = normal;
-      diffuse_tex1@static = tex1;
-      normal_tex1@static = normal1;
-      diffuse_tex2@static = tex2;
-      normal_tex2@static = normal2;
+      if (shader == rendinst_tree_perlin_layered)
+      {
+        diffuse_tex@static = tex;
+        normal_tex@static = normal;
+        diffuse_tex1@static = tex1;
+        normal_tex1@static = normal1;
+        diffuse_tex2@static = tex2;
+        normal_tex2@static = normal2;
+      }
+      else
+      {
+        gradient_tex@static = tex;
+        normal_tex@static = normal;
+        detail_tex@static = tex1;
+        normal_tiled_tex@static = normal1;
+      }
+
       invert_heights@f4 = invert_heights;
       mask_gamma@f4 = mask_gamma;
       mask_by_normal@f4 = mask_by_normal;
       emission_color@f4 = emission_color;
       emission_albedo_mult@f1 = (emission_albedo_mult,0,0,0);
       constant_translucency@f1 = (constant_translucency);
+      roots_coloring_height@f1 = roots_coloring_height;
+      roots_coloring_inverse_height@f1 = 1.0 / roots_coloring_height;
+      roots_coloring_color@f4 = roots_coloring_color;
+      roots_coloring_heights_mod@f1 = roots_coloring_heights_mod;
+      roots_coloring_enabled@i1 = roots_coloring_enabled;
     }
 
     hlsl(ps) {
@@ -192,9 +242,25 @@ shader rendinst_tree_perlin_layered
         UnpackedGbuffer gbuffer;
         init_gbuffer(gbuffer);
         float2 texCoord = input.diffuseTexcoord.xy;
-        half4 diffuseColor = tex2DBindless(get_diffuse_tex(), texCoord);
-        half4 diffuseColor1 = tex2DBindless(get_diffuse_tex1(), texCoord);
-        half4 diffuseColor2 = tex2DBindless(get_diffuse_tex2(), texCoord);
+
+        ##if shader == rendinst_tree_perlin_layered
+          half4 diffuseColor = tex2DBindless(get_diffuse_tex(), texCoord);
+          half4 diffuseColor1 = tex2DBindless(get_diffuse_tex1(), texCoord);
+          half4 diffuseColor2 = tex2DBindless(get_diffuse_tex2(), texCoord);
+        ##else
+          half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+          half mask = packedNormalMap.r;
+          half height = packedNormalMap.b;
+          float texCoordScale = get_texture_coord_scale();
+          float perlin = tex3Dlod(perlin_noise3d, float4(texCoord * texCoordScale,height* texCoordScale, 0)).x;
+          float offsetValue = sin(perlin * get_perlin_scale()) * get_uv_flow_multiply();
+          float2 offset = clamp(offsetValue, get_uv_flow_min(), get_uv_flow_max());
+
+          half4 detailColor = sample_detail_color(texCoord, height, offset);
+          half3 tiledNormal = sample_tiled_normal(texCoord, perlin, offset, mask, detailColor.y);
+          half3 gradientColoring = sample_gradient_color(mask, detailColor.z);
+        ##endif
+
         float3 worldPos = cameraWorldViewPos-input.pointToEye.xyz;
         float2 p0_p1;
         //p0_p1.x = noise_Value2D(texCoord*0.91+1+input.diffuseTexcoord.zw);
@@ -212,7 +278,11 @@ shader rendinst_tree_perlin_layered
 
 
         half3 height14;
-        half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+        ##if shader == rendinst_tree_perlin_layered
+          half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+        ##else
+          half3 initialHeight = half3(height, height, height);
+        ##endif
         initialHeight = get_invert_heights().xyz ? 1-initialHeight : initialHeight;
         height14 = initialHeight*weights+weights*0.0001;
         half invHeightsSum;
@@ -225,33 +295,62 @@ shader rendinst_tree_perlin_layered
         invHeightsSum = rcp(dot(height14, 1));
         weights = height14*invHeightsSum;
 
-        diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+        ##if shader == rendinst_tree_perlin_layered
+          diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+        ##else
+          half4 diffuseColor = float4(gradientColoring, 1.0);
+        ##endif
+
+        BRANCH
+        if (get_roots_coloring_enabled() == 1)
+        {
+          half height = (1 - dot(initialHeight, weights)) * get_roots_coloring_heights_mod() + input.height;
+          if (height <= get_roots_coloring_height())
+          {
+            half4 blendColor = diffuseColor * get_roots_coloring_color() * 2;
+            diffuseColor = lerp(blendColor, diffuseColor, height * get_roots_coloring_inverse_height());
+          }
+        }
 
 ##if mobile_render == off
-        half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
-        half4 packedNormalMap1 = tex2DBindless(get_normal_tex1(), texCoord);
-        half4 packedNormalMap2 = tex2DBindless(get_normal_tex2(), texCoord);
-        packedNormalMap = packedNormalMap*weights.x + packedNormalMap1*weights.y + packedNormalMap2*weights.z;
+        ##if shader == rendinst_tree_perlin_layered
+          half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
+          half4 packedNormalMap1 = tex2DBindless(get_normal_tex1(), texCoord);
+          half4 packedNormalMap2 = tex2DBindless(get_normal_tex2(), texCoord);
+          packedNormalMap = packedNormalMap*weights.x + packedNormalMap1*weights.y + packedNormalMap2*weights.z;
 
-        half smoothness = packedNormalMap.r;//there is nothing good here!
-        //smoothness = get_specular_intensity_from_color( diffuseColor.rgb );//fixme: remove!
-        half3 normalMap = unpack_ag_normal(packedNormalMap);
+          half smoothness = packedNormalMap.r;//there is nothing good here!
+          //smoothness = get_specular_intensity_from_color( diffuseColor.rgb );//fixme: remove!
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+        ##else
+          half3 normal = unpack_ag_normal(packedNormalMap);
+          half3 normalMap = blend_angle_corrected_normals(normal, tiledNormal);
+
+          half smoothnessValue = mask;
+          half smoothness = clamp(smoothnessValue, get_gradient_smoothness_min(), get_gradient_smoothness_max());
+        ##endif
         half reflectance = 0.5;
         half ao = 1;
 
-        BRANCH
-        if (character_micro_detail_layer >= 0)
-        {
-          apply_character_micro_detail(sample_character_micro_detail(texCoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
-            diffuseColor.rgb, normalMap, reflectance, smoothness);
-        }
-        ##if (rendinst_render_pass == rendinst_render_pass_normal)
-          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
+        ##if (shader == rendinst_tree_perlin_layered)
+          BRANCH
+          if (character_micro_detail_layer >= 0)
+          {
+            apply_character_micro_detail(sample_character_micro_detail(texCoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+              diffuseColor.rgb, normalMap, reflectance, smoothness);
+          }
+          ##if (rendinst_render_pass == rendinst_render_pass_normal)
+            apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
+          ##endif
         ##endif
 
         half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
-        half metalness = packedNormalMap.b;
 
+        ##if (shader == rendinst_tree_perlin_layered)
+          half metalness = packedNormalMap.b;
+        ##else
+          half metalness = clamp(mask, get_gradient_metalness_min(), get_gradient_metalness_max());
+        ##endif
         half4 emissionColor = get_emission_color();
 
         init_metalness(gbuffer, metalness);
@@ -329,6 +428,7 @@ shader rendinst_tree_perlin_layered
           float4 out_pos                   : TEXCOORD5;
           float4 out_pos_prev              : TEXCOORD6;
         #endif
+        float height : TEXCOORD7;
         #if defined(VSOUT_DRAW_ID)
           VSOUT_DRAW_ID
         #endif
@@ -348,6 +448,7 @@ shader rendinst_tree_perlin_layered
         ##if (material_pn_triangulation == displacement && is_pivoted == yes)
           float additional_displacement_mul : TEXCOORD5;
         ##endif
+        float height : TEXCOORD7;
         #if defined(VSOUT_DRAW_ID)
           VSOUT_DRAW_ID
         #endif
@@ -395,7 +496,7 @@ shader rendinst_tree_perlin_layered
         #endif
         float3 localPos = input.pos;
         float opacity = 1;
-
+        output.height = localPos.y;
         VB_PERFORM_INSTANCING
         APPLY_ROTATION_PALETTE
         ##if instancing_type == pos_vb || instancing_type == pos_cb
@@ -404,8 +505,9 @@ shader rendinst_tree_perlin_layered
         float maxMovement = 0;
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
-          float3 prevWorldPos;
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, prevWorldPos, maxMovement);
+          float3 currWorldPos, prevWorldPos;
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, currWorldPos, prevWorldPos, maxMovement);
+          worldPos = currWorldPos;
         ##endif
         APPLY_INTERACTIONS
 
@@ -415,7 +517,7 @@ shader rendinst_tree_perlin_layered
           output.pos = float4(worldPos, 1);
           #ifdef MOTION_VECTORS_ENABLED
             // motion vectors will not account for tesellation (for now)
-            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
+            output.out_pos = mulPointTm(currWorldPos + camera_base_offset, globtm);
             output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
           ##if (material_pn_triangulation == displacement && is_pivoted == yes)
@@ -425,7 +527,7 @@ shader rendinst_tree_perlin_layered
           output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
           output.pointToEye = pointToEye;
           #ifdef MOTION_VECTORS_ENABLED
-            output.out_pos = output.pos;
+            output.out_pos = mulPointTm(currWorldPos + camera_base_offset, globtm);
             output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
         #endif
@@ -453,6 +555,8 @@ shader rendinst_tree_perlin_layered
   if (rendinst_render_pass == rendinst_render_pass_impostor_color)
   {
     DEFAULT_VERTEX_SHADER_LAYERED()
+
+    RESERVE_TREE_CROWN_SLOT()
 
     PACK_UNPACK_GBUFFER()
     USE_PIXEL_TANGENT_SPACE()
@@ -579,6 +683,10 @@ shader rendinst_tree_perlin_layered
         ##endif
         APPLY_INTERACTIONS
 
+        #if USE_SHADOW_DISPLACEMENT_OFFSET
+          worldPos += from_sun_direction_for_shadow_offset * get_shadow_tessellation_displacement_offset();
+        #endif
+
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
 
         return output;
@@ -645,14 +753,20 @@ shader rendinst_tree_perlin_layered
     {
       (vs)
       {
-        // we transform min/max from [0,1] to [-0.5,+0.5], so we account for negative displacement as well
-        rendinst_displacement_min@f3 = rendinst_displacement_min - (rendinst_displacement_max - rendinst_displacement_min)/2;
-        rendinst_displacement_max@f3 = rendinst_displacement_max - (rendinst_displacement_max - rendinst_displacement_min)/2;
+        rendinst_displacement_min@f3 = rendinst_displacement_min;
+        rendinst_displacement_max@f3 = rendinst_displacement_max;
         rendinst_displacement_lod@f3 = rendinst_displacement_lod;
         rendinst_displacement_mod@f4 = rendinst_displacement_mod;
-        diffuse_tex@static = tex;
-        diffuse_tex1@static = tex1;
-        diffuse_tex2@static = tex2;
+        if (shader == rendinst_tree_perlin_layered)
+        {
+          diffuse_tex@static = tex;
+          diffuse_tex1@static = tex1;
+          diffuse_tex2@static = tex2;
+        }
+        else
+        {
+          normal_tex@static = normal;
+        }
         invert_heights@f4 = invert_heights;
         mask_gamma@f4 = mask_gamma;
         mask_by_normal@f4 = mask_by_normal;
@@ -677,6 +791,7 @@ shader rendinst_tree_perlin_layered
         ##if (material_pn_triangulation == displacement && is_pivoted == yes)
           float additional_displacement_mul : TEXCOORD4;
         ##endif
+          float height : TEXCOORD7;
         #if defined(VSOUT_DRAW_ID)
           VSOUT_DRAW_ID
         #endif
@@ -698,20 +813,17 @@ shader rendinst_tree_perlin_layered
         ##if (material_pn_triangulation == displacement && is_pivoted == yes)
           PROXY_FIELD_VALUE(additional_displacement_mul);
         ##endif
+          PROXY_FIELD_VALUE(height);
         #if DRAW_ID_USES_INSTANCE_OFFSET_ID
           output.drawId = input.drawId;
         #endif
       }
     }
 
-    hlsl(ds)
-    {
-      #define WEIGHTS_FOR_HEIGHT 1
-    }
     USE_PERLIN_LAYERED(ds)
     hlsl(ds)
     {
-      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw, float tessellation_transition_weight)
       {
         BARYCENTRIC_COORDS_UNPACK(uvw)
         #if NEED_TEXCOORD_MOSS_AO
@@ -723,24 +835,36 @@ shader rendinst_tree_perlin_layered
           FIELD_BARYCENTRIC_VALUE(out_pos);
           FIELD_BARYCENTRIC_VALUE(out_pos_prev);
         #endif
-
+        FIELD_BARYCENTRIC_VALUE(height);
         ##if (material_pn_triangulation == displacement)
           float2 displacementTC = output.diffuseTexcoord.xy;
-          half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex() , float4(displacementTC, 0, get_rendinst_displacement_lod().x));
-          half4 diffuseColor1 = tex2DLodBindless(get_diffuse_tex1(), float4(displacementTC, 0, get_rendinst_displacement_lod().y));
-          half4 diffuseColor2 = tex2DLodBindless(get_diffuse_tex2(), float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+
+          ##if (shader == rendinst_tree_perlin_layered)
+            half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex() , float4(displacementTC, 0, get_rendinst_displacement_lod().x));
+            half4 diffuseColor1 = tex2DLodBindless(get_diffuse_tex1(), float4(displacementTC, 0, get_rendinst_displacement_lod().y));
+            half4 diffuseColor2 = tex2DLodBindless(get_diffuse_tex2(), float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+          ##else
+            half4 packedNormalTexture = tex2DLodBindless(get_normal_tex(), float4(displacementTC, 0, get_rendinst_displacement_lod().x));
+          ##endif
+
           float2 byNormalParams = float2(max(dot(get_mask_by_normal().xyz, output.normal.xyz), 0), get_mask_by_normal().w);
           half3 weights = init_blend_weights(output.pos.xyz, get_mask_gamma(), get_invert_heights(), output.mossAo.x, byNormalParams);
+
+          ##if (shader == rendinst_tree_perlin_layered)
           half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+          ##else
+          half3 initialHeight = half3(packedNormalTexture.b, packedNormalTexture.b, packedNormalTexture.b);
+          ##endif
+
           half3 invertedHeight = get_invert_heights().xyz ? 1 - initialHeight : initialHeight;
-          weights = get_blending_weights(weights, invertedHeight);
+          weights = get_blending_weights_for_height(weights, invertedHeight);
 
           half3 heightInMeters = rendinst_displacement_mul * initialHeight + rendinst_displacement_offset;
           half height = dot(heightInMeters, weights);
         ##if (is_pivoted == yes)
           height *= GET_INTERPOLATED_INPUT_VALUE(additional_displacement_mul);
         ##endif
-          output.pos.xyz += output.normal.xyz * height;
+          output.pos.xyz += output.normal.xyz * (height * tessellation_transition_weight);
         ##endif
 
         #if DRAW_ID_USES_INSTANCE_OFFSET_ID

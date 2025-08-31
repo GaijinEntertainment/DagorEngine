@@ -34,6 +34,11 @@ namespace proto
         return position;
       }
 
+      bool eof() const
+      {
+        return position == bufferEnd;
+      }
+
       bool getBuffer(ConstBuffer & buf, TSize size)
       {
         TIter nextPosition = position + size;

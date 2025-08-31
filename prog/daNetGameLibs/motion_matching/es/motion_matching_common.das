@@ -106,9 +106,9 @@ def deserialize_presets(path : string;
           return
         presets_tags_name |> push(presetBlk.getBlockName)
         read_weights_from_block(presets[j].weights, presetBlk, nodeCount, pointCount)
-        presets[j].animationBlendTime = presetBlk |> datablock_getReal("animationBlendTime", 0f)
-        presets[j].linearVelocityViscosity = presetBlk |> datablock_getReal("linearVelocityViscosity", 0f)
-        presets[j].angularVelocityViscosity = presetBlk |> datablock_getReal("angularVelocityViscosity", 0f)
+        presets[j].animationBlendTime = presetBlk |> datablock_getReal("animationBlendTime", 0.2f)
+        presets[j].linearVelocityViscosity = presetBlk |> datablock_getReal("linearVelocityViscosity", 0.1f)
+        presets[j].angularVelocityViscosity = presetBlk |> datablock_getReal("angularVelocityViscosity", 0.1f)
         presets[j].metricaToleranceMin = presetBlk |> datablock_getReal("metricaToleranceMin", 0f)
         presets[j].metricaToleranceMax = presetBlk |> datablock_getReal("metricaToleranceMax", 0f)
         presets[j].metricaToleranceDecayTime = presetBlk |> datablock_getReal("metricaToleranceDecayTime", 0f)

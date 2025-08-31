@@ -9,6 +9,7 @@
 #include <de3_writeObjsToPlaceDump.h>
 #include <de3_entityUserData.h>
 #include <de3_randomSeed.h>
+#include <de3_dynRenderService.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
@@ -27,7 +28,6 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 #include <math/dag_capsule.h>
-#include <render/dynmodelRenderer.h>
 
 static int collisionSubtypeMask = -1;
 static int physobjEntityClassId = -1;
@@ -49,7 +49,7 @@ public:
     bsph.setempty();
     bsph = bbox;
   }
-  virtual ~VirtualPhysObjEntity()
+  ~VirtualPhysObjEntity()
   {
     clear();
     assetNameId = -1;
@@ -68,19 +68,19 @@ public:
     del_it(userDataBlk);
   }
 
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() { delete this; }
-  virtual void *queryInterfacePtr(unsigned huid)
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override { delete this; }
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityUserDataHolder);
     return NULL;
   }
 
-  virtual BSphere3 getBsph() const { return bsph; }
-  virtual BBox3 getBbox() const { return bbox; }
+  BSphere3 getBsph() const override { return bsph; }
+  BBox3 getBbox() const override { return bbox; }
 
-  virtual const char *getObjAssetName() const
+  const char *getObjAssetName() const override
   {
     static String buf;
     buf.printf(0, "%s:physObj", physObjNames.getName(nameId));
@@ -136,13 +136,13 @@ public:
 
 
   // IObjEntityUserDataHolder
-  virtual DataBlock *getUserDataBlock(bool create_if_not_exist)
+  DataBlock *getUserDataBlock(bool create_if_not_exist) override
   {
     if (!userDataBlk && create_if_not_exist)
       userDataBlk = new DataBlock;
     return userDataBlk;
   }
-  virtual void resetUserDataBlock() { del_it(userDataBlk); }
+  void resetUserDataBlock() override { del_it(userDataBlk); }
 
 public:
   DataBlock *userDataBlk;
@@ -161,7 +161,7 @@ public:
   PhysObjEntity(int cls) : VirtualPhysObjEntity(cls), idx(MAX_ENTITIES), nodeTree(NULL) { tm.identity(); }
   ~PhysObjEntity() { clear(); }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IRandomSeedHolder);
     return NULL;
@@ -173,7 +173,7 @@ public:
     VirtualPhysObjEntity::clear();
   }
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     tm = _tm;
     if (!pd)
@@ -224,8 +224,8 @@ public:
       });
     }
   }
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy()
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override
   {
     pool->delEntity(this);
     clear();
@@ -265,21 +265,10 @@ public:
     for (int n = 0; n < scenes.size(); n++)
       scenes[n]->chooseLodByDistSq(lengthSq(grs_cur_view.pos - tm.getcol(3)));
   }
-  void render()
-  {
-    dynrend::PerInstanceRenderData renderData;
-    Point4 &params = renderData.params.emplace_back();
-    memcpy(&params.x, &instanceSeed, sizeof(instanceSeed));
-
-    for (int n = 0; n < scenes.size(); n++)
-      if (!dynrend::render_in_tools(scenes[n], dynrend::RenderMode::Opaque, &renderData))
-        scenes[n]->render();
-  }
-  void renderTrans()
+  void render(IDynRenderService *rs, IRenderingService::Stage stage)
   {
     for (int n = 0; n < scenes.size(); n++)
-      if (!dynrend::render_in_tools(scenes[n], dynrend::RenderMode::Translucent))
-        scenes[n]->renderTrans();
+      rs->renderOneDynModelInstance(scenes[n], stage, &instanceSeed);
   }
 
   void renderCollision()
@@ -336,15 +325,14 @@ public:
   }
 
   // IRandomSeedHolder
-  virtual void setSeed(int new_seed) {}
-  virtual int getSeed() { return 0; }
-  virtual void setPerInstanceSeed(int seed) { instanceSeed = seed; }
-  virtual int getPerInstanceSeed() { return instanceSeed; }
+  void setSeed(int new_seed) override {}
+  int getSeed() override { return 0; }
+  void setPerInstanceSeed(int seed) override { instanceSeed = seed; }
+  int getPerInstanceSeed() override { return instanceSeed; }
 
 public:
   enum
   {
-    STEP = 512,
     MAX_ENTITIES = 0x7FFFFFFF
   };
 
@@ -373,15 +361,15 @@ public:
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_poEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Phys object entities"; }
+  const char *getServiceName() const override { return "_poEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Phys object entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
@@ -393,11 +381,11 @@ public:
           ent[i]->renderCollision();
     }
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
+  void onBeforeReset3dDevice() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -408,11 +396,15 @@ public:
   }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
+      return;
+
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
       return;
 
     dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
@@ -425,35 +417,25 @@ public:
         break;
 
       case STG_RENDER_DYNAMIC_OPAQUE:
-        for (int i = 0; i < ent.size(); i++)
-          if (ent[i] && ent[i]->pd && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->render();
-        break;
-
+      case STG_RENDER_DYNAMIC_DECALS:
       case STG_RENDER_DYNAMIC_TRANS:
-        for (int i = 0; i < ent.size(); i++)
-          if (ent[i] && ent[i]->pd && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->renderTrans();
-        break;
-
       case STG_RENDER_SHADOWS:
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->pd && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-          {
-            ent[i]->render();
-            // ent[i]->renderTrans();
-          }
+            ent[i]->render(rs, stage);
         break;
+
+      default: break;
     }
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return physobjEntityClassId >= 0 && physobjEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     if (!registeredNotifier)
     {
@@ -478,7 +460,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     PhysObjEntity *o = reinterpret_cast<PhysObjEntity *>(origin);
     PhysObjEntity *ent = objPool.allocEntity();
@@ -492,7 +474,7 @@ public:
   }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
@@ -500,7 +482,7 @@ public:
         ent[i]->clear();
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
@@ -513,20 +495,20 @@ public:
   }
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
+  void onLightingChanged() override {}
   void onLightingSettingsChanged() override {}
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
+  bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params) override
   {
     if (!objPool.calcEntities(IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT)))
       log.addMessage(log.WARNING, "No physObj entities for export");
     return true;
   }
 
-  virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
+  bool addUsedTextures(ITextureNumerator &tn) override { return true; }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *) override
   {
     dag::Vector<SrcObjsToPlace> objs;
 
@@ -557,7 +539,7 @@ public:
     return true;
   }
 
-  virtual bool checkMetrics(const DataBlock &metrics_blk)
+  bool checkMetrics(const DataBlock &metrics_blk) override
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
     int cnt = objPool.calcEntities(subtype_mask);
@@ -572,7 +554,7 @@ public:
   }
 
   // ILevelResListBuilder
-  virtual void addUsedResNames(OAHashNameMap<true> &res_list)
+  void addUsedResNames(OAHashNameMap<true> &res_list) override
   {
     dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);

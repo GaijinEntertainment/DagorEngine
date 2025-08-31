@@ -3,6 +3,7 @@
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
 #include <render/renderEvent.h>
+#include "render/renderLibsAllowed.h"
 #include <render/resourceSlot/registerAccess.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <ecs/render/resPtr.h>
@@ -21,6 +22,9 @@ static void get_screen_effect_renderer_ecs_query(Callable);
 ECS_TAG(render)
 static void screen_effect_renderer_init_es_event_handler(const BeforeLoadLevel &, ecs::EntityManager &manager)
 {
+  if (!is_render_lib_allowed("screen_effect"))
+    return;
+
   screen_effect_renderer_ecs_query(manager.getOrCreateSingletonEntity(ECS_HASH("screen_effect_renderer")),
     [&](ecs::EntityId eid, UniqueBufHolder &screen_effect__buffer, int &screen_effect__countVar,
       ecs::IntList &screen_effect__texVars) {
@@ -28,7 +32,9 @@ static void screen_effect_renderer_init_es_event_handler(const BeforeLoadLevel &
       screen_effect__countVar = get_shader_variable_id("screen_effects_count");
       for (int i = 0; i < MAX_SCREEN_EFFECTS; i++)
       {
-        screen_effect__texVars.push_back(get_shader_variable_id(String(0, "screen_effect_tex%d", i).c_str()));
+        String texVarName = String(0, "screen_effect_tex%d", i);
+        screen_effect__texVars.push_back(get_shader_variable_id(texVarName.c_str()));
+        ShaderGlobal::set_sampler(get_shader_variable_id((texVarName + "_samplerstate").c_str(), true), d3d::request_sampler({}));
       }
 
       screen_effect__buffer = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<ScreenEffect>(MAX_SCREEN_EFFECTS),
@@ -117,15 +123,20 @@ ECS_TRACK(screen_effect__is_active)
 ECS_REQUIRE(eastl::true_type screen_effect__is_active)
 static void screen_effect_node_enable_es(const ecs::Event &, resource_slot::NodeHandleWithSlotsAccess &screenEffect)
 {
-  screenEffect = resource_slot::register_access("screen_effect", DABFG_PP_NODE_SRC,
+  screenEffect = resource_slot::register_access("screen_effect", DAFG_PP_NODE_SRC,
     {resource_slot::Update{"postfx_input_slot", "screen_effects_frame", 200}},
-    [](resource_slot::State slotsState, dabfg::Registry registry) {
-      registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No,
+    [](resource_slot::State slotsState, dafg::Registry registry) {
+      registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dafg::History::No,
         {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
       registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
-      registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
-      registry.read("downsampled_depth_with_late_water").texture().atStage(dabfg::Stage::PS).bindToShaderVar("downsampled_depth");
-      registry.read("prev_frame_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
+      registry.read("postfx_input_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("frame_tex_samplerstate");
+      registry.read("downsampled_depth_with_late_water").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_depth");
+      registry.create("downsampled_depth_with_late_water_sampler", dafg::History::No)
+        .blob<d3d::SamplerHandle>(d3d::request_sampler({}))
+        .bindToShaderVar("downsampled_depth_samplerstate");
+      registry.read("prev_frame_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar();
+      registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate");
 
       return [shader = PostFxRenderer("screen_effect")] { shader.render(); };
     });

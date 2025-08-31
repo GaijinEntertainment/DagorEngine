@@ -14,13 +14,21 @@
 #include <math/dag_math3d.h>
 #include <propPanel/c_util.h>
 #include <propPanel/control/container.h>
-#include <winGuiWrapper/wgw_busy.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <workCycle/dag_workCycle.h>
 
+#include <EASTL/optional.h>
 #include <imgui/imgui.h>
+
+#if _TARGET_PC_WIN
 #include <windows.h>
+#elif _TARGET_PC_LINUX
+namespace PropPanel
+{
+eastl::optional<E3DCOLOR> show_linux_color_picker();
+}
+#endif
 
 using hdpi::_pxActual;
 using hdpi::_pxS;
@@ -195,7 +203,7 @@ public:
 
   SimpleString getColorName() { return getPanel()->getText(DIALOG_EDIT_ID); }
 
-  virtual void show()
+  void show() override
   {
     DialogWindow::show();
 
@@ -203,7 +211,7 @@ public:
   }
 
 private:
-  virtual void customControlUpdate(int id) override
+  void customControlUpdate(int id) override
   {
     if (id == DIALOG_COLOR_ID)
     {
@@ -236,7 +244,7 @@ ColorDialog::~ColorDialog() {}
 
 void ColorDialog::show()
 {
-  autoSize();
+  autoSize(!hasEverBeenShown());
 
   DialogWindow::show();
 }
@@ -490,15 +498,11 @@ void ColorDialog::pickFromScreen()
   ContainerPropertyControl *panel = getPanel();
   panel->setEnabledById(ID_BUTTON_PICK, false);
 
+#if _TARGET_PC_WIN
   HDC sDC = GetWindowDC(NULL);
 
   while (dialogResult == DIALOG_ID_NONE)
   {
-    d3d::GpuAutoLock gpuLock;
-
-    dagor_work_cycle_flush_pending_frame();
-    dagor_draw_scene_and_gui(true, true);
-    d3d::update_screen();
     dagor_work_cycle();
 
     POINT pos;
@@ -519,6 +523,25 @@ void ColorDialog::pickFromScreen()
   }
 
   ReleaseDC(NULL, sDC);
+#else
+  // Redraw the UI to show the picking help message. One frame is not enough to ImGui, so redraw it twice.
+  for (int i = 0; i < 2; ++i)
+  {
+    d3d::GpuAutoLock gpuLock;
+    dagor_work_cycle_flush_pending_frame();
+    dagor_draw_scene_and_gui(true, true);
+    d3d::update_screen();
+  }
+
+  const eastl::optional<E3DCOLOR> newColor = PropPanel::show_linux_color_picker();
+  if (newColor.has_value())
+  {
+    mColor = newColor.value();
+    twoColorIndicatorControl->setNewColor(mColor);
+    mainGradientPlotControl->setColorValue(mColor);
+    onChange(ID_MAIN_GRADIENT, panel);
+  }
+#endif
 
   panel->setEnabledById(ID_BUTTON_PICK, true);
   pickingFromScreen = false;
@@ -566,7 +589,13 @@ void ColorDialog::updateImguiDialog()
   ImGui::Begin("ScreenPickingTooltip", nullptr,
     ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
   ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+
+#if _TARGET_PC_WIN
   ImGui::Text("Use the middle mouse button to pick a color from the screen.");
+#else
+  ImGui::Text("Click to pick a color from the screen.");
+#endif
+
   ImGui::PopStyleColor();
   ImGui::End();
 }

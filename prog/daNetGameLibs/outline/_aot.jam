@@ -1,4 +1,0 @@
-local R = prog/daNetGameLibs/outline ;
-Sources +=
-  $(R)/render/dasModules/outline.cpp
-;

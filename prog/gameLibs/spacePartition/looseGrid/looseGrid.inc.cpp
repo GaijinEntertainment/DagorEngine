@@ -298,7 +298,7 @@ void LooseGridBoxIterator::next()
   G_ASSERT(cur);
 
 #if VERIFY_LOOSE_GRID_INTEGRITY
-  if (nextCount++ >= (128 << 10)) // http://www.gaijin.lan/mantis/view.php?id=38317
+  if (nextCount++ >= (128 << 10))
     debugGridState();
 #endif
 
@@ -379,7 +379,7 @@ void LooseGridRayIterator::next()
   G_ASSERT(cur);
 
 #if VERIFY_LOOSE_GRID_INTEGRITY
-  if (nextCount++ >= (128 << 10)) // http://www.gaijin.lan/mantis/view.php?id=38317
+  if (nextCount++ >= (128 << 10))
     debugGridState();
 #endif
 

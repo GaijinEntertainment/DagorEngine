@@ -6,7 +6,6 @@
 #import <UIKit/UIKit.h>
 #import <CoreHaptics/CoreHaptics.h>
 #import <GameController/GameController.h>
-#import <AuthenticationServices/AuthenticationServices.h>
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>
 #include <memory/dag_mem.h>
@@ -31,6 +30,8 @@
 #include "dag_tvosMainUi.h"
 #endif
 
+#import <Foundation/Foundation.h>
+
 #include <pthread.h>
 
 static eastl::function<void()> g_frame_callback;
@@ -44,11 +45,6 @@ UIInterfaceOrientation g_app_orientation = UIInterfaceOrientationUnknown;
 UIInterfaceOrientation preferredLandscapeOrientation = UIInterfaceOrientationLandscapeLeft;
 
 UIViewController *storedMainViewCtrl;
-
-const int LOGIN_STATUS_INPROGRESS = -1;
-const int LOGIN_STATUS_SUCCESS = 0;
-const int LOGIN_STATUS_CANCEL = 1;
-const int LOGIN_STATUS_FAIL = 2;
 
 const int EDIT_FIELD_HEIGHT = 44;
 const float EDIT_FIELD_WIDTH_SCALE = 0.75f;
@@ -165,9 +161,6 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 
 static constexpr int MAX_SIMULTANEOUS_TOUCHES = 5;
 
-static String globalJwtToken;
-static int globalLoginResult = LOGIN_STATUS_INPROGRESS; // -1 means we're still polling
-
 @interface Dagor2_App : UIApplication
 {}
 @end
@@ -186,12 +179,11 @@ CHHapticEngine *g_hapticEngine = NULL;
 @end
 
 #if _TARGET_IOS
-@interface DagorViewCtrl : UIViewController <ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding>
+@interface DagorViewCtrl : UIViewController
 #else
 @interface DagorViewCtrl : DagorGameCenterEventViewController
 #endif
 - (id)initWithView:(UIView *)view;
-- (void)login;
 @end
 
 UIViewController *getMainController()
@@ -209,19 +201,6 @@ UIViewController *getStoredMainController()
   return storedMainViewCtrl;
 }
 
-
-bool doAppleLogin()
-{
-  if (DagorViewCtrl *mainviewctrl = (DagorViewCtrl *)getStoredMainController())
-  {
-    globalJwtToken = "";
-    globalLoginResult = LOGIN_STATUS_INPROGRESS;
-    [mainviewctrl login];
-    return true;
-  }
-  return false;
-}
-
 const char * getDeviceLocString(const char *key, const char *table, const char *fallback)
 {
   NSString * loc;
@@ -233,12 +212,6 @@ const char * getDeviceLocString(const char *key, const char *table, const char *
     return [loc UTF8String];
   else
     return key;
-}
-
-int pollAppleLogin(String &jwt)
-{
-  jwt = globalLoginResult == LOGIN_STATUS_SUCCESS ? globalJwtToken : "";
-  return globalLoginResult;
 }
 
 @implementation DagorViewCtrl
@@ -256,151 +229,6 @@ NSString *appName;
   return self;
 }
 
-- (BOOL)checkOSStatus:(OSStatus)status
-{
-  return status == noErr;
-}
-
-- (NSMutableDictionary *)keychainQueryForKey:(NSString *)key
-{
-  return [@{
-    (__bridge id)kSecClass : (__bridge id)kSecClassGenericPassword,
-    (__bridge id)kSecAttrService : key,
-    (__bridge id)kSecAttrAccount : key,
-    (__bridge id)kSecAttrAccessible : (__bridge id)kSecAttrAccessibleAfterFirstUnlock
-  } mutableCopy];
-}
-
-- (BOOL)saveObject:(id)object forKey:(NSString *)key
-{
-  NSMutableDictionary *keychainQuery = [self keychainQueryForKey:key];
-  // Deleting previous object with this key, because SecItemUpdate is more complicated.
-  [self deleteObjectForKey:key];
-
-  [keychainQuery setObject:[NSKeyedArchiver archivedDataWithRootObject:object] forKey:(__bridge id)kSecValueData];
-  return [self checkOSStatus:SecItemAdd((__bridge CFDictionaryRef)keychainQuery, NULL)];
-}
-
-- (id)loadObjectForKey:(NSString *)key
-{
-  id object = nil;
-
-  NSMutableDictionary *keychainQuery = [self keychainQueryForKey:key];
-
-  [keychainQuery setObject:(__bridge id)kCFBooleanTrue forKey:(__bridge id)kSecReturnData];
-  [keychainQuery setObject:(__bridge id)kSecMatchLimitOne forKey:(__bridge id)kSecMatchLimit];
-
-  CFDataRef keyData = NULL;
-
-  if ([self checkOSStatus:SecItemCopyMatching((__bridge CFDictionaryRef)keychainQuery, (CFTypeRef *)&keyData)])
-    object = [NSKeyedUnarchiver unarchiveObjectWithData:(__bridge NSData *)keyData];
-
-  if (keyData)
-    CFRelease(keyData);
-
-  return object;
-}
-
-- (BOOL)deleteObjectForKey:(NSString *)key
-{
-  NSMutableDictionary *keychainQuery = [self keychainQueryForKey:key];
-  return [self checkOSStatus:SecItemDelete((__bridge CFDictionaryRef)keychainQuery)];
-}
-
-- (void)login
-{
-  extern char const *get_game_name();
-  appName = [NSString stringWithFormat:@"%s_loginData", get_game_name()];
-  ASAuthorizationAppleIDProvider *appleIDProvider = [[ASAuthorizationAppleIDProvider alloc] init];
-
-  NSDictionary *data = [self loadObjectForKey:appName];
-  NSString *userID = data ? [data objectForKey:@"userID"] : @"null";
-
-  [appleIDProvider
-    getCredentialStateForUserID:userID
-                     completion:^(ASAuthorizationAppleIDProviderCredentialState credentialState, NSError *_Nullable error) {
-                       if (credentialState == ASAuthorizationAppleIDProviderCredentialAuthorized)
-                       {
-                         globalJwtToken = [[data objectForKey:@"userJwt"] UTF8String];
-                         globalLoginResult = LOGIN_STATUS_SUCCESS;
-                       }
-                       else
-                       {
-                         ASAuthorizationAppleIDRequest *request = [appleIDProvider createRequest];
-                         request.requestedScopes = @[ ASAuthorizationScopeFullName, ASAuthorizationScopeEmail ];
-
-                         ASAuthorizationController *authorizationController =
-                           [[ASAuthorizationController alloc] initWithAuthorizationRequests:@[ request ]];
-                         authorizationController.delegate = self;
-                         authorizationController.presentationContextProvider = self;
-                         [authorizationController performRequests];
-                       }
-                     }];
-}
-- (void)authorizationController:(ASAuthorizationController *)controller didCompleteWithError:(NSError *)error
-{
-  NSString *errorMsg = nil;
-  NSString *errorDesc = @"";
-  globalLoginResult = LOGIN_STATUS_FAIL; //fail by default
-  switch (error.code)
-  {
-    case ASAuthorizationErrorCanceled:
-      errorMsg = @"ASAuthorizationErrorCanceled";
-      globalLoginResult = LOGIN_STATUS_CANCEL;
-      break;
-    case ASAuthorizationErrorFailed:
-      errorMsg = @"ASAuthorizationErrorFailed";
-      break;
-    case ASAuthorizationErrorInvalidResponse:
-      errorMsg = @"ASAuthorizationErrorInvalidResponse";
-      break;
-    case ASAuthorizationErrorNotHandled:
-      errorMsg = @"ASAuthorizationErrorNotHandled";
-      break;
-    case ASAuthorizationErrorUnknown:
-      errorMsg = @"ASAuthorizationErrorUnknown";
-      break;
-  }
-  if (error.localizedDescription)
-  {
-    errorDesc = error.localizedDescription;
-  }
-  debug("Login error: %s %s", [errorMsg UTF8String], [errorDesc UTF8String] );
-}
-- (void)authorizationController:(ASAuthorizationController *)controller
-   didCompleteWithAuthorization:(ASAuthorization *)authorization API_AVAILABLE(ios(13.0))
-{
-  if ([authorization.credential isKindOfClass:[ASAuthorizationAppleIDCredential class]])
-  {
-    ASAuthorizationAppleIDCredential *appleIDCredential = authorization.credential;
-    if (appleIDCredential.identityToken == nil)
-    {
-      globalLoginResult = LOGIN_STATUS_FAIL;
-      return;
-    }
-
-    NSString *idToken = [[NSString alloc] initWithData:appleIDCredential.identityToken encoding:NSUTF8StringEncoding];
-    if (idToken == nil)
-    {
-      globalLoginResult = LOGIN_STATUS_FAIL;
-    }
-    else
-    {
-      NSDictionary *dict = @{@"userID" : appleIDCredential.user, @"userJwt" : idToken};
-      [self saveObject:dict forKey:appName];
-      globalJwtToken = [idToken UTF8String];
-      globalLoginResult = LOGIN_STATUS_SUCCESS;
-    }
-  }
-  else
-  {
-    globalLoginResult = LOGIN_STATUS_FAIL;
-  }
-}
-- (ASPresentationAnchor)presentationAnchorForAuthorizationController:(ASAuthorizationController *)controller
-{
-  return self.view.window;
-}
 - (NSUInteger)supportedInterfaceOrientations
 {
   return UIInterfaceOrientationMaskLandscape;
@@ -934,6 +762,72 @@ struct LogGuardtvOS
 };
 #endif
 
+static int rotate_debug_files(const char *log_name, const char *debug_path, const char *debug_ext, const int count)
+{
+  char debug[DAGOR_MAX_PATH];
+  memset(debug, '\0', DAGOR_MAX_PATH);
+  SNPRINTF(debug, sizeof(debug), "%s/", debug_path);
+
+  const int filenameOffset = i_strlen(debug);
+  const int debugBufferLenght = sizeof(debug) - filenameOffset;
+  char *debugFilename = debug + filenameOffset;
+
+  SNPRINTF(debugFilename, debugBufferLenght, "%s-0%s", log_name, debug_ext);
+
+  // Step 0: Check 'debug[0..Count]' and return first not existing log index
+  for (int logIndex = 0; logIndex <= count;)
+  {
+    if (!dd_file_exists(debug))
+      return logIndex;
+
+    SNPRINTF(debugFilename, debugBufferLenght, "%s-%d%s", log_name, ++logIndex, debug_ext);
+  }
+
+  // Step 1: Remove 'debug0' - the oldest log file
+  SNPRINTF(debugFilename, debugBufferLenght, "%s-0%s", log_name, debug_ext);
+  if (unlink(debug) != 0)
+    return 0;
+
+  char debug1[DAGOR_MAX_PATH];
+  memcpy(debug1, debug, DAGOR_MAX_PATH); // For copy nullterminators after string end
+
+  // Step 2: Shift log names like debug1 -> debug0, debug2 -> debug1, etc.
+  for (int logIndex = 1; logIndex <= count; ++logIndex)
+  {
+    SNPRINTF(debugFilename, debugBufferLenght, "%s-%d%s", log_name, logIndex, debug_ext);
+    SNPRINTF(debug1 + filenameOffset, sizeof(debug1) - filenameOffset, "%s-%d%s", log_name, logIndex - 1, debug_ext);
+
+    if (!dd_rename(debug, debug1))
+      return 0;
+  }
+
+  return count;
+}
+
+// Cleanup log folder from old logs (old name formatting)
+static void remove_old_logs(const char *debug_path)
+{
+  @autoreleasepool
+  {
+    NSString *debugPath = [[NSString alloc] initWithUTF8String:debug_path];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+
+    NSError *error = nil;
+    NSArray *files = [fileManager contentsOfDirectoryAtPath:debugPath error:&error];
+
+    if (error)
+      return;
+
+    // Remove files like: aces-2025.02.07-15.41.38.clog
+    for (NSString *log : files)
+      for (const char * year : {"-2022.", "-2023.", "-2024.", "-2025."})
+        if (strstr([log UTF8String], year))
+          [fileManager removeItemAtPath:[debugPath stringByAppendingPathComponent:log] error:&error];
+  }
+}
+
+extern const unsigned char *get_dagor_log_crypt_key();
+
 static void dagor_ios_before_main_init(int argc, char *argv[])
 {
   static DagorSettingsBlkHolder stgBlkHolder;
@@ -946,23 +840,23 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
   NSString *documentsDirectory = [paths objectAtIndex:0];
   {
-    time_t rawtime;
-    tm *t;
-    char buf[64];
-
 #if DAGOR_FORCE_LOGS
-    const char *logExt = "clog";
+    const char *logExt = ".clog";
 #else
-    const char *logExt = "log";
+    const char *logExt = ".log";
 #endif
 
-    time(&rawtime);
-    t = localtime(&rawtime);
-    _snprintf(buf, sizeof(buf), "%s-%04d.%02d.%02d-%02d.%02d.%02d.%s", dd_get_fname(argv[0]), 1900 + t->tm_year, t->tm_mon + 1,
-      t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, logExt);
+    char logFilename[DAGOR_MAX_PATH];
+    strcpy(logFilename, [documentsDirectory UTF8String]);
+
+    remove_old_logs(logFilename);
+
+    const char *logName = dd_get_fname(argv[0]);
+    const int logIndex = rotate_debug_files(logName, logFilename, logExt, 3/* rotatedCount */);
+    SNPRINTF(logFilename, sizeof(logFilename), "%s-%d%s", logName, logIndex, logExt);
 
     strcpy(ios_global_log_fname,
-      [[documentsDirectory stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String:buf]] UTF8String]);
+      [[documentsDirectory stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String: logFilename]] UTF8String]);
   }
 
   pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
@@ -972,7 +866,13 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   dgs_report_fatal_error = messagebox_report_fatal_error;
   apply_hinstance(NULL, NULL);
 
-  set_debug_console_handle((intptr_t)stdout);
+  set_debug_console_ios_file_output(true);
+  set_copy_debug_to_ios_console(DAGOR_DBGLEVEL > 0);
+
+#if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL <= 0
+  crypt_debug_setup(get_dagor_log_crypt_key(), 60 << 20 /* MAX_LOGS_FILE_SIZE */);
+#endif
+
 #if DAGOR_DBGLEVEL != 0
   debug("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
 #endif

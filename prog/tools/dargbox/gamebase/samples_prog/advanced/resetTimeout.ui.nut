@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let logs = Watched("")
 
-let addLog = @(text)logs($"{logs.value}{text}\n")
+let addLog = @(text)logs.set($"{logs.get()}{text}\n")
 
 let correctFunc = @() addLog("Correct func called only once")
 
@@ -16,7 +16,7 @@ gui_scene.resetTimeout(3, @() addLog("Incorrect func after 3 sec called"))
 
 function autoCallback(delay) {
   let localFunc = @() addLog($"Local anonymous func after {delay} sec called")
-  gui_scene.resetTimeout(delay, localFunc)
+  gui_scene.resetTimeout(delay, localFunc, localFunc)
 }
 autoCallback(1)
 autoCallback(2)
@@ -36,5 +36,5 @@ return @() {
   behavior = Behaviors.TextArea
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
-  text = logs.value
+  text = logs.get()
 }

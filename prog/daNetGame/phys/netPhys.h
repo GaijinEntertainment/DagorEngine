@@ -71,7 +71,6 @@ enum class PhysType : uint8_t
   PHYSOBJ,
   PLANE,
   SHIP,
-  DAS_PHYSOBJ,
   HELICOPTER,
   WALKER,
 
@@ -83,6 +82,7 @@ enum class PhysType : uint8_t
   CUSTOM5,
   CUSTOM6,
   CUSTOM7,
+  CUSTOM8,
 
   NUM
 };
@@ -134,7 +134,7 @@ public:
 
   static StaticTab<phys_eids_list_t *, (int)PhysType::NUM> allPhysActorsLists;
   static phys_sync_states_packed_t *allSyncStates[(int)PhysType::NUM];
-  static inline dag::RelocatableFixedVector<ecs::EntityId, 2> locallyContolledClientEntities;
+  static inline dag::RelocatableFixedVector<ecs::EntityId, 2> locallyContolledClientEntities = {};
 
   static void resizeSyncStates(int i);
 
@@ -157,6 +157,7 @@ public:
   int calcControlsTickDelta();
 
   virtual void postPhysUpdate(int32_t tick, float dt, bool is_for_real) override final;
+  virtual void prePhysUpdate(int32_t tick, float dt, bool is_for_real) override final;
 
   virtual void sendDesyncData(const danet::BitStream &sync_cur_data);
 

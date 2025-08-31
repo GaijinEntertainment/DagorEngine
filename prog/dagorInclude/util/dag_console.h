@@ -155,7 +155,7 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline void trace_d, con_vprintf);
 #undef DSA_OVERLOADS_PARAM_DECL
 
 bool command(const char *cmd);
-bool process_file(const char *filename);
+bool process_file(const char *filename, bool error_on_missing_file = true);
 
 void show();
 void hide();
@@ -207,6 +207,12 @@ const Tab<SimpleString> &get_command_history();
 //! returns 1 on match, 0 on no-match-continue, -1 on arg count mismatch
 int collector_cmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description = "",
   const char *argsDescription = "", const char *varValue = "", eastl::vector<CommandOptions> &&cmdOptions = {});
+
+namespace util
+{
+void append_command_hints_to_string(const CommandStruct &cmd, String &out_cmd_text);
+void print_command_with_hints_to_string(const console::CommandStruct &cmd, String &out_cmd_text);
+} // namespace util
 
 class FuncCommandProcessor;
 typedef bool (*console_function_cb)(const char *argv[], int argc);

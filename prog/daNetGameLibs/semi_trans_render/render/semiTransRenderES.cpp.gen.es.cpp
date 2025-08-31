@@ -1,12 +1,14 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "semiTransRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(semiTransRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc animchar_render_semi_trans_es_event_handler_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
 //start of 3 ro components at [2]
   {ECS_HASH("semi_transparent__placingColor"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("semi_transparent__lod"), ecs::ComponentTypeInfo<int>()},
@@ -22,7 +24,7 @@ static void animchar_render_semi_trans_es_event_handler_all_events(const ecs::Ev
     animchar_render_semi_trans_es_event_handler(static_cast<const RenderLateTransEvent&>(evt)
           , ECS_RW_COMP(animchar_render_semi_trans_es_event_handler_comps, "animchar_render", AnimV20::AnimcharRendComponent)
       , ECS_RO_COMP(animchar_render_semi_trans_es_event_handler_comps, "semi_transparent__placingColor", Point3)
-      , ECS_RW_COMP(animchar_render_semi_trans_es_event_handler_comps, "animchar_visbits", uint8_t)
+      , ECS_RW_COMP(animchar_render_semi_trans_es_event_handler_comps, "animchar_visbits", animchar_visbits_t)
       , ECS_RO_COMP(animchar_render_semi_trans_es_event_handler_comps, "semi_transparent__lod", int)
       );
   } while (++comp != compE);

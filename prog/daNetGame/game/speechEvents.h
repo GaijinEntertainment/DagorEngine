@@ -6,9 +6,9 @@
 #include <daECS/core/componentTypes.h>
 
 
-#define DEF_SPEECH_EVENTS                                                             \
-  DECL_GAME_EVENT(CmdRequestHumanSpeech, SimpleString /*phrase*/)                     \
-  DECL_GAME_EVENT(CmdRequestHumanSpeechAbout, SimpleString /*phrase*/, ecs::EntityId) \
+#define DEF_SPEECH_EVENTS                                                                                                         \
+  DECL_GAME_EVENT(CmdRequestHumanSpeech, SimpleString /*phrase*/, ecs::EntityId /*listener*/, ecs::EntityId /*except_possessed*/) \
+  DECL_GAME_EVENT(CmdRequestHumanSpeechAbout, SimpleString /*phrase*/, ecs::EntityId)                                             \
   DECL_GAME_EVENT(CmdRequestHumanVoiceEffect, SimpleString /*phrase*/)
 
 

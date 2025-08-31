@@ -23,7 +23,7 @@ Sources =
 ;
 
 if $(SqVarTrace) = yes {
-  CPPopt += -DSQ_VAR_TRACE_ENABLED=1 ;
+  CPPopt += -DSQ_VAR_TRACE_ENABLED ;
 }
 
 if $(Platform) in windows {

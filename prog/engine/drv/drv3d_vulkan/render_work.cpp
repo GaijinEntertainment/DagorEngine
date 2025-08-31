@@ -11,7 +11,7 @@
 #include "util/backtrace.h"
 #include "memory_heap_resource.h"
 #include "backend.h"
-#include "execution_pod_state.h"
+#include "execution_async_compile_state.h"
 #include "execution_scratch.h"
 #include "pipeline_cache.h"
 #include "execution_timings.h"
@@ -112,15 +112,15 @@ struct CmdDumpContext
   {                                                                                                                             \
     String paramValue = dumpCmdParam(cmd.Name, {ctx, dump, cmdRid});                                                            \
     FaultReportDump::RefId rid =                                                                                                \
-      dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_PARAM, (uint64_t)&cmd.Name, String(64, "%s = %s", #Name, paramValue)); \
-    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_CMD, (uint64_t)&cmd);                                                      \
+      dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_PARAM, uint64_t(&cmd.Name), String(64, "%s = %s", #Name, paramValue)); \
+    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_CMD, uint64_t(&cmd));                                                      \
   }
 #define VULKAN_CONTEXT_COMMAND_PARAM_ARRAY(type, Name, size)                                                                    \
   {                                                                                                                             \
     String paramValue = dumpCmdParam(cmd.Name, {ctx, dump, cmdRid});                                                            \
     FaultReportDump::RefId rid =                                                                                                \
-      dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_PARAM, (uint64_t)&cmd.Name, String(64, "%s = %s", #Name, paramValue)); \
-    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_CMD, (uint64_t)&cmd);                                                      \
+      dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_PARAM, uint64_t(&cmd.Name), String(64, "%s = %s", #Name, paramValue)); \
+    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_CMD, uint64_t(&cmd));                                                      \
   }
 
 #include "device_context_cmd.inc"
@@ -148,8 +148,6 @@ void RenderWork::dumpData(FaultReportDump &dump) const
         String(64, "buffer upload %u bytes from 0x%p[%u] to 0x%p[%u]", at->size, bu.src, at->srcOffset, bu.dst, at->dstOffset));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bu.src));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bu.dst));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bu.src->getHandle()));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bu.dst->getHandle()));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
     }
   }
@@ -165,15 +163,13 @@ void RenderWork::dumpData(FaultReportDump &dump) const
           at->dstOffset));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bu.src));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bu.dst));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bu.src->getHandle()));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bu.dst->getHandle()));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
     }
   }
 
-  for (auto &&bd : bufferDownloads)
+  for (auto &&bd : readbacks->buffers.info)
   {
-    auto at = bufferDownloadCopies.begin() + bd.copyIndex;
+    auto at = readbacks->buffers.copies.begin() + bd.copyIndex;
     auto copyEnd = at + bd.copyCount;
     for (; at != copyEnd; ++at)
     {
@@ -181,24 +177,21 @@ void RenderWork::dumpData(FaultReportDump &dump) const
         String(64, "buffer download %u bytes from 0x%p[%u] to 0x%p[%u]", at->size, bd.src, at->srcOffset, bd.dst, at->dstOffset));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bd.src));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bd.dst));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bd.src->getHandle()));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bd.dst->getHandle()));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
     }
   }
 
-  for (auto &&bf : bufferToHostFlushes)
+  for (auto &&bf : readbacks->bufferFlushes)
   {
     FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)&bf,
       String(64, "buffer flush to host 0x%p[%u] %u bytes", bf.buffer, bf.offset, bf.range));
-    dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(bf.buffer->getHandle()));
     dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, uint64_t(bf.buffer));
     dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
   }
 
-  for (auto &&iu : imageUploads)
+  for (auto &&iu : readbacks->images.info)
   {
-    auto at = imageUploadCopies.begin() + iu.copyIndex;
+    auto at = readbacks->images.copies.begin() + iu.copyIndex;
     auto copyEnd = at + iu.copyCount;
     for (; at != copyEnd; ++at)
     {
@@ -208,34 +201,8 @@ void RenderWork::dumpData(FaultReportDump &dump) const
           " to 0x%p [%u-%u][%u]",
           iu.buffer, at->bufferOffset, iu.image, at->imageSubresource.baseArrayLayer,
           at->imageSubresource.baseArrayLayer + at->imageSubresource.layerCount, at->imageSubresource.mipLevel));
-      if (iu.buffer)
-        dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(iu.buffer->getHandle()));
-      if (iu.image)
-        dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(iu.image->getHandle()));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)(iu.image));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)(iu.buffer));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
-    }
-  }
-
-  for (auto &&iter : imageDownloads)
-  {
-    auto at = imageDownloadCopies.begin() + iter.copyIndex;
-    auto copyEnd = at + iter.copyCount;
-    for (; at != copyEnd; ++at)
-    {
-      FaultReportDump::RefId rid = dump.addTagged(FaultReportDump::GlobalTag::TAG_CMD_DATA, (uint64_t)&at,
-        String(64,
-          "image upload from 0x%p [%u]"
-          " to 0x%p [%u-%u][%u]",
-          iter.buffer, at->bufferOffset, iter.image, at->imageSubresource.baseArrayLayer,
-          at->imageSubresource.baseArrayLayer + at->imageSubresource.layerCount, at->imageSubresource.mipLevel));
-      if (iter.buffer)
-        dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(iter.buffer->getHandle()));
-      if (iter.image)
-        dump.addRef(rid, FaultReportDump::GlobalTag::TAG_VK_HANDLE, generalize(iter.image->getHandle()));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)(iter.image));
-      dump.addRef(rid, FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)(iter.buffer));
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
     }
   }
@@ -277,17 +244,11 @@ void RenderWork::dumpData(FaultReportDump &dump) const
       dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
     }
   }
-
-  cleanups.dumpData(dump);
 }
 
 void RenderWork::submit() {}
 
-void RenderWork::acquire(size_t timeline_abs_idx)
-{
-  id = timeline_abs_idx;
-  cleanups.checkValid();
-}
+void RenderWork::acquire(size_t timeline_abs_idx) { id = timeline_abs_idx; }
 
 void RenderWork::wait() {}
 
@@ -297,24 +258,24 @@ void RenderWork::cleanup()
   bufferUploadCopies.clear();
   orderedBufferUploads.clear();
   orderedBufferUploadCopies.clear();
-  bufferDownloads.clear();
-  bufferDownloadCopies.clear();
-  bufferToHostFlushes.clear();
   imageUploads.clear();
   imageUploadCopies.clear();
-  imageDownloads.clear();
-  imageDownloadCopies.clear();
   charStore.clear();
   imageCopyInfos.clear();
   unorderedImageCopies.clear();
   unorderedImageColorClears.clear();
   unorderedImageDepthStencilClears.clear();
   bindlessTexUpdates.clear();
+  bindlessTexSwaps.clear();
   bindlessBufUpdates.clear();
   bindlessSamplerUpdates.clear();
   nativeRPDrawCounter.clear();
   reorderedBufferCopies.clear();
-#if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
+  sparseMemoryBinds.clear();
+  sparseImageMemoryBinds.clear();
+  sparseImageOpaqueBinds.clear();
+  sparseImageBinds.clear();
+#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   raytraceBuildRangeInfoKHRStore.clear();
   raytraceGeometryKHRStore.clear();
   raytraceBLASBufferRefsStore.clear();
@@ -350,11 +311,15 @@ void RenderWork::process()
 {
   TIME_PROFILE(vulkan_render_work_process);
 
+  if (RenderWork::cleanUpMemoryEveryWorkItem || Globals::Mem::res.isOutOfMemorySignalReceived())
+  {
+    ExecutionContext cleanupExecCtx(*this);
+    cleanupExecCtx.cleanupMemory();
+  }
+
   ExecutionContext executionContext(*this);
-  executionContext.cleanupMemory();
   executionContext.prepareFrameCore();
   processCommands(executionContext);
-  cleanups.backendAfterReplayCleanup();
 }
 
 void RenderWork::shutdown() { cleanup(); }
@@ -406,96 +371,4 @@ void RenderWork::dumpCommands(FaultReportDump &dump)
     id, cmdSize, cmdSize / 1024, cmdSize / 1024 / 1024, cmdCap, cmdCap / 1024, cmdCap / 1024 / 1024,
     cmdCap ? ((double(cmdSize) / cmdCap) * 100.0) : 100.0, totalSize, totalSize / 1024, totalSize / 1024 / 1024));
   dump.addRef(rid, FaultReportDump::GlobalTag::TAG_WORK_ITEM, id);
-}
-
-void BufferCopyInfo::optimizeBufferCopies(eastl::vector<BufferCopyInfo> &info, eastl::vector<VkBufferCopy> &copies)
-{
-  // group copy ops by src/dst match, allows easy merge of multiple copies with same src/dst
-  eastl::sort(begin(info), end(info),
-    [](const BufferCopyInfo &l, const BufferCopyInfo &r) //
-    {
-      if (l.src < r.src)
-        return true;
-      if (l.src > r.src)
-        return false;
-      if (l.dst < r.dst)
-        return true;
-      if (l.dst > r.dst)
-        return false;
-      return l.copyIndex < r.copyIndex;
-    });
-
-  // reorganized the buffer copies to match the ordering of the infos
-  // this approach is simple but requires additional memory and copies
-  // every entry once
-  // don't reallocate while we copy stuff around inside this vector
-  copies.reserve(copies.size() * 2);
-  for (auto &&upload : info)
-  {
-    auto start = begin(copies) + upload.copyIndex;
-    auto stop = start + upload.copyCount;
-    upload.copyIndex = copies.size();
-    copies.insert(end(copies), start, stop);
-  }
-
-  // now merge with same src/dst pair
-  for (uint32_t i = info.size() - 1; i > 0; --i)
-  {
-    auto &l = info[i - 1];
-    auto &r = info[i];
-
-    if (l.src != r.src)
-      continue;
-    if (l.dst != r.dst)
-      continue;
-    // those are guaranteed to be back to back
-    l.copyCount += r.copyCount;
-    // remove right copy
-    info.erase(begin(info) + i);
-  }
-}
-
-namespace
-{
-bool isSameImageSection(const VkBufferImageCopy &l, const VkBufferImageCopy &r)
-{
-  return 0 == memcmp(&l.imageSubresource, &r.imageSubresource, sizeof(l.imageSubresource)) &&
-         0 == memcmp(&l.imageOffset, &r.imageOffset, sizeof(l.imageOffset)) &&
-         0 == memcmp(&l.imageExtent, &r.imageExtent, sizeof(l.imageExtent));
-}
-} // namespace
-
-void ImageCopyInfo::deduplicate(eastl::vector<ImageCopyInfo> &info, eastl::vector<VkBufferImageCopy> &copies)
-{
-  for (uint32_t i = 0; i < info.size(); ++i)
-  {
-    auto &base = info[info.size() - 1 - i];
-    for (uint32_t j = i + 1; j < info.size(); ++j)
-    {
-      auto &compare = info[info.size() - 1 - j];
-      if (compare.image != base.image)
-        continue;
-
-      for (uint32_t k = 0; k < base.copyCount; ++k)
-      {
-        auto &copyBase = copies[base.copyIndex + k];
-
-        for (uint32_t l = 0; l < compare.copyCount; ++l)
-        {
-          auto &copyCompare = copies[compare.copyIndex + l];
-          if (isSameImageSection(copyBase, copyCompare))
-          {
-            copyCompare = copies[compare.copyIndex + compare.copyCount - 1];
-            --compare.copyCount;
-            // we assume per copy set there is no duplicated copy op, so we can stop
-            // duplicated copy sections in the same block are not possible
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // tidy up empty copies in a second step, makes the checking loop much simpler
-  info.erase(eastl::remove_if(begin(info), end(info), [](auto &info) { return info.copyCount == 0; }), end(info));
 }

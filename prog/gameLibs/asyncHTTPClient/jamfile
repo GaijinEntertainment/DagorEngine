@@ -26,8 +26,8 @@ if $(Platform) in nswitch {
   UseProgLibs += gameLibs/nswitch/network ;
 }
 else {
-  if $(UseGDK) != no {
-    CPPopt += -DUSE_XCURL=1 ;
+  if $(UseGDK) != no && $(GdkRequiresXCurl) != no {
+    CPPopt += -DUSE_XCURL ;
     AddIncludes += $(GDK_XCURL_INC_PATH) ;
     AddLibs += $(GDK_XCURL_LIB_PATH) Crypt32.lib winhttp.lib ;
   } else {

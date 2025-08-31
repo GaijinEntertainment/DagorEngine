@@ -9,7 +9,7 @@
 
 namespace HumanInput
 {
-struct ButtonBits : public ConstSizeBitArray<8> // state bits for 256 buttons
+struct ButtonBits : public ConstSizeBitArray<9> // state bits for 512 buttons
 {
   static constexpr int WORD_CNT = (SZ + 31) / 32;
 

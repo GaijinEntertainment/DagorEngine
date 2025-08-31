@@ -29,6 +29,7 @@ Sources =
 AddIncludes =
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/sqmodules
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel
 ;
 
 UseProgLibs =

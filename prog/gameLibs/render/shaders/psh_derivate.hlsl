@@ -59,6 +59,17 @@ half3 perturb_normal_height2d( float2 p, half height)
     float dBt = ddy(height);
     return (half3)perturb_normal_height2d(p, dBs, dBt);
 }
+
+// for clipmap only!
+half3 perturb_normal_height_simple_grad( float2 vSigmaS, float2 vSigmaT, float dBs, float dBt)
+{
+    float3 vR1 = float3(length(vSigmaS), 0, 0);
+    float3 vR2 = float3(0, 0, length(vSigmaT));
+    float fDet = dot(float3(vSigmaS.x,0,vSigmaS.y), vR1);
+    float3 vSurfGrad = dBs*vR1 + dBt*vR2;
+    return (half3)normalize(float3(0,1,0) * vR1.x * vR2.z - vSurfGrad);
+}
+
 /*half3 perturb_normal_height( half3 vN, float3 p, float2 uv, sampler2D bumpTex, float htscale)
 {
     float Hll = tex2D(bumpTex, uv).x*htscale;

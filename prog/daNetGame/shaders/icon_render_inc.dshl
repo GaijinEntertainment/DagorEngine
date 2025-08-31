@@ -1,0 +1,50 @@
+macro INIT_GBUFFER_FOR_ICON_RENDER()
+endmacro
+
+macro INIT_GBUFFER_MOBILE_FOR_ICON_RENDER()
+  USE_READ_GBUFFER_MOBILE_DEFERRED()
+endmacro
+
+macro INIT_ICON_VARIABLES()
+  //if (mobile_render == deferred) {
+  if (mobile_render != deferred) {
+    (ps) {
+      icon_albedo_gbuf@smp2d = icon_albedo_gbuf;
+      icon_normal_gbuf@smp2d = icon_normal_gbuf;
+      icon_material_gbuf@smp2d = icon_material_gbuf;
+    }
+    hlsl(ps) {
+      #define albedo_gbuf_read icon_albedo_gbuf
+      #define normal_gbuf_read icon_normal_gbuf
+      #define material_gbuf_read icon_material_gbuf
+      #define albedo_gbuf_read_samplerstate icon_albedo_gbuf_samplerstate
+      #define normal_gbuf_read_samplerstate icon_normal_gbuf_samplerstate
+      #define material_gbuf_read_samplerstate icon_material_gbuf_samplerstate
+    }
+  }
+  else {
+    if (mobile_simplified_materials == yes) {
+      (ps) {
+        albedo_nx_gbuf@smp2d = icon_albedo_gbuf;
+        ny_landDmaskMaterial_gbuf@smp2d = icon_normal_gbuf;
+      }
+    } else {
+      (ps) {
+        albedo_smooth_gbuf@smp2d = icon_albedo_gbuf;
+        normal_refl_mettr_gbuf@smp2d = icon_normal_gbuf;
+        ao_material_dmask_gbuf@smp2d = icon_material_gbuf;
+      }
+    }
+  }
+endmacro
+
+macro INIT_FULL_TONEMAP_FOR_ICONS()
+  if (mobile_render != off)
+  {
+    if (use_postfx == on)
+    {
+      INIT_FULL_TONEMAP_LUT(ps)
+    }
+    USE_FULL_TONEMAP_LUT(ps)
+  }
+endmacro

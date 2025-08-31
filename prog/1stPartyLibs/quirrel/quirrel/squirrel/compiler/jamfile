@@ -1,0 +1,43 @@
+Root    ?= ../../../../../.. ;
+Location = prog/1stPartyLibs/quirrel/quirrel/squirrel/compiler ;
+
+TargetType  = lib ;
+
+local TargetLib = 1stPartyLibs/v/quirrel-compiler ;
+if $(SqVarTrace) = yes { TargetLib = $(TargetLib)~vt ; }
+Target = $(TargetLib).lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/eastl/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel/compiler
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/helpers
+;
+
+Sources =
+  sqast.cpp
+  sqcompilationcontext.cpp
+  sqastparser.cpp
+  sqastcodegen.cpp
+  sqbinaryast.cpp
+  sqcompiler.cpp
+  sqfuncstate.cpp
+  sqoptimizer.cpp
+  sqlexer.cpp
+  optimizations/closureHoisting.cpp
+  static_analyzer/analyzer.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+if $(SqVarTrace) = yes {
+  CPPopt += -DSQ_VAR_TRACE_ENABLED ;
+}
+
+Copt   = $(CPPopt) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

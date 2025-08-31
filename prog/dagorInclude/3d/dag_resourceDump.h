@@ -33,8 +33,8 @@ struct ResourceDumpBase
 
 struct ResourceDumpTexture : ResourceDumpBase
 {
-  int resX, resY, mip, depth, layers, memSize;
-  uint32_t flags, formatFlags;
+  int resX, resY, mip, depth, layers;
+  uint32_t memSize, flags, formatFlags;
   resource_dump_types::TextureTypes texType;
   bool isColor;
   eastl::string name;
@@ -56,14 +56,15 @@ struct ResourceDumpTexture : ResourceDumpBase
 struct ResourceDumpBuffer : ResourceDumpBase
 {
   uint64_t offset, mapAddress;
-  int memSize, sysCopySize, flags, currentDiscard, currentDiscardOffset, totalDiscards, id;
+  uint32_t memSize, sysCopySize;
+  int flags, currentDiscard, currentDiscardOffset, totalDiscards, id;
   eastl::string name;
   eastl::string heapNamePS;
 };
 
 struct ResourceDumpRayTrace : ResourceDumpBase
 {
-  int memSize;
+  uint32_t memSize;
   bool top;
   bool canDifferentiate;
 };

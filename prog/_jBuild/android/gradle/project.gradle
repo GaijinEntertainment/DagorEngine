@@ -1,0 +1,8 @@
+// extra configuration, imported in start of build.gradle file
+
+apply plugin: 'com.android.application'
+//apply plugin: 'com.google.gms.google-services' // Google services Gradle plugin
+
+dependencies {
+
+}

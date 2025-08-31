@@ -2,7 +2,6 @@ UseApex = no ;
 
 Root    ?= ../../../../.. ;
 Location = prog/gameLibs/gamePhys/collision/collision-common/.. ;
-UsingStaticCore = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/gamePhys/collision/collision-common.lib ;

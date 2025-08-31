@@ -11,9 +11,8 @@ public:
   class VhacdProgress : public VHACD::IVHACD::IUserCallback
   {
   public:
-    virtual void Update(const double overallProgress, const double stageProgress, const char *const stage,
-      const char *operation) override;
-    virtual void NotifyVHACDComplete() override;
+    void Update(const double overallProgress, const double stageProgress, const char *const stage, const char *operation) override;
+    void NotifyVHACDComplete() override;
     ConvexVhacdProcessing *processing = nullptr;
     bool isComputed = false;
   };

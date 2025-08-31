@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "das_es.h"
 #include "das_ecs.h"
+#include "das_scripts.h"
 #include <dasModules/dasEvent.h>
 #include <daECS/core/componentsMap.h>
 #include <daECS/core/entityManager.h>
@@ -64,13 +66,13 @@ eastl::tuple<uint8_t, PacketReliability> get_dasevent_routing_reliability(ecs::e
 }
 
 static bool lockedNetEventsRegistration = false;
-uint32_t lock_dasevent_net_version()
+uint32_t lock_dasevent_net_version(const ecs::EntityManager &mgr)
 {
   lockedNetEventsRegistration = true;
-  return get_dasevent_net_version();
+  return get_dasevent_net_version(mgr);
 }
 
-uint32_t get_dasevent_net_version()
+uint32_t get_dasevent_net_version(const ecs::EntityManager &mgr)
 {
   static constexpr uint32_t DASEVENTS_VERSION = 2;
   uint32_t hash = fnv1a_step<32>(DASEVENTS_VERSION);
@@ -81,14 +83,13 @@ uint32_t get_dasevent_net_version()
     if (event.second.netLiable == DascriptEventDesc::NetLiable::Strict && routing != DASEVENT_NO_ROUTING &&
         routing != DASEVENT_NATIVE_ROUTING)
     {
-      const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(event.first);
-      const ecs::EventsDB::event_scheme_hash_t eventHash = g_entity_mgr->getEventsDb().getEventSchemeHash(eventId);
+      const ecs::EventsDB::event_id_t eventId = mgr.getEventsDb().findEvent(event.first);
+      const ecs::EventsDB::event_scheme_hash_t eventHash = mgr.getEventsDb().getEventSchemeHash(eventId);
       G_ASSERTF_CONTINUE(eventHash != ecs::EventsDB::invalid_event_scheme_hash,
-        "event '%s' <0x%X> with routing, but without registered scheme", g_entity_mgr->getEventsDb().getEventName(eventId),
-        event.first);
+        "event '%s' <0x%X> with routing, but without registered scheme", mgr.getEventsDb().getEventName(eventId), event.first);
       hash = fnv1a_step<32>(eventHash, hash);
       num += 1;
-      debug("das_net: net proto calc with %s = <0x%X>", g_entity_mgr->getEventsDb().getEventName(eventId), hash);
+      debug("das_net: net proto calc with %s = <0x%X>", mgr.getEventsDb().getEventName(eventId), hash);
     }
   }
   debug("das_net: net proto version 0x%X, events num=%d", hash, num);
@@ -118,6 +119,10 @@ struct EventAnnotation final : das::ManagedStructureAnnotation<ecs::Event, false
 static inline bool common_touch(const das::StructurePtr &st)
 {
   G_STATIC_ASSERT(sizeof(ecs::Event) == sizeof(uint32_t) + sizeof(ecs::event_size_t) + sizeof(ecs::event_flags_t));
+  for (das::Structure::FieldDeclaration &fld : st->fields)
+  {
+    fld.annotation.push_back(das::AnnotationArgument("safe_when_uninitialized", true));
+  }
   struct TestEvent : public ecs::Event
   {
     int field;
@@ -455,10 +460,9 @@ struct EventRegistrator final : das::StructureAnnotation
     return common_touch(st);
   }
 
-  using EventOffsets = eastl::tuple_vector<ecs::component_type_t, uint16_t>;
   static ska::flat_hash_map<ecs::event_type_t, EventOffsets, ska::power_of_two_std_hash<ecs::EventsDB::event_id_t>> events_offsets;
 
-  static void destroy(ecs::Event &e)
+  static void destroy(ecs::EntityManager &mgr, ecs::Event &e)
   {
     const auto it = events_offsets.find(e.getType());
     if (it != events_offsets.end())
@@ -483,7 +487,7 @@ struct EventRegistrator final : das::StructureAnnotation
 
           else logerr(
             "Internal error. Das event field with type '%s' was added without destruction support. Please fix it right here.",
-            g_entity_mgr->getComponentTypes().findTypeName(types[i]));
+            mgr.getComponentTypes().findTypeName(types[i]));
         }
       }
     }
@@ -491,7 +495,7 @@ struct EventRegistrator final : das::StructureAnnotation
       logerr("Non pod event is unregistered 0x%X. we can't be here, internal error", e.getType());
   }
 
-  static void move_out(void *__restrict allocateAt, ecs::Event &&from)
+  static void move_out(ecs::EntityManager &, void *__restrict allocateAt, ecs::Event &&from)
   {
     memcpy(allocateAt, &from, from.getLength());
     memset(&from, 0, sizeof(ecs::Event)); // enough to clear header, as type information is now lost
@@ -525,7 +529,7 @@ struct EventRegistrator final : das::StructureAnnotation
     return true;
   }
 
-  bool look(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList &args, das::string &err)
+  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args, das::string &err)
   {
     if (!isValidStruct(st, err))
       return false;
@@ -601,66 +605,32 @@ struct EventRegistrator final : das::StructureAnnotation
       }
     }
 
-    das::lock_guard<das::recursive_mutex> guard(DasScripts<LoadedScript, EsContext>::mutex);
-
-    bool regNow = true;
-    if (g_entity_mgr)
+    if (das::is_in_aot() || das::is_in_completion())
     {
-      const ecs::EventsDB::event_id_t evtId = g_entity_mgr->getEventsDb().findEvent(eventType);
-      const bool isRawPod = st->isRawPod();
-      const ecs::event_flags_t evtFlags = castFlag | (isRawPod ? 0 : ecs::EVFLG_DESTROY);
+      return true;
+    }
 
-      const ecs::EventsDB::event_scheme_hash_t prevHash = evtId == ecs::EventsDB::invalid_event_id
-                                                            ? ecs::EventsDB::invalid_event_scheme_hash
-                                                            : g_entity_mgr->getEventsDb().getEventSchemeHash(evtId);
+    ecs::event_scheme_t eventScheme;
+    calc_struct_scheme(st, components, eventScheme);
+    const bool isRawPod = st->isRawPod();
 
-      if (lockedNetEventsRegistration && netLiable == DascriptEventDesc::NetLiable::Strict && routing != DASEVENT_NO_ROUTING &&
-          prevHash != structHash)
+    EventOffsets offsets;
+    if (!isRawPod)
+    {
+      for (auto &field : st->fields)
       {
-        logerr("das_net: registration of a new dasevent '%s' <0x%X> when connection is already inited"
-               " and the protocol version has beed synced.",
-          g_entity_mgr->getEventsDb().findEventName(eventType), eventType);
-      }
-
-      if (evtId != ecs::EventsDB::invalid_event_id)
-      {
-        const ecs::event_flags_t dbEventFlag = g_entity_mgr->getEventsDb().getEventFlags(evtId);
-        if (eventName != g_entity_mgr->getEventsDb().getEventName(evtId))
-          logerr("hash collision for event 0x%X (%s != %s)", eventType, eventName.c_str(),
-            g_entity_mgr->getEventsDb().getEventName(evtId));
-        else if (g_entity_mgr->getEventsDb().getEventSize(evtId) != sz)
+        if (field.type->isString())
         {
-          logerr("event <%s|0x%X> has changed it's size %d!=%d(new)", eventName.c_str(), eventType,
-            g_entity_mgr->getEventsDb().getEventSize(evtId), sz);
+          offsets.push_back(ecs::ComponentTypeInfo<ecs::string>::type, (uint16_t)field.offset);
+          continue;
         }
-        else if (dbEventFlag != evtFlags)
+        if (is_BitStream(field.type))
         {
-          logerr("event <%s|0x%X> has changed it's flags %d!=%d(new). Fix annotation to [event(%s%s%s)]", eventName.c_str(), eventType,
-            dbEventFlag, evtFlags, dbEventFlag & ecs::EVCAST_UNICAST ? "unicast" : "",
-            (dbEventFlag & ecs::EVCAST_BOTH) == ecs::EVCAST_BOTH ? "," : "", dbEventFlag & ecs::EVCAST_BROADCAST ? "broadcast" : "");
+          offsets.push_back(ECS_HASH("danet::BitStream").hash, (uint16_t)field.offset);
+          continue;
         }
-        else
-          regNow = false;
-      }
-      if (regNow)
-      {
-        if (!isRawPod)
+        if (is_ecs_type(field.type))
         {
-          EventOffsets offsets;
-          for (auto &field : st->fields)
-          {
-            if (field.type->isString())
-            {
-              offsets.push_back(ecs::ComponentTypeInfo<ecs::string>::type, (uint16_t)field.offset);
-              continue;
-            }
-            if (is_BitStream(field.type))
-            {
-              offsets.push_back(ECS_HASH("danet::BitStream").hash, (uint16_t)field.offset);
-              continue;
-            }
-            if (is_ecs_type(field.type))
-            {
 #define DECL_LIST_TYPE(t, tn)                                                   \
   if (is_ecs_type_fast(field.type, tn))                                         \
   {                                                                             \
@@ -668,58 +638,22 @@ struct EventRegistrator final : das::StructureAnnotation
     continue;                                                                   \
   }
 
-              DAS_EVENT_ECS_CONT_TYPES
+          DAS_EVENT_ECS_CONT_TYPES
 #undef DECL_LIST_TYPE
-            }
-          }
-          events_offsets[eventType] = eastl::move(offsets);
         }
-        g_entity_mgr->getEventsDbMutable().registerEvent(eventType, sz, evtFlags, eventName.c_str(),
-          isRawPod ? nullptr : &EventRegistrator::destroy, isRawPod ? nullptr : &EventRegistrator::move_out);
-      }
-
-      if (regNow || prevHash != structHash)
-      {
-        if (prevHash != ecs::EventsDB::invalid_event_scheme_hash && prevHash != structHash)
-          logerr("event <%s|0x%X> has changed it's hash 0x%X!=0x%X(new)", eventName.c_str(), eventType, prevHash, structHash);
-        ecs::event_scheme_t eventScheme;
-        calc_struct_scheme(st, components, eventScheme);
-        bool registeredScheme =
-          g_entity_mgr->getEventsDbMutable().registerEventScheme(eventType, structHash, eastl::move(eventScheme));
-        if (!registeredScheme)
-          logerr("das_net: Unable to register event scheme for '%s' <0X%X>", eventName.c_str(), eventType);
       }
     }
 
-    const auto desc = dascript_net_events.find(eventType);
-    if (regNow || desc == dascript_net_events.end() || desc->second.routing != routing || desc->second.netLiable != netLiable ||
-        desc->second.reliability != reliability || desc->second.version != version)
-    {
-      if (desc != dascript_net_events.end())
-      {
-        if (desc->second.routing != routing)
-          logerr("event <%s|0x%X> routing changed to %d (was %d)", eventName, eventType, routing, desc->second.routing);
-        if (desc->second.netLiable != netLiable)
-          logwarn("event <%s|0x%X> netLiable changed to %d (was %d)", eventName, eventType, (uint8_t)netLiable,
-            (uint8_t)desc->second.netLiable);
-        if (desc->second.reliability != reliability)
-          logwarn("event <%s|0x%X> reliability changed to %d (was %d)", eventName, eventType, reliability, desc->second.reliability);
-        if (desc->second.version != version)
-          logwarn("event <%s|0x%X> version changed to %d (was %d)", eventName, eventType, version, desc->second.version);
-      }
+    ESModuleGroupData &mg = *getGroupData(mg_); // -V522
+    mg.unresolvedDasEvents[das::hash64z(st->getMangledName().c_str())] = DasEventData{eventName, eventType, castFlag, sz,
+      /*withScheme*/ true, version, structHash, eastl::move(eventScheme), eastl::move(offsets), routing, reliability, netLiable,
+      isRawPod};
 
-      if (!(das::is_in_aot() || das::is_in_completion()))
-        debug("das_net: register net event '%s' <0x%X> version=%@ size=%@ fields=%d routing=%d netLiable=%d reliability=%d, hash=0x%X",
-          eventName, eventType, version, sz, st->fields.size() - SKIP_FIRST_EVENT_FIELDS, routing, (uint8_t)netLiable, reliability,
-          structHash);
-      dascript_net_events[eventType] = DascriptEventDesc(version, castFlag, routing, netLiable, reliability);
-      ++dasEventsGeneration;
-    }
     return true;
   }
 };
 
-ska::flat_hash_map<ecs::event_type_t, EventRegistrator::EventOffsets, ska::power_of_two_std_hash<ecs::EventsDB::event_id_t>>
+ska::flat_hash_map<ecs::event_type_t, EventOffsets, ska::power_of_two_std_hash<ecs::EventsDB::event_id_t>>
   EventRegistrator::events_offsets = {};
 
 struct CppEventRegistrator final : das::StructureAnnotation
@@ -730,8 +664,7 @@ struct CppEventRegistrator final : das::StructureAnnotation
   {
     return common_touch(st);
   }
-  bool look(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList &args,
-    das::string &err) override
+  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args, das::string &err) override
   {
     const ecs::event_flags_t castFlag = resolve_cast_type(args);
     auto cppNameIt = args.find("name", das::Type::tString);
@@ -754,57 +687,181 @@ struct CppEventRegistrator final : das::StructureAnnotation
         return false;
     }
 
-    das::lock_guard<das::recursive_mutex> guard(bind_dascript::DasScripts<LoadedScript, EsContext>::mutex);
-
-    if (g_entity_mgr)
+    if (das::is_in_aot() || das::is_in_completion())
     {
-      ecs::EventsDB::event_id_t evtId = g_entity_mgr->getEventsDb().findEvent(eventType);
-      if (evtId == ecs::EventsDB::invalid_event_id)
-        logwarn("Event <%s> required in script, isn't registered in C++", eventName.c_str());
-      else
+      return true;
+    }
+
+    ecs::event_scheme_t eventScheme;
+    if (withScheme)
+      calc_struct_scheme(st, components, eventScheme);
+
+    ESModuleGroupData &mg = *getGroupData(mg_); // -V522
+    mg.unresolvedCppEvents[das::hash64z(st->getMangledName().c_str())] =
+      CppEventData{eventName, eventType, castFlag, (size_t)st->getSizeOf(), withScheme, version, structHash, eastl::move(eventScheme)};
+
+    return true;
+  }
+};
+
+void register_pending_events(ecs::EntityManager *mgr, eastl::vector_map<uint64_t, DasEventData> &das_events,
+  eastl::vector_map<uint64_t, CppEventData> &cpp_events)
+{
+  if (!mgr)
+  {
+    if (!(das::is_in_aot() || das::is_in_completion()))
+      logwarn("das: Unable to register events. EntityManager is not initialized");
+    return;
+  }
+  for (auto &it : das_events)
+  {
+    DasEventData &data = it.second;
+    const ecs::event_type_t eventType = data.eventType;
+    const ecs::event_flags_t castFlag = data.castFlag;
+    const ecs::string eventName = data.eventName;
+    const uint16_t version = data.version;
+    const PacketReliability reliability = data.reliability;
+    const DascriptEventDesc::NetLiable netLiable = data.netLiable;
+    const uint8_t routing = data.routing;
+    const size_t sz = data.size;
+    ecs::EventsDB::event_scheme_hash_t structHash = data.structHash;
+    ecs::event_scheme_t &eventScheme = data.eventScheme;
+    const size_t fieldsCount = eventScheme.size();
+    const bool isRawPod = data.isRawPod;
+
+    EventRegistrator::events_offsets[eventType] = eastl::move(data.offsets);
+
+    bool regNow = true;
+    const ecs::EventsDB::event_id_t evtId = mgr->getEventsDb().findEvent(eventType);
+    const ecs::event_flags_t evtFlags = castFlag | (isRawPod ? 0 : ecs::EVFLG_DESTROY);
+
+    const ecs::EventsDB::event_scheme_hash_t prevHash = evtId == ecs::EventsDB::invalid_event_id
+                                                          ? ecs::EventsDB::invalid_event_scheme_hash
+                                                          : mgr->getEventsDb().getEventSchemeHash(evtId);
+
+    if (lockedNetEventsRegistration && netLiable == DascriptEventDesc::NetLiable::Strict && routing != DASEVENT_NO_ROUTING &&
+        prevHash != structHash)
+    {
+      logerr("das_net: registration of a new dasevent '%s' <0x%X> when connection is already inited"
+             " and the protocol version has beed synced.",
+        mgr->getEventsDb().findEventName(eventType), eventType);
+    }
+
+    if (evtId != ecs::EventsDB::invalid_event_id)
+    {
+      const ecs::event_flags_t dbEventFlag = mgr->getEventsDb().getEventFlags(evtId);
+      if (eventName != mgr->getEventsDb().getEventName(evtId))
+        logerr("hash collision for event 0x%X (%s != %s)", eventType, eventName.c_str(), mgr->getEventsDb().getEventName(evtId));
+      else if (mgr->getEventsDb().getEventSize(evtId) != sz)
       {
-        if (strcmp(g_entity_mgr->getEventsDb().getEventName(evtId), eventName.c_str()) != 0)
-        {
-          err.append_sprintf("Event <%s> required in script has collision with <%s>, hash = 0x%X", eventName.c_str(),
-            g_entity_mgr->getEventsDb().getEventName(evtId), eventType);
-          return false;
-        }
-        if (g_entity_mgr->getEventsDb().getEventSize(evtId) != st->getSizeOf())
-        {
-          err.append_sprintf("Event <%s|0x%X> required in script has different size(=%d) than in C++ (=%d)!", eventName.c_str(),
-            eventType, st->getSizeOf(), g_entity_mgr->getEventsDb().getEventSize(evtId));
-          return false;
-        }
-        const ecs::event_flags_t dbEventFlag = g_entity_mgr->getEventsDb().getEventFlags(evtId);
-        if (castFlag != (dbEventFlag & ecs::EVFLG_CASTMASK))
-        {
-          err.append_sprintf("Event <%s|0x%X> required in script has different cast flags(=%d) than in C++ (=%d)!. Fix annotation to "
-                             "[cpp_event(%s%s%s)]",
-            eventName.c_str(), eventType, castFlag, (dbEventFlag & ecs::EVFLG_CASTMASK),
-            dbEventFlag & ecs::EVCAST_UNICAST ? "unicast" : "", (dbEventFlag & ecs::EVCAST_BOTH) == ecs::EVCAST_BOTH ? "," : "",
-            dbEventFlag & ecs::EVCAST_BROADCAST ? "broadcast" : "");
-          return false;
-        }
-        // debug("cpp event <%s> is registered for handling in daScript", eventName.c_str());
+        logerr("event <%s|0x%X> has changed it's size %d!=%d(new)", eventName.c_str(), eventType,
+          mgr->getEventsDb().getEventSize(evtId), sz);
+      }
+      else if (dbEventFlag != evtFlags)
+      {
+        logerr("event <%s|0x%X> has changed it's flags %d!=%d(new). Fix annotation to [event(%s%s%s)]", eventName.c_str(), eventType,
+          dbEventFlag, evtFlags, dbEventFlag & ecs::EVCAST_UNICAST ? "unicast" : "",
+          (dbEventFlag & ecs::EVCAST_BOTH) == ecs::EVCAST_BOTH ? "," : "", dbEventFlag & ecs::EVCAST_BROADCAST ? "broadcast" : "");
+      }
+      else
+        regNow = false;
+    }
+    if (regNow)
+    {
+      mgr->getEventsDbMutable().registerEvent(eventType, sz, evtFlags, eventName.c_str(),
+        isRawPod ? nullptr : &EventRegistrator::destroy, isRawPod ? nullptr : &EventRegistrator::move_out);
+    }
+
+    if (regNow || prevHash != structHash)
+    {
+      if (prevHash != ecs::EventsDB::invalid_event_scheme_hash && prevHash != structHash)
+        logerr("event <%s|0x%X> has changed it's hash 0x%X!=0x%X(new)", eventName.c_str(), eventType, prevHash, structHash);
+      bool registeredScheme = mgr->getEventsDbMutable().registerEventScheme(eventType, structHash, eastl::move(eventScheme));
+      if (!registeredScheme)
+        logerr("das_net: Unable to register event scheme for '%s' <0X%X>", eventName.c_str(), eventType);
+    }
+
+    const auto desc = dascript_net_events.find(eventType);
+    if (regNow || desc == dascript_net_events.end() || desc->second.routing != routing || desc->second.netLiable != netLiable ||
+        desc->second.reliability != reliability || desc->second.version != version)
+    {
+      if (desc != dascript_net_events.end())
+      {
+        if (desc->second.routing != routing)
+          logerr("event <%s|0x%X> routing changed to %d (was %d)", eventName, eventType, routing, desc->second.routing);
+        if (desc->second.netLiable != netLiable)
+          logwarn("event <%s|0x%X> netLiable changed to %d (was %d)", eventName, eventType, (uint8_t)netLiable,
+            (uint8_t)desc->second.netLiable);
+        if (desc->second.reliability != reliability)
+          logwarn("event <%s|0x%X> reliability changed to %d (was %d)", eventName, eventType, reliability, desc->second.reliability);
+        if (desc->second.version != version)
+          logwarn("event <%s|0x%X> version changed to %d (was %d)", eventName, eventType, version, desc->second.version);
       }
 
-      if (withScheme)
-      {
-        const ecs::EventsDB::event_scheme_hash_t prevHash = evtId == ecs::EventsDB::invalid_event_id
-                                                              ? ecs::EventsDB::invalid_event_scheme_hash
-                                                              : g_entity_mgr->getEventsDb().getEventSchemeHash(evtId);
+      debug("das_net: register net event '%s' <0x%X> version=%@ size=%@ fields=%d routing=%d netLiable=%d reliability=%d,"
+            "hash = 0x%X",
+        eventName, eventType, version, sz, fieldsCount, routing, (uint8_t)netLiable, reliability, structHash);
+      dascript_net_events[eventType] = DascriptEventDesc(version, castFlag, routing, netLiable, reliability);
+      ++dasEventsGeneration;
+    }
+  }
 
-        if (prevHash != structHash)
-        {
-          if (prevHash != ecs::EventsDB::invalid_event_scheme_hash)
-            logerr("event <%s|0x%X> has changed it's hash 0x%X!=0x%X(new)", eventName.c_str(), eventType, prevHash, structHash);
-          ecs::event_scheme_t eventScheme;
-          calc_struct_scheme(st, components, eventScheme);
-          bool registeredScheme =
-            g_entity_mgr->getEventsDbMutable().registerEventScheme(eventType, structHash, eastl::move(eventScheme));
-          if (!registeredScheme)
-            logerr("das_net: Unable to register cpp event scheme for '%s' <0X%X>", eventName.c_str(), eventType);
-        }
+  for (auto &it : cpp_events)
+  {
+    CppEventData &data = it.second;
+    const ecs::string eventName = data.eventName;
+    const ecs::event_type_t eventType = data.eventType;
+    const ecs::event_flags_t castFlag = data.castFlag;
+    const size_t size = data.size;
+    const bool withScheme = data.withScheme;
+    const uint16_t version = data.version;
+    ecs::EventsDB::event_scheme_hash_t structHash = data.structHash;
+    ecs::event_scheme_t &eventScheme = data.eventScheme;
+
+    ecs::EventsDB::event_id_t evtId = mgr->getEventsDb().findEvent(eventType);
+    if (evtId == ecs::EventsDB::invalid_event_id)
+    {
+      logwarn("Event <%s> required in script, isn't registered in C++", eventName.c_str());
+    }
+    else
+    {
+      if (strcmp(mgr->getEventsDb().getEventName(evtId), eventName.c_str()) != 0)
+      {
+        logerr("Event <%s> required in script has collision with <%s>, hash = 0x%X", eventName.c_str(),
+          mgr->getEventsDb().getEventName(evtId), eventType);
+        return;
+      }
+      if (mgr->getEventsDb().getEventSize(evtId) != size)
+      {
+        logerr("Event <%s|0x%X> required in script has different size(=%d) than in C++ (=%d)!", eventName.c_str(), eventType, size,
+          mgr->getEventsDb().getEventSize(evtId));
+        return;
+      }
+      const ecs::event_flags_t dbEventFlag = mgr->getEventsDb().getEventFlags(evtId);
+      if (castFlag != (dbEventFlag & ecs::EVFLG_CASTMASK))
+      {
+        logerr("Event <%s|0x%X> required in script has different cast flags(=%d) than in C++ (=%d)!. Fix annotation to "
+               "[cpp_event(%s%s%s)]",
+          eventName.c_str(), eventType, castFlag, (dbEventFlag & ecs::EVFLG_CASTMASK),
+          dbEventFlag & ecs::EVCAST_UNICAST ? "unicast" : "", (dbEventFlag & ecs::EVCAST_BOTH) == ecs::EVCAST_BOTH ? "," : "",
+          dbEventFlag & ecs::EVCAST_BROADCAST ? "broadcast" : "");
+        return;
+      }
+    }
+
+    if (withScheme)
+    {
+      const ecs::EventsDB::event_scheme_hash_t prevHash = evtId == ecs::EventsDB::invalid_event_id
+                                                            ? ecs::EventsDB::invalid_event_scheme_hash
+                                                            : mgr->getEventsDb().getEventSchemeHash(evtId);
+
+      if (prevHash != structHash)
+      {
+        if (prevHash != ecs::EventsDB::invalid_event_scheme_hash)
+          logerr("event <%s|0x%X> has changed it's hash 0x%X!=0x%X(new)", eventName.c_str(), eventType, prevHash, structHash);
+        bool registeredScheme = mgr->getEventsDbMutable().registerEventScheme(eventType, structHash, eastl::move(eventScheme));
+        if (!registeredScheme)
+          logerr("das_net: Unable to register cpp event scheme for '%s' <0X%X>", eventName.c_str(), eventType);
       }
     }
 
@@ -822,9 +879,8 @@ struct CppEventRegistrator final : das::StructureAnnotation
     }
 
     dascript_net_events[eventType] = DascriptEventDesc(version, castFlag, routing, netLiable, RELIABLE_ORDERED);
-    return true;
   }
-};
+}
 
 class EventDataWalker : public das::DataWalker
 {

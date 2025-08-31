@@ -13,10 +13,10 @@ All libraries are implemented through the squirrel API and the ANSI C runtime li
 The modules are organized in the following way:
 
 * I/O : input and output
-* blob : binary buffers manipilation
+* IOstream : binary buffers manipilation
 * math : basic mathematical routines
 * system : system access function
 * string : string formatting and manipulation
 * aux : auxiliary functions
 
-The libraries can be registered independently,except for the IO library that depends from the bloblib.
+The libraries can be registered independently,except for the IO library that depends from the iostreamlib.

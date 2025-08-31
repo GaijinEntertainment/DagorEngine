@@ -49,7 +49,7 @@ public:
     csg.hooks.registerHook(new carve::csg::CarveTriangulatorWithImprovement, carve::csg::CSG::Hooks::PROCESS_OUTPUT_FACE_BIT);
     // csg.hooks.registerHook(new carve::csg::CarveTriangulator, carve::csg::CSG::Hooks::PROCESS_OUTPUT_FACE_BIT);
   }
-  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed, BBox3 &box)
+  void *create_poly(const TMatrix *wtm, const Mesh &mesh, int node_id, bool only_closed, BBox3 &box) override
   {
     carve_poly_t *poly = texturedMesh(mesh, wtm, node_id, box);
     if (only_closed && !poly->isClosed())
@@ -59,14 +59,14 @@ public:
     }
     return poly;
   }
-  bool hasOpenManifolds(void *poly)
+  bool hasOpenManifolds(void *poly) override
   {
     if (!poly)
       return true;
 
     return !(((carve_poly_t *)poly)->isClosed());
   }
-  void delete_poly(void *poly)
+  void delete_poly(void *poly) override
   {
     if (poly)
       delete ((carve_poly_t *)poly);
@@ -77,7 +77,7 @@ public:
       tm.m[2][2], tm.m[3][2], 0, 0, 0, 1);
     return m;
   }
-  void *op(void *a_, void *b_)
+  void *op(void *a_, void *b_) override
   {
     carve_poly_t *a = (carve_poly_t *)a_;
     carve_poly_t *b = (carve_poly_t *)b_;
@@ -99,7 +99,7 @@ public:
     convert(*(carve_poly_t *)in, mesh);
   }*/
 
-  void removeUnusedFaces(Mesh &mesh, void *in_, int node_id)
+  void removeUnusedFaces(Mesh &mesh, void *in_, int node_id) override
   {
     if (!in_)
       return;

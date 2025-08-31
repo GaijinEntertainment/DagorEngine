@@ -56,14 +56,14 @@ public:
       b->addPoint2("p", Point2(20, -12));
     }
   }
-  ~CsgEntityViewPlugin() { destroy_it(entity); }
+  ~CsgEntityViewPlugin() override { destroy_it(entity); }
 
-  virtual const char *getInternalName() const { return "csgEntityViewer"; }
+  const char *getInternalName() const override { return "csgEntityViewer"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     occluderBox.setempty();
     occluderQuad.clear();
@@ -81,7 +81,7 @@ public:
     fillPluginPanel();
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     if (spEditor)
       spEditor->destroyPanel();
@@ -89,11 +89,11 @@ public:
     return true;
   }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     if (!entity)
       return false;
@@ -101,10 +101,10 @@ public:
     return true;
   }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects()
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override
   {
     if (showOcclBox && (!occluderBox.isempty() || occluderQuad.size()))
     {
@@ -134,9 +134,9 @@ public:
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "csg") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "csg") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel)
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setEventHandler(this);
 
@@ -183,9 +183,9 @@ public:
   }
 
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_LODS_GROUP)
     {
@@ -222,7 +222,7 @@ public:
       setFoundationPath();
     }
   }
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (pcb_id == PID_GENERATE_SEED && entity)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())

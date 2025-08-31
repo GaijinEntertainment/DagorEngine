@@ -1,3 +1,4 @@
+options indenting = 2
 options no_aot
 module verify_macro shared private
 
@@ -16,16 +17,16 @@ class EcsTypeMacro : AstCallMacro
   [unused_argument(mod)] def override visit(prog : ProgramPtr; mod : Module ?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr
     if length(expr.arguments) != 1
       macro_error(prog, expr.at, "ecs_type_hash expecting 1 argument")
-      return <- [[ExpressionPtr]]
+      return <- default<ExpressionPtr>
     if expr.arguments[0]._type == null || expr.arguments[0]._type.isAutoOrAlias
       macro_error(prog, expr.at, "ecs_type_hash requires fully inferred type")
-      return <- [[ExpressionPtr]]
+      return <- default<ExpressionPtr>
     var res = 0u
     let foundCppType = get_underlying_ecs_type(expr.arguments[0]._type, true) <| $(typeName)
       res = ecs_hash(typeName)
     if !foundCppType || res == 0u
       macro_error(prog, expr.at, "ecs_type_hash unable to resolve ecs type for {describe(expr.arguments[0]._type)}")
-      return <- [[ExpressionPtr]]
+      return <- default<ExpressionPtr>
     return <- qmacro($v(res))
 
 def get_argument(arguments : rtti::AnnotationArgumentList; tag : string; default_value = "")
@@ -44,6 +45,11 @@ def get_ecs_verify_fn(st : StructurePtr; name : string; map : table<string; uint
 
 [structure_macro(name="req_template")]
 class ReqTemplateAnnotation : AstStructureAnnotation
+
+  [unused_argument(group, args, errors)] def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
+    for field in st.fields
+      field.annotation.add_annotation_argument("safe_when_uninitialized", true)
+    return true
 
   [unused_argument(group)] def override patch(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string; var astChanged : bool &) : bool
     if length(st.fields) == 0 || is_in_aot() || !is_entity_mgr_exists()
@@ -72,9 +78,9 @@ class ReqTemplateAnnotation : AstStructureAnnotation
 
     var inscope fn <- get_ecs_verify_fn(st, name, map)
 
-    fn |> append_annotation("ecs", "es", [{auto
-        [[auto "on_event", [[RttiValue tString="VerifyEcsTemplates"]] ]]
-    }])
+    fn |> append_annotation("ecs", "es", [
+        ("on_event", RttiValue(tString="VerifyEcsTemplates"))
+    ])
     compiling_module() |> add_function(fn)
     astChanged = true
     return true

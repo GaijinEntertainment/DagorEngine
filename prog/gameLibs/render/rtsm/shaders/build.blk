@@ -4,7 +4,8 @@
 
 incDir:t="../../../prog/gameLibs/render/rtsm/shaders"
 incDir:t="../../../prog/gameLibs/render/rtao/shaders"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Include"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Resources"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/NRD"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Include"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Resources"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/math/MathLib"

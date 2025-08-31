@@ -95,6 +95,12 @@ VECTORCALL VECMATH_FINLINE vec4f v_add_y(vec4f a, float y);
 VECTORCALL VECMATH_FINLINE vec4f v_add_z(vec4f a, float z);
 VECTORCALL VECMATH_FINLINE vec4f v_add_w(vec4f a, float w);
 
+//! multiply one component of vector with float value
+VECTORCALL VECMATH_FINLINE vec4f v_mul_x(vec4f a, float x);
+VECTORCALL VECMATH_FINLINE vec4f v_mul_y(vec4f a, float y);
+VECTORCALL VECMATH_FINLINE vec4f v_mul_z(vec4f a, float z);
+VECTORCALL VECMATH_FINLINE vec4f v_mul_w(vec4f a, float w);
+
 //! store vector to  16-byte aligned memory
 VECTORCALL VECMATH_FINLINE void v_st(void *m, vec4f v);
 //! store vector to unaligned memory
@@ -198,27 +204,45 @@ VECTORCALL VECMATH_FINLINE vec4i v_cvt_byte_vec4i(uint32_t a);
 
 //! converts float vector to 4 halfs and stores(unaligned)
 VECTORCALL VECMATH_FINLINE void v_float_to_half(uint16_t* __restrict m, const vec4f v);
-//! unpacks 4 halfs into float vector. handles denorms, do not handles infs and nans
+//! unpacks 4 halfs into float vector. handles denorms, does not nesessarily (platform dependent) handles infs and nans
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(vec4i m);
 //! unpacks 4 halfs into float vector. handles denorms, infs and nans
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials(vec4i m);
+//! unpacks 4 halfs from lo 64 bits of vec4i (.xy)into float vector. handles denorms, does not nesessarily handles infs and nans
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_lo(vec4i m);
+//! unpacks 4 halfs from lo 64 bits of vec4i (.xy)into float vector. handles denorms, infs and nans
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials_lo(vec4i m);
 //! reads(unaligned) and unpacks 4 halfs into float vector
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(const uint16_t* __restrict m);
 //! reads(unaligned) and unpacks 4 halfs into float vector
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials(const uint16_t* __restrict m);
 
-//! converts float vector to 4 halfs (lower 16 bits of vec4i), doesn't round correctly
+//! converts float vector to 4 halfs (lower 16 bits of vec4i), truncates to zero, doesn't nesessarily handle specials
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc(vec4f v);
+//! converts float vector to 4 halfs (lower 16 bits of vec4i), truncates to zero, doesn't nesessarily handle specials
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f v);
 //handles infs/nans, doesn't round correctly
-//it (incorrectly) translates some of sNaNs into infinity, so be careful!
+//it may (incorrectly) translates some of sNaNs into infinity, depending on platform, so be careful!
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials(vec4f f);
 
-// round-to-nearest-even, doesn't handle NANs
+// round-to-nearest-even, doesn't nesessarily handle NANs
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne(vec4f f);
-//! not check for NANs, result halves are always bigger than source
+//! does not nesessarily check for NANs, result halves are always bigger than source
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up(vec4f a);
-//! not check for NANs, result halves are always smaller than source
+//! does not nesessarily check for NANs, result halves are always smaller than source
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down(vec4f a);
+
+//! converts float vector to 4 halfs (lower 64 bits of vec4i, to .xy), truncates to zero, doesn't nesessarily handle specials
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc_lo(vec4f v);
+//handles infs/nans, truncates
+//it may (incorrectly) translates some of sNaNs into infinity, so be careful!
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials_lo(vec4f f);
+// round-to-nearest-even, doesn't handle NANs
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne_lo(vec4f f);
+//! not check for NANs, result halves are always bigger than source
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up_lo(vec4f a);
+//! not check for NANs, result halves are always smaller than source
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down_lo(vec4f a);
 
 //! pack float vector to 4 bytes with saturation
 VECMATH_FINLINE uint32_t v_float_to_byte ( vec4f x );
@@ -238,14 +262,20 @@ VECTORCALL VECMATH_FINLINE vec4i v_cvt_ceili(vec4f a);
 //! round to smallest integer (result remains int)
 VECTORCALL VECMATH_FINLINE vec4i v_cvt_floori(vec4f a);
 
-//! round to nearest integer (result remains int)
+//! round to nearest integer like roundf (result remains int)
 VECTORCALL VECMATH_FINLINE vec4i v_cvt_roundi(vec4f a);
+
+//! round to nearest even integer (result remains int)
+VECTORCALL VECMATH_FINLINE vec4i v_cvt_roundi_ieee(vec4f a);
 
 //! round to zero (result remains int)
 VECTORCALL VECMATH_FINLINE vec4i v_cvt_trunci(vec4f a);
 
-//! round to nearest integer (result remains fp)
+//! round to nearest integer like roundf (result remains fp)
 VECTORCALL VECMATH_FINLINE vec4f v_round(vec4f a);
+
+//! round to nearest even integer (result remains fp)
+VECTORCALL VECMATH_FINLINE vec4f v_round_ieee(vec4f a);
 
 //! round to zero (result remains fp)
 VECTORCALL VECMATH_FINLINE vec4f v_trunc(vec4f a);
@@ -782,6 +812,8 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43(mat44f_cref tm);
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_x(mat44f_cref tm);
 //! .xyz = scales of 3 axes
 VECTORCALL VECMATH_FINLINE vec3f v_mat44_scale43_sq(mat44f_cref tm);
+//! apply scale from .xyz to 3 axes
+VECTORCALL VECMATH_FINLINE void v_mat44_apply_scale43(mat44f &tm, vec3f scale);
 
 //! stores mat33f to unaligned Matrix3
 VECTORCALL VECMATH_FINLINE void v_mat_33cu_from_mat33(float * __restrict m33, const mat33f& tm);
@@ -804,6 +836,8 @@ VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu_unsafe(mat44f &tmV, const
 //! mat44f from memaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43ca(mat44f &tmV, const float *const __restrict m43);
 
+//! .xyz = last column of matrix (.w of each row)
+VECTORCALL VECMATH_FINLINE vec3f v_mat43_extract_pos(mat43f_cref mat);
 
 //
 // Axis-aligned bounding boxes
@@ -890,6 +924,8 @@ VECTORCALL VECMATH_FINLINE vec4f v_bbox2_extend(vec4f box2d, vec4f ext);
 VECMATH_FINLINE void v_bsph_init_empty(vec4f &sph);
 //! create bounding sphere with specified center and radius
 VECMATH_FINLINE void v_bsph_init(vec4f &sph, vec3f center, vec4f radius_x);
+//! create bounding sphere with specified center and radius, add transformation matrix
+VECMATH_FINLINE void v_bsph_init(vec4f &sph, mat44f_cref tm, vec3f center, vec4f radius_x);
 //! create minimal bounding sphere containing bbox (.xyz=bbox_center .w=radius)
 VECMATH_FINLINE void v_bsph_init_by_bbox3(vec4f &sph, bbox3f b);
 

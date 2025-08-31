@@ -1,30 +1,38 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/denoiser.h>
+#include "denoiser_names.h"
 
 namespace denoiser
 {
+bool is_available() { return false; }
 
-void initialize(int, int) {}
+void initialize(int, int, bool) {}
 void teardown() {}
 
-void make_shadow_maps(UniqueTex &, UniqueTex &) {}
-void make_shadow_maps(UniqueTex &, UniqueTex &, UniqueTex &) {}
-void make_ao_maps(UniqueTex &, UniqueTex &, bool) {}
-void make_reflection_maps(UniqueTex &, UniqueTex &, ReflectionMethod, bool) {}
+bool is_ray_reconstruction_enabled() { return false; }
+
+void get_required_persistent_texture_descriptors(TexInfoMap &, bool) {}
+
+void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &) {}
+void get_required_transient_texture_descriptors_for_ao(TexInfoMap &) {}
+
+void get_required_persistent_texture_descriptors_for_rtr(TexInfoMap &, ReflectionMethod) {}
+void get_required_transient_texture_descriptors_for_rtr(TexInfoMap &, ReflectionMethod) {}
+
+void get_required_persistent_texture_descriptors_for_rtsm(TexInfoMap &, bool) {}
+void get_required_transient_texture_descriptors_for_rtsm(TexInfoMap &, bool) {}
+
+void get_required_persistent_texture_descriptors_for_gi(TexInfoMap &) {}
+void get_required_transient_texture_descriptors_for_gi(TexInfoMap &) {}
 
 void prepare(const FrameParams &) {}
 
 void denoise_shadow(const ShadowDenoiser &) {}
 void denoise_ao(const AODenoiser &) {}
+void denoise_gi(const GIDenoiser &) {}
 void denoise_reflection(const ReflectionDenoiser &) {}
 
 int get_frame_number() { return 0; }
-
-void get_memory_stats(int &, int &, int &, int &) {}
-
-TEXTUREID get_nr_texId(int) { return BAD_D3DRESID; }
-
-TEXTUREID get_viewz_texId(int) { return BAD_D3DRESID; }
 
 } // namespace denoiser

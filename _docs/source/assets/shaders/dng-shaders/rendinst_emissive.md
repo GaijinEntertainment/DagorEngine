@@ -1,4 +1,4 @@
-# Shader: rendinst_emissive
+# `rendinst_emissive`
 
 ## Overview
 

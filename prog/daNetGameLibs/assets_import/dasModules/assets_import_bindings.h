@@ -31,7 +31,7 @@ inline void iterate_dag_textures(
     context->invoke(block, &arg, nullptr, at);
   }
   for (DagData::Block &b : data.blocks)
-    memfree(b.data, tmpmem); // todo: free somewhere in DagData dtor
+    b.data.clear();
 }
 
 inline bool copy_file(const char *src, const char *dest)

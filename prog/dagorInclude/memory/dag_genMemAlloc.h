@@ -15,47 +15,20 @@
 /// Allocator classes for SmallTab.
 
 
-#define DECLARE_MEMALLOC(NAME, MEM)                                                      \
-  struct NAME                                                                            \
-  {                                                                                      \
-    NAME()                                                                               \
-    {}                                                                                   \
-    NAME(const char *)                                                                   \
-    {}                                                                                   \
-    static inline IMemAlloc *getMem()                                                    \
-    {                                                                                    \
-      return MEM;                                                                        \
-    }                                                                                    \
-    static inline void *alloc(int sz)                                                    \
-    {                                                                                    \
-      return MEM->alloc(sz);                                                             \
-    }                                                                                    \
-    static inline void free(void *p)                                                     \
-    {                                                                                    \
-      return MEM->free(p);                                                               \
-    }                                                                                    \
-    static inline void *allocate(size_t n, int /*flags*/ = 0)                            \
-    {                                                                                    \
-      return MEM->alloc(n);                                                              \
-    }                                                                                    \
-    static inline void *allocate(size_t n, size_t al, size_t /*ofs*/, int /*flags*/ = 0) \
-    {                                                                                    \
-      return MEM->allocAligned(n, al);                                                   \
-    }                                                                                    \
-    static inline void deallocate(void *p, size_t)                                       \
-    {                                                                                    \
-      MEM->free(p);                                                                      \
-    }                                                                                    \
-    static inline bool resizeInplace(void *p, size_t sz)                                 \
-    {                                                                                    \
-      return MEM->resizeInplace(p, sz);                                                  \
-    }                                                                                    \
-    static inline void *realloc(void *p, size_t sz)                                      \
-    {                                                                                    \
-      return MEM->realloc(p, sz);                                                        \
-    }                                                                                    \
-    static inline void set_name(const char *)                                            \
-    {}                                                                                   \
+#define DECLARE_MEMALLOC(NAME, MEM)                                                                                           \
+  struct NAME                                                                                                                 \
+  {                                                                                                                           \
+    NAME() {}                                                                                                                 \
+    NAME(const char *) {}                                                                                                     \
+    static inline IMemAlloc *getMem() { return MEM; }                                                                         \
+    static inline void *alloc(int sz) { return MEM->alloc(sz); }                                                              \
+    static inline void free(void *p) { return MEM->free(p); }                                                                 \
+    static inline void *allocate(size_t n, int /*flags*/ = 0) { return MEM->alloc(n); }                                       \
+    static inline void *allocate(size_t n, size_t al, size_t /*ofs*/, int /*flags*/ = 0) { return MEM->allocAligned(n, al); } \
+    static inline void deallocate(void *p, size_t) { MEM->free(p); }                                                          \
+    static inline bool resizeInplace(void *p, size_t sz) { return MEM->resizeInplace(p, sz); }                                \
+    static inline void *realloc(void *p, size_t sz) { return MEM->realloc(p, sz); }                                           \
+    static inline void set_name(const char *) {}                                                                              \
   }
 
 DECLARE_MEMALLOC(MidmemAlloc, midmem);

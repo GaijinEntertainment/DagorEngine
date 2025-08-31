@@ -50,14 +50,14 @@ class LandClassExporter : public IDagorAssetExporter
   };
 
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "land exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "land exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return 0x03FB59C4u; }
-  virtual unsigned __stdcall getGameResVersion() const { return preferZstdPacking ? 16 : 15; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return 0x03FB59C4u; }
+  unsigned __stdcall getGameResVersion() const override { return preferZstdPacking ? 16 : 15; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -81,20 +81,22 @@ public:
       }
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     DataBlock landBlk;
+    TwoStepRelPath::storage_t tmp_stor;
 
     // clean up land BLK
     landBlk = a.props;
-    processAssetBlk(landBlk, a.getMgr(), true, a.getName(), &log);
+    Tab<IDagorAssetRefProvider::Ref> unused_refs;
+    processAssetBlk(landBlk, a.getMgr(), unused_refs, true, a.getName(), &log);
     if (!validateLandBlk(landBlk, log, a.getName(), a.props.getBool("allowEqualSeed", false)))
       return false;
     landBlk.setBool("hasHash", true);
 
-    mkbindump::BinDumpSaveCB lcwr(8 << 20, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB lcwr(8 << 20, cwr);
     // write land BLK
     write_ro_datablock(lcwr, landBlk);
 
@@ -115,7 +117,7 @@ public:
           return false;
         }
 
-        lcwr.writeDwString(sdkRoot.mkRelPath(files[i]));
+        lcwr.writeDwString(sdkRoot.mkRelPath(files[i], tmp_stor));
         if (img.getBitsPerPixel() == 1)
           mkbindump::build_ro_hier_bitmap(lcwr, Bitmap1(img), 4, 3);
         else if (img.getBitsPerPixel() == 8)
@@ -128,7 +130,7 @@ public:
         for (int j = 0, nid = landBlk.getNameId("obj_plant_generate"); j < landBlk.blockCount(); j++)
           if (landBlk.getBlock(j)->getBlockNameId() == nid)
             if (const char *map_nm = landBlk.getBlock(j)->getStr("densityMap", NULL))
-              if (dd_stricmp(map_nm, sdkRoot.mkRelPath(files[i])) == 0)
+              if (dd_stricmp(map_nm, sdkRoot.mkRelPath(files[i], tmp_stor)) == 0)
               {
                 static const int CSZ = 1 << 4;
                 float land_density = landBlk.getBlock(j)->getReal("density", 0);
@@ -201,11 +203,10 @@ public:
     }
   }
 
-  static dag::ConstSpan<IDagorAssetRefProvider::Ref> processAssetBlk(DataBlock &blk, DagorAssetMgr &amgr, bool cleanup,
+  static void processAssetBlk(DataBlock &blk, DagorAssetMgr &amgr, Tab<IDagorAssetRefProvider::Ref> &ri_list, bool cleanup,
     const char *a_name, ILogWriter *log)
   {
-    static Tab<IDagorAssetRefProvider::Ref> ri_list(tmpmem);
-    static Tab<IDagorAssetRefProvider::Ref> other_refs(tmpmem);
+    Tab<IDagorAssetRefProvider::Ref> other_refs(tmpmem);
     FastNameMap ri_nm;
     int nid_detail = blk.getNameId("detail");
     int nid_resources = blk.getNameId("resources");
@@ -220,6 +221,7 @@ public:
     int tifmask_atype = amgr.getAssetTypeId("tifMask");
     Point2 area0 = blk.getPoint2("landBBoxLim0", Point2(0, 0));
     Point2 area1 = blk.getPoint2("landBBoxLim1", blk.getBlockByNameEx("detail")->getPoint2("size", Point2(0, 0)));
+    TwoStepRelPath::storage_t tmp_stor;
 
     ri_list.clear();
     other_refs.clear();
@@ -315,7 +317,7 @@ public:
           if (!cleanup)
             continue;
           if (DagorAsset *tm_a = other_refs.back().getAsset())
-            b.setStr("densityMap", sdkRoot.mkRelPath(tm_a->getTargetFilePath()));
+            b.setStr("densityMap", sdkRoot.mkRelPath(tm_a->getTargetFilePath(), tmp_stor));
           else
             b.removeParam("densityMap");
         }
@@ -374,7 +376,6 @@ public:
       DataBlock &b = *blk.addBlock("posInst");
     }
     append_items(ri_list, other_refs.size(), other_refs.data());
-    return ri_list;
   }
 
   bool validateLandBlk(const DataBlock &land, ILogWriter &log, const char *a_name, bool allowEqualSeed)
@@ -440,23 +441,23 @@ public:
 class LandClassRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "land refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "land refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    return LandClassExporter::processAssetBlk(a.props, a.getMgr(), false, a.getName(), nullptr);
+    LandClassExporter::processAssetBlk(a.props, a.getMgr(), refs, false, a.getName(), nullptr);
   }
 };
 
 class LandClassExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     bmSrv = (IBitMaskImageMgr *)get_tiff_bit_mask_image_mgr();
     sdkRoot.setSdkRoot(appblk.getStr("appDir", NULL), "develop");
@@ -471,15 +472,15 @@ public:
 
     return bmSrv != NULL;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   LandClassExporter exp;

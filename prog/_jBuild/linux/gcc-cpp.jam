@@ -14,14 +14,14 @@ rule ProcessCompileTarget
   }
 
   local O3 = -O3 ;
-  if $(CheckOnly) = yes { O3 = -O0 ; }
+  if $(CheckOnly) = yes { O3 = -O1 ; }
   switch $(Config) {
     case dev :
       _CONFIG_OPT = $(O3) -DDAGOR_DBGLEVEL=1 ;
     case rel :
-      _CONFIG_OPT = -DDAGOR_DBGLEVEL=0 $(O3) -DNDEBUG=1 ;
+      _CONFIG_OPT = -DDAGOR_DBGLEVEL=0 $(O3) -DNDEBUG ;
     case irel :
-      _CONFIG_OPT = -DDAGOR_DBGLEVEL=-1 $(O3) -DNDEBUG=1 ;
+      _CONFIG_OPT = -DDAGOR_DBGLEVEL=-1 $(O3) -DNDEBUG ;
     case dbg :
       _CONFIG_OPT = -DDAGOR_DBGLEVEL=2 ;
       FortifySource = ; # _FORTIFY_SOURCE requires compiling with optimization

@@ -37,7 +37,7 @@ inline bool create_dds_header(void *data, int size, int w, int h, int bpp, int m
     dsc.ddpfPixelFormat.dwFlags = DDPF_ALPHA | DDPF_ALPHAPIXELS;
     dsc.ddpfPixelFormat.dwRGBAlphaBitMask = 0x000000FF;
   }
-  else if (fmt == TEXFMT_L8)
+  else if (fmt == TEXFMT_R8)
   {
     dsc.ddpfPixelFormat.dwFlags = DDPF_LUMINANCE;
     dsc.ddpfPixelFormat.dwLuminanceBitCount = bpp;
@@ -72,7 +72,7 @@ inline bool create_dds_header(void *data, int size, int w, int h, int bpp, int m
       case TEXFMT_A8R8G8B8: dfmt = D3DFMT_A8R8G8B8; break;
       case TEXFMT_L16: dfmt = D3DFMT_L16; break;
       case TEXFMT_A8: dfmt = D3DFMT_A8; break;
-      case TEXFMT_L8: dfmt = D3DFMT_L8; break;
+      case TEXFMT_R8: dfmt = D3DFMT_L8; break;
       case TEXFMT_A1R5G5B5: dfmt = D3DFMT_A1R5G5B5; break;
       case TEXFMT_A4R4G4B4: dfmt = D3DFMT_A4R4G4B4; break;
       default: return false;

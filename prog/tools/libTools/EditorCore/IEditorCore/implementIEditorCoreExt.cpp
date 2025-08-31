@@ -2,6 +2,7 @@
 
 #include "implementIEditorCore.h"
 #include <EditorCore/captureCursor.h>
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_ObjectCreator.h>
 
 #include <drv/3d/dag_driver.h>
@@ -388,6 +389,8 @@ bool EcGeom::shaderGlobalSetColor4(int id, const Color4 &val) const { return Sha
 
 //==================================================================================================
 bool EcGeom::shaderGlobalSetTexture(int id, TEXTUREID val) const { return ShaderGlobal::set_texture(id, val); }
+bool EcGeom::shaderGlobalSetSampler(int id, d3d::SamplerHandle val) const { return ShaderGlobal::set_sampler(id, val); }
+d3d::SamplerHandle EcGeom::getSeparateSampler(TEXTUREID val) const { return get_texture_separate_sampler(val); }
 
 int EcGeom::shaderGlobalGetInt(int id) const { return ShaderGlobal::get_int_fast(id); }
 real EcGeom::shaderGlobalGetReal(int id) const { return ShaderGlobal::get_real_fast(id); }
@@ -593,6 +596,11 @@ TargetCreator *EcGeom::newTargetCreator(IMemAlloc *alloc) const { CREATE_OBJECT(
 //==================================================================================================
 void EcGeom::deleteTargetCreator(TargetCreator *&creator) const { del_it(creator); }
 
+//==================================================================================================
+PolygoneZoneCreator *EcGeom::newPolygonZoneCreator(IMemAlloc *alloc) const { CREATE_OBJECT(PolygoneZoneCreator, alloc); }
+
+//==================================================================================================
+void EcGeom::deletePolyZoneCreator(PolygoneZoneCreator *&creator) const { del_it(creator); }
 
 //==================================================================================================
 void EcGeom::deleteIObjectCreator(IObjectCreator *&creator) const { del_it(creator); }
@@ -718,6 +726,22 @@ bool EcTools::copyFile(const char *src, const char *dest, bool overwrite) const 
 
 //==================================================================================================
 bool EcTools::compareFile(const char *path1, const char *path2) const { return ::dag_file_compare(path1, path2); }
+
+
+//==================================================================================================
+bool EcInput::isKeyDown(ImGuiKey key) const { return ec_is_key_down(key); }
+
+
+//==================================================================================================
+bool EcInput::isAltKeyDown() const { return ec_is_alt_key_down(); }
+
+
+//==================================================================================================
+bool EcInput::isCtrlKeyDown() const { return ec_is_ctrl_key_down(); }
+
+
+//==================================================================================================
+bool EcInput::isShiftKeyDown() const { return ec_is_shift_key_down(); }
 
 
 //==================================================================================================

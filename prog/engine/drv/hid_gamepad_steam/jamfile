@@ -11,7 +11,7 @@ Sources =
   gamepad_create.cpp
 ;
 
-UseProgLibs = engine/baseUtil ; # for watchdog
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude

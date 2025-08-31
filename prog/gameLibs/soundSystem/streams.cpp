@@ -330,9 +330,11 @@ void close()
 {
   SNDSYS_IS_MAIN_THREAD;
   SNDSYS_POOL_BLOCK;
-  all_streams.enumerate([&](Stream &stream) {
+  all_streams.enumerate([&](Stream &stream, sound_handle_t handle) {
 #if DAGOR_DBGLEVEL > 0
-    debug_trace_warn("Stream was not released: \"%s\"", stream.url.c_str());
+    debug_trace_warn("Stream handle %lld was not released: \"%s\"", int64_t(handle), stream.url.c_str());
+#else
+    G_UNREFERENCED(handle);
 #endif
     close_stream(stream);
   });
@@ -362,7 +364,7 @@ void close()
 void update(float dt)
 {
   SNDSYS_POOL_BLOCK;
-  all_streams.enumerate([dt](auto &stream) {
+  all_streams.enumerate([dt](auto &stream, sound_handle_t) {
     if (stream.state >= StreamState::OPENED)
       update_stream(stream, dt);
   });
@@ -389,7 +391,7 @@ void debug_enum(eastl::function<void(const char *info, const Point3 &pos, bool i
 {
   SNDSYS_POOL_BLOCK;
   eastl::basic_string<char, framemem_allocator> info;
-  all_streams.enumerate([&info, &fun](const Stream &stream) {
+  all_streams.enumerate([&info, &fun](const Stream &stream, sound_handle_t) {
     G_STATIC_ASSERT(countof(stream_state_names) == int(StreamState::NUM_STATES));
     info = stream_state_names[int(stream.state)];
     info += ":\n";

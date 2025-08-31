@@ -1,5 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <supp/dag_math.h>
+#if _TARGET_C1 | _TARGET_C2
+
+#elif defined(_MSC_VER) && !defined(__clang__)
+#pragma fp_contract(off)
+#endif
 #include <phys/dag_physics.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <Jolt/RegisterTypes.h>
@@ -18,6 +24,7 @@
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Physics/Collision/Shape/EmptyShape.h>
 #include "shapes/HeightField16Shape.h"
 #include <Jolt/Physics/Collision/GroupFilterTable.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -122,8 +129,13 @@ static void jolt_trace(const char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
-  // Usually Jolt prints error related output unless some debugging enabled (so use error loglevel)
-  cvlogmessage(LOGLEVEL_ERR, fmt, ap);
+  // Usually Jolt prints error related output unless some debugging enabled (so use error loglevel),
+  // with exception of `AABBTreeBuilder: ...` which is rather benign warning that sometimes happens
+  // "when the triangles in a batch are intersecting", see
+  // https://github.com/jrouwe/JoltPhysics/issues/1127#issuecomment-2156730951
+  int ll = LOGLEVEL_ERR;
+  JPH_IF_DEBUG(ll = strstr(fmt, "AABBTreeBuilder: Doing random split") ? LOGLEVEL_WARN : ll);
+  cvlogmessage(ll, fmt, ap);
   va_end(ap);
 }
 
@@ -181,9 +193,9 @@ public:
     JobImpl(const char *jName, JPH::ColorArg color, JPH::JobSystem *jSys, const JobFunction &jFunc, JPH::uint32 numDeps) :
       Job(jName, color, jSys, jFunc, numDeps)
     {}
+    const char *getJobName(bool &) const override { return "JoltJobImpl"; }
     void doJob() override
     {
-      TIME_PROFILE(JoltJobImpl);
       Execute();
       Release();
     }
@@ -371,6 +383,7 @@ protected:
 
 void PhysWorld::init_engine(bool single_threaded)
 {
+  using namespace JPH;
   using namespace jolt_api;
   if (physicsSystem)
     return;
@@ -400,6 +413,13 @@ void PhysWorld::init_engine(bool single_threaded)
     objects_f);
   physicsSystem->SetPhysicsSettings(physicsSettings);
   physicsSystem->SetGravity(JPH::Vec3(0, -9.8065f, 0));
+  // Compat with Bullet (see `btManifoldResult::calculateCombined{Friction,Restitution}`)
+  physicsSystem->SetCombineFriction([](const Body &b1, const SubShapeID &, const Body &b2, const SubShapeID &) {
+    return b1.GetFriction() * b2.GetFriction(); // To consider: clamp(..., /*MAX_FRICTION*/ 10)?
+  });
+  physicsSystem->SetCombineRestitution([](const Body &b1, const SubShapeID &, const Body &b2, const SubShapeID &) {
+    return b1.GetRestitution() * b2.GetRestitution(); //
+  });
 
   if (phys_blk.getInt("jobSysType", single_threaded ? 0 : 1))
     jobSystem = new JoltJobSystemImpl(maxJobs / 16, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers));
@@ -434,6 +454,18 @@ void PhysWorld::term_engine()
 
   JPH::UnregisterTypes();
   del_it(JPH::Factory::sInstance);
+}
+
+JPH::Quat to_jQuat(const TMatrix &tm)
+{
+  // Note: vector convention gives different results somehow. Figure it out?
+  /*
+  mat44f m;
+  v_mat44_make_from_43cu_unsafe(m, tm.array);
+  return JPH::Quat(v_norm4(v_un_quat_from_mat4(m)));
+  return JPH::Mat44(m.col0, m.col1, m.col2, V_C_UNIT_0001).GetQuaternion().Normalized(); */
+  Quat q = normalize(Quat(tm));
+  return JPH::Quat(q.x, q.y, q.z, q.w);
 }
 
 PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TMatrix &tm, const PhysBodyCreationData &s) : world(w)
@@ -474,7 +506,8 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
   body.mAngularDamping = s.angularDamping;
   body.mUserData = (uintptr_t)this;
 
-  if (const PhysWorld::Material *material = world->getMaterial(s.materialId))
+  const PhysWorld::Material *material = world->getMaterial(s.materialId);
+  if (material)
   {
     body.mFriction = material->friction;
     body.mRestitution = material->restitution;
@@ -482,9 +515,11 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
   }
   else
     safeMaterialId = 0;
-  if (s.friction >= 0)
+  if (s.friction >= 0.f)
     body.mFriction = s.friction;
-  if (s.restitution >= 0)
+  else if (!material)      // I.e. not assigned from material
+    body.mFriction = 0.5f; // Bullet's default
+  if (s.restitution >= 0.f)
     body.mRestitution = s.restitution;
 
   if (auto *b = api().CreateBody(body))
@@ -506,6 +541,7 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
 }
 PhysBody::~PhysBody()
 {
+  G_ASSERTF_RETURN(jolt_api::physicsSystem, , "Attempt to destroy phys body after `term_engine`?");
   if (api().IsAdded(bodyId))
     api().RemoveBody(bodyId);
   if (isValid())
@@ -544,7 +580,7 @@ void PhysBody::setMassMatrix(real _mass, real ixx, real iyy, real izz)
   lockRW([&](JPH::Body &b) {
     auto &mp = *b.GetMotionProperties();
     mp.SetInverseMass(safeinv(_mass));
-    mp.SetInverseInertia(JPH::Vec3(ixx, iyy, izz).Reciprocal(), JPH::Quat::sIdentity());
+    mp.SetInverseInertia(JPH::Vec3(ixx, iyy, izz).Reciprocal(), mp.GetInertiaRotation());
   });
 }
 
@@ -591,8 +627,12 @@ void PhysCollision::clearNativeShapeData(PhysCollision &c) { static_cast<JoltPhy
 
 JPH::Ref<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
 {
-  if (res.HasError())
-    _core_fatal(__FILE__, ln, "Shape error: %s", res.GetError().c_str());
+  if (DAGOR_UNLIKELY(res.HasError()))
+  {
+    G_ASSERT_LOG(0, "Shape error: %s in %s:%d", res.GetError().c_str(), __FILE__, ln);
+    JPH::EmptyShapeSettings empty;
+    return empty.Create().Get();
+  }
   return res.Get();
 }
 
@@ -721,8 +761,9 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       }
       if (convexColl->vstride == sizeof(JPH::Vec3))
       {
-        auto convexHull = JPH::ConvexHullShapeSettings((const JPH::Vec3 *)convexColl->vdata, convexColl->vnum).Create();
-        return zeroDensityIfStatic(check_and_return_shape(convexHull, __LINE__));
+        JPH::ConvexHullShapeSettings chullShapeSett((const JPH::Vec3 *)convexColl->vdata, convexColl->vnum);
+        chullShapeSett.mHullTolerance = convexColl->hullTolerance;
+        return zeroDensityIfStatic(check_and_return_shape(chullShapeSett.Create(), __LINE__));
       }
 
       int fstride = convexColl->vstride / 4;
@@ -731,8 +772,10 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       JPH::Vec3 *d = v.data();
       for (auto s = (const float *)convexColl->vdata, se = s + convexColl->vnum * fstride; s < se; s += fstride, d++)
         d->SetX(s[0]), d->SetY(s[1]), d->SetZ(s[2]);
-      auto convexHull = JPH::ConvexHullShapeSettings(v.data(), v.size()).Create();
-      return zeroDensityIfStatic(check_and_return_shape(convexHull, __LINE__));
+
+      JPH::ConvexHullShapeSettings chullShapeSett(v.data(), v.size());
+      chullShapeSett.mHullTolerance = convexColl->hullTolerance;
+      return zeroDensityIfStatic(check_and_return_shape(chullShapeSett.Create(), __LINE__));
     }
     break;
 
@@ -809,71 +852,94 @@ void PhysBody::setCollision(const PhysCollision *coll, bool /*allow_fast_inaccur
     api().SetShape(bodyId, shape, false, isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
 }
 
+// Note: some Jolt shapes (e.g. spheres/capsules/cylinders) can only be scaled uniformly, this code ensures that
+static JPH::RefConst<JPH::Shape> create_uscaled_shape(const JPH::Shape *shape, JPH::Vec3 scale)
+{
+  using namespace JPH;
+  G_FAST_ASSERT(shape->GetType() != EShapeType::Compound);
+  const Shape *innerShape = shape;
+  dag::RelocatableFixedVector<const Shape *, 2, true, framemem_allocator> shapes;
+  for (const Shape *dsh = shape; dsh->GetSubType() == EShapeSubType::RotatedTranslated;
+       dsh = static_cast<const DecoratedShape *>(dsh)->GetInnerShape())
+  {
+    innerShape = static_cast<const DecoratedShape *>(dsh)->GetInnerShape();
+    shapes.push_back(innerShape);
+  }
+  Shape *scaledShape = nullptr;
+  switch (innerShape->GetSubType())
+  {
+    case EShapeSubType::Sphere:
+      scaledShape = new SphereShape(static_cast<const SphereShape *>(innerShape)->GetRadius() * scale.GetX());
+      break;
+    case EShapeSubType::Capsule:
+    {
+      auto capsh = static_cast<const CapsuleShape *>(innerShape);
+      scaledShape = new CapsuleShape(capsh->GetHalfHeightOfCylinder() * scale.GetY(), capsh->GetRadius() * scale.GetX());
+    }
+    break;
+    case EShapeSubType::Cylinder:
+    {
+      auto cylsh = static_cast<const CylinderShape *>(innerShape);
+      float rad = cylsh->GetRadius() * scale.GetX(), hh = cylsh->GetHalfHeight() * scale.GetY();
+      float cvxrad = eastl::min({hh, rad, cDefaultConvexRadius});
+      scaledShape = new CylinderShape(hh, rad, cvxrad);
+    }
+    break;
+    default: return check_and_return_shape(ScaledShapeSettings(shape, scale).Create(), __LINE__);
+  }
+  G_ASSERT(scaledShape);
+  if (shape == innerShape) // No rt shapes
+    shape = scaledShape;
+  else // Reconstruct chain of rt shapes (e.g. "RT -> RT -> capsule")
+  {
+    G_ASSERT(!shapes.empty());
+    G_ASSERT(shapes.back() == innerShape);
+    G_ASSERT(innerShape->GetType() != EShapeType::Decorated);
+    auto copyRTShape = [](const Shape *rtshape, const Shape *ishape) {
+      G_ASSERT(rtshape->GetSubType() == EShapeSubType::RotatedTranslated);
+      auto rtsh = static_cast<const RotatedTranslatedShape *>(rtshape);
+      return new RotatedTranslatedShape(rtsh->GetPosition(), rtsh->GetRotation(), ishape);
+    };
+    for (int i = (int)shapes.size() - 2; i >= 0; --i)
+      scaledShape = copyRTShape(shapes[i], scaledShape);
+    shape = copyRTShape(shape, scaledShape);
+  }
+  return shape;
+}
+
+static JPH::RefConst<JPH::Shape> create_uscaled_shape_r(const JPH::Shape *shape, JPH::Vec3 scale)
+{
+  using namespace JPH;
+  if (shape->GetType() != EShapeType::Compound)
+    return create_uscaled_shape(shape, scale);
+  else
+  {
+    auto compound = static_cast<const CompoundShape *>(shape);
+    const Vec3 ccom = compound->GetCenterOfMass();
+    StaticCompoundShapeSettings compShapeSett;
+    bool hasAnyNonScaledShapes = false;
+    for (auto &ss : compound->GetSubShapes())
+    {
+      Vec3 pos = (ss.GetPositionCOM() + ccom) - ss.GetRotation() * ss.mShape->GetCenterOfMass();
+      RefConst<Shape> scaledShape = create_uscaled_shape_r(ss.mShape, scale);
+      hasAnyNonScaledShapes |= scaledShape->GetSubType() != EShapeSubType::Scaled;
+      compShapeSett.AddShape(pos, ss.GetRotation(), scaledShape);
+    }
+    if (hasAnyNonScaledShapes)
+      return check_and_return_shape(compShapeSett.Create(), __LINE__);
+    else // All are scaled -> no spheres/capsules/boxes -> just scale compound
+      return check_and_return_shape(ScaledShapeSettings(shape, scale).Create(), __LINE__);
+  }
+}
+
 PhysCollision *PhysBody::getCollisionScaledCopy(const Point3 &scale)
 {
   using namespace JPH;
-  using namespace eastl;
   auto shape = getShape();
-  if (!shape)
-    return nullptr;
   auto jscale = to_jVec3(scale);
-  if (!ScaleHelpers::IsUniformScale(jscale)) // Special handling for non uniform scales
-  {
-    const Shape *innerShape = shape.GetPtr();
-    dag::RelocatableFixedVector<const Shape *, 2, true, framemem_allocator> shapes;
-    for (const Shape *dsh = shape.GetPtr(); dsh->GetSubType() == EShapeSubType::RotatedTranslated;
-         dsh = static_cast<const DecoratedShape *>(dsh)->GetInnerShape())
-    {
-      innerShape = static_cast<const DecoratedShape *>(dsh)->GetInnerShape();
-      shapes.push_back(innerShape);
-    }
-    static constexpr EShapeSubType nonuScaledShTypes[] = {EShapeSubType::Sphere, EShapeSubType::Capsule, EShapeSubType::Cylinder};
-    if (find(begin(nonuScaledShTypes), end(nonuScaledShTypes), innerShape->GetSubType()) != end(nonuScaledShTypes))
-    {
-      Shape *scaledShape = nullptr;
-      switch (innerShape->GetSubType())
-      {
-        case EShapeSubType::Sphere:
-          scaledShape = new SphereShape(static_cast<const SphereShape *>(innerShape)->GetRadius() * scale.x);
-          break;
-        case EShapeSubType::Capsule:
-        {
-          auto capsh = static_cast<const CapsuleShape *>(innerShape);
-          scaledShape = new CapsuleShape(capsh->GetHalfHeightOfCylinder() * scale.y, capsh->GetRadius() * scale.x);
-        }
-        break;
-        case EShapeSubType::Cylinder:
-        {
-          auto cylsh = static_cast<const JPH::CylinderShape *>(innerShape);
-          float rad = cylsh->GetRadius() * scale.x, hh = cylsh->GetHalfHeight() * scale.y;
-          float cvxrad = eastl::min({hh, rad, JPH::cDefaultConvexRadius});
-          scaledShape = new CylinderShape(hh, rad, cvxrad);
-        }
-        break;
-        default: G_ASSERT(0);
-      }
-      G_ASSERT(scaledShape);
-      if (shape.GetPtr() == innerShape) // No rt shapes
-        shape = scaledShape;
-      else // Reconstruct chain of rt shapes (e.g. "RT -> RT -> capsule")
-      {
-        G_ASSERT(!shapes.empty());
-        G_ASSERT(shapes.back() == innerShape);
-        G_ASSERT(innerShape->GetType() != EShapeType::Decorated);
-        auto copyRTShape = [](const Shape *rtshape, const Shape *ishape) {
-          G_ASSERT(rtshape->GetSubType() == EShapeSubType::RotatedTranslated);
-          auto rtsh = static_cast<const RotatedTranslatedShape *>(rtshape);
-          return new RotatedTranslatedShape(rtsh->GetPosition(), rtsh->GetRotation(), ishape);
-        };
-        for (int i = (int)shapes.size() - 2; i >= 0; --i)
-          scaledShape = copyRTShape(shapes[i], scaledShape);
-        shape = copyRTShape(shape.GetPtr(), scaledShape);
-      }
-
-      jscale = Vec3::sReplicate(1.f); // Pre-scaled
-    }
-  }
-  return new JoltPhysNativeShape(shape, jscale);
+  if (!shape || ScaleHelpers::IsUniformScale(jscale))
+    return shape ? new JoltPhysNativeShape(shape, jscale) : nullptr;
+  return new JoltPhysNativeShape(create_uscaled_shape_r(shape, jscale), Vec3::sReplicate(1.f));
 }
 
 void PhysBody::patchCollisionScaledCopy(const Point3 &s, PhysBody *)
@@ -965,12 +1031,39 @@ void PhysBody::setGroupAndLayerMask(unsigned int group, unsigned int mask)
   api().SetObjectLayer(bodyId, make_objlayer_debris(objlayer_to_bphlayer(objl), groupMask, layerMask));
 }
 
-void PhysBody::setGravity(const Point3 &grav, bool activate) {}
+void PhysBody::setGravity(const Point3 &grav, bool activate)
+{
+  // Only scaling gravity along y axis is supported here.
+  float currentGlobalGravity = jolt_api::physicsSystem->GetGravity().GetY();
+  if (currentGlobalGravity == 0.f)
+    return;
+  float desiredGravityFactor = grav.y / currentGlobalGravity;
+  api().SetGravityFactor(bodyId, desiredGravityFactor);
+}
+
+void PhysBody::setDamping(float linDamping, float angDamping)
+{
+  lockRW([&](JPH::Body &b) {
+    if (!b.IsStatic())
+    {
+      auto &mp = *b.GetMotionProperties();
+      mp.SetLinearDamping(linDamping);
+      mp.SetAngularDamping(angDamping);
+    }
+  });
+}
 
 void PhysBody::addImpulse(const Point3 &p, const Point3 &force_x_dt, bool activate)
 {
   api().AddImpulse(bodyId, to_jVec3(force_x_dt), to_jVec3(p));
 }
+
+void PhysBody::addForce(const Point3 &p, const Point3 &force, bool activate)
+{
+  if (!bodyId.IsInvalid())
+    lockRW([p, force](JPH::Body &b) { b.AddForce(to_jVec3(force), to_jVec3(p)); });
+}
+
 
 void PhysBody::setContinuousCollisionMode(bool use)
 {
@@ -1149,7 +1242,14 @@ void Phys6DofJoint::setAxisDamping(int index, float damping)
   using EAxis = JPH::SixDOFConstraint::EAxis;
   auto constr = static_cast<JPH::SixDOFConstraint *>(joint);
   G_ASSERT((unsigned)index < EAxis::Num);
-  constr->GetMotorSettings((EAxis)index) = JPH::MotorSettings{2.0f, damping};
+
+  static const float jointAngularDampingToJoltFrictionMul = 10.0f;
+  if (index >= EAxis::NumTranslation)
+  { // Jolt friction is set in Torque units, so 1 is not the maximum value (unlike damping)
+    // TODO: Linear axes likely also need some correction here
+    damping *= jointAngularDampingToJoltFrictionMul;
+  }
+  constr->SetMaxFriction((EAxis)index, damping);
 }
 
 
@@ -1229,7 +1329,7 @@ void Phys6DofSpringJoint::setAxisDamping(int index, float damping)
   using EAxis = JPH::SixDOFConstraint::EAxis;
   auto constr = static_cast<JPH::SixDOFConstraint *>(joint);
   G_ASSERT((unsigned)index < EAxis::Num);
-  constr->GetMotorSettings((EAxis)index) = JPH::MotorSettings{2.0f, damping};
+  constr->SetMaxFriction((EAxis)index, damping);
 }
 ////////////////////////////
 
@@ -1269,12 +1369,11 @@ Point3 PhysRayCast::getNormal() const
   return to_point3(normal);
 }
 
-PhysWorld::PhysWorld(real default_static_friction, real default_dynamic_friction, real default_restitution, real default_softness)
+PhysWorld::PhysWorld(real default_static_friction, real default_restitution)
 {
-  Material material;
+  Material &material = materials.emplace_back();
   material.friction = default_static_friction;
   material.restitution = default_restitution;
-  materials.push_back(material);
 }
 
 PhysWorld::~PhysWorld() { fetchSimRes(true); }
@@ -1300,9 +1399,10 @@ struct JoltSimJob final : public cpujobs::IJob
 
   void update(float dt, int nsteps = 1) { jolt_api::phys_sys().Update(dt, nsteps, tempAllocator, jobSystem); }
 
+  const char *getJobName(bool &) const override { return "JoltSimJob"; }
+
   void doJob() override
   {
-    TIME_PROFILE(JoltSimJob);
     if (maxSubSteps > 0)
     {
       int numSubSteps = int(time / fixedTimeStep);
@@ -1394,7 +1494,13 @@ static Point3 get_velocity_from_hit(const JPH::ClosestHitCollisionCollector<JPH:
 void PhysWorld::shape_query(const JPH::Shape *shape, const TMatrix &from, const Point3 &dir, PhysWorld *,
   dag::ConstSpan<PhysBody *> bodies, PhysShapeQueryResult &out, int filter_grp, int filter_mask)
 {
-  JPH::ShapeCast shape_cast(shape, JPH::Vec3::sReplicate(1.0f), to_jMat44(from), to_jVec3(dir));
+  G_ASSERTF(shape->GetSubType() == JPH::EShapeSubType::ConvexHull || shape->GetCenterOfMass().LengthSq() < 1e-6f,
+    "shape %d:%d comOfs=%@", (int)shape->GetType(), (int)shape->GetSubType(), to_point3(shape->GetCenterOfMass()));
+  // Special case for ConvexHull in order to save on translating to zero COM
+  JPH::ShapeCast shape_cast =
+    (shape->GetSubType() != JPH::EShapeSubType::ConvexHull)
+      ? JPH::ShapeCast(shape, JPH::Vec3::sReplicate(1.0f), to_jMat44(from), to_jVec3(dir))
+      : JPH::ShapeCast::sFromWorldTransform(shape, JPH::Vec3::sReplicate(1.0f), to_jMat44(from), to_jVec3(dir));
 
   JPH::TransformedShape tshape;
   JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> closestCb;
@@ -1440,8 +1546,6 @@ void PhysWorld::shapeQuery(const PhysBody *body, const TMatrix &from, const TMat
   auto shape = body->getShape();
   if (!shape || shape->GetType() != JPH::EShapeType::Convex)
     return;
-  G_ASSERTF(shape->GetCenterOfMass().LengthSq() < 1e-6f, "shape %d:%d comOfs=%@", //
-    (int)shape->GetType(), (int)shape->GetSubType(), to_point3(shape->GetCenterOfMass()));
   shape_query(shape, from, to.getcol(3) - from.getcol(3), this, bodies, out, filter_grp, filter_mask);
 }
 void PhysWorld::shapeQuery(const PhysCollision &shape, const TMatrix &from, const TMatrix &to, dag::ConstSpan<PhysBody *> bodies,

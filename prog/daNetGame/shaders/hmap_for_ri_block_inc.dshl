@@ -16,7 +16,7 @@ macro INIT_HMAP_FOR_RI_BLOCK()
     (ps)
     {
       wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
-      shore_params1@f4 = (max_wave_height, scroll_time, water_heightmap_min_max.z, water_heightmap_min_max.w);
+      shore_params1@f4 = (max_wave_height, scroll_time, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
       wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
     }
 endmacro

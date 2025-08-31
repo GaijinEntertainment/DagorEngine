@@ -3,12 +3,12 @@
 
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rotation_palette_consts.hlsli>
+#include <gameMath/objgenPrng.h>
 #include "riGenExtra.h"
 #include "riRotationPalette.h"
 #include "riGenData.h"
 
 #include <util/dag_roHugeHierBitMap2d.h>
-#include <math/random/dag_random.h>
 #include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
 #include "multiPointData.h"
@@ -16,6 +16,8 @@
 
 namespace rendinst::gen
 {
+using namespace objgenerator; // prng
+
 extern float custom_max_trace_distance;
 extern bool custom_trace_ray(const Point3 &src, const Point3 &dir, real &dist, Point3 *out_norm = nullptr);
 extern bool custom_get_height(Point3 &pos, Point3 *out_norm = nullptr);
@@ -40,51 +42,6 @@ alignas(16) static const vec4i_const VCI_SCALE_MASK = {REPLICATE4(0xFFFF & ~PALE
 alignas(16) static const vec4i_const VCI_PALETTE_ID_MASK = v_splatsi(PALETTE_ID_MASK);
 alignas(16) static const vec4i_const VCI_SCALE_MASK = v_splatsi(0xFFFF & ~PALETTE_ID_BIT_COUNT);
 #endif
-
-namespace internal
-{
-union TmPackedRowData
-{
-  int16_t data4[4];
-  uint64_t u64;
-  uint32_t u32_2[2];
-};
-
-static inline int16_t relaxed_load_i16(const int16_t &data) { return int16_t(interlocked_relaxed_load((const uint16_t &)data)); }
-static inline TmPackedRowData acquire_load_tm_data_first_row(const int16_t *data)
-{
-  ASSUME_ALIGNED(data, 4);
-  TmPackedRowData r;
-  const uint32_t *data32 = reinterpret_cast<const uint32_t *>(data); //-V1032
-  // Start by reading data32[1] and check, if sentinel value was written to it,
-  // if it is, it means that data is being destroyed, so zero the whole row.
-  // For more info see destroy_tm_rendinst_data
-  r.u32_2[0] = interlocked_relaxed_load(data32[0]);
-  r.u32_2[1] = interlocked_acquire_load(data32[1]);
-  if (DAGOR_UNLIKELY(r.u32_2[1] == 0x80008000u))
-    r.u64 = 0;
-  return r;
-}
-static inline vec4i v_ldush_relaxed(const int16_t *data)
-{
-  TmPackedRowData r;
-  const uint32_t *data32 = reinterpret_cast<const uint32_t *>(data); //-V1032
-  r.u32_2[0] = interlocked_relaxed_load(data32[0]);
-  r.u32_2[1] = interlocked_relaxed_load(data32[1]);
-  return v_ldush(r.data4);
-}
-static inline bool is_data_valid(const TmPackedRowData &first_row, bool check_full)
-{
-  return DAGOR_UNLIKELY(check_full ? first_row.u64 != 0 : first_row.data4[3] != 0);
-}
-static inline void zero_tm(mat44f &tm)
-{
-  tm.col0 = v_zero();
-  tm.col1 = v_zero();
-  tm.col2 = v_zero();
-  tm.col3 = v_zero();
-}
-} // namespace internal
 
 struct InstancePackData
 {
@@ -118,61 +75,6 @@ static inline void unpack_scale_palette_id_v4f_16(vec4i value, vec4f &scale, vec
   scale = v_mul(v_cvt_vec4f(v_andi(value, VCI_SCALE_MASK)), VC_1div256);
 }
 
-static inline bool unpack_tm_full(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy)
-{
-  ASSUME_ALIGNED(data, 4);
-  alignas(8) int16_t local[8];
-  for (int i = 0; i < 8; i++)
-    local[i] = internal::relaxed_load_i16(data[i + 4]);
-  const auto fr = internal::acquire_load_tm_data_first_row(data);
-  if (!internal::is_data_valid(fr, true))
-  {
-    tm.zero();
-    return false;
-  }
-  tm[0][1] = local[0] / 256.0f;
-  tm[1][1] = local[1] / 256.0f;
-  tm[2][1] = local[2] / 256.0f;
-  tm[3][1] = local[3] * dy / 32767.0 + y0;
-  tm[0][2] = local[4] / 256.0f;
-  tm[1][2] = local[5] / 256.0f;
-  tm[2][2] = local[6] / 256.0f;
-  tm[3][2] = local[7] * dxz / 32767.0 + z0;
-  tm[0][0] = fr.data4[0] / 256.0f;
-  tm[1][0] = fr.data4[1] / 256.0f;
-  tm[2][0] = fr.data4[2] / 256.0f;
-  tm[3][0] = fr.data4[3] * dxz / 32767.0 + x0;
-  return true;
-}
-
-static inline bool unpack_tm_pos_fast(TMatrix &tm, const int16_t *data, float x0, float y0, float z0, float dxz, float dy,
-  bool palette_rotation, int32_t *palette_id = nullptr)
-{
-  memset(tm.array, 0, sizeof(TMatrix));
-  const auto fr = internal::acquire_load_tm_data_first_row(data);
-  if (!internal::is_data_valid(fr, false))
-    return false;
-  if (palette_rotation)
-  {
-    float scale;
-    int32_t paletteId;
-    unpack_scale_palette_id_16(fr.data4[3], scale, paletteId);
-    tm[0][0] = tm[1][1] = tm[2][2] = scale;
-    if (palette_id)
-      *palette_id = paletteId;
-  }
-  else
-  {
-    if (palette_id)
-      *palette_id = -1;
-    tm[0][0] = tm[1][1] = tm[2][2] = fr.data4[3] / 256.0f;
-  }
-  tm[3][0] = fr.data4[0] * dxz / 32767.0 + x0;
-  tm[3][1] = fr.data4[1] * dy / 32767.0 + y0;
-  tm[3][2] = fr.data4[2] * dxz / 32767.0 + z0;
-  return true;
-}
-
 static inline void unpack_tm32_full(TMatrix &tm, const int32_t *data, float x0, float y0, float z0, float dxz, float dy)
 {
   tm[0][0] = data[0] / 256.0f / 65536.f;
@@ -191,17 +93,20 @@ static inline void unpack_tm32_full(TMatrix &tm, const int32_t *data, float x0, 
 
 static inline bool unpack_tm_full(mat44f &out_tm, const int16_t *data, vec3f add, vec3f mul)
 {
-  mat43f m43;
-  m43.row1 = v_cvt_vec4f(internal::v_ldush_relaxed(data + 4));
-  m43.row2 = v_cvt_vec4f(internal::v_ldush_relaxed(data + 8));
-  const auto fr = internal::acquire_load_tm_data_first_row(data);
-  if (!internal::is_data_valid(fr, true))
+  if (is_tm_rendinst_data_destroyed(data))
   {
-    internal::zero_tm(out_tm);
+    out_tm.col0 = v_zero();
+    out_tm.col1 = v_zero();
+    out_tm.col2 = v_zero();
+    out_tm.col3 = v_zero();
     return false;
   }
 
-  m43.row0 = v_cvt_vec4f(v_ldush(fr.data4));
+  mat43f m43;
+  m43.row0 = v_cvt_vec4f(v_ldush(data + 0));
+  m43.row1 = v_cvt_vec4f(v_ldush(data + 4));
+  m43.row2 = v_cvt_vec4f(v_ldush(data + 8));
+
   mat44f m;
   v_mat43_transpose_to_mat44(m, m43);
   out_tm.col0 = v_mul(m.col0, VC_1div256);
@@ -214,15 +119,18 @@ static inline bool unpack_tm_full(mat44f &out_tm, const int16_t *data, vec3f add
 static inline bool unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
   vec4i *palette_id = nullptr)
 {
-  const auto fr = internal::acquire_load_tm_data_first_row(data);
-  if (!internal::is_data_valid(fr, false))
+  if (is_pos_rendinst_data_destroyed(data))
   {
-    internal::zero_tm(tm);
+    tm.col0 = v_zero();
+    tm.col1 = v_zero();
+    tm.col2 = v_zero();
+    tm.col3 = v_zero();
     if (palette_id)
       *palette_id = v_zeroi();
     return false;
   }
-  vec4i vi = v_ldush(fr.data4);
+
+  vec4i vi = v_ldush(data);
   vec4f v = v_cvt_vec4f(vi);
   vec4f scale;
   vec4i paletteId;
@@ -242,14 +150,12 @@ static inline bool unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec
   tm.col1 = v_and(scale, (vec4f)V_CI_MASK0100);
   tm.col2 = v_and(scale, (vec4f)V_CI_MASK0010);
   tm.col3 = v_madd(v, mul, add);
-  return true;
+  return false;
 }
-
 static inline bool unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
   vec4i *palette_id = nullptr)
 {
-  const auto fr = internal::acquire_load_tm_data_first_row(data);
-  if (!internal::is_data_valid(fr, false))
+  if (is_pos_rendinst_data_destroyed(data))
   {
     pos = v_zero();
     scale = v_zero();
@@ -257,7 +163,7 @@ static inline bool unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, 
       *palette_id = v_zeroi();
     return false;
   }
-  vec4i vi = v_ldush(fr.data4);
+  vec4i vi = v_ldush(data);
   vec4f v = v_cvt_vec4f(vi);
   vec4i paletteId;
   if (palette_rotation)
@@ -291,20 +197,6 @@ static inline void unpack_tm32_full(mat44f &out_tm, const int32_t *data, vec3f a
   out_tm.col3 = v_madd(m.col3, v_mul(mul, VC_1div64K), add);
 }
 
-static inline void validate_unpack_tm_full(mat44f &out_tm, int16_t *data, vec3f add, vec3f mul)
-{
-  // ensure alignment
-  G_ASSERT_RETURN(uintptr_t(data) % 4 == 0, );
-  // check if data contains value, used as sentinel in destroy_tm_rendinst_data,
-  // this value cant occur naturally, so it is an error
-  if (DAGOR_UNLIKELY(*reinterpret_cast<uint32_t *>(data + 2) == uint32_t(0x80008000u))) //-V1032
-  {
-    data[2] = data[3] = int16_t(-32767);
-    logerr("validate_unpack_tm_full got invalid tm data");
-  }
-  unpack_tm_full(out_tm, data, add, mul);
-}
-
 static inline size_t pack_entity_pos_inst_16(const InstancePackData &data, const Point3 &pos, float scale, int32_t palette_id,
   void *target_ptr)
 {
@@ -312,9 +204,9 @@ static inline size_t pack_entity_pos_inst_16(const InstancePackData &data, const
   int16_t *ptr = reinterpret_cast<int16_t *>(target_ptr);
   if (ptr)
   {
-    ptr[0] = short((pos.x - data.ox) / data.cell_xz_sz * 32767.0);
-    ptr[1] = short(clamp((pos.y - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0);
-    ptr[2] = short((pos.z - data.oz) / data.cell_xz_sz * 32767.0);
+    ptr[0] = short((pos.x - data.ox) / data.cell_xz_sz * 32767.0f);
+    ptr[1] = short(clamp((pos.y - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0f);
+    ptr[2] = short((pos.z - data.oz) / data.cell_xz_sz * 32767.0f);
     ptr[3] = palette_id >= 0 ? pack_scale_palette_id_16(scale, palette_id) : short(scale * 256);
   }
   return sizeof(*ptr) * 4;
@@ -329,15 +221,15 @@ static inline size_t pack_entity_tm_16(const InstancePackData &data, const TMatr
     ptr[index++] = short(tm[0][0] * 256.0f);
     ptr[index++] = short(tm[1][0] * 256.0f);
     ptr[index++] = short(tm[2][0] * 256.0f);
-    ptr[index++] = short((tm.m[3][0] - data.ox) / data.cell_xz_sz * 32767.0);
+    ptr[index++] = short((tm.m[3][0] - data.ox) / data.cell_xz_sz * 32767.0f);
     ptr[index++] = short(tm[0][1] * 256.0f);
     ptr[index++] = short(tm[1][1] * 256.0f);
     ptr[index++] = short(tm[2][1] * 256.0f);
-    ptr[index++] = short(clamp((tm.m[3][1] - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0);
+    ptr[index++] = short(clamp((tm.m[3][1] - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0f);
     ptr[index++] = short(tm[0][2] * 256.0f);
     ptr[index++] = short(tm[1][2] * 256.0f);
     ptr[index++] = short(tm[2][2] * 256.0f);
-    ptr[index++] = short((tm.m[3][2] - data.oz) / data.cell_xz_sz * 32767.0);
+    ptr[index++] = short((tm.m[3][2] - data.oz) / data.cell_xz_sz * 32767.0f);
 
 #if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
     if (data.per_inst_data_dwords > 0)
@@ -368,15 +260,15 @@ static inline size_t pack_entity_tm_32(const InstancePackData &data, const TMatr
     ptr[index++] = int32_t(tm[0][0] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[1][0] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[2][0] * 256.0f * 65536.0f);
-    ptr[index++] = int32_t((tm.m[3][0] - data.ox) / data.cell_xz_sz * 32767.0 * 65536.0f);
+    ptr[index++] = int32_t((tm.m[3][0] - data.ox) / data.cell_xz_sz * 32767.0f * 65536.0f);
     ptr[index++] = int32_t(tm[0][1] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[1][1] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[2][1] * 256.0f * 65536.0f);
-    ptr[index++] = int32_t(clamp((tm.m[3][1] - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0 * 65536.0f);
+    ptr[index++] = int32_t(clamp((tm.m[3][1] - data.oy) / data.cell_y_sz, -1.f, 1.f) * 32767.0f * 65536.0f);
     ptr[index++] = int32_t(tm[0][2] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[1][2] * 256.0f * 65536.0f);
     ptr[index++] = int32_t(tm[2][2] * 256.0f * 65536.0f);
-    ptr[index++] = int32_t((tm.m[3][2] - data.oz) / data.cell_xz_sz * 32767.0 * 65536.0f);
+    ptr[index++] = int32_t((tm.m[3][2] - data.oz) / data.cell_xz_sz * 32767.0f * 65536.0f);
   }
   return sizeof(*ptr) * 12;
 }
@@ -478,10 +370,10 @@ struct SingleEntityPool
       if (!posInst && per_inst_data_dwords > 0)
       {
         int instSeed = mem_hash_fnv1((const char *)&tm[3][0], 12);
-        rendinst::addRIGenExtra44(-avail - 1, false, m, true, cur_cell_id, cur_ri_extra_ord, 1, &instSeed);
+        rendinst::addRIGenExtra44(-avail - 1, m, true /*has_collision*/, cur_cell_id, cur_ri_extra_ord, 1, &instSeed);
       }
       else
-        rendinst::addRIGenExtra44(-avail - 1, false, m, true, cur_cell_id, cur_ri_extra_ord);
+        rendinst::addRIGenExtra44(-avail - 1, m, true /*has_collision*/, cur_cell_id, cur_ri_extra_ord);
       cur_ri_extra_ord += 16 * (rendinst::riExtra[-avail - 1].destrDepth + 1);
     }
   }
@@ -761,13 +653,13 @@ template <class T>
 static void calc_matrix_33(T &obj, TMatrix &tm, int &seed, const RotationPaletteManager::Palette &palette, int32_t &palette_id)
 {
   Point3 rotation;
-  _rnd_svec(seed, rotation.z, rotation.y, rotation.x);
-  float s = obj.scale[0] + _srnd(seed) * obj.scale[1];
+  rnd_svec(seed, rotation.z, rotation.y, rotation.x);
+  float s = obj.scale[0] + srnd(seed) * obj.scale[1];
   rotation.x = obj.rotX[0] + rotation.x * obj.rotX[1];
   rotation.y = obj.rotY[0] + rotation.y * obj.rotY[1];
   rotation.z = obj.rotZ[0] + rotation.z * obj.rotZ[1];
   rotation = RotationPaletteManager::clamp_euler_angles(palette, rotation, &palette_id);
-  float sy = obj.yScale[0] + _srnd(seed) * obj.yScale[1];
+  float sy = obj.yScale[0] + srnd(seed) * obj.yScale[1];
   int mask = (float_nonzero(rotation.x) << 0) | (float_nonzero(rotation.y) << 1) | (float_nonzero(rotation.z) << 2) |
              (float_nonzero(s - 1) << 3) | (float_nonzero(sy - 1) << 4);
   if (!mask)
@@ -844,4 +736,5 @@ static inline void rotate_multipoint(TMatrix &tm, MpPlacementRec &mppRec)
 
   tm = mpp_tm;
 }
+
 } // namespace rendinst::gen

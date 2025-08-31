@@ -101,5 +101,6 @@
     ,"access-without-this"
   ],
   "__disabled_checks":[
+    "not-a-const"
   ]
 }

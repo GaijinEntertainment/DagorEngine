@@ -105,6 +105,7 @@ struct VRDevice
 
     float nearZ;
     float farZ;
+    float boundingExtraZFar;
 
     float zoom;
 
@@ -242,7 +243,7 @@ struct VRDevice
   static int getConfiguredRefreshRate();
 
   // Expecting normalized frequency in the range from 0.0 to 1.0
-  virtual void setHmdRumble(float /* frequency */){/* VOID */};
+  virtual void setHmdRumble(float /* frequency */) { /* VOID */ }
   virtual void stopHmdRumble() { setHmdRumble(0.f); }
 
 protected:

@@ -1,0 +1,130 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh.dshl"
+
+float4x4 inv_proj_tm;
+
+float4 rt_shadow_resolution;
+int4 rt_shadow_resolutionI;
+
+texture combined_shadows;
+texture rtsm_value;
+texture rtsm_translucency;
+texture rtsm_denoised;
+
+texture denoiser_view_z;
+
+texture rtsm_dynamic_lights;
+
+int rtsm_render_mode;
+interval rtsm_render_mode : hard < 1, denoised < 2, denoised_translucent < 3, rr;
+
+float4 big_light_pos_rad_0;
+float4 big_light_pos_rad_1;
+float4 big_light_color_0;
+float4 big_light_color_1;
+
+int rtsm_has_nuke = 0;
+float4 nuke_pos_wave;
+
+int rtsm_is_half_precision = 0;
+interval rtsm_is_half_precision : no < 1, yes;
+
+int rtsm_quality = 0;
+interval rtsm_quality : full_res < 1, slow_fill < 2, fast_fill;
+
+float impostor_shadow_offset = -10;
+
+float4 sun_dir_for_shadows = (0, 1, 0, 0);
+
+shader rt_shadows
+{
+  if (rtsm_render_mode != hard || !use_hw_raytracing) {
+    dont_render;
+  }
+
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    inv_proj_tm@f44 = inv_proj_tm;
+    world_view_pos@f3 = world_view_pos;
+    resolution@u2 = rt_shadow_resolutionI;
+    inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
+    sun_dir_for_shadows@f3 = sun_dir_for_shadows;
+  }
+
+  if (rtsm_render_mode == hard)
+  {
+    hlsl (cs) {
+      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+    }
+    (cs) {
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
+    }
+  }
+
+  hlsl (cs) {
+    #define DISABLE_TOONSHADING 1
+  }
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_BVH(cs, 1, true)
+  USE_BVH_FOR_SHADOW(cs)
+
+  USE_CALC_GEOMETRY_NORMAL(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
+
+  hlsl (cs)
+  {
+    RT_GROUP_SIZE void rt_shadows_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      float rawDepth = loadGbufferDepth(dtid);
+
+      BRANCH
+      if (rawDepth <= 0 || !bvhMainValid)
+        return;
+
+      float4 clipDepth = float4(0, 0, rawDepth, 1);
+      float4 viewDepth = mul(inv_proj_tm, clipDepth);
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
+      float3 direction = -sun_dir_for_shadows;
+      float3 geometryNormal = calc_geometry_normal(dtid, inv_resolution, resolution);
+
+      relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
+
+      if (dot(geometryNormal, direction) <= 0)
+      {
+        texture2DAt(rtsm_value, dtid) = 0;
+        return;
+      }
+
+      HitInfo hitInfo;
+      half3 rayColor;
+      float translucentT;
+      uint groupMask = bvhGroupHardShadow;
+      uint extraFlags = 0;
+
+      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+      texture2DAt(rtsm_value, dtid) = isHit ? 0 : 1;
+    }
+  }
+
+  if (rtsm_is_half_precision == yes)
+  {
+    compile("cs_6_5_half", "rt_shadows_cs");
+  }
+  else
+  {
+    compile("cs_6_5", "rt_shadows_cs");
+  }
+}

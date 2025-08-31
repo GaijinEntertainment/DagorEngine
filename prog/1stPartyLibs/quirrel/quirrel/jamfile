@@ -10,24 +10,16 @@ AddIncludes =
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
   $(Root)/prog/1stPartyLibs/eastl/include
   $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/internal
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/helpers
 ;
 
 Sources =
   squirrel/sqapi.cpp
-  squirrel/sqast.cpp
-  squirrel/sqcompilationcontext.cpp
-  squirrel/sqastparser.cpp
-  squirrel/sqastcodegen.cpp
-  squirrel/sqbinaryast.cpp
   squirrel/sqbaselib.cpp
   squirrel/sqclass.cpp
-  squirrel/sqcompiler.cpp
   squirrel/sqdebug.cpp
-  squirrel/sqfuncstate.cpp
-  squirrel/sqoptimizer.cpp
-  squirrel/sqlexer.cpp
   squirrel/sqobject.cpp
   squirrel/sqstate.cpp
   squirrel/sqtable.cpp
@@ -35,8 +27,7 @@ Sources =
   squirrel/memtrace.cpp
   squirrel/sqdedupshrinker.cpp
   squirrel/sqstringlib.cpp
-  squirrel/optimizations/closureHoisting.cpp
-  squirrel/static_analyzer/analyzer.cpp
+  squirrel/sqtypeparser.cpp
 
   # custom extensions
   squirrel/sqext.cpp
@@ -52,10 +43,12 @@ Sources =
   sqstdlib/sqstdstream.cpp
   sqstdlib/sqstdsystem.cpp
   sqstdlib/sqstddatetime.cpp
+  sqstdlib/sqstdserialization.cpp
 ;
 
 UseProgLibs +=
   3rdPartyLibs/eastl
+  1stPartyLibs/quirrel/quirrel/squirrel/compiler
 ;
 
 SqUseDefaultMemory ?= no ;
@@ -64,20 +57,20 @@ if $(SqUseDefaultMemory) = yes {
   Sources += squirrel/sqmem.cpp ;
 } else {
   if $(SqVarTrace) = yes {
-    CPPopt += -DENABLE_FIXED_ALLOC=1 ;
+    CPPopt += -DENABLE_FIXED_ALLOC ;
   }
   Sources += squirrel/sqmemdagor.cpp ;
 }
 
 if $(SqVarTrace) = yes {
-  CPPopt += -DSQ_VAR_TRACE_ENABLED=1 ;
+  CPPopt += -DSQ_VAR_TRACE_ENABLED ;
   Sources += squirrel/vartrace.cpp ;
 } else {
   Sources += squirrel/vartracestub.cpp ;
 }
 
 if $(Config) != rel && $(Config) != irel {
-  CPPopt += -DSQ_CHECK_THREAD=1 ;
+  CPPopt += -DSQ_CHECK_THREAD ;
 }
 
 if $(Config) in rel irel {
