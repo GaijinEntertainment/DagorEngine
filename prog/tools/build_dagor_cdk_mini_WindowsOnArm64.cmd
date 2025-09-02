@@ -44,6 +44,8 @@ jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/ja
   if errorlevel 1 goto error
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/jamfile-dx12
   if errorlevel 1 goto error
+jam -sPlatformArch=arm64 Root=../.. -f shaderCompiler2/jamfile-stub
+  if errorlevel 1 goto error
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/hlslCompiler/jamfile
   if errorlevel 1 goto error
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/nodeBased/jamfile
@@ -85,7 +87,7 @@ jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/resUpda
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/resClean/jamfile
   if errorlevel 1 goto error
 
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -sConfig=dev -sPlatformArch=x86_64 -f consoleSq/jamfile
+jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -sConfig=dev -sPlatformArch=arm64 -f consoleSq/jamfile
   if errorlevel 1 goto error
 
 rem jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f miscUtils/fastdep-0.16/jamfile
